@@ -1,0 +1,67 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: heptacert
+      POSTGRES_USER: heptacert
+      POSTGRES_PASSWORD: heptacert
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U heptacert -d heptacert"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    env_file:
+      - ./.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://heptacert:heptacert@db:5432/heptacert
+      PUBLIC_BASE_URL: http://localhost:8000
+      STORAGE_MODE: local
+      LOCAL_STORAGE_DIR: /data
+    volumes:
+      - heptacert_data:/data
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      NEXT_PUBLIC_API_BASE: http://localhost:8000/api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+
+  db_init:
+    image: postgres:16
+    depends_on:
+      - db
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./backend/migrations:/migrations:ro
+    entrypoint: >
+      sh -lc "
+      until pg_isready -h db -U ${POSTGRES_USER}; do sleep 1; done;
+      psql -h db -U ${POSTGRES_USER} -d ${POSTGRES_DB} -f /migrations/001_add_cert_fields.sql;
+      echo 'db_init done';
+      "
+    restart: "no"
+
+    
+volumes:
+  db_data:
+  heptacert_data:
