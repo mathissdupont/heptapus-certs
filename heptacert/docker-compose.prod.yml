@@ -1,0 +1,28 @@
+# Production override — removes port bindings, joins Caddy network
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+services:
+  backend:
+    ports: !reset []
+    environment:
+      PUBLIC_BASE_URL: https://cert.heptapusgroup.com
+      FRONTEND_BASE_URL: https://cert.heptapusgroup.com
+    networks:
+      - default
+      - caddy_net
+
+  frontend:
+    ports: !reset []
+    environment:
+      NEXT_PUBLIC_API_BASE: https://cert.heptapusgroup.com/api
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_BASE: https://cert.heptapusgroup.com/api
+    networks:
+      - default
+      - caddy_net
+
+networks:
+  caddy_net:
+    name: worldpass-real_default
+    external: true
