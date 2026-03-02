@@ -2,6 +2,7 @@ import csv
 import hashlib
 import hmac
 import io
+import json
 import math
 import os
 import secrets
@@ -40,6 +41,9 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from datetime import date as date_type
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.date import DateTrigger
 from sqlalchemy import (
     Boolean, String, Integer, BigInteger, DateTime, ForeignKey, Text,
     Enum as SAEnum, UniqueConstraint, Index, select, func, update, Date as sa_Date, Time as sa_Time
@@ -142,6 +146,7 @@ class User(Base):
 
     events: Mapped[List["Event"]] = relationship(back_populates="admin")
     transactions: Mapped[List["Transaction"]] = relationship(back_populates="user")
+    email_config: Mapped[Optional["UserEmailConfig"]] = relationship(back_populates="user", uselist=False)
 
 
 class Event(Base):
@@ -160,12 +165,17 @@ class Event(Base):
     min_sessions_required: Mapped[int] = mapped_column(Integer, default=1)
     # Banner/hero image (migration 004)
     event_banner_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Email settings (migration 008)
+    auto_email_on_cert: Mapped[bool] = mapped_column(Boolean, default=False)
+    cert_email_template_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     admin: Mapped["User"] = relationship(back_populates="events")
     certificates: Mapped[List["Certificate"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
     sessions: Mapped[List["EventSession"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
     attendees: Mapped[List["Attendee"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
     template_snapshots: Mapped[List["EventTemplateSnapshot"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
+    email_templates: Mapped[List["EmailTemplate"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
+    bulk_email_jobs: Mapped[List["BulkEmailJob"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
 
     __table_args__ = (Index("ix_events_admin_id_created", "admin_id", "created_at"),)
 
@@ -203,6 +213,7 @@ class Transaction(Base):
     amount: Mapped[int] = mapped_column(Integer)
     type: Mapped[TxType] = mapped_column(SAEnum(TxType, name="tx_type_enum"), index=True)
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    description: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
 
     user: Mapped["User"] = relationship(back_populates="transactions")
 
@@ -360,6 +371,113 @@ class EventTemplateSnapshot(Base):
     created_at:         Mapped[datetime]      = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     event: Mapped["Event"] = relationship(back_populates="template_snapshots")
+
+
+# ── Email System Models (created by migration 008) ───────────────────────────
+
+class UserEmailConfig(Base):
+    __tablename__ = "user_email_configs"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True)
+    smtp_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    from_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    reply_to: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    auto_cc: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    enable_tracking_pixel: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    user: Mapped["User"] = relationship(back_populates="email_config")
+
+
+class CertificateTemplate(Base):
+    __tablename__ = "certificate_templates"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(200))
+    template_image_url: Mapped[str] = mapped_column(Text)
+    config: Mapped[dict] = mapped_column(JSONB, default=dict)
+    is_default: Mapped[bool] = mapped_column(Boolean, default=True)
+    order_index: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class EmailTemplate(Base):
+    __tablename__ = "email_templates"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True, nullable=True)
+    created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    subject_tr: Mapped[str] = mapped_column(String(255))
+    subject_en: Mapped[str] = mapped_column(String(255))
+    body_html: Mapped[str] = mapped_column(Text)
+    template_type: Mapped[str] = mapped_column(String(50), default="custom")  # system or custom
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    event: Mapped[Optional["Event"]] = relationship(back_populates="email_templates")
+    creator: Mapped["User"] = relationship(foreign_keys=[created_by])
+
+
+class BulkEmailJob(Base):
+    __tablename__ = "bulk_email_jobs"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id: Mapped[int] = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    email_template_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("email_templates.id", ondelete="SET NULL"), nullable=True)
+    recipients_count: Mapped[int] = mapped_column(Integer, default=0)
+    sent_count: Mapped[int] = mapped_column(Integer, default=0)
+    failed_count: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(50), default="pending")  # pending | sending | completed | failed
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    event: Mapped["Event"] = relationship(back_populates="bulk_email_jobs")
+    creator: Mapped["User"] = relationship(foreign_keys=[created_by])
+    email_template: Mapped[Optional["EmailTemplate"]] = relationship()
+
+
+class EmailDeliveryLog(Base):
+    __tablename__ = "email_delivery_logs"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    bulk_job_id: Mapped[int] = mapped_column(Integer, ForeignKey("bulk_email_jobs.id", ondelete="CASCADE"), index=True)
+    attendee_id: Mapped[int] = mapped_column(Integer, ForeignKey("attendees.id", ondelete="CASCADE"), index=True)
+    recipient_email: Mapped[str] = mapped_column(String(255))
+    status: Mapped[str] = mapped_column(String(50), default="pending")  # pending, sent, bounced, failed, opened
+    reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    opened_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    bulk_job: Mapped["BulkEmailJob"] = relationship()
+    attendee: Mapped["Attendee"] = relationship()
+
+
+class WebhookSubscription(Base):
+    __tablename__ = "webhook_subscriptions"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    event_type: Mapped[str] = mapped_column(String(50), index=True)  # email.sent, email.failed, email.bounced, email.opened
+    url: Mapped[str] = mapped_column(Text)
+    secret: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    user: Mapped["User"] = relationship()
+
+
+class WebhookLog(Base):
+    __tablename__ = "webhook_logs"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    webhook_id: Mapped[int] = mapped_column(Integer, ForeignKey("webhook_subscriptions.id", ondelete="CASCADE"), index=True)
+    event_type: Mapped[str] = mapped_column(String(50))
+    payload: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    http_status: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    webhook: Mapped["WebhookSubscription"] = relationship()
 
 
 # ── Attendance management models (migration 003) ──────────────────────────────
@@ -759,6 +877,140 @@ class WaitlistEntryOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+# ── Email System Schemas ──────────────────────────────────────────────────────
+
+class EmailTemplateIn(BaseModel):
+    name: str = Field(min_length=2, max_length=200)
+    subject_tr: str = Field(min_length=2, max_length=255)
+    subject_en: str = Field(min_length=2, max_length=255)
+    body_html: str = Field(min_length=5)
+
+
+class EmailTemplateOut(BaseModel):
+    id: int
+    event_id: Optional[int]
+    created_by: int
+    name: str
+    subject_tr: str
+    subject_en: str
+    body_html: str
+    template_type: str
+    is_default: bool
+    created_at: datetime
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CertificateTemplateOut(BaseModel):
+    id: int
+    name: str
+    template_image_url: str
+    config: Dict[str, Any]
+    is_default: bool
+    order_index: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+class BulkEmailJobIn(BaseModel):
+    email_template_id: int
+    recipient_type: str = "attendees"  # attendees | certified
+
+
+class BulkEmailJobOut(BaseModel):
+    id: int
+    event_id: int
+    created_by: int
+    email_template_id: Optional[int]
+    recipients_count: int
+    sent_count: int
+    failed_count: int
+    status: str
+    error_message: Optional[str]
+    created_at: datetime
+    started_at: Optional[datetime]
+    completed_at: Optional[datetime]
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserEmailConfigOut(BaseModel):
+    id: int
+    user_id: int
+    smtp_enabled: bool
+    from_name: Optional[str]
+    reply_to: Optional[str]
+    auto_cc: Optional[str]
+    enable_tracking_pixel: bool
+    model_config = ConfigDict(from_attributes=True)
+
+
+class EmailConfigUpdateIn(BaseModel):
+    smtp_enabled: bool
+    from_name: Optional[str] = None
+    reply_to: Optional[str] = None
+    auto_cc: Optional[str] = None
+    enable_tracking_pixel: bool = False
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = None
+    smtp_user: Optional[str] = None
+    smtp_password: Optional[str] = None
+
+
+class EmailConfigTestRequest(BaseModel):
+    smtp_host: str
+    smtp_port: int
+    smtp_user: str
+    smtp_password: str
+    from_email: str
+
+
+class EmailConfigTestResponse(BaseModel):
+    status: str  # "success" or "error"
+    message: str
+    verified_at: Optional[datetime] = None
+
+
+class WebhookSubscriptionOut(BaseModel):
+    id: int
+    user_id: int
+    event_type: str
+    url: str
+    is_active: bool
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+class EmailDeliveryLogOut(BaseModel):
+    id: int
+    bulk_job_id: int
+    attendee_id: int
+    status: str  # sent, bounced, failed, opened
+    reason: Optional[str]
+    sent_at: datetime
+    opened_at: Optional[datetime]
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ScheduledEmailIn(BaseModel):
+    email_template_id: int
+    recipient_type: str = "attendees"  # attendees | certified
+    schedule_type: str = "immediate"  # immediate | datetime | cron
+    scheduled_datetime: Optional[datetime] = None  # For datetime scheduling
+    cron_expression: Optional[str] = None  # For cron scheduling (e.g., "0 9 * * MON")
+    description: Optional[str] = None
+
+
+class ScheduledEmailOut(BaseModel):
+    id: int
+    event_id: int
+    email_template_id: int
+    schedule_type: str
+    scheduled_at: Optional[datetime]
+    cron_expression: Optional[str]
+    status: str  # pending | scheduled | completed | failed | cancelled
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
 DEFAULT_PRICING: List[dict] = [
     {
         "id": "starter",
@@ -829,6 +1081,13 @@ DEFAULT_PRICING: List[dict] = [
             "API erişimi (tam)",
             "Özel alan adı doğrulama",
             "Marka watermark kaldırma",
+            "Otomatik email sistemi (bulk mail + şablonlar)",
+            "5-7 hazır sertifika şablonu",
+            "Custom event açıklaması ve banneri",
+            "Webhook API desteği",
+            "Advanced analytics dashboard",
+            "Custom form alanları",
+            "Katılımcı self-service sertifika indirme",
         ],
         "features_en": [
             "2,000 HC per month",
@@ -840,6 +1099,13 @@ DEFAULT_PRICING: List[dict] = [
             "Full API access",
             "Custom domain verification",
             "Remove branding watermark",
+            "Automated email system (bulk mail + templates)",
+            "5-7 pre-built certificate templates",
+            "Custom event description & banner",
+            "Webhook API support",
+            "Advanced analytics dashboard",
+            "Custom form fields",
+            "Attendee self-service certificate download",
         ],
         "is_free": False,
         "is_enterprise": False,
@@ -932,18 +1198,75 @@ def verify_email_token(token: str, max_age: int = 86400) -> dict:
     return get_signer().loads(token, max_age=max_age)
 
 
-async def send_email_async(to: str, subject: str, html_body: str) -> None:
+async def send_email_async(
+    to: str,
+    subject: str,
+    html_body: str,
+    template_vars: Optional[Dict[str, Any]] = None,
+    attachments: Optional[List[tuple[str, bytes, str]]] = None,  # [(filename, bytes, mimetype),...]
+) -> None:
+    """
+    Send email asynchronously.
+    
+    Args:
+        to: Recipient email address
+        subject: Email subject
+        html_body: HTML body or Jinja2 template string
+        template_vars: Variables to render in Jinja2 template
+        attachments: Optional list of (filename, bytes_content, mimetype) tuples
+    """
     if not settings.smtp_host:
         logger.warning(
             "[EMAIL — no SMTP configured] To: %s | Subject: %s\nBody: %s",
             to, subject, html_body
         )
         return
+    
+    # Render Jinja2 template if template_vars provided
+    if template_vars:
+        try:
+            from jinja2 import Template
+            template = Template(html_body)
+            html_body = template.render(**template_vars)
+            subject = Template(subject).render(**template_vars)
+        except Exception as exc:
+            logger.error("Jinja2 template rendering failed: %s", exc)
+            return
+    
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"] = settings.smtp_from
     msg["To"] = to
+    # Add unsubscribe header (RFC 2369)
+    msg["List-Unsubscribe"] = f"<mailto:{settings.smtp_from}?subject=unsubscribe>"
+    
     msg.attach(MIMEText(html_body, "html"))
+    
+    # Attach files if provided
+    if attachments:
+        for filename, file_bytes, mimetype in attachments:
+            from email.mime.base import MIMEBase
+            from email import encoders
+            
+            maintype, subtype = mimetype.split("/", 1)
+            if maintype == "text":
+                from email.mime.text import MIMEText
+                attachment = MIMEText(file_bytes.decode(), _subtype=subtype)
+            elif maintype == "image":
+                from email.mime.image import MIMEImage
+                attachment = MIMEImage(file_bytes, _subtype=subtype)
+            elif maintype == "application":
+                attachment = MIMEBase(maintype, subtype)
+                attachment.set_payload(file_bytes)
+                encoders.encode_base64(attachment)
+            else:
+                attachment = MIMEBase(maintype, subtype)
+                attachment.set_payload(file_bytes)
+                encoders.encode_base64(attachment)
+            
+            attachment.add_header("Content-Disposition", "attachment", filename=filename)
+            msg.attach(attachment)
+    
     try:
         await aiosmtplib.send(
             msg,
@@ -953,8 +1276,142 @@ async def send_email_async(to: str, subject: str, html_body: str) -> None:
             password=settings.smtp_password or None,
             start_tls=True,
         )
+        logger.info("Email sent successfully to %s", to)
     except Exception as exc:
-        logger.error("SMTP send failed: %s", exc)
+        logger.error("SMTP send failed to %s: %s", to, exc)
+        # Retry logic could be added here with exponential backoff
+
+
+async def trigger_webhooks(
+    user_id: int,
+    event_type: str,
+    payload: Dict[str, Any],
+    db_session: Optional[Any] = None,
+) -> None:
+    """
+    Trigger all active webhook subscriptions for a given event type.
+    
+    Args:
+        user_id: User ID to filter webhooks
+        event_type: Event type (e.g., "email.sent", "email.failed", "email.opened")
+        payload: Data to send in webhook payload
+        db_session: Optional database session (creates one if not provided)
+    """
+    import hmac
+    import hashlib
+    import aiohttp
+    
+    # Get webhooks from database
+    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+    
+    async with SessionLocal() as db:
+        res = await db.execute(
+            select(WebhookSubscription).where(
+                (WebhookSubscription.user_id == user_id) &
+                (WebhookSubscription.event_type == event_type) &
+                (WebhookSubscription.is_active == True)
+            )
+        )
+        webhooks = res.scalars().all()
+    
+    if not webhooks:
+        return
+    
+    # Send to each webhook
+    async with aiohttp.ClientSession() as session:
+        for webhook in webhooks:
+            try:
+                # Create HMAC signature
+                signature = ""
+                if webhook.secret:
+                    payload_json = json.dumps(payload)
+                    signature = hmac.new(
+                        webhook.secret.encode(),
+                        payload_json.encode(),
+                        hashlib.sha256
+                    ).hexdigest()
+                else:
+                    payload_json = json.dumps(payload)
+                
+                # Send POST request
+                headers = {
+                    "Content-Type": "application/json",
+                    "X-Webhook-Event": event_type,
+                    "X-Webhook-Timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+                
+                if signature:
+                    headers["X-Webhook-Signature"] = f"sha256={signature}"
+                
+                async with session.post(
+                    webhook.url,
+                    json=payload,
+                    headers=headers,
+                    timeout=aiohttp.ClientTimeout(total=10),
+                ) as resp:
+                    response_body = await resp.text() if resp.status < 300 else None
+                    
+                    # Log the delivery
+                    await log_webhook_delivery(
+                        webhook_id=webhook.id,
+                        event_type=event_type,
+                        payload=payload,
+                        http_status=resp.status,
+                        error_message=response_body if resp.status >= 400 else None,
+                    )
+                    
+                    if resp.status >= 400:
+                        logger.warning(
+                            "Webhook delivery failed for webhook %d: HTTP %d",
+                            webhook.id, resp.status
+                        )
+                    else:
+                        logger.info(
+                            "Webhook delivered successfully for webhook %d",
+                            webhook.id
+                        )
+            
+            except asyncio.TimeoutError:
+                await log_webhook_delivery(
+                    webhook_id=webhook.id,
+                    event_type=event_type,
+                    payload=payload,
+                    http_status=None,
+                    error_message="Request timeout (10s)",
+                )
+                logger.warning("Webhook request timeout for webhook %d", webhook.id)
+            
+            except Exception as e:
+                await log_webhook_delivery(
+                    webhook_id=webhook.id,
+                    event_type=event_type,
+                    payload=payload,
+                    http_status=None,
+                    error_message=str(e),
+                )
+                logger.error("Webhook trigger failed for webhook %d: %s", webhook.id, e)
+
+
+async def log_webhook_delivery(
+    webhook_id: int,
+    event_type: str,
+    payload: Dict[str, Any],
+    http_status: Optional[int] = None,
+    error_message: Optional[str] = None,
+) -> None:
+    """Log a webhook delivery attempt."""
+    async with SessionLocal() as db:
+        log_entry = WebhookLog(
+            webhook_id=webhook_id,
+            event_type=event_type,
+            payload=payload,
+            http_status=http_status,
+            error_message=error_message,
+        )
+        db.add(log_entry)
+        await db.commit()
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 
 
@@ -1064,6 +1521,34 @@ async def require_paid_plan(
         raise HTTPException(
             status_code=403,
             detail="Bu özellik sadece Pro, Growth ve Enterprise planlarında kullanılabilir.",
+        )
+    now = datetime.now(timezone.utc)
+    if sub.expires_at and sub.expires_at < now:
+        raise HTTPException(
+            status_code=403,
+            detail="Aboneliğiniz sona ermiş. Lütfen planınızı yenileyin.",
+        )
+    return me
+
+
+async def require_email_system_access(
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Email system features (bulk mail, templates, etc) require Growth or Enterprise plan. Superadmins bypass."""
+    if me.role == Role.superadmin:
+        return me
+    res = await db.execute(
+        select(Subscription)
+        .where(Subscription.user_id == me.id, Subscription.is_active == True)
+        .order_by(Subscription.expires_at.desc())
+        .limit(1)
+    )
+    sub = res.scalar_one_or_none()
+    if not sub or sub.plan_id not in ("growth", "enterprise"):
+        raise HTTPException(
+            status_code=403,
+            detail="Oto-mail sistemi Growth ve Enterprise planlarında kullanılabilir.",
         )
     now = datetime.now(timezone.utc)
     if sub.expires_at and sub.expires_at < now:
@@ -1225,6 +1710,185 @@ async def startup():
         await db.commit()
         logger.info("Startup URL migration complete.")
 
+    # Seed default certificate templates
+    async with SessionLocal() as db:
+        cert_temp_count = await db.execute(select(func.count(CertificateTemplate.id)))
+        if cert_temp_count.scalar() == 0:
+            templates = [
+                CertificateTemplate(
+                    name="Minimalist",
+                    template_image_url=f"{settings.public_base_url}/api/files/cert-templates/minimalist.svg",
+                    config={
+                        "isim_x": 300, "isim_y": 400,
+                        "font_size": 48, "font_color": "#333333",
+                        "name_text_align": "center", "name_font_weight": "bold",
+                        "qr_x": 50, "qr_y": 650, "qr_size": 200,
+                        "cert_id_x": 50, "cert_id_y": 50, "cert_id_font_size": 18,
+                        "show_hologram": False,
+                    },
+                    is_default=True,
+                    order_index=0,
+                ),
+                CertificateTemplate(
+                    name="Profesyonel",
+                    template_image_url=f"{settings.public_base_url}/api/files/cert-templates/professional.svg",
+                    config={
+                        "isim_x": 400, "isim_y": 380,
+                        "font_size": 56, "font_color": "#1a4d99",
+                        "name_text_align": "center", "name_font_weight": "bold", "name_font_style": "italic",
+                        "qr_x": 80, "qr_y": 680, "qr_size": 220,
+                        "cert_id_x": 80, "cert_id_y": 80, "cert_id_font_size": 20,
+                        "show_hologram": True,
+                    },
+                    is_default=True,
+                    order_index=1,
+                ),
+                CertificateTemplate(
+                    name="Renkli",
+                    template_image_url=f"{settings.public_base_url}/api/files/cert-templates/colorful.svg",
+                    config={
+                        "isim_x": 350, "isim_y": 420,
+                        "font_size": 52, "font_color": "#ff6b6b",
+                        "name_text_align": "center", "name_font_weight": "bold",
+                        "qr_x": 100, "qr_y": 700, "qr_size": 200,
+                        "cert_id_x": 60, "cert_id_y": 60, "cert_id_font_size": 22,
+                        "show_hologram": True,
+                    },
+                    is_default=True,
+                    order_index=2,
+                ),
+                CertificateTemplate(
+                    name="Kurumsal",
+                    template_image_url=f"{settings.public_base_url}/api/files/cert-templates/corporate.svg",
+                    config={
+                        "isim_x": 450, "isim_y": 400,
+                        "font_size": 48, "font_color": "#2c3e50",
+                        "name_text_align": "center", "name_font_weight": "normal",
+                        "qr_x": 50, "qr_y": 680, "qr_size": 180,
+                        "cert_id_x": 50, "cert_id_y": 50, "cert_id_font_size": 20,
+                        "show_hologram": True,
+                    },
+                    is_default=True,
+                    order_index=3,
+                ),
+                CertificateTemplate(
+                    name="Modern",
+                    template_image_url=f"{settings.public_base_url}/api/files/cert-templates/modern.svg",
+                    config={
+                        "isim_x": 400, "isim_y": 380,
+                        "font_size": 54, "font_color": "#6366f1",
+                        "name_text_align": "center", "name_font_weight": "bold",
+                        "qr_x": 120, "qr_y": 700, "qr_size": 200,
+                        "cert_id_x": 70, "cert_id_y": 70, "cert_id_font_size": 19,
+                        "show_hologram": False,
+                    },
+                    is_default=True,
+                    order_index=4,
+                ),
+                CertificateTemplate(
+                    name="Elegant",
+                    template_image_url=f"{settings.public_base_url}/api/files/cert-templates/elegant.svg",
+                    config={
+                        "isim_x": 425, "isim_y": 400,
+                        "font_size": 50, "font_color": "#8b7355",
+                        "name_text_align": "center", "name_font_weight": "bold", "name_font_style": "italic",
+                        "qr_x": 75, "qr_y": 710, "qr_size": 190,
+                        "cert_id_x": 60, "cert_id_y": 60, "cert_id_font_size": 21,
+                        "show_hologram": True,
+                    },
+                    is_default=True,
+                    order_index=5,
+                ),
+                CertificateTemplate(
+                    name="Akademik",
+                    template_image_url=f"{settings.public_base_url}/api/files/cert-templates/academic.svg",
+                    config={
+                        "isim_x": 400, "isim_y": 420,
+                        "font_size": 56, "font_color": "#003d5c",
+                        "name_text_align": "center", "name_font_weight": "bold",
+                        "qr_x": 60, "qr_y": 700, "qr_size": 210,
+                        "cert_id_x": 80, "cert_id_y": 80, "cert_id_font_size": 22,
+                        "show_hologram": True,
+                    },
+                    is_default=True,
+                    order_index=6,
+                ),
+            ]
+            for tmpl in templates:
+                db.add(tmpl)
+            await db.commit()
+            logger.info("Seeded %d default certificate templates", len(templates))
+
+    # Seed default email templates
+    async with SessionLocal() as db:
+        email_temp_count = await db.execute(
+            select(func.count(EmailTemplate.id)).where(EmailTemplate.template_type == "system")
+        )
+        if email_temp_count.scalar() == 0:
+            # Get a superadmin to assign as creator (use first superadmin or create one)
+            superadmin_res = await db.execute(
+                select(User).where(User.role == Role.superadmin).limit(1)
+            )
+            superadmin = superadmin_res.scalar_one_or_none()
+            if superadmin:
+                email_templates = [
+                    EmailTemplate(
+                        event_id=None,
+                        created_by=superadmin.id,
+                        name="Sertifika Teslim - TR",
+                        subject_tr="🎉 Sertifikanız Hazır! | {{event_name}}",
+                        subject_en="🎉 Your Certificate is Ready! | {{event_name}}",
+                        body_html="""
+<h2>Merhaba {{recipient_name}},</h2>
+<p>Tebrikler! {{event_name}} etkinliğine katılım için sertifikanız hazır.</p>
+
+<div style="margin: 20px 0; padding: 15px; background: #f0f9ff; border-radius: 5px;">
+    <p><a href="{{certificate_link}}" style="display: inline-block; padding: 10px 20px; background: #3b82f6; color: white; text-decoration: none; border-radius: 5px;">Sertifikayı İndir</a></p>
+</div>
+
+<p><strong>QR Kod ile Doğrulama:</strong></p>
+<p>Sertifikanız QR kodu tarafından korunmaktadır ve resmi olarak doğrulanabilir.</p>
+
+<br>
+<p>Sorularınız için <a href="mailto:support@heptacert.com">destek@heptacert.com</a> adresine yazabilirsiniz.</p>
+
+<p>Saygılarımızla,<br>HeptaCert Ekibi</p>
+                        """,
+                        template_type="system",
+                        is_default=True,
+                    ),
+                    EmailTemplate(
+                        event_id=None,
+                        created_by=superadmin.id,
+                        name="Kayıt Onayı - TR",
+                        subject_tr="✅ Kaydınız Başarıyla Alındı | {{event_name}}",
+                        subject_en="✅ Your Registration is Confirmed | {{event_name}}",
+                        body_html="""
+<h2>Merhaba {{recipient_name}},</h2>
+<p>{{event_name}} etkinliğine kaydınız başarıyla tamamlanmıştır.</p>
+
+<p><strong>Etkinlik Detayları:</strong></p>
+<ul>
+    <li><strong>Tarih:</strong> {{event_date}}</li>
+    <li><strong>Yer:</strong> {{event_location}}</li>
+</ul>
+
+<p>Etkinlik hakkında daha fazla bilgi için lütfen <a href="{{event_link}}">buraya tıklayın</a>.</p>
+
+<br>
+<p>Sorularınız için <a href="mailto:support@heptacert.com">destek@heptacert.com</a> adresine yazabilirsiniz.</p>
+
+<p>Saygılarımızla,<br>HeptaCert Ekibi</p>
+                        """,
+                        template_type="system",
+                        is_default=True,
+                    ),
+                ]
+                for tmpl in email_templates:
+                    db.add(tmpl)
+                await db.commit()
+                logger.info("Seeded %d default email templates", len(email_templates))
+
     # Start background scheduler for expiring cert notifications
     try:
         from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -1312,10 +1976,180 @@ async def startup():
                     logger.info("Monthly HC renewal: user %s +%d HC (%s)", usr.email, quota, sub_r2.plan_id)
                 await db_r.commit()
 
+        async def _process_bulk_emails():
+            """Process pending bulk email jobs every 5 minutes."""
+            from jinja2 import Template
+            
+            async with SessionLocal() as db_bulk:
+                # Get all pending jobs
+                res_jobs = await db_bulk.execute(
+                    select(BulkEmailJob).where(
+                        BulkEmailJob.status.in_(["pending", "sending"])
+                    ).limit(10)
+                )
+                jobs = res_jobs.scalars().all()
+                
+                for job in jobs:
+                    try:
+                        # Update job status to sending
+                        job.status = "sending"
+                        job.started_at = datetime.now(timezone.utc)
+                        db_bulk.add(job)
+                        await db_bulk.commit()
+                        
+                        # Get event and template
+                        ev_res = await db_bulk.execute(
+                            select(Event).where(Event.id == job.event_id)
+                        )
+                        event = ev_res.scalar_one_or_none()
+                        if not event:
+                            job.status = "failed"
+                            job.error_message = "Event not found"
+                            db_bulk.add(job)
+                            await db_bulk.commit()
+                            continue
+                        
+                        t_res = await db_bulk.execute(
+                            select(EmailTemplate).where(EmailTemplate.id == job.email_template_id)
+                        )
+                        template = t_res.scalar_one_or_none()
+                        if not template:
+                            job.status = "failed"
+                            job.error_message = "Email template not found"
+                            db_bulk.add(job)
+                            await db_bulk.commit()
+                            continue
+                        
+                        # Get recipients (attendees or certificate holders)
+                        # For now, assume "attendees" -- could parse from job metadata
+                        att_res = await db_bulk.execute(
+                            select(Attendee).where(Attendee.event_id == job.event_id)
+                        )
+                        attendees = att_res.scalars().all()
+                        
+                        if not attendees:
+                            job.status = "completed"
+                            job.sent_count = 0
+                            db_bulk.add(job)
+                            await db_bulk.commit()
+                            continue
+                        
+                        # Process in batches for rate limiting
+                        batch_size = 50
+                        sent = 0
+                        failed = 0
+                        
+                        for i in range(0, len(attendees), batch_size):
+                            batch = attendees[i:i+batch_size]
+                            
+                            for attendee in batch:
+                                try:
+                                    # Render template with variables
+                                    template_vars = {
+                                        "recipient_name": attendee.name,
+                                        "recipient_email": attendee.email,
+                                        "event_name": event.name,
+                                        "event_date": event.event_date.isoformat() if event.event_date else "TBD",
+                                        "event_location": event.event_location or "Online",
+                                        "certificate_link": f"{settings.public_base_url}/verify",
+                                        "event_link": f"{settings.public_base_url}/events/{event.id}/register",
+                                    }
+                                    
+                                    # Render subject and body
+                                    subj = Template(template.subject_tr).render(**template_vars)
+                                    body = Template(template.body_html).render(**template_vars)
+                                    
+                                    # Send mail
+                                    await send_email_async(
+                                        to=attendee.email,
+                                        subject=subj,
+                                        html_body=body,
+                                    )
+                                    
+                                    # Log delivery
+                                    delivery_log = EmailDeliveryLog(
+                                        bulk_job_id=job.id,
+                                        attendee_id=attendee.id,
+                                        recipient_email=attendee.email,
+                                        status="sent",
+                                    )
+                                    db_bulk.add(delivery_log)
+                                    await db_bulk.commit()
+                                    
+                                    # Trigger webhook
+                                    await trigger_webhooks(
+                                        user_id=event.admin_id,
+                                        event_type="email.sent",
+                                        payload={
+                                            "event_id": event.id,
+                                            "recipient_email": attendee.email,
+                                            "recipient_name": attendee.name,
+                                            "sent_at": datetime.now(timezone.utc).isoformat(),
+                                        },
+                                    )
+                                    
+                                    sent += 1
+                                except Exception as e:
+                                    # Log failed delivery
+                                    delivery_log = EmailDeliveryLog(
+                                        bulk_job_id=job.id,
+                                        attendee_id=attendee.id,
+                                        recipient_email=attendee.email,
+                                        status="failed",
+                                        reason=str(e),
+                                    )
+                                    db_bulk.add(delivery_log)
+                                    await db_bulk.commit()
+                                    
+                                    # Trigger failure webhook
+                                    await trigger_webhooks(
+                                        user_id=event.admin_id,
+                                        event_type="email.failed",
+                                        payload={
+                                            "event_id": event.id,
+                                            "recipient_email": attendee.email,
+                                            "recipient_name": attendee.name,
+                                            "reason": str(e),
+                                            "failed_at": datetime.now(timezone.utc).isoformat(),
+                                        },
+                                    )
+                                    
+                                    failed += 1
+                                    logger.error("Failed to send email to %s: %s", attendee.email, e)
+                            
+                            # Update job progress
+                            job.sent_count = sent
+                            job.failed_count = failed
+                            db_bulk.add(job)
+                            await db_bulk.commit()
+                            
+                            # Rate limiting - wait between batches
+                            if i + batch_size < len(attendees):
+                                import asyncio
+                                await asyncio.sleep(5)
+                        
+                        # Mark job as completed
+                        job.status = "completed"
+                        job.completed_at = datetime.now(timezone.utc)
+                        job.sent_count = sent
+                        job.failed_count = failed
+                        db_bulk.add(job)
+                        await db_bulk.commit()
+                        logger.info("Bulk email job %d completed: %d sent, %d failed", job.id, sent, failed)
+                        
+                    except Exception as e:
+                        logger.error("Bulk email job %d failed: %s", job.id, e)
+                        job.status = "failed"
+                        job.error_message = str(e)
+                        job.completed_at = datetime.now(timezone.utc)
+                        db_bulk.add(job)
+                        await db_bulk.commit()
+
         scheduler.add_job(_notify_expiring_certs, "cron", hour=2, minute=0)
         scheduler.add_job(_monthly_hc_renewal, "cron", hour=3, minute=30)
+        scheduler.add_job(_process_bulk_emails, "interval", minutes=5)  # Every 5 minutes
         scheduler.start()
-        logger.info("APScheduler started — cert notifications + monthly HC renewal active")
+        logger.info("APScheduler started — cert notifications + monthly HC renewal + bulk email processing")
     except Exception as e:
         logger.warning("APScheduler init failed (non-fatal): %s", e)
 
@@ -1553,6 +2387,995 @@ class AdminRowOut(BaseModel):
     email: EmailStr
     role: Role
     heptacoin_balance: int
+
+
+# ── Admin: Email Templates ────────────────────────────────────────────────────
+
+@app.get(
+    "/api/admin/events/{event_id}/email-templates",
+    response_model=list[EmailTemplateOut],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
+)
+async def list_event_email_templates(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get all email templates for an event."""
+    # Verify ownership
+    ev_res = await db.execute(
+        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
+    )
+    if not ev_res.scalar_one_or_none() and me.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+    
+    res = await db.execute(
+        select(EmailTemplate)
+        .where(EmailTemplate.event_id == event_id)
+        .order_by(EmailTemplate.created_at.desc())
+    )
+    return res.scalars().all()
+
+
+@app.post(
+    "/api/admin/events/{event_id}/email-templates",
+    response_model=EmailTemplateOut,
+    status_code=201,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
+)
+async def create_event_email_template(
+    event_id: int,
+    payload: EmailTemplateIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new email template for an event."""
+    # Verify ownership
+    ev_res = await db.execute(
+        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
+    )
+    if not ev_res.scalar_one_or_none() and me.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+    
+    template = EmailTemplate(
+        event_id=event_id,
+        created_by=me.id,
+        name=payload.name,
+        subject_tr=payload.subject_tr,
+        subject_en=payload.subject_en,
+        body_html=payload.body_html,
+        template_type="custom",
+        is_default=False,
+    )
+    db.add(template)
+    await db.commit()
+    await db.refresh(template)
+    return template
+
+
+@app.patch(
+    "/api/admin/events/{event_id}/email-templates/{template_id}",
+    response_model=EmailTemplateOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
+)
+async def update_event_email_template(
+    event_id: int,
+    template_id: int,
+    payload: EmailTemplateIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update an email template."""
+    # Verify ownership
+    ev_res = await db.execute(
+        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
+    )
+    if not ev_res.scalar_one_or_none() and me.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+    
+    t_res = await db.execute(
+        select(EmailTemplate).where(EmailTemplate.id == template_id, EmailTemplate.event_id == event_id)
+    )
+    template = t_res.scalar_one_or_none()
+    if not template:
+        raise HTTPException(status_code=404, detail="Template bulunamadı")
+    
+    template.name = payload.name
+    template.subject_tr = payload.subject_tr
+    template.subject_en = payload.subject_en
+    template.body_html = payload.body_html
+    db.add(template)
+    await db.commit()
+    await db.refresh(template)
+    return template
+
+
+@app.delete(
+    "/api/admin/events/{event_id}/email-templates/{template_id}",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
+)
+async def delete_event_email_template(
+    event_id: int,
+    template_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete an email template."""
+    # Verify ownership
+    ev_res = await db.execute(
+        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
+    )
+    if not ev_res.scalar_one_or_none() and me.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+    
+    t_res = await db.execute(
+        select(EmailTemplate).where(EmailTemplate.id == template_id, EmailTemplate.event_id == event_id)
+    )
+    template = t_res.scalar_one_or_none()
+    if not template:
+        raise HTTPException(status_code=404, detail="Template bulunamadı")
+    
+    await db.delete(template)
+    await db.commit()
+    return {"message": "Template silindi"}
+
+
+@app.post(
+    "/api/admin/events/{event_id}/email-templates/{template_id}/preview",
+    response_model=dict,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
+)
+async def preview_email_template(
+    event_id: int,
+    template_id: int,
+    payload: dict,  # { language: "tr" | "en", sample_attendee: { name: str, email: str } }
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Preview an email template with sample data."""
+    # Verify ownership
+    ev_res = await db.execute(
+        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
+    )
+    if not ev_res.scalar_one_or_none() and me.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+    
+    # Get template
+    t_res = await db.execute(
+        select(EmailTemplate).where(EmailTemplate.id == template_id, EmailTemplate.event_id == event_id)
+    )
+    template = t_res.scalar_one_or_none()
+    if not template:
+        raise HTTPException(status_code=404, detail="Template bulunamadı")
+    
+    # Get event for details
+    ev_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = ev_res.scalar_one_or_none()
+    
+    # Prepare sample data
+    language = payload.get("language", "tr")
+    sample_attendee = payload.get("sample_attendee", {"name": "Örnek Katılımcı", "email": "ornek@example.com"})
+    
+    # Simple template variable replacement
+    variables = {
+        f"{{{{{v}}}}}": sample_attendee[v] 
+        for v in sample_attendee.keys()
+        if hasattr(sample_attendee, '__getitem__') or isinstance(sample_attendee, dict)
+    }
+    variables = {
+        "{{attendee_name}}": sample_attendee.get("name", "Katılımcı"),
+        "{{attendee_email}}": sample_attendee.get("email", ""),
+        "{{event_name}}": event.name if event else "Etkinlik",
+        "{{event_date}}": event.date.isoformat() if (event and hasattr(event, 'date') and event.date) else "",
+    }
+    
+    # Select subject and body based on language
+    if language == "en" and hasattr(template, 'subject_en'):
+        subject = template.subject_en
+    else:
+        subject = template.subject_tr
+    
+    body_html = template.body_html
+    
+    # Replace variables
+    for var, value in variables.items():
+        subject = subject.replace(var, str(value))
+        body_html = body_html.replace(var, str(value))
+    
+    return {
+        "subject": subject,
+        "body_html": body_html,
+        "language": language,
+        "template_id": template_id,
+        "event_id": event_id,
+    }
+
+
+@app.get(
+    "/api/system/email-templates",
+    response_model=list[EmailTemplateOut],
+)
+async def list_system_email_templates(db: AsyncSession = Depends(get_db)):
+    """Get system default email templates."""
+    res = await db.execute(
+        select(EmailTemplate)
+        .where(EmailTemplate.template_type == "system", EmailTemplate.is_default == True)
+        .order_by(EmailTemplate.created_at.asc())
+    )
+    return res.scalars().all()
+
+
+# ── Admin: Certificate Templates ────────────────────────────────────────────
+
+@app.get(
+    "/api/system/cert-templates",
+    response_model=list[CertificateTemplateOut],
+)
+async def list_cert_templates(db: AsyncSession = Depends(get_db)):
+    """Get all available certificate templates."""
+    res = await db.execute(
+        select(CertificateTemplate)
+        .where(CertificateTemplate.is_default == True)
+        .order_by(CertificateTemplate.order_index.asc())
+    )
+    return res.scalars().all()
+
+
+@app.post(
+    "/api/admin/events/{event_id}/apply-cert-template",
+    response_model=EventOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
+)
+async def apply_cert_template(
+    event_id: int,
+    payload: dict,  # { cert_template_id: int }
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Apply a certificate template to an event."""
+    # Verify ownership
+    ev_res = await db.execute(
+        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
+    )
+    event = ev_res.scalar_one_or_none()
+    if not event and me.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+    
+    cert_template_id = payload.get("cert_template_id")
+    if not cert_template_id:
+        raise HTTPException(status_code=400, detail="cert_template_id gerekli")
+    
+    # Get certificate template
+    ct_res = await db.execute(
+        select(CertificateTemplate).where(CertificateTemplate.id == cert_template_id)
+    )
+    cert_template = ct_res.scalar_one_or_none()
+    if not cert_template:
+        raise HTTPException(status_code=404, detail="Sertifika şablonu bulunamadı")
+    
+    # Update event with template image and config
+    event.template_image_url = cert_template.template_image_url
+    event.config = cert_template.config if cert_template.config else event.config
+    db.add(event)
+    await db.commit()
+    await db.refresh(event)
+    
+    return EventOut.from_attributes(event) if hasattr(EventOut, 'from_attributes') else EventOut(**event.__dict__)
+
+
+# ── Admin: Email Configuration (SMTP) ────────────────────────────────────────
+
+@app.get(
+    "/api/admin/email-config",
+    response_model=UserEmailConfigOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def get_email_config(
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get current user's email configuration."""
+    res = await db.execute(
+        select(UserEmailConfig).where(UserEmailConfig.user_id == me.id)
+    )
+    config = res.scalar_one_or_none()
+    if not config:
+        raise HTTPException(status_code=404, detail="Email yapılandırması bulunamadı")
+    return config
+
+
+@app.patch(
+    "/api/admin/email-config",
+    response_model=UserEmailConfigOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def update_email_config(
+    payload: EmailConfigUpdateIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update user's email configuration (including encrypted SMTP password)."""
+    res = await db.execute(
+        select(UserEmailConfig).where(UserEmailConfig.user_id == me.id)
+    )
+    config = res.scalar_one_or_none()
+    if not config:
+        raise HTTPException(status_code=404, detail="Email yapılandırması bulunamadı")
+    
+    # Update fields
+    config.smtp_enabled = payload.smtp_enabled
+    if payload.from_name is not None:
+        config.from_name = payload.from_name
+    if payload.reply_to is not None:
+        config.reply_to = payload.reply_to
+    if payload.auto_cc is not None:
+        config.auto_cc = payload.auto_cc
+    config.enable_tracking_pixel = payload.enable_tracking_pixel
+    
+    # TODO: Encrypt SMTP password before storing
+    if payload.smtp_password:
+        config.smtp_password = payload.smtp_password  # In real impl, encrypt this
+    
+    db.add(config)
+    await db.commit()
+    await db.refresh(config)
+    return config
+
+
+@app.post(
+    "/api/admin/email-config/test-connection",
+    response_model=EmailConfigTestResponse,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def test_smtp_connection(
+    payload: EmailConfigTestRequest,
+):
+    """Test SMTP connection without storing credentials."""
+    import smtplib
+    from email.mime.text import MIMEText
+    
+    try:
+        # Create SMTP connection
+        with smtplib.SMTP(payload.smtp_host, payload.smtp_port, timeout=10) as server:
+            server.starttls()
+            server.login(payload.smtp_user, payload.smtp_password)
+            
+            # Try to send a test email
+            msg = MIMEText("Test connection")
+            msg['Subject'] = "HeptaCert SMTP Test"
+            msg['From'] = payload.from_email
+            server.send_message(msg, from_addr=payload.from_email, to_addrs=[payload.from_email])
+        
+        return EmailConfigTestResponse(
+            status="success",
+            message="SMTP bağlantısı başarılı",
+            verified_at=datetime.utcnow()
+        )
+    except smtplib.SMTPAuthenticationError:
+        return EmailConfigTestResponse(
+            status="error",
+            message="Kimlik doğrulama hatası: geçersiz kullanıcı adı veya şifre"
+        )
+    except smtplib.SMTPException as e:
+        return EmailConfigTestResponse(
+            status="error",
+            message=f"SMTP hatası: {str(e)}"
+        )
+    except Exception as e:
+        return EmailConfigTestResponse(
+            status="error",
+            message=f"Bağlantı hatası: {str(e)}"
+        )
+
+
+# ── Admin: Bulk Email ────────────────────────────────────────────────────────
+
+@app.post(
+    "/api/admin/events/{event_id}/bulk-email",
+    response_model=BulkEmailJobOut,
+    status_code=201,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
+)
+async def start_bulk_email(
+    event_id: int,
+    payload: BulkEmailJobIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Start a bulk email job."""
+    # Verify ownership
+    ev_res = await db.execute(
+        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
+    )
+    event = ev_res.scalar_one_or_none()
+    if not event and me.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+    
+    # Verify template exists
+    t_res = await db.execute(
+        select(EmailTemplate).where(EmailTemplate.id == payload.email_template_id)
+    )
+    if not t_res.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Template bulunamadı")
+    
+    # Count recipients
+    if payload.recipient_type == "attendees":
+        count_res = await db.execute(
+            select(func.count(Attendee.id)).where(Attendee.event_id == event_id)
+        )
+    else:  # certified
+        count_res = await db.execute(
+            select(func.count(Certificate.id)).where(
+                Certificate.event_id == event_id,
+                Certificate.deleted_at.is_(None),
+            )
+        )
+    
+    recipients_count = count_res.scalar() or 0
+    if recipients_count == 0:
+        raise HTTPException(status_code=400, detail="Alıcı bulunamadı")
+    
+    # Create job
+    job = BulkEmailJob(
+        event_id=event_id,
+        created_by=me.id,
+        email_template_id=payload.email_template_id,
+        recipients_count=recipients_count,
+        status="pending",
+    )
+    db.add(job)
+    await db.commit()
+    await db.refresh(job)
+    
+    # TODO: Schedule async task to process this job (APScheduler)
+    return job
+
+
+@app.get(
+    "/api/admin/events/{event_id}/bulk-email/{job_id}",
+    response_model=BulkEmailJobOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
+)
+async def get_bulk_email_job(
+    event_id: int,
+    job_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get bulk email job details."""
+    # Verify ownership
+    ev_res = await db.execute(
+        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
+    )
+    if not ev_res.scalar_one_or_none() and me.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+    
+    j_res = await db.execute(
+        select(BulkEmailJob).where(BulkEmailJob.id == job_id, BulkEmailJob.event_id == event_id)
+    )
+    job = j_res.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job bulunamadı")
+    
+    return job
+
+
+@app.get(
+    "/api/admin/events/{event_id}/bulk-emails",
+    response_model=list[BulkEmailJobOut],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
+)
+async def list_bulk_email_jobs(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get all bulk email jobs for an event."""
+    # Verify ownership
+    ev_res = await db.execute(
+        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
+    )
+    if not ev_res.scalar_one_or_none() and me.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+    
+    res = await db.execute(
+        select(BulkEmailJob)
+        .where(BulkEmailJob.event_id == event_id)
+        .order_by(BulkEmailJob.created_at.desc())
+    )
+    return res.scalars().all()
+
+
+@app.post(
+    "/api/admin/events/{event_id}/scheduled-email",
+    response_model=dict,
+    status_code=201,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
+)
+async def schedule_email_job(
+    event_id: int,
+    payload: ScheduledEmailIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Schedule an email job for future delivery.
+    
+    Three modes:
+    - immediate: Send now
+    - datetime: Send at specific datetime
+    - cron: Send on schedule (e.g., "0 9 * * MON" = every Monday at 9 AM)
+    """
+    # Verify ownership
+    ev_res = await db.execute(
+        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
+    )
+    event = ev_res.scalar_one_or_none()
+    if not event and me.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+    
+    # Verify template exists
+    t_res = await db.execute(
+        select(EmailTemplate).where(EmailTemplate.id == payload.email_template_id)
+    )
+    if not t_res.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Template bulunamadı")
+    
+    # Count recipients
+    if payload.recipient_type == "attendees":
+        count_res = await db.execute(
+            select(func.count(Attendee.id)).where(Attendee.event_id == event_id)
+        )
+    else:  # certified
+        count_res = await db.execute(
+            select(func.count(Certificate.id)).where(
+                Certificate.event_id == event_id,
+                Certificate.deleted_at.is_(None),
+            )
+        )
+    
+    recipients_count = count_res.scalar() or 0
+    if recipients_count == 0:
+        raise HTTPException(status_code=400, detail="Alıcı bulunamadı")
+    
+    # Create the bulk email job
+    job = BulkEmailJob(
+        event_id=event_id,
+        created_by=me.id,
+        email_template_id=payload.email_template_id,
+        recipients_count=recipients_count,
+        status="pending" if payload.schedule_type == "immediate" else "scheduled",
+    )
+    
+    # Handle scheduling
+    if payload.schedule_type == "immediate":
+        job.status = "pending"  # Will be picked up by the 5-minute scheduler
+    elif payload.schedule_type == "datetime":
+        if not payload.scheduled_datetime:
+            raise HTTPException(status_code=400, detail="scheduled_datetime gerekli")
+        job.scheduled_at = payload.scheduled_datetime
+        job.status = "scheduled"
+    elif payload.schedule_type == "cron":
+        if not payload.cron_expression:
+            raise HTTPException(status_code=400, detail="cron_expression gerekli")
+        # Validate cron expression (simple check)
+        if not all(c in "0123456789 *,-/" for c in payload.cron_expression):
+            raise HTTPException(status_code=400, detail="Geçersiz cron ifadesi")
+        job.cron_expression = payload.cron_expression
+        job.status = "scheduled"
+    else:
+        raise HTTPException(status_code=400, detail="schedule_type geçersiz")
+    
+    db.add(job)
+    await db.commit()
+    await db.refresh(job)
+    
+    return {
+        "id": job.id,
+        "event_id": job.event_id,
+        "status": job.status,
+        "recipients_count": job.recipients_count,
+        "scheduled_at": job.scheduled_at.isoformat() if job.scheduled_at else None,
+        "message": f"Email {payload.schedule_type} başarılı" if payload.schedule_type != "datetime" else f"Email {payload.scheduled_datetime} tarihinde gönderilmek üzere zamanlandı",
+    }
+
+
+@app.get(
+    "/api/admin/events/{event_id}/scheduled-emails",
+    response_model=list[dict],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def list_scheduled_emails(
+    event_id: int,
+    status: Optional[str] = Query(None),  # Filter by status: scheduled, completed, failed, cancelled
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get scheduled email jobs for an event."""
+    # Verify ownership
+    ev_res = await db.execute(
+        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
+    )
+    if not ev_res.scalar_one_or_none() and me.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+    
+    q = select(BulkEmailJob).where(BulkEmailJob.event_id == event_id, BulkEmailJob.status != "pending")
+    if status:
+        q = q.where(BulkEmailJob.status == status)
+    q = q.order_by(BulkEmailJob.created_at.desc())
+    
+    res = await db.execute(q)
+    jobs = res.scalars().all()
+    
+    return [
+        {
+            "id": j.id,
+            "email_template_id": j.email_template_id,
+            "status": j.status,
+            "recipients_count": j.recipients_count,
+            "sent_count": j.sent_count,
+            "failed_count": j.failed_count,
+            "scheduled_at": j.scheduled_at.isoformat() if j.scheduled_at else None,
+            "created_at": j.created_at.isoformat(),
+            "completed_at": j.completed_at.isoformat() if j.completed_at else None,
+        }
+        for j in jobs
+    ]
+
+
+@app.post(
+    "/api/admin/events/{event_id}/bulk-emails-cancel/{job_id}",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def cancel_email_job(
+    event_id: int,
+    job_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Cancel a scheduled or pending email job."""
+    # Verify ownership
+    ev_res = await db.execute(
+        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
+    )
+    if not ev_res.scalar_one_or_none() and me.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+    
+    j_res = await db.execute(
+        select(BulkEmailJob).where(BulkEmailJob.id == job_id, BulkEmailJob.event_id == event_id)
+    )
+    job = j_res.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job bulunamadı")
+    
+    if job.status not in ["pending", "scheduled"]:
+        raise HTTPException(status_code=400, detail="Sadece pending/scheduled joblar iptal edilebilir")
+    
+    job.status = "cancelled"
+    db.add(job)
+    await db.commit()
+    
+    return {"message": "Job başarıyla iptal edildi"}
+
+
+# ── Admin: Email Delivery Tracking ────────────────────────────────────────
+
+@app.post(
+    "/api/admin/bulk-email-jobs/{job_id}/log-delivery",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def log_email_delivery(
+    job_id: int,
+    payload: dict,  # { attendee_id: int, status: "sent" | "failed" | "bounced", reason?: str }
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Log email delivery status for tracking (internal API for background workers)."""
+    # Simple validation - in production, this should have a secret token
+    j_res = await db.execute(select(BulkEmailJob).where(BulkEmailJob.id == job_id))
+    job = j_res.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job bulunamadı")
+    
+    attendee_id = payload.get("attendee_id")
+    status = payload.get("status", "sent")
+    reason = payload.get("reason")
+    
+    log_entry = EmailDeliveryLog(
+        bulk_job_id=job_id,
+        attendee_id=attendee_id,
+        status=status,
+        reason=reason,
+        sent_at=datetime.utcnow(),
+    )
+    db.add(log_entry)
+    await db.commit()
+    
+    return {"id": log_entry.id, "status": "logged"}
+
+
+@app.get(
+    "/api/admin/events/{event_id}/bulk-email-jobs/{job_id}/delivery-stats",
+    response_model=dict,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def get_delivery_stats(
+    event_id: int,
+    job_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get delivery statistics for a bulk email job."""
+    # Verify ownership
+    ev_res = await db.execute(
+        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
+    )
+    if not ev_res.scalar_one_or_none() and me.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+    
+    # Get job
+    j_res = await db.execute(
+        select(BulkEmailJob).where(BulkEmailJob.id == job_id, BulkEmailJob.event_id == event_id)
+    )
+    job = j_res.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job bulunamadı")
+    
+    # Get delivery logs
+    logs_res = await db.execute(
+        select(func.count(EmailDeliveryLog.id), EmailDeliveryLog.status)
+        .where(EmailDeliveryLog.bulk_job_id == job_id)
+        .group_by(EmailDeliveryLog.status)
+    )
+    logs_by_status = {status: count for count, status in logs_res.all()}
+    
+    return {
+        "job_id": job_id,
+        "total_recipients": job.recipients_count,
+        "sent": logs_by_status.get("sent", 0),
+        "failed": logs_by_status.get("failed", 0),
+        "bounced": logs_by_status.get("bounced", 0),
+        "opened": logs_by_status.get("opened", 0),
+        "pending": job.recipients_count - sum(logs_by_status.values()),
+        "open_rate": round(logs_by_status.get("opened", 0) / job.recipients_count * 100, 2) if job.recipients_count > 0 else 0,
+        "bounce_rate": round(logs_by_status.get("bounced", 0) / job.recipients_count * 100, 2) if job.recipients_count > 0 else 0,
+        "failure_rate": round(logs_by_status.get("failed", 0) / job.recipients_count * 100, 2) if job.recipients_count > 0 else 0,
+    }
+
+
+@app.get(
+    "/api/admin/events/{event_id}/bulk-email-jobs/{job_id}/delivery-logs",
+    response_model=dict,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def get_delivery_logs(
+    event_id: int,
+    job_id: int,
+    status: Optional[str] = Query(None),  # Filter by status
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=50, le=500),
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get detailed delivery logs for a bulk email job."""
+    # Verify ownership
+    ev_res = await db.execute(
+        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
+    )
+    if not ev_res.scalar_one_or_none() and me.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+    
+    # Get logs
+    q = select(EmailDeliveryLog, Attendee).join(
+        Attendee, EmailDeliveryLog.attendee_id == Attendee.id
+    ).where(EmailDeliveryLog.bulk_job_id == job_id)
+    
+    if status:
+        q = q.where(EmailDeliveryLog.status == status)
+    
+    # Count total
+    count_res = await db.execute(select(func.count()).select_from(q.subquery()))
+    total = int(count_res.scalar_one() or 0)
+    
+    # Paginate
+    q = q.order_by(EmailDeliveryLog.sent_at.desc()).offset((page - 1) * limit).limit(limit)
+    res = await db.execute(q)
+    logs = res.all()
+    
+    return {
+        "logs": [
+            {
+                "id": log.id,
+                "attendee": {"id": attendee.id, "name": attendee.name, "email": attendee.email},
+                "status": log.status,
+                "reason": log.reason,
+                "sent_at": log.sent_at.isoformat(),
+                "opened_at": log.opened_at.isoformat() if log.opened_at else None,
+            }
+            for log, attendee in logs
+        ],
+        "total": total,
+        "page": page,
+        "limit": limit,
+    }
+
+
+# ── Admin: Webhook Subscriptions ───────────────────────────────────────────
+
+class WebhookSubscriptionIn(BaseModel):
+    event_type: str  # email.sent, email.failed, email.bounced, email.opened
+    url: str  # HTTPS endpoint where webhook will be POSTed
+    secret: Optional[str] = None  # HMAC secret for verification
+
+
+@app.post(
+    "/api/admin/webhooks",
+    response_model=WebhookSubscriptionOut,
+    status_code=201,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def create_webhook_subscription(
+    payload: WebhookSubscriptionIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Subscribe to email events (sent, failed, bounced, opened)."""
+    # Validate event type
+    valid_events = ["email.sent", "email.failed", "email.bounced", "email.opened"]
+    if payload.event_type not in valid_events:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid event_type. Must be one of: {', '.join(valid_events)}",
+        )
+    
+    # Validate URL
+    if not payload.url.startswith("https://"):
+        raise HTTPException(
+            status_code=400,
+            detail="Webhook URL must be HTTPS for security",
+        )
+    
+    webhook = WebhookSubscription(
+        user_id=me.id,
+        event_type=payload.event_type,
+        url=payload.url,
+        secret=payload.secret or secrets.token_urlsafe(32),
+        is_active=True,
+    )
+    db.add(webhook)
+    await db.commit()
+    await db.refresh(webhook)
+    return webhook
+
+
+@app.get(
+    "/api/admin/webhooks",
+    response_model=list[WebhookSubscriptionOut],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def list_webhooks(
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all webhook subscriptions for the user."""
+    res = await db.execute(
+        select(WebhookSubscription).where(WebhookSubscription.user_id == me.id)
+    )
+    return res.scalars().all()
+
+
+@app.patch(
+    "/api/admin/webhooks/{webhook_id}",
+    response_model=WebhookSubscriptionOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def update_webhook(
+    webhook_id: int,
+    payload: dict,  # { is_active: bool, url?: str }
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update webhook subscription (enable/disable or change URL)."""
+    res = await db.execute(
+        select(WebhookSubscription).where(
+            WebhookSubscription.id == webhook_id,
+            WebhookSubscription.user_id == me.id,
+        )
+    )
+    webhook = res.scalar_one_or_none()
+    if not webhook:
+        raise HTTPException(status_code=404, detail="Webhook not found")
+    
+    if "is_active" in payload:
+        webhook.is_active = payload["is_active"]
+    if "url" in payload:
+        if not payload["url"].startswith("https://"):
+            raise HTTPException(status_code=400, detail="URL must be HTTPS")
+        webhook.url = payload["url"]
+    
+    db.add(webhook)
+    await db.commit()
+    await db.refresh(webhook)
+    return webhook
+
+
+@app.delete(
+    "/api/admin/webhooks/{webhook_id}",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def delete_webhook(
+    webhook_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a webhook subscription."""
+    res = await db.execute(
+        select(WebhookSubscription).where(
+            WebhookSubscription.id == webhook_id,
+            WebhookSubscription.user_id == me.id,
+        )
+    )
+    webhook = res.scalar_one_or_none()
+    if not webhook:
+        raise HTTPException(status_code=404, detail="Webhook not found")
+    
+    await db.delete(webhook)
+    await db.commit()
+    return {"message": "Webhook deleted"}
+
+
+@app.post(
+    "/api/admin/webhooks/{webhook_id}/test",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def test_webhook(
+    webhook_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Send a test webhook to verify endpoint is working."""
+    res = await db.execute(
+        select(WebhookSubscription).where(
+            WebhookSubscription.id == webhook_id,
+            WebhookSubscription.user_id == me.id,
+        )
+    )
+    webhook = res.scalar_one_or_none()
+    if not webhook:
+        raise HTTPException(status_code=404, detail="Webhook not found")
+    
+    # Create test payload
+    test_payload = {
+        "event": webhook.event_type,
+        "timestamp": datetime.utcnow().isoformat(),
+        "test": True,
+        "data": {
+            "bulk_job_id": 0,
+            "message": "Test webhook payload"
+        }
+    }
+    
+    # Send test webhook
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.post(
+                webhook.url,
+                json=test_payload,
+                headers={
+                    "X-Heptacert-Event": webhook.event_type,
+                    "X-Heptacert-Timestamp": str(int(datetime.utcnow().timestamp())),
+                }
+            )
+        return {
+            "status": "sent",
+            "http_status": response.status_code,
+            "message": f"Webhook sent, endpoint returned {response.status_code}",
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Failed to send webhook: {str(e)}",
+        }
+
 
 @app.get("/api/superadmin/admins", response_model=list[AdminRowOut], dependencies=[Depends(require_role(Role.superadmin))])
 async def list_admins(db: AsyncSession = Depends(get_db)):
@@ -4474,6 +6297,65 @@ async def list_attendees(
     return {"items": results, "total": total, "page": page, "limit": limit}
 
 
+@app.get(
+    "/api/admin/events/{event_id}/attendees/filter-for-email",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+)
+async def filter_attendees_for_email(
+    event_id: int,
+    filter_type: str = Query(default="all"),  # all | with_email | unsubscribed | certified
+    subscribed_only: bool = Query(default=True),
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get filtered attendees for email targeting.
+    
+    Filter types:
+    - all: all attendees
+    - with_email: attendees with valid emails
+    - unsubscribed: attendees who unsubscribed
+    - certified: attendees with certificates
+    """
+    ev = await _get_event_for_admin(event_id, me, db)
+    
+    q = select(Attendee).where(Attendee.event_id == event_id)
+    
+    # Apply filters
+    if filter_type == "with_email":
+        q = q.where(Attendee.email.isnot(None), Attendee.email != "")
+    elif filter_type == "unsubscribed":
+        q = q.where(Attendee.unsubscribed_at.isnot(None))
+    elif filter_type == "certified":
+        # Join with certificates
+        from sqlalchemy import exists
+        cert_subq = select(Certificate).where(
+            Certificate.event_id == event_id,
+            Certificate.deleted_at.is_(None),
+            Certificate.student_name == Attendee.name
+        )
+        q = q.where(exists(cert_subq))
+    
+    if subscribed_only and filter_type != "unsubscribed":
+        q = q.where(Attendee.unsubscribed_at.is_(None))
+    
+    res = await db.execute(q.order_by(Attendee.registered_at.desc()))
+    attendees = res.scalars().all()
+    
+    return {
+        "filter_type": filter_type,
+        "count": len(attendees),
+        "attendees": [
+            {
+                "id": a.id,
+                "name": a.name,
+                "email": a.email,
+                "unsubscribed": a.unsubscribed_at is not None,
+            }
+            for a in attendees
+        ],
+    }
+
+
 @app.post("/api/admin/events/{event_id}/attendees/import", dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)])
 async def import_attendees(
     event_id: int,
@@ -4908,3 +6790,63 @@ async def list_my_transactions_paginated(
         "page": page,
         "limit": limit,
     }
+
+
+# ── Public: Email Unsubscribe ────────────────────────────────────────────────
+
+@app.post("/api/public/attendees/{attendee_id}/unsubscribe")
+async def unsubscribe_from_email(
+    attendee_id: int,
+    token: str = Query(...),  # HMAC token for security
+    db: AsyncSession = Depends(get_db),
+):
+    """Unsubscribe an attendee from email communications.
+    
+    This endpoint is public but requires a valid unsubscribe token
+    for security to prevent abuse.
+    """
+    # Get attendee
+    a_res = await db.execute(select(Attendee).where(Attendee.id == attendee_id))
+    attendee = a_res.scalar_one_or_none()
+    if not attendee:
+        raise HTTPException(status_code=404, detail="Katılımcı bulunamadı")
+    
+    # Validate token (simple implementation - in production use HMAC)
+    # TODO: Implement proper token validation with HMAC-SHA256
+    expected_token = hashlib.sha256(f"{attendee_id}:{attendee.email}".encode()).hexdigest()[:16]
+    if token != expected_token:
+        logger.warning(f"Invalid unsubscribe token for attendee {attendee_id}")
+        raise HTTPException(status_code=401, detail="Geçersiz token")
+    
+    # Mark as unsubscribed
+    attendee.unsubscribed_at = datetime.utcnow()
+    db.add(attendee)
+    await db.commit()
+    
+    return {
+        "status": "unsubscribed",
+        "message": f"{attendee.email} adresinden abonelik kaldırıldı",
+    }
+
+
+@app.get("/api/public/attendees/{attendee_id}/unsubscribe-verify")
+async def verify_unsubscribe_token(
+    attendee_id: int,
+    token: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Verify if an unsubscribe token is valid (for before-click confirmation)."""
+    a_res = await db.execute(select(Attendee).where(Attendee.id == attendee_id))
+    attendee = a_res.scalar_one_or_none()
+    if not attendee:
+        raise HTTPException(status_code=404, detail="Katılımcı bulunamadı")
+    
+    # Validate token
+    expected_token = hashlib.sha256(f"{attendee_id}:{attendee.email}".encode()).hexdigest()[:16]
+    is_valid = token == expected_token
+    
+    return {
+        "valid": is_valid,
+        "attendee_email": attendee.email if is_valid else None,
+    }
+

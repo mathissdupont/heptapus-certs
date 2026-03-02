@@ -1,0 +1,7 @@
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <style>
+            .title { font-size: 24px; font-weight: bold; text-anchor: middle; }
+            .desc { font-size: 14px; text-anchor: middle; }
+        </style>
+    </defs><rect width="400" height="300" fill="#e8f4f8"/><rect x="0" y="0" width="400" height="40" fill="#2c3e50"/><rect x="30" y="60" width="340" height="200" fill="white" stroke="#2c3e50" stroke-width="1.5"/><text x="200" y="150" class="title" fill="#2c3e50">Sertifika</text><text x="200" y="280" class="desc" fill="#666">Kurumsal</text></svg>

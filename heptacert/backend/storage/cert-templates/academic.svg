@@ -1,0 +1,7 @@
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <style>
+            .title { font-size: 24px; font-weight: bold; text-anchor: middle; }
+            .desc { font-size: 14px; text-anchor: middle; }
+        </style>
+    </defs><rect width="400" height="300" fill="#f0f5f9"/><polygon points="200,30 360,80 360,200 200,270 40,200 40,80" fill="none" stroke="#003d5c" stroke-width="2"/><text x="200" y="150" class="title" fill="#003d5c">Sertifika</text><text x="200" y="280" class="desc" fill="#666">Akademik</text></svg>

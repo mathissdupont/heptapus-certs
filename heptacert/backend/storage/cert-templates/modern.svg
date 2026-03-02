@@ -1,0 +1,7 @@
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <style>
+            .title { font-size: 24px; font-weight: bold; text-anchor: middle; }
+            .desc { font-size: 14px; text-anchor: middle; }
+        </style>
+    </defs><defs><linearGradient id="g2" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#6366f1"/><stop offset="100%" style="stop-color:#a855f7"/></linearGradient></defs><rect width="400" height="300" fill="url(#g2)"/><rect x="50" y="50" width="300" height="200" fill="white" rx="8"/><text x="200" y="140" class="title" fill="#6366f1">Sertifika</text><text x="200" y="280" class="desc" fill="#666">Modern</text></svg>
