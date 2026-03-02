@@ -44,7 +44,12 @@ from sqlalchemy import (
     Boolean, String, Integer, BigInteger, DateTime, ForeignKey, Text,
     Enum as SAEnum, UniqueConstraint, Index, select, func, update, Date as sa_Date, Time as sa_Time
 )
-from sqlalchemy.dialects.postgresql import JSONB, INET
+from sqlalchemy import JSON as _JSON
+from sqlalchemy.dialects.postgresql import JSONB as _PgJSONB, INET as _PgINET
+
+# Use native PostgreSQL JSONB/INET on PostgreSQL, fall back to JSON/String on SQLite
+JSONB = _JSON().with_variant(_PgJSONB(), "postgresql")
+INET = String(45).with_variant(_PgINET(), "postgresql")
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
