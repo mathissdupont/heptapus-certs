@@ -10,6 +10,14 @@ import {
   Check,
   X,
   Clock,
+  CalendarDays,
+  QrCode,
+  User,
+  UserCheck,
+  LockKeyhole,
+  BarChart3,
+  Target,
+  Send,
 } from "lucide-react";
 import Link from "next/link";
 import { getEmailJobDetails, EmailJobDetailsOut } from "@/lib/api";
@@ -120,6 +128,39 @@ export default function EmailJobDetailsPage() {
             <h1 className="text-3xl font-black text-gray-900">Email Gönderiş Detayları</h1>
             <p className="text-sm text-gray-500 mt-1">İş #ID: {job.id}</p>
           </div>
+        </div>
+
+        <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-gray-200 pb-4">
+          <Link href={`/admin/events/${eventId}/certificates`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
+            <BarChart3 className="h-3.5 w-3.5" /> Sertifikalar
+          </Link>
+          <Link href={`/admin/events/${eventId}/sessions`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
+            <CalendarDays className="h-3.5 w-3.5" /> Oturumlar
+          </Link>
+          <Link href={`/admin/events/${eventId}/attendees`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
+            <User className="h-3.5 w-3.5" /> Katılımcılar
+          </Link>
+          <Link href={`/admin/events/${eventId}/checkin`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
+            <QrCode className="h-3.5 w-3.5" /> Check-in
+          </Link>
+          <Link href={`/admin/events/${eventId}/gamification`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
+            <Target className="h-3.5 w-3.5" /> Gamification
+          </Link>
+          <Link href={`/admin/events/${eventId}/surveys`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
+            <UserCheck className="h-3.5 w-3.5" /> Anketler
+          </Link>
+          <Link href={`/admin/events/${eventId}/advanced-analytics`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
+            <BarChart3 className="h-3.5 w-3.5" /> Analitik
+          </Link>
+          <Link href={`/admin/events/${eventId}/email-templates`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
+            <Mail className="h-3.5 w-3.5" /> Email
+          </Link>
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700">
+            <Send className="h-3.5 w-3.5" /> Toplu Email
+          </span>
+          <Link href={`/admin/events/${eventId}/settings`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
+            <LockKeyhole className="h-3.5 w-3.5" /> Ayarlar
+          </Link>
         </div>
 
         {/* Status Card */}

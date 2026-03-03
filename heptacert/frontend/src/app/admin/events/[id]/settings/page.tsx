@@ -192,6 +192,15 @@ export default function EventSettingsPage() {
               <Send className="h-4 w-4" />
               Kampanya
             </Link>
+            <Link href={`/admin/events/${eventId}/gamification`} title="Gamification" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors text-sm font-medium">
+              Gamification
+            </Link>
+            <Link href={`/admin/events/${eventId}/surveys`} title="Anket" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors text-sm font-medium">
+              Anket
+            </Link>
+            <Link href={`/admin/events/${eventId}/advanced-analytics`} title="İleri Analitik" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors text-sm font-medium">
+              İleri Analitik
+            </Link>
           </div>
         </div>
 

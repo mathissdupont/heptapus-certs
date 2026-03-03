@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
+import Link from 'next/link';
+import { BarChart3, CalendarDays, User, UserCheck, QrCode, Target, Mail, LockKeyhole, Send } from 'lucide-react';
 
 interface EmailTemplate {
   id: number;
@@ -153,13 +155,43 @@ export default function ScheduleEmailPage() {
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
-          <button
-            onClick={() => router.back()}
-            className="text-blue-600 hover:text-blue-800 mb-4"
-          >
+          <button onClick={() => router.back()} className="text-blue-600 hover:text-blue-800 mb-4">
             ← Geri Dön
           </button>
           <h1 className="text-3xl font-bold text-gray-900">Email Zamanla</h1>
+        </div>
+
+        <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-gray-200 pb-4">
+          <Link href={`/admin/events/${eventId}/certificates`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
+            <BarChart3 className="h-3.5 w-3.5" /> Sertifikalar
+          </Link>
+          <Link href={`/admin/events/${eventId}/sessions`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
+            <CalendarDays className="h-3.5 w-3.5" /> Oturumlar
+          </Link>
+          <Link href={`/admin/events/${eventId}/attendees`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
+            <User className="h-3.5 w-3.5" /> Katılımcılar
+          </Link>
+          <Link href={`/admin/events/${eventId}/checkin`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
+            <QrCode className="h-3.5 w-3.5" /> Check-in
+          </Link>
+          <Link href={`/admin/events/${eventId}/gamification`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
+            <Target className="h-3.5 w-3.5" /> Gamification
+          </Link>
+          <Link href={`/admin/events/${eventId}/surveys`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
+            <UserCheck className="h-3.5 w-3.5" /> Anketler
+          </Link>
+          <Link href={`/admin/events/${eventId}/advanced-analytics`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
+            <BarChart3 className="h-3.5 w-3.5" /> Analitik
+          </Link>
+          <Link href={`/admin/events/${eventId}/email-templates`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
+            <Mail className="h-3.5 w-3.5" /> Email
+          </Link>
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700">
+            <Send className="h-3.5 w-3.5" /> Zamanla
+          </span>
+          <Link href={`/admin/events/${eventId}/settings`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
+            <LockKeyhole className="h-3.5 w-3.5" /> Ayarlar
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

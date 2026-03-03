@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft, Plus, Trash2, Edit2, Save, X, AlertCircle,
   Loader2, Mail, FileText, CheckCircle2, Eye, Copy, Settings, Send,
+  LockKeyhole, QrCode, Users, UserCheck,
 } from "lucide-react";
 
 type EmailTemplate = {
@@ -196,6 +197,38 @@ export default function EmailTemplatesPage() {
                 </button>
               </>
             )}
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <div className="flex items-center gap-1 flex-wrap">
+            <Link href={`/admin/events/${eventId}/certificates`} className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-white px-3.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50 shadow-sm transition-colors">
+              <LockKeyhole className="h-3.5 w-3.5" /> Sertifikalar
+            </Link>
+            <Link href={`/admin/events/${eventId}/sessions`} className="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-white px-3.5 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-50 shadow-sm transition-colors">
+              <QrCode className="h-3.5 w-3.5" /> Oturumlar
+            </Link>
+            <Link href={`/admin/events/${eventId}/attendees`} className="flex items-center gap-1.5 rounded-lg border border-violet-200 bg-white px-3.5 py-1.5 text-xs font-bold text-violet-700 hover:bg-violet-50 shadow-sm transition-colors">
+              <Users className="h-3.5 w-3.5" /> Katılımcılar
+            </Link>
+            <Link href={`/admin/events/${eventId}/checkin`} className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3.5 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-50 shadow-sm transition-colors">
+              <UserCheck className="h-3.5 w-3.5" /> Check-in
+            </Link>
+            <Link href={`/admin/events/${eventId}/gamification`} className="flex items-center gap-1.5 rounded-lg border border-fuchsia-200 bg-white px-3.5 py-1.5 text-xs font-bold text-fuchsia-700 hover:bg-fuchsia-50 shadow-sm transition-colors">
+              Gamification
+            </Link>
+            <Link href={`/admin/events/${eventId}/surveys`} className="flex items-center gap-1.5 rounded-lg border border-cyan-200 bg-white px-3.5 py-1.5 text-xs font-bold text-cyan-700 hover:bg-cyan-50 shadow-sm transition-colors">
+              Anket
+            </Link>
+            <Link href={`/admin/events/${eventId}/advanced-analytics`} className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-sm transition-colors">
+              İleri Analitik
+            </Link>
+            <Link href={`/admin/events/${eventId}/editor`} className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 shadow-sm transition-colors">
+              Editör
+            </Link>
+            <Link href={`/admin/events/${eventId}/email-templates`} className="flex items-center gap-1.5 rounded-lg border border-brand-300 bg-brand-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm">
+              <Mail className="h-3.5 w-3.5" /> Email
+            </Link>
           </div>
         </div>
 

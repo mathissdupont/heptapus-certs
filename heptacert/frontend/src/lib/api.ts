@@ -290,6 +290,31 @@ export async function bulkCertifyAttendees(
   return res.json();
 }
 
+export type BulkCertJobOut = {
+  id: number;
+  event_id: number;
+  status: string;
+  total_count: number;
+  current_index: number;
+  created_count: number;
+  failed_count: number;
+  already_exists_count: number;
+  spent_heptacoin: number;
+  error_message?: string | null;
+  zip_file_path?: string | null;
+};
+
+/** Enqueues bulk certificate generation for eligible attendees. Returns a job to poll. */
+export async function bulkCertifyQueue(eventId: number): Promise<BulkCertJobOut> {
+  const res = await apiFetch(`/admin/events/${eventId}/bulk-certify-queue`, { method: "POST" });
+  return res.json();
+}
+
+export async function getBulkGenerateJob(eventId: number, jobId: number): Promise<BulkCertJobOut> {
+  const res = await apiFetch(`/admin/events/${eventId}/bulk-generate-jobs/${jobId}`);
+  return res.json();
+}
+
 // ── Public: event info ────────────────────────────────────────────────────────
 
 export async function getPublicEventInfo(eventId: number) {

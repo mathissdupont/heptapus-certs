@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import {
   listAttendees, importAttendees, deleteAttendee,
-  getAttendanceMatrix, bulkCertifyAttendees,
+  getAttendanceMatrix, bulkCertifyQueue, getBulkGenerateJob,
   getAttendanceExportUrl, apiFetch, getMySubscription,
   type AttendeeOut, type AttendanceMatrix, type SubscriptionInfo
 } from "@/lib/api";
@@ -140,9 +140,37 @@ export default function AdminAttendeesPage() {
     setCertifying(true);
     setCertResult(null);
     try {
-      const r = await bulkCertifyAttendees(eventId, "yearly");
-      setCertResult(`✅ ${r.created} sertifika üretildi · ${r.already_had_cert} zaten vardı · ${r.below_threshold} eşiği geçemedi · ${r.spent_heptacoin} HC harcandı`);
-      if (tab === "matrix") await loadMatrix();
+      const job = await bulkCertifyQueue(eventId);
+      const jobId = job.id;
+      const startedAt = Date.now();
+      const MAX_WAIT_MS = 30 * 60 * 1000;
+
+      while (true) {
+        if (Date.now() - startedAt > MAX_WAIT_MS) {
+          setCertResult(`⚠️ İşlem arka planda devam ediyor (Job #${jobId}). Sertifikalar sayfasından takip edebilirsiniz.`);
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 2000));
+        const status = await getBulkGenerateJob(eventId, jobId);
+        const total = status.total_count || 0;
+        const current = status.current_index || 0;
+        const created = status.created_count || 0;
+        setCertResult(`⏳ İşleniyor: ${current}/${total} • Oluşan: ${created}`);
+
+        if (status.status === "completed") {
+          setCertResult(`✅ ${created} sertifika üretildi · ${status.already_exists_count} zaten vardı · ${status.spent_heptacoin} HC harcandı`);
+          if (tab === "matrix") await loadMatrix();
+          break;
+        }
+        if (status.status === "failed") {
+          setCertResult(`❌ ${status.error_message || "Toplu sertifika üretimi başarısız."}`);
+          break;
+        }
+        if (status.status === "cancelled") {
+          setCertResult(`❌ İşlem iptal edildi.`);
+          break;
+        }
+      }
     } catch (e: any) {
       setCertResult(`❌ ${e.message}`);
     } finally {
@@ -175,6 +203,21 @@ export default function AdminAttendeesPage() {
               </Link>
               <Link href={`/admin/events/${eventId}/checkin`} className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3.5 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-50 shadow-sm transition-colors">
                 <UserCheck className="w-3.5 h-3.5" /> Check-in
+              </Link>
+              <Link href={`/admin/events/${eventId}/gamification`} className="flex items-center gap-1.5 rounded-lg border border-fuchsia-200 bg-white px-3.5 py-1.5 text-xs font-bold text-fuchsia-700 hover:bg-fuchsia-50 shadow-sm transition-colors">
+                Gamification
+              </Link>
+              <Link href={`/admin/events/${eventId}/surveys`} className="flex items-center gap-1.5 rounded-lg border border-cyan-200 bg-white px-3.5 py-1.5 text-xs font-bold text-cyan-700 hover:bg-cyan-50 shadow-sm transition-colors">
+                Anket
+              </Link>
+              <Link href={`/admin/events/${eventId}/advanced-analytics`} className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-sm transition-colors">
+                İleri Analitik
+              </Link>
+              <Link href={`/admin/events/${eventId}/editor`} className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 shadow-sm transition-colors">
+                Editör
+              </Link>
+              <Link href={`/admin/events/${eventId}/email-templates`} className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 shadow-sm transition-colors">
+                Email
               </Link>
             </div>
           </div>

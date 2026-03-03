@@ -50,7 +50,7 @@ from sqlalchemy import (
     Enum as SAEnum, UniqueConstraint, Index, select, func, update, Date as sa_Date, Time as sa_Time
 )
 from sqlalchemy import JSON as _JSON
-from sqlalchemy.dialects.postgresql import JSONB as _PgJSONB, INET as _PgINET
+from sqlalchemy.dialects.postgresql import JSONB as _PgJSONB, INET as _PgINET, insert as _pg_insert
 
 # Use native PostgreSQL JSONB/INET on PostgreSQL, fall back to JSON/String on SQLite
 JSONB = _JSON().with_variant(_PgJSONB(), "postgresql")
@@ -110,6 +110,13 @@ _startup_time: float = time.time()
 
 engine = create_async_engine(settings.database_url, pool_pre_ping=True)
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
+bulk_cert_job_lock = asyncio.Lock()
+
+# Lightweight in-process caches for high-traffic QR check-in reads
+CHECKIN_CONTEXT_TTL_SECONDS = 20
+EVENT_TOTAL_SESSIONS_TTL_SECONDS = 30
+_checkin_context_cache: Dict[str, tuple[float, Dict[str, Any]]] = {}
+_event_total_sessions_cache: Dict[int, tuple[float, int]] = {}
 
 
 class Base(DeclarativeBase):
@@ -177,6 +184,7 @@ class Event(Base):
     template_snapshots: Mapped[List["EventTemplateSnapshot"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
     email_templates: Mapped[List["EmailTemplate"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
     bulk_email_jobs: Mapped[List["BulkEmailJob"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
+    bulk_certificate_jobs: Mapped[List["BulkCertificateJob"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
 
     __table_args__ = (Index("ix_events_admin_id_created", "admin_id", "created_at"),)
 
@@ -197,7 +205,10 @@ class Certificate(Base):
     hosting_ends_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     asset_size_bytes: Mapped[int] = mapped_column(Integer, default=0)
     deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-
+    certificate_tier: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    tier_template_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    survey_required: Mapped[bool] = mapped_column(Boolean, default=False)
+    worldpass_anchor_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
 
     event: Mapped["Event"] = relationship(back_populates="certificates")
 
@@ -444,6 +455,32 @@ class BulkEmailJob(Base):
     email_template: Mapped[Optional["EmailTemplate"]] = relationship()
 
 
+class BulkCertificateJob(Base):
+    __tablename__ = "bulk_certificate_jobs"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id: Mapped[int] = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    names: Mapped[list] = mapped_column(JSONB, default=list)
+    chunk_size: Mapped[int] = mapped_column(Integer, default=10)
+    total_count: Mapped[int] = mapped_column(Integer, default=0)
+    current_index: Mapped[int] = mapped_column(Integer, default=0)
+    created_count: Mapped[int] = mapped_column(Integer, default=0)
+    failed_count: Mapped[int] = mapped_column(Integer, default=0)
+    already_exists_count: Mapped[int] = mapped_column(Integer, default=0)
+    spent_heptacoin: Mapped[int] = mapped_column(Integer, default=0)
+    generated_files: Mapped[list] = mapped_column(JSONB, default=list)
+    zip_file_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(50), default="pending")  # pending | processing | completed | failed | cancelled
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    event: Mapped["Event"] = relationship(back_populates="bulk_certificate_jobs")
+    creator: Mapped["User"] = relationship(foreign_keys=[created_by])
+
+
 class EmailDeliveryLog(Base):
     __tablename__ = "email_delivery_logs"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -494,15 +531,17 @@ class AttendeeSource(str, Enum):
 
 class EventSession(Base):
     __tablename__ = "event_sessions"
-    id:               Mapped[int]            = mapped_column(Integer, primary_key=True, autoincrement=True)
-    event_id:         Mapped[int]            = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
-    name:             Mapped[str]            = mapped_column(String(200))
-    session_date:     Mapped[Optional[date_type]] = mapped_column(sa_Date, nullable=True)
-    session_start:    Mapped[Optional[Any]]  = mapped_column(sa_Time, nullable=True)
-    session_location: Mapped[Optional[str]]  = mapped_column(String(300), nullable=True)
-    checkin_token:    Mapped[str]            = mapped_column(String(64), unique=True)
-    is_active:        Mapped[bool]           = mapped_column(Boolean, default=False)
-    created_at:       Mapped[datetime]       = mapped_column(DateTime(timezone=True), server_default=func.now())
+    id:                      Mapped[int]            = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id:                Mapped[int]            = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    name:                    Mapped[str]            = mapped_column(String(200))
+    session_date:            Mapped[Optional[date_type]] = mapped_column(sa_Date, nullable=True)
+    session_start:           Mapped[Optional[Any]]  = mapped_column(sa_Time, nullable=True)
+    session_location:        Mapped[Optional[str]]  = mapped_column(String(300), nullable=True)
+    checkin_token:           Mapped[str]            = mapped_column(String(64), unique=True)
+    is_active:               Mapped[bool]           = mapped_column(Boolean, default=False)
+    enable_participation_test: Mapped[bool]         = mapped_column(Boolean, default=False)
+    test_score_max:          Mapped[int]            = mapped_column(Integer, default=100)
+    created_at:              Mapped[datetime]       = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     event: Mapped["Event"] = relationship(back_populates="sessions")
     attendance_records: Mapped[List["AttendanceRecord"]] = relationship(back_populates="session", cascade="all, delete-orphan")
@@ -510,15 +549,18 @@ class EventSession(Base):
 
 class Attendee(Base):
     __tablename__ = "attendees"
-    id:            Mapped[int]      = mapped_column(Integer, primary_key=True, autoincrement=True)
-    event_id:      Mapped[int]      = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
-    name:          Mapped[str]      = mapped_column(String(200))
-    email:         Mapped[str]      = mapped_column(String(320))
-    source:        Mapped[str]      = mapped_column(
+    id:                   Mapped[int]                   = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id:             Mapped[int]                   = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    name:                 Mapped[str]                   = mapped_column(String(200))
+    email:                Mapped[str]                   = mapped_column(String(320))
+    source:               Mapped[str]                   = mapped_column(
         SAEnum("import", "self_register", name="attendee_source_enum", create_type=False),
         default="import",
     )
-    registered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    registered_at:        Mapped[datetime]              = mapped_column(DateTime(timezone=True), server_default=func.now())
+    survey_completed_at:  Mapped[Optional[datetime]]    = mapped_column(DateTime(timezone=True), nullable=True)
+    survey_required:      Mapped[bool]                  = mapped_column(Boolean, default=False)
+    can_download_cert:    Mapped[bool]                  = mapped_column(Boolean, default=True)
 
     event: Mapped["Event"] = relationship(back_populates="attendees")
     attendance_records: Mapped[List["AttendanceRecord"]] = relationship(back_populates="attendee", cascade="all, delete-orphan")
@@ -542,6 +584,111 @@ class AttendanceRecord(Base):
     __table_args__ = (
         UniqueConstraint("attendee_id", "session_id", name="uq_attendance_attendee_session"),
     )
+
+
+# ── Gamification: Badge Rules & Participant Badges ─────────────────────────
+
+class BadgeRule(Base):
+    __tablename__ = "badge_rules"
+    id:                Mapped[int]      = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id:          Mapped[int]      = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True, unique=True)
+    badge_definitions: Mapped[dict]     = mapped_column(JSONB, default=dict)  # Array of badge type definitions
+    enabled:           Mapped[bool]     = mapped_column(Boolean, default=True)
+    created_by:        Mapped[int]      = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    updated_at:        Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    event: Mapped["Event"] = relationship()
+    creator: Mapped["User"] = relationship(foreign_keys=[created_by])
+
+
+class ParticipantBadge(Base):
+    __tablename__ = "participant_badges"
+    id:           Mapped[int]           = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id:     Mapped[int]           = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    attendee_id:  Mapped[int]           = mapped_column(Integer, ForeignKey("attendees.id", ondelete="CASCADE"), index=True)
+    badge_type:   Mapped[str]           = mapped_column(String(100))
+    criteria_met: Mapped[Optional[dict]]= mapped_column(JSONB, nullable=True)
+    awarded_by:   Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    awarded_at:   Mapped[datetime]      = mapped_column(DateTime(timezone=True), server_default=func.now())
+    is_automatic: Mapped[bool]          = mapped_column(Boolean, default=True)
+    badge_metadata: Mapped[Optional[dict]]= mapped_column("metadata", JSONB, nullable=True)
+
+    event:     Mapped["Event"]   = relationship()
+    attendee:  Mapped["Attendee"] = relationship()
+    awardedby: Mapped[Optional["User"]] = relationship(foreign_keys=[awarded_by])
+
+    __table_args__ = (
+        UniqueConstraint("event_id", "attendee_id", "badge_type", name="uq_participant_badge"),
+    )
+
+
+# ── Certificate Tiers ───────────────────────────────────────────────────────
+
+class CertificateTierRule(Base):
+    __tablename__ = "certificate_tier_rules"
+    id:               Mapped[int]      = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id:         Mapped[int]      = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True, unique=True)
+    tier_definitions: Mapped[dict]     = mapped_column(JSONB, default=dict)  # Array of tier definitions
+    created_by:       Mapped[int]      = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    updated_at:       Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    event: Mapped["Event"] = relationship()
+    creator: Mapped["User"] = relationship(foreign_keys=[created_by])
+
+
+# ── Survey System ───────────────────────────────────────────────────────────
+
+class EventSurvey(Base):
+    __tablename__ = "event_surveys"
+    id:                     Mapped[int]           = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id:               Mapped[int]           = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True, unique=True)
+    is_required:            Mapped[bool]          = mapped_column(Boolean, default=True)
+    survey_type:            Mapped[str]           = mapped_column(String(50), default="builtin")  # "builtin", "external", "both"
+    builtin_questions:      Mapped[Optional[dict]]= mapped_column(JSONB, nullable=True)  # Array of questions
+    external_provider:      Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # typeform, qualtrics, etc
+    external_url:           Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    external_webhook_key:   Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    created_at:             Mapped[datetime]      = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at:             Mapped[datetime]      = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    event: Mapped["Event"] = relationship()
+
+
+class SurveyResponse(Base):
+    __tablename__ = "survey_responses"
+    id:                   Mapped[int]           = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id:             Mapped[int]           = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    attendee_id:          Mapped[int]           = mapped_column(Integer, ForeignKey("attendees.id", ondelete="CASCADE"), index=True)
+    survey_type:          Mapped[str]           = mapped_column(String(50))  # "builtin" or "external"
+    answers:              Mapped[Optional[dict]]= mapped_column(JSONB, nullable=True)  # For built-in: {question_id: answer}
+    external_response_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)  # For external
+    completed_at:         Mapped[datetime]      = mapped_column(DateTime(timezone=True), server_default=func.now())
+    completion_proof:     Mapped[Optional[dict]]= mapped_column(JSONB, nullable=True)  # Webhook data
+
+    event:    Mapped["Event"]    = relationship()
+    attendee: Mapped["Attendee"] = relationship()
+
+    __table_args__ = (
+        UniqueConstraint("event_id", "attendee_id", "survey_type", name="uq_survey_response"),
+    )
+
+
+# ── Sponsor Slots ───────────────────────────────────────────────────────────
+
+class SponsorSlot(Base):
+    __tablename__ = "sponsor_slots"
+    id:                   Mapped[int]      = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id:             Mapped[int]      = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    slot_position:        Mapped[str]      = mapped_column(String(100))  # email_header, email_footer, verification_page
+    sponsor_name:         Mapped[str]      = mapped_column(String(200))
+    sponsor_logo_url:     Mapped[str]      = mapped_column(Text)
+    sponsor_website_url:  Mapped[str]      = mapped_column(Text)
+    sponsor_color_hex:    Mapped[str]      = mapped_column(String(7), default="#000000")
+    enabled:              Mapped[bool]     = mapped_column(Boolean, default=True)
+    order_index:          Mapped[int]      = mapped_column(Integer, default=0)
+    created_at:           Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    event: Mapped["Event"] = relationship()
 
 
 class TokenOut(BaseModel):
@@ -653,6 +800,26 @@ class BulkGenerateOut(BaseModel):
     certificates: List[Dict[str, Any]]
 
 
+class BulkCertificateJobOut(BaseModel):
+    id: int
+    event_id: int
+    created_by: int
+    chunk_size: int
+    total_count: int
+    current_index: int
+    created_count: int
+    failed_count: int
+    already_exists_count: int
+    spent_heptacoin: int
+    status: str
+    error_message: Optional[str]
+    zip_file_path: Optional[str]
+    created_at: datetime
+    started_at: Optional[datetime]
+    completed_at: Optional[datetime]
+    model_config = ConfigDict(from_attributes=True)
+
+
 class CertificateOut(BaseModel):
     id: int
     uuid: str
@@ -753,6 +920,157 @@ class TotpSetupOut(BaseModel):
 
 class TotpConfirmIn(BaseModel):
     code: str = Field(min_length=6, max_length=6)
+
+
+# ── Gamification & Survey Request/Response Models ───────────────────────────
+
+class BadgeDefinition(BaseModel):
+    """Definition of a badge type"""
+    type: str = Field(min_length=1, max_length=50)
+    name: str = Field(min_length=1, max_length=200)
+    description: Optional[str] = Field(default=None, max_length=1000)
+    criteria: Dict[str, Any] = Field(default_factory=dict)
+    icon_url: Optional[str] = Field(default=None, max_length=2000)
+    color_hex: Optional[str] = Field(default="#4CAF50", max_length=7)
+
+
+class BadgeRulesIn(BaseModel):
+    """Request to create/update badge rules for an event"""
+    badge_definitions: List[BadgeDefinition] = Field(default_factory=list)
+    enabled: bool = Field(default=True)
+
+
+class BadgeRulesOut(BaseModel):
+    """Response with badge rules"""
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    event_id: int
+    badge_definitions: List[Dict[str, Any]]
+    enabled: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class ParticipantBadgeOut(BaseModel):
+    """Response with awarded badge details"""
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    event_id: int
+    attendee_id: int
+    badge_type: str
+    criteria_met: Dict[str, Any]
+    awarded_by: Optional[int] = None
+    awarded_at: datetime
+    is_automatic: bool
+    badge_metadata: Optional[Dict[str, Any]] = None
+
+
+class AwardBadgeIn(BaseModel):
+    """Request to manually award a badge"""
+    attendee_id: int = Field(gt=0)
+    badge_type: str = Field(min_length=1, max_length=50)
+    criteria_met: Dict[str, Any] = Field(default_factory=dict)
+    badge_metadata: Optional[Dict[str, Any]] = Field(default=None)
+
+
+class CertificateTierDefinition(BaseModel):
+    """Definition of a certificate tier"""
+    tier_name: str = Field(min_length=1, max_length=100)
+    template_id: Optional[int] = Field(default=None, gt=0)
+    conditions: List[Dict[str, Any]] = Field(default_factory=list)
+    condition_logic: str = Field(default="AND")  # AND or OR
+
+
+class CertificateTierRulesIn(BaseModel):
+    """Request to define certificate tier rules for an event"""
+    tier_definitions: List[CertificateTierDefinition] = Field(default_factory=list)
+
+
+class CertificateTierRulesOut(BaseModel):
+    """Response with certificate tier rules"""
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    event_id: int
+    tier_definitions: List[Dict[str, Any]]
+    created_at: datetime
+    updated_at: datetime
+
+
+class SurveyQuestion(BaseModel):
+    """A survey question"""
+    id: str = Field(min_length=1, max_length=100)
+    type: str = Field(min_length=1, max_length=50)  # text, multiple_choice, rating, etc.
+    question: str = Field(min_length=1, max_length=1000)
+    required: bool = Field(default=True)
+    options: Optional[List[str]] = Field(default=None)
+
+
+class EventSurveyIn(BaseModel):
+    """Request to configure survey for an event"""
+    is_required: bool = Field(default=True)
+    survey_type: str = Field(default="builtin")  # builtin, external, both
+    builtin_questions: List[SurveyQuestion] = Field(default_factory=list)
+    external_provider: Optional[str] = Field(default=None, max_length=100)  # typeform, qualtrics, etc.
+    external_url: Optional[str] = Field(default=None, max_length=2000)
+    external_webhook_key: Optional[str] = Field(default=None, max_length=256)
+
+
+class EventSurveyOut(BaseModel):
+    """Response with survey configuration"""
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    event_id: int
+    is_required: bool
+    survey_type: str
+    builtin_questions: List[Dict[str, Any]]
+    external_provider: Optional[str] = None
+    external_url: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class SurveyResponseIn(BaseModel):
+    """Request to submit survey response"""
+    survey_type: str = Field(min_length=1, max_length=50)
+    answers: Optional[Dict[str, Any]] = Field(default=None)  # For builtin surveys
+    external_response_id: Optional[str] = Field(default=None, max_length=500)  # For external surveys
+
+
+class SurveyResponseOut(BaseModel):
+    """Response with survey submission confirmation"""
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    event_id: int
+    attendee_id: int
+    survey_type: str
+    completed_at: datetime
+    completion_proof: Optional[Dict[str, Any]] = None
+
+
+class SponsorSlotIn(BaseModel):
+    """Request to create sponsor slot"""
+    slot_position: str = Field(min_length=1, max_length=100)  # email_header, email_footer, verification_page
+    sponsor_name: str = Field(min_length=1, max_length=200)
+    sponsor_logo_url: str = Field(max_length=2000)
+    sponsor_website_url: str = Field(max_length=2000)
+    sponsor_color_hex: Optional[str] = Field(default="#000000", max_length=7)
+    enabled: bool = Field(default=True)
+    order_index: int = Field(default=0, ge=0)
+
+
+class SponsorSlotOut(BaseModel):
+    """Response with sponsor slot details"""
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    event_id: int
+    slot_position: str
+    sponsor_name: str
+    sponsor_logo_url: str
+    sponsor_website_url: str
+    sponsor_color_hex: str
+    enabled: bool
+    order_index: int
+    created_at: datetime
 
 
 class TotpValidateIn(BaseModel):
@@ -2161,8 +2479,9 @@ async def startup():
         scheduler.add_job(_notify_expiring_certs, "cron", hour=2, minute=0)
         scheduler.add_job(_monthly_hc_renewal, "cron", hour=3, minute=30)
         scheduler.add_job(_process_bulk_emails, "interval", minutes=5)  # Every 5 minutes
+        scheduler.add_job(_process_bulk_certificate_jobs, "interval", seconds=3)
         scheduler.start()
-        logger.info("APScheduler started — cert notifications + monthly HC renewal + bulk email processing")
+        logger.info("APScheduler started — cert notifications + monthly HC renewal + bulk email processing + bulk certificate queue")
     except Exception as e:
         logger.warning("APScheduler init failed (non-fatal): %s", e)
 
@@ -2175,6 +2494,1342 @@ def _get_hc_quota(plan_id: str) -> Optional[int]:
 
 def bad_request(msg: str) -> HTTPException:
     return HTTPException(status_code=400, detail=msg)
+
+
+async def _get_checkin_context_by_token(checkin_token: str, db: AsyncSession) -> Optional[Dict[str, Any]]:
+    now_ts = time.time()
+    cached = _checkin_context_cache.get(checkin_token)
+    if cached and now_ts < cached[0]:
+        return cached[1]
+
+    res = await db.execute(
+        select(
+            EventSession.id,
+            EventSession.name,
+            EventSession.session_date,
+            EventSession.session_start,
+            EventSession.session_location,
+            EventSession.is_active,
+            Event.id.label("event_id"),
+            Event.name.label("event_name"),
+            Event.event_date,
+            Event.min_sessions_required,
+        )
+        .join(Event, Event.id == EventSession.event_id)
+        .where(EventSession.checkin_token == checkin_token)
+        .limit(1)
+    )
+    row = res.first()
+    if not row:
+        return None
+
+    ctx = {
+        "session_id": row.id,
+        "session_name": row.name,
+        "session_date": row.session_date,
+        "session_start": row.session_start,
+        "session_location": row.session_location,
+        "is_active": bool(row.is_active),
+        "event_id": row.event_id,
+        "event_name": row.event_name,
+        "event_date": row.event_date,
+        "min_sessions_required": int(row.min_sessions_required or 0),
+    }
+    _checkin_context_cache[checkin_token] = (now_ts + CHECKIN_CONTEXT_TTL_SECONDS, ctx)
+    return ctx
+
+
+async def _get_event_total_sessions_cached(event_id: int, db: AsyncSession) -> int:
+    now_ts = time.time()
+    cached = _event_total_sessions_cache.get(event_id)
+    if cached and now_ts < cached[0]:
+        return cached[1]
+
+    total_sess_res = await db.execute(
+        select(func.count()).where(EventSession.event_id == event_id)
+    )
+    total_sessions = int(total_sess_res.scalar_one() or 0)
+    _event_total_sessions_cache[event_id] = (now_ts + EVENT_TOTAL_SESSIONS_TTL_SECONDS, total_sessions)
+    return total_sessions
+
+
+def _safe_cert_filename(student_name: str, public_id: str) -> str:
+    base = f"{student_name}_{public_id}.pdf"
+    return "".join(c if c.isalnum() or c in " _-." else "_" for c in base)
+
+
+async def _process_one_bulk_certificate_job(job_id: int) -> None:
+    ISSUE_UNITS_PER_CERT = 10
+
+    async with SessionLocal() as db_job:
+        res_job = await db_job.execute(
+            select(BulkCertificateJob).where(BulkCertificateJob.id == job_id).with_for_update()
+        )
+        job = res_job.scalar_one_or_none()
+        if not job:
+            return
+
+        if job.status in ["completed", "failed", "cancelled"]:
+            return
+
+        if job.status == "pending":
+            job.status = "processing"
+            job.started_at = datetime.now(timezone.utc)
+
+        names: List[str] = [str(x).strip() for x in (job.names or []) if str(x).strip()]
+        total = len(names)
+        job.total_count = total
+
+        if job.current_index >= total:
+            if not job.zip_file_path and job.generated_files:
+                zip_rel_path = f"zips/event_{job.event_id}/bulk_job_{job.id}.zip"
+                zip_abs_path = Path(settings.local_storage_dir) / zip_rel_path
+                zip_abs_path.parent.mkdir(parents=True, exist_ok=True)
+                with zipfile.ZipFile(zip_abs_path, "w", zipfile.ZIP_DEFLATED) as zf:
+                    for item in job.generated_files or []:
+                        rel_pdf = item.get("rel_pdf_path")
+                        filename = item.get("file_name")
+                        if not rel_pdf or not filename:
+                            continue
+                        pdf_abs = Path(settings.local_storage_dir) / rel_pdf
+                        if pdf_abs.exists():
+                            zf.write(pdf_abs, filename)
+                job.zip_file_path = zip_rel_path
+            job.status = "completed"
+            job.completed_at = datetime.now(timezone.utc)
+            db_job.add(job)
+            await db_job.commit()
+            return
+
+        q_event = select(Event).where(Event.id == job.event_id)
+        if job.created_by:
+            q_event = q_event.where(Event.admin_id == job.created_by)
+        res_ev = await db_job.execute(q_event)
+        ev = res_ev.scalar_one_or_none()
+        if not ev:
+            job.status = "failed"
+            job.error_message = "Event not found or access denied"
+            job.completed_at = datetime.now(timezone.utc)
+            db_job.add(job)
+            await db_job.commit()
+            return
+
+        try:
+            cfg = editor_config_to_template_config(ev.config or {})
+        except Exception as e:
+            job.status = "failed"
+            job.error_message = f"Invalid event config: {e}"
+            job.completed_at = datetime.now(timezone.utc)
+            db_job.add(job)
+            await db_job.commit()
+            return
+
+        res_user = await db_job.execute(select(User).where(User.id == job.created_by))
+        user = res_user.scalar_one_or_none()
+        if not user:
+            job.status = "failed"
+            job.error_message = "Job owner not found"
+            job.completed_at = datetime.now(timezone.utc)
+            db_job.add(job)
+            await db_job.commit()
+            return
+
+        template_path = local_path_from_url(ev.template_image_url)
+        if not template_path.exists():
+            job.status = "failed"
+            job.error_message = "Template image not found"
+            job.completed_at = datetime.now(timezone.utc)
+            db_job.add(job)
+            await db_job.commit()
+            return
+        template_bytes = template_path.read_bytes()
+
+        org_res = await db_job.execute(select(Organization).where(Organization.user_id == job.created_by))
+        org = org_res.scalar_one_or_none()
+        brand_logo_bytes: Optional[bytes] = None
+        if org and org.brand_logo:
+            try:
+                logo_path = local_path_from_url(org.brand_logo)
+                if logo_path.exists():
+                    brand_logo_bytes = logo_path.read_bytes()
+            except Exception:
+                pass
+
+        start_idx = max(0, int(job.current_index or 0))
+        end_idx = min(total, start_idx + max(1, int(job.chunk_size or 10)))
+
+        generated_files = list(job.generated_files or [])
+
+        for idx in range(start_idx, end_idx):
+            student_name = names[idx]
+
+            if user.heptacoin_balance < ISSUE_UNITS_PER_CERT:
+                job.status = "failed"
+                job.error_message = f"Insufficient HeptaCoin at index={idx}"
+                job.current_index = idx
+                job.completed_at = datetime.now(timezone.utc)
+                db_job.add(job)
+                await db_job.commit()
+                return
+
+            cert_check = await db_job.execute(
+                select(Certificate).where(
+                    Certificate.event_id == ev.id,
+                    Certificate.student_name == student_name,
+                    Certificate.deleted_at.is_(None),
+                )
+            )
+            if cert_check.scalar_one_or_none():
+                job.already_exists_count += 1
+                job.current_index = idx + 1
+                continue
+
+            try:
+                cert_uuid = new_certificate_uuid()
+
+                ev_lock_res = await db_job.execute(select(Event).where(Event.id == ev.id).with_for_update())
+                ev_locked = ev_lock_res.scalar_one()
+                ev_locked.cert_seq += 1
+                public_id = f"EV{ev_locked.id}-{ev_locked.cert_seq:06d}"
+                verify_url = f"{settings.public_base_url}/verify/{cert_uuid}"
+
+                pdf_bytes = render_certificate_pdf(
+                    template_image_bytes=template_bytes,
+                    student_name=student_name,
+                    verify_url=verify_url,
+                    config=cfg,
+                    public_id=public_id,
+                    brand_logo_bytes=brand_logo_bytes,
+                )
+
+                rel_pdf_path = f"pdfs/event_{ev.id}/{cert_uuid}.pdf"
+                abs_pdf_path = Path(settings.local_storage_dir) / rel_pdf_path
+                abs_pdf_path.parent.mkdir(parents=True, exist_ok=True)
+                abs_pdf_path.write_bytes(pdf_bytes)
+
+                asset_size_bytes = abs_pdf_path.stat().st_size
+                hosting_term = "yearly"
+                hosting_spend = hosting_units(hosting_term, asset_size_bytes)
+                spend_units = ISSUE_UNITS_PER_CERT + hosting_spend
+
+                if user.heptacoin_balance < spend_units:
+                    job.status = "failed"
+                    job.error_message = f"Insufficient HeptaCoin at index={idx}"
+                    job.current_index = idx
+                    job.completed_at = datetime.now(timezone.utc)
+                    db_job.add(job)
+                    await db_job.commit()
+                    return
+
+                pdf_url = build_public_pdf_url(rel_pdf_path)
+                hosting_ends_at = compute_hosting_ends(hosting_term)
+
+                cert = Certificate(
+                    uuid=cert_uuid,
+                    public_id=public_id,
+                    student_name=student_name,
+                    event_id=ev.id,
+                    pdf_url=pdf_url,
+                    status=CertStatus.active,
+                    hosting_term=hosting_term,
+                    hosting_ends_at=hosting_ends_at,
+                    asset_size_bytes=asset_size_bytes,
+                )
+                db_job.add(cert)
+
+                user.heptacoin_balance -= spend_units
+                db_job.add(Transaction(user_id=user.id, amount=spend_units, type=TxType.spend))
+
+                job.created_count += 1
+                job.spent_heptacoin += spend_units
+                generated_files.append({
+                    "rel_pdf_path": rel_pdf_path,
+                    "file_name": _safe_cert_filename(student_name, public_id),
+                })
+                job.generated_files = generated_files
+                job.current_index = idx + 1
+            except Exception as ex:
+                logger.error("Bulk certificate job %s failed at idx=%s: %s", job.id, idx, ex)
+                job.failed_count += 1
+                job.current_index = idx + 1
+
+        if job.current_index >= total:
+            zip_rel_path = f"zips/event_{job.event_id}/bulk_job_{job.id}.zip"
+            zip_abs_path = Path(settings.local_storage_dir) / zip_rel_path
+            zip_abs_path.parent.mkdir(parents=True, exist_ok=True)
+            with zipfile.ZipFile(zip_abs_path, "w", zipfile.ZIP_DEFLATED) as zf:
+                for item in generated_files:
+                    rel_pdf = item.get("rel_pdf_path")
+                    filename = item.get("file_name")
+                    if not rel_pdf or not filename:
+                        continue
+                    pdf_abs = Path(settings.local_storage_dir) / rel_pdf
+                    if pdf_abs.exists():
+                        zf.write(pdf_abs, filename)
+            job.zip_file_path = zip_rel_path
+            job.status = "completed"
+            job.completed_at = datetime.now(timezone.utc)
+
+        db_job.add(job)
+        await db_job.commit()
+
+
+async def _process_bulk_certificate_jobs() -> None:
+    if bulk_cert_job_lock.locked():
+        return
+
+    async with bulk_cert_job_lock:
+        async with SessionLocal() as db_q:
+            res = await db_q.execute(
+                select(BulkCertificateJob.id)
+                .where(BulkCertificateJob.status.in_(["pending", "processing"]))
+                .order_by(BulkCertificateJob.created_at.asc())
+                .limit(1)
+            )
+            job_ids = [r[0] for r in res.all()]
+
+        for job_id in job_ids:
+            try:
+                await _process_one_bulk_certificate_job(job_id)
+            except Exception as e:
+                logger.error("Bulk certificate queue processor failed for job=%s: %s", job_id, e)
+
+
+# ── Badge Management Endpoints ────────────────────────────────────────────────
+
+@app.post("/api/admin/events/{event_id}/badge-rules", response_model=BadgeRulesOut)
+async def create_or_update_badge_rules(
+    event_id: int,
+    rules_in: BadgeRulesIn,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create or update badge rules for an event. Admin only."""
+    # Check authorization
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+    
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+
+    # Check if rules already exist
+    br_res = await db.execute(
+        select(BadgeRule).where(BadgeRule.event_id == event_id)
+    )
+    badge_rule = br_res.scalar_one_or_none()
+
+    if badge_rule:
+        badge_rule.badge_definitions = [d.model_dump() for d in rules_in.badge_definitions]
+        badge_rule.enabled = rules_in.enabled
+        badge_rule.updated_at = datetime.utcnow()
+    else:
+        badge_rule = BadgeRule(
+            event_id=event_id,
+            badge_definitions=[d.model_dump() for d in rules_in.badge_definitions],
+            enabled=rules_in.enabled,
+            created_by=current_user.id,
+            updated_at=datetime.utcnow(),
+        )
+        db.add(badge_rule)
+
+    await db.commit()
+    await db.refresh(badge_rule)
+    return badge_rule
+
+
+@app.get("/api/admin/events/{event_id}/badge-rules", response_model=Optional[BadgeRulesOut])
+async def get_badge_rules(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get badge rules for an event."""
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+
+    br_res = await db.execute(
+        select(BadgeRule).where(BadgeRule.event_id == event_id)
+    )
+    badge_rule = br_res.scalar_one_or_none()
+    return badge_rule
+
+
+@app.post("/api/admin/events/{event_id}/badges", response_model=ParticipantBadgeOut)
+async def award_badge_manually(
+    event_id: int,
+    badge_in: AwardBadgeIn,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Manually award a badge to an attendee."""
+    # Check authorization
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+
+    # Check attendee exists
+    att_res = await db.execute(
+        select(Attendee).where(
+            Attendee.id == badge_in.attendee_id,
+            Attendee.event_id == event_id,
+        )
+    )
+    attendee = att_res.scalar_one_or_none()
+    if not attendee:
+        raise HTTPException(status_code=404, detail="Katılımcı bulunamadı")
+
+    # Check if badge already exists
+    pb_res = await db.execute(
+        select(ParticipantBadge).where(
+            ParticipantBadge.event_id == event_id,
+            ParticipantBadge.attendee_id == badge_in.attendee_id,
+            ParticipantBadge.badge_type == badge_in.badge_type,
+        )
+    )
+    existing_badge = pb_res.scalar_one_or_none()
+    if existing_badge:
+        raise HTTPException(status_code=409, detail="Bu rozet zaten veriliş")
+
+    # Create badge
+    new_badge = ParticipantBadge(
+        event_id=event_id,
+        attendee_id=badge_in.attendee_id,
+        badge_type=badge_in.badge_type,
+        criteria_met=badge_in.criteria_met,
+        awarded_by=current_user.id,
+        awarded_at=datetime.utcnow(),
+        is_automatic=False,
+        badge_metadata=badge_in.badge_metadata,
+    )
+    db.add(new_badge)
+    await db.commit()
+    await db.refresh(new_badge)
+    return new_badge
+
+
+@app.get("/api/admin/events/{event_id}/badges")
+async def list_badges(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all awarded badges for an event."""
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+
+    pb_res = await db.execute(
+        select(ParticipantBadge)
+        .where(ParticipantBadge.event_id == event_id)
+        .order_by(ParticipantBadge.awarded_at.desc())
+    )
+    badges = pb_res.scalars().all()
+    
+    return {
+        "total_badges": len(badges),
+        "badges": [ParticipantBadgeOut.model_validate(b) for b in badges],
+        "badge_summary": {
+            "by_type": {},
+            "automatic_vs_manual": {"automatic": 0, "manual": 0},
+        },
+    }
+
+
+@app.post("/api/admin/events/{event_id}/badges/calculate")
+async def trigger_automatic_badge_calculation(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Trigger automatic badge calculation for all attendees in an event."""
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+
+    # Get badge rules
+    br_res = await db.execute(
+        select(BadgeRule).where(BadgeRule.event_id == event_id)
+    )
+    badge_rule = br_res.scalar_one_or_none()
+    if not badge_rule:
+        raise HTTPException(status_code=404, detail="Bu etkinlik için rozet kuralları belirlenmemiş")
+
+    # Get all attendees
+    att_res = await db.execute(
+        select(Attendee).where(Attendee.event_id == event_id)
+    )
+    attendees = att_res.scalars().all()
+
+    created_count = 0
+    for attendee in attendees:
+        # For each badge definition, check if criteria are met
+        for badge_def in badge_rule.badge_definitions or []:
+            badge_type = badge_def.get("type", "")
+            
+            # Check if badge already exists
+            pb_res = await db.execute(
+                select(ParticipantBadge).where(
+                    ParticipantBadge.event_id == event_id,
+                    ParticipantBadge.attendee_id == attendee.id,
+                    ParticipantBadge.badge_type == badge_type,
+                )
+            )
+            if pb_res.scalar_one_or_none():
+                continue  # Already has this badge
+
+            # For now, criteria evaluation is placeholder
+            # In production, evaluate actual conditions (attendance %, performance, etc.)
+            criteria_met = {}  # Placeholder
+
+            badge = ParticipantBadge(
+                event_id=event_id,
+                attendee_id=attendee.id,
+                badge_type=badge_type,
+                criteria_met=criteria_met,
+                awarded_at=datetime.utcnow(),
+                is_automatic=True,
+                badge_metadata={
+                    "calculation_rule_version": "1.0",
+                    "calculated_at": datetime.utcnow().isoformat(),
+                },
+            )
+            db.add(badge)
+            created_count += 1
+
+    await db.commit()
+
+    return {
+        "status": "success",
+        "message": f"{created_count} rozet hesaplandı ve verildi",
+        "badges_created": created_count,
+    }
+
+
+# ── Certificate Tier Endpoints ────────────────────────────────────────────────
+
+@app.post("/api/admin/events/{event_id}/certificate-tiers", response_model=CertificateTierRulesOut)
+async def create_or_update_tier_rules(
+    event_id: int,
+    tier_rules_in: CertificateTierRulesIn,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create or update certificate tier rules for an event."""
+    # Check authorization
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+
+    # Check if rules exist
+    ctr_res = await db.execute(
+        select(CertificateTierRule).where(CertificateTierRule.event_id == event_id)
+    )
+    tier_rule = ctr_res.scalar_one_or_none()
+
+    if tier_rule:
+        tier_rule.tier_definitions = [t.model_dump() for t in tier_rules_in.tier_definitions]
+        tier_rule.updated_at = datetime.utcnow()
+    else:
+        tier_rule = CertificateTierRule(
+            event_id=event_id,
+            tier_definitions=[t.model_dump() for t in tier_rules_in.tier_definitions],
+            created_by=current_user.id,
+            updated_at=datetime.utcnow(),
+        )
+        db.add(tier_rule)
+
+    await db.commit()
+    await db.refresh(tier_rule)
+    return tier_rule
+
+
+@app.get("/api/admin/events/{event_id}/certificate-tiers", response_model=Optional[CertificateTierRulesOut])
+async def get_tier_rules(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get certificate tier rules for an event."""
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+
+    ctr_res = await db.execute(
+        select(CertificateTierRule).where(CertificateTierRule.event_id == event_id)
+    )
+    tier_rule = ctr_res.scalar_one_or_none()
+    return tier_rule
+
+
+@app.post("/api/admin/events/{event_id}/certificates/assign-tiers")
+async def assign_certificate_tiers(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Assign certificate tiers to all attendees based on the defined rules."""
+    # Check authorization
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+
+    # Get tier rules
+    ctr_res = await db.execute(
+        select(CertificateTierRule).where(CertificateTierRule.event_id == event_id)
+    )
+    tier_rule = ctr_res.scalar_one_or_none()
+    if not tier_rule:
+        raise HTTPException(status_code=404, detail="Bu etkinlik için sertifika seviyesi kuralları belirlenmemiş")
+
+    # Get all certificates that don't have a tier yet
+    certs_res = await db.execute(
+        select(Certificate)
+        .where(
+            Certificate.event_id == event_id,
+            Certificate.status == CertStatus.active,
+            Certificate.certificate_tier.is_(None),
+        )
+        .order_by(Certificate.created_at)
+    )
+    certificates = certs_res.scalars().all()
+
+    assigned_count = 0
+    for cert in certificates:
+        # For simplicity, assign first matching tier
+        # In production, implement complex condition evaluation
+        for tier_def in tier_rule.tier_definitions or []:
+            tier_name = tier_def.get("tier_name", "Unknown")
+            cert.certificate_tier = tier_name
+            assigned_count += 1
+            break
+
+    await db.commit()
+
+    return {
+        "status": "success",
+        "message": f"{assigned_count} sertifikaya seviye atandı",
+        "certificates_assigned": assigned_count,
+    }
+
+
+@app.get("/api/admin/events/{event_id}/certificates/tier-summary")
+async def get_tier_summary(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get summary of certificate tier distribution for an event."""
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+
+    # Get tier distribution
+    certs_res = await db.execute(
+        select(Certificate.certificate_tier, func.count(Certificate.id).label('count'))
+        .where(Certificate.event_id == event_id, Certificate.status == CertStatus.active)
+        .group_by(Certificate.certificate_tier)
+    )
+    tier_counts = certs_res.all()
+
+    tier_summary = {
+        "total_certificates": 0,
+        "by_tier": {},
+        "tier_percentages": {},
+    }
+
+    total = sum(count for _, count in tier_counts)
+    tier_summary["total_certificates"] = total
+
+    for tier_name, count in tier_counts:
+        tier_key = tier_name or "Unassigned"
+        tier_summary["by_tier"][tier_key] = count
+        if total > 0:
+            tier_summary["tier_percentages"][tier_key] = round((count / total) * 100, 2)
+
+    return tier_summary
+
+
+# ── Survey Integration Endpoints ──────────────────────────────────────────────
+
+@app.post("/api/admin/events/{event_id}/survey-config", response_model=EventSurveyOut)
+async def configure_event_survey(
+    event_id: int,
+    survey_in: EventSurveyIn,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Configure survey requirements for an event."""
+    # Check authorization
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+
+    # Check if survey config exists
+    es_res = await db.execute(
+        select(EventSurvey).where(EventSurvey.event_id == event_id)
+    )
+    event_survey = es_res.scalar_one_or_none()
+
+    if event_survey:
+        event_survey.is_required = survey_in.is_required
+        event_survey.survey_type = survey_in.survey_type
+        event_survey.builtin_questions = [q.model_dump() for q in survey_in.builtin_questions]
+        event_survey.external_provider = survey_in.external_provider
+        event_survey.external_url = survey_in.external_url
+        event_survey.external_webhook_key = survey_in.external_webhook_key
+    else:
+        event_survey = EventSurvey(
+            event_id=event_id,
+            is_required=survey_in.is_required,
+            survey_type=survey_in.survey_type,
+            builtin_questions=[q.model_dump() for q in survey_in.builtin_questions],
+            external_provider=survey_in.external_provider,
+            external_url=survey_in.external_url,
+            external_webhook_key=survey_in.external_webhook_key,
+        )
+        db.add(event_survey)
+
+    # If survey is required, mark all attendees
+    if survey_in.is_required:
+        att_res = await db.execute(
+            select(Attendee).where(Attendee.event_id == event_id)
+        )
+        attendees = att_res.scalars().all()
+        for attendee in attendees:
+            attendee.survey_required = True
+            attendee.can_download_cert = False
+
+    await db.commit()
+    await db.refresh(event_survey)
+    return event_survey
+
+
+@app.get("/api/admin/events/{event_id}/survey-config", response_model=Optional[EventSurveyOut])
+async def get_event_survey(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get survey configuration for an event."""
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+
+    es_res = await db.execute(
+        select(EventSurvey).where(EventSurvey.event_id == event_id)
+    )
+    event_survey = es_res.scalar_one_or_none()
+    return event_survey
+
+
+@app.post("/api/surveys/{event_id}/submit", response_model=SurveyResponseOut)
+async def submit_builtin_survey(
+    event_id: int,
+    survey_resp_in: SurveyResponseIn,
+    attendee_id: int = Header(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Submit a built-in survey response. Attendee endpoint."""
+    # Check attendee exists
+    att_res = await db.execute(
+        select(Attendee).where(
+            Attendee.id == attendee_id,
+            Attendee.event_id == event_id,
+        )
+    )
+    attendee = att_res.scalar_one_or_none()
+    if not attendee:
+        raise HTTPException(status_code=404, detail="Katılımcı bulunamadı")
+
+    # Get survey config
+    es_res = await db.execute(
+        select(EventSurvey).where(EventSurvey.event_id == event_id)
+    )
+    event_survey = es_res.scalar_one_or_none()
+    if not event_survey or not event_survey.is_required:
+        raise HTTPException(status_code=400, detail="Bu etkinlik için anket zorunlu değil")
+
+    # Check if already submitted
+    sr_res = await db.execute(
+        select(SurveyResponse).where(
+            SurveyResponse.event_id == event_id,
+            SurveyResponse.attendee_id == attendee_id,
+            SurveyResponse.survey_type == survey_resp_in.survey_type,
+        )
+    )
+    existing = sr_res.scalar_one_or_none()
+    if existing:
+        raise HTTPException(status_code=409, detail="Bu anket zaten gönderilmiş")
+
+    # Create response
+    survey_response = SurveyResponse(
+        event_id=event_id,
+        attendee_id=attendee_id,
+        survey_type=survey_resp_in.survey_type,
+        answers=survey_resp_in.answers,
+        external_response_id=survey_resp_in.external_response_id,
+        completed_at=datetime.utcnow(),
+        completion_proof={"submitted_at": datetime.utcnow().isoformat()},
+    )
+    db.add(survey_response)
+
+    # Update attendee
+    attendee.survey_completed_at = datetime.utcnow()
+    attendee.can_download_cert = True
+
+    await db.commit()
+    await db.refresh(survey_response)
+    return survey_response
+
+
+@app.post("/api/surveys/external/webhook")
+async def handle_external_survey_webhook(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Handle webhook from external survey providers (Typeform, Qualtrics, etc.)."""
+    try:
+        payload = await request.json()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+    # Extract webhook key from headers
+    webhook_key = request.headers.get("X-Webhook-Key", "")
+    event_id = request.query_params.get("event_id")
+    attendee_id = request.query_params.get("attendee_id")
+
+    if not all([webhook_key, event_id, attendee_id]):
+        raise HTTPException(status_code=400, detail="Missing required parameters")
+
+    # Verify webhook key
+    es_res = await db.execute(
+        select(EventSurvey).where(EventSurvey.event_id == int(event_id))
+    )
+    event_survey = es_res.scalar_one_or_none()
+    if not event_survey or event_survey.external_webhook_key != webhook_key:
+        raise HTTPException(status_code=401, detail="Webhook key verification failed")
+
+    # Check if response already exists
+    sr_res = await db.execute(
+        select(SurveyResponse).where(
+            SurveyResponse.event_id == int(event_id),
+            SurveyResponse.attendee_id == int(attendee_id),
+            SurveyResponse.survey_type == "external",
+        )
+    )
+    existing = sr_res.scalar_one_or_none()
+    if existing:
+        raise HTTPException(status_code=409, detail="Survey response already recorded")
+
+    # Create response
+    survey_response = SurveyResponse(
+        event_id=int(event_id),
+        attendee_id=int(attendee_id),
+        survey_type="external",
+        answers=None,
+        external_response_id=payload.get("response_id"),
+        completed_at=datetime.utcnow(),
+        completion_proof=payload,
+    )
+    db.add(survey_response)
+
+    # Update attendee
+    att_res = await db.execute(
+        select(Attendee).where(Attendee.id == int(attendee_id))
+    )
+    attendee = att_res.scalar_one_or_none()
+    if attendee:
+        attendee.survey_completed_at = datetime.utcnow()
+        attendee.can_download_cert = True
+
+    await db.commit()
+
+    return {
+        "status": "success",
+        "message": "Survey response recorded",
+    }
+
+
+@app.get("/api/admin/events/{event_id}/surveys/responses")
+async def get_survey_responses(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get all survey responses for an event. Admin only."""
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+
+    sr_res = await db.execute(
+        select(SurveyResponse)
+        .where(SurveyResponse.event_id == event_id)
+        .order_by(SurveyResponse.completed_at.desc())
+    )
+    responses = sr_res.scalars().all()
+
+    return {
+        "total_responses": len(responses),
+        "responses": [SurveyResponseOut.model_validate(r) for r in responses],
+        "response_rate": {
+            "completed": len(responses),
+            "pending": 0,  # Would need to calculate from attendees
+        },
+    }
+
+
+# ── Sponsor Management Endpoints ──────────────────────────────────────────────
+
+@app.post("/api/admin/events/{event_id}/sponsors", response_model=SponsorSlotOut)
+async def create_sponsor_slot(
+    event_id: int,
+    sponsor_in: SponsorSlotIn,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a sponsor slot for an event."""
+    # Check authorization
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+
+    # Create sponsor slot
+    sponsor_slot = SponsorSlot(
+        event_id=event_id,
+        slot_position=sponsor_in.slot_position,
+        sponsor_name=sponsor_in.sponsor_name,
+        sponsor_logo_url=sponsor_in.sponsor_logo_url,
+        sponsor_website_url=sponsor_in.sponsor_website_url,
+        sponsor_color_hex=sponsor_in.sponsor_color_hex,
+        enabled=sponsor_in.enabled,
+        order_index=sponsor_in.order_index,
+    )
+    db.add(sponsor_slot)
+    await db.commit()
+    await db.refresh(sponsor_slot)
+    return sponsor_slot
+
+
+@app.get("/api/admin/events/{event_id}/sponsors")
+async def list_sponsors(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all sponsor slots for an event."""
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+
+    ss_res = await db.execute(
+        select(SponsorSlot)
+        .where(SponsorSlot.event_id == event_id, SponsorSlot.enabled == True)
+        .order_by(SponsorSlot.order_index)
+    )
+    sponsors = ss_res.scalars().all()
+
+    return {
+        "total_sponsors": len(sponsors),
+        "sponsors": [SponsorSlotOut.model_validate(s) for s in sponsors],
+        "by_position": {},
+    }
+
+
+@app.put("/api/admin/events/{event_id}/sponsors/{sponsor_id}", response_model=SponsorSlotOut)
+async def update_sponsor_slot(
+    event_id: int,
+    sponsor_id: int,
+    sponsor_in: SponsorSlotIn,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a sponsor slot."""
+    # Check authorization
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+
+    # Get sponsor slot
+    ss_res = await db.execute(
+        select(SponsorSlot).where(
+            SponsorSlot.id == sponsor_id,
+            SponsorSlot.event_id == event_id,
+        )
+    )
+    sponsor_slot = ss_res.scalar_one_or_none()
+    if not sponsor_slot:
+        raise HTTPException(status_code=404, detail="Sponsor bulunamadı")
+
+    # Update fields
+    sponsor_slot.slot_position = sponsor_in.slot_position
+    sponsor_slot.sponsor_name = sponsor_in.sponsor_name
+    sponsor_slot.sponsor_logo_url = sponsor_in.sponsor_logo_url
+    sponsor_slot.sponsor_website_url = sponsor_in.sponsor_website_url
+    sponsor_slot.sponsor_color_hex = sponsor_in.sponsor_color_hex
+    sponsor_slot.enabled = sponsor_in.enabled
+    sponsor_slot.order_index = sponsor_in.order_index
+
+    await db.commit()
+    await db.refresh(sponsor_slot)
+    return sponsor_slot
+
+
+@app.delete("/api/admin/events/{event_id}/sponsors/{sponsor_id}")
+async def delete_sponsor_slot(
+    event_id: int,
+    sponsor_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a sponsor slot."""
+    # Check authorization
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+
+    # Get sponsor slot
+    ss_res = await db.execute(
+        select(SponsorSlot).where(
+            SponsorSlot.id == sponsor_id,
+            SponsorSlot.event_id == event_id,
+        )
+    )
+    sponsor_slot = ss_res.scalar_one_or_none()
+    if not sponsor_slot:
+        raise HTTPException(status_code=404, detail="Sponsor bulunamadı")
+
+    await db.delete(sponsor_slot)
+    await db.commit()
+
+    return {
+        "status": "deleted",
+        "message": f"Sponsor '{sponsor_slot.sponsor_name}' kaldırıldı",
+    }
+
+
+@app.get("/api/public/events/{event_id}/sponsors")
+async def get_event_sponsors_public(
+    event_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get enabled sponsors for an event (public endpoint)."""
+    ss_res = await db.execute(
+        select(SponsorSlot)
+        .where(SponsorSlot.event_id == event_id, SponsorSlot.enabled == True)
+        .order_by(SponsorSlot.order_index)
+    )
+    sponsors = ss_res.scalars().all()
+
+    # Group by position
+    by_position = {}
+    for sponsor in sponsors:
+        if sponsor.slot_position not in by_position:
+            by_position[sponsor.slot_position] = []
+        by_position[sponsor.slot_position].append(SponsorSlotOut.model_validate(sponsor))
+
+    return {
+        "sponsors": [SponsorSlotOut.model_validate(s) for s in sponsors],
+        "by_position": by_position,
+        "total": len(sponsors),
+    }
+
+
+# ── Analytics Endpoints ───────────────────────────────────────────────────────
+
+@app.get("/api/admin/events/{event_id}/analytics/engagement")
+async def get_engagement_analytics(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get engagement analytics for an event (attendance, surveys, badges)."""
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+
+    # Get total attendees
+    att_count_res = await db.execute(
+        select(func.count(Attendee.id)).where(Attendee.event_id == event_id)
+    )
+    total_attendees = att_count_res.scalar() or 0
+
+    # Get survey completion rate
+    survey_completed_res = await db.execute(
+        select(func.count(Attendee.id)).where(
+            Attendee.event_id == event_id,
+            Attendee.survey_completed_at.isnot(None),
+        )
+    )
+    surveys_completed = survey_completed_res.scalar() or 0
+
+    # Get badge distribution
+    pb_res = await db.execute(
+        select(func.count(ParticipantBadge.id)).where(
+            ParticipantBadge.event_id == event_id
+        )
+    )
+    total_badges = pb_res.scalar() or 0
+
+    # Get attendance
+    arc_res = await db.execute(
+        select(func.count(distinct(AttendanceRecord.attendee_id))).where(
+            AttendanceRecord.id.in_(
+                select(AttendanceRecord.id).join(
+                    EventSession,
+                    EventSession.id == AttendanceRecord.session_id,
+                ).where(EventSession.event_id == event_id)
+            )
+        )
+    )
+    attended_count = arc_res.scalar() or 0
+
+    return {
+        "total_attendees": total_attendees,
+        "survey_completion": {
+            "completed": surveys_completed,
+            "pending": total_attendees - surveys_completed,
+            "completion_rate": (surveys_completed / total_attendees * 100) if total_attendees > 0 else 0,
+        },
+        "badges": {
+            "total_awarded": total_badges,
+            "average_per_attendee": (total_badges / total_attendees) if total_attendees > 0 else 0,
+        },
+        "attendance": {
+            "attended": attended_count,
+            "not_attended": total_attendees - attended_count,
+            "attendance_rate": (attended_count / total_attendees * 100) if total_attendees > 0 else 0,
+        },
+    }
+
+
+@app.get("/api/admin/events/{event_id}/analytics/badges")
+async def get_badge_analytics(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get badge distribution analytics."""
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+
+    # Badge distribution by type
+    pb_res = await db.execute(
+        select(ParticipantBadge.badge_type, func.count(ParticipantBadge.id))
+        .where(ParticipantBadge.event_id == event_id)
+        .group_by(ParticipantBadge.badge_type)
+    )
+    badge_counts = pb_res.all()
+
+    # Automatic vs Manual
+    auto_res = await db.execute(
+        select(func.count(ParticipantBadge.id)).where(
+            ParticipantBadge.event_id == event_id,
+            ParticipantBadge.is_automatic == True,
+        )
+    )
+    automatic = auto_res.scalar() or 0
+
+    manual_res = await db.execute(
+        select(func.count(ParticipantBadge.id)).where(
+            ParticipantBadge.event_id == event_id,
+            ParticipantBadge.is_automatic == False,
+        )
+    )
+    manual = manual_res.scalar() or 0
+
+    return {
+        "by_type": {badge_type: count for badge_type, count in badge_counts},
+        "by_award_method": {
+            "automatic": automatic,
+            "manual": manual,
+        },
+        "total_badges": automatic + manual,
+    }
+
+
+@app.get("/api/admin/events/{event_id}/analytics/tiers")
+async def get_tier_analytics(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get certificate tier distribution analytics."""
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+
+    # Tier distribution
+    cert_res = await db.execute(
+        select(Certificate.certificate_tier, func.count(Certificate.id))
+        .where(
+            Certificate.event_id == event_id,
+            Certificate.status == CertStatus.active,
+        )
+        .group_by(Certificate.certificate_tier)
+    )
+    tier_counts = cert_res.all()
+
+    total = sum(count for _, count in tier_counts)
+    tier_dist = {}
+    for tier_name, count in tier_counts:
+        tier_key = tier_name or "Unassigned"
+        percentage = (count / total * 100) if total > 0 else 0
+        tier_dist[tier_key] = {
+            "count": count,
+            "percentage": round(percentage, 2),
+        }
+
+    return {
+        "total_certificates": total,
+        "tier_distribution": tier_dist,
+        "unassigned_count": tier_dist.get("Unassigned", {}).get("count", 0),
+    }
+
+
+@app.get("/api/admin/events/{event_id}/analytics/timeline")
+async def get_timeline_analytics(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get timeline analytics (registrations, completions, downloads over time)."""
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+
+    # Registrations by day
+    reg_res = await db.execute(
+        select(
+            func.date(Attendee.registered_at).label("date"),
+            func.count(Attendee.id).label("count"),
+        )
+        .where(Attendee.event_id == event_id)
+        .group_by(func.date(Attendee.registered_at))
+        .order_by("date")
+    )
+    registrations = reg_res.all()
+
+    # Survey completions by day
+    surv_res = await db.execute(
+        select(
+            func.date(Attendee.survey_completed_at).label("date"),
+            func.count(Attendee.id).label("count"),
+        )
+        .where(
+            Attendee.event_id == event_id,
+            Attendee.survey_completed_at.isnot(None),
+        )
+        .group_by(func.date(Attendee.survey_completed_at))
+        .order_by("date")
+    )
+    surveys = surv_res.all()
+
+    # Certificate creations by day
+    cert_res = await db.execute(
+        select(
+            func.date(Certificate.created_at).label("date"),
+            func.count(Certificate.id).label("count"),
+        )
+        .where(
+            Certificate.event_id == event_id,
+            Certificate.status == CertStatus.active,
+        )
+        .group_by(func.date(Certificate.created_at))
+        .order_by("date")
+    )
+    certificates = cert_res.all()
+
+    return {
+        "registrations": [
+            {"date": str(d), "count": c} for d, c in registrations
+        ],
+        "survey_completions": [
+            {"date": str(d), "count": c} for d, c in surveys
+        ],
+        "certificate_creations": [
+            {"date": str(d), "count": c} for d, c in certificates
+        ],
+    }
 
 
 @app.get("/api/health")
@@ -4210,12 +5865,14 @@ async def save_event_config(
 
 
 #
-@app.post("/api/admin/events/{event_id}/bulk-generate", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+@app.post(
+    "/api/admin/events/{event_id}/bulk-generate",
+    response_model=BulkCertificateJobOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
 async def bulk_generate(
     event_id: int,
-    request: Request,
     excel: UploadFile = File(...),
-    background_tasks: BackgroundTasks = None,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -4257,7 +5914,8 @@ async def bulk_generate(
     if col is None:
         col = df.columns[0]
 
-    names = [str(x).strip() for x in df[col].tolist() if str(x).strip() and str(x).strip().lower() != "nan"]
+    raw_names = [str(x).strip() for x in df[col].tolist() if str(x).strip() and str(x).strip().lower() != "nan"]
+    names = list(dict.fromkeys(raw_names))
     if not names:
         raise bad_request("No names found in Excel")
     if len(names) > 1000:
@@ -4267,33 +5925,8 @@ async def bulk_generate(
     res_u = await db.execute(select(User).where(User.id == me.id))
     user = res_u.scalar_one()
 
-    # Template bytes
-    template_path = local_path_from_url(ev.template_image_url)
-    if not template_path.exists():
-        raise bad_request("Template image not found on server. Upload template or fix template_image_url.")
-    template_bytes = template_path.read_bytes()
-
-    # Brand logo for QR overlay (from user's organization)
-    org_res = await db.execute(select(Organization).where(Organization.user_id == me.id))
-    org = org_res.scalar_one_or_none()
-    brand_logo_bytes: Optional[bytes] = None
-    if org and org.brand_logo:
-        try:
-            logo_path = local_path_from_url(org.brand_logo)
-            if logo_path.exists():
-                brand_logo_bytes = logo_path.read_bytes()
-        except Exception:
-            pass
-
-    # Event lock (cert_seq atomic)
-    res_lock = await db.execute(
-        select(Event).where(Event.id == ev.id, Event.admin_id == me.id).with_for_update()
-    )
-    ev = res_lock.scalar_one()
-
     ISSUE_UNITS_PER_CERT = 10
     HOSTING_ESTIMATE_UNITS = 20  # estimate per cert for early balance check
-    term = "yearly"
 
     # ── Early balance check (before any file I/O) ──────────────────────────────
     estimated_total = len(names) * (ISSUE_UNITS_PER_CERT + HOSTING_ESTIMATE_UNITS)
@@ -4304,106 +5937,134 @@ async def bulk_generate(
         )
     # ──────────────────────────────────────────────────────────────────────────
 
-    created_items: List[Dict[str, Any]] = []
-    total_spend_units = 0
+    chunk_size = 5 if len(names) >= 500 else 10
 
-    for student_name in names:
-        cert_uuid = new_certificate_uuid()
-
-        ev.cert_seq += 1
-        public_id = f"EV{ev.id}-{ev.cert_seq:06d}"
-        verify_url = f"{settings.public_base_url}/verify/{cert_uuid}"
-
-        # NOTE: generator.py'yı public_id alacak şekilde güncellemen şart
-        pdf_bytes = render_certificate_pdf(
-            template_image_bytes=template_bytes,
-            student_name=student_name,
-            verify_url=verify_url,
-            config=cfg,
-            public_id=public_id,
-            brand_logo_bytes=brand_logo_bytes,
-        )
-
-        rel_pdf_path = f"pdfs/event_{ev.id}/{cert_uuid}.pdf"
-        abs_pdf_path = Path(settings.local_storage_dir) / rel_pdf_path
-        abs_pdf_path.parent.mkdir(parents=True, exist_ok=True)
-        abs_pdf_path.write_bytes(pdf_bytes)
-
-        asset_size_bytes = abs_pdf_path.stat().st_size
-        hosting_spend = hosting_units(term, asset_size_bytes)
-
-        spend_units = ISSUE_UNITS_PER_CERT + hosting_spend
-        total_spend_units += spend_units
-
-        pdf_url = build_public_pdf_url(rel_pdf_path)
-        hosting_ends_at = compute_hosting_ends(term)
-
-        cert = Certificate(
-            uuid=cert_uuid,
-            public_id=public_id,
-            student_name=student_name,
-            event_id=ev.id,
-            pdf_url=pdf_url,
-            status=CertStatus.active,
-            hosting_term=term,
-            hosting_ends_at=hosting_ends_at,
-            asset_size_bytes=asset_size_bytes,
-        )
-        db.add(cert)
-
-        created_items.append({
-            "uuid": cert_uuid,
-            "public_id": public_id,
-            "student_name": student_name,
-            "status": CertStatus.active,
-            "hosting_term": term,
-            "hosting_ends_at": hosting_ends_at,
-            "pdf_url": pdf_url,
-            "spend_units": spend_units,
-        })
-
-    # Final precise balance check
-    if user.heptacoin_balance < total_spend_units:
-        raise HTTPException(
-            status_code=402,
-            detail=f"Yetersiz HeptaCoin. Gereksinim={total_spend_units}, Bakiye={user.heptacoin_balance}",
-        )
-
-    user.heptacoin_balance -= total_spend_units
-    db.add(Transaction(user_id=user.id, amount=total_spend_units, type=TxType.spend))
-
+    job = BulkCertificateJob(
+        event_id=ev.id,
+        created_by=me.id,
+        names=names,
+        chunk_size=chunk_size,
+        total_count=len(names),
+        status="pending",
+    )
+    db.add(job)
     await db.commit()
+    await db.refresh(job)
 
-    # ── Fire webhook ──────────────────────────────────────────────────────────
-    if background_tasks:
-        from .webhooks import deliver_webhook, WebhookEvent
-        background_tasks.add_task(
-            deliver_webhook, db, me.id, WebhookEvent.cert_bulk_completed.value,
-            {"event_id": ev.id, "created": len(created_items), "spent_heptacoin": total_spend_units},
+    # Nudge processor so first chunk starts quickly
+    asyncio.create_task(_process_bulk_certificate_jobs())
+
+    return job
+
+
+@app.get(
+    "/api/admin/events/{event_id}/bulk-generate-jobs",
+    response_model=List[BulkCertificateJobOut],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def list_bulk_generate_jobs(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    _ = await _get_event_for_admin(event_id, me, db)
+    res = await db.execute(
+        select(BulkCertificateJob)
+        .where(BulkCertificateJob.event_id == event_id, BulkCertificateJob.created_by == me.id)
+        .order_by(BulkCertificateJob.created_at.desc())
+        .limit(30)
+    )
+    return res.scalars().all()
+
+
+@app.get(
+    "/api/admin/events/{event_id}/bulk-generate-jobs/{job_id}",
+    response_model=BulkCertificateJobOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def get_bulk_generate_job(
+    event_id: int,
+    job_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    _ = await _get_event_for_admin(event_id, me, db)
+    res = await db.execute(
+        select(BulkCertificateJob).where(
+            BulkCertificateJob.id == job_id,
+            BulkCertificateJob.event_id == event_id,
+            BulkCertificateJob.created_by == me.id,
         )
+    )
+    job = res.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Bulk certificate job not found")
+    return job
 
-    # ── Build ZIP with all PDFs ───────────────────────────────────────────────
-    zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-        for item in created_items:
-            rel_pdf_path = f"pdfs/event_{ev.id}/{item['uuid']}.pdf"
-            abs_pdf_path = Path(settings.local_storage_dir) / rel_pdf_path
-            if abs_pdf_path.exists():
-                safe_fname = "".join(
-                    c if c.isalnum() or c in " _-." else "_"
-                    for c in f"{item['student_name']}_{item['public_id']}.pdf"
-                )
-                zf.write(abs_pdf_path, safe_fname)
-    zip_buffer.seek(0)
 
-    return StreamingResponse(
-        zip_buffer,
+@app.post(
+    "/api/admin/events/{event_id}/bulk-generate-jobs/{job_id}/cancel",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def cancel_bulk_generate_job(
+    event_id: int,
+    job_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    _ = await _get_event_for_admin(event_id, me, db)
+    res = await db.execute(
+        select(BulkCertificateJob).where(
+            BulkCertificateJob.id == job_id,
+            BulkCertificateJob.event_id == event_id,
+            BulkCertificateJob.created_by == me.id,
+        )
+    )
+    job = res.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Bulk certificate job not found")
+    if job.status in ["completed", "failed", "cancelled"]:
+        raise HTTPException(status_code=400, detail="Job already finished")
+
+    job.status = "cancelled"
+    job.completed_at = datetime.now(timezone.utc)
+    db.add(job)
+    await db.commit()
+    return {"ok": True, "job_id": job.id, "status": job.status}
+
+
+@app.get(
+    "/api/admin/events/{event_id}/bulk-generate-jobs/{job_id}/download",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def download_bulk_generate_job_zip(
+    event_id: int,
+    job_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    _ = await _get_event_for_admin(event_id, me, db)
+    res = await db.execute(
+        select(BulkCertificateJob).where(
+            BulkCertificateJob.id == job_id,
+            BulkCertificateJob.event_id == event_id,
+            BulkCertificateJob.created_by == me.id,
+        )
+    )
+    job = res.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Bulk certificate job not found")
+    if job.status != "completed" or not job.zip_file_path:
+        raise HTTPException(status_code=409, detail="Job henüz tamamlanmadı")
+
+    zip_path = Path(settings.local_storage_dir) / job.zip_file_path
+    if not zip_path.exists():
+        raise HTTPException(status_code=404, detail="ZIP file not found")
+
+    return FileResponse(
+        zip_path,
         media_type="application/zip",
-        headers={
-            "Content-Disposition": f"attachment; filename=certificates-event-{ev.id}.zip",
-            "X-Heptacert-Created": str(len(created_items)),
-            "X-Heptacert-Spent-HC": str(total_spend_units),
-        },
+        filename=f"certificates-event-{event_id}-job-{job.id}.zip",
     )
 
 
@@ -6032,52 +7693,45 @@ API_AUDIT_SKIP_PREFIXES_EXTENDED = ("/api/attend/", "/api/events/")
 
 @app.get("/api/attend/{checkin_token}")
 async def get_session_by_token(checkin_token: str, db: AsyncSession = Depends(get_db)):
-    res = await db.execute(select(EventSession).where(EventSession.checkin_token == checkin_token))
-    session = res.scalar_one_or_none()
-    if not session:
+    ctx = await _get_checkin_context_by_token(checkin_token, db)
+    if not ctx:
         raise HTTPException(status_code=404, detail="Geçersiz QR kodu")
-    ev_res = await db.execute(select(Event).where(Event.id == session.event_id))
-    ev = ev_res.scalar_one()
     count_res = await db.execute(
-        select(func.count()).where(AttendanceRecord.session_id == session.id)
+        select(func.count()).where(AttendanceRecord.session_id == ctx["session_id"])
     )
     count = int(count_res.scalar_one() or 0)
     return {
-        "session_id": session.id,
-        "session_name": session.name,
-        "session_date": session.session_date.isoformat() if session.session_date else None,
-        "session_start": session.session_start.strftime("%H:%M") if session.session_start else None,
-        "session_location": session.session_location,
-        "is_active": session.is_active,
-        "event_id": ev.id,
-        "event_name": ev.name,
-        "event_date": ev.event_date.isoformat() if ev.event_date else None,
-        "min_sessions_required": ev.min_sessions_required,
+        "session_id": ctx["session_id"],
+        "session_name": ctx["session_name"],
+        "session_date": ctx["session_date"].isoformat() if ctx["session_date"] else None,
+        "session_start": ctx["session_start"].strftime("%H:%M") if ctx["session_start"] else None,
+        "session_location": ctx["session_location"],
+        "is_active": ctx["is_active"],
+        "event_id": ctx["event_id"],
+        "event_name": ctx["event_name"],
+        "event_date": ctx["event_date"].isoformat() if ctx["event_date"] else None,
+        "min_sessions_required": ctx["min_sessions_required"],
         "attendance_count": count,
     }
 
 
 @app.post("/api/attend/{checkin_token}", response_model=CheckinOut)
-@limiter.limit("15/minute")
+@limiter.limit("600/minute")
 async def self_checkin(
     checkin_token: str,
     payload: CheckinIn,
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
-    sess_res = await db.execute(select(EventSession).where(EventSession.checkin_token == checkin_token))
-    session = sess_res.scalar_one_or_none()
-    if not session:
+    ctx = await _get_checkin_context_by_token(checkin_token, db)
+    if not ctx:
         raise HTTPException(status_code=404, detail="Geçersiz QR kodu")
-    if not session.is_active:
+    if not ctx["is_active"]:
         raise HTTPException(status_code=403, detail="Bu oturum için check-in kapalı")
-
-    ev_res = await db.execute(select(Event).where(Event.id == session.event_id))
-    ev = ev_res.scalar_one()
 
     att_res = await db.execute(
         select(Attendee).where(
-            Attendee.event_id == ev.id,
+            Attendee.event_id == ctx["event_id"],
             func.lower(Attendee.email) == payload.email.lower(),
         )
     )
@@ -6088,55 +7742,43 @@ async def self_checkin(
             detail="Bu e-posta ile etkinlikte kayıtlı değilsiniz. Lütfen önce kayıt olun.",
         )
 
-    # Check duplicate
-    dup_res = await db.execute(
-        select(AttendanceRecord).where(
-            AttendanceRecord.attendee_id == attendee.id,
-            AttendanceRecord.session_id == session.id,
-        )
-    )
-    if dup_res.scalar_one_or_none():
-        attended_res = await db.execute(
-            select(func.count()).where(AttendanceRecord.attendee_id == attendee.id)
-        )
-        attended_count = int(attended_res.scalar_one() or 0)
-        total_sess_res = await db.execute(
-            select(func.count()).where(EventSession.event_id == ev.id)
-        )
-        total_sessions = int(total_sess_res.scalar_one() or 0)
-        return CheckinOut(
-            success=False,
-            message="Bu oturuma zaten check-in yaptınız.",
-            attendee_name=attendee.name,
-            sessions_attended=attended_count,
-            sessions_required=ev.min_sessions_required,
-            total_sessions=total_sessions,
-        )
-
     ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else None)
-    record = AttendanceRecord(
-        attendee_id=attendee.id,
-        session_id=session.id,
-        ip_address=ip,
+    insert_stmt = (
+        _pg_insert(AttendanceRecord.__table__)
+        .values(
+            attendee_id=attendee.id,
+            session_id=ctx["session_id"],
+            ip_address=ip,
+        )
+        .on_conflict_do_nothing(index_elements=["attendee_id", "session_id"])
+        .returning(AttendanceRecord.id)
     )
-    db.add(record)
+    inserted_res = await db.execute(insert_stmt)
+    inserted_id = inserted_res.scalar_one_or_none()
     await db.commit()
 
     attended_res = await db.execute(
         select(func.count()).where(AttendanceRecord.attendee_id == attendee.id)
     )
     attended_count = int(attended_res.scalar_one() or 0)
-    total_sess_res = await db.execute(
-        select(func.count()).where(EventSession.event_id == ev.id)
-    )
-    total_sessions = int(total_sess_res.scalar_one() or 0)
+    total_sessions = await _get_event_total_sessions_cached(ctx["event_id"], db)
+
+    if inserted_id is None:
+        return CheckinOut(
+            success=False,
+            message="Bu oturuma zaten check-in yaptınız.",
+            attendee_name=attendee.name,
+            sessions_attended=attended_count,
+            sessions_required=ctx["min_sessions_required"],
+            total_sessions=total_sessions,
+        )
 
     return CheckinOut(
         success=True,
         message=f"Check-in başarılı! Hoş geldiniz, {attendee.name}.",
         attendee_name=attendee.name,
         sessions_attended=attended_count,
-        sessions_required=ev.min_sessions_required,
+        sessions_required=ctx["min_sessions_required"],
         total_sessions=total_sessions,
     )
 
@@ -6789,6 +8431,77 @@ async def bulk_certify_attendees(
         total_attendees=len(attendees),
         spent_heptacoin=total_spent,
     )
+
+
+@app.post(
+    "/api/admin/events/{event_id}/bulk-certify-queue",
+    response_model=BulkCertificateJobOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+)
+async def bulk_certify_attendees_queue(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Creates a background bulk certificate job for all eligible attendees.
+
+    Uses the existing job queue (BulkCertificateJob) so the request returns
+    immediately and heavy PDF rendering happens asynchronously, preventing
+    HTTP timeouts for large attendee lists.
+    """
+    ev = await _get_event_for_admin(event_id, me, db)
+    if not ev.config or ev.template_image_url in ("", "placeholder"):
+        raise HTTPException(status_code=400, detail="Etkinlik şablon yapılandırması eksik")
+
+    # Fetch all attendees
+    att_res = await db.execute(select(Attendee).where(Attendee.event_id == event_id))
+    attendees = att_res.scalars().all()
+    if not attendees:
+        raise HTTPException(status_code=400, detail="Katılımcı listesi boş")
+
+    # Count attendance per attendee
+    rec_res = await db.execute(
+        select(AttendanceRecord.attendee_id, func.count().label("cnt"))
+        .where(AttendanceRecord.attendee_id.in_([a.id for a in attendees]))
+        .group_by(AttendanceRecord.attendee_id)
+    )
+    attend_counts: dict[int, int] = {r.attendee_id: r.cnt for r in rec_res.all()}
+
+    eligible = [a for a in attendees if attend_counts.get(a.id, 0) >= ev.min_sessions_required]
+    if not eligible:
+        raise HTTPException(status_code=400, detail="Eşiği geçen katılımcı bulunamadı")
+
+    names = [a.name for a in eligible]
+
+    # Early balance check
+    res_u = await db.execute(select(User).where(User.id == me.id))
+    user = res_u.scalar_one()
+    ISSUE_UNITS_PER_CERT = 10
+    HOSTING_ESTIMATE_UNITS = 20
+    estimated_total = len(names) * (ISSUE_UNITS_PER_CERT + HOSTING_ESTIMATE_UNITS)
+    if user.heptacoin_balance < estimated_total:
+        raise HTTPException(
+            status_code=402,
+            detail=f"Yetersiz HeptaCoin. Tahmini Gereksinim={estimated_total}, Bakiye={user.heptacoin_balance}",
+        )
+
+    chunk_size = 5 if len(names) >= 500 else 10
+    job = BulkCertificateJob(
+        event_id=ev.id,
+        created_by=me.id,
+        names=names,
+        chunk_size=chunk_size,
+        total_count=len(names),
+        status="pending",
+    )
+    db.add(job)
+    await db.commit()
+    await db.refresh(job)
+
+    # Nudge the background processor to start quickly
+    asyncio.create_task(_process_bulk_certificate_jobs())
+
+    return job
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
