@@ -5,8 +5,7 @@ import { CheckCircle2, ShieldCheck, Star, HelpCircle, Coins, Loader2, AlertCircl
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useI18n, useT } from "@/lib/i18n";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8765/api";
+import { API_BASE } from "@/lib/api";
 
 type PricingTier = {
   id: string;
@@ -207,7 +206,6 @@ type WaitlistModalProps = {
 };
 
 function WaitlistModal({ tier, lang, onClose }: WaitlistModalProps) {
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8765/api";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");

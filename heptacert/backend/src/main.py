@@ -16,6 +16,7 @@ from email.mime.text import MIMEText
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Optional, List
+from pydantic import field_validator
 import uuid as _uuid_module
 import aiosmtplib
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
@@ -1251,13 +1252,13 @@ async def send_email_async(
     
     # Attach files if provided
     if attachments:
+        from email.mime.base import MIMEBase
+        from email.mime.image import MIMEImage
+        from email import encoders
+        
         for filename, file_bytes, mimetype in attachments:
-            from email.mime.base import MIMEBase
-            from email import encoders
-            
             maintype, subtype = mimetype.split("/", 1)
             if maintype == "text":
-                from email.mime.text import MIMEText
                 attachment = MIMEText(file_bytes.decode(), _subtype=subtype)
             elif maintype == "image":
                 from email.mime.image import MIMEImage
@@ -5301,7 +5302,20 @@ async def get_audit_logs(
         q = q.where(AuditLog.created_at <= to_date)
     q = q.order_by(AuditLog.created_at.desc()).offset((page - 1) * limit).limit(limit)
     res = await db.execute(q)
-    return res.scalars().all()
+    logs = res.scalars().all()
+    # Convert IPv4Address objects to strings for response
+    result = []
+    for log in logs:
+        result.append({
+            'id': log.id,
+            'user_id': log.user_id,
+            'action': log.action,
+            'resource_type': log.resource_type,
+            'resource_id': log.resource_id,
+            'ip_address': str(log.ip_address) if log.ip_address else None,
+            'created_at': log.created_at,
+        })
+    return [AuditLogOut(**item) for item in result]
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

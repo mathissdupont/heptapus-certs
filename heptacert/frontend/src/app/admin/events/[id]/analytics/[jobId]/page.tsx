@@ -35,8 +35,11 @@ interface LogsResponse {
 
 export default function DeliveryAnalyticsPage() {
   const params = useParams();
-  const eventId = parseInt(params.eventId as string);
+  const eventId = parseInt(params.id as string);
   const jobId = parseInt(params.jobId as string);
+  if (isNaN(eventId) || isNaN(jobId)) {
+    return <div className="p-4 text-red-600">Geçersiz parametre</div>;
+  }
   const router = useRouter();
 
   const [stats, setStats] = useState<DeliveryStats | null>(null);

@@ -24,7 +24,10 @@ interface ScheduledEmail {
 
 export default function ScheduleEmailPage() {
   const params = useParams();
-  const eventId = parseInt(params.eventId as string);
+  const eventId = parseInt(params.id as string);
+  if (isNaN(eventId)) {
+    return <div className="p-4 text-red-600">Geçersiz etkinlik ID</div>;
+  }
   const router = useRouter();
 
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);

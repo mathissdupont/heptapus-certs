@@ -22,8 +22,7 @@ import {
   Eye,
 } from "lucide-react";
 import { useT } from "@/lib/i18n";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8765/api";
+import { API_BASE } from "@/lib/api";
 
 type CertData = {
   uuid: string;

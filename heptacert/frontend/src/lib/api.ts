@@ -342,3 +342,253 @@ export async function selfCheckin(token: string, email: string) {
     total_sessions: number;
   }>;
 }
+
+// ── Event Analytics ───────────────────────────────────────────────────────────
+
+export interface EventAnalyticsOut {
+  event_id: number;
+  event_name: string;
+  total_attendees: number;
+  certified_count: number;
+  pending_count: number;
+  sessions: { id: number; name: string; attendance_rate: number }[];
+}
+
+export async function getEventAnalytics(eventId: number): Promise<EventAnalyticsOut> {
+  const res = await apiFetch(`/admin/events/${eventId}/analytics`);
+  return res.json();
+}
+
+// ── Dashboard Stats ───────────────────────────────────────────────────────────
+
+export interface DashboardStatsOut {
+  events_with_stats?: Array<{ event_id: number; event_name: string; total_attendees: number; certified_count: number }>;
+}
+
+export async function getDashboardStats(): Promise<DashboardStatsOut> {
+  const res = await apiFetch(`/admin/dashboard/stats`);
+  return res.json();
+}
+
+// ── SuperAdmin Endpoints ──────────────────────────────────────────────────────
+
+export interface AdminOut {
+  id: number;
+  email: string;
+  role: string;
+  created_at: string;
+}
+export interface SuperAdminStatsOut {
+  total_users: number;
+  active_users: number;
+  total_events: number;
+  completed_events: number;
+  total_attendees: number;
+  total_certificates: number;
+  issued_certificates: number;
+  total_emails: number;
+  delivered_emails: number;
+  total_admins: number;
+  total_organizations: number;
+}
+export async function listSuperAdmins(): Promise<AdminOut[]> {
+  const res = await apiFetch(`/superadmin/admins`);
+  return res.json();
+}
+
+export async function createSuperAdmin(data: { email: string; role: string }): Promise<AdminOut> {
+  const res = await apiFetch(`/superadmin/admins`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function deleteSuperAdmin(adminId: number): Promise<void> {
+  await apiFetch(`/superadmin/admins/${adminId}`, { method: "DELETE" });
+}
+
+export async function updateSuperAdminRole(adminId: number, role: string): Promise<AdminOut> {
+  const res = await apiFetch(`/superadmin/admins/${adminId}/role`, {
+    method: "PATCH",
+    body: JSON.stringify({ role }),
+  });
+  return res.json();
+}
+
+export interface AuditLogOut {
+  id: number;
+  user_id?: number;
+  user_email?: string;
+  action: string;
+  resource_type?: string;
+  resource_id?: string;
+  details?: string;
+  ip_address?: string;
+  created_at: string;
+}
+
+export async function listAuditLogs(params?: {
+  user_id?: number;
+  action?: string;
+  from_date?: string;
+  to_date?: string;
+  page?: number;
+  limit?: number;
+}): Promise<{ items: AuditLogOut[]; total: number }> {
+  const qs = new URLSearchParams();
+  if (params?.user_id) qs.set("user_id", String(params.user_id));
+  if (params?.action) qs.set("action", params.action);
+  if (params?.from_date) qs.set("from_date", params.from_date);
+  if (params?.to_date) qs.set("to_date", params.to_date);
+  if (params?.page) qs.set("page", String(params.page));
+  if (params?.limit) qs.set("limit", String(params.limit));
+  
+  const res = await apiFetch(`/superadmin/audit-logs?${qs}`);
+  const items = await res.json();
+  return { items, total: items.length };
+}
+
+export async function getSuperAdminStats(): Promise<SuperAdminStatsOut> {
+  const res = await apiFetch(`/superadmin/stats`);
+  return res.json();
+}
+
+// ── 2FA Management ────────────────────────────────────────────────────────────
+
+export interface TwoFAStatusOut {
+  is_enabled: boolean;
+  secret?: string;
+  qr_code?: string;
+  recovery_codes?: string[];
+}
+
+export async function get2FAStatus(): Promise<TwoFAStatusOut> {
+  const res = await apiFetch(`/auth/2fa/status`);
+  return res.json();
+}
+
+export async function setup2FA(): Promise<TwoFAStatusOut> {
+  const res = await apiFetch(`/auth/2fa/setup`, { method: "POST" });
+  return res.json();
+}
+
+export async function enable2FA(token: string): Promise<{ success: boolean }> {
+  const res = await apiFetch(`/auth/2fa/enable`, {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
+  return res.json();
+}
+
+export async function disable2FA(password: string): Promise<{ success: boolean }> {
+  const res = await apiFetch(`/auth/2fa/disable`, {
+    method: "POST",
+    body: JSON.stringify({ password }),
+  });
+  return res.json();
+}
+
+// ── Email Job Details ─────────────────────────────────────────────────────────
+
+export interface EmailJobDetailsOut {
+  id: number;
+  event_id: number;
+  job_type: string;
+  status: string;
+  total_recipients: number;
+  sent_count: number;
+  failed_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getEmailJobDetails(eventId: number, jobId: number): Promise<EmailJobDetailsOut> {
+  const res = await apiFetch(`/admin/events/${eventId}/bulk-email-jobs/${jobId}`);
+  return res.json();
+}
+
+// ── Bulk Certificate Actions ──────────────────────────────────────────────────
+
+export async function bulkCertificateAction(
+  eventId: number,
+  action: "revoke" | "expire" | "delete",
+  certificateIds: number[]
+): Promise<{ success: boolean; count: number }> {
+  const res = await apiFetch(`/admin/events/${eventId}/certificates/bulk-action`, {
+    method: "POST",
+    body: JSON.stringify({ action, certificate_ids: certificateIds }),
+  });
+  return res.json();
+}
+
+// ── API Keys ──────────────────────────────────────────────────────────────────
+
+export interface APIKeyOut {
+  id: number;
+  key: string;
+  name: string;
+  created_at: string;
+  last_used?: string;
+}
+
+export async function listAPIKeys(): Promise<APIKeyOut[]> {
+  const res = await apiFetch(`/admin/api-keys`);
+  return res.json();
+}
+
+export async function createAPIKey(name: string): Promise<APIKeyOut> {
+  const res = await apiFetch(`/admin/api-keys`, {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+  return res.json();
+}
+
+export async function deleteAPIKey(keyId: number): Promise<void> {
+  await apiFetch(`/admin/api-keys/${keyId}`, { method: "DELETE" });
+}
+
+// ── Webhook Deliveries ────────────────────────────────────────────────────────
+
+export interface WebhookDeliveryOut {
+  id: number;
+  webhook_id: number;
+  event_type: string;
+  status: number;
+  response_body?: string;
+  created_at: string;
+}
+
+export async function listWebhookDeliveries(
+  webhookId: number,
+  params?: { page?: number; limit?: number }
+): Promise<{ items: WebhookDeliveryOut[]; total: number }> {
+  const qs = new URLSearchParams();
+  if (params?.page) qs.set("page", String(params.page));
+  if (params?.limit) qs.set("limit", String(params.limit));
+  
+  const res = await apiFetch(`/admin/webhooks/${webhookId}/deliveries?${qs}`);
+  return res.json();
+}
+
+// ── Organization Domain ───────────────────────────────────────────────────────
+
+export interface OrgDomainOut {
+  organization_id: number;
+  custom_domain?: string;
+  domain_verified: boolean;
+}
+
+export async function getOrgDomain(): Promise<OrgDomainOut> {
+  const res = await apiFetch(`/admin/organization/domain`);
+  return res.json();
+}
+
+export async function updateOrgDomain(customDomain: string): Promise<OrgDomainOut> {
+  const res = await apiFetch(`/admin/organization/domain`, {
+    method: "PUT",
+    body: JSON.stringify({ custom_domain: customDomain }),
+  });
+  return res.json();
+}

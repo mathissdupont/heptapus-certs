@@ -20,8 +20,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useT } from "@/lib/i18n";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8765/api";
+import { API_BASE } from "@/lib/api";
 
 type StatsData = {
   active_orgs: string;
@@ -48,7 +47,9 @@ export default function LandingPage() {
     fetch(`${API_BASE}/stats`)
       .then((r) => r.ok ? r.json() : null)
       .then((d) => d && setStats(d))
-      .catch(() => {});
+      .catch((e) => {
+        console.error("Failed to load stats:", e);
+      });
   }, []);
 
   const features = [

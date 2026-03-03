@@ -6,9 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Loader2, ShieldCheck, AlertCircle, CreditCard, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
-import { apiFetch } from "@/lib/api";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8765/api";
+import { apiFetch, API_BASE } from "@/lib/api";
 
 function CheckoutContent() {
   const params = useSearchParams();
@@ -98,9 +96,12 @@ function CheckoutContent() {
             <ShieldCheck className="h-3.5 w-3.5" /> Güvenli Ödeme
           </div>
         </div>
-        <div
-          className="w-full max-w-lg bg-white rounded-2xl shadow-lifted overflow-hidden"
-          dangerouslySetInnerHTML={{ __html: checkoutHtml }}
+        <iframe
+          srcDoc={checkoutHtml}
+          sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation"
+          className="w-full max-w-lg bg-white rounded-2xl shadow-lifted overflow-hidden border-0"
+          style={{ height: '600px', minHeight: '600px' }}
+          title="Payment Checkout"
         />
         <Link href="/pricing" className="mt-6 text-xs text-gray-400 hover:text-gray-600 transition-colors">
           ← Planlara geri dön

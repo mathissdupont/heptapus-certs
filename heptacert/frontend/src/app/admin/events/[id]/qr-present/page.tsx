@@ -22,12 +22,26 @@ export default function QrPresentPage() {
       setLoading(false);
       return;
     }
+    
+    let qrUrl: string | null = null;
+    
     fetchSessionQr(eventId, sessionId)
       .then(({ blob }) => {
-        setQrUrl(URL.createObjectURL(blob));
+        qrUrl = URL.createObjectURL(blob);
+        setQrUrl(qrUrl);
       })
-      .catch(() => setError("QR kodu yüklenemedi"))
+      .catch((e) => {
+        console.error("Failed to fetch QR code:", e);
+        setError("QR kodu yüklenemedi");
+      })
       .finally(() => setLoading(false));
+    
+    // Cleanup - revoke object URL on unmount or dependency change
+    return () => {
+      if (qrUrl) {
+        URL.revokeObjectURL(qrUrl);
+      }
+    };
   }, [eventId, sessionId]);
 
   return (

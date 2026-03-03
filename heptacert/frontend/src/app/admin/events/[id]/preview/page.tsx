@@ -21,8 +21,11 @@ interface PreviewData {
 
 export default function EmailTemplatePreviewPage() {
   const params = useParams();
-  const eventId = parseInt(params.eventId as string);
-  const templateId = parseInt(params.templateId as string);
+  const eventId = parseInt(params.id as string);
+  const templateId = parseInt(params.templateId as string || '0');
+  if (isNaN(eventId) || isNaN(templateId)) {
+    return <div className="p-4 text-red-600">Geçersiz parametre</div>;
+  }
 
   const [template, setTemplate] = useState<EmailTemplate | null>(null);
   const [preview, setPreview] = useState<PreviewData | null>(null);

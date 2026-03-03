@@ -57,7 +57,9 @@ export default function AdminEvents() {
           (d.events_with_stats || []).forEach((s) => { map[s.event_id] = s; });
           setCertStats(map);
         })
-        .catch(() => {});
+        .catch((e) => {
+          console.error("Failed to load cert stats:", e);
+        });
       // Load subscription (non-blocking)
       getMySubscription()
         .then((sub) => {
@@ -65,7 +67,9 @@ export default function AdminEvents() {
             setHasPaidPlan(true);
           }
         })
-        .catch(() => {});
+        .catch((e) => {
+          console.error("Failed to load subscription:", e);
+        });
     } catch (e: any) {
       const msg = e?.message || "";
       setErr(msg || "Yükleme başarısız.");
