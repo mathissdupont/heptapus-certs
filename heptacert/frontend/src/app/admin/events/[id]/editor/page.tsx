@@ -21,6 +21,9 @@ import {
   CheckCircle2,
   QrCode,
   User,
+  Users,
+  UserCheck,
+  LockKeyhole,
   CreditCard,
   Download,
   Upload,
@@ -211,6 +214,7 @@ export default function EditorPage({ params }: { params: { id: string } }) {
 
   const [bulkFile, setBulkFile] = useState<File | null>(null);
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<string | null>(null);
 
   const [bgUploading, setBgUploading] = useState(false);
   const bgInputRef = useRef<HTMLInputElement>(null);
@@ -358,21 +362,58 @@ export default function EditorPage({ params }: { params: { id: string } }) {
     if (!bulkFile) return setErr("Lütfen bir Excel dosyası seçin.");
     setBulkLoading(true);
     setErr(null);
+    setBulkProgress("Kuyruğa alınıyor...");
     try {
       const form = new FormData();
       form.append("file", bulkFile);
       const res = await apiFetch(`/admin/events/${eventId}/bulk-generate`, {
         method: "POST",
         body: form,
-        headers: {},
       });
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `certificates-event-${eventId}.zip`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const job = await res.json();
+      const jobId = job?.id;
+      if (!jobId) throw new Error("Job başlatılamadı");
+
+      const startedAt = Date.now();
+      const MAX_WAIT_MS = 30 * 60 * 1000;
+
+      while (true) {
+        if (Date.now() - startedAt > MAX_WAIT_MS) {
+          throw new Error("İşlem çok uzun sürdü. Job arka planda devam ediyor.");
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        const statusRes = await apiFetch(`/admin/events/${eventId}/bulk-generate-jobs/${jobId}`);
+        const status = await statusRes.json();
+
+        const total = status?.total_count || 0;
+        const current = status?.current_index || 0;
+        const created = status?.created_count || 0;
+        const failed = status?.failed_count || 0;
+        setBulkProgress(`İşleniyor: ${current}/${total} • Oluşan: ${created} • Hata: ${failed}`);
+
+        if (status?.status === "completed") {
+          setBulkProgress("Tamamlandı, ZIP indiriliyor...");
+          const dlRes = await apiFetch(`/admin/events/${eventId}/bulk-generate-jobs/${jobId}/download`);
+          const blob = await dlRes.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `certificates-event-${eventId}-job-${jobId}.zip`;
+          a.click();
+          URL.revokeObjectURL(url);
+          setBulkProgress(`Tamamlandı: ${created} sertifika üretildi.`);
+          break;
+        }
+
+        if (status?.status === "failed") {
+          throw new Error(status?.error_message || "Toplu üretim job başarısız.");
+        }
+
+        if (status?.status === "cancelled") {
+          throw new Error("Toplu üretim job iptal edildi.");
+        }
+      }
     } catch (e: any) {
       setErr(e?.message || "Toplu üretim başarısız.");
     } finally {
@@ -430,45 +471,77 @@ export default function EditorPage({ params }: { params: { id: string } }) {
     <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden">
 
       {/* TOP BAR */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100 bg-white shrink-0">
-        <div className="flex items-center gap-3">
-          <Link href="/admin/events" className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors">
-            <ChevronLeft className="h-4 w-4" /> {t("editor_back")}
-          </Link>
-          <span className="text-gray-200">/</span>
-          <div className="flex items-center gap-1.5 text-sm font-bold text-gray-800">
-            <FileText className="h-4 w-4 text-brand-500" />
-            {t("editor_title")} — Event {eventId}
+      <div className="px-6 py-3 border-b border-gray-100 bg-white shrink-0 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link href="/admin/events" className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors">
+              <ChevronLeft className="h-4 w-4" /> {t("editor_back")}
+            </Link>
+            <span className="text-gray-200">/</span>
+            <div className="flex items-center gap-1.5 text-sm font-bold text-gray-800">
+              <FileText className="h-4 w-4 text-brand-500" />
+              {t("editor_title")} — Event {eventId}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 px-2">
+              <Link href={`/admin/events/${eventId}/settings`} title="Ayarlar" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors text-sm font-medium">
+                <Settings className="h-4 w-4" />
+                Ayarlar
+              </Link>
+              <Link href={`/admin/events/${eventId}/email-templates`} title="Email Şablonları" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors text-sm font-medium">
+                <Mail className="h-4 w-4" />
+                Email
+              </Link>
+              <Link href={`/admin/events/${eventId}/bulk-emails`} title="Toplu Email" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors text-sm font-medium">
+                <Send className="h-4 w-4" />
+                Kampanya
+              </Link>
+            </div>
+            <div className="border-l border-gray-200 mx-2 h-6" />
+            <AnimatePresence>
+              {saved && (
+                <motion.span initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+                  className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> {t("editor_saved")}
+                </motion.span>
+              )}
+            </AnimatePresence>
+            <button onClick={saveConfig} disabled={saving} className="btn-primary flex items-center gap-2 px-5 py-2 text-sm">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {t("editor_save")}
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 px-2">
-            <Link href={`/admin/events/${eventId}/settings`} title="Ayarlar" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors text-sm font-medium">
-              <Settings className="h-4 w-4" />
-              Ayarlar
-            </Link>
-            <Link href={`/admin/events/${eventId}/email-templates`} title="Email Şablonları" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors text-sm font-medium">
-              <Mail className="h-4 w-4" />
-              Email
-            </Link>
-            <Link href={`/admin/events/${eventId}/bulk-emails`} title="Toplu Email" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors text-sm font-medium">
-              <Send className="h-4 w-4" />
-              Kampanya
-            </Link>
-          </div>
-          <div className="border-l border-gray-200 mx-2 h-6" />
-          <AnimatePresence>
-            {saved && (
-              <motion.span initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
-                className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1">
-                <CheckCircle2 className="h-3.5 w-3.5" /> {t("editor_saved")}
-              </motion.span>
-            )}
-          </AnimatePresence>
-          <button onClick={saveConfig} disabled={saving} className="btn-primary flex items-center gap-2 px-5 py-2 text-sm">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            {t("editor_save")}
-          </button>
+
+        <div className="flex items-center gap-1 flex-wrap">
+          <Link href={`/admin/events/${eventId}/certificates`} className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-white px-3.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50 shadow-sm transition-colors">
+            <LockKeyhole className="h-3.5 w-3.5" /> Sertifikalar
+          </Link>
+          <Link href={`/admin/events/${eventId}/sessions`} className="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-white px-3.5 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-50 shadow-sm transition-colors">
+            <QrCode className="h-3.5 w-3.5" /> Oturumlar
+          </Link>
+          <Link href={`/admin/events/${eventId}/attendees`} className="flex items-center gap-1.5 rounded-lg border border-violet-200 bg-white px-3.5 py-1.5 text-xs font-bold text-violet-700 hover:bg-violet-50 shadow-sm transition-colors">
+            <Users className="h-3.5 w-3.5" /> Katılımcılar
+          </Link>
+          <Link href={`/admin/events/${eventId}/checkin`} className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3.5 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-50 shadow-sm transition-colors">
+            <UserCheck className="h-3.5 w-3.5" /> Check-in
+          </Link>
+          <Link href={`/admin/events/${eventId}/gamification`} className="flex items-center gap-1.5 rounded-lg border border-fuchsia-200 bg-white px-3.5 py-1.5 text-xs font-bold text-fuchsia-700 hover:bg-fuchsia-50 shadow-sm transition-colors">
+            Gamification
+          </Link>
+          <Link href={`/admin/events/${eventId}/surveys`} className="flex items-center gap-1.5 rounded-lg border border-cyan-200 bg-white px-3.5 py-1.5 text-xs font-bold text-cyan-700 hover:bg-cyan-50 shadow-sm transition-colors">
+            Anket
+          </Link>
+          <Link href={`/admin/events/${eventId}/advanced-analytics`} className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-sm transition-colors">
+            İleri Analitik
+          </Link>
+          <Link href={`/admin/events/${eventId}/editor`} className="flex items-center gap-1.5 rounded-lg border border-brand-300 bg-brand-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm">
+            Editör
+          </Link>
+          <Link href={`/admin/events/${eventId}/email-templates`} className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 shadow-sm transition-colors">
+            <Mail className="h-3.5 w-3.5" /> Email
+          </Link>
         </div>
       </div>
 
@@ -567,7 +640,7 @@ export default function EditorPage({ params }: { params: { id: string } }) {
 
             {/* QR draggable */}
             {cfg.qr.show && (
-              <Draggable key={`qr-${cfgVersion}`} defaultPosition={{ x: qrRX, y: qrRY }} onStop={onQrStop} bounds="parent">
+              <Draggable key={`qr-${cfgVersion}`} position={{ x: qrRX, y: qrRY }} onDrag={onQrStop} bounds="parent">
                 <div className="absolute cursor-move" style={{ width: qrRS, height: qrRS }}>
                   <div className="w-full h-full rounded-md border-2 border-dashed border-emerald-400/60 bg-white/10 backdrop-blur flex items-center justify-center hover:border-emerald-400 transition-colors">
                     <QrCode className="text-emerald-300" style={{ width: "50%", height: "50%" }} />
@@ -762,6 +835,9 @@ export default function EditorPage({ params }: { params: { id: string } }) {
                       {bulkLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                       {t("editor_bulk_generate")}
                     </button>
+                    {bulkProgress && (
+                      <p className="text-[11px] text-gray-500 leading-relaxed">{bulkProgress}</p>
+                    )}
                   </div>
                 </PanelSection>
               </motion.div>

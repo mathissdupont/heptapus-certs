@@ -17,7 +17,9 @@ RUN pip install --upgrade pip && \
 
 COPY src ./src
 COPY alembic ./alembic
+COPY tests ./tests
 COPY alembic.ini .
+COPY pytest.ini .
 
 ENV PYTHONUNBUFFERED=1
 EXPOSE 8000
