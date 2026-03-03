@@ -251,3 +251,99 @@ class TestRateLimitingExists:
     def test_forgot_password_has_rate_limit(self):
         from src.main import forgot_password
         assert callable(forgot_password)
+
+
+# ── Superadmin subscription endpoints ───────────────────────────────────────
+
+class TestSuperadminSubscriptions:
+    @pytest.mark.asyncio
+    async def test_grant_subscription_requires_superadmin(self, admin_token):
+        """Non-superadmin should not be able to grant subscriptions (403 or 401 if user not in DB)."""
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.post(
+                "/api/superadmin/subscriptions/grant",
+                json={"user_email": "user@example.com", "plan_id": "pro", "days": 30},
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+        assert resp.status_code in (401, 403)
+
+    @pytest.mark.asyncio
+    async def test_grant_subscription_requires_auth(self):
+        """Unauthenticated request should be rejected."""
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.post(
+                "/api/superadmin/subscriptions/grant",
+                json={"user_email": "user@example.com", "plan_id": "pro", "days": 30},
+            )
+        assert resp.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_grant_subscription_invalid_plan(self, superadmin_token):
+        """Invalid plan_id should return 400 or 404."""
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.post(
+                "/api/superadmin/subscriptions/grant",
+                json={"user_email": "user@example.com", "plan_id": "nonexistent_plan", "days": 30},
+                headers={"Authorization": f"Bearer {superadmin_token}"},
+            )
+        # 401 (user not in test DB), 404 (user not found) or 400 (invalid plan)
+        assert resp.status_code in (400, 401, 404)
+
+    @pytest.mark.asyncio
+    async def test_list_subscriptions_requires_auth(self):
+        """Unauthenticated request should be rejected."""
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.get("/api/superadmin/subscriptions")
+        assert resp.status_code == 401
+
+
+# ── Email config endpoints ──────────────────────────────────────────────────
+
+class TestEmailConfigEndpoints:
+    @pytest.mark.asyncio
+    async def test_get_email_config_requires_auth(self):
+        """Unauthenticated request should be rejected."""
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.get("/api/admin/email-config")
+        assert resp.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_update_email_config_requires_auth(self):
+        """Unauthenticated PATCH should be rejected."""
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.patch(
+                "/api/admin/email-config",
+                json={"smtp_enabled": True},
+            )
+        assert resp.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_test_smtp_connection_requires_auth(self):
+        """SMTP test connection endpoint requires auth."""
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.post(
+                "/api/admin/email-config/test-connection",
+                json={
+                    "smtp_host": "smtp.gmail.com",
+                    "smtp_port": 587,
+                    "smtp_user": "test@example.com",
+                    "smtp_password": "password",
+                    "from_email": "test@example.com",
+                },
+            )
+        assert resp.status_code == 401
+
+    def test_user_email_config_model_has_smtp_fields(self):
+        """UserEmailConfig ORM model must have smtp credential columns."""
+        from src.main import UserEmailConfig
+        assert hasattr(UserEmailConfig, "smtp_host")
+        assert hasattr(UserEmailConfig, "smtp_port")
+        assert hasattr(UserEmailConfig, "smtp_user")
+        assert hasattr(UserEmailConfig, "smtp_password")

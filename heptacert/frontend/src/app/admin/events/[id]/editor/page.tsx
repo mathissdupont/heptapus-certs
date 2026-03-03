@@ -31,6 +31,9 @@ import {
   Move,
   History,
   RotateCcw,
+  Mail,
+  Send,
+  Settings,
 } from "lucide-react";
 import { useT } from "@/lib/i18n";
 
@@ -439,6 +442,21 @@ export default function EditorPage({ params }: { params: { id: string } }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 px-2">
+            <Link href={`/admin/events/${eventId}/settings`} title="Ayarlar" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors text-sm font-medium">
+              <Settings className="h-4 w-4" />
+              Ayarlar
+            </Link>
+            <Link href={`/admin/events/${eventId}/email-templates`} title="Email Şablonları" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors text-sm font-medium">
+              <Mail className="h-4 w-4" />
+              Email
+            </Link>
+            <Link href={`/admin/events/${eventId}/bulk-emails`} title="Toplu Email" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors text-sm font-medium">
+              <Send className="h-4 w-4" />
+              Kampanya
+            </Link>
+          </div>
+          <div className="border-l border-gray-200 mx-2 h-6" />
           <AnimatePresence>
             {saved && (
               <motion.span initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}

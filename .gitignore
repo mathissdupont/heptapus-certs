@@ -49,3 +49,9 @@ ehthumbs.db
 *.tmp
 test_import.py
 migrate_attendance.sql
+
+# ── Runtime-generated certificates & keys ─────────────────────────────────────
+*.p12
+*.pem
+*.key
+*.crt
