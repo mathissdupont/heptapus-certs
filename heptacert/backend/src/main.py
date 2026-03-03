@@ -712,6 +712,7 @@ class VerifyOut(BaseModel):
     public_id: Optional[str] = None
     student_name: str
     event_name: str
+    event_date: Optional[str] = None
     status: CertStatus
     pdf_url: Optional[str] = None
     issued_at: Optional[datetime] = None
@@ -4479,6 +4480,7 @@ async def verify(uuid: str, request: Request, db: AsyncSession = Depends(get_db)
         public_id=cert.public_id,
         student_name=cert.student_name,
         event_name=ev.name,
+        event_date=ev.event_date.isoformat() if ev.event_date else None,
         status=cert.status,
         pdf_url=pdf_url,
         issued_at=getattr(cert, "issued_at", None),

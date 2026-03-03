@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next";
 
+const apiBase = process.env.NEXT_PUBLIC_API_BASE || "https://cert.heptapusgroup.com/api";
 const BASE_URL =
-  process.env.NEXT_PUBLIC_FRONTEND_BASE_URL || "https://heptacert.com";
+  process.env.NEXT_PUBLIC_FRONTEND_BASE_URL || apiBase.replace(/\/api$/, "");
 
 export default function robots(): MetadataRoute.Robots {
   return {
