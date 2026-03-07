@@ -135,3 +135,4 @@ volumes:
 networks:
   caddy_net:
     name: ${CADDY_NETWORK_NAME:-worldpass-real_default}
+    external: true
