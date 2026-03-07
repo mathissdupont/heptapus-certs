@@ -109,6 +109,9 @@ export default function EventSurveyPage() {
   }
 
   const survey = eventInfo.survey;
+  const surveyType = survey?.survey_type;
+  const supportsExternal = surveyType === "external" || surveyType === "both";
+  const supportsBuiltin = surveyType === "builtin" || surveyType === "both";
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
@@ -127,7 +130,7 @@ export default function EventSurveyPage() {
             </div>
           )}
 
-          {survey?.is_required && survey.external_url && (
+          {survey?.is_required && supportsExternal && survey.external_url && (
             <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
               <p className="text-sm text-amber-800 font-semibold">Bu etkinlikte harici anket kullanılıyor</p>
               <p className="text-xs text-amber-700 mt-1">Anketi tamamladıktan sonra sertifika adımına geçebilirsiniz.</p>
@@ -143,7 +146,7 @@ export default function EventSurveyPage() {
             </div>
           )}
 
-          {survey?.is_required && survey.has_builtin_questions && !saved && (
+          {survey?.is_required && supportsBuiltin && survey.has_builtin_questions && !saved && (
             <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
               {questions.map((q) => (
                 <div key={q.id}>

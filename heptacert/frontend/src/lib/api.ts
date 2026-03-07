@@ -348,9 +348,10 @@ export async function submitBuiltinSurvey(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      attendee_id: String(attendeeId),
+      "attendee-id": String(attendeeId),
     },
     body: JSON.stringify({
+      attendee_id: attendeeId,
       survey_type: "builtin",
       answers,
     }),

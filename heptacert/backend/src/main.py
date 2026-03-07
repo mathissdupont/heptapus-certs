@@ -1031,6 +1031,7 @@ class EventSurveyOut(BaseModel):
 
 class SurveyResponseIn(BaseModel):
     """Request to submit survey response"""
+    attendee_id: Optional[int] = Field(default=None, ge=1)
     survey_type: str = Field(min_length=1, max_length=50)
     answers: Optional[Dict[str, Any]] = Field(default=None)  # For builtin surveys
     external_response_id: Optional[str] = Field(default=None, max_length=500)  # For external surveys
@@ -3303,10 +3304,15 @@ async def get_event_survey(
 async def submit_builtin_survey(
     event_id: int,
     survey_resp_in: SurveyResponseIn,
-    attendee_id: int = Header(...),
+    attendee_id_header_snake: Optional[int] = Header(default=None, alias="attendee_id"),
+    attendee_id_header_kebab: Optional[int] = Header(default=None, alias="attendee-id"),
     db: AsyncSession = Depends(get_db),
 ):
     """Submit a built-in survey response. Attendee endpoint."""
+    attendee_id = survey_resp_in.attendee_id or attendee_id_header_snake or attendee_id_header_kebab
+    if not attendee_id:
+        raise HTTPException(status_code=422, detail="attendee_id zorunludur")
+
     # Check attendee exists
     att_res = await db.execute(
         select(Attendee).where(

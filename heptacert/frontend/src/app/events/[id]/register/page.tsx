@@ -224,7 +224,7 @@ export default function EventRegisterPage() {
                         Sertifikanızı indirebilmek için anketi check-in sonrasında, sertifika adımına geçmeden önce doldurmanız gerekiyor.
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        {event.survey.external_url ? (
+                        {event.survey.external_url && (event.survey.survey_type === "external" || event.survey.survey_type === "both") ? (
                           <a
                             href={event.survey.external_url}
                             target="_blank"
