@@ -1531,6 +1531,7 @@ async def send_email_async(
     html_body: str,
     template_vars: Optional[Dict[str, Any]] = None,
     attachments: Optional[List[tuple[str, bytes, str]]] = None,  # [(filename, bytes, mimetype),...]
+    raise_on_error: bool = False,
 ) -> None:
     """
     Send email asynchronously.
@@ -1547,6 +1548,8 @@ async def send_email_async(
             "[EMAIL — no SMTP configured] To: %s | Subject: %s\nBody: %s",
             to, subject, html_body
         )
+        if raise_on_error:
+            raise RuntimeError("SMTP is not configured")
         return
     
     # Render Jinja2 template if template_vars provided
@@ -1602,11 +1605,13 @@ async def send_email_async(
             username=settings.smtp_user or None,
             password=settings.smtp_password or None,
             start_tls=True,
+            timeout=20,
         )
         logger.info("Email sent successfully to %s", to)
     except Exception as exc:
         logger.error("SMTP send failed to %s: %s", to, exc)
-        # Retry logic could be added here with exponential backoff
+        if raise_on_error:
+            raise
 
 
 async def trigger_webhooks(
@@ -2314,9 +2319,11 @@ async def startup():
             async with SessionLocal() as db_bulk:
                 # Get all pending jobs
                 res_jobs = await db_bulk.execute(
-                    select(BulkEmailJob).where(
-                        BulkEmailJob.status.in_(["pending", "sending"])
-                    ).limit(10)
+                    select(BulkEmailJob)
+                    .where(BulkEmailJob.status.in_(["pending", "sending"]))
+                    .order_by(BulkEmailJob.created_at.asc())
+                    .with_for_update(skip_locked=True)
+                    .limit(10)
                 )
                 jobs = res_jobs.scalars().all()
                 
@@ -2324,7 +2331,8 @@ async def startup():
                     try:
                         # Update job status to sending
                         job.status = "sending"
-                        job.started_at = datetime.now(timezone.utc)
+                        if not job.started_at:
+                            job.started_at = datetime.now(timezone.utc)
                         db_bulk.add(job)
                         await db_bulk.commit()
                         
@@ -2395,6 +2403,7 @@ async def startup():
                                         to=attendee.email,
                                         subject=subj,
                                         html_body=body,
+                                        raise_on_error=True,
                                     )
                                     
                                     # Log delivery
@@ -2693,7 +2702,8 @@ async def _process_one_bulk_certificate_job(job_id: int) -> None:
                 public_id = f"EV{ev_locked.id}-{ev_locked.cert_seq:06d}"
                 verify_url = f"{settings.public_base_url}/verify/{cert_uuid}"
 
-                pdf_bytes = render_certificate_pdf(
+                pdf_bytes = await asyncio.to_thread(
+                    render_certificate_pdf,
                     template_image_bytes=template_bytes,
                     student_name=student_name,
                     verify_url=verify_url,
@@ -8542,7 +8552,7 @@ async def list_my_transactions_paginated(
     txs = res.scalars().all()
     return {
         "items": [
-            {"id": t.id, "amount": t.amount, "type": t.type, "timestamp": t.timestamp.isoformat()}
+            {"id": t.id, "amount": t.amount, "type": t.type, "timestamp": t.timestamp.isoformat() if t.timestamp else None}
             for t in txs
         ],
         "total": total,
