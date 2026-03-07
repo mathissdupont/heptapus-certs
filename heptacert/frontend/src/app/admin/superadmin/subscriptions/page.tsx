@@ -23,7 +23,7 @@ const planBadge: Record<string, string> = {
 };
 
 export default function SuperadminSubscriptionsPage() {
-  const { showToast } = useToast();
+  const toast = useToast();
   const [rows, setRows] = useState<SubscriptionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -58,10 +58,10 @@ export default function SuperadminSubscriptionsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: grantEmail, plan_id: grantPlan, days: grantDays }),
       });
-      showToast("Abonelik verildi.", "success");
+      toast.success("Abonelik verildi.");
       setGrantEmail(""); setGrantPlan("starter"); setGrantDays(30);
       load();
-    } catch (e: any) { showToast(e?.message || "Abonelik verilemedi.", "error"); }
+    } catch (e: any) { toast.error(e?.message || "Abonelik verilemedi."); }
     finally { setGranting(false); }
   }
 
@@ -70,9 +70,9 @@ export default function SuperadminSubscriptionsPage() {
     setRevoking(true);
     try {
       await apiFetch(`/superadmin/subscriptions/${revokeId}`, { method: "DELETE" });
-      showToast("Abonelik iptal edildi.", "success");
+      toast.success("Abonelik iptal edildi.");
       setRevokeId(null); load();
-    } catch (e: any) { showToast(e?.message || "Abonelik iptal edilemedi.", "error"); }
+    } catch (e: any) { toast.error(e?.message || "Abonelik iptal edilemedi."); }
     finally { setRevoking(false); }
   }
 

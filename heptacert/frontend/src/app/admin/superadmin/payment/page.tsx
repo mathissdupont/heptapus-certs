@@ -41,7 +41,7 @@ const PROVIDERS: Provider[] = [
 ];
 
 export default function SuperadminPaymentPage() {
-  const { showToast } = useToast();
+  const toast = useToast();
   const [cfg, setCfg] = useState<PaymentConfig>(DEFAULT);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -70,8 +70,8 @@ export default function SuperadminPaymentPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(cfg),
       });
-      showToast("Ödeme ayarları kaydedildi.", "success");
-    } catch (e: any) { showToast(e?.message || "Kaydedilemedi.", "error"); }
+      toast.success("Ödeme ayarları kaydedildi.");
+    } catch (e: any) { toast.error(e?.message || "Kaydedilemedi."); }
     finally { setSaving(false); }
   }
 

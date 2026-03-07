@@ -21,7 +21,7 @@ const tierBadgeBg = [
 ];
 
 export default function SuperadminPricingPage() {
-  const { showToast } = useToast();
+  const toast = useToast();
   const [tiers, setTiers] = useState<PricingTier[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -76,8 +76,8 @@ export default function SuperadminPricingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(tiers),
       });
-      showToast("Fiyatlandırma kaydedildi.", "success");
-    } catch (e: any) { showToast(e?.message || "Kaydedilemedi.", "error"); }
+      toast.success("Fiyatlandırma kaydedildi.");
+    } catch (e: any) { toast.error(e?.message || "Kaydedilemedi."); }
     finally { setSaving(false); }
   }
 
