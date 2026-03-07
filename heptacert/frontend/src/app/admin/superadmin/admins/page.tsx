@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   Loader2,
   AlertCircle,
   Plus,
@@ -12,7 +11,6 @@ import {
   Search,
   Shield,
 } from "lucide-react";
-import Link from "next/link";
 import {
   listSuperAdmins,
   createSuperAdmin,
@@ -126,20 +124,14 @@ export default function SuperAdminAdminsPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Link
-            href="/admin"
-            className="p-2 hover:bg-white rounded-lg transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5 text-gray-600" />
-          </Link>
-          <div className="flex-1">
-            <h1 className="text-3xl font-black text-gray-900">Yönetici Yönetimi</h1>
-            <p className="text-sm text-gray-500 mt-1">Sistem yöneticilerini yönetin ve rolleri ayarlayın</p>
+        <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-bold text-surface-900">Yönetici Yönetimi</h1>
+            <p className="text-sm text-surface-500 mt-1">Sistem yöneticilerini yönetin ve rolleri ayarlayın</p>
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-500 text-white font-medium hover:bg-brand-600 transition-colors"
+            className="btn-primary gap-2"
           >
             <Plus className="h-5 w-5" />
             Yönetici Ekle

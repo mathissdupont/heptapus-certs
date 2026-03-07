@@ -5,11 +5,11 @@ import { apiFetch } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Lock, Mail, ArrowLeft, CheckCircle2, Eye, EyeOff, Key, Webhook,
+  Lock, Mail, CheckCircle2, Eye, EyeOff, Key, Webhook,
   ShieldCheck, Plus, Trash2, Loader2, Copy, Check, ChevronDown, ChevronUp,
-  History, TrendingUp, TrendingDown, Coins, Globe
+  History, TrendingUp, TrendingDown, Globe, Settings
 } from "lucide-react";
-import Link from "next/link";
+import PageHeader from "@/components/Admin/PageHeader";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ApiKey = {
@@ -650,35 +650,44 @@ export default function AdminSettingsPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-slate-50 py-10 px-4">
-      <div className="mx-auto max-w-4xl">
-        <Link href="/admin/events" className="btn-ghost inline-flex text-sm mb-6"><ArrowLeft className="h-4 w-4" /> Panele Dön</Link>
-        <h1 className="page-header mb-2">Ayarlar</h1>
+    <div className="space-y-6">
+      <PageHeader
+        title="Ayarlar"
+        subtitle="Hesap, güvenlik ve entegrasyon ayarlarını yönetin"
+        icon={<Settings className="h-5 w-5" />}
+      />
 
-        {/* Tabs */}
-        <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-8 w-fit flex-wrap">
-          {TABS.map(tab => {
-            const Icon = tab.icon;
-            return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
-                <Icon className="h-4 w-4" />{tab.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <AnimatePresence mode="wait">
-          <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
-            {activeTab === "account" && <AccountTab me={me} />}
-            {activeTab === "apikeys" && <ApiKeysTab />}
-            {activeTab === "webhooks" && <WebhooksTab />}
-            {activeTab === "2fa" && <TwoFATab />}
-            {activeTab === "transactions" && <TransactionsTab />}
-            {activeTab === "domain" && <CustomDomainTab />}
-          </motion.div>
-        </AnimatePresence>
+      {/* Tabs – underline style */}
+      <div className="flex gap-0 border-b border-surface-200 overflow-x-auto">
+        {TABS.map(tab => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-all ${
+                isActive
+                  ? "border-brand-600 text-brand-700"
+                  : "border-transparent text-surface-500 hover:text-surface-800 hover:border-surface-300"
+              }`}
+            >
+              <Icon className="h-4 w-4" />{tab.label}
+            </button>
+          );
+        })}
       </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+          {activeTab === "account" && <AccountTab me={me} />}
+          {activeTab === "apikeys" && <ApiKeysTab />}
+          {activeTab === "webhooks" && <WebhooksTab />}
+          {activeTab === "2fa" && <TwoFATab />}
+          {activeTab === "transactions" && <TransactionsTab />}
+          {activeTab === "domain" && <CustomDomainTab />}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

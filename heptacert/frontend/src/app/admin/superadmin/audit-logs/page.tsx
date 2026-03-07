@@ -3,7 +3,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   Loader2,
   AlertCircle,
   LogIn,
@@ -12,7 +11,6 @@ import {
   Trash2,
   FileText,
 } from "lucide-react";
-import Link from "next/link";
 import { listAuditLogs, AuditLogOut } from "@/lib/api";
 import { DataTable } from "@/components/DataTable/DataTable";
 import { ColumnDef } from "@tanstack/react-table";
@@ -163,14 +161,11 @@ export default function AuditLogsPage() {
     <div className="min-h-screen p-6">
       <div>
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Link href="/admin" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
-            <ArrowLeft className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-          </Link>
-          <div className="flex-1">
-            <h1 className="text-3xl font-black text-gray-900 dark:text-gray-100">Denetim Günlükleri</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Sistem aktivitesini ve değişiklikleri izleyin - {logs.length} kayıt
+        <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-bold text-surface-900">Denetim Günlükleri</h1>
+            <p className="text-sm text-surface-500 mt-1">
+              Sistem aktivitesini ve değişiklikleri izleyin — {logs.length} kayıt
             </p>
           </div>
         </div>

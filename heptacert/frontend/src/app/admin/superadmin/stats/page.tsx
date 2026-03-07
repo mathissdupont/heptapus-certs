@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   Loader2,
   AlertCircle,
   Users,
@@ -12,7 +11,6 @@ import {
   Mail,
   Lock,
 } from "lucide-react";
-import Link from "next/link";
 import { getSuperAdminStats, SuperAdminStatsOut } from "@/lib/api";
 
 export default function SuperAdminStatsPage() {
@@ -93,21 +91,12 @@ export default function SuperAdminStatsPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Link
-            href="/admin"
-            className="p-2 hover:bg-white rounded-lg transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5 text-gray-600" />
-          </Link>
-          <div className="flex-1">
-            <h1 className="text-3xl font-black text-gray-900">Sistem İstatistikleri</h1>
-            <p className="text-sm text-gray-500 mt-1">Platform genelindeki performans metriklerini izleyin</p>
+        <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-bold text-surface-900">Sistem İstatistikleri</h1>
+            <p className="text-sm text-surface-500 mt-1">Platform genelindeki performans metriklerini izleyin</p>
           </div>
-          <button
-            onClick={fetchStats}
-            className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-white transition-colors"
-          >
+          <button onClick={fetchStats} className="btn-secondary">
             Yenile
           </button>
         </div>
