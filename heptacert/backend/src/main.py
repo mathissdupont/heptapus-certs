@@ -24,7 +24,7 @@ import pandas as pd
 import pyotp
 from fastapi import FastAPI, Body, Depends, HTTPException, UploadFile, File, Query, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse, RedirectResponse
 try:
     from PIL import Image as PILImage
 except ImportError:
@@ -1918,6 +1918,10 @@ def build_public_pdf_url(rel_path: str) -> str:
     return f"{settings.public_base_url}/api/files/{rel_path}"
 
 
+def build_certificate_verify_url(cert_uuid: str) -> str:
+    return f"{settings.frontend_base_url.rstrip('/')}/verify/{cert_uuid}"
+
+
 app = FastAPI(title="HeptaCert API", version="2.0.0")
 
 # Rate limiter
@@ -2407,7 +2411,7 @@ async def startup():
                                         "event_date": event.event_date.isoformat() if event.event_date else "TBD",
                                         "event_location": event.event_location or "Online",
                                         "certificate_link": (
-                                            f"{settings.public_base_url}/verify/{cert_uuid_by_name[(attendee.name or '').strip().lower()]}"
+                                            build_certificate_verify_url(cert_uuid_by_name[(attendee.name or '').strip().lower()])
                                             if (attendee.name or "").strip().lower() in cert_uuid_by_name
                                             else f"{settings.public_base_url}/events/{event.id}/register"
                                         ),
@@ -2720,7 +2724,7 @@ async def _process_one_bulk_certificate_job(job_id: int) -> None:
                 ev_locked = ev_lock_res.scalar_one()
                 ev_locked.cert_seq += 1
                 public_id = f"EV{ev_locked.id}-{ev_locked.cert_seq:06d}"
-                verify_url = f"{settings.public_base_url}/verify/{cert_uuid}"
+                verify_url = build_certificate_verify_url(cert_uuid)
 
                 pdf_bytes = await asyncio.to_thread(
                     render_certificate_pdf,
@@ -6101,6 +6105,10 @@ async def download_bulk_generate_job_zip(
 
 @app.get("/api/verify/{uuid}", response_model=VerifyOut)
 async def verify(uuid: str, request: Request, db: AsyncSession = Depends(get_db)):
+    accept = (request.headers.get("accept") or "").lower()
+    if "text/html" in accept:
+        return RedirectResponse(url=build_certificate_verify_url(uuid), status_code=307)
+
     res = await db.execute(
         select(Certificate, Event)
         .join(Event, Certificate.event_id == Event.id)
@@ -6161,7 +6169,7 @@ async def verify(uuid: str, request: Request, db: AsyncSession = Depends(get_db)
         params = urlencode({
             "startTask": "CERTIFICATION_NAME",
             "name": ev.name,
-            "certUrl": f"{settings.public_base_url}/verify/{uuid}",
+            "certUrl": build_certificate_verify_url(uuid),
         })
         linkedin_url = f"https://www.linkedin.com/profile/add?{params}"
 
@@ -6368,7 +6376,7 @@ async def issue_certificate(
     cert_uuid = new_certificate_uuid()
     ev.cert_seq += 1
     public_id = f"EV{ev.id}-{ev.cert_seq:06d}"
-    verify_url = f"{settings.public_base_url}/verify/{cert_uuid}"
+    verify_url = build_certificate_verify_url(cert_uuid)
 
     # generator.py: public_id param zorunlu olmalı
     pdf_bytes = render_certificate_pdf(
@@ -8436,7 +8444,7 @@ async def bulk_certify_attendees(
             pdf_bytes = render_certificate_pdf(
                 template_image_bytes=template_bytes,
                 student_name=attendee.name,
-                verify_url=f"{settings.public_base_url}/api/verify/{cert_uuid}",
+                verify_url=build_certificate_verify_url(cert_uuid),
                 config=tc,
                 public_id=public_id,
                 brand_logo_bytes=brand_logo_bytes,

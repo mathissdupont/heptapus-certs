@@ -176,6 +176,19 @@ async def _safe_get(url: str):
 
 class TestPublicEndpoints:
     @pytest.mark.asyncio
+    async def test_verify_html_accept_redirects_to_frontend_page(self):
+        transport = ASGITransport(app=app)
+        test_uuid = "00000000-0000-0000-0000-000000000000"
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.get(
+                f"/api/verify/{test_uuid}",
+                headers={"Accept": "text/html"},
+                follow_redirects=False,
+            )
+        assert resp.status_code == 307
+        assert resp.headers.get("location", "").endswith(f"/verify/{test_uuid}")
+
+    @pytest.mark.asyncio
     async def test_verify_nonexistent_cert(self):
         resp = await _safe_get("/api/verify/00000000-0000-0000-0000-000000000000")
         # 404 when no cert found, 500 if test DB not connected
