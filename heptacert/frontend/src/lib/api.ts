@@ -26,6 +26,17 @@ export function clearToken() {
   localStorage.removeItem("heptacert_token");
 }
 
+export function getRoleFromToken(): string | null {
+  const token = getToken();
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload?.role ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);

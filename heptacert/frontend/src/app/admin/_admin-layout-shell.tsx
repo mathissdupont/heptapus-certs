@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { clearToken } from "@/lib/api";
+import { clearToken, getRoleFromToken } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarCheck2,
@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 
 type NavItem = {
+  superadminOnly?: boolean;
   href: string;
   label: string;
   icon: React.ElementType;
@@ -59,7 +60,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/admin/webhooks", label: "Webhooks", icon: Webhook },
       { href: "/admin/api-keys", label: "API Anahtarları", icon: KeyRound },
       { href: "/admin/settings", label: "Ayarlar", icon: Settings },
-      { href: "/admin/superadmin", label: "Super Admin", icon: Shield },
+      { href: "/admin/superadmin", label: "Super Admin", icon: Shield, superadminOnly: true },
     ],
   },
 ];
@@ -85,6 +86,7 @@ function SidebarContent({
   onClose?: () => void;
 }) {
   const router = useRouter();
+  const role = getRoleFromToken();
 
   function handleLogout() {
     clearToken();
@@ -118,7 +120,7 @@ function SidebarContent({
             )}
             {collapsed && <div className="mb-1.5 border-t border-sidebar-border" />}
             <div className="space-y-1">
-              {group.items.map((item) => {
+              {group.items.filter(item => !item.superadminOnly || role === "superadmin").map((item) => {
                 const active = isActive(pathname, item);
                 const Icon = item.icon;
                 if (collapsed) {

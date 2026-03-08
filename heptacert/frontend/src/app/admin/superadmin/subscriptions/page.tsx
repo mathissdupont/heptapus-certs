@@ -56,7 +56,7 @@ export default function SuperadminSubscriptionsPage() {
       await apiFetch("/superadmin/subscriptions/grant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: grantEmail, plan_id: grantPlan, days: grantDays }),
+        body: JSON.stringify({ user_email: grantEmail, plan_id: grantPlan, days: grantDays }),
       });
       toast.success("Abonelik verildi.");
       setGrantEmail(""); setGrantPlan("starter"); setGrantDays(30);
