@@ -18,6 +18,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
+import PageHeader from "@/components/Admin/PageHeader";
 import { DataTable } from "@/components/DataTable/DataTable";
 import { ColumnDef } from "@tanstack/react-table";
 
@@ -213,7 +214,7 @@ export default function EmailAnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center p-24">
         <Loader2 className="h-8 w-8 animate-spin text-brand-500" />
       </div>
     );
@@ -221,33 +222,25 @@ export default function EmailAnalyticsPage() {
 
   return (
     <div className="p-6">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <Link href="/admin/email-dashboard" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
-          <ArrowLeft className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Email Analytics</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Track email delivery, open rates, and campaign performance
-          </p>
-        </div>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          onClick={fetchData}
-          className="px-4 py-2 rounded-lg bg-brand-500 text-white font-medium hover:bg-brand-600 transition-colors"
-        >
-          Refresh
-        </motion.button>
-      </div>
+      <PageHeader
+        title="Email Analytics"
+        subtitle="Email teslimatını, açılma oranlarını ve kampanya performansını takip edin"
+        icon={<TrendingUp className="h-5 w-5" />}
+        breadcrumbs={[{ label: "Email Dashboard", href: "/admin/email-dashboard" }, { label: "Email Analytics" }]}
+        actions={
+          <button onClick={fetchData} className="btn-primary">
+            Yenile
+          </button>
+        }
+      />
 
       {/* Error Alert */}
       {error && (
-        <div className="mb-6 flex items-start gap-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-lg p-4">
-          <AlertCircle className="h-5 w-5 text-rose-600 dark:text-rose-400 mt-0.5 flex-shrink-0" />
+        <div className="error-banner mb-6">
+          <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
           <div className="flex-1">
-            <h3 className="font-semibold text-rose-900 dark:text-rose-200">Error</h3>
-            <p className="text-rose-700 dark:text-rose-300 text-sm">{error}</p>
+            <p className="font-semibold">Hata</p>
+            <p className="mt-0.5">{error}</p>
           </div>
         </div>
       )}
@@ -260,7 +253,7 @@ export default function EmailAnalyticsPage() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
-            className={`card p-6 flex items-center gap-4 dark:bg-gray-800 dark:border-gray-700`}
+            className="card p-6 flex items-center gap-4"
           >
             <div className={`p-3 rounded-lg ${card.colorClass}`}>{card.icon}</div>
             <div>
@@ -281,7 +274,7 @@ export default function EmailAnalyticsPage() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 + i * 0.05 }}
-            className="card p-6 dark:bg-gray-800 dark:border-gray-700"
+            className="card p-6"
           >
             <div className="flex items-center justify-between">
               <div>

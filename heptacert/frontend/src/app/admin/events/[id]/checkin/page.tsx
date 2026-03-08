@@ -91,14 +91,14 @@ export default function AdminCheckinPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center p-24">
         <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+    <div className="p-4 md:p-8">
       <div className="max-w-2xl mx-auto">
         <EventAdminNav eventId={eventId} eventName={eventName} active="checkin" className="mb-6 flex flex-col gap-2" />
 

@@ -83,11 +83,20 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith("/admin");
 
+  if (isAdmin) {
+    return (
+      <I18nProvider>
+        <HtmlLangSync />
+        {children}
+      </I18nProvider>
+    );
+  }
+
   return (
     <I18nProvider>
       <HtmlLangSync />
       <div className="mx-auto max-w-6xl px-4 sm:px-6 min-h-screen flex flex-col">
-        {!isAdmin && <Navbar />}
+        <Navbar />
         <motion.main
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}

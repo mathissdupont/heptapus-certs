@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Loader2, Save, Trash2, Building2, Database,
 } from "lucide-react";
+import ConfirmModal from "@/components/Admin/ConfirmModal";
 
 type OrgRow = {
   id: number; user_id: number; org_name: string;
@@ -21,6 +22,8 @@ export default function SuperadminOrgsPage() {
   const [form, setForm] = useState({ user_id: "", org_name: "", custom_domain: "", brand_logo: "", brand_color: "#6366f1" });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -52,9 +55,14 @@ export default function SuperadminOrgsPage() {
   }
 
   async function deleteOrg(id: number) {
-    if (!confirm("Bu kurumu silmek istediğinizden emin misiniz?")) return;
-    await apiFetch(`/superadmin/organizations/${id}`, { method: "DELETE" });
-    load();
+    setDeleting(true);
+    try {
+      await apiFetch(`/superadmin/organizations/${id}`, { method: "DELETE" });
+      load();
+    } finally {
+      setDeleting(false);
+      setDeletingId(null);
+    }
   }
 
   return (
@@ -123,12 +131,22 @@ export default function SuperadminOrgsPage() {
               </div>
               <div className="flex gap-1">
                 <button onClick={() => startEdit(org)} className="p-2 rounded-lg hover:bg-surface-100 text-surface-400 hover:text-surface-700"><Database className="h-4 w-4" /></button>
-                <button onClick={() => deleteOrg(org.id)} className="p-2 rounded-lg hover:bg-red-50 text-surface-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+                <button onClick={() => setDeletingId(org.id)} className="p-2 rounded-lg hover:bg-red-50 text-surface-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        open={deletingId !== null}
+        title="Kurumu sil"
+        description="Bu işlem geri alınamaz. Kurumu ve tüm ilgili verilerini kalıcı olarak siler."
+        danger
+        loading={deleting}
+        onConfirm={() => deletingId && deleteOrg(deletingId)}
+        onCancel={() => setDeletingId(null)}
+      />
     </div>
   );
 }

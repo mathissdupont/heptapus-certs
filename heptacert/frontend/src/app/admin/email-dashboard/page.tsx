@@ -3,7 +3,9 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Mail } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
+import PageHeader from '@/components/Admin/PageHeader';
 
 export default function EmailDashboard() {
   const router = useRouter();
@@ -91,34 +93,32 @@ export default function EmailDashboard() {
   ];
 
   return (
-    <div className="min-h-screen p-6 dark:bg-gray-950">
-      {/* Header */}
-      <div className="max-w-7xl mx-auto mb-12">
-        <h1 className="text-5xl font-bold text-gray-900 dark:text-gray-100 mb-4">📧 Email System Dashboard</h1>
-        <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl">
-          Unified email marketing platform with SMTP configuration, scheduling, analytics, and webhooks integration.
-        </p>
-      </div>
+    <div className="p-6">
+      <PageHeader
+        title="Email Dashboard"
+        subtitle="SMTP yapılandırma, zamanlama, analitik ve webhook entegrasyonu"
+        icon={<Mail className="h-5 w-5" />}
+      />
 
       {/* Stats Row */}
       <div className="max-w-7xl mx-auto mb-12 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border-l-4 border-blue-500">
-          <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{stats.templates}</div>
-          <p className="text-gray-600 dark:text-gray-400">Email Templates</p>
+        <div className="card p-6 border-l-4 border-blue-500">
+          <div className="text-3xl font-bold text-blue-600">{stats.templates}</div>
+          <p className="text-surface-500">Email Şablonları</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border-l-4 border-purple-500">
-          <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">∞</div>
-          <p className="text-gray-600 dark:text-gray-400">Scheduled Jobs</p>
+        <div className="card p-6 border-l-4 border-purple-500">
+          <div className="text-3xl font-bold text-purple-600">∞</div>
+          <p className="text-surface-500">Zamanlanmış İşler</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border-l-4 border-red-500">
-          <div className="text-3xl font-bold text-red-600 dark:text-red-400">{stats.webhooks}</div>
-          <p className="text-gray-600 dark:text-gray-400">Active Webhooks</p>
+        <div className="card p-6 border-l-4 border-red-500">
+          <div className="text-3xl font-bold text-red-600">{stats.webhooks}</div>
+          <p className="text-surface-500">Aktif Webhook</p>
         </div>
       </div>
 
       {/* Feature Grid */}
       <div className="max-w-7xl mx-auto">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-8">Core Features</h2>
+        <h2 className="text-2xl font-bold text-surface-900 mb-8">Temel Özellikler</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature, idx) => (
             <div
@@ -136,7 +136,7 @@ export default function EmailDashboard() {
                 </div>
               </Link>
               
-              <div className="bg-white dark:bg-gray-800 p-6">
+              <div className="card p-6">
                 <p className="text-gray-700 dark:text-gray-300 text-sm mb-4">{feature.description}</p>
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">{feature.stats}</span>

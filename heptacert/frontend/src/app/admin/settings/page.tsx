@@ -1,53 +1,27 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Lock, Mail, CheckCircle2, Eye, EyeOff, Key, Webhook,
-  ShieldCheck, Plus, Trash2, Loader2, Copy, Check, ChevronDown, ChevronUp,
+  Lock, Mail, CheckCircle2, Eye, EyeOff,
+  ShieldCheck, Loader2, Check,
   History, TrendingUp, TrendingDown, Globe, Settings
 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-type ApiKey = {
-  id: number; name: string; key_prefix: string; is_active: boolean;
-  scopes: string[]; last_used_at: string | null; expires_at: string | null; created_at: string;
-};
-type WebhookEndpoint = {
-  id: number; url: string; events: string[]; secret: string | null;
-  is_active: boolean; created_at: string; last_fired_at: string | null;
-};
-type WebhookDelivery = {
-  id: number; event_type: string; status: string; http_status: number | null; attempt: number; delivered_at: string;
-};
-
 const TABS = [
   { id: "account", label: "Hesap", icon: Lock },
-  { id: "apikeys", label: "API Anahtarları", icon: Key },
-  { id: "webhooks", label: "Webhooks", icon: Webhook },
   { id: "2fa", label: "2FA Güvenlik", icon: ShieldCheck },
   { id: "transactions", label: "Coin Geçmişi", icon: History },
   { id: "domain", label: "Özel Domain", icon: Globe },
 ];
-const WEBHOOK_EVENTS = ["cert.issued", "cert.revoked", "cert.bulk_completed", "cert.expiring_soon"];
 
 function fmtDate(s: string | null) {
   if (!s) return "—";
   return new Date(s).toLocaleDateString("tr-TR", { year: "numeric", month: "short", day: "numeric" });
 }
-function CopyBtn({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <button onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      className="ml-1 p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors" title="Kopyala">
-      {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
-    </button>
-  );
-}
-
 // ─── Account Tab ──────────────────────────────────────────────────────────────
 function AccountTab({ me }: { me: { email: string } | null }) {
   const [curPw, setCurPw] = useState(""); const [newPw, setNewPw] = useState(""); const [confPw, setConfPw] = useState("");
@@ -120,243 +94,6 @@ function AccountTab({ me }: { me: { email: string } | null }) {
           <button type="submit" disabled={emailLoading} className="btn-primary">{emailLoading ? "Kaydediliyor..." : "E-postayı Güncelle"}</button>
         </form>
       </div>
-    </div>
-  );
-}
-
-// ─── API Keys Tab ─────────────────────────────────────────────────────────────
-function ApiKeysTab() {
-  const [keys, setKeys] = useState<ApiKey[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [name, setName] = useState(""); const [expiresDays, setExpiresDays] = useState("");
-  const [newKey, setNewKey] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try { const r = await apiFetch("/admin/api-keys"); setKeys(await r.json()); } finally { setLoading(false); }
-  }, []);
-  useEffect(() => { load(); }, [load]);
-
-  async function createKey(e: React.FormEvent) {
-    e.preventDefault(); setErr(null); setCreating(true);
-    try {
-      const r = await apiFetch("/admin/api-keys", { method: "POST", body: JSON.stringify({ name, expires_days: expiresDays ? parseInt(expiresDays) : null }) });
-      const data = await r.json(); setNewKey(data.full_key); setName(""); setExpiresDays(""); setShowForm(false); load();
-    } catch (e: any) { setErr(e?.message || "Anahtar oluşturulamadı."); } finally { setCreating(false); }
-  }
-
-  async function revokeKey(id: number) {
-    if (!confirm("Bu API anahtarını iptal etmek istediğinizden emin misiniz?")) return;
-    await apiFetch(`/admin/api-keys/${id}`, { method: "DELETE" }); load();
-  }
-
-  return (
-    <div className="space-y-6">
-      <AnimatePresence>
-        {newKey && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="rounded-xl border border-green-200 bg-green-50 p-4">
-            <p className="text-sm font-semibold text-green-800 mb-2">✅ API anahtarınız oluşturuldu — bir kez görünür, kaydedin!</p>
-            <div className="flex items-center gap-2 bg-white rounded-lg border border-green-200 px-3 py-2">
-              <code className="text-xs font-mono text-gray-800 break-all flex-1">{newKey}</code>
-              <CopyBtn text={newKey} />
-            </div>
-            <button onClick={() => setNewKey(null)} className="mt-2 text-xs text-green-700 underline">Kapat</button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">API Anahtarları</h2>
-          <p className="text-sm text-gray-500 mt-0.5">REST API erişimi için. Anahtar yalnızca oluşturulurken görünür.</p>
-        </div>
-        <button onClick={() => setShowForm(!showForm)} className="btn-primary gap-2"><Plus className="h-4 w-4" /> Yeni Anahtar</button>
-      </div>
-      <AnimatePresence>
-        {showForm && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-            <form onSubmit={createKey} className="card p-5 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className="label">Anahtar Adı</label><input className="input-field" value={name} onChange={e => setName(e.target.value)} placeholder="Üretim Entegrasyonu" required minLength={1} /></div>
-                <div><label className="label">Son Kullanma (gün)</label><input className="input-field" type="number" value={expiresDays} onChange={e => setExpiresDays(e.target.value)} placeholder="365 (boş = sonsuz)" min="1" max="3650" /></div>
-              </div>
-              {err && <div className="error-banner">{err}</div>}
-              <div className="flex gap-3">
-                <button type="submit" disabled={creating} className="btn-primary gap-2">{creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Oluştur</button>
-                <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">İptal</button>
-              </div>
-            </form>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      {loading ? (
-        <div className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto text-gray-400" /></div>
-      ) : keys.length === 0 ? (
-        <div className="text-center py-12 text-gray-400"><Key className="h-10 w-10 mx-auto mb-3 opacity-30" /><p className="text-sm">Henüz API anahtarı yok.</p></div>
-      ) : (
-        <div className="space-y-3">
-          {keys.map(k => (
-            <div key={k.id} className={`card p-4 flex items-center gap-4 ${!k.is_active ? "opacity-50" : ""}`}>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-900 text-sm">{k.name}</span>
-                  {!k.is_active && <span className="badge badge-red">İptal</span>}
-                </div>
-                <code className="text-xs text-gray-500 font-mono">{k.key_prefix}••••••••</code>
-                <div className="flex gap-4 mt-1 text-xs text-gray-400">
-                  <span>Oluşturuldu: {fmtDate(k.created_at)}</span>
-                  {k.expires_at && <span>Son: {fmtDate(k.expires_at)}</span>}
-                  {k.last_used_at && <span>Son kullanım: {fmtDate(k.last_used_at)}</span>}
-                </div>
-              </div>
-              {k.is_active && (
-                <button onClick={() => revokeKey(k.id)} className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors"><Trash2 className="h-4 w-4" /></button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Webhooks Tab ─────────────────────────────────────────────────────────────
-function WebhooksTab() {
-  const [endpoints, setEndpoints] = useState<WebhookEndpoint[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [url, setUrl] = useState(""); const [selectedEvents, setSelectedEvents] = useState<string[]>(["cert.issued"]);
-  const [err, setErr] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [deliveries, setDeliveries] = useState<Record<number, WebhookDelivery[]>>({});
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try { const r = await apiFetch("/admin/webhooks"); setEndpoints(await r.json()); } finally { setLoading(false); }
-  }, []);
-  useEffect(() => { load(); }, [load]);
-
-  async function createEndpoint(e: React.FormEvent) {
-    e.preventDefault(); setErr(null); setCreating(true);
-    try {
-      await apiFetch("/admin/webhooks", { method: "POST", body: JSON.stringify({ url, events: selectedEvents }) });
-      setUrl(""); setSelectedEvents(["cert.issued"]); setShowForm(false); load();
-    } catch (e: any) { setErr(e?.message || "Webhook oluşturulamadı."); } finally { setCreating(false); }
-  }
-
-  async function deleteEndpoint(id: number) {
-    if (!confirm("Webhook endpoint'ini silmek istediğinizden emin misiniz?")) return;
-    await apiFetch(`/admin/webhooks/${id}`, { method: "DELETE" }); load();
-  }
-
-  async function loadDeliveries(id: number) {
-    if (expandedId === id) { setExpandedId(null); return; }
-    setExpandedId(id);
-    if (!deliveries[id]) {
-      const r = await apiFetch(`/admin/webhooks/${id}/deliveries`);
-      const data = await r.json();
-      setDeliveries(prev => ({ ...prev, [id]: data }));
-    }
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">Webhook Endpoint'leri</h2>
-          <p className="text-sm text-gray-500 mt-0.5">Sertifika olaylarında HMAC-SHA256 imzalı POST alın.</p>
-        </div>
-        <button onClick={() => setShowForm(!showForm)} className="btn-primary gap-2"><Plus className="h-4 w-4" /> Endpoint Ekle</button>
-      </div>
-      <AnimatePresence>
-        {showForm && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-            <form onSubmit={createEndpoint} className="card p-5 space-y-4">
-              <div><label className="label">URL</label><input className="input-field" type="url" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://siz.com/webhook" required /></div>
-              <div>
-                <label className="label mb-2">Olaylar</label>
-                <div className="flex flex-wrap gap-2">
-                  {WEBHOOK_EVENTS.map(ev => (
-                    <button key={ev} type="button"
-                      onClick={() => setSelectedEvents(prev => prev.includes(ev) ? prev.filter(e => e !== ev) : [...prev, ev])}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-mono border transition-colors ${selectedEvents.includes(ev) ? "bg-brand-600 text-white border-brand-600" : "bg-white text-gray-600 border-gray-200 hover:border-brand-400"}`}>
-                      {ev}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {err && <div className="error-banner">{err}</div>}
-              <div className="flex gap-3">
-                <button type="submit" disabled={creating || selectedEvents.length === 0} className="btn-primary gap-2">{creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Ekle</button>
-                <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">İptal</button>
-              </div>
-            </form>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      {loading ? (
-        <div className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto text-gray-400" /></div>
-      ) : endpoints.length === 0 ? (
-        <div className="text-center py-12 text-gray-400"><Webhook className="h-10 w-10 mx-auto mb-3 opacity-30" /><p className="text-sm">Henüz webhook endpoint'i yok.</p></div>
-      ) : (
-        <div className="space-y-3">
-          {endpoints.map(ep => (
-            <div key={ep.id} className="card overflow-hidden">
-              <div className="p-4 flex items-center gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-sm text-gray-800 truncate">{ep.url}</span>
-                    <span className={`badge ${ep.is_active ? "badge-green" : "badge-red"}`}>{ep.is_active ? "Aktif" : "Pasif"}</span>
-                  </div>
-                  <div className="flex gap-2 mt-1.5 flex-wrap">
-                    {ep.events.map(ev => <span key={ev} className="text-xs font-mono bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{ev}</span>)}
-                  </div>
-                  {ep.secret && (
-                    <div className="flex items-center mt-1 text-xs text-gray-400">
-                      <span className="font-mono">Secret: {ep.secret.slice(0, 16)}••••</span>
-                      <CopyBtn text={ep.secret} />
-                    </div>
-                  )}
-                  {ep.last_fired_at && <p className="text-xs text-gray-400 mt-0.5">Son tetiklenme: {fmtDate(ep.last_fired_at)}</p>}
-                </div>
-                <div className="flex items-center gap-1">
-                  <button onClick={() => loadDeliveries(ep.id)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors" title="Teslimatlar">
-                    {expandedId === ep.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                  </button>
-                  <button onClick={() => deleteEndpoint(ep.id)} className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors"><Trash2 className="h-4 w-4" /></button>
-                </div>
-              </div>
-              <AnimatePresence>
-                {expandedId === ep.id && (
-                  <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden border-t border-gray-100">
-                    <div className="p-4">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Son Teslimatlar</p>
-                      {!deliveries[ep.id] ? <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-                        : deliveries[ep.id].length === 0 ? <p className="text-xs text-gray-400">Teslimat yok.</p>
-                        : (
-                          <div className="space-y-1.5">
-                            {deliveries[ep.id].map(d => (
-                              <div key={d.id} className="flex items-center gap-3 text-xs">
-                                <span className={`badge ${d.status === "success" ? "badge-green" : "badge-red"}`}>{d.status}</span>
-                                <span className="font-mono text-gray-500">{d.event_type}</span>
-                                <span className="text-gray-400">HTTP {d.http_status ?? "—"}</span>
-                                <span className="text-gray-400">#{d.attempt}</span>
-                                <span className="text-gray-400 ml-auto">{fmtDate(d.delivered_at)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -681,8 +418,6 @@ export default function AdminSettingsPage() {
       <AnimatePresence mode="wait">
         <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
           {activeTab === "account" && <AccountTab me={me} />}
-          {activeTab === "apikeys" && <ApiKeysTab />}
-          {activeTab === "webhooks" && <WebhooksTab />}
           {activeTab === "2fa" && <TwoFATab />}
           {activeTab === "transactions" && <TransactionsTab />}
           {activeTab === "domain" && <CustomDomainTab />}

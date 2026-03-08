@@ -151,14 +151,14 @@ export default function AuditLogsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center p-24">
         <Loader2 className="h-8 w-8 animate-spin text-brand-500" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="p-6">
       <div>
         {/* Header */}
         <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
@@ -172,11 +172,11 @@ export default function AuditLogsPage() {
 
         {/* Error Alert */}
         {error && (
-          <div className="mb-6 flex items-start gap-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-            <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+          <div className="error-banner mb-6">
+            <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h3 className="font-semibold text-red-900 dark:text-red-200">Hata</h3>
-              <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
+              <p className="font-semibold">Hata</p>
+              <p className="mt-0.5">{error}</p>
             </div>
           </div>
         )}

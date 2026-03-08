@@ -10,6 +10,7 @@ import {
 } from "@/lib/api";
 import Link from "next/link";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
+import ConfirmModal from "@/components/Admin/ConfirmModal";
 import {
   Users, Upload, Search, Trash2, Loader2, ChevronLeft, Download,
   Award, BarChart3, CheckSquare, XSquare, RefreshCw, AlertCircle,
@@ -50,6 +51,10 @@ export default function AdminAttendeesPage() {
 
   // Plan gate
   const [planOk, setPlanOk] = useState<boolean | null>(null);
+
+  // Confirm modals
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const [showCertifyConfirm, setShowCertifyConfirm] = useState(false);
 
   const limit = 50;
 
@@ -108,7 +113,13 @@ export default function AdminAttendeesPage() {
   }
 
   async function handleDelete(id: number) {
-    if (!confirm("Bu katılımcıyı silmek istediğinize emin misiniz?")) return;
+    setPendingDeleteId(id);
+  }
+
+  async function confirmDelete() {
+    if (!pendingDeleteId) return;
+    const id = pendingDeleteId;
+    setPendingDeleteId(null);
     setDeletingId(id);
     try {
       await deleteAttendee(eventId, id);
@@ -136,8 +147,12 @@ export default function AdminAttendeesPage() {
     }
   }
 
-  async function handleBulkCertify() {
-    if (!confirm(`Eşiği geçen tüm katılımcılara sertifika üretilecek. Onaylıyor musunuz?`)) return;
+  function handleBulkCertify() {
+    setShowCertifyConfirm(true);
+  }
+
+  async function executeBulkCertify() {
+    setShowCertifyConfirm(false);
     setCertifying(true);
     setCertResult(null);
     try {
@@ -183,8 +198,7 @@ export default function AdminAttendeesPage() {
   const eligibleCount = matrix ? matrix.rows.filter((r) => r.meets_threshold && !r.has_certificate).length : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <div className="max-w-5xl mx-auto">
+    <div className="flex flex-col gap-6 pb-20">
         <EventAdminNav eventId={eventId} eventName={eventName} active="attendees" className="mb-6 flex flex-col gap-2" />
 
         {/* Plan gate */}
@@ -206,7 +220,7 @@ export default function AdminAttendeesPage() {
 
         {planOk !== false && (
           <>
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900">Katılımcı Yönetimi</h1>
             <p className="text-sm text-gray-500 mt-0.5">{eventName} · Min. {minSessions} oturum</p>
@@ -309,7 +323,7 @@ export default function AdminAttendeesPage() {
             </form>
 
             {listError && (
-              <div className="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-2 mb-3">{listError}</div>
+              <div className="error-banner mb-3">{listError}</div>
             )}
 
             {loadingList ? (
@@ -506,9 +520,22 @@ export default function AdminAttendeesPage() {
             )}
           </>
         )}
-          </>
-        )}
-      </div>
+          <ConfirmModal
+            open={pendingDeleteId !== null}
+            title="Katılımcıyı sil"
+            description="Bu katılımcıyı silmek istediğinize emin misiniz?"
+            danger
+            loading={deletingId !== null}
+            onConfirm={confirmDelete}
+            onCancel={() => setPendingDeleteId(null)}
+          />
+          <ConfirmModal
+            open={showCertifyConfirm}
+            title="Toplu sertifika üret"
+            description="Eşiği geçen tüm katılımcılara sertifika üretilecek. Onaylıyor musunuz?"
+            onConfirm={executeBulkCertify}
+            onCancel={() => setShowCertifyConfirm(false)}
+          />
     </div>
   );
 }

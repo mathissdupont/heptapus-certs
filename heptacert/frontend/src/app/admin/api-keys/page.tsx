@@ -5,6 +5,7 @@ import { ArrowLeft, Loader2, AlertCircle, Plus, Copy, CheckCircle2, Eye, EyeOff,
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
+import PageHeader from "@/components/Admin/PageHeader";
 import { DataTable } from "@/components/DataTable/DataTable";
 import { ColumnDef } from "@tanstack/react-table";
 import { motion } from "framer-motion";
@@ -193,7 +194,7 @@ export default function ApiKeysPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center p-24">
         <Loader2 className="h-8 w-8 animate-spin text-brand-500" />
       </div>
     );
@@ -201,33 +202,28 @@ export default function ApiKeysPage() {
 
   return (
     <div className="p-6">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <Link href="/admin/settings" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
-          <ArrowLeft className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">API Keys</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Manage authentication keys for API access and integrations
-          </p>
-        </div>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2 rounded-lg bg-brand-500 text-white font-medium hover:bg-brand-600 transition-colors flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" /> Create Key
-        </motion.button>
-      </div>
+      <PageHeader
+        title="API Keys"
+        subtitle="API erişimi ve entegrasyonlar için kimlik doğrulama anahtarlarını yönetin"
+        icon={<Lock className="h-5 w-5" />}
+        breadcrumbs={[{ label: "Ayarlar", href: "/admin/settings" }, { label: "API Keys" }]}
+        actions={
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="btn-primary flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" /> Yeni Anahtar
+          </button>
+        }
+      />
 
       {/* Error Alert */}
       {error && (
-        <div className="mb-6 flex items-start gap-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-lg p-4">
-          <AlertCircle className="h-5 w-5 text-rose-600 dark:text-rose-400 mt-0.5 flex-shrink-0" />
+        <div className="error-banner mb-6">
+          <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
           <div className="flex-1">
-            <h3 className="font-semibold text-rose-900 dark:text-rose-200">Error</h3>
-            <p className="text-rose-700 dark:text-rose-300 text-sm">{error}</p>
+            <p className="font-semibold">Hata</p>
+            <p className="mt-0.5">{error}</p>
           </div>
         </div>
       )}
@@ -318,9 +314,9 @@ export default function ApiKeysPage() {
       {/* Keys Table */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
         {keys.length === 0 ? (
-          <div className="card p-12 text-center dark:bg-gray-800 dark:border-gray-700">
-            <Lock className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-500 dark:text-gray-400 mb-6">No API keys yet. Create one to get started.</p>
+          <div className="card p-12 text-center">
+            <Lock className="h-12 w-12 text-surface-300 mx-auto mb-4" />
+            <p className="text-surface-500 mb-6">Henüz API anahtarı yok. Başlamak için bir tane oluşturun.</p>
             <motion.button
               whileHover={{ scale: 1.05 }}
               onClick={() => setShowCreateModal(true)}

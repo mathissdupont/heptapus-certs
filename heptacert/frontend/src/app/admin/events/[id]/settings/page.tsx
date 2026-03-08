@@ -160,14 +160,14 @@ export default function EventSettingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center justify-center p-24">
         <Loader2 className="w-8 h-8 animate-spin text-brand-600" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="py-8">
       <div className="mx-auto max-w-4xl px-4">
         {/* Header */}
         <div className="mb-8">
@@ -179,8 +179,8 @@ export default function EventSettingsPage() {
         </div>
 
         {error && (
-          <div className="mb-6 flex items-center gap-3 rounded-lg bg-red-50 p-4 text-red-700">
-            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <div className="error-banner mb-6">
+            <AlertCircle className="w-5 h-5 shrink-0" />
             <span>{error}</span>
           </div>
         )}

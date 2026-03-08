@@ -156,7 +156,7 @@ export default function BulkEmailsPage() {
   const selectedJob = jobs.find((j) => j.id === selectedJobId);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="py-8">
       <div className="mx-auto max-w-6xl px-4">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">

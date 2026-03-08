@@ -273,7 +273,7 @@ export default function AdminSessionsPage() {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4 text-sm text-red-700">{error}</div>
+          <div className="error-banner mb-4">{error}</div>
         )}
 
         {/* Form */}

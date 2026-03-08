@@ -35,10 +35,10 @@
   }
   /* ── Cards ───────────────────────────────── */
   .card {
-    @apply rounded-xl border border-surface-200 bg-white shadow-soft;
+    @apply rounded-xl border border-surface-200 bg-white shadow-soft dark:bg-surface-800 dark:border-surface-700;
   }
   .card-hover {
-    @apply rounded-xl border border-surface-200 bg-white shadow-soft transition-all hover:shadow-card hover:border-surface-300;
+    @apply rounded-xl border border-surface-200 bg-white shadow-soft transition-all hover:shadow-card hover:border-surface-300 dark:bg-surface-800 dark:border-surface-700 dark:hover:border-surface-600;
   }
   /* ── Badges ──────────────────────────────── */
   .badge-active {

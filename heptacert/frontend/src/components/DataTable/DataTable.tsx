@@ -12,7 +12,7 @@ import {
   ColumnFiltersState,
   VisibilityState,
 } from "@tanstack/react-table";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -79,7 +79,7 @@ export function DataTable<TData extends Record<string, any>>({
   });
 
   // Track selection changes
-  useMemo(() => {
+  useEffect(() => {
     if (onSelectionChange) {
       const selected = table.getFilteredSelectedRowModel().rows.map((row) => row.original);
       onSelectionChange(selected);

@@ -68,7 +68,7 @@ export default function EmailJobDetailsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center p-24">
         <Loader2 className="h-8 w-8 animate-spin text-brand-500" />
       </div>
     );
@@ -114,7 +114,7 @@ export default function EmailJobDetailsPage() {
   const StatusIcon = config.icon;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
