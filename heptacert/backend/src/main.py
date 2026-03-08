@@ -3639,6 +3639,64 @@ async def get_event_sponsors_public(
 
 # ── Analytics Endpoints ───────────────────────────────────────────────────────
 
+@app.get("/api/admin/events/{event_id}/analytics")
+async def get_event_analytics(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get aggregated analytics for an event (attendees, certs, sessions)."""
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+
+    # Total attendees
+    att_res = await db.execute(
+        select(func.count(Attendee.id)).where(Attendee.event_id == event_id)
+    )
+    total_attendees = att_res.scalar() or 0
+
+    # Certified (active certificates)
+    cert_res = await db.execute(
+        select(func.count(Certificate.id)).where(
+            Certificate.event_id == event_id,
+            Certificate.status == CertStatus.active,
+        )
+    )
+    certified_count = cert_res.scalar() or 0
+    pending_count = max(0, total_attendees - certified_count)
+
+    # Sessions with per-session attendance rate
+    sess_res = await db.execute(
+        select(EventSession).where(EventSession.event_id == event_id).order_by(EventSession.id)
+    )
+    sessions = sess_res.scalars().all()
+
+    session_data = []
+    for session in sessions:
+        arc_res = await db.execute(
+            select(func.count(distinct(AttendanceRecord.attendee_id))).where(
+                AttendanceRecord.session_id == session.id
+            )
+        )
+        attended = arc_res.scalar() or 0
+        rate = (attended / total_attendees) if total_attendees > 0 else 0.0
+        session_data.append({"id": session.id, "name": session.name, "attendance_rate": rate})
+
+    return {
+        "event_id": event.id,
+        "event_name": event.name,
+        "total_attendees": total_attendees,
+        "certified_count": certified_count,
+        "pending_count": pending_count,
+        "sessions": session_data,
+    }
+
+
 @app.get("/api/admin/events/{event_id}/analytics/engagement")
 async def get_engagement_analytics(
     event_id: int,
