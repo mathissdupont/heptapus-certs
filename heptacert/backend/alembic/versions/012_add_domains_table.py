@@ -9,7 +9,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '012_add_domains_table'
-down_revision = '011_gamification_surveys_sponsors'
+down_revision = '011'
 branch_labels = None
 depends_on = None
 
