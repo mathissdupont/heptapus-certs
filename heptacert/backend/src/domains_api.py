@@ -6,7 +6,8 @@ from typing import Optional
 import dns.resolver
 import logging
 
-from .main import SessionLocal
+from .main import SessionLocal, get_current_user, CurrentUser, require_role, Role
+from sqlalchemy.future import select
 from .domains import Domain
 
 logger = logging.getLogger("heptacert.domains")
@@ -28,13 +29,14 @@ class DomainOut(BaseModel):
     created_at: Optional[str] = None
 
 
-@router.post("/api/domains", response_model=DomainOut)
-async def create_domain(payload: DomainCreateIn):
+@router.post("/api/domains", response_model=DomainOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def create_domain(payload: DomainCreateIn, me: CurrentUser = Depends(get_current_user)):
     async with SessionLocal() as db:
         exists = await Domain.get_by_domain(db, payload.domain)
         if exists:
             raise HTTPException(status_code=409, detail="Domain already exists")
-        dom = await Domain.create(db, payload.domain, owner=payload.owner)
+        owner = payload.owner or str(me.id)
+        dom = await Domain.create(db, payload.domain, owner=owner)
         await db.commit()
         await db.refresh(dom)
         return DomainOut(id=dom.id, domain=dom.domain, owner=dom.owner, status=dom.status, token=dom.token)
@@ -74,6 +76,26 @@ async def create_domain(payload: DomainCreateIn):
                 raise HTTPException(status_code=404, detail="Domain not found")
             await db.commit()
             return {"deleted": True}
+
+
+        @router.get("/api/admin/organization/domains", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+        async def list_my_domains(me: CurrentUser = Depends(get_current_user)):
+            """Return domains owned by the current user (owner stored as stringified user id)."""
+            async with SessionLocal() as db:
+                q = select(Domain).where(Domain.owner == str(me.id))
+                res = await db.execute(q)
+                items = res.scalars().all()
+                out = []
+                for d in items:
+                    out.append(DomainOut(
+                        id=d.id,
+                        domain=d.domain,
+                        owner=d.owner,
+                        status=d.status,
+                        token=d.token,
+                        created_at=d.created_at.isoformat() if getattr(d, "created_at", None) else None,
+                    ))
+                return out
 
 
 @router.get("/api/domains/{domain}/check")

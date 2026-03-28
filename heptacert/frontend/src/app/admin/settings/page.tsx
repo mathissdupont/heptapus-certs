@@ -311,6 +311,7 @@ function CustomDomainTab() {
   const [domain, setDomain] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [myDomains, setMyDomains] = useState<Array<any>>([]);
   const [ok, setOk] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -325,6 +326,12 @@ function CustomDomainTab() {
       .then(d => { setDomain(d.custom_domain || ""); })
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    // fetch domains owned by this user
+    apiFetch("/admin/organization/domains")
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setMyDomains(d || []))
+      .catch(() => {});
   }, []);
 
   // When domain text changes, if token/status unknown try to fetch domain details
@@ -366,6 +373,8 @@ function CustomDomainTab() {
       setStatus(data.status || null);
       setCreatedAt(data.created_at || null);
       setOk(true);
+      // refresh list
+      try { const list = await (await apiFetch("/admin/organization/domains")).json(); setMyDomains(list || []); } catch {};
       setTimeout(() => setOk(false), 3000);
     } catch (e: any) {
       setErr(e?.message || "Kaydedilemedi.");
@@ -395,6 +404,8 @@ function CustomDomainTab() {
       const r = await apiFetch(`/domains/${encodeURIComponent(dom)}/regenerate`, { method: "POST" });
       const j = await r.json();
       setToken(j.token || null);
+      // refresh list
+      try { const list = await (await apiFetch("/admin/organization/domains")).json(); setMyDomains(list || []); } catch {};
     } catch (e: any) { setErr(e?.message || "Token yenilenemedi."); }
   }
 
@@ -406,6 +417,8 @@ function CustomDomainTab() {
       if (!dom) throw new Error("Alan adı boş.");
       await apiFetch(`/domains/${encodeURIComponent(dom)}`, { method: "DELETE" });
       setDomain(""); setToken(null); setStatus(null); setCreatedAt(null);
+      // refresh list
+      try { const list = await (await apiFetch("/admin/organization/domains")).json(); setMyDomains(list || []); } catch {};
     } catch (e: any) { setErr(e?.message || "Silinemedi."); }
   }
 
@@ -413,6 +426,22 @@ function CustomDomainTab() {
 
   return (
     <div className="max-w-lg space-y-6">
+      {myDomains.length > 0 && (
+        <div className="card p-4">
+          <h3 className="text-sm font-semibold mb-2">Kayıtlı Alan Adlarınız</h3>
+          <ul className="space-y-2 text-sm">
+            {myDomains.map(d => (
+              <li key={d.domain} className="flex items-center justify-between">
+                <div>{d.domain} <span className="text-xs text-gray-400">{d.status}</span></div>
+                <div className="flex gap-2">
+                  <button className="btn-ghost" onClick={async () => { setDomain(d.domain); setToken(d.token || null); setStatus(d.status || null); }}>{/* select */}Seç</button>
+                  <button className="btn-ghost" onClick={async () => { await apiFetch(`/domains/${encodeURIComponent(d.domain)}/regenerate`, { method: 'POST' }); const list = await (await apiFetch('/admin/organization/domains')).json(); setMyDomains(list || []); }}>Token Yenile</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600"><Globe className="h-5 w-5" /></div>
