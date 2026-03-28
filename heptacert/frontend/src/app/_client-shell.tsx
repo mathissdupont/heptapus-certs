@@ -31,7 +31,7 @@ function Navbar() {
 
   useEffect(() => {
     let mounted = true;
-    apiFetch("/branding")
+    apiFetch("/api/branding")
       .then((res) => res.json())
       .then((j) => {
         if (!mounted) return;

@@ -53,7 +53,7 @@ export default function VerifyIndexPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    apiFetch("/public/branding")
+    apiFetch("/api/branding")
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!data) return;
