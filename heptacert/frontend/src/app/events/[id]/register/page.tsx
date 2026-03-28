@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { getPublicEventInfo, publicRegisterAttendee, apiFetch } from "@/lib/api";
+import { getPublicEventInfo, publicRegisterAttendee } from "@/lib/api";
 import {
   CheckCircle2,
   Calendar,
@@ -86,26 +86,38 @@ export default function EventRegisterPage() {
   }, [eventId]);
 
   const brandName = branding?.org_name || "HeptaCert";
-  const brandColor = branding?.brand_color || "#6366f1";
+  const brandColor = branding?.brand_color || "#7c73ff";
 
   const pageBg = useMemo(
     () => ({
-      background: `linear-gradient(135deg, ${brandColor}12, ${brandColor}08 40%, #0b1120 100%)`,
+      background: `
+        radial-gradient(circle at top left, ${brandColor}18 0%, transparent 28%),
+        radial-gradient(circle at top right, ${brandColor}14 0%, transparent 22%),
+        linear-gradient(180deg, #070b14 0%, #0b1120 38%, #0f172a 100%)
+      `,
     }),
     [brandColor]
   );
 
   const heroFallbackBg = useMemo(
     () => ({
-      background: `linear-gradient(135deg, ${brandColor} 0%, ${brandColor}CC 35%, #111827 100%)`,
+      background: `linear-gradient(135deg, ${brandColor} 0%, ${brandColor}D0 38%, #0b1120 100%)`,
     }),
     [brandColor]
   );
 
   const primaryBtnStyle = useMemo(
     () => ({
-      backgroundColor: brandColor,
-      boxShadow: `0 10px 30px ${brandColor}33`,
+      background: `linear-gradient(135deg, ${brandColor} 0%, ${brandColor}DD 100%)`,
+      boxShadow: `0 18px 40px ${brandColor}40`,
+    }),
+    [brandColor]
+  );
+
+  const inputFocusStyle = useMemo(
+    () => ({
+      ["--tw-ring-color" as any]: `${brandColor}88`,
+      borderColor: `${brandColor}33`,
     }),
     [brandColor]
   );
@@ -114,15 +126,19 @@ export default function EventRegisterPage() {
     e.preventDefault();
     setSubmitError(null);
     setSubmitting(true);
+
     try {
       const registered = await publicRegisterAttendee(eventId, {
         name: name.trim(),
         email: email.trim().toLowerCase(),
       });
+
       setAttendeeId(registered.attendee_id);
+
       if (typeof window !== "undefined") {
         localStorage.setItem(`heptacert_attendee_${eventId}`, String(registered.attendee_id));
       }
+
       setSuccess(true);
     } catch (err: any) {
       setSubmitError(err.message || "Kayıt başarısız");
@@ -134,7 +150,10 @@ export default function EventRegisterPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={pageBg}>
-        <Loader2 className="w-10 h-10 animate-spin" style={{ color: brandColor }} />
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-10 h-10 animate-spin" style={{ color: brandColor }} />
+          <p className="text-sm text-white/70">Etkinlik yükleniyor...</p>
+        </div>
       </div>
     );
   }
@@ -142,10 +161,10 @@ export default function EventRegisterPage() {
   if (error || !event) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4" style={pageBg}>
-        <div className="text-center text-gray-300">
+        <div className="max-w-md w-full rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-8 text-center shadow-2xl">
           <p className="text-5xl mb-4">😕</p>
-          <p className="font-semibold text-white">{error || "Etkinlik bulunamadı"}</p>
-          <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-400">
+          <p className="font-semibold text-white text-lg">{error || "Etkinlik bulunamadı"}</p>
+          <div className="mt-6 flex items-center justify-center gap-2 text-xs text-white/50">
             <ShieldCheck className="w-3.5 h-3.5" style={{ color: brandColor }} />
             HeptaCert altyapısıyla güvence altındadır.
           </div>
@@ -157,34 +176,36 @@ export default function EventRegisterPage() {
   const hasBanner = !!event.event_banner_url;
 
   return (
-    <div className="min-h-screen text-white" style={pageBg}>
-      <div className="relative flex items-end" style={{ minHeight: "42vh" }}>
+    <div className="min-h-screen text-white overflow-x-hidden" style={pageBg}>
+      <section className="relative overflow-hidden" style={{ minHeight: "38vh" }}>
         {hasBanner ? (
           <div
-            className="absolute inset-0 bg-cover bg-center"
+            className="absolute inset-0 bg-cover bg-center scale-[1.03]"
             style={{ backgroundImage: `url(${event.event_banner_url})` }}
           />
         ) : (
           <div className="absolute inset-0" style={heroFallbackBg} />
         )}
 
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/60 to-transparent" />
-        {hasBanner && <div className="absolute inset-0 bg-black/40" />}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/35 to-[#0f172a]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_32%)]" />
+        {hasBanner && <div className="absolute inset-0 backdrop-blur-[2px]" />}
 
-        <div className="relative w-full max-w-5xl mx-auto px-6 pb-12 pt-20">
+        <div className="relative max-w-6xl mx-auto px-4 md:px-6 pt-16 md:pt-20 pb-20 md:pb-24">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            className="max-w-3xl rounded-[28px] border border-white/12 bg-black/30 backdrop-blur-xl shadow-[0_20px_80px_rgba(0,0,0,0.35)] p-6 md:p-8"
           >
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-semibold text-white/80 backdrop-blur-sm mb-5">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-xs font-semibold text-white/85 backdrop-blur-sm mb-5">
               <Shield className="w-3.5 h-3.5" style={{ color: brandColor }} />
               Sertifikalı Etkinlik · {brandName}
             </div>
 
             <div className="flex items-center gap-3 mb-5">
               {branding?.brand_logo ? (
-                <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2 backdrop-blur-sm">
+                <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 backdrop-blur-sm">
                   <img
                     src={branding.brand_logo}
                     alt={brandName}
@@ -192,17 +213,22 @@ export default function EventRegisterPage() {
                   />
                 </div>
               ) : (
-                <Award className="w-8 h-8" style={{ color: brandColor }} />
+                <div
+                  className="rounded-2xl p-3 border border-white/10 bg-white/10"
+                  style={{ boxShadow: `0 10px 30px ${brandColor}22` }}
+                >
+                  <Award className="w-7 h-7" style={{ color: brandColor }} />
+                </div>
               )}
             </div>
 
-            <h1 className="text-3xl md:text-4xl font-black text-white leading-tight mb-5 max-w-2xl">
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-[1.04] text-white mb-4">
               {event.name}
             </h1>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-3 mb-4">
               {event.event_date && (
-                <span className="flex items-center gap-1.5 rounded-full bg-white/10 border border-white/15 px-3.5 py-1.5 text-sm text-white/85 backdrop-blur-sm">
+                <span className="flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-3.5 py-1.5 text-sm text-white/85 backdrop-blur-sm">
                   <Calendar className="w-3.5 h-3.5" style={{ color: brandColor }} />
                   {new Date(event.event_date).toLocaleDateString("tr-TR", {
                     day: "numeric",
@@ -213,7 +239,7 @@ export default function EventRegisterPage() {
               )}
 
               {event.event_location && (
-                <span className="flex items-center gap-1.5 rounded-full bg-white/10 border border-white/15 px-3.5 py-1.5 text-sm text-white/85 backdrop-blur-sm">
+                <span className="flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-3.5 py-1.5 text-sm text-white/85 backdrop-blur-sm">
                   <MapPin className="w-3.5 h-3.5" style={{ color: brandColor }} />
                   {event.event_location}
                 </span>
@@ -221,25 +247,25 @@ export default function EventRegisterPage() {
             </div>
 
             {event.event_description && (
-              <p className="mt-5 text-sm text-white/65 max-w-xl leading-relaxed">
+              <p className="text-sm md:text-base text-white/80 max-w-2xl leading-relaxed">
                 {event.event_description}
               </p>
             )}
           </motion.div>
         </div>
-      </div>
+      </section>
 
-      <div className="max-w-5xl mx-auto px-4 pb-20 -mt-2">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <section className="relative z-10 max-w-6xl mx-auto px-4 md:px-6 pb-20 -mt-10 md:-mt-14">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
           {event.sessions.length > 0 && (
             <motion.div
-              className="lg:col-span-2 space-y-4"
+              className="lg:col-span-2"
               initial={{ opacity: 0, x: -16 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
+              transition={{ duration: 0.45, delay: 0.08 }}
             >
-              <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm p-6">
-                <h2 className="text-sm font-bold text-white/50 uppercase tracking-widest mb-4">
+              <div className="rounded-[28px] border border-white/10 bg-white/6 backdrop-blur-xl p-6 shadow-[0_20px_60px_rgba(0,0,0,0.22)]">
+                <h2 className="text-xs font-bold text-white/45 uppercase tracking-[0.22em] mb-5">
                   Etkinlik Oturumları
                 </h2>
 
@@ -247,10 +273,10 @@ export default function EventRegisterPage() {
                   {event.sessions.map((s, i) => (
                     <div
                       key={s.id}
-                      className="flex items-start gap-3 rounded-xl bg-white/5 border border-white/8 p-4 hover:bg-white/8 transition-colors"
+                      className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/7 p-4 hover:bg-white/10 transition-all"
                     >
                       <div
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-bold"
                         style={{
                           backgroundColor: `${brandColor}22`,
                           color: brandColor,
@@ -258,17 +284,20 @@ export default function EventRegisterPage() {
                       >
                         {i + 1}
                       </div>
-                      <div>
+
+                      <div className="min-w-0">
                         <p className="text-sm font-semibold text-white leading-snug">{s.name}</p>
-                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
                           {s.session_date && (
-                            <span className="text-xs text-white/40">
+                            <span className="text-xs text-white/55">
                               {new Date(s.session_date).toLocaleDateString("tr-TR")}
-                              {s.session_start && ` · ${s.session_start}`}
+                              {s.session_start ? ` · ${s.session_start}` : ""}
                             </span>
                           )}
+
                           {s.session_location && (
-                            <span className="text-xs text-white/40">{s.session_location}</span>
+                            <span className="text-xs text-white/45">{s.session_location}</span>
                           )}
                         </div>
                       </div>
@@ -278,14 +307,15 @@ export default function EventRegisterPage() {
 
                 {event.min_sessions_required > 1 && (
                   <div
-                    className="mt-4 rounded-xl px-4 py-3"
+                    className="mt-4 rounded-2xl px-4 py-3 border"
                     style={{
-                      border: `1px solid ${brandColor}44`,
-                      backgroundColor: `${brandColor}18`,
+                      borderColor: `${brandColor}40`,
+                      backgroundColor: `${brandColor}16`,
                     }}
                   >
-                    <p className="text-xs font-medium" style={{ color: brandColor }}>
-                      Sertifika almak için en az <strong>{event.min_sessions_required} oturuma</strong> katılmanız gerekiyor.
+                    <p className="text-xs font-medium leading-relaxed" style={{ color: brandColor }}>
+                      Sertifika almak için en az{" "}
+                      <strong>{event.min_sessions_required} oturuma</strong> katılmanız gerekiyor.
                     </p>
                   </div>
                 )}
@@ -294,57 +324,69 @@ export default function EventRegisterPage() {
           )}
 
           <motion.div
-            className={event.sessions.length > 0 ? "lg:col-span-3" : "lg:col-span-5 max-w-xl mx-auto w-full"}
+            className={
+              event.sessions.length > 0
+                ? "lg:col-span-3"
+                : "lg:col-span-5 max-w-2xl mx-auto w-full"
+            }
             initial={{ opacity: 0, x: 16 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.15 }}
+            transition={{ duration: 0.45, delay: 0.12 }}
           >
             <AnimatePresence mode="wait">
               {success ? (
                 <motion.div
                   key="success"
-                  initial={{ opacity: 0, scale: 0.95 }}
+                  initial={{ opacity: 0, scale: 0.96 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="rounded-2xl bg-white/5 border border-emerald-500/30 backdrop-blur-sm p-10 text-center"
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  className="rounded-[28px] border border-emerald-400/25 bg-white/8 backdrop-blur-xl p-8 md:p-10 text-center shadow-[0_20px_60px_rgba(0,0,0,0.22)]"
                 >
                   <div className="flex justify-center mb-5">
-                    <div className="rounded-full bg-emerald-500/15 p-5">
+                    <div className="rounded-full bg-emerald-500/15 p-5 border border-emerald-400/15">
                       <CheckCircle2 className="w-12 h-12 text-emerald-400" />
                     </div>
                   </div>
 
-                  <h2 className="text-2xl font-black text-white mb-2">Kayıt Tamamlandı!</h2>
-                  <p className="text-white/55 text-sm leading-relaxed max-w-sm mx-auto">
-                    <span className="text-white font-semibold">{name}</span>, etkinliğe başarıyla kaydoldunuz.
-                    Etkinlik günü QR kodu okutarak check-in yapabilirsiniz.
+                  <h2 className="text-2xl md:text-3xl font-black text-white mb-2">
+                    Kayıt Tamamlandı
+                  </h2>
+
+                  <p className="text-white/70 text-sm md:text-base leading-relaxed max-w-md mx-auto">
+                    <span className="text-white font-semibold">{name}</span>, etkinliğe başarıyla
+                    kaydoldunuz. Etkinlik günü QR kodu okutarak check-in yapabilirsiniz.
                   </p>
 
                   {event.survey?.is_required && (
-                    <div className="mt-5 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4 text-left max-w-md mx-auto">
+                    <div className="mt-6 rounded-2xl border border-amber-400/25 bg-amber-400/10 p-4 text-left max-w-md mx-auto">
                       <p className="text-sm text-amber-200 font-semibold">Anket zorunlu</p>
-                      <p className="text-xs text-amber-100/90 mt-1 leading-relaxed">
-                        Sertifikanızı indirebilmek için anketi check-in sonrasında, sertifika adımına geçmeden önce doldurmanız gerekiyor.
+                      <p className="text-xs text-amber-100/85 mt-1 leading-relaxed">
+                        Sertifikanızı indirebilmek için anketi check-in sonrasında, sertifika
+                        adımına geçmeden önce doldurmanız gerekiyor.
                       </p>
 
-                      <div className="mt-3 flex flex-wrap gap-2">
+                      <div className="mt-4">
                         {event.survey.external_url &&
-                        (event.survey.survey_type === "external" || event.survey.survey_type === "both") ? (
+                        (event.survey.survey_type === "external" ||
+                          event.survey.survey_type === "both") ? (
                           <a
                             href={event.survey.external_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 rounded-lg bg-amber-500 text-black font-semibold px-3 py-2 text-xs hover:bg-amber-400 transition-colors"
+                            className="inline-flex items-center gap-2 rounded-xl bg-amber-400 text-black font-semibold px-4 py-2.5 text-sm hover:opacity-90 transition-opacity"
                           >
                             Anketi Aç
-                            <ArrowRight className="w-3.5 h-3.5" />
+                            <ArrowRight className="w-4 h-4" />
                           </a>
                         ) : (
                           <a
-                            href={`/events/${event.id}/survey${attendeeId ? `?attendee_id=${attendeeId}` : ""}`}
-                            className="inline-flex items-center gap-2 rounded-lg bg-amber-500 text-black font-semibold px-3 py-2 text-xs hover:bg-amber-400 transition-colors"
+                            href={`/events/${event.id}/survey${
+                              attendeeId ? `?attendee_id=${attendeeId}` : ""
+                            }`}
+                            className="inline-flex items-center gap-2 rounded-xl bg-amber-400 text-black font-semibold px-4 py-2.5 text-sm hover:opacity-90 transition-opacity"
                           >
                             Anketi Doldur
-                            <ArrowRight className="w-3.5 h-3.5" />
+                            <ArrowRight className="w-4 h-4" />
                           </a>
                         )}
                       </div>
@@ -356,13 +398,14 @@ export default function EventRegisterPage() {
                   key="form"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="rounded-2xl bg-white border border-gray-200 shadow-lg p-7"
+                  exit={{ opacity: 0 }}
+                  className="rounded-[28px] bg-white/95 text-gray-900 border border-white shadow-[0_24px_70px_rgba(15,23,42,0.18)] p-7 md:p-8"
                   style={{ colorScheme: "light" }}
                 >
-                  <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2.5">
+                  <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
                     <div
-                      className="rounded-lg p-1.5"
-                      style={{ backgroundColor: `${brandColor}22` }}
+                      className="rounded-xl p-2"
+                      style={{ backgroundColor: `${brandColor}20` }}
                     >
                       <UserPlus className="w-4 h-4" style={{ color: brandColor }} />
                     </div>
@@ -371,7 +414,7 @@ export default function EventRegisterPage() {
 
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-[0.18em] mb-2">
                         Ad Soyad
                       </label>
                       <input
@@ -381,13 +424,13 @@ export default function EventRegisterPage() {
                         placeholder="Adınız Soyadınız"
                         required
                         minLength={2}
-                        className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 text-sm transition-all"
-                        style={{ ["--tw-ring-color" as any]: `${brandColor}99` }}
+                        className="w-full px-4 py-3.5 rounded-2xl border bg-gray-50/80 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 text-sm transition-all"
+                        style={inputFocusStyle}
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-[0.18em] mb-2">
                         E-posta Adresi
                       </label>
                       <input
@@ -396,8 +439,8 @@ export default function EventRegisterPage() {
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="ornek@mail.com"
                         required
-                        className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 text-sm transition-all"
-                        style={{ ["--tw-ring-color" as any]: `${brandColor}99` }}
+                        className="w-full px-4 py-3.5 rounded-2xl border bg-gray-50/80 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 text-sm transition-all"
+                        style={inputFocusStyle}
                       />
                     </div>
 
@@ -407,7 +450,7 @@ export default function EventRegisterPage() {
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="text-sm text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-xl"
+                          className="text-sm text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-2xl"
                         >
                           {submitError}
                         </motion.p>
@@ -417,7 +460,7 @@ export default function EventRegisterPage() {
                     <button
                       type="submit"
                       disabled={submitting || !name.trim() || !email.trim()}
-                      className="w-full disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 mt-2"
+                      className="w-full disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2 mt-2"
                       style={primaryBtnStyle}
                     >
                       {submitting ? (
@@ -435,19 +478,21 @@ export default function EventRegisterPage() {
             </AnimatePresence>
           </motion.div>
         </div>
-      </div>
+      </section>
 
-      <div className="border-t border-white/5 py-6">
-        <div className="max-w-5xl mx-auto px-4 text-center">
+      <footer className="border-t border-white/5 py-8">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 text-center">
           <div className="inline-flex items-center gap-2 text-xs font-medium text-white/55">
             <ShieldCheck className="w-3.5 h-3.5" style={{ color: brandColor }} />
             HeptaCert altyapısıyla güvence altındadır.
           </div>
-          <p className="mt-2 text-[11px] text-white/30">
-            Bu etkinlik sayfası kurumsal olarak özelleştirilmiş olsa da kayıt, doğrulama ve sertifika altyapısı HeptaCert tarafından sağlanır.
+
+          <p className="mt-2 text-[11px] text-white/30 max-w-2xl mx-auto leading-relaxed">
+            Bu etkinlik sayfası kurumsal olarak özelleştirilmiş olsa da kayıt, doğrulama ve
+            sertifika altyapısı HeptaCert tarafından sağlanır.
           </p>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }

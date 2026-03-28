@@ -8505,30 +8505,72 @@ async def toggle_session_checkin(
     return _session_to_out(session, cnt)
 
 
-@app.get("/api/admin/events/{event_id}/sessions/{session_id}/qr", dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)])
+@app.get(
+    "/api/admin/events/{event_id}/sessions/{session_id}/qr",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+)
 async def get_session_qr(
     event_id: int,
     session_id: int,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_event_for_admin(event_id, me, db)
-    res = await db.execute(select(EventSession).where(EventSession.id == session_id, EventSession.event_id == event_id))
+    ev = await _get_event_for_admin(event_id, me, db)
+
+    res = await db.execute(
+        select(EventSession).where(
+            EventSession.id == session_id,
+            EventSession.event_id == event_id,
+        )
+    )
     session = res.scalar_one_or_none()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
-    checkin_url = f"{settings.frontend_base_url}/attend/{session.checkin_token}"
-    qr = qrcode.QRCode(version=2, error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=10, border=4)
+
+    # Event sahibinin organization/domain bilgisini çek
+    org_res = await db.execute(
+        select(Organization).where(Organization.user_id == ev.admin_id)
+    )
+    org = org_res.scalar_one_or_none()
+
+    # Öncelik: organization custom domain
+    # fallback: request host
+    # en son: settings.frontend_base_url
+    host = None
+
+    if org and org.custom_domain:
+        host = org.custom_domain
+    else:
+        req_host = (request.headers.get("host") or "").split(":")[0].strip().lower()
+        if req_host:
+            host = req_host
+
+    if host:
+        checkin_url = f"https://{host}/attend/{session.checkin_token}"
+    else:
+        checkin_url = f"{settings.frontend_base_url.rstrip('/')}/attend/{session.checkin_token}"
+
+    qr = qrcode.QRCode(
+        version=2,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=4,
+    )
     qr.add_data(checkin_url)
     qr.make(fit=True)
+
     img = qr.make_image(fill_color="black", back_color="white")
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     buf.seek(0)
+
     from fastapi.responses import Response
-    return Response(content=buf.getvalue(), media_type="image/png", headers={"X-Checkin-URL": checkin_url})
-
-
+    return Response(
+        content=buf.getvalue(),
+        media_type="image/png",
+        headers={"X-Checkin-URL": checkin_url},
+    )
 # ── Admin: Attendees ────────────────────────────────────────────────────────────────
 
 @app.get("/api/admin/events/{event_id}/attendees", dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)])
