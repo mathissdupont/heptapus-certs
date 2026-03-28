@@ -31,7 +31,7 @@ function Navbar() {
 
   useEffect(() => {
     let mounted = true;
-    apiFetch("/api/branding")
+    fetch("/api/branding")
       .then((res) => res.json())
       .then((j) => {
         if (!mounted) return;
@@ -117,13 +117,36 @@ function Navbar() {
 
 export function ClientShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+
   const isAdmin = pathname?.startsWith("/admin");
+
+  const hideNavbar =
+    pathname === "/verify" ||
+    pathname?.startsWith("/verify/") ||
+    pathname?.startsWith("/attend/") ||
+    pathname?.match(/^\/events\/\d+\/register$/) !== null;
 
   if (isAdmin) {
     return (
       <I18nProvider>
         <HtmlLangSync />
         {children}
+      </I18nProvider>
+    );
+  }
+
+  if (hideNavbar) {
+    return (
+      <I18nProvider>
+        <HtmlLangSync />
+        <motion.main
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          className="min-h-screen w-full"
+        >
+          {children}
+        </motion.main>
       </I18nProvider>
     );
   }

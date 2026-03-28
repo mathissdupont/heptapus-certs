@@ -62,7 +62,7 @@ export default function AttendCheckinPage() {
   const [result, setResult] = useState<CheckinResult | null>(null);
 
   useEffect(() => {
-    apiFetch("/api/branding")
+    fetch("/api/branding")
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!data) return;

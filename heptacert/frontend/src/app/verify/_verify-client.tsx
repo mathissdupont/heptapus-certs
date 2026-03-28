@@ -29,6 +29,16 @@ interface WatermarkResult {
   status?: string;
 }
 
+type Branding = {
+  org_name?: string;
+  brand_logo?: string | null;
+  brand_color?: string | null;
+  settings?: {
+    verification_path?: string;
+    hide_heptacert_home?: boolean;
+  };
+};
+
 type BrandingData = {
   org_name?: string;
   brand_logo?: string | null;
@@ -44,7 +54,7 @@ export default function VerifyIndexPage() {
   const [tab, setTab] = useState<Tab>("uuid");
   const router = useRouter();
 
-  const [branding, setBranding] = useState<BrandingData | null>(null);
+  const [branding, setBranding] = useState<Branding | null>(null);
 
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -53,7 +63,7 @@ export default function VerifyIndexPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    apiFetch("/api/branding")
+    fetch("/api/branding")
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!data) return;

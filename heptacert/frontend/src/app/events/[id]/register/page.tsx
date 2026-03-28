@@ -1,9 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { getPublicEventInfo, publicRegisterAttendee } from "@/lib/api";
-import { CheckCircle2, Calendar, MapPin, Loader2, UserPlus, ArrowRight, Shield } from "lucide-react";
+import { getPublicEventInfo, publicRegisterAttendee, apiFetch } from "@/lib/api";
+import {
+  CheckCircle2,
+  Calendar,
+  MapPin,
+  Loader2,
+  UserPlus,
+  ArrowRight,
+  Shield,
+  Award,
+  ShieldCheck,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface EventInfo {
@@ -20,14 +30,31 @@ interface EventInfo {
     external_url?: string | null;
     has_builtin_questions: boolean;
   } | null;
-  sessions: Array<{ id: number; name: string; session_date: string | null; session_start: string | null; session_location: string | null }>;
+  sessions: Array<{
+    id: number;
+    name: string;
+    session_date: string | null;
+    session_start: string | null;
+    session_location: string | null;
+  }>;
 }
+
+type BrandingData = {
+  org_name?: string;
+  brand_logo?: string | null;
+  brand_color?: string | null;
+  settings?: {
+    hide_heptacert_home?: boolean;
+  } | null;
+};
 
 export default function EventRegisterPage() {
   const params = useParams();
   const eventId = Number(params?.id);
 
   const [event, setEvent] = useState<EventInfo | null>(null);
+  const [branding, setBranding] = useState<BrandingData | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -38,6 +65,19 @@ export default function EventRegisterPage() {
   const [attendeeId, setAttendeeId] = useState<number | null>(null);
 
   useEffect(() => {
+    fetch("/api/branding")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data) return;
+        setBranding(data);
+        if (data.brand_color) {
+          document.documentElement.style.setProperty("--site-brand-color", data.brand_color);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (!eventId) return;
     getPublicEventInfo(eventId)
       .then(setEvent)
@@ -45,12 +85,40 @@ export default function EventRegisterPage() {
       .finally(() => setLoading(false));
   }, [eventId]);
 
+  const brandName = branding?.org_name || "HeptaCert";
+  const brandColor = branding?.brand_color || "#6366f1";
+
+  const pageBg = useMemo(
+    () => ({
+      background: `linear-gradient(135deg, ${brandColor}12, ${brandColor}08 40%, #0b1120 100%)`,
+    }),
+    [brandColor]
+  );
+
+  const heroFallbackBg = useMemo(
+    () => ({
+      background: `linear-gradient(135deg, ${brandColor} 0%, ${brandColor}CC 35%, #111827 100%)`,
+    }),
+    [brandColor]
+  );
+
+  const primaryBtnStyle = useMemo(
+    () => ({
+      backgroundColor: brandColor,
+      boxShadow: `0 10px 30px ${brandColor}33`,
+    }),
+    [brandColor]
+  );
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitError(null);
     setSubmitting(true);
     try {
-      const registered = await publicRegisterAttendee(eventId, { name: name.trim(), email: email.trim().toLowerCase() });
+      const registered = await publicRegisterAttendee(eventId, {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+      });
       setAttendeeId(registered.attendee_id);
       if (typeof window !== "undefined") {
         localStorage.setItem(`heptacert_attendee_${eventId}`, String(registered.attendee_id));
@@ -65,18 +133,22 @@ export default function EventRegisterPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-indigo-400" />
+      <div className="min-h-screen flex items-center justify-center" style={pageBg}>
+        <Loader2 className="w-10 h-10 animate-spin" style={{ color: brandColor }} />
       </div>
     );
   }
 
   if (error || !event) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-        <div className="text-center text-gray-400">
+      <div className="min-h-screen flex items-center justify-center p-4" style={pageBg}>
+        <div className="text-center text-gray-300">
           <p className="text-5xl mb-4">😕</p>
-          <p className="font-semibold text-gray-300">{error || "Etkinlik bulunamadı"}</p>
+          <p className="font-semibold text-white">{error || "Etkinlik bulunamadı"}</p>
+          <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-400">
+            <ShieldCheck className="w-3.5 h-3.5" style={{ color: brandColor }} />
+            HeptaCert altyapısıyla güvence altındadır.
+          </div>
         </div>
       </div>
     );
@@ -85,27 +157,20 @@ export default function EventRegisterPage() {
   const hasBanner = !!event.event_banner_url;
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-
-      {/* ── Hero ─────────────────────────────────────────────── */}
-      <div
-        className="relative flex items-end"
-        style={{ minHeight: "42vh" }}
-      >
-        {/* Background */}
+    <div className="min-h-screen text-white" style={pageBg}>
+      <div className="relative flex items-end" style={{ minHeight: "42vh" }}>
         {hasBanner ? (
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{ backgroundImage: `url(${event.event_banner_url})` }}
           />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-950 via-violet-950 to-gray-950" />
+          <div className="absolute inset-0" style={heroFallbackBg} />
         )}
-        {/* Gradient overlay — darker at bottom for legibility */}
+
         <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/60 to-transparent" />
         {hasBanner && <div className="absolute inset-0 bg-black/40" />}
 
-        {/* Hero content */}
         <div className="relative w-full max-w-5xl mx-auto px-6 pb-12 pt-20">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -113,26 +178,48 @@ export default function EventRegisterPage() {
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           >
             <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-semibold text-white/80 backdrop-blur-sm mb-5">
-              <Shield className="w-3.5 h-3.5 text-indigo-300" />
-              Sertifikalı Etkinlik · HeptaCert
+              <Shield className="w-3.5 h-3.5" style={{ color: brandColor }} />
+              Sertifikalı Etkinlik · {brandName}
             </div>
+
+            <div className="flex items-center gap-3 mb-5">
+              {branding?.brand_logo ? (
+                <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2 backdrop-blur-sm">
+                  <img
+                    src={branding.brand_logo}
+                    alt={brandName}
+                    className="h-10 w-auto object-contain"
+                  />
+                </div>
+              ) : (
+                <Award className="w-8 h-8" style={{ color: brandColor }} />
+              )}
+            </div>
+
             <h1 className="text-3xl md:text-4xl font-black text-white leading-tight mb-5 max-w-2xl">
               {event.name}
             </h1>
+
             <div className="flex flex-wrap gap-3">
               {event.event_date && (
                 <span className="flex items-center gap-1.5 rounded-full bg-white/10 border border-white/15 px-3.5 py-1.5 text-sm text-white/85 backdrop-blur-sm">
-                  <Calendar className="w-3.5 h-3.5 text-indigo-300" />
-                  {new Date(event.event_date).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })}
+                  <Calendar className="w-3.5 h-3.5" style={{ color: brandColor }} />
+                  {new Date(event.event_date).toLocaleDateString("tr-TR", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
                 </span>
               )}
+
               {event.event_location && (
                 <span className="flex items-center gap-1.5 rounded-full bg-white/10 border border-white/15 px-3.5 py-1.5 text-sm text-white/85 backdrop-blur-sm">
-                  <MapPin className="w-3.5 h-3.5 text-violet-300" />
+                  <MapPin className="w-3.5 h-3.5" style={{ color: brandColor }} />
                   {event.event_location}
                 </span>
               )}
             </div>
+
             {event.event_description && (
               <p className="mt-5 text-sm text-white/65 max-w-xl leading-relaxed">
                 {event.event_description}
@@ -142,11 +229,8 @@ export default function EventRegisterPage() {
         </div>
       </div>
 
-      {/* ── Body ─────────────────────────────────────────────── */}
       <div className="max-w-5xl mx-auto px-4 pb-20 -mt-2">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-
-          {/* Sessions column */}
           {event.sessions.length > 0 && (
             <motion.div
               className="lg:col-span-2 space-y-4"
@@ -158,10 +242,20 @@ export default function EventRegisterPage() {
                 <h2 className="text-sm font-bold text-white/50 uppercase tracking-widest mb-4">
                   Etkinlik Oturumları
                 </h2>
+
                 <div className="space-y-3">
                   {event.sessions.map((s, i) => (
-                    <div key={s.id} className="flex items-start gap-3 rounded-xl bg-white/5 border border-white/8 p-4 hover:bg-white/8 transition-colors">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-300 text-xs font-bold">
+                    <div
+                      key={s.id}
+                      className="flex items-start gap-3 rounded-xl bg-white/5 border border-white/8 p-4 hover:bg-white/8 transition-colors"
+                    >
+                      <div
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold"
+                        style={{
+                          backgroundColor: `${brandColor}22`,
+                          color: brandColor,
+                        }}
+                      >
                         {i + 1}
                       </div>
                       <div>
@@ -181,9 +275,16 @@ export default function EventRegisterPage() {
                     </div>
                   ))}
                 </div>
+
                 {event.min_sessions_required > 1 && (
-                  <div className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3">
-                    <p className="text-xs text-amber-300 font-medium">
+                  <div
+                    className="mt-4 rounded-xl px-4 py-3"
+                    style={{
+                      border: `1px solid ${brandColor}44`,
+                      backgroundColor: `${brandColor}18`,
+                    }}
+                  >
+                    <p className="text-xs font-medium" style={{ color: brandColor }}>
                       Sertifika almak için en az <strong>{event.min_sessions_required} oturuma</strong> katılmanız gerekiyor.
                     </p>
                   </div>
@@ -192,7 +293,6 @@ export default function EventRegisterPage() {
             </motion.div>
           )}
 
-          {/* Registration form column */}
           <motion.div
             className={event.sessions.length > 0 ? "lg:col-span-3" : "lg:col-span-5 max-w-xl mx-auto w-full"}
             initial={{ opacity: 0, x: 16 }}
@@ -212,19 +312,23 @@ export default function EventRegisterPage() {
                       <CheckCircle2 className="w-12 h-12 text-emerald-400" />
                     </div>
                   </div>
+
                   <h2 className="text-2xl font-black text-white mb-2">Kayıt Tamamlandı!</h2>
                   <p className="text-white/55 text-sm leading-relaxed max-w-sm mx-auto">
                     <span className="text-white font-semibold">{name}</span>, etkinliğe başarıyla kaydoldunuz.
                     Etkinlik günü QR kodu okutarak check-in yapabilirsiniz.
                   </p>
+
                   {event.survey?.is_required && (
                     <div className="mt-5 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4 text-left max-w-md mx-auto">
                       <p className="text-sm text-amber-200 font-semibold">Anket zorunlu</p>
                       <p className="text-xs text-amber-100/90 mt-1 leading-relaxed">
                         Sertifikanızı indirebilmek için anketi check-in sonrasında, sertifika adımına geçmeden önce doldurmanız gerekiyor.
                       </p>
+
                       <div className="mt-3 flex flex-wrap gap-2">
-                        {event.survey.external_url && (event.survey.survey_type === "external" || event.survey.survey_type === "both") ? (
+                        {event.survey.external_url &&
+                        (event.survey.survey_type === "external" || event.survey.survey_type === "both") ? (
                           <a
                             href={event.survey.external_url}
                             target="_blank"
@@ -256,11 +360,15 @@ export default function EventRegisterPage() {
                   style={{ colorScheme: "light" }}
                 >
                   <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2.5">
-                    <div className="rounded-lg bg-indigo-500/20 p-1.5">
-                      <UserPlus className="w-4 h-4 text-indigo-500" />
+                    <div
+                      className="rounded-lg p-1.5"
+                      style={{ backgroundColor: `${brandColor}22` }}
+                    >
+                      <UserPlus className="w-4 h-4" style={{ color: brandColor }} />
                     </div>
                     Etkinliğe Kayıt Ol
                   </h2>
+
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
@@ -273,9 +381,11 @@ export default function EventRegisterPage() {
                         placeholder="Adınız Soyadınız"
                         required
                         minLength={2}
-                        className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 focus:border-indigo-400 text-sm transition-all"
+                        className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 text-sm transition-all"
+                        style={{ ["--tw-ring-color" as any]: `${brandColor}99` }}
                       />
                     </div>
+
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                         E-posta Adresi
@@ -286,9 +396,11 @@ export default function EventRegisterPage() {
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="ornek@mail.com"
                         required
-                        className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 focus:border-indigo-400 text-sm transition-all"
+                        className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 text-sm transition-all"
+                        style={{ ["--tw-ring-color" as any]: `${brandColor}99` }}
                       />
                     </div>
+
                     <AnimatePresence>
                       {submitError && (
                         <motion.p
@@ -301,10 +413,12 @@ export default function EventRegisterPage() {
                         </motion.p>
                       )}
                     </AnimatePresence>
+
                     <button
                       type="submit"
                       disabled={submitting || !name.trim() || !email.trim()}
-                      className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 mt-2 shadow-lg shadow-indigo-900/30"
+                      className="w-full disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 mt-2"
+                      style={primaryBtnStyle}
                     >
                       {submitting ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -323,13 +437,17 @@ export default function EventRegisterPage() {
         </div>
       </div>
 
-      {/* ── Footer strip ─────────────────────────────────────── */}
       <div className="border-t border-white/5 py-6">
-        <p className="text-center text-xs text-white/20">
-          Powered by <span className="text-white/35 font-semibold">HeptaCert</span> — Güvenli Sertifika Altyapısı
-        </p>
+        <div className="max-w-5xl mx-auto px-4 text-center">
+          <div className="inline-flex items-center gap-2 text-xs font-medium text-white/55">
+            <ShieldCheck className="w-3.5 h-3.5" style={{ color: brandColor }} />
+            HeptaCert altyapısıyla güvence altındadır.
+          </div>
+          <p className="mt-2 text-[11px] text-white/30">
+            Bu etkinlik sayfası kurumsal olarak özelleştirilmiş olsa da kayıt, doğrulama ve sertifika altyapısı HeptaCert tarafından sağlanır.
+          </p>
+        </div>
       </div>
     </div>
   );
 }
-
