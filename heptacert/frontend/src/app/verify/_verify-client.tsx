@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -12,6 +12,7 @@ import {
   XCircle,
   Loader2,
   Upload,
+  Award,
 } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/api";
 
@@ -28,34 +29,78 @@ interface WatermarkResult {
   status?: string;
 }
 
+type BrandingData = {
+  org_name?: string;
+  brand_logo?: string | null;
+  brand_color?: string | null;
+  settings?: {
+    verification_path?: string;
+    hide_heptacert_home?: boolean;
+  } | null;
+};
+
 export default function VerifyIndexPage() {
   const [uuid, setUuid] = useState("");
   const [tab, setTab] = useState<Tab>("uuid");
   const router = useRouter();
 
-  // Image tab state
+  const [branding, setBranding] = useState<BrandingData | null>(null);
+
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<WatermarkResult | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    apiFetch("/public/branding")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data) return;
+        setBranding(data);
+
+        if (data.brand_color) {
+          document.documentElement.style.setProperty("--site-brand-color", data.brand_color);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const verifyBasePath = useMemo(() => {
+    const raw = branding?.settings?.verification_path?.trim();
+    if (!raw) return "/verify";
+    return raw.startsWith("/") ? raw : `/${raw}`;
+  }, [branding]);
+
+  const brandName = branding?.org_name || "HeptaCert";
+  const showHeptaCertName = !branding?.settings?.hide_heptacert_home;
+  const validCertTitle = showHeptaCertName
+    ? `Geçerli ${brandName} Sertifikası`
+    : "Geçerli Sertifika";
+
+  function buildVerifyHref(certUuid: string) {
+    return `${verifyBasePath}/${certUuid}`;
+  }
+
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = uuid.trim();
     if (!trimmed) return;
-    router.push(`/verify/${trimmed}`);
+    router.push(buildVerifyHref(trimmed));
   }
 
   async function analyseFile(file: File) {
     if (!file.type.startsWith("image/")) {
-      setResult({ valid: false, message: "Lütfen geçerli bir görsel dosyası yükleyin (PNG, JPEG…)" });
+      setResult({
+        valid: false,
+        message: "Lütfen geçerli bir görsel dosyası yükleyin (PNG, JPEG…)",
+      });
       return;
     }
+
     setResult(null);
     setLoading(true);
 
-    // Local preview
     const reader = new FileReader();
     reader.onload = (ev) => setPreviewUrl(ev.target?.result as string);
     reader.readAsDataURL(file);
@@ -68,7 +113,6 @@ export default function VerifyIndexPage() {
       setResult(data);
     } catch (err) {
       if (err instanceof ApiError) {
-        // FastAPI 422 detail may be a string
         setResult({ valid: false, message: err.message });
       } else {
         setResult({ valid: false, message: "Beklenmeyen bir hata oluştu." });
@@ -104,17 +148,32 @@ export default function VerifyIndexPage() {
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         className="w-full max-w-lg"
       >
-        {/* Icon */}
-        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-600 text-white shadow-brand">
-          <ShieldCheck className="h-8 w-8" />
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-600 text-white shadow-brand overflow-hidden">
+          {branding?.brand_logo ? (
+            <img
+              src={branding.brand_logo}
+              alt={brandName}
+              className="h-12 w-12 object-contain"
+            />
+          ) : (
+            <ShieldCheck className="h-8 w-8" />
+          )}
         </div>
 
-        <h1 className="text-3xl font-bold text-gray-900 mb-3">Sertifika Doğrulama</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-3">
+          {showHeptaCertName ? "Sertifika Doğrulama" : `${brandName} Sertifika Doğrulama`}
+        </h1>
+
         <p className="text-gray-500 mb-8 max-w-sm mx-auto">
           UUID ile arayın ya da sertifika görselini yükleyerek görünmez dijital damgasını okutun.
         </p>
 
-        {/* Tab switcher */}
+        {!showHeptaCertName && branding?.org_name && (
+          <p className="text-sm font-semibold mb-6" style={{ color: "var(--site-brand-color)" }}>
+            {branding.org_name}
+          </p>
+        )}
+
         <div className="flex rounded-xl bg-gray-100 p-1 mb-6 gap-1">
           <button
             onClick={() => setTab("uuid")}
@@ -128,7 +187,10 @@ export default function VerifyIndexPage() {
             UUID / QR ile Doğrula
           </button>
           <button
-            onClick={() => { setTab("image"); resetImage(); }}
+            onClick={() => {
+              setTab("image");
+              resetImage();
+            }}
             className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition-all ${
               tab === "image"
                 ? "bg-white text-gray-900 shadow-sm"
@@ -149,7 +211,6 @@ export default function VerifyIndexPage() {
               exit={{ opacity: 0, x: 12 }}
               transition={{ duration: 0.2 }}
             >
-              {/* Search form */}
               <form onSubmit={onSubmit} className="card p-6">
                 <label className="label text-left block mb-2">Sertifika Kimliği (UUID)</label>
                 <div className="flex gap-3">
@@ -173,17 +234,20 @@ export default function VerifyIndexPage() {
                 </p>
               </form>
 
-              {/* Tips */}
               <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
                 <div className="rounded-xl border border-gray-100 bg-white p-5">
                   <QrCode className="h-5 w-5 text-brand-600 mb-3" />
                   <h3 className="text-sm font-semibold text-gray-900 mb-1">QR Kod</h3>
-                  <p className="text-xs text-gray-500">Telefonunuzla QR kodu okutun; doğrulama sayfasına otomatik yönlendirilirsiniz.</p>
+                  <p className="text-xs text-gray-500">
+                    Telefonunuzla QR kodu okutun; doğrulama sayfasına otomatik yönlendirilirsiniz.
+                  </p>
                 </div>
                 <div className="rounded-xl border border-gray-100 bg-white p-5">
                   <Search className="h-5 w-5 text-emerald-600 mb-3" />
                   <h3 className="text-sm font-semibold text-gray-900 mb-1">Manuel Sorgulama</h3>
-                  <p className="text-xs text-gray-500">UUID'yi yukarıdaki alana yapıştırarak da doğrulama yapabilirsiniz.</p>
+                  <p className="text-xs text-gray-500">
+                    UUID'yi yukarıdaki alana yapıştırarak da doğrulama yapabilirsiniz.
+                  </p>
                 </div>
               </div>
             </motion.div>
@@ -196,11 +260,13 @@ export default function VerifyIndexPage() {
               transition={{ duration: 0.2 }}
               className="space-y-4"
             >
-              {/* Drop zone */}
               {!result && (
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDragging(true);
+                  }}
                   onDragLeave={() => setDragging(false)}
                   onDrop={onDrop}
                   className={`card p-8 cursor-pointer transition-all border-2 border-dashed ${
@@ -224,7 +290,6 @@ export default function VerifyIndexPage() {
                     </div>
                   ) : previewUrl ? (
                     <div className="flex flex-col items-center gap-3">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={previewUrl}
                         alt="Yüklenen sertifika"
@@ -246,7 +311,6 @@ export default function VerifyIndexPage() {
                 </div>
               )}
 
-              {/* Result card */}
               <AnimatePresence>
                 {result && (
                   <motion.div
@@ -267,8 +331,12 @@ export default function VerifyIndexPage() {
                         <XCircle className="h-7 w-7 text-red-500 shrink-0 mt-0.5" />
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className={`font-semibold text-sm ${result.valid ? "text-emerald-800" : "text-red-700"}`}>
-                          {result.valid ? "Geçerli HeptaCert Sertifikası" : "Doğrulama Başarısız"}
+                        <p
+                          className={`font-semibold text-sm ${
+                            result.valid ? "text-emerald-800" : "text-red-700"
+                          }`}
+                        >
+                          {result.valid ? validCertTitle : "Doğrulama Başarısız"}
                         </p>
                         <p className="text-xs mt-0.5 text-gray-600">{result.message}</p>
 
@@ -309,7 +377,7 @@ export default function VerifyIndexPage() {
 
                         {result.valid && result.cert_uuid && (
                           <a
-                            href={`/verify/${result.cert_uuid}`}
+                            href={buildVerifyHref(result.cert_uuid)}
                             className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:underline"
                           >
                             <ShieldCheck className="h-3.5 w-3.5" />
@@ -322,17 +390,12 @@ export default function VerifyIndexPage() {
                 )}
               </AnimatePresence>
 
-              {/* Try another */}
               {result && (
-                <button
-                  onClick={resetImage}
-                  className="w-full btn-secondary text-sm"
-                >
+                <button onClick={resetImage} className="w-full btn-secondary text-sm">
                   Başka bir görsel yükle
                 </button>
               )}
 
-              {/* Info note */}
               {!result && !loading && (
                 <p className="text-xs text-gray-400 px-2">
                   Sadece orijinal <strong>PNG</strong> dosyası desteklenmektedir.
@@ -343,6 +406,13 @@ export default function VerifyIndexPage() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {!showHeptaCertName && branding?.org_name && (
+          <div className="mt-8 flex items-center justify-center gap-2 text-xs text-gray-400">
+            <Award className="h-3.5 w-3.5" />
+            {branding.org_name}
+          </div>
+        )}
       </motion.div>
     </div>
   );

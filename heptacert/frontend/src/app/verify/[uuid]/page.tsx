@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: "Sertifika Doğrulama",
     description:
-      "Bu HeptaCert dijital sertifikasının gerçekliğini doğrulayın.",
+      "Bu dijital sertifikanın gerçekliğini doğrulayın.",
   };
 }
 

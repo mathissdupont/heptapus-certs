@@ -63,6 +63,24 @@
   .brand-bg { background-color: var(--site-brand-color); }
   .brand-bg-50 { background-color: var(--site-brand-accent); }
   .brand-gradient-text { background: linear-gradient(90deg, var(--site-brand-color), rgba(124,58,237,0.8)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  /* Compatibility shim: map common Tailwind `brand-*` utilities to CSS vars
+     This avoids changing every JSX file and makes branding apply site-wide. */
+  .text-brand-100, .text-brand-300, .text-brand-400, .text-brand-500, .text-brand-600, .text-brand-700, .text-brand-800 {
+    color: var(--site-brand-color) !important;
+  }
+  .bg-brand-50, .bg-brand-100, .bg-brand-200, .bg-brand-300, .bg-brand-500, .bg-brand-600 {
+    background-color: var(--site-brand-color) !important;
+  }
+  .bg-brand-50 { background-color: var(--site-brand-accent) !important; }
+  .border-brand-100, .border-brand-200, .border-brand-300, .border-brand-400, .border-brand-500, .border-brand-600 {
+    border-color: var(--site-brand-color) !important;
+  }
+  .ring-brand-600, .ring-brand-500 { --tw-ring-color: var(--site-brand-color); }
+  .shadow-brand { box-shadow: 0 6px 18px rgba(99,102,241,0.08); }
+  /* Hover / focus variants (escaped selectors as they appear in compiled CSS) */
+  .hover\:text-brand-600:hover { color: var(--site-brand-color) !important; }
+  .hover\:bg-brand-50:hover { background-color: var(--site-brand-accent) !important; }
+  .focus\:ring-brand-500:focus { box-shadow: 0 0 0 6px var(--site-brand-accent); }
   /* ── Cards ───────────────────────────────── */
   .card {
     @apply rounded-xl border border-surface-200 bg-white shadow-soft dark:bg-surface-800 dark:border-surface-700;

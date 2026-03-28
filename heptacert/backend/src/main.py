@@ -6565,6 +6565,48 @@ async def get_branding(request: Request, db: AsyncSession = Depends(get_db)):
 
 
 
+@app.get("/public/branding")
+async def get_public_branding(request: Request, db: AsyncSession = Depends(get_db)):
+    host = request.headers.get("host")
+
+    if not host:
+        return JSONResponse(content={}, status_code=200)
+
+    # localhost vs port temizle
+    host = host.split(":")[0]
+
+    # organization bul
+    result = await db.execute(
+        select(Organization).where(Organization.custom_domain == host)
+    )
+    org = result.scalar_one_or_none()
+
+    # Eğer custom domain yoksa fallback
+    if not org:
+        return {
+            "org_name": "HeptaCert",
+            "brand_logo": None,
+            "brand_color": "#7c3aed",
+            "settings": {
+                "hide_heptacert_home": False
+            }
+        }
+
+    # settings çek (senin DB’de JSONB)
+    settings_data = {}
+
+    if hasattr(org, "settings") and org.settings:
+        settings_data = org.settings
+
+    return {
+        "org_name": org.org_name,
+        "brand_logo": org.brand_logo,
+        "brand_color": org.brand_color,
+        "settings": settings_data or {
+            "hide_heptacert_home": False
+        }
+    }
+
 @app.get(
     "/api/admin/events/{event_id}/certificates",
     response_model=CertificateListOut,

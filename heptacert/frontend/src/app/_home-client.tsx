@@ -22,12 +22,24 @@ import { useEffect, useState } from "react";
 import { useT } from "@/lib/i18n";
 import { API_BASE } from "@/lib/api";
 
+type Branding = {
+  org_name?: string;
+  brand_logo?: string | null;
+  brand_color?: string | null;
+  settings?: {
+    hide_heptacert_home?: boolean;
+  };
+};
+
+
 type StatsData = {
   active_orgs: string;
   certs_issued: string;
   uptime_pct: string;
   availability: string;
 };
+
+const [branding, setBranding] = useState<Branding | null>(null);
 
 const in_view = {
   hidden: { opacity: 0, y: 24 },
@@ -39,12 +51,32 @@ const stagger = {
   show: { opacity: 1, transition: { staggerChildren: 0.1 } },
 };
 
+
+useEffect(() => {
+  fetch("/api/public/branding")
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (!data) return;
+
+      setBranding(data);
+
+      // 🎯 CSS BRAND COLOR SET
+      if (data.brand_color) {
+        document.documentElement.style.setProperty(
+          "--site-brand-color",
+          data.brand_color
+        );
+      }
+    })
+    .catch(() => {});
+}, []);
+
 export default function LandingPage() {
   const t = useT();
   const [stats, setStats] = useState<StatsData | null>(null);
 
   useEffect(() => {
-    fetch(`${API_BASE}/stats`)
+    fetch(`/api/stats`)
       .then((r) => r.ok ? r.json() : null)
       .then((d) => d && setStats(d))
       .catch((e) => {
@@ -81,7 +113,7 @@ export default function LandingPage() {
       <motion.section variants={stagger} initial="hidden" animate="show" className="text-center pt-10">
 
         <motion.h1 variants={in_view} className="mx-auto max-w-3xl text-5xl font-extrabold tracking-tight text-gray-900 sm:text-6xl leading-tight">
-          {t("home_hero_title_1")}{" "}
+          {t("home_hero_title_1").replace("HeptaCert", branding?.org_name || "HeptaCert")}{" "}
           <span className="brand-gradient-text">{t("home_hero_title_2")}</span>{" "}
           {t("home_hero_title_3")}
         </motion.h1>
@@ -266,8 +298,16 @@ export default function LandingPage() {
         {/* Bottom row */}
         <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
           <div className="flex items-center gap-2">
-            <Image src="/logo.png" alt="HeptaCert" width={160} height={44} className="h-10 w-auto" unoptimized />
-            <span className="text-sm text-gray-400 font-normal">© {new Date().getFullYear()} Heptapus Group</span>
+            {branding?.brand_logo ? (
+              <img
+                src={branding.brand_logo}
+                alt={branding.org_name || "Logo"}
+                className="h-10 w-auto"
+              />
+            ) : (
+              <Image src="/logo.png" alt="HeptaCert" width={160} height={44} className="h-10 w-auto" />
+            )}
+            <span className="text-sm text-gray-400 font-normal">© {new Date().getFullYear()} {branding?.org_name || "Heptapus Group"}</span>
           </div>
           <div className="flex gap-6 text-sm font-medium text-gray-500">
             <Link href="/verify" className="hover:text-brand-600 transition-colors">{t("footer_verify")}</Link>
