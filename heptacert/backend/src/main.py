@@ -7105,8 +7105,17 @@ async def get_organization_settings(
 ):
     res = await db.execute(select(Organization).where(Organization.user_id == me.id))
     org = res.scalar_one_or_none()
-    if not org:
-        raise HTTPException(status_code=404, detail="Organization not found")
+    if org is None:
+        # Create a default organization record for this user to simplify UX
+        org = Organization(user_id=me.id, org_name="", brand_color="#6366f1")
+        # ensure settings column exists before assigning
+        try:
+            org.settings = {}
+        except Exception:
+            pass
+        db.add(org)
+        await db.commit()
+        await db.refresh(org)
     return {
         "id": org.id,
         "org_name": org.org_name,
@@ -7128,7 +7137,15 @@ async def patch_organization_settings(
     res = await db.execute(select(Organization).where(Organization.user_id == me.id))
     org = res.scalar_one_or_none()
     if not org:
-        raise HTTPException(status_code=404, detail="Organization not found")
+        # create org record if missing
+        org = Organization(user_id=me.id, org_name="", brand_color="#6366f1")
+        try:
+            org.settings = {}
+        except Exception:
+            pass
+        db.add(org)
+        await db.commit()
+        await db.refresh(org)
     # Replace or merge settings — here we merge keys into existing dict
     existing = getattr(org, "settings", {}) or {}
     if not isinstance(existing, dict):
