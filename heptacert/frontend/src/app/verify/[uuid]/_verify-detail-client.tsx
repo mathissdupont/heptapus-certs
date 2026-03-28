@@ -37,7 +37,16 @@ type CertData = {
   hosting_ends_at?: string | null;
   view_count?: number;
   linkedin_url?: string | null;
-  branding?: { org_name?: string; brand_logo?: string | null; brand_color?: string | null } | null;
+  branding?: {
+    org_name?: string;
+    brand_logo?: string | null;
+    brand_color?: string | null;
+  } | null;
+  settings?: {
+    verification_path?: string;
+    certificate_footer?: string;
+    hide_heptacert_home?: boolean;
+  } | null;
 };
 
 type PageState = "loading" | "ok" | "not_found" | "error";
@@ -94,12 +103,33 @@ export default function VerifyPage({ params }: { params: { uuid: string } }) {
       {/* Minimal header */}
       <header className="border-b border-gray-100 bg-white">
         <div className="mx-auto max-w-5xl flex items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2 text-xl font-black text-gray-800">
-            <Award className="h-5 w-5 text-brand-600" /> HeptaCert
-          </Link>
-          <Link href="/" className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors font-medium">
-            <ArrowLeft className="h-4 w-4" /> {t("verify_home")}
-          </Link>
+          <div className="flex items-center gap-3 min-w-0">
+            {cert?.branding?.brand_logo ? (
+              <img
+                src={cert.branding.brand_logo}
+                alt={cert.branding.org_name || "Organization Logo"}
+                className="h-9 w-auto object-contain"
+              />
+            ) : (
+              <Award
+                className="h-5 w-5"
+                style={cert?.branding?.brand_color ? { color: cert.branding.brand_color } : {}}
+              />
+            )}
+
+            <span className="text-xl font-black text-gray-800 truncate">
+              {cert?.branding?.org_name || "HeptaCert"}
+            </span>
+          </div>
+
+          {!cert?.settings?.hide_heptacert_home && (
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors font-medium"
+            >
+              <ArrowLeft className="h-4 w-4" /> {t("verify_home")}
+            </Link>
+          )}
         </div>
       </header>
 
@@ -273,8 +303,18 @@ export default function VerifyPage({ params }: { params: { uuid: string } }) {
             </motion.div>
           )}
 
+          {cert?.settings?.certificate_footer && (
+              <div className="mt-8 pt-4 border-t border-gray-100 text-center text-xs text-gray-400">
+                {cert.settings.certificate_footer}
+              </div>
+            )}
+
         </AnimatePresence>
+
+        
       </main>
     </div>
+
+    
   );
 }
