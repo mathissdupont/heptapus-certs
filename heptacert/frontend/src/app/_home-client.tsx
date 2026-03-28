@@ -53,7 +53,7 @@ export default function LandingPage() {
   }, []);
 
   const features = [
-    { icon: QrCode,    titleKey: "feat_qr_title",       descKey: "feat_qr_desc",       color: "text-brand-600 bg-brand-50" },
+    { icon: QrCode,    titleKey: "feat_qr_title",       descKey: "feat_qr_desc",       color: "brand-text brand-bg-50" },
     { icon: FileCheck, titleKey: "feat_excel_title",     descKey: "feat_excel_desc",    color: "text-emerald-600 bg-emerald-50" },
     { icon: Search,    titleKey: "feat_records_title",   descKey: "feat_records_desc",  color: "text-violet-600 bg-violet-50" },
     { icon: Users,     titleKey: "feat_events_title",    descKey: "feat_events_desc",   color: "text-amber-600 bg-amber-50" },
@@ -82,9 +82,7 @@ export default function LandingPage() {
 
         <motion.h1 variants={in_view} className="mx-auto max-w-3xl text-5xl font-extrabold tracking-tight text-gray-900 sm:text-6xl leading-tight">
           {t("home_hero_title_1")}{" "}
-          <span className="bg-gradient-to-r from-brand-600 to-violet-500 bg-clip-text text-transparent">
-            {t("home_hero_title_2")}
-          </span>{" "}
+          <span className="brand-gradient-text">{t("home_hero_title_2")}</span>{" "}
           {t("home_hero_title_3")}
         </motion.h1>
 
@@ -169,7 +167,7 @@ export default function LandingPage() {
         <div className="grid md:grid-cols-3 gap-8">
           {steps.map((item) => (
             <div key={item.step} className="flex flex-col items-center text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-600 text-white font-bold text-lg shadow-brand mb-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full text-white font-bold text-lg shadow-brand mb-4" style={{ backgroundColor: 'var(--site-brand-color)' }}>
                 {item.step}
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">{t(item.titleKey)}</h3>
@@ -185,7 +183,8 @@ export default function LandingPage() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.5 }}
-        className="rounded-3xl bg-gradient-to-br from-brand-600 to-violet-600 p-12 text-center text-white relative overflow-hidden"
+        className="rounded-3xl p-12 text-center text-white relative overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, var(--site-brand-color), rgba(124,58,237,0.85))' }}
       >
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_top_right,#fff_0%,transparent_60%)]" />
         <div className="relative">
@@ -193,9 +192,9 @@ export default function LandingPage() {
             <Zap className="h-4 w-4" /> {t("home_cta_section_badge")}
           </div>
           <h2 className="text-3xl font-bold mb-4">{t("home_cta_section_title")}</h2>
-          <p className="text-brand-100 max-w-md mx-auto mb-8 text-base">{t("home_cta_section_sub")}</p>
+          <p className="max-w-md mx-auto mb-8 text-base" style={{ color: 'rgba(255,255,255,0.95)' }}>{t("home_cta_section_sub")}</p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/register" className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-sm font-semibold text-brand-700 shadow-lifted hover:bg-brand-50 transition-colors">
+            <Link href="/register" className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-sm font-semibold shadow-lifted transition-colors" style={{ color: 'var(--site-brand-color)' }}>
               {t("home_cta_section_btn1")} <ArrowRight className="h-4 w-4" />
             </Link>
             <Link href="/pricing" className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 py-3.5 text-sm font-semibold text-white hover:bg-white/20 transition-colors">

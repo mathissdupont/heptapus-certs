@@ -31,8 +31,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeInitializer />
       </head>
       <body className="bg-slate-50 text-gray-900 antialiased min-h-screen transition-colors">
-        {/* Top accent bar */}
-        <div className="fixed top-0 left-0 right-0 z-50 h-[3px] bg-gradient-to-r from-brand-500 via-brand-400 to-violet-400" />
+        {/* Top accent bar (uses --site-brand-color when available) */}
+        <div
+          className="fixed top-0 left-0 right-0 z-50 h-[3px]"
+          style={{
+            background: "linear-gradient(90deg, var(--site-brand-color, #7c3aed), rgba(124,58,237,0.8))",
+          }}
+        />
         <ClientShell>{children}</ClientShell>
         <ToastProvider />
       </body>

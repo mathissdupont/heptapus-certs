@@ -6538,6 +6538,32 @@ async def serve_file(path: str):
 
 
 
+@app.get("/api/branding")
+async def get_branding(request: Request, db: AsyncSession = Depends(get_db)):
+    """Public endpoint: returns organization branding for the current Host header (if any).
+
+    This is intended for the frontend to fetch host-specific branding information.
+    """
+    host = (request.headers.get("host") or "").split(":")[0].strip().lower()
+    if not host:
+        return {"org_name": None, "brand_logo": None, "brand_color": None, "settings": {}}
+
+    try:
+        res = await db.execute(select(Organization).where(Organization.custom_domain == host))
+        org = res.scalar_one_or_none()
+        if not org:
+            return {"org_name": None, "brand_logo": None, "brand_color": None, "settings": {}}
+        return {
+            "org_name": org.org_name,
+            "brand_logo": org.brand_logo,
+            "brand_color": org.brand_color,
+            "settings": getattr(org, "settings", {}) or {},
+        }
+    except Exception:
+        return {"org_name": None, "brand_logo": None, "brand_color": None, "settings": {}}
+
+
+
 
 @app.get(
     "/api/admin/events/{event_id}/certificates",
