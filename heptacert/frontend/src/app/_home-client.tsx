@@ -39,7 +39,7 @@ type StatsData = {
   availability: string;
 };
 
-const [branding, setBranding] = useState<Branding | null>(null);
+// branding state is managed inside the component (client hooks must be inside)
 
 const in_view = {
   hidden: { opacity: 0, y: 24 },
@@ -52,28 +52,24 @@ const stagger = {
 };
 
 
-useEffect(() => {
-  fetch("/api/public/branding")
-    .then(r => r.ok ? r.json() : null)
-    .then(data => {
-      if (!data) return;
-
-      setBranding(data);
-
-      // 🎯 CSS BRAND COLOR SET
-      if (data.brand_color) {
-        document.documentElement.style.setProperty(
-          "--site-brand-color",
-          data.brand_color
-        );
-      }
-    })
-    .catch(() => {});
-}, []);
 
 export default function LandingPage() {
   const t = useT();
   const [stats, setStats] = useState<StatsData | null>(null);
+  const [branding, setBranding] = useState<Branding | null>(null);
+
+  useEffect(() => {
+    fetch("/api/branding")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data) return;
+        setBranding(data);
+        if (data.brand_color) {
+          document.documentElement.style.setProperty("--site-brand-color", data.brand_color);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch(`/api/stats`)
