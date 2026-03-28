@@ -535,13 +535,29 @@ function BrandingTab() {
   }
 
   async function saveSettings(e: React.FormEvent) {
-    e.preventDefault(); setErr(null); setSaving(true);
+    e.preventDefault();
+    setErr(null);
+    setSaving(true);
+
     try {
-      const payload = { ...settingsState };
-      // ensure brand_color persists as well via PATCH to settings
-      payload.brand_color = brandColor;
-      await apiFetch("/admin/organization/settings", { method: "PATCH", body: JSON.stringify(payload) });
-    } catch (e: any) { setErr(e?.message || "Kaydedilemedi."); } finally { setSaving(false); }
+      const resp = await apiFetch("/admin/organization/settings", {
+        method: "PATCH",
+        body: JSON.stringify({
+          brand_color: brandColor,
+          ...settingsState,
+        }),
+      });
+
+      const data = await resp.json();
+
+      setBrandColor(data.brand_color || "#6366f1");
+      setBrandLogo(data.brand_logo || null);
+      setSettingsState(data.settings || {});
+    } catch (e: any) {
+      setErr(e?.message || "Kaydedilemedi.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (loading) return <div className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto text-gray-400" /></div>;
@@ -571,7 +587,25 @@ function BrandingTab() {
                   {logoUploading ? 'Yükleniyor...' : 'Logo Yükle'}
                   <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={e => uploadLogo(e.target.files ? e.target.files[0] : null)} />
                 </label>
-                <button type="button" className="btn-ghost" onClick={async () => { setBrandLogo(null); await apiFetch('/admin/organization/settings', { method: 'PATCH', body: JSON.stringify({}) }); }}>Logoyu Kaldır</button>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={async () => {
+                    setErr(null);
+                    try {
+                      const resp = await apiFetch("/admin/organization/settings", {
+                        method: "PATCH",
+                        body: JSON.stringify({ brand_logo: null }),
+                      });
+                      const data = await resp.json();
+                      setBrandLogo(data.brand_logo || null);
+                    } catch (e: any) {
+                      setErr(e?.message || "Logo kaldırılamadı.");
+                    }
+                  }}
+                >
+                  Logoyu Kaldır
+                </button>
               </div>
             </div>
           </div>

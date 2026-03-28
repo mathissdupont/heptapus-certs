@@ -1919,8 +1919,20 @@ def build_public_pdf_url(rel_path: str) -> str:
     return f"{settings.public_base_url}/api/files/{rel_path}"
 
 
-def build_certificate_verify_url(cert_uuid: str) -> str:
-    return f"{settings.frontend_base_url.rstrip('/')}/verify/{cert_uuid}"
+def build_certificate_verify_url(
+    cert_uuid: str,
+    host: str | None = None,
+    scheme: str = "https",
+    verification_path: str | None = None,
+) -> str:
+    path = (verification_path or "/verify").strip()
+    if not path.startswith("/"):
+        path = "/" + path
+
+    if host:
+        return f"{scheme}://{host}{path.rstrip('/')}/{cert_uuid}"
+
+    return f"{settings.frontend_base_url.rstrip('/')}{path.rstrip('/')}/{cert_uuid}"
 
 
 app = FastAPI(title="HeptaCert API", version="2.0.0")
@@ -6300,8 +6312,38 @@ async def download_bulk_generate_job_zip(
 @app.get("/api/verify/{uuid}", response_model=VerifyOut)
 async def verify(uuid: str, request: Request, db: AsyncSession = Depends(get_db)):
     accept = (request.headers.get("accept") or "").lower()
+    host = (request.headers.get("host") or "").split(":")[0].strip().lower()
+    scheme = request.headers.get("x-forwarded-proto") or request.url.scheme or "https"
+
+    org = None
+    branding: Optional[Dict[str, Any]] = None
+    verification_path: Optional[str] = None
+
+    if host:
+        org_res = await db.execute(
+            select(Organization).where(Organization.custom_domain == host)
+        )
+        org = org_res.scalar_one_or_none()
+        if org:
+            branding = {
+                "org_name": org.org_name,
+                "brand_logo": org.brand_logo,
+                "brand_color": org.brand_color,
+            }
+            org_settings = getattr(org, "settings", {}) or {}
+            if isinstance(org_settings, dict):
+                verification_path = org_settings.get("verification_path")
+
     if "text/html" in accept:
-        return RedirectResponse(url=build_certificate_verify_url(uuid), status_code=307)
+        return RedirectResponse(
+            url=build_certificate_verify_url(
+                uuid,
+                host=host or None,
+                scheme=scheme,
+                verification_path=verification_path,
+            ),
+            status_code=307,
+        )
 
     res = await db.execute(
         select(Certificate, Event)
@@ -6363,7 +6405,12 @@ async def verify(uuid: str, request: Request, db: AsyncSession = Depends(get_db)
         params = urlencode({
             "startTask": "CERTIFICATION_NAME",
             "name": ev.name,
-            "certUrl": build_certificate_verify_url(uuid),
+            "certUrl": build_certificate_verify_url(
+                uuid,
+                host=host or None,
+                scheme=scheme,
+                verification_path=verification_path,
+            ),
         })
         linkedin_url = f"https://www.linkedin.com/profile/add?{params}"
 
@@ -7136,9 +7183,14 @@ async def patch_organization_settings(
 ):
     res = await db.execute(select(Organization).where(Organization.user_id == me.id))
     org = res.scalar_one_or_none()
+
     if not org:
-        # create org record if missing
-        org = Organization(user_id=me.id, org_name="", brand_color="#6366f1")
+        org = Organization(
+            user_id=me.id,
+            org_name="",
+            brand_color="#6366f1",
+            brand_logo=None,
+        )
         try:
             org.settings = {}
         except Exception:
@@ -7146,21 +7198,47 @@ async def patch_organization_settings(
         db.add(org)
         await db.commit()
         await db.refresh(org)
-    # Replace or merge settings — here we merge keys into existing dict
+
+    if not isinstance(payload, dict):
+        raise bad_request("Expected JSON object for settings")
+
     existing = getattr(org, "settings", {}) or {}
     if not isinstance(existing, dict):
         existing = {}
-    if not isinstance(payload, dict):
-        raise bad_request("Expected JSON object for settings")
+
+    # Ayrı kolonlar
+    if "brand_color" in payload:
+        org.brand_color = payload.pop("brand_color") or "#6366f1"
+
+    if "brand_logo" in payload:
+        org.brand_logo = payload.pop("brand_logo")
+
+    if "org_name" in payload:
+        org.org_name = payload.pop("org_name") or ""
+
+    if "custom_domain" in payload:
+        org.custom_domain = payload.pop("custom_domain")
+
+    # Geri kalanlar settings içine
     existing.update(payload)
-    # Persist
+
     try:
         org.settings = existing
     except Exception:
-        # In case DB doesn't have settings column yet, raise helpful error
         raise HTTPException(status_code=500, detail="Database missing settings column; run migrations")
+
     await db.commit()
-    return {"ok": True, "settings": existing}
+    await db.refresh(org)
+
+    return {
+        "ok": True,
+        "id": org.id,
+        "org_name": org.org_name,
+        "brand_logo": org.brand_logo,
+        "brand_color": org.brand_color,
+        "custom_domain": org.custom_domain,
+        "settings": org.settings or {},
+    }
 
 
 @app.post(
@@ -7305,6 +7383,10 @@ async def create_org(
 ):
     # Lookup target user by id provided in data, or use cu.id if not provided
     target_user_id = data.user_id if hasattr(data, "user_id") and data.user_id else cu.id
+    # Validate the target user exists (prevent FK violations)
+    user_res = await db.execute(select(User).where(User.id == target_user_id))
+    if not user_res.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail=f"User with id {target_user_id} not found")
     org = Organization(
         user_id=target_user_id,
         org_name=data.org_name,
