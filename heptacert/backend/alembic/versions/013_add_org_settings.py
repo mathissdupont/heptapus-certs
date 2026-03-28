@@ -9,7 +9,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '013_add_org_settings'
-down_revision = '012'
+down_revision = '012_add_domains_table'
 branch_labels = None
 depends_on = None
 
