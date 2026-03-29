@@ -432,8 +432,8 @@ export default function BulkEmailsPage() {
           </motion.div>
         )}
       </AnimatePresence>
-        </div>
       </div>
-    </FeatureGate>
+    </div>
+  </FeatureGate>
   );
 }

@@ -1,139 +1,192 @@
 "use client";
-function CustomDomainTabWrapper({ canUseCustomDomain }: { canUseCustomDomain?: boolean }) {
+
+import { useState, useEffect } from "react";
+import { apiFetch } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Lock, Mail, CheckCircle2, Eye, EyeOff,
+  ShieldCheck, Loader2, Check,
+  History, TrendingUp, TrendingDown, Globe, Settings
+} from "lucide-react";
+import PageHeader from "@/components/Admin/PageHeader";
+
+const TABS = [
+  { id: "account", label: "Hesap", icon: Lock },
+  { id: "2fa", label: "2FA Güvenlik", icon: ShieldCheck },
+  { id: "transactions", label: "Coin Geçmişi", icon: History },
+  { id: "domain", label: "Özel Domain", icon: Globe },
+  { id: "branding", label: "Kurumsal", icon: Settings },
+];
+
+function fmtDate(s: string | null) {
+  if (!s) return "—";
+  return new Date(s).toLocaleDateString("tr-TR", { year: "numeric", month: "short", day: "numeric" });
+}
+function CopyBtn({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
   return (
-    <div>
-      {!canUseCustomDomain && (
-        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 mb-4">
-          <p className="text-sm text-gray-700 font-medium">Özel alan adı yalnızca Growth ve Enterprise abonelerine açıktır. Lütfen aboneliğinizi yükseltin veya alan adını yönetmek için yetkili bir kullanıcıyla iletişime geçin.</p>
-        </div>
-      )}
-      <CustomDomainTab canUseCustomDomain={!!canUseCustomDomain} />
-    </div>
+    <button
+      type="button"
+      onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
+      className="text-gray-400 hover:text-indigo-600 transition"
+      title="Kopyala"
+    >
+      {copied ? <Check className="h-4 w-4 text-green-500" /> : <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>}
+    </button>
   );
 }
+// ─── Account Tab ──────────────────────────────────────────────────────────────
+function AccountTab({ me }: { me: { email: string } | null }) {
+  const [curPw, setCurPw] = useState(""); const [newPw, setNewPw] = useState(""); const [confPw, setConfPw] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [pwErr, setPwErr] = useState<string | null>(null); const [pwOk, setPwOk] = useState(false); const [pwLoading, setPwLoading] = useState(false);
+  const [newEmail, setNewEmail] = useState(""); const [emailPw, setEmailPw] = useState("");
+  const [emailErr, setEmailErr] = useState<string | null>(null); const [emailOk, setEmailOk] = useState(false); const [emailLoading, setEmailLoading] = useState(false);
 
-function CustomDomainTab({ canUseCustomDomain = true }: { canUseCustomDomain?: boolean }) {
-  const [domain, setDomain] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [myDomains, setMyDomains] = useState<Array<any>>([]);
-  const [ok, setOk] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [status, setStatus] = useState<string | null>(null);
-  const [checking, setChecking] = useState(false);
-  const [createdAt, setCreatedAt] = useState<string | null>(null);
-
-  useEffect(() => {
-    apiFetch("/admin/organization/domain")
-      .then((r) => r.json())
-      .then((d) => { setDomain(d.custom_domain || ""); })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-
-    apiFetch("/admin/organization/domains")
-      .then((r) => r.ok ? r.json() : [])
-      .then((d) => setMyDomains(d || []))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    const dom = domain.trim();
-    if (!dom) return;
-    apiFetch(`/domains/${encodeURIComponent(dom)}`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => {
-        if (d) {
-          setToken(d.token || null); setStatus(d.status || null); setCreatedAt(d.created_at || null);
-        }
-      })
-      .catch(() => {});
-  }, [domain]);
-
-  async function save(e: React.FormEvent) {
-    e.preventDefault(); if (!canUseCustomDomain) return; setErr(null); setOk(false); setSaving(true);
+  async function changePassword(e: React.FormEvent) {
+    e.preventDefault(); setPwErr(null); setPwOk(false);
+    if (newPw.length < 8) { setPwErr("Yeni şifre en az 8 karakter olmalıdır."); return; }
+    if (newPw !== confPw) { setPwErr("Şifreler eşleşmiyor."); return; }
+    setPwLoading(true);
     try {
-      const dom = domain.trim();
-      if (!dom) {
-        await apiFetch("/admin/organization/domain", { method: "PUT", body: JSON.stringify({ custom_domain: null }) });
-        setToken(null); setStatus(null); setOk(true); setTimeout(() => setOk(false), 3000);
-        return;
-      }
-      const resp = await apiFetch("/domains", { method: "POST", body: JSON.stringify({ domain: dom, owner: undefined }) });
-      const data = await resp.json(); setToken(data.token || null); setStatus(data.status || null); setCreatedAt(data.created_at || null); setOk(true);
-      try { const list = await (await apiFetch("/admin/organization/domains")).json(); setMyDomains(list || []); } catch {}
-      setTimeout(() => setOk(false), 3000);
-    } catch (e: any) { setErr(e?.message || "Kaydedilemedi."); } finally { setSaving(false); }
+      await apiFetch("/me/password", { method: "PATCH", body: JSON.stringify({ current_password: curPw, new_password: newPw }) });
+      setPwOk(true); setCurPw(""); setNewPw(""); setConfPw("");
+    } catch (e: any) { setPwErr(e?.message || "Şifre güncellenemedi."); } finally { setPwLoading(false); }
   }
 
-  async function checkDNS() { if (!canUseCustomDomain) return; setErr(null); setChecking(true); try { const dom = domain.trim(); if (!dom) throw new Error("Alan adı boş."); const r = await apiFetch(`/domains/${encodeURIComponent(dom)}/check`); const j = await r.json(); setStatus(j.status || null); } catch (e: any) { setErr(e?.message || "Doğrulama başarısız."); } finally { setChecking(false); } }
-
-  async function regenerate() { if (!canUseCustomDomain) return; setErr(null); try { const dom = domain.trim(); if (!dom) throw new Error("Alan adı boş."); const r = await apiFetch(`/domains/${encodeURIComponent(dom)}/regenerate`, { method: "POST" }); const j = await r.json(); setToken(j.token || null); try { const list = await (await apiFetch('/admin/organization/domains')).json(); setMyDomains(list || []); } catch {} } catch (e: any) { setErr(e?.message || "Token yenilenemedi."); } }
-
-  async function removeDomain() { if (!canUseCustomDomain) return; if (!confirm("Bu alan adını silmek istediğinize emin misiniz?")) return; setErr(null); try { const dom = domain.trim(); if (!dom) throw new Error("Alan adı boş."); await apiFetch(`/domains/${encodeURIComponent(dom)}`, { method: "DELETE" }); setDomain(""); setToken(null); setStatus(null); setCreatedAt(null); try { const list = await (await apiFetch('/admin/organization/domains')).json(); setMyDomains(list || []); } catch {} } catch (e: any) { setErr(e?.message || "Silinemedi."); } }
-
-  if (loading) return <div className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto text-gray-400" /></div>;
+  async function changeEmail(e: React.FormEvent) {
+    e.preventDefault(); setEmailErr(null); setEmailOk(false); setEmailLoading(true);
+    try {
+      await apiFetch("/me/email", { method: "PATCH", body: JSON.stringify({ current_password: emailPw, new_email: newEmail }) });
+      setEmailOk(true); setNewEmail(""); setEmailPw("");
+    } catch (e: any) { setEmailErr(e?.message || "E-posta güncellenemedi."); } finally { setEmailLoading(false); }
+  }
 
   return (
-    <div className="max-w-lg space-y-6">
-      {myDomains.length > 0 && (
-        <div className="card p-4">
-          <h3 className="text-sm font-semibold mb-2">Kayıtlı Alan Adlarınız</h3>
-          <ul className="space-y-2 text-sm">
-            {myDomains.map(d => (
-              <li key={d.domain} className="flex items-center justify-between">
-                <div>{d.domain} <span className="text-xs text-gray-400">{d.status}</span></div>
-                <div className="flex gap-2">
-                  <button className="btn-ghost" onClick={async () => { setDomain(d.domain); setToken(d.token || null); setStatus(d.status || null); }}>Seç</button>
-                  <button className="btn-ghost" onClick={async () => { if (!canUseCustomDomain) return; await apiFetch(`/domains/${encodeURIComponent(d.domain)}/regenerate`, { method: 'POST' }); const list = await (await apiFetch('/admin/organization/domains')).json(); setMyDomains(list || []); }}>Token Yenile</button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+    <div className="space-y-8">
+      {me && <p className="text-sm text-gray-500">Mevcut e-posta: <strong className="text-gray-700">{me.email}</strong></p>}
+      {/* Password */}
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600"><Globe className="h-5 w-5" /></div>
-          <div>
-            <h2 className="font-semibold text-gray-900">Özel Alan Adı</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Sertifika doğrulama sayfaları kendi alan adınızda görünsün</p>
-          </div>
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><Lock className="h-5 w-5" /></div>
+          <div><h2 className="font-semibold text-gray-900">Şifre Değiştir</h2><p className="text-xs text-gray-400 mt-0.5">Güvenlik için düzenli olarak şifrenizi güncelleyin</p></div>
         </div>
-        {!canUseCustomDomain && <div className="rounded-xl border border-amber-100 bg-amber-50/60 p-3 mb-5 opacity-60"><p className="text-xs text-amber-700 font-medium">Özellik aboneliğe özel: Growth veya Enterprise gereklidir.</p></div>}
-        <form onSubmit={save} className="space-y-4">
+        <form onSubmit={changePassword} className="space-y-4">
           <div>
-            <label className="label">Alan Adı</label>
+            <label className="label">Mevcut Şifre</label>
             <div className="relative">
-              <Globe className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input className="input-field pl-10" type="text" value={domain} onChange={e => setDomain(e.target.value)} placeholder="certs.sirketiniz.com" autoComplete="off" disabled={!canUseCustomDomain} />
+              <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <input className="input-field pl-10 pr-10" type={showPw ? "text" : "password"} value={curPw} onChange={e => setCurPw(e.target.value)} required />
+              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
             </div>
-            <p className="text-xs text-gray-400 mt-1.5">Boş bırakırsanız özel alan adı kaldırılır.</p>
           </div>
-          {err && <div className="error-banner">{err}</div>}
-          {ok && <div className="success-banner"><CheckCircle2 className="h-4 w-4 shrink-0" /> Alan adı kaydedildi.</div>}
-          <button type="submit" disabled={saving || !canUseCustomDomain} className="btn-primary gap-2">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}Kaydet</button>
+          <div><label className="label">Yeni Şifre</label><input className="input-field" type={showPw ? "text" : "password"} value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="En az 8 karakter" required /></div>
+          <div><label className="label">Yeni Şifre Tekrar</label><input className="input-field" type={showPw ? "text" : "password"} value={confPw} onChange={e => setConfPw(e.target.value)} required /></div>
+          <AnimatePresence>
+            {pwErr && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden"><div className="error-banner">{pwErr}</div></motion.div>}
+            {pwOk && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden"><div className="success-banner"><CheckCircle2 className="h-4 w-4 shrink-0" /> Şifre başarıyla güncellendi.</div></motion.div>}
+          </AnimatePresence>
+          <button type="submit" disabled={pwLoading} className="btn-primary">{pwLoading ? "Kaydediliyor..." : "Şifreyi Güncelle"}</button>
         </form>
       </div>
-      <div className="card p-5 space-y-3">
-        <h3 className="text-sm font-semibold text-gray-800">DNS Yapılandırması</h3>
-        <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 text-xs font-mono space-y-2">
-          <p className="text-gray-500"># DNS sağlayıcınıza şu TXT kaydını ekleyin:</p>
-          <p className="text-gray-800">Ad: <span className="font-mono">_heptacert-verify.{domain || 'your-domain.tld'}</span></p>
-          <p className="text-gray-800">Değer: <span className="font-mono">{token || '<kaydetmeden sonra token görünür>'}</span> <CopyBtn text={token || ''} /></p>
-          {createdAt && <p className="text-gray-500">Oluşturulma: <span className="font-mono">{new Date(createdAt).toLocaleString()}</span></p>}
-          <div className="flex gap-2">
-            <button onClick={checkDNS} disabled={checking || !domain || !canUseCustomDomain} className="btn-ghost">{checking ? 'Kontrol ediliyor...' : 'DNS Kontrolü Yap'}</button>
-            <button onClick={regenerate} disabled={!domain || !canUseCustomDomain} className="btn-ghost">Token Yenile</button>
-            <button onClick={removeDomain} disabled={!domain || !canUseCustomDomain} className="btn-danger">Alan Adını Sil</button>
-          </div>
-          {status && <p className="text-sm">Durum: <strong>{status}</strong></p>}
+      {/* Email */}
+      <div className="card p-6">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600"><Mail className="h-5 w-5" /></div>
+          <div><h2 className="font-semibold text-gray-900">E-posta Değiştir</h2><p className="text-xs text-gray-400 mt-0.5">Doğrulama için mevcut şifrenizi girmeniz gerekmektedir</p></div>
         </div>
-        <p className="text-xs text-gray-400">DNS değişikliklerinin yayılması: genelde birkaç dakika, maksimum 24 saat.</p>
+        <form onSubmit={changeEmail} className="space-y-4">
+          <div><label className="label">Yeni E-posta Adresi</label><div className="relative"><Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" /><input className="input-field pl-10" type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="yeni@sirket.com" required autoComplete="email" /></div></div>
+          <div><label className="label">Mevcut Şifre (Doğrulama)</label><div className="relative"><Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" /><input className="input-field pl-10" type="password" value={emailPw} onChange={e => setEmailPw(e.target.value)} required /></div></div>
+          <AnimatePresence>
+            {emailErr && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden"><div className="error-banner">{emailErr}</div></motion.div>}
+            {emailOk && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden"><div className="success-banner"><CheckCircle2 className="h-4 w-4 shrink-0" /> E-posta başarıyla güncellendi.</div></motion.div>}
+          </AnimatePresence>
+          <button type="submit" disabled={emailLoading} className="btn-primary">{emailLoading ? "Kaydediliyor..." : "E-postayı Güncelle"}</button>
+        </form>
       </div>
     </div>
   );
 }
+
+// ─── 2FA Tab ──────────────────────────────────────────────────────────────────
+function TwoFATab() {
+  const [status, setStatus] = useState<"loading" | "disabled" | "setup" | "enabled">("loading");
+  const [otpauthUrl, setOtpauthUrl] = useState("");
+  const [secret, setSecret] = useState("");
+  const [code, setCode] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showSecret, setShowSecret] = useState(false);
+
+  useEffect(() => {
+    apiFetch("/auth/2fa/status", { method: "GET" })
+      .then((r) => r.json())
+      .then((d: { enabled: boolean }) => setStatus(d.enabled ? "enabled" : "disabled"))
+      .catch(() => setStatus("disabled"));
+  }, []);
+
+  async function startSetup() {
+    setErr(null); setLoading(true);
+    try {
+      const r = await apiFetch("/auth/2fa/setup", { method: "POST" });
+      const data = await r.json();
+      setOtpauthUrl(data.otpauth_url); setSecret(data.secret); setStatus("setup");
+    } catch (e: any) { setErr(e?.message || "Kurulum başlatılamadı."); } finally { setLoading(false); }
+  }
+
+  async function confirmSetup(e: React.FormEvent) {
+    e.preventDefault(); setErr(null); setLoading(true);
+    try {
+      await apiFetch("/auth/2fa/confirm", { method: "POST", body: JSON.stringify({ code }) });
+      setStatus("enabled"); setCode("");
+    } catch (e: any) { setErr(e?.message || "Geçersiz kod."); } finally { setLoading(false); }
+  }
+
+  async function disable2FA(e: React.FormEvent) {
+    e.preventDefault(); setErr(null); setLoading(true);
+    try {
+      await apiFetch("/auth/2fa/disable", { method: "PATCH", body: JSON.stringify({ code }) });
+      setStatus("disabled"); setCode("");
+    } catch (e: any) { setErr(e?.message || "Devre dışı bırakılamadı."); } finally { setLoading(false); }
+  }
+
+  const qrUrl = otpauthUrl ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(otpauthUrl)}` : "";
+
+  if (status === "loading") return <div className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto text-gray-400" /></div>;
+
+  return (
+    <div className="max-w-md space-y-6">
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900">İki Faktörlü Doğrulama (TOTP)</h2>
+        <p className="text-sm text-gray-500 mt-0.5">Giriş yaparken Google Authenticator veya Authy ile ek güvenlik katmanı ekleyin.</p>
+      </div>
+
+      {status === "disabled" && (
+        <div className="card p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100"><ShieldCheck className="h-5 w-5 text-gray-400" /></div>
+            <div><p className="font-medium text-gray-900">2FA Devre Dışı</p><p className="text-sm text-gray-500">Hesabınız yalnızca şifre ile korunuyor.</p></div>
+          </div>
+          {err && <div className="error-banner">{err}</div>}
+          <button onClick={startSetup} disabled={loading} className="btn-primary gap-2">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} 2FA'yı Etkinleştir
+          </button>
+        </div>
+      )}
+
+      {status === "setup" && (
+        <div className="card p-6 space-y-5">
+          <p className="font-medium text-gray-900">Kimlik Doğrulayıcıyı Yapılandır</p>
+          <ol className="text-sm text-gray-600 space-y-1.5 list-decimal list-inside">
+            <li>Telefonunuzda Google Authenticator veya Authy'yi açın.</li>
+            <li>Aşağıdaki QR kodu veya gizli anahtarı kullanarak ekleyin.</li>
+            <li>6 haneli kodu girin ve onaylayın.</li>
+          </ol>
+          {qrUrl && <div className="flex justify-center"><img src={qrUrl} alt="2FA QR" className="rounded-xl border border-gray-200 p-2" /></div>}
           <div>
             <label className="label">El ile Giriş</label>
             <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
@@ -602,26 +655,10 @@ export default function AdminSettingsPage() {
   const router = useRouter();
   const [me, setMe] = useState<{ email: string } | null>(null);
   const [activeTab, setActiveTab] = useState("account");
-  const [canUseCustomDomain, setCanUseCustomDomain] = useState<boolean>(false);
 
   useEffect(() => {
     apiFetch("/me", { method: "GET" }).then(r => r.json()).then(d => setMe(d)).catch(() => router.push("/admin/login"));
   }, [router]);
-
-  useEffect(() => {
-    // Fetch subscription and set feature gates
-    let mounted = true;
-    apiFetch("/billing/subscription")
-      .then(r => r.json())
-      .then((s: { plan_id?: string | null }) => {
-        if (!mounted) return;
-        const plan = s?.plan_id || null;
-        setCanUseCustomDomain(plan === "growth" || plan === "enterprise" || plan === "pro");
-      })
-      .catch(() => {})
-    ;
-    return () => { mounted = false; };
-  }, []);
 
   return (
     <div className="space-y-6">
@@ -657,7 +694,7 @@ export default function AdminSettingsPage() {
           {activeTab === "account" && <AccountTab me={me} />}
           {activeTab === "2fa" && <TwoFATab />}
           {activeTab === "transactions" && <TransactionsTab />}
-          {activeTab === "domain" && <CustomDomainTabWrapper canUseCustomDomain={canUseCustomDomain} />}
+          {activeTab === "domain" && <CustomDomainTab />}
           {activeTab === "branding" && <BrandingTab />}
           {activeTab === "kurumsal" && <BrandingTab />}
         </motion.div>
