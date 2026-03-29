@@ -1,7 +1,7 @@
 """create organization_allowlists table
 
 Revision ID: 014_add_organization_allowlist
-Revises: 013
+Revises: 013_add_org_settings
 Create Date: 2026-03-29 00:00:00.000000
 """
 from alembic import op
@@ -9,7 +9,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '014_add_organization_allowlist'
-down_revision = '013'
+down_revision = '013_add_org_settings'
 branch_labels = None
 depends_on = None
 
