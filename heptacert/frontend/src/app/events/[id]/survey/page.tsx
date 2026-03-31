@@ -130,7 +130,7 @@ export default function EventSurveyPage() {
             </div>
           )}
 
-          {survey?.is_required && supportsExternal && survey.external_url && (
+          {supportsExternal && survey?.external_url && (
             <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
               <p className="text-sm text-amber-800 font-semibold">Bu etkinlikte harici anket kullanılıyor</p>
               <p className="text-xs text-amber-700 mt-1">Anketi tamamladıktan sonra sertifika adımına geçebilirsiniz.</p>
@@ -146,7 +146,7 @@ export default function EventSurveyPage() {
             </div>
           )}
 
-          {survey?.is_required && supportsBuiltin && survey.has_builtin_questions && !saved && (
+          {supportsBuiltin && survey?.has_builtin_questions && !saved && (
             <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
               {questions.map((q) => (
                 <div key={q.id}>
@@ -165,6 +165,26 @@ export default function EventSurveyPage() {
                         <option key={opt} value={opt}>{opt}</option>
                       ))}
                     </select>
+                  ) : q.type === "yes_no" ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { value: "yes", label: "Evet" },
+                        { value: "no", label: "HayÄ±r" },
+                      ].map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => setAnswers((prev) => ({ ...prev, [q.id]: option.value }))}
+                          className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                            String(answers[q.id] ?? "") === option.value
+                              ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                              : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
                   ) : q.type === "rating" ? (
                     <input
                       type="number"
@@ -174,6 +194,14 @@ export default function EventSurveyPage() {
                       onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
                       className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
                       placeholder="1-5"
+                    />
+                  ) : q.type === "text" ? (
+                    <input
+                      type="text"
+                      value={String(answers[q.id] ?? "")}
+                      onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                      className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
+                      placeholder="YanÄ±tÄ±nÄ±zÄ± yazÄ±n"
                     />
                   ) : (
                     <textarea

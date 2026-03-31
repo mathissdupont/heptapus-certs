@@ -12,7 +12,10 @@
   }
   body {
     height: 100%;
-    background: #fafaf9;
+    background:
+      radial-gradient(circle at top left, rgba(15, 118, 110, 0.08), transparent 26%),
+      radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 24%),
+      linear-gradient(180deg, #f8fafc 0%, #f8fafc 36%, #f4f7fb 100%);
     color: #1c1917;
     font-family: "Inter", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -83,7 +86,7 @@
   .focus\:ring-brand-500:focus { box-shadow: 0 0 0 6px var(--site-brand-accent); }
   /* ── Cards ───────────────────────────────── */
   .card {
-    @apply rounded-xl border border-surface-200 bg-white shadow-soft dark:bg-surface-800 dark:border-surface-700;
+    @apply rounded-2xl border border-surface-200/90 bg-white/95 shadow-soft backdrop-blur dark:bg-surface-800 dark:border-surface-700;
   }
   .card-hover {
     @apply rounded-xl border border-surface-200 bg-white shadow-soft transition-all hover:shadow-card hover:border-surface-300 dark:bg-surface-800 dark:border-surface-700 dark:hover:border-surface-600;
@@ -103,10 +106,10 @@
   }
   /* ── Page header ─────────────────────────── */
   .page-title {
-    @apply text-xl font-bold tracking-tight text-surface-900;
+    @apply text-2xl font-bold tracking-tight text-surface-900 sm:text-[2rem];
   }
   .page-subtitle {
-    @apply text-sm text-surface-500 mt-0.5;
+    @apply mt-1 max-w-2xl text-sm leading-6 text-surface-500;
   }
   /* ── Form ────────────────────────────────── */
   .label {
@@ -127,10 +130,10 @@
   }
   /* ── Sidebar nav ─────────────────────────── */
   .sidebar-item {
-    @apply flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-600 transition-all hover:bg-sidebar-hover hover:text-surface-900;
+    @apply flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-surface-600 transition-all hover:bg-sidebar-hover hover:text-surface-900;
   }
   .sidebar-item-active {
-    @apply flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold bg-violet-50 text-violet-700 border-l-2 border-violet-500 pl-[10px];
+    @apply flex items-center gap-2.5 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2.5 text-sm font-semibold text-surface-900 shadow-soft;
   }
   /* ── Divider ─────────────────────────────── */
   .divider {

@@ -7,6 +7,7 @@ export interface SubscriptionInfo {
   active: boolean;
   plan_id: string | null;
   expires_at?: string | null;
+  role?: string | null;
 }
 
 export function useSubscription() {
@@ -25,7 +26,9 @@ export function useSubscription() {
   }, []);
 
   function hasPlan(allowed: string[] = []) {
-    if (!subscription || !subscription.plan_id) return false;
+    if (!subscription) return false;
+    if (subscription.role === "superadmin") return true;
+    if (!subscription.active || !subscription.plan_id) return false;
     return allowed.includes(subscription.plan_id);
   }
 
@@ -34,14 +37,21 @@ export function useSubscription() {
 
 export function FeatureGate({ requiredPlans = ["growth", "enterprise"], children, message }:
   { requiredPlans?: string[]; children: React.ReactNode; message?: React.ReactNode }) {
-  const { loading, subscription, hasPlan } = useSubscription();
+  const { loading, hasPlan } = useSubscription();
+  const planLabels: Record<string, string> = {
+    starter: "Starter",
+    pro: "Pro",
+    growth: "Growth",
+    enterprise: "Enterprise",
+  };
+  const requiredPlanLabel = requiredPlans.map((plan) => planLabels[plan] || plan).join(" / ");
 
   if (loading) return <div className="p-8 text-center">Yükleniyor...</div>;
   if (!hasPlan(requiredPlans)) {
     return (
       <div className="rounded-xl border border-purple-200 bg-purple-50 p-8 text-center">
-        <h3 className="text-lg font-semibold">Pro veya Enterprise Plan Gerekiyor</h3>
-        <p className="text-sm text-gray-600 mt-2">{message || "Bu özelliğe erişmek için hesabınızın Growth veya Enterprise planında olması gerekir."}</p>
+        <h3 className="text-lg font-semibold">{requiredPlanLabel} Plan Gerekiyor</h3>
+        <p className="text-sm text-gray-600 mt-2">{message || `Bu özelliğe erişmek için hesabınızın ${requiredPlanLabel} planında olması gerekir.`}</p>
         <div className="mt-4">
           <a href="/pricing" className="btn-primary">Planı Yükselt</a>
         </div>

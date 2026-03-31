@@ -3,7 +3,6 @@ Shared test fixtures for HeptaCert backend tests.
 Uses SQLite in-memory for DB tests (no PostgreSQL dependency in CI).
 """
 import os
-import asyncio
 from unittest.mock import patch
 
 import pytest
@@ -20,15 +19,6 @@ os.environ.setdefault("FRONTEND_BASE_URL", "http://localhost:3000")
 os.environ.setdefault("CORS_ORIGINS", "*")
 os.environ.setdefault("STORAGE_MODE", "local")
 os.environ.setdefault("LOCAL_STORAGE_DIR", "/tmp/heptacert_test")
-
-
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create a single event loop for the test session."""
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def setup_database():

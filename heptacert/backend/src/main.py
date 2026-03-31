@@ -46,7 +46,7 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
 from sqlalchemy import (
     Boolean, String, Integer, BigInteger, DateTime, ForeignKey, Text,
-    Enum as SAEnum, UniqueConstraint, Index, select, func, distinct, update, Date as sa_Date, Time as sa_Time
+    Enum as SAEnum, UniqueConstraint, Index, select, func, distinct, update, delete, Date as sa_Date, Time as sa_Time
 )
 from sqlalchemy import JSON as _JSON
 from sqlalchemy.dialects.postgresql import JSONB as _PgJSONB, INET as _PgINET, insert as _pg_insert
@@ -55,7 +55,7 @@ from sqlalchemy.dialects.postgresql import JSONB as _PgJSONB, INET as _PgINET, i
 JSONB = _JSON().with_variant(_PgJSONB(), "postgresql")
 INET = String(45).with_variant(_PgINET(), "postgresql")
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, selectinload
 
 from .generator import TemplateConfig, render_certificate_pdf, render_certificate_png_watermarked, new_certificate_uuid
 
@@ -180,6 +180,7 @@ class Event(Base):
     certificates: Mapped[List["Certificate"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
     sessions: Mapped[List["EventSession"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
     attendees: Mapped[List["Attendee"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
+    raffles: Mapped[List["EventRaffle"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
     template_snapshots: Mapped[List["EventTemplateSnapshot"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
     email_templates: Mapped[List["EmailTemplate"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
     bulk_email_jobs: Mapped[List["BulkEmailJob"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
@@ -632,6 +633,44 @@ class ParticipantBadge(Base):
 
 # ── Certificate Tiers ───────────────────────────────────────────────────────
 
+class EventRaffle(Base):
+    __tablename__ = "event_raffles"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id: Mapped[int] = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    prize_name: Mapped[str] = mapped_column(String(200))
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    min_sessions_required: Mapped[int] = mapped_column(Integer, default=1)
+    winner_count: Mapped[int] = mapped_column(Integer, default=1)
+    reserve_winner_count: Mapped[int] = mapped_column(Integer, default=1)
+    status: Mapped[str] = mapped_column(String(32), default="draft")
+    created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    drawn_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    event: Mapped["Event"] = relationship(back_populates="raffles")
+    creator: Mapped["User"] = relationship(foreign_keys=[created_by])
+    winners: Mapped[List["EventRaffleWinner"]] = relationship(
+        back_populates="raffle", cascade="all, delete-orphan", passive_deletes=True
+    )
+
+
+class EventRaffleWinner(Base):
+    __tablename__ = "event_raffle_winners"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    raffle_id: Mapped[int] = mapped_column(Integer, ForeignKey("event_raffles.id", ondelete="CASCADE"), index=True)
+    attendee_id: Mapped[int] = mapped_column(Integer, ForeignKey("attendees.id", ondelete="CASCADE"), index=True)
+    drawn_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    raffle: Mapped["EventRaffle"] = relationship(back_populates="winners")
+    attendee: Mapped["Attendee"] = relationship()
+
+    __table_args__ = (
+        UniqueConstraint("raffle_id", "attendee_id", name="uq_raffle_winner_attendee"),
+    )
+
+
 class CertificateTierRule(Base):
     __tablename__ = "certificate_tier_rules"
     id:               Mapped[int]      = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -967,6 +1006,12 @@ class ParticipantBadgeOut(BaseModel):
     event_id: int
     attendee_id: int
     badge_type: str
+    badge_name: Optional[str] = None
+    badge_description: Optional[str] = None
+    badge_icon_url: Optional[str] = None
+    badge_color_hex: Optional[str] = None
+    attendee_name: Optional[str] = None
+    attendee_email: Optional[str] = None
     criteria_met: Dict[str, Any]
     awarded_by: Optional[int] = None
     awarded_at: datetime
@@ -1034,6 +1079,7 @@ class EventSurveyOut(BaseModel):
     builtin_questions: List[Dict[str, Any]]
     external_provider: Optional[str] = None
     external_url: Optional[str] = None
+    external_webhook_key: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -1052,7 +1098,11 @@ class SurveyResponseOut(BaseModel):
     id: int
     event_id: int
     attendee_id: int
+    attendee_name: Optional[str] = None
+    attendee_email: Optional[str] = None
     survey_type: str
+    answers: Optional[Dict[str, Any]] = None
+    external_response_id: Optional[str] = None
     completed_at: datetime
     completion_proof: Optional[Dict[str, Any]] = None
 
@@ -3071,13 +3121,62 @@ async def list_badges(
         .order_by(ParticipantBadge.awarded_at.desc())
     )
     badges = pb_res.scalars().all()
-    
+
+    att_res = await db.execute(select(Attendee).where(Attendee.event_id == event_id))
+    attendees = att_res.scalars().all()
+    attendee_map = {attendee.id: attendee for attendee in attendees}
+
+    br_res = await db.execute(select(BadgeRule).where(BadgeRule.event_id == event_id))
+    badge_rule = br_res.scalar_one_or_none()
+    badge_definition_map = (
+        {
+            str(definition.get("type", "")): definition
+            for definition in (badge_rule.badge_definitions or [])
+            if definition.get("type")
+        }
+        if badge_rule
+        else {}
+    )
+
+    by_type: Dict[str, int] = {}
+    automatic_count = 0
+    manual_count = 0
+    badge_items: List[ParticipantBadgeOut] = []
+    for badge in badges:
+        by_type[badge.badge_type] = by_type.get(badge.badge_type, 0) + 1
+        if badge.is_automatic:
+            automatic_count += 1
+        else:
+            manual_count += 1
+
+        attendee = attendee_map.get(badge.attendee_id)
+        definition = badge_definition_map.get(badge.badge_type, {})
+        badge_items.append(
+            ParticipantBadgeOut(
+                id=badge.id,
+                event_id=badge.event_id,
+                attendee_id=badge.attendee_id,
+                badge_type=badge.badge_type,
+                badge_name=definition.get("name"),
+                badge_description=definition.get("description"),
+                badge_icon_url=definition.get("icon_url"),
+                badge_color_hex=definition.get("color_hex"),
+                attendee_name=attendee.name if attendee else None,
+                attendee_email=attendee.email if attendee else None,
+                criteria_met=badge.criteria_met or {},
+                awarded_by=badge.awarded_by,
+                awarded_at=badge.awarded_at,
+                is_automatic=badge.is_automatic,
+                badge_metadata=badge.badge_metadata,
+            )
+        )
+
     return {
         "total_badges": len(badges),
-        "badges": [ParticipantBadgeOut.model_validate(b) for b in badges],
+        "badges": badge_items,
         "badge_summary": {
-            "by_type": {},
-            "automatic_vs_manual": {"automatic": 0, "manual": 0},
+            "by_type": by_type,
+            "automatic_vs_manual": {"automatic": automatic_count, "manual": manual_count},
         },
     }
 
@@ -3104,6 +3203,11 @@ async def trigger_automatic_badge_calculation(
     badge_rule = br_res.scalar_one_or_none()
     if not badge_rule:
         raise HTTPException(status_code=404, detail="Bu etkinlik için rozet kuralları belirlenmemiş")
+
+    if not badge_rule.enabled:
+        raise HTTPException(status_code=400, detail="Rozet sistemi bu etkinlik için devre dışı")
+    if not badge_rule.badge_definitions:
+        raise HTTPException(status_code=400, detail="Hesaplama için en az bir rozet tanımı gerekli")
 
     # Get all attendees
     att_res = await db.execute(
@@ -3386,49 +3490,60 @@ async def configure_event_survey(
     db: AsyncSession = Depends(get_db),
 ):
     """Configure survey requirements for an event."""
-    # Check authorization
     e_res = await db.execute(select(Event).where(Event.id == event_id))
     event = e_res.scalar_one_or_none()
     if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamad?")
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+        raise HTTPException(status_code=403, detail="Yetkisiz eri?im")
 
-    # Check if survey config exists
-    es_res = await db.execute(
-        select(EventSurvey).where(EventSurvey.event_id == event_id)
-    )
+    if survey_in.survey_type not in {"builtin", "external", "both"}:
+        raise HTTPException(status_code=400, detail="Ge?ersiz anket t?r?")
+
+    builtin_questions = [q.model_dump() for q in survey_in.builtin_questions]
+    if survey_in.survey_type in {"builtin", "both"} and not builtin_questions:
+        raise HTTPException(status_code=400, detail="Yerle?ik anket i?in en az bir soru gerekli")
+
+    if survey_in.survey_type in {"external", "both"} and not survey_in.external_url:
+        raise HTTPException(status_code=400, detail="Harici anket i?in URL gerekli")
+
+    webhook_key = survey_in.external_webhook_key
+    if survey_in.survey_type in {"external", "both"} and not webhook_key:
+        webhook_key = secrets.token_urlsafe(24)
+    elif survey_in.survey_type == "builtin":
+        webhook_key = None
+
+    es_res = await db.execute(select(EventSurvey).where(EventSurvey.event_id == event_id))
     event_survey = es_res.scalar_one_or_none()
 
     if event_survey:
         event_survey.is_required = survey_in.is_required
         event_survey.survey_type = survey_in.survey_type
-        event_survey.builtin_questions = [q.model_dump() for q in survey_in.builtin_questions]
+        event_survey.builtin_questions = builtin_questions
         event_survey.external_provider = survey_in.external_provider
         event_survey.external_url = survey_in.external_url
-        event_survey.external_webhook_key = survey_in.external_webhook_key
+        event_survey.external_webhook_key = webhook_key
     else:
         event_survey = EventSurvey(
             event_id=event_id,
             is_required=survey_in.is_required,
             survey_type=survey_in.survey_type,
-            builtin_questions=[q.model_dump() for q in survey_in.builtin_questions],
+            builtin_questions=builtin_questions,
             external_provider=survey_in.external_provider,
             external_url=survey_in.external_url,
-            external_webhook_key=survey_in.external_webhook_key,
+            external_webhook_key=webhook_key,
         )
         db.add(event_survey)
 
-    # If survey is required, mark all attendees
-    if survey_in.is_required:
-        att_res = await db.execute(
-            select(Attendee).where(Attendee.event_id == event_id)
-        )
-        attendees = att_res.scalars().all()
-        for attendee in attendees:
-            attendee.survey_required = True
-            attendee.can_download_cert = False
+    att_res = await db.execute(select(Attendee).where(Attendee.event_id == event_id))
+    attendees = att_res.scalars().all()
+    for attendee in attendees:
+        attendee.survey_required = survey_in.is_required
+        if survey_in.is_required:
+            attendee.can_download_cert = attendee.survey_completed_at is not None
+        else:
+            attendee.can_download_cert = True
 
     await db.commit()
     await db.refresh(event_survey)
@@ -3445,14 +3560,12 @@ async def get_event_survey(
     e_res = await db.execute(select(Event).where(Event.id == event_id))
     event = e_res.scalar_one_or_none()
     if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamad?")
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+        raise HTTPException(status_code=403, detail="Yetkisiz eri?im")
 
-    es_res = await db.execute(
-        select(EventSurvey).where(EventSurvey.event_id == event_id)
-    )
+    es_res = await db.execute(select(EventSurvey).where(EventSurvey.event_id == event_id))
     event_survey = es_res.scalar_one_or_none()
     return event_survey
 
@@ -3470,7 +3583,6 @@ async def submit_builtin_survey(
     if not attendee_id:
         raise HTTPException(status_code=422, detail="attendee_id zorunludur")
 
-    # Check attendee exists
     att_res = await db.execute(
         select(Attendee).where(
             Attendee.id == attendee_id,
@@ -3479,17 +3591,39 @@ async def submit_builtin_survey(
     )
     attendee = att_res.scalar_one_or_none()
     if not attendee:
-        raise HTTPException(status_code=404, detail="Katılımcı bulunamadı")
+        raise HTTPException(status_code=404, detail="Kat?l?mc? bulunamad?")
 
-    # Get survey config
-    es_res = await db.execute(
-        select(EventSurvey).where(EventSurvey.event_id == event_id)
-    )
+    es_res = await db.execute(select(EventSurvey).where(EventSurvey.event_id == event_id))
     event_survey = es_res.scalar_one_or_none()
-    if not event_survey or not event_survey.is_required:
-        raise HTTPException(status_code=400, detail="Bu etkinlik için anket zorunlu değil")
+    if not event_survey:
+        raise HTTPException(status_code=400, detail="Bu etkinlik i?in anket yap?land?r?lmam??")
 
-    # Check if already submitted
+    if survey_resp_in.survey_type != "builtin":
+        raise HTTPException(status_code=400, detail="Bu endpoint yaln?zca yerle?ik anket i?indir")
+
+    if event_survey.survey_type not in {"builtin", "both"}:
+        raise HTTPException(status_code=400, detail="Bu etkinlik yerle?ik anket kabul etmiyor")
+
+    builtin_questions = event_survey.builtin_questions or []
+    if not builtin_questions:
+        raise HTTPException(status_code=400, detail="Yerle?ik anket sorular? tan?mlanmam??")
+
+    answers = survey_resp_in.answers or {}
+    for question in builtin_questions:
+        question_id = str(question.get("id") or "").strip()
+        if not question_id:
+            continue
+
+        raw_answer = answers.get(question_id)
+        normalized_answer = str(raw_answer).strip() if raw_answer is not None else ""
+        if question.get("required") and not normalized_answer:
+            raise HTTPException(status_code=400, detail=f"'{question_id}' sorusu zorunludur")
+
+        if question.get("type") == "multiple_choice" and normalized_answer:
+            options = [str(option) for option in (question.get("options") or [])]
+            if options and normalized_answer not in options:
+                raise HTTPException(status_code=400, detail=f"'{question_id}' sorusu i?in ge?ersiz se?enek")
+
     sr_res = await db.execute(
         select(SurveyResponse).where(
             SurveyResponse.event_id == event_id,
@@ -3499,22 +3633,21 @@ async def submit_builtin_survey(
     )
     existing = sr_res.scalar_one_or_none()
     if existing:
-        raise HTTPException(status_code=409, detail="Bu anket zaten gönderilmiş")
+        raise HTTPException(status_code=409, detail="Bu anket zaten g?nderilmi?")
 
-    # Create response
+    now = datetime.utcnow()
     survey_response = SurveyResponse(
         event_id=event_id,
         attendee_id=attendee_id,
         survey_type=survey_resp_in.survey_type,
-        answers=survey_resp_in.answers,
+        answers=answers,
         external_response_id=survey_resp_in.external_response_id,
-        completed_at=datetime.utcnow(),
-        completion_proof={"submitted_at": datetime.utcnow().isoformat()},
+        completed_at=now,
+        completion_proof={"submitted_at": now.isoformat()},
     )
     db.add(survey_response)
 
-    # Update attendee
-    attendee.survey_completed_at = datetime.utcnow()
+    attendee.survey_completed_at = now
     attendee.can_download_cert = True
 
     await db.commit()
@@ -3549,6 +3682,9 @@ async def handle_external_survey_webhook(
     if not event_survey or event_survey.external_webhook_key != webhook_key:
         raise HTTPException(status_code=401, detail="Webhook key verification failed")
 
+    if event_survey.survey_type not in {"external", "both"}:
+        raise HTTPException(status_code=400, detail="Bu etkinlik harici anket kabul etmiyor")
+
     # Check if response already exists
     sr_res = await db.execute(
         select(SurveyResponse).where(
@@ -3575,12 +3711,17 @@ async def handle_external_survey_webhook(
 
     # Update attendee
     att_res = await db.execute(
-        select(Attendee).where(Attendee.id == int(attendee_id))
+        select(Attendee).where(
+            Attendee.id == int(attendee_id),
+            Attendee.event_id == int(event_id),
+        )
     )
     attendee = att_res.scalar_one_or_none()
-    if attendee:
-        attendee.survey_completed_at = datetime.utcnow()
-        attendee.can_download_cert = True
+    if not attendee:
+        raise HTTPException(status_code=404, detail="Attendee not found")
+
+    attendee.survey_completed_at = datetime.utcnow()
+    attendee.can_download_cert = True
 
     await db.commit()
 
@@ -3612,12 +3753,31 @@ async def get_survey_responses(
     )
     responses = sr_res.scalars().all()
 
+    att_res = await db.execute(select(Attendee).where(Attendee.event_id == event_id))
+    attendees = att_res.scalars().all()
+    attendee_map = {attendee.id: attendee for attendee in attendees}
+    completed_attendee_ids = {response.attendee_id for response in responses}
+
     return {
         "total_responses": len(responses),
-        "responses": [SurveyResponseOut.model_validate(r) for r in responses],
+        "responses": [
+            SurveyResponseOut(
+                id=response.id,
+                event_id=response.event_id,
+                attendee_id=response.attendee_id,
+                attendee_name=attendee_map.get(response.attendee_id).name if attendee_map.get(response.attendee_id) else None,
+                attendee_email=attendee_map.get(response.attendee_id).email if attendee_map.get(response.attendee_id) else None,
+                survey_type=response.survey_type,
+                answers=response.answers,
+                external_response_id=response.external_response_id,
+                completed_at=response.completed_at,
+                completion_proof=response.completion_proof,
+            )
+            for response in responses
+        ],
         "response_rate": {
-            "completed": len(responses),
-            "pending": 0,  # Would need to calculate from attendees
+            "completed": len(completed_attendee_ids),
+            "pending": max(len(attendees) - len(completed_attendee_ids), 0),
         },
     }
 
@@ -8328,6 +8488,55 @@ class BulkCertifyOut(BaseModel):
     spent_heptacoin: int
 
 
+class EventRaffleCreateIn(BaseModel):
+    title: str = Field(min_length=2, max_length=200)
+    prize_name: str = Field(min_length=2, max_length=200)
+    description: Optional[str] = Field(default=None, max_length=4000)
+    min_sessions_required: int = Field(default=1, ge=1, le=1000)
+    winner_count: int = Field(default=1, ge=1, le=100)
+    reserve_winner_count: int = Field(default=1, ge=0, le=100)
+
+
+class EventRaffleUpdateIn(BaseModel):
+    title: Optional[str] = Field(default=None, min_length=2, max_length=200)
+    prize_name: Optional[str] = Field(default=None, min_length=2, max_length=200)
+    description: Optional[str] = Field(default=None, max_length=4000)
+    min_sessions_required: Optional[int] = Field(default=None, ge=1, le=1000)
+    winner_count: Optional[int] = Field(default=None, ge=1, le=100)
+    reserve_winner_count: Optional[int] = Field(default=None, ge=0, le=100)
+
+
+class EventRaffleWinnerOut(BaseModel):
+    attendee_id: int
+    attendee_name: str
+    attendee_email: str
+    sessions_attended: int
+    drawn_at: datetime
+
+
+class EventRaffleOut(BaseModel):
+    id: int
+    event_id: int
+    title: str
+    prize_name: str
+    description: Optional[str] = None
+    min_sessions_required: int
+    winner_count: int
+    reserve_winner_count: int
+    status: str
+    created_at: datetime
+    updated_at: datetime
+    drawn_at: Optional[datetime] = None
+    eligible_count: int = 0
+    total_attendees: int = 0
+    winners: List[EventRaffleWinnerOut] = Field(default_factory=list)
+
+
+class EventRaffleExportOut(BaseModel):
+    ok: bool
+    exported_count: int
+
+
 # ── Helper: resolve event + ownership ───────────────────────────────────────
 
 async def _get_event_for_admin(event_id: int, me: CurrentUser, db: AsyncSession) -> Event:
@@ -8352,6 +8561,88 @@ def _session_to_out(s: EventSession, attendance_count: int = 0) -> SessionOut:
         created_at=s.created_at,
         attendance_count=attendance_count,
     )
+
+
+async def _get_event_attendance_counts(
+    event_id: int,
+    db: AsyncSession,
+) -> tuple[List[Attendee], Dict[int, int]]:
+    attendees_res = await db.execute(
+        select(Attendee).where(Attendee.event_id == event_id).order_by(Attendee.name, Attendee.id)
+    )
+    attendees = attendees_res.scalars().all()
+    if not attendees:
+        return [], {}
+
+    counts_res = await db.execute(
+        select(AttendanceRecord.attendee_id, func.count().label("cnt"))
+        .where(AttendanceRecord.attendee_id.in_([a.id for a in attendees]))
+        .group_by(AttendanceRecord.attendee_id)
+    )
+    counts = {int(row.attendee_id): int(row.cnt or 0) for row in counts_res.all()}
+    return attendees, counts
+
+
+def _raffle_to_out(
+    raffle: EventRaffle,
+    attendees: List[Attendee],
+    attendance_counts: Dict[int, int],
+) -> EventRaffleOut:
+    attendee_map = {attendee.id: attendee for attendee in attendees}
+    eligible_count = sum(
+        1 for attendee in attendees if attendance_counts.get(attendee.id, 0) >= raffle.min_sessions_required
+    )
+    winners: List[EventRaffleWinnerOut] = []
+    for winner in sorted(raffle.winners, key=lambda item: item.drawn_at):
+        attendee = attendee_map.get(winner.attendee_id) or winner.attendee
+        if not attendee:
+            continue
+        winners.append(
+            EventRaffleWinnerOut(
+                attendee_id=attendee.id,
+                attendee_name=attendee.name,
+                attendee_email=attendee.email,
+                sessions_attended=attendance_counts.get(attendee.id, 0),
+                drawn_at=winner.drawn_at,
+            )
+        )
+
+    return EventRaffleOut(
+        id=raffle.id,
+        event_id=raffle.event_id,
+        title=raffle.title,
+        prize_name=raffle.prize_name,
+        description=raffle.description,
+        min_sessions_required=raffle.min_sessions_required,
+        winner_count=raffle.winner_count,
+        reserve_winner_count=raffle.reserve_winner_count,
+        status=raffle.status,
+        created_at=raffle.created_at,
+        updated_at=raffle.updated_at,
+        drawn_at=raffle.drawn_at,
+        eligible_count=eligible_count,
+        total_attendees=len(attendees),
+        winners=winners,
+    )
+
+
+def _pick_raffle_winners(
+    raffle: EventRaffle,
+    attendees: List[Attendee],
+    attendance_counts: Dict[int, int],
+    excluded_attendee_ids: Optional[set[int]] = None,
+) -> List[Attendee]:
+    excluded = excluded_attendee_ids or set()
+    eligible_attendees = [
+        attendee
+        for attendee in attendees
+        if attendance_counts.get(attendee.id, 0) >= raffle.min_sessions_required and attendee.id not in excluded
+    ]
+    if not eligible_attendees:
+        raise HTTPException(status_code=400, detail="Çekiliş için uygun katılımcı bulunamadı")
+
+    draw_count = min(raffle.winner_count + raffle.reserve_winner_count, len(eligible_attendees))
+    return secrets.SystemRandom().sample(eligible_attendees, draw_count)
 
 
 # ── Public: event info & self-register ──────────────────────────────────────
@@ -8883,6 +9174,275 @@ async def delete_attendee(
 
 
 # ── Admin: Attendance matrix & manual check-in ───────────────────────────────
+
+async def _get_raffle_for_admin(
+    event_id: int,
+    raffle_id: int,
+    me: CurrentUser,
+    db: AsyncSession,
+) -> EventRaffle:
+    await _get_event_for_admin(event_id, me, db)
+    raffle_res = await db.execute(
+        select(EventRaffle)
+        .options(selectinload(EventRaffle.winners).selectinload(EventRaffleWinner.attendee))
+        .where(EventRaffle.id == raffle_id, EventRaffle.event_id == event_id)
+    )
+    raffle = raffle_res.scalar_one_or_none()
+    if not raffle:
+        raise HTTPException(status_code=404, detail="Raffle not found")
+    return raffle
+
+
+@app.get(
+    "/api/admin/events/{event_id}/raffles",
+    response_model=List[EventRaffleOut],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+)
+async def list_event_raffles(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_event_for_admin(event_id, me, db)
+    raffles_res = await db.execute(
+        select(EventRaffle)
+        .options(selectinload(EventRaffle.winners).selectinload(EventRaffleWinner.attendee))
+        .where(EventRaffle.event_id == event_id)
+        .order_by(EventRaffle.created_at.desc(), EventRaffle.id.desc())
+    )
+    raffles = raffles_res.scalars().all()
+    attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
+    return [_raffle_to_out(raffle, attendees, attendance_counts) for raffle in raffles]
+
+
+@app.post(
+    "/api/admin/events/{event_id}/raffles",
+    response_model=EventRaffleOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+)
+async def create_event_raffle(
+    event_id: int,
+    payload: EventRaffleCreateIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_event_for_admin(event_id, me, db)
+    raffle = EventRaffle(
+        event_id=event_id,
+        title=payload.title.strip(),
+        prize_name=payload.prize_name.strip(),
+        description=(payload.description.strip() if payload.description else None),
+        min_sessions_required=payload.min_sessions_required,
+        winner_count=payload.winner_count,
+        reserve_winner_count=payload.reserve_winner_count,
+        status="draft",
+        created_by=me.id,
+    )
+    db.add(raffle)
+    await db.commit()
+    raffle = await _get_raffle_for_admin(event_id, raffle.id, me, db)
+    attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
+    return _raffle_to_out(raffle, attendees, attendance_counts)
+
+
+@app.patch(
+    "/api/admin/events/{event_id}/raffles/{raffle_id}",
+    response_model=EventRaffleOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+)
+async def update_event_raffle(
+    event_id: int,
+    raffle_id: int,
+    payload: EventRaffleUpdateIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    raffle = await _get_raffle_for_admin(event_id, raffle_id, me, db)
+    should_reset_draw = False
+
+    if payload.title is not None:
+        raffle.title = payload.title.strip()
+    if payload.prize_name is not None:
+        raffle.prize_name = payload.prize_name.strip()
+    if payload.description is not None:
+        raffle.description = payload.description.strip() or None
+    if payload.min_sessions_required is not None:
+        raffle.min_sessions_required = payload.min_sessions_required
+        should_reset_draw = True
+    if payload.winner_count is not None:
+        raffle.winner_count = payload.winner_count
+        should_reset_draw = True
+    if payload.reserve_winner_count is not None:
+        raffle.reserve_winner_count = payload.reserve_winner_count
+        should_reset_draw = True
+
+    if should_reset_draw:
+        await db.execute(delete(EventRaffleWinner).where(EventRaffleWinner.raffle_id == raffle.id))
+        raffle.status = "draft"
+        raffle.drawn_at = None
+
+    await db.commit()
+    refreshed = await _get_raffle_for_admin(event_id, raffle_id, me, db)
+    attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
+    return _raffle_to_out(refreshed, attendees, attendance_counts)
+
+
+@app.delete(
+    "/api/admin/events/{event_id}/raffles/{raffle_id}",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+)
+async def delete_event_raffle(
+    event_id: int,
+    raffle_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    raffle = await _get_raffle_for_admin(event_id, raffle_id, me, db)
+    await db.delete(raffle)
+    await db.commit()
+    return {"ok": True}
+
+
+@app.post(
+    "/api/admin/events/{event_id}/raffles/{raffle_id}/draw",
+    response_model=EventRaffleOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+)
+async def draw_event_raffle(
+    event_id: int,
+    raffle_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    raffle = await _get_raffle_for_admin(event_id, raffle_id, me, db)
+    if raffle.winners:
+        raise HTTPException(status_code=400, detail="Kazananlar zaten çekildi. Yeni tur için tekrar çek kullanın")
+    attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
+    selected_winners = _pick_raffle_winners(raffle, attendees, attendance_counts)
+    draw_time = datetime.now(timezone.utc)
+    for attendee in selected_winners:
+        db.add(EventRaffleWinner(raffle_id=raffle.id, attendee_id=attendee.id, drawn_at=draw_time))
+
+    raffle.status = "drawn"
+    raffle.drawn_at = draw_time
+    await db.commit()
+
+    refreshed = await _get_raffle_for_admin(event_id, raffle_id, me, db)
+    attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
+    return _raffle_to_out(refreshed, attendees, attendance_counts)
+
+
+@app.post(
+    "/api/admin/events/{event_id}/raffles/{raffle_id}/redraw",
+    response_model=EventRaffleOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+)
+async def redraw_event_raffle(
+    event_id: int,
+    raffle_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    raffle = await _get_raffle_for_admin(event_id, raffle_id, me, db)
+    attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
+    excluded_attendee_ids = {winner.attendee_id for winner in raffle.winners}
+    selected_winners = _pick_raffle_winners(raffle, attendees, attendance_counts, excluded_attendee_ids)
+
+    draw_time = datetime.now(timezone.utc)
+    for attendee in selected_winners:
+        db.add(EventRaffleWinner(raffle_id=raffle.id, attendee_id=attendee.id, drawn_at=draw_time))
+
+    raffle.status = "drawn"
+    raffle.drawn_at = draw_time
+    await db.commit()
+
+    refreshed = await _get_raffle_for_admin(event_id, raffle_id, me, db)
+    attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
+    return _raffle_to_out(refreshed, attendees, attendance_counts)
+
+
+@app.get(
+    "/api/admin/events/{event_id}/raffles/{raffle_id}/export",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+)
+async def export_event_raffle(
+    event_id: int,
+    raffle_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    raffle = await _get_raffle_for_admin(event_id, raffle_id, me, db)
+    attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
+    raffle_out = _raffle_to_out(raffle, attendees, attendance_counts)
+
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow([
+        "cekilis_id",
+        "cekilis_basligi",
+        "hediye",
+        "min_oturum",
+        "yedek_kazanan_sayisi",
+        "tur_no",
+        "kazanan_tipi",
+        "kazanan_sirasi",
+        "katilimci_id",
+        "ad_soyad",
+        "email",
+        "katildigi_oturum_sayisi",
+        "cekilis_zamani",
+    ])
+    chunk_size = max(1, raffle_out.winner_count + raffle_out.reserve_winner_count)
+    for index, winner in enumerate(raffle_out.winners, start=1):
+        round_index = ((index - 1) // chunk_size) + 1
+        index_in_round = ((index - 1) % chunk_size) + 1
+        winner_type = "asil" if index_in_round <= raffle_out.winner_count else "yedek"
+        winner_order = index_in_round if winner_type == "asil" else index_in_round - raffle_out.winner_count
+        writer.writerow([
+            raffle_out.id,
+            raffle_out.title,
+            raffle_out.prize_name,
+            raffle_out.min_sessions_required,
+            raffle_out.reserve_winner_count,
+            round_index,
+            winner_type,
+            winner_order,
+            winner.attendee_id,
+            winner.attendee_name,
+            winner.attendee_email,
+            winner.sessions_attended,
+            winner.drawn_at.isoformat(),
+        ])
+
+    filename = f"raffle_{raffle_out.id}_results.csv"
+    return StreamingResponse(
+        iter([buffer.getvalue().encode("utf-8-sig")]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.post(
+    "/api/admin/events/{event_id}/raffles/{raffle_id}/reset",
+    response_model=EventRaffleOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+)
+async def reset_event_raffle(
+    event_id: int,
+    raffle_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    raffle = await _get_raffle_for_admin(event_id, raffle_id, me, db)
+    await db.execute(delete(EventRaffleWinner).where(EventRaffleWinner.raffle_id == raffle.id))
+    raffle.status = "draft"
+    raffle.drawn_at = None
+    await db.commit()
+
+    refreshed = await _get_raffle_for_admin(event_id, raffle_id, me, db)
+    attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
+    return _raffle_to_out(refreshed, attendees, attendance_counts)
+
 
 @app.get("/api/admin/events/{event_id}/attendance", dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)])
 async def get_attendance_matrix(

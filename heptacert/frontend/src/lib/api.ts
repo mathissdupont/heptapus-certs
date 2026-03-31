@@ -142,6 +142,32 @@ export interface AttendanceMatrix {
   rows: AttendanceMatrixRow[];
 }
 
+export interface EventRaffleWinnerOut {
+  attendee_id: number;
+  attendee_name: string;
+  attendee_email: string;
+  sessions_attended: number;
+  drawn_at: string;
+}
+
+export interface EventRaffleOut {
+  id: number;
+  event_id: number;
+  title: string;
+  prize_name: string;
+  description?: string | null;
+  min_sessions_required: number;
+  winner_count: number;
+  reserve_winner_count: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  drawn_at?: string | null;
+  eligible_count: number;
+  total_attendees: number;
+  winners: EventRaffleWinnerOut[];
+}
+
 // ── Event (extended) ──────────────────────────────────────────────────────────
 
 export interface SubscriptionInfo {
@@ -270,6 +296,75 @@ export async function deleteAttendee(eventId: number, attendeeId: number) {
 export async function getAttendanceMatrix(eventId: number): Promise<AttendanceMatrix> {
   const res = await apiFetch(`/admin/events/${eventId}/attendance`);
   return res.json();
+}
+
+export async function listEventRaffles(eventId: number): Promise<EventRaffleOut[]> {
+  const res = await apiFetch(`/admin/events/${eventId}/raffles`);
+  return res.json();
+}
+
+export async function createEventRaffle(
+  eventId: number,
+  data: {
+    title: string;
+    prize_name: string;
+    description?: string;
+    min_sessions_required: number;
+    winner_count: number;
+    reserve_winner_count: number;
+  }
+): Promise<EventRaffleOut> {
+  const res = await apiFetch(`/admin/events/${eventId}/raffles`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function updateEventRaffle(
+  eventId: number,
+  raffleId: number,
+  data: {
+    title?: string;
+    prize_name?: string;
+    description?: string;
+    min_sessions_required?: number;
+    winner_count?: number;
+    reserve_winner_count?: number;
+  }
+): Promise<EventRaffleOut> {
+  const res = await apiFetch(`/admin/events/${eventId}/raffles/${raffleId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function deleteEventRaffle(eventId: number, raffleId: number) {
+  await apiFetch(`/admin/events/${eventId}/raffles/${raffleId}`, { method: "DELETE" });
+}
+
+export async function drawEventRaffle(eventId: number, raffleId: number): Promise<EventRaffleOut> {
+  const res = await apiFetch(`/admin/events/${eventId}/raffles/${raffleId}/draw`, { method: "POST" });
+  return res.json();
+}
+
+export async function redrawEventRaffle(eventId: number, raffleId: number): Promise<EventRaffleOut> {
+  const res = await apiFetch(`/admin/events/${eventId}/raffles/${raffleId}/redraw`, { method: "POST" });
+  return res.json();
+}
+
+export async function resetEventRaffle(eventId: number, raffleId: number): Promise<EventRaffleOut> {
+  const res = await apiFetch(`/admin/events/${eventId}/raffles/${raffleId}/reset`, { method: "POST" });
+  return res.json();
+}
+
+export async function exportEventRaffle(eventId: number, raffleId: number): Promise<{ blob: Blob; filename: string }> {
+  const res = await apiFetch(`/admin/events/${eventId}/raffles/${raffleId}/export`);
+  const blob = await res.blob();
+  const disposition = res.headers.get("content-disposition") || "";
+  const filenameMatch = disposition.match(/filename=\"?([^"]+)\"?/i);
+  return { blob, filename: filenameMatch?.[1] || `raffle_${raffleId}_results.csv` };
 }
 
 export async function adminManualCheckin(

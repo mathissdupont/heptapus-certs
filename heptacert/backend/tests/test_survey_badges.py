@@ -1,0 +1,222 @@
+from httpx import ASGITransport, AsyncClient
+import pytest
+
+from src.main import (
+    app,
+    Attendee,
+    Event,
+    Role,
+    SessionLocal,
+    User,
+    create_access_token,
+)
+
+
+async def _create_admin(email: str) -> User:
+    async with SessionLocal() as sess:
+        async with sess.begin():
+            user = User(email=email, password_hash="x", role=Role.admin)
+            sess.add(user)
+            await sess.flush()
+            user_id = user.id
+    async with SessionLocal() as sess:
+        return await sess.get(User, user_id)
+
+
+async def _seed_event_with_attendee(owner: User, attendee_email: str = "attendee@example.com") -> dict:
+    async with SessionLocal() as sess:
+        async with sess.begin():
+            event = Event(
+                admin_id=owner.id,
+                name="Survey Badge Event",
+                template_image_url="template.png",
+                config={},
+            )
+            sess.add(event)
+            await sess.flush()
+
+            attendee = Attendee(
+                event_id=event.id,
+                name="Attendee One",
+                email=attendee_email,
+                source="self_register",
+            )
+            sess.add(attendee)
+            await sess.flush()
+
+            event_id = event.id
+            attendee_id = attendee.id
+
+    return {"event_id": event_id, "attendee_id": attendee_id}
+
+
+@pytest.mark.asyncio
+async def test_optional_builtin_survey_can_be_submitted_and_unlocks_attendee():
+    owner = await _create_admin("survey-owner@example.com")
+    token = create_access_token(user_id=owner.id, role=Role.admin)
+    seeded = await _seed_event_with_attendee(owner)
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        configured = await ac.post(
+            f"/api/admin/events/{seeded['event_id']}/survey-config",
+            json={
+                "is_required": False,
+                "survey_type": "builtin",
+                "builtin_questions": [
+                    {
+                        "id": "satisfaction",
+                        "type": "text",
+                        "question": "How was the event?",
+                        "required": True,
+                    }
+                ],
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert configured.status_code == 200
+
+        submitted = await ac.post(
+            f"/api/surveys/{seeded['event_id']}/submit",
+            json={
+                "attendee_id": seeded["attendee_id"],
+                "survey_type": "builtin",
+                "answers": {"satisfaction": "Great"},
+            },
+        )
+        assert submitted.status_code == 200
+
+    async with SessionLocal() as sess:
+        attendee = await sess.get(Attendee, seeded["attendee_id"])
+        assert attendee is not None
+        assert attendee.survey_required is False
+        assert attendee.can_download_cert is True
+        assert attendee.survey_completed_at is not None
+
+
+@pytest.mark.asyncio
+async def test_survey_config_toggle_unlocks_attendees_and_generates_webhook_key():
+    owner = await _create_admin("survey-toggle@example.com")
+    token = create_access_token(user_id=owner.id, role=Role.admin)
+    seeded = await _seed_event_with_attendee(owner, attendee_email="toggle@example.com")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        external_config = await ac.post(
+            f"/api/admin/events/{seeded['event_id']}/survey-config",
+            json={
+                "is_required": True,
+                "survey_type": "external",
+                "builtin_questions": [],
+                "external_provider": "typeform",
+                "external_url": "https://example.com/typeform",
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert external_config.status_code == 200
+        assert external_config.json()["external_webhook_key"]
+
+        builtin_required = await ac.post(
+            f"/api/admin/events/{seeded['event_id']}/survey-config",
+            json={
+                "is_required": True,
+                "survey_type": "builtin",
+                "builtin_questions": [
+                    {
+                        "id": "q1",
+                        "type": "text",
+                        "question": "Question 1",
+                        "required": True,
+                    }
+                ],
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert builtin_required.status_code == 200
+
+    async with SessionLocal() as sess:
+        attendee = await sess.get(Attendee, seeded["attendee_id"])
+        assert attendee is not None
+        assert attendee.survey_required is True
+        assert attendee.can_download_cert is False
+
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        builtin_optional = await ac.post(
+            f"/api/admin/events/{seeded['event_id']}/survey-config",
+            json={
+                "is_required": False,
+                "survey_type": "builtin",
+                "builtin_questions": [
+                    {
+                        "id": "q1",
+                        "type": "text",
+                        "question": "Question 1",
+                        "required": True,
+                    }
+                ],
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert builtin_optional.status_code == 200
+
+    async with SessionLocal() as sess:
+        attendee = await sess.get(Attendee, seeded["attendee_id"])
+        assert attendee is not None
+        assert attendee.survey_required is False
+        assert attendee.can_download_cert is True
+
+
+@pytest.mark.asyncio
+async def test_badge_list_returns_enriched_badge_metadata():
+    owner = await _create_admin("badge-owner@example.com")
+    token = create_access_token(user_id=owner.id, role=Role.admin)
+    seeded = await _seed_event_with_attendee(owner, attendee_email="badge@example.com")
+
+    async with SessionLocal() as sess:
+        async with sess.begin():
+            attendee = await sess.get(Attendee, seeded["attendee_id"])
+            attendee.survey_completed_at = attendee.registered_at
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        configured = await ac.post(
+            f"/api/admin/events/{seeded['event_id']}/badge-rules",
+            json={
+                "enabled": True,
+                "badge_definitions": [
+                    {
+                        "type": "survey_star",
+                        "name": "Survey Star",
+                        "description": "Completed the survey",
+                        "criteria": {"survey_completed": True},
+                        "color_hex": "#F59E0B",
+                    }
+                ],
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert configured.status_code == 200
+
+        calculated = await ac.post(
+            f"/api/admin/events/{seeded['event_id']}/badges/calculate",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert calculated.status_code == 200
+        assert calculated.json()["badges_created"] == 1
+
+        listed = await ac.get(
+            f"/api/admin/events/{seeded['event_id']}/badges",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert listed.status_code == 200
+        payload = listed.json()
+        assert payload["total_badges"] == 1
+        assert payload["badge_summary"]["by_type"]["survey_star"] == 1
+        assert payload["badge_summary"]["automatic_vs_manual"]["automatic"] == 1
+
+        badge = payload["badges"][0]
+        assert badge["badge_name"] == "Survey Star"
+        assert badge["badge_description"] == "Completed the survey"
+        assert badge["badge_color_hex"] == "#F59E0B"
+        assert badge["attendee_name"] == "Attendee One"
+        assert badge["attendee_email"] == "badge@example.com"

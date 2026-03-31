@@ -16,6 +16,29 @@ logger = logging.getLogger("heptacert.domains")
 router = APIRouter()
 
 
+async def _get_or_create_org(db: AsyncSession, user_id: int) -> Organization:
+    org_res = await db.execute(select(Organization).where(Organization.user_id == user_id))
+    org = org_res.scalar_one_or_none()
+    if org:
+        return org
+
+    org = Organization(user_id=user_id, org_name="", brand_color="#6366f1")
+    try:
+        org.settings = {}
+    except Exception:
+        pass
+    db.add(org)
+    await db.flush()
+    return org
+
+
+async def _get_owned_domain_or_404(db: AsyncSession, domain: str, owner_id: int) -> Domain:
+    dom = await Domain.get_by_domain(db, domain)
+    if not dom or dom.owner != str(owner_id):
+        raise HTTPException(status_code=404, detail="Domain not found")
+    return dom
+
+
 class DomainCreateIn(BaseModel):
     domain: str
     owner: Optional[str] = None
@@ -33,30 +56,16 @@ class DomainOut(BaseModel):
 @router.post("/api/domains", response_model=DomainOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
 async def create_domain(payload: DomainCreateIn, me: CurrentUser = Depends(get_current_user)):
     async with SessionLocal() as db:
-        exists = await Domain.get_by_domain(db, payload.domain)
+        normalized_domain = payload.domain.strip().lower()
+        exists = await Domain.get_by_domain(db, normalized_domain)
         if exists:
             raise HTTPException(status_code=409, detail="Domain already exists")
 
         owner = payload.owner or str(me.id)
-        dom = await Domain.create(db, payload.domain, owner=owner)
+        dom = await Domain.create(db, normalized_domain, owner=owner)
 
-        org_res = await db.execute(
-            select(Organization).where(Organization.user_id == me.id)
-        )
-        org = org_res.scalar_one_or_none()
-
-        org_res = await db.execute(
-            select(Organization).where(Organization.user_id == me.id)
-        )
-        org = org_res.scalar_one_or_none()
-
-        if not org:
-            raise HTTPException(
-                status_code=400,
-                detail="Organization not found for this user"
-            )
-
-        org.custom_domain = payload.domain
+        org = await _get_or_create_org(db, me.id)
+        org.custom_domain = normalized_domain
 
         await db.commit()
         await db.refresh(dom)
@@ -71,20 +80,37 @@ async def create_domain(payload: DomainCreateIn, me: CurrentUser = Depends(get_c
         )
 
 
-@router.post("/api/domains/{domain}/regenerate")
-async def regenerate_domain_token(domain: str):
+@router.get("/api/domains/{domain}", response_model=DomainOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def get_domain(domain: str, me: CurrentUser = Depends(get_current_user)):
     async with SessionLocal() as db:
-        new = await Domain.regenerate_token(db, domain)
-        if new is None:
-            raise HTTPException(status_code=404, detail="Domain not found")
+        dom = await _get_owned_domain_or_404(db, domain.strip().lower(), me.id)
+        return DomainOut(
+            id=dom.id,
+            domain=dom.domain,
+            owner=dom.owner,
+            status=dom.status,
+            token=dom.token,
+            created_at=dom.created_at.isoformat() if getattr(dom, "created_at", None) else None,
+        )
+
+
+@router.post("/api/domains/{domain}/regenerate", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def regenerate_domain_token(domain: str, me: CurrentUser = Depends(get_current_user)):
+    async with SessionLocal() as db:
+        dom = await _get_owned_domain_or_404(db, domain.strip().lower(), me.id)
+        new = await Domain.regenerate_token(db, dom.domain)
         await db.commit()
         return {"token": new}
 
 
-@router.delete("/api/domains/{domain}")
-async def delete_domain(domain: str):
+@router.delete("/api/domains/{domain}", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def delete_domain(domain: str, me: CurrentUser = Depends(get_current_user)):
     async with SessionLocal() as db:
-        ok = await Domain.delete_by_domain(db, domain)
+        dom = await _get_owned_domain_or_404(db, domain.strip().lower(), me.id)
+        org = await _get_or_create_org(db, me.id)
+        if org.custom_domain == dom.domain:
+            org.custom_domain = None
+        ok = await Domain.delete_by_domain(db, dom.domain)
         if not ok:
             raise HTTPException(status_code=404, detail="Domain not found")
         await db.commit()
@@ -94,7 +120,7 @@ async def delete_domain(domain: str):
 @router.get("/api/admin/organization/domains", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
 async def list_my_domains(me: CurrentUser = Depends(get_current_user)):
     async with SessionLocal() as db:
-        q = select(Domain).where(Domain.owner == str(me.id))
+        q = select(Domain).where(Domain.owner == str(me.id)).order_by(Domain.created_at.desc())
         res = await db.execute(q)
         items = res.scalars().all()
         out = []
@@ -113,9 +139,7 @@ async def list_my_domains(me: CurrentUser = Depends(get_current_user)):
 @router.get("/api/domains/{domain}/check")
 async def check_domain(domain: str, me: CurrentUser = Depends(get_current_user)):
     async with SessionLocal() as db:
-        d = await Domain.get_by_domain(db, domain)
-        if not d:
-            raise HTTPException(status_code=404, detail="Domain not found")
+        d = await _get_owned_domain_or_404(db, domain.strip().lower(), me.id)
 
         txt_name = f"_heptacert-verify.{domain}"
 

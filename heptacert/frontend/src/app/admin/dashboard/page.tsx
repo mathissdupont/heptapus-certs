@@ -98,7 +98,7 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <Link href="/admin/events/new" className="card p-4 flex items-center gap-3 hover:border-brand-400 hover:bg-brand-50 transition-all group">
+        <Link href="/admin/events" className="card p-4 flex items-center gap-3 hover:border-brand-400 hover:bg-brand-50 transition-all group">
           <div className="p-2.5 rounded-lg bg-brand-50 group-hover:bg-brand-100"><Plus className="h-5 w-5 text-brand-600" /></div>
           <div className="flex-1"><p className="text-sm font-semibold text-surface-700">Yeni Etkinlik</p><p className="text-xs text-surface-500">Etkinlik ekle</p></div>
           <ArrowRight className="h-4 w-4 text-surface-400 group-hover:text-brand-500" />

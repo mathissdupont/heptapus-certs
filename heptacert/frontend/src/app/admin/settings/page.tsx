@@ -7,9 +7,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Lock, Mail, CheckCircle2, Eye, EyeOff,
   ShieldCheck, Loader2, Check,
-  History, TrendingUp, TrendingDown, Globe, Settings
+  History, TrendingUp, TrendingDown, Globe, Settings,
+  Building2, Palette, Sparkles, RefreshCcw, Trash2,
+  ImagePlus, BadgeCheck, Shield, Link2
 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
+import { useToast } from "@/hooks/useToast";
 
 const TABS = [
   { id: "account", label: "Hesap", icon: Lock },
@@ -23,6 +26,65 @@ function fmtDate(s: string | null) {
   if (!s) return "—";
   return new Date(s).toLocaleDateString("tr-TR", { year: "numeric", month: "short", day: "numeric" });
 }
+function titleCaseStatus(raw: string) {
+  return raw
+    .replace(/[_-]/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function withAlpha(hex: string, alpha: number) {
+  const value = hex.replace("#", "");
+  if (!/^[0-9a-fA-F]{6}$/.test(value)) return `rgba(99, 102, 241, ${alpha})`;
+  const numeric = Number.parseInt(value, 16);
+  const r = (numeric >> 16) & 255;
+  const g = (numeric >> 8) & 255;
+  const b = numeric & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function getDomainStatusMeta(status: string | null) {
+  const raw = (status || "").toLowerCase();
+
+  if (!raw) {
+    return {
+      label: "Taslak",
+      chipClass: "border-slate-200 bg-slate-100 text-slate-700",
+      panelClass: "border-slate-200 bg-slate-50",
+      description: "Alan adınızı kaydedin, ardından DNS kaydı ekleyip doğrulamayı başlatın.",
+    };
+  }
+
+  if (raw.includes("verified") || raw.includes("active") || raw === "ok") {
+    return {
+      label: "Doğrulandı",
+      chipClass: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      panelClass: "border-emerald-200 bg-emerald-50/70",
+      description: "Alan adınız doğrulanmış görünüyor. Sertifika bağlantılarınız kurumsal şekilde yayınlanabilir.",
+    };
+  }
+
+  if (raw.includes("fail") || raw.includes("error") || raw.includes("invalid")) {
+    return {
+      label: "Sorun Var",
+      chipClass: "border-rose-200 bg-rose-50 text-rose-700",
+      panelClass: "border-rose-200 bg-rose-50/70",
+      description: "DNS kaydı beklenen değerle eşleşmiyor olabilir. Kaydı ve token değerini yeniden kontrol edin.",
+    };
+  }
+
+  return {
+    label: titleCaseStatus(status || "Bekleniyor"),
+    chipClass: "border-amber-200 bg-amber-50 text-amber-700",
+    panelClass: "border-amber-200 bg-amber-50/70",
+    description: "Kaydınız alındı. DNS yayılımı tamamlandığında doğrulama tekrar kontrol edilmelidir.",
+  };
+}
+
+function normalizeVerificationPath(path: string) {
+  if (!path) return "/verify";
+  return path.startsWith("/") ? path : `/${path}`;
+}
+
 function CopyBtn({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   return (
@@ -308,6 +370,7 @@ function TransactionsTab() {
 
 // ─── Custom Domain Tab ────────────────────────────────────────────────────────
 function CustomDomainTab() {
+  const toast = useToast();
   const [domain, setDomain] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -318,20 +381,39 @@ function CustomDomainTab() {
   const [status, setStatus] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const [createdAt, setCreatedAt] = useState<string | null>(null);
+  const [existingDomain, setExistingDomain] = useState<string | null>(null);
+
+  async function refreshDomains() {
+    try {
+      const list = await (await apiFetch("/admin/organization/domains")).json();
+      setMyDomains(list || []);
+      return list || [];
+    } catch {
+      setMyDomains([]);
+      return [];
+    }
+  }
 
   useEffect(() => {
     // Attempt to read existing organization domain if endpoint exists; fallback to empty.
-    apiFetch("/admin/organization/domain")
-      .then(r => r.json())
-      .then(d => { setDomain(d.custom_domain || ""); })
-      .catch(() => {})
+    Promise.all([
+      apiFetch("/admin/organization/domain").then(r => r.json()).catch(() => ({ custom_domain: "" })),
+      refreshDomains(),
+    ])
+      .then(([domainData, domains]) => {
+        const currentDomain = domainData.custom_domain || "";
+        setDomain(currentDomain);
+        setExistingDomain(currentDomain || null);
+        if (currentDomain) {
+          const selected = (domains || []).find((item: any) => item.domain === currentDomain);
+          if (selected) {
+            setToken(selected.token || null);
+            setStatus(selected.status || null);
+            setCreatedAt(selected.created_at || null);
+          }
+        }
+      })
       .finally(() => setLoading(false));
-
-    // fetch domains owned by this user
-    apiFetch("/admin/organization/domains")
-      .then(r => r.ok ? r.json() : [])
-      .then(d => setMyDomains(d || []))
-      .catch(() => {});
   }, []);
 
   // When domain text changes, if token/status unknown try to fetch domain details
@@ -352,14 +434,21 @@ function CustomDomainTab() {
     e.preventDefault();
     setErr(null); setOk(false); setSaving(true);
     try {
-      const dom = domain.trim();
+      const dom = (domain.trim() || existingDomain || "").trim();
       if (!dom) {
-        // If empty, try to remove via old endpoint
-        await apiFetch("/admin/organization/domain", {
-          method: "PUT",
-          body: JSON.stringify({ custom_domain: null }),
-        });
-        setToken(null); setStatus(null); setOk(true); setTimeout(() => setOk(false), 3000);
+        if (existingDomain) {
+          await apiFetch(`/domains/${encodeURIComponent(existingDomain)}`, { method: "DELETE" });
+        } else {
+          await apiFetch("/admin/organization/domain", {
+            method: "PUT",
+            body: JSON.stringify({ custom_domain: null }),
+          });
+        }
+        setDomain("");
+        setExistingDomain(null);
+        setToken(null); setStatus(null); setCreatedAt(null); setOk(true); setTimeout(() => setOk(false), 3000);
+        await refreshDomains();
+        toast.success("Özel domain kaldırıldı.", "Kurumsal Alan Adı");
         return;
       }
 
@@ -372,10 +461,11 @@ function CustomDomainTab() {
       setToken(data.token || null);
       setStatus(data.status || null);
       setCreatedAt(data.created_at || null);
+      setExistingDomain(data.domain || dom);
       setOk(true);
-      // refresh list
-      try { const list = await (await apiFetch("/admin/organization/domains")).json(); setMyDomains(list || []); } catch {};
+      await refreshDomains();
       setTimeout(() => setOk(false), 3000);
+      toast.success("Özel domain kaydedildi.", "Kurumsal Alan Adı");
     } catch (e: any) {
       setErr(e?.message || "Kaydedilemedi.");
     } finally {
@@ -391,21 +481,27 @@ function CustomDomainTab() {
       const r = await apiFetch(`/domains/${encodeURIComponent(dom)}/check`);
       const j = await r.json();
       setStatus(j.status || null);
+      const nextStatus = getDomainStatusMeta(j.status || null);
+      toast.info(nextStatus.description, nextStatus.label);
     } catch (e: any) {
       setErr(e?.message || "Doğrulama başarısız.");
     } finally { setChecking(false); }
   }
 
-  async function regenerate() {
+  async function regenerate(targetDomain?: string) {
     setErr(null);
     try {
-      const dom = domain.trim();
+      const dom = (targetDomain || domain.trim() || existingDomain || "").trim();
       if (!dom) throw new Error("Alan adı boş.");
       const r = await apiFetch(`/domains/${encodeURIComponent(dom)}/regenerate`, { method: "POST" });
       const j = await r.json();
-      setToken(j.token || null);
-      // refresh list
-      try { const list = await (await apiFetch("/admin/organization/domains")).json(); setMyDomains(list || []); } catch {};
+      if ((domain.trim() || existingDomain || "").trim() === dom) {
+        setToken(j.token || null);
+        setDomain(dom);
+        setExistingDomain(dom);
+      }
+      await refreshDomains();
+      toast.success("Doğrulama tokeni yenilendi.", dom);
     } catch (e: any) { setErr(e?.message || "Token yenilenemedi."); }
   }
 
@@ -413,28 +509,33 @@ function CustomDomainTab() {
     if (!confirm("Bu alan adını silmek istediğinize emin misiniz?")) return;
     setErr(null);
     try {
-      const dom = domain.trim();
-      if (!dom) throw new Error("Alan adı boş.");
-      await apiFetch(`/domains/${encodeURIComponent(dom)}`, { method: "DELETE" });
-      setDomain(""); setToken(null); setStatus(null); setCreatedAt(null);
-      // refresh list
-      try { const list = await (await apiFetch("/admin/organization/domains")).json(); setMyDomains(list || []); } catch {};
+      const targetDomain = (domain.trim() || existingDomain || "").trim();
+      if (!targetDomain) throw new Error("Alan adı boş.");
+      await apiFetch(`/domains/${encodeURIComponent(targetDomain)}`, { method: "DELETE" });
+      setDomain(""); setExistingDomain(null); setToken(null); setStatus(null); setCreatedAt(null);
+      await refreshDomains();
+      toast.success("Alan adı silindi.", "Kurumsal Alan Adı");
     } catch (e: any) { setErr(e?.message || "Silinemedi."); }
   }
 
   if (loading) return <div className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto text-gray-400" /></div>;
 
+  const activeDomain = (domain.trim() || existingDomain || "").trim();
+  const statusMeta = getDomainStatusMeta(status);
+  const dnsHost = activeDomain ? `_heptacert-verify.${activeDomain}` : "_heptacert-verify.your-domain.tld";
+
   return (
-    <div className="max-w-lg space-y-6">
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_380px]">
+      <div className="space-y-6">
       {myDomains.length > 0 && (
-        <div className="card p-4">
+        <div className="hidden">
           <h3 className="text-sm font-semibold mb-2">Kayıtlı Alan Adlarınız</h3>
           <ul className="space-y-2 text-sm">
             {myDomains.map(d => (
               <li key={d.domain} className="flex items-center justify-between">
                 <div>{d.domain} <span className="text-xs text-gray-400">{d.status}</span></div>
                 <div className="flex gap-2">
-                  <button className="btn-ghost" onClick={async () => { setDomain(d.domain); setToken(d.token || null); setStatus(d.status || null); }}>{/* select */}Seç</button>
+                  <button className="btn-ghost" onClick={async () => { setDomain(d.domain); setExistingDomain(d.domain); setToken(d.token || null); setStatus(d.status || null); setCreatedAt(d.created_at || null); }}>{/* select */}Seç</button>
                   <button className="btn-ghost" onClick={async () => { await apiFetch(`/domains/${encodeURIComponent(d.domain)}/regenerate`, { method: 'POST' }); const list = await (await apiFetch('/admin/organization/domains')).json(); setMyDomains(list || []); }}>Token Yenile</button>
                 </div>
               </li>
@@ -442,7 +543,7 @@ function CustomDomainTab() {
           </ul>
         </div>
       )}
-      <div className="card p-6">
+      <div className="card border border-slate-200/80 p-6">
         <div className="flex items-center gap-3 mb-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600"><Globe className="h-5 w-5" /></div>
           <div>
@@ -477,21 +578,139 @@ function CustomDomainTab() {
           </button>
         </form>
       </div>
-      <div className="card p-5 space-y-3">
+      <div className="card border border-slate-200/80 p-5 space-y-4">
         <h3 className="text-sm font-semibold text-gray-800">DNS Yapılandırması</h3>
         <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 text-xs font-mono space-y-2">
           <p className="text-gray-500"># DNS sağlayıcınıza şu TXT kaydını ekleyin:</p>
-          <p className="text-gray-800">Ad: <span className="font-mono">_heptacert-verify.{domain || 'your-domain.tld'}</span></p>
+          <p className="text-gray-800">Ad: <span className="font-mono">{dnsHost}</span></p>
           <p className="text-gray-800">Değer: <span className="font-mono">{token || '<kaydetmeden sonra token görünür>'}</span> <CopyBtn text={token || ''} /></p>
           {createdAt && <p className="text-gray-500">Oluşturulma: <span className="font-mono">{new Date(createdAt).toLocaleString()}</span></p>}
           <div className="flex gap-2">
             <button onClick={checkDNS} disabled={checking || !domain} className="btn-ghost">{checking ? 'Kontrol ediliyor...' : 'DNS Kontrolü Yap'}</button>
-            <button onClick={regenerate} disabled={!domain} className="btn-ghost">Token Yenile</button>
+            <button onClick={() => regenerate()} disabled={!domain} className="btn-ghost">Token Yenile</button>
             <button onClick={removeDomain} disabled={!domain} className="btn-danger">Alan Adını Sil</button>
           </div>
           {status && <p className="text-sm">Durum: <strong>{status}</strong></p>}
         </div>
         <p className="text-xs text-gray-400">DNS değişikliklerinin yayılması: genelde birkaç dakika, maksimum 24 saat.</p>
+      </div>
+      </div>
+      <div className="space-y-6">
+        <div className="card border border-slate-200/80 p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-sm">
+              <Globe className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Canli gorunum</p>
+              <p className="text-xs text-slate-500">Ziyaretciler ozel alan adinizi bu hissiyatla gorur.</p>
+            </div>
+          </div>
+
+          <div
+            className="mt-5 overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_60px_-32px_rgba(15,23,42,0.32)]"
+            style={{ boxShadow: `0 24px 60px -32px ${withAlpha("#0f172a", 0.35)}` }}
+          >
+            <div
+              className="px-5 py-5"
+              style={{ background: `linear-gradient(135deg, ${withAlpha("#ffffff", 0.96)} 0%, ${withAlpha("#ffffff", 0.84)} 32%, ${withAlpha("#f8fafc", 1)} 100%), radial-gradient(circle at top right, ${withAlpha("#6366f1", 0.15)} 0%, transparent 45%)` }}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-white/70 bg-white shadow-sm">
+                    <span className="text-lg font-semibold text-slate-700">{(activeDomain || "C").charAt(0).toUpperCase()}</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{activeDomain || "certs.sirketiniz.com"}</p>
+                    <p className="text-xs text-slate-500">Kurumsal dogrulama sayfasi</p>
+                  </div>
+                </div>
+                <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${statusMeta.chipClass}`}>
+                  {statusMeta.label}
+                </span>
+              </div>
+            </div>
+            <div className="space-y-4 p-5">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">One Cikan Alan Adi</p>
+                <p className="mt-2 text-lg font-semibold text-slate-900">{activeDomain || "Alan adi henuz secilmedi"}</p>
+                <p className="mt-1 text-sm text-slate-500">{statusMeta.description}</p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">TXT Hazir</p>
+                  <p className="mt-2 text-sm font-semibold text-slate-900">{token ? "Token uretildi" : "Henuz uretim yok"}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Son Guncelleme</p>
+                  <p className="mt-2 text-sm font-semibold text-slate-900">{fmtDate(createdAt)}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card border border-slate-200/80 p-5">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+              <BadgeCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Kayitli alan adlari</p>
+              <p className="text-xs text-slate-500">Farkli domain kayitlari arasinda hizli gecis yapabilirsiniz.</p>
+            </div>
+          </div>
+
+          {myDomains.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center">
+              <p className="text-sm font-semibold text-slate-800">Henuz kayitli alan adi yok</p>
+              <p className="mt-2 text-sm text-slate-500">Ilk domaininizi eklediginizde dogrulama gecmisi ve token yonetimi burada listelenecek.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {myDomains.map((d) => {
+                const itemStatus = getDomainStatusMeta(d.status || null);
+                return (
+                  <div key={d.domain} className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-900">{d.domain}</p>
+                        <p className="mt-1 text-xs text-slate-500">Olusturulma: {fmtDate(d.created_at || null)}</p>
+                      </div>
+                      <span className={`inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${itemStatus.chipClass}`}>
+                        {itemStatus.label}
+                      </span>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className="btn-ghost gap-2"
+                        onClick={() => {
+                          setDomain(d.domain);
+                          setExistingDomain(d.domain);
+                          setToken(d.token || null);
+                          setStatus(d.status || null);
+                          setCreatedAt(d.created_at || null);
+                        }}
+                      >
+                        <Link2 className="h-4 w-4" />
+                        Sec
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-ghost gap-2"
+                        onClick={() => regenerate(d.domain)}
+                      >
+                        <RefreshCcw className="h-4 w-4" />
+                        Token Yenile
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -499,11 +718,13 @@ function CustomDomainTab() {
 
 // ─── Branding Tab ───────────────────────────────────────────────────────────
 function BrandingTab() {
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
   const [brandColor, setBrandColor] = useState("#6366f1");
   const [brandLogo, setBrandLogo] = useState<string | null>(null);
+  const [orgName, setOrgName] = useState("");
   const [settingsState, setSettingsState] = useState<Record<string, any>>({});
   const [err, setErr] = useState<string | null>(null);
 
@@ -514,6 +735,7 @@ function BrandingTab() {
       .then((d) => {
         setBrandLogo(d.brand_logo || null);
         setBrandColor(d.brand_color || "#6366f1");
+        setOrgName(d.org_name || "");
         setSettingsState(d.settings || {});
       })
       .catch((e) => setErr(e?.message || "Yüklenemedi"))
@@ -529,6 +751,7 @@ function BrandingTab() {
       const r = await apiFetch("/admin/organization/logo", { method: "POST", body: fd });
       const j = await r.json();
       setBrandLogo(j.brand_logo || null);
+      toast.success("Logo guncellendi.", "Kurumsal Gorunum");
     } catch (e: any) {
       setErr(e?.message || "Yükleme başarısız");
     } finally { setLogoUploading(false); }
@@ -541,13 +764,12 @@ function BrandingTab() {
 
     try {
       const payload = {
+        org_name: orgName,
         brand_color: brandColor,
         verification_path: settingsState.verification_path || "",
         certificate_footer: settingsState.certificate_footer || "",
         hide_heptacert_home: !!settingsState.hide_heptacert_home,
       };
-
-      console.log("PATCH payload:", payload);
 
       const resp = await apiFetch("/admin/organization/settings", {
         method: "PATCH",
@@ -555,10 +777,10 @@ function BrandingTab() {
       });
 
       const data = await resp.json();
-      console.log("PATCH response:", data);
-
       setSettingsState(data.settings || {});
       setBrandColor(data.brand_color || "#6366f1");
+      setOrgName(data.org_name || "");
+      toast.success("Kurumsal ayarlar kaydedildi.", "Marka Kimligi");
     } catch (e: any) {
       setErr(e?.message || "Kaydedilemedi.");
     } finally {
@@ -568,9 +790,16 @@ function BrandingTab() {
 
   if (loading) return <div className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto text-gray-400" /></div>;
 
+  const previewName = orgName.trim() || "Kurumunuz";
+  const previewPath = normalizeVerificationPath(settingsState.verification_path || "");
+  const previewFooter = settingsState.certificate_footer || "Sertifika dogrulama sayfaniza guven veren kisa bir alt bilgi ekleyin.";
+  const previewLogoLetter = previewName.charAt(0).toUpperCase() || "K";
+  const heroGlow = withAlpha(brandColor, 0.2);
+  const heroSoft = withAlpha(brandColor, 0.12);
+
   return (
-    <div className="space-y-6 max-w-lg">
-      <div className="card p-6">
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_380px]">
+      <div className="card border border-slate-200/80 p-6">
         <div className="flex items-center gap-3 mb-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-600"><Settings className="h-5 w-5" /></div>
           <div>
@@ -617,6 +846,11 @@ function BrandingTab() {
           </div>
 
           <div>
+            <label className="label">Kurum Adı</label>
+            <input className="input-field" value={orgName} onChange={e => setOrgName(e.target.value)} placeholder="Şirket / organizasyon adı" />
+          </div>
+
+          <div>
             <label className="label">Marka Rengi</label>
             <div className="flex items-center gap-3">
               <input type="color" value={brandColor} onChange={e => setBrandColor(e.target.value)} className="w-12 h-8 p-0 border rounded" />
@@ -642,9 +876,85 @@ function BrandingTab() {
 
           <div className="flex gap-2">
             <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Kaydediliyor...' : 'Ayarları Kaydet'}</button>
-            <button type="button" onClick={() => { setSettingsState({}); setBrandColor('#6366f1'); }} className="btn-ghost">Sıfırla</button>
+            <button type="button" onClick={() => { setSettingsState({}); setBrandColor('#6366f1'); setOrgName(''); }} className="btn-ghost">Sıfırla</button>
           </div>
         </form>
+      </div>
+      <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-4">
+        <div className="rounded-[24px] border border-white/80 bg-white p-4 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.28)]">
+          <div
+            className="overflow-hidden rounded-[22px] border border-slate-200"
+            style={{
+              background: `linear-gradient(160deg, ${heroGlow} 0%, ${heroSoft} 42%, rgba(255,255,255,0.96) 100%)`,
+            }}
+          >
+            <div className="border-b border-white/70 px-5 py-5">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-white/70 bg-white shadow-sm">
+                    {brandLogo ? (
+                      <img src={brandLogo} alt="Brand preview" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-xl font-semibold text-slate-700">{previewLogoLetter}</span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Canli Onizleme</p>
+                    <h3 className="mt-1 text-lg font-semibold text-slate-900">{previewName}</h3>
+                    <p className="mt-1 text-sm text-slate-600">{previewPath}</p>
+                  </div>
+                </div>
+                <div className="rounded-full border border-white/80 bg-white/80 px-3 py-1 text-xs font-semibold text-slate-700">
+                  Kurumsal Kimlik
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4 px-5 py-5">
+              <div className="rounded-2xl border border-white/70 bg-white/90 p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Dogrulama Karti</p>
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">Belge dogrulandi</p>
+                    <p className="mt-1 text-sm text-slate-500">Ziyaretciler marka renginizle hizalanmis guven ekranini gorur.</p>
+                  </div>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl text-white shadow-sm" style={{ backgroundColor: brandColor }}>
+                    <BadgeCheck className="h-5 w-5" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                <div className="rounded-2xl border border-white/70 bg-white/90 p-4">
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Alt Bilgi</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-700">{previewFooter}</p>
+                </div>
+                <div className="rounded-2xl border border-white/70 bg-white/90 p-4">
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Gorunurluk</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-700">
+                    {settingsState.hide_heptacert_home
+                      ? "Ana sayfa gizli, kullanicilar dogrudan kurum deneyimine yonlenir."
+                      : "HeptaCert ana sayfasi gorunur, kurum deneyimiyle birlikte genel giris noktasi korunur."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Marka Rengi</p>
+              <div className="mt-2 flex items-center gap-3">
+                <span className="h-4 w-4 rounded-full border border-white shadow-sm" style={{ backgroundColor: brandColor }} />
+                <p className="text-sm font-semibold text-slate-900">{brandColor}</p>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Deneyim Notu</p>
+              <p className="mt-2 text-sm leading-6 text-slate-700">Bu panel, yaptiginiz degisikliklerin ziyaretci tarafinda nasil bir his yarattigini kaydetmeden once gormenizi saglar.</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

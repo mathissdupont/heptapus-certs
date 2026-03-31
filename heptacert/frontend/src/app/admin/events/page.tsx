@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { apiFetch, clearToken, getMySubscription, type SubscriptionInfo } from "@/lib/api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,11 +9,13 @@ import {
   Plus, LayoutGrid, Image as ImageIcon, Hash,
   AlertCircle, Loader2, Shield, ListChecks, Pencil, Coins,
   Zap, FolderKanban, Trash2, Check, X, Settings, Link2, ClipboardCheck,
+  Search, Sparkles, CalendarRange,
 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import PageHeader from "@/components/Admin/PageHeader";
 import ConfirmModal from "@/components/Admin/ConfirmModal";
 import EmptyState from "@/components/Admin/EmptyState";
+import { StatCard } from "@/components/Admin/StatCard";
 
 type EventOut = { id: number; name: string; template_image_url: string; config: any };
 type MeOut = { id: number; email: string; role: "admin" | "superadmin"; heptacoin_balance: number };
@@ -35,6 +37,7 @@ export default function AdminEvents() {
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [hasPaidPlan, setHasPaidPlan] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [search, setSearch] = useState("");
 
   function copyRegisterLink(id: number) {
     const url = `${window.location.origin}/events/${id}/register`;
@@ -148,6 +151,18 @@ export default function AdminEvents() {
     hidden: { opacity: 0, y: 12 },
     show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
   };
+  const totalCertificates = Object.values(certStats).reduce((sum, stat) => sum + (stat?.total || 0), 0);
+  const filteredEvents = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return events;
+    return events.filter((event) =>
+      [event.name, event.id]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(q)
+    );
+  }, [events, search]);
 
   return (
     <div className="flex flex-col gap-6 pb-20">
@@ -173,23 +188,64 @@ export default function AdminEvents() {
         }
       />
 
+      <div className="grid gap-4 md:grid-cols-4">
+        <StatCard label="Toplam Etkinlik" value={events.length} icon={<CalendarRange className="h-5 w-5 text-brand-600" />} />
+        <StatCard label="Toplam Sertifika" value={totalCertificates} icon={<ListChecks className="h-5 w-5 text-emerald-600" />} iconBg="bg-emerald-50 text-emerald-600" />
+        <StatCard label="Plan Durumu" value={hasPaidPlan ? "Premium" : "Baslangic"} icon={<Sparkles className="h-5 w-5 text-amber-600" />} iconBg="bg-amber-50 text-amber-600" />
+        <StatCard label="Bakiye" value={`${me?.heptacoin_balance ?? 0} HC`} icon={<Coins className="h-5 w-5 text-sky-600" />} iconBg="bg-sky-50 text-sky-600" />
+      </div>
+
       {/* Create Event */}
-      <div className="card p-5">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Zap className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
-            <input
-              className="input-field pl-10"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && createEvent()}
-              placeholder="Yeni etkinlik adı..."
-            />
+      <div className="card overflow-hidden p-5">
+        <div className="grid gap-4 lg:grid-cols-[1.25fr,0.95fr]">
+          <div className="rounded-[24px] border border-brand-100 bg-gradient-to-br from-brand-50 via-white to-emerald-50 p-5">
+            <div className="flex items-start gap-3">
+              <div className="rounded-2xl bg-white p-3 text-brand-600 shadow-soft">
+                <Zap className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-surface-900">Yeni etkinlik akisi</h2>
+                <p className="mt-1 text-sm leading-6 text-surface-500">
+                  Etkinligi olusturduktan sonra editor, oturumlar, sertifikalar ve cekilis gibi alt modullere direkt gecebilirsin.
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Zap className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+                <input
+                  className="input-field pl-10"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && createEvent()}
+                  placeholder="Yeni etkinlik adi..."
+                />
+              </div>
+              <button onClick={createEvent} disabled={!name.trim() || creating} className="btn-primary gap-2 px-6">
+                {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                Yeni Etkinlik
+              </button>
+            </div>
           </div>
-          <button onClick={createEvent} disabled={!name.trim() || creating} className="btn-primary gap-2 px-6">
-            {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Yeni Etkinlik
-          </button>
+          <div className="rounded-[24px] border border-surface-200 bg-surface-50/80 p-5">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-surface-400">
+              Etkinliklerde Ara
+            </label>
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+              <input
+                className="input-field pl-10"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Ad veya ID ile ara"
+              />
+            </div>
+            <p className="mt-3 text-sm text-surface-500">
+              {filteredEvents.length === events.length
+                ? `${events.length} etkinlik goruntuleniyor.`
+                : `${filteredEvents.length} etkinlik filtreye uyuyor.`}
+            </p>
+          </div>
         </div>
         <AnimatePresence>
           {err && (
@@ -235,8 +291,19 @@ export default function AdminEvents() {
                 description="Yukarıdaki formu kullanarak ilk sertifika etkinliğinizi oluşturun."
                 icon={<FolderKanban className="h-8 w-8" />}
               />
+            ) : filteredEvents.length === 0 ? (
+              <EmptyState
+                title="Aramaya uyan etkinlik bulunamadi"
+                description="Arama terimini temizleyerek tum etkinlikleri yeniden listeleyebilirsin."
+                icon={<Search className="h-8 w-8" />}
+                action={
+                  <button onClick={() => setSearch("")} className="btn-secondary">
+                    Filtreyi Temizle
+                  </button>
+                }
+              />
             ) : (
-              events.map((ev) => (
+              filteredEvents.map((ev) => (
                 <motion.div key={ev.id} variants={itemVars}>
                   <div className="group card p-5 hover:shadow-lifted transition-all duration-200">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

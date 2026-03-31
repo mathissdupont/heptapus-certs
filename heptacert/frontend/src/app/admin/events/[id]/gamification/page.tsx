@@ -1,10 +1,10 @@
 ﻿"use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Save, Plus, X, Loader2, CheckCircle2, AlertCircle,
-  Trophy, ChevronDown, Hash, Percent, ToggleLeft, Users, Award,
+  Trophy, ChevronDown, Hash, Percent, ToggleLeft, Users, Award, Search, BarChart3,
 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
@@ -244,11 +244,25 @@ type ParticipantBadge = {
   event_id: number;
   attendee_id: number;
   badge_type: string;
+  badge_name?: string | null;
+  badge_description?: string | null;
+  badge_icon_url?: string | null;
+  badge_color_hex?: string | null;
+  attendee_name?: string | null;
+  attendee_email?: string | null;
   criteria_met: Record<string, any>;
   awarded_by: number | null;
   awarded_at: string;
   is_automatic: boolean;
-  metadata?: Record<string, any>;
+  badge_metadata?: Record<string, any>;
+};
+
+type BadgeSummary = {
+  by_type: Record<string, number>;
+  automatic_vs_manual: {
+    automatic: number;
+    manual: number;
+  };
 };
 
 
@@ -260,11 +274,16 @@ export default function GamificationPage() {
   const [eventName, setEventName] = useState("");
   const [badgeRules, setBadgeRules] = useState<BadgeRules | null>(null);
   const [awardedBadges, setAwardedBadges] = useState<ParticipantBadge[]>([]);
+  const [badgeSummary, setBadgeSummary] = useState<BadgeSummary>({
+    by_type: {},
+    automatic_vs_manual: { automatic: 0, manual: 0 },
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"rules" | "awarded">("rules");
+  const [badgeQuery, setBadgeQuery] = useState("");
 
   const [editingBadges, setEditingBadges] = useState<BadgeDefinition[]>([]);
   const [enabled, setEnabled] = useState(true);
@@ -308,9 +327,13 @@ export default function GamificationPage() {
 
       if (badgesRes) {
         const badgesData = await badgesRes.json();
-        if (badgesData?.badges) {
-          setAwardedBadges(badgesData.badges);
-        }
+        setAwardedBadges(badgesData?.badges || []);
+        setBadgeSummary(
+          badgesData?.badge_summary || {
+            by_type: {},
+            automatic_vs_manual: { automatic: 0, manual: 0 },
+          }
+        );
       }
     } catch (err: any) {
       setError(err.message || "Rozet kuralları yüklenemedi");
@@ -366,13 +389,39 @@ export default function GamificationPage() {
       setError("Lütfen rozet türü ve adını girin");
       return;
     }
-    setEditingBadges([...editingBadges, newBadge]);
+    setEditingBadges([
+      ...editingBadges,
+      {
+        ...newBadge,
+        color_hex: newBadge.color_hex || "#4CAF50",
+        description: newBadge.description || "",
+        icon_url: newBadge.icon_url || "",
+      },
+    ]);
     setNewBadge(null);
   };
 
   const removeBadge = (index: number) => {
     setEditingBadges(editingBadges.filter((_, i) => i !== index));
   };
+
+  const filteredAwardedBadges = useMemo(() => {
+    return awardedBadges.filter((badge) => {
+      const haystack = [
+        badge.badge_name,
+        badge.badge_type,
+        badge.attendee_name,
+        badge.attendee_email,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return !badgeQuery.trim() || haystack.includes(badgeQuery.trim().toLowerCase());
+    });
+  }, [awardedBadges, badgeQuery]);
+
+  const badgeTypeCount = Object.keys(badgeSummary.by_type || {}).length;
 
   if (loading) {
     return (
@@ -394,6 +443,51 @@ export default function GamificationPage() {
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Rozet Sistemi</h1>
         <p className="text-gray-500 text-sm mt-1">Katılımcıları başarılarıyla ödüllendirin</p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-4">
+        {[
+          {
+            label: "Durum",
+            value: enabled ? "Aktif" : "Pasif",
+            hint: enabled ? "Hesaplama acik" : "Kurallar beklemede",
+            icon: ToggleLeft,
+          },
+          {
+            label: "Rozet Turu",
+            value: String(badgeTypeCount),
+            hint: `${editingBadges.length} tanim guncellenebilir`,
+            icon: Award,
+          },
+          {
+            label: "Toplam Dagitim",
+            value: String(awardedBadges.length),
+            hint: `${badgeSummary.automatic_vs_manual.automatic} otomatik / ${badgeSummary.automatic_vs_manual.manual} manuel`,
+            icon: Trophy,
+          },
+          {
+            label: "One Cikan Turler",
+            value: badgeTypeCount > 0 ? Object.keys(badgeSummary.by_type).slice(0, 1)[0] : "-",
+            hint: badgeTypeCount > 1 ? `${badgeTypeCount - 1} tur daha var` : "Henuz tur yok",
+            icon: BarChart3,
+          },
+        ].map((item) => {
+          const Icon = item.icon;
+          return (
+            <div key={item.label} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">{item.label}</p>
+                  <p className="mt-3 text-3xl font-semibold text-gray-900">{item.value}</p>
+                  <p className="mt-2 text-sm text-gray-500">{item.hint}</p>
+                </div>
+                <div className="rounded-xl bg-brand-50 p-3 text-brand-600">
+                  <Icon className="h-5 w-5" />
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Tabs */}
@@ -692,36 +786,95 @@ export default function GamificationPage() {
       {/* Awarded Badges Tab */}
       {activeTab === "awarded" && (
         <div className="space-y-4">
-          {awardedBadges.length === 0 ? (
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="grid gap-3 md:grid-cols-[1fr,220px,220px]">
+              <label className="relative block">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={badgeQuery}
+                  onChange={(e) => setBadgeQuery(e.target.value)}
+                  placeholder="Rozet veya katilimci ara"
+                  className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 text-sm"
+                />
+              </label>
+              <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Otomatik</div>
+                <div className="mt-1 text-2xl font-semibold text-gray-900">{badgeSummary.automatic_vs_manual.automatic}</div>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Manuel</div>
+                <div className="mt-1 text-2xl font-semibold text-gray-900">{badgeSummary.automatic_vs_manual.manual}</div>
+              </div>
+            </div>
+          </div>
+
+          {filteredAwardedBadges.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
               <Trophy className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500">Henüz rozet verilmedi</p>
+              <p className="text-gray-500">
+                {awardedBadges.length === 0 ? "Henüz rozet verilmedi" : "Filtreye uyan rozet bulunamadi"}
+              </p>
             </div>
           ) : (
-            awardedBadges.map((badge) => (
+            filteredAwardedBadges.map((badge) => (
               <motion.div
                 key={badge.id}
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-xl border border-gray-200 p-4 flex items-start justify-between"
+                className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"
               >
                 <div>
-                  <div className="font-semibold text-gray-900">{badge.badge_type}</div>
+                  <div className="font-semibold text-gray-900">
+                    {badge.badge_name || badge.badge_type}
+                  </div>
+                  {badge.badge_description && (
+                    <div className="text-sm text-gray-500 mt-1">{badge.badge_description}</div>
+                  )}
                   <div className="text-sm text-gray-500 mt-1">
-                    Katılımcı ID: {badge.attendee_id} • {badge.is_automatic ? "Otomatik" : "Manuel"}
+                    {badge.attendee_name || `Katılımcı ID: ${badge.attendee_id}`}
+                    {badge.attendee_email ? ` • ${badge.attendee_email}` : ""}
+                  </div>
+                  <div className="text-sm text-gray-500 mt-1">
+                    {badge.is_automatic ? "Otomatik" : "Manuel"} • Tür: {badge.badge_type}
                   </div>
                   <div className="text-xs text-gray-400 mt-1">
                     {new Date(badge.awarded_at).toLocaleString("tr-TR")}
                   </div>
                 </div>
-                <div
-                  style={{
-                    backgroundColor: `${badge.criteria_met?.color_hex || "#4CAF50"}20`,
-                    borderColor: badge.criteria_met?.color_hex || "#4CAF50",
-                  }}
-                  className="px-3 py-1 rounded-full border font-semibold text-sm"
-                >
-                  Ô£ô Verildi
+
+                <div className="lg:max-w-sm lg:min-w-[320px]">
+                  <div
+                    style={{
+                      backgroundColor: `${badge.badge_color_hex || "#4CAF50"}20`,
+                      borderColor: badge.badge_color_hex || "#4CAF50",
+                      color: badge.badge_color_hex || "#2f855a",
+                    }}
+                    className="inline-flex px-3 py-1 rounded-full border font-semibold text-sm"
+                  >
+                    Verildi
+                  </div>
+
+                  {Object.keys(badge.criteria_met || {}).length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {Object.entries(badge.criteria_met).map(([key, value]) => {
+                        const criteria = value as { actual?: unknown; required?: unknown; passed?: boolean };
+                        return (
+                          <div key={key} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="text-sm font-medium text-gray-700">{key}</span>
+                              <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${criteria.passed ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
+                                {criteria.passed ? "Gecti" : "Kaldi"}
+                              </span>
+                            </div>
+                            <div className="mt-1 text-xs text-gray-500">
+                              Gereken: {String(criteria.required ?? "-")} • Gerceklesen: {String(criteria.actual ?? "-")}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </motion.div>
             ))

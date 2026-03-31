@@ -21,7 +21,7 @@ services:
       - ./.env
     environment:
       DATABASE_URL: postgresql+asyncpg://heptacert:heptacert@db:5432/heptacert
-      ALEMBIC_DATABASE_URL: postgresql://heptacert:heptacert@db:5432/heptacert
+      ALEMBIC_DATABASE_URL: postgresql+psycopg://heptacert:heptacert@db:5432/heptacert
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8765}
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3030}
       STORAGE_MODE: local

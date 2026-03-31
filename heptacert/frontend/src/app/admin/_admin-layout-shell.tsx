@@ -76,6 +76,16 @@ function isActive(pathname: string, item: NavItem): boolean {
   return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
+function getCurrentSection(pathname: string): string {
+  const parts = pathname.split("/").filter(Boolean);
+  const last = parts[parts.length - 1] || "dashboard";
+  if (last === "admin") return "Dashboard";
+  return last
+    .replace(/\[|\]/g, "")
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 function SidebarContent({
   pathname,
   collapsed,
@@ -132,7 +142,7 @@ function SidebarContent({
                       title={item.label}
                       className={`flex items-center justify-center rounded-lg p-2.5 transition-all ${
                         active
-                          ? "bg-violet-50 text-violet-700"
+                          ? "border border-brand-200 bg-brand-50 text-surface-900 shadow-soft"
                           : "text-surface-500 hover:bg-sidebar-hover hover:text-surface-900"
                       }`}
                     >
@@ -180,6 +190,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() || "";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const currentSection = getCurrentSection(pathname);
 
   if (isAuthPage(pathname)) {
     return <>{children}</>;
@@ -189,7 +200,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
     <div className="flex h-screen overflow-hidden bg-surface-50">
       {/* ── Desktop Sidebar ─────────────────────────────────── */}
       <aside
-        className={`hidden lg:flex lg:shrink-0 lg:flex-col border-r border-sidebar-border bg-sidebar transition-all duration-200 ${
+        className={`hidden lg:flex lg:shrink-0 lg:flex-col border-r border-sidebar-border bg-sidebar/95 backdrop-blur transition-all duration-200 ${
           collapsed ? "lg:w-[64px]" : "lg:w-[240px]"
         }`}
       >
@@ -203,16 +214,17 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="relative z-10 w-[240px] bg-sidebar border-r border-sidebar-border">
+          <aside className="relative z-10 w-[240px] border-r border-sidebar-border bg-sidebar/95 backdrop-blur">
             <SidebarContent pathname={pathname} collapsed={false} onClose={() => setMobileOpen(false)} />
           </aside>
         </div>
       )}
 
       {/* ── Main ────────────────────────────────────────────── */}
-      <div className="flex flex-1 flex-col overflow-hidden min-w-0">
+      <div className="relative flex flex-1 flex-col overflow-hidden min-w-0">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(15,118,110,0.10),transparent_22%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.10),transparent_18%)]" />
         {/* Top bar — always visible */}
-        <header className="flex items-center gap-3 border-b border-surface-200 bg-white px-4 py-3 shrink-0">
+        <header className="relative flex shrink-0 items-center gap-3 border-b border-surface-200 bg-white/80 px-4 py-3 backdrop-blur lg:px-6">
           {/* Mobile hamburger */}
           <button
             onClick={() => setMobileOpen(true)}
@@ -242,17 +254,30 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
             </div>
             <span className="text-sm font-bold text-surface-900">HeptaCert</span>
           </div>
+          <div className="ml-auto hidden min-w-0 items-center gap-3 lg:flex">
+            <div className="text-right">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-400">
+                Admin Workspace
+              </div>
+              <div className="text-sm font-semibold text-surface-800">
+                {currentSection}
+              </div>
+            </div>
+            <div className="rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-semibold text-surface-700">
+              Live
+            </div>
+          </div>
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="relative flex-1 overflow-y-auto">
           <AnimatePresence mode="wait">
             <motion.div
               key={pathname}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.18, ease: "easeOut" }}
-              className="w-full p-4 lg:p-6"
+              className="mx-auto w-full max-w-[1600px] p-4 lg:p-6"
             >
               {children}
             </motion.div>

@@ -24,8 +24,11 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Allow ALEMBIC_DATABASE_URL env var to override alembic.ini
+# Allow ALEMBIC_DATABASE_URL env var to override alembic.ini.
+# Normalize plain postgresql:// URLs so Alembic uses psycopg consistently.
 _db_url = os.environ.get("ALEMBIC_DATABASE_URL") or config.get_main_option("sqlalchemy.url")
+if _db_url.startswith("postgresql://"):
+    _db_url = _db_url.replace("postgresql://", "postgresql+psycopg://", 1)
 if _db_url:
     config.set_main_option("sqlalchemy.url", _db_url)
 

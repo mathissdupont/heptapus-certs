@@ -10,6 +10,7 @@ import {
   Users,
   UserCheck,
   Target,
+  Gift,
   BarChart3,
   Mail,
   Settings,
@@ -30,6 +31,7 @@ const NAV_ITEMS: NavItem[] = [
   { tab: "attendees",    label: "Katılımcılar",   icon: Users,        href: (id) => `/admin/events/${id}/attendees` },
   { tab: "checkin",      label: "Check-in",       icon: UserCheck,    href: (id) => `/admin/events/${id}/checkin` },
   { tab: "gamification", label: "Gamification",   icon: Target,       href: (id) => `/admin/events/${id}/gamification` },
+  { tab: "raffles",      label: "Çekilişler",     icon: Gift,         href: (id) => `/admin/events/${id}/raffles` },
   { tab: "surveys",      label: "Anket",          icon: ClipboardList,href: (id) => `/admin/events/${id}/surveys` },
   { tab: "analytics",    label: "İleri Analitik", icon: BarChart3,    href: (id) => `/admin/events/${id}/advanced-analytics` },
   { tab: "editor",       label: "Editör",         icon: Palette,      href: (id) => `/admin/events/${id}/editor` },
@@ -43,6 +45,7 @@ type EventAdminTab =
   | "attendees"
   | "checkin"
   | "gamification"
+  | "raffles"
   | "surveys"
   | "analytics"
   | "editor"
@@ -78,6 +81,7 @@ function getActiveFromPath(pathname: string): EventAdminTab {
   if (pathname.includes("/attendees")) return "attendees";
   if (pathname.includes("/checkin")) return "checkin";
   if (pathname.includes("/gamification")) return "gamification";
+  if (pathname.includes("/raffles")) return "raffles";
   if (pathname.includes("/surveys")) return "surveys";
   if (pathname.includes("/advanced-analytics") || pathname.includes("/analytics")) return "analytics";
   if (pathname.includes("/editor") || pathname.includes("/preview") || pathname.includes("/qr-present")) return "editor";
