@@ -1,6 +1,6 @@
 """add reserve_winner_count to event raffles
 
-Revision ID: 015_add_raffle_reserve_winner_count
+Revision ID: 015_raffle_reserve_ct
 Revises: 014_add_organization_allowlist
 Create Date: 2026-03-31 00:00:00.000000
 """
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "015_add_raffle_reserve_winner_count"
+revision = "015_raffle_reserve_ct"
 down_revision = "014_add_organization_allowlist"
 branch_labels = None
 depends_on = None
