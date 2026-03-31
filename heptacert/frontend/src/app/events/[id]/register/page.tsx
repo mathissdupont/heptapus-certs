@@ -137,6 +137,7 @@ export default function EventRegisterPage() {
 
       if (typeof window !== "undefined") {
         localStorage.setItem(`heptacert_attendee_${eventId}`, String(registered.attendee_id));
+        localStorage.setItem(`heptacert_attendee_email_${eventId}`, email.trim().toLowerCase());
       }
 
       setSuccess(true);
@@ -367,8 +368,8 @@ export default function EventRegisterPage() {
 
                       <div className="mt-4">
                         {event.survey.external_url &&
-                        (event.survey.survey_type === "external" ||
-                          event.survey.survey_type === "both") ? (
+                        event.survey.survey_type === "external" &&
+                        !event.survey.has_builtin_questions ? (
                           <a
                             href={event.survey.external_url}
                             target="_blank"
@@ -381,7 +382,9 @@ export default function EventRegisterPage() {
                         ) : (
                           <a
                             href={`/events/${event.id}/survey${
-                              attendeeId ? `?attendee_id=${attendeeId}` : ""
+                              attendeeId
+                                ? `?attendee_id=${attendeeId}&email=${encodeURIComponent(email.trim().toLowerCase())}`
+                                : ""
                             }`}
                             className="inline-flex items-center gap-2 rounded-xl bg-amber-400 text-black font-semibold px-4 py-2.5 text-sm hover:opacity-90 transition-opacity"
                           >

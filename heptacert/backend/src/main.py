@@ -3100,28 +3100,11 @@ async def award_badge_manually(
     return new_badge
 
 
-@app.get("/api/admin/events/{event_id}/badges")
-async def list_badges(
+async def _build_participant_badge_items(
+    db: AsyncSession,
     event_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """List all awarded badges for an event."""
-    e_res = await db.execute(select(Event).where(Event.id == event_id))
-    event = e_res.scalar_one_or_none()
-    if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
-
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
-
-    pb_res = await db.execute(
-        select(ParticipantBadge)
-        .where(ParticipantBadge.event_id == event_id)
-        .order_by(ParticipantBadge.awarded_at.desc())
-    )
-    badges = pb_res.scalars().all()
-
+    badges: List[ParticipantBadge],
+) -> List[ParticipantBadgeOut]:
     att_res = await db.execute(select(Attendee).where(Attendee.event_id == event_id))
     attendees = att_res.scalars().all()
     attendee_map = {attendee.id: attendee for attendee in attendees}
@@ -3138,17 +3121,8 @@ async def list_badges(
         else {}
     )
 
-    by_type: Dict[str, int] = {}
-    automatic_count = 0
-    manual_count = 0
     badge_items: List[ParticipantBadgeOut] = []
     for badge in badges:
-        by_type[badge.badge_type] = by_type.get(badge.badge_type, 0) + 1
-        if badge.is_automatic:
-            automatic_count += 1
-        else:
-            manual_count += 1
-
         attendee = attendee_map.get(badge.attendee_id)
         definition = badge_definition_map.get(badge.badge_type, {})
         badge_items.append(
@@ -3171,6 +3145,43 @@ async def list_badges(
             )
         )
 
+    return badge_items
+
+
+@app.get("/api/admin/events/{event_id}/badges")
+async def list_badges(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all awarded badges for an event."""
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+
+    pb_res = await db.execute(
+        select(ParticipantBadge)
+        .where(ParticipantBadge.event_id == event_id)
+        .order_by(ParticipantBadge.awarded_at.desc())
+    )
+    badges = pb_res.scalars().all()
+
+    by_type: Dict[str, int] = {}
+    automatic_count = 0
+    manual_count = 0
+    for badge in badges:
+        by_type[badge.badge_type] = by_type.get(badge.badge_type, 0) + 1
+        if badge.is_automatic:
+            automatic_count += 1
+        else:
+            manual_count += 1
+
+    badge_items = await _build_participant_badge_items(db, event_id, badges)
+
     return {
         "total_badges": len(badges),
         "badges": badge_items,
@@ -3178,6 +3189,45 @@ async def list_badges(
             "by_type": by_type,
             "automatic_vs_manual": {"automatic": automatic_count, "manual": manual_count},
         },
+    }
+
+
+@app.get("/api/events/{event_id}/attendees/{attendee_id}/badges")
+async def list_public_attendee_badges(
+    event_id: int,
+    attendee_id: int,
+    email: str = Query(..., min_length=3),
+    db: AsyncSession = Depends(get_db),
+):
+    """List awarded badges for a public attendee view."""
+    event_res = await db.execute(select(Event.id).where(Event.id == event_id))
+    if event_res.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    attendee_res = await db.execute(
+        select(Attendee).where(
+            Attendee.id == attendee_id,
+            Attendee.event_id == event_id,
+        )
+    )
+    attendee = attendee_res.scalar_one_or_none()
+    if not attendee or attendee.email.lower() != email.lower():
+        raise HTTPException(status_code=404, detail="Attendee not found")
+
+    pb_res = await db.execute(
+        select(ParticipantBadge)
+        .where(
+            ParticipantBadge.event_id == event_id,
+            ParticipantBadge.attendee_id == attendee_id,
+        )
+        .order_by(ParticipantBadge.awarded_at.desc())
+    )
+    badges = pb_res.scalars().all()
+    badge_items = await _build_participant_badge_items(db, event_id, badges)
+
+    return {
+        "total_badges": len(badge_items),
+        "badges": badge_items,
     }
 
 

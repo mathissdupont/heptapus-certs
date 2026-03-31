@@ -445,18 +445,18 @@ export default function GamificationPage() {
         <p className="text-gray-500 text-sm mt-1">Katılımcıları başarılarıyla ödüllendirin</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[
           {
             label: "Durum",
             value: enabled ? "Aktif" : "Pasif",
-            hint: enabled ? "Hesaplama acik" : "Kurallar beklemede",
+            hint: enabled ? "Hesaplama açık" : "Kurallar beklemede",
             icon: ToggleLeft,
           },
           {
             label: "Rozet Turu",
             value: String(badgeTypeCount),
-            hint: `${editingBadges.length} tanim guncellenebilir`,
+            hint: `${editingBadges.length} tanım güncellenebilir`,
             icon: Award,
           },
           {
@@ -466,9 +466,9 @@ export default function GamificationPage() {
             icon: Trophy,
           },
           {
-            label: "One Cikan Turler",
+            label: "Öne Çıkan Türler",
             value: badgeTypeCount > 0 ? Object.keys(badgeSummary.by_type).slice(0, 1)[0] : "-",
-            hint: badgeTypeCount > 1 ? `${badgeTypeCount - 1} tur daha var` : "Henuz tur yok",
+            hint: badgeTypeCount > 1 ? `${badgeTypeCount - 1} tür daha var` : "Henüz tür yok",
             icon: BarChart3,
           },
         ].map((item) => {
@@ -534,8 +534,8 @@ export default function GamificationPage() {
       {activeTab === "rules" && (
         <div className="space-y-6">
           {/* Enable/Disable Toggle */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
+          <div className="bg-white rounded-3xl border border-gray-200 p-6 shadow-sm">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <h3 className="font-semibold text-gray-900">Rozet Sistemi</h3>
                 <p className="text-sm text-gray-500 mt-1">
@@ -564,11 +564,11 @@ export default function GamificationPage() {
                 key={idx}
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-xl border border-gray-200 p-4"
+                className="bg-white rounded-[28px] border border-gray-200 p-5 shadow-sm"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                           Rozet Türü
@@ -634,7 +634,7 @@ export default function GamificationPage() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                           Rozet Rengi
@@ -677,12 +677,50 @@ export default function GamificationPage() {
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => removeBadge(idx)}
-                    className="p-2 hover:bg-red-50 rounded-lg text-red-600 mt-1"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
+                  <div className="xl:w-[260px] xl:shrink-0">
+                    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                      <div
+                        className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold"
+                        style={{
+                          color: badge.color_hex || "#4CAF50",
+                          borderColor: `${badge.color_hex || "#4CAF50"}55`,
+                          backgroundColor: `${badge.color_hex || "#4CAF50"}12`,
+                        }}
+                      >
+                        <Award className="h-3.5 w-3.5" />
+                        Önizleme
+                      </div>
+                      <p className="mt-4 break-words text-lg font-black text-slate-900">
+                        {badge.name || "Rozet adı"}
+                      </p>
+                      <p className="mt-2 break-words text-sm leading-6 text-slate-600">
+                        {badge.description || "Rozet açıklaması burada görünecek."}
+                      </p>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {Object.keys(badge.criteria || {}).length > 0 ? (
+                          Object.keys(badge.criteria || {}).map((key) => (
+                            <span
+                              key={key}
+                              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600"
+                            >
+                              {getCriteriaDef(key)?.label || key}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="rounded-full border border-dashed border-slate-300 bg-white px-3 py-1 text-xs text-slate-500">
+                            Tüm katılımcılara açık
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => removeBadge(idx)}
+                      className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
+                    >
+                      <X className="h-4 w-4" />
+                      Rozeti kaldır
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -694,7 +732,7 @@ export default function GamificationPage() {
               className="bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 p-4"
             >
               <h4 className="font-semibold text-gray-900 mb-4">Yeni Rozet Ekle</h4>
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                 <input
                   type="text"
                   placeholder="Rozet Türü (örn: early_bird)"
@@ -794,7 +832,7 @@ export default function GamificationPage() {
                   type="text"
                   value={badgeQuery}
                   onChange={(e) => setBadgeQuery(e.target.value)}
-                  placeholder="Rozet veya katilimci ara"
+                  placeholder="Rozet veya katılımcı ara"
                   className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 text-sm"
                 />
               </label>
@@ -807,6 +845,18 @@ export default function GamificationPage() {
                 <div className="mt-1 text-2xl font-semibold text-gray-900">{badgeSummary.automatic_vs_manual.manual}</div>
               </div>
             </div>
+            {Object.entries(badgeSummary.by_type || {}).length > 0 ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {Object.entries(badgeSummary.by_type).map(([type, count]) => (
+                  <span
+                    key={type}
+                    className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700"
+                  >
+                    {type} • {count}
+                  </span>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           {filteredAwardedBadges.length === 0 ? (
@@ -822,28 +872,28 @@ export default function GamificationPage() {
                 key={badge.id}
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"
+                className="grid gap-4 rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm xl:grid-cols-[minmax(0,1fr)_320px]"
               >
-                <div>
-                  <div className="font-semibold text-gray-900">
+                <div className="min-w-0">
+                  <div className="break-words text-lg font-black text-gray-900">
                     {badge.badge_name || badge.badge_type}
                   </div>
                   {badge.badge_description && (
-                    <div className="text-sm text-gray-500 mt-1">{badge.badge_description}</div>
+                    <div className="mt-1 break-words text-sm text-gray-500">{badge.badge_description}</div>
                   )}
-                  <div className="text-sm text-gray-500 mt-1">
+                  <div className="mt-2 break-words text-sm text-gray-500">
                     {badge.attendee_name || `Katılımcı ID: ${badge.attendee_id}`}
                     {badge.attendee_email ? ` • ${badge.attendee_email}` : ""}
                   </div>
-                  <div className="text-sm text-gray-500 mt-1">
+                  <div className="mt-1 text-sm text-gray-500">
                     {badge.is_automatic ? "Otomatik" : "Manuel"} • Tür: {badge.badge_type}
                   </div>
-                  <div className="text-xs text-gray-400 mt-1">
+                  <div className="mt-1 text-xs text-gray-400">
                     {new Date(badge.awarded_at).toLocaleString("tr-TR")}
                   </div>
                 </div>
 
-                <div className="lg:max-w-sm lg:min-w-[320px]">
+                <div className="xl:min-w-[320px]">
                   <div
                     style={{
                       backgroundColor: `${badge.badge_color_hex || "#4CAF50"}20`,
@@ -864,11 +914,11 @@ export default function GamificationPage() {
                             <div className="flex items-center justify-between gap-3">
                               <span className="text-sm font-medium text-gray-700">{key}</span>
                               <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${criteria.passed ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
-                                {criteria.passed ? "Gecti" : "Kaldi"}
+                                {criteria.passed ? "Geçti" : "Kaldı"}
                               </span>
                             </div>
                             <div className="mt-1 text-xs text-gray-500">
-                              Gereken: {String(criteria.required ?? "-")} • Gerceklesen: {String(criteria.actual ?? "-")}
+                              Gereken: {String(criteria.required ?? "-")} • Gerçekleşen: {String(criteria.actual ?? "-")}
                             </div>
                           </div>
                         );

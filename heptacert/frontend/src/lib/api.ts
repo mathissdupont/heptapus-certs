@@ -47,6 +47,7 @@ export class ApiError extends Error {
 export async function apiFetch(path: string, init: RequestInit = {}) {
   const token = getToken();
   const headers = new Headers(init.headers);
+  const method = (init.method || "GET").toUpperCase();
 
   if (!headers.has("Content-Type") && !(init.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
@@ -58,7 +59,12 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
 
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}${path}`, { ...init, headers, signal: controller.signal });
+    res = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      headers,
+      signal: controller.signal,
+      cache: init.cache ?? (method === "GET" ? "no-store" : undefined),
+    });
   } catch (err: any) {
     clearTimeout(timeout);
     if (err?.name === "AbortError") throw new ApiError(0, "İstek zaman aşımına uğradı.");
@@ -85,7 +91,7 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
   return res;
 }
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 export interface EventOut {
   id: number;
@@ -168,7 +174,7 @@ export interface EventRaffleOut {
   winners: EventRaffleWinnerOut[];
 }
 
-// ── Event (extended) ──────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 export interface SubscriptionInfo {
   active: boolean;
@@ -210,7 +216,7 @@ export async function uploadEventBanner(eventId: number, file: File): Promise<{ 
   return res.json();
 }
 
-// ── Sessions ──────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 export async function listSessions(eventId: number): Promise<SessionOut[]> {
   const res = await apiFetch(`/admin/events/${eventId}/sessions`);
@@ -263,7 +269,7 @@ export async function fetchSessionQr(eventId: number, sessionId: number): Promis
   return { blob, checkinUrl };
 }
 
-// ── Attendees ─────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 export async function listAttendees(
   eventId: number,
@@ -291,7 +297,7 @@ export async function deleteAttendee(eventId: number, attendeeId: number) {
   await apiFetch(`/admin/events/${eventId}/attendees/${attendeeId}`, { method: "DELETE" });
 }
 
-// ── Attendance ────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 export async function getAttendanceMatrix(eventId: number): Promise<AttendanceMatrix> {
   const res = await apiFetch(`/admin/events/${eventId}/attendance`);
@@ -383,7 +389,7 @@ export function getAttendanceExportUrl(eventId: number, fmt: "xlsx" | "csv" = "x
   return `${API_BASE}/admin/events/${eventId}/attendance/export?fmt=${fmt}`;
 }
 
-// ── Bulk certify ──────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 export async function bulkCertifyAttendees(
   eventId: number,
@@ -421,7 +427,7 @@ export async function getBulkGenerateJob(eventId: number, jobId: number): Promis
   return res.json();
 }
 
-// ── Public: event info ────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 export async function getPublicEventInfo(eventId: number) {
   const res = await fetch(`${API_BASE}/events/${eventId}/info`);
@@ -471,6 +477,40 @@ export async function submitBuiltinSurvey(
   return res.json();
 }
 
+export type PublicParticipantBadge = {
+  id: number;
+  event_id: number;
+  attendee_id: number;
+  badge_type: string;
+  badge_name?: string | null;
+  badge_description?: string | null;
+  badge_icon_url?: string | null;
+  badge_color_hex?: string | null;
+  attendee_name?: string | null;
+  attendee_email?: string | null;
+  criteria_met: Record<string, any>;
+  awarded_by: number | null;
+  awarded_at: string;
+  is_automatic: boolean;
+  badge_metadata?: Record<string, any> | null;
+};
+
+export async function getPublicAttendeeBadges(
+  eventId: number,
+  attendeeId: number,
+  email: string,
+): Promise<{ total_badges: number; badges: PublicParticipantBadge[] }> {
+  const res = await fetch(
+    `${API_BASE}/events/${eventId}/attendees/${attendeeId}/badges?email=${encodeURIComponent(email)}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    throw new Error(j?.detail || "Rozetler alınamadı");
+  }
+  return res.json();
+}
+
 export async function getCheckinSessionInfo(token: string) {
   const res = await fetch(`${API_BASE}/attend/${token}`);
   if (!res.ok) {
@@ -500,7 +540,7 @@ export async function selfCheckin(token: string, email: string) {
   }>;
 }
 
-// ── Event Analytics ───────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 export interface EventAnalyticsOut {
   event_id: number;
@@ -516,7 +556,7 @@ export async function getEventAnalytics(eventId: number): Promise<EventAnalytics
   return res.json();
 }
 
-// ── Dashboard Stats ───────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 export interface DashboardStatsOut {
   events_with_stats?: Array<{ event_id: number; event_name: string; total_attendees: number; certified_count: number }>;
@@ -527,7 +567,7 @@ export async function getDashboardStats(): Promise<DashboardStatsOut> {
   return res.json();
 }
 
-// ── SuperAdmin Endpoints ──────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 export interface AdminOut {
   id: number;
@@ -611,7 +651,7 @@ export async function getSuperAdminStats(): Promise<SuperAdminStatsOut> {
   return res.json();
 }
 
-// ── 2FA Management ────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 export interface TwoFAStatusOut {
   is_enabled: boolean;
@@ -646,7 +686,7 @@ export async function disable2FA(password: string): Promise<{ success: boolean }
   return res.json();
 }
 
-// ── Email Job Details ─────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 export interface EmailJobDetailsOut {
   id: number;
@@ -665,7 +705,7 @@ export async function getEmailJobDetails(eventId: number, jobId: number): Promis
   return res.json();
 }
 
-// ── Bulk Certificate Actions ──────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 export async function bulkCertificateAction(
   eventId: number,
@@ -679,7 +719,7 @@ export async function bulkCertificateAction(
   return res.json();
 }
 
-// ── API Keys ──────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 export interface APIKeyOut {
   id: number;
@@ -706,7 +746,7 @@ export async function deleteAPIKey(keyId: number): Promise<void> {
   await apiFetch(`/admin/api-keys/${keyId}`, { method: "DELETE" });
 }
 
-// ── Webhook Deliveries ────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 export interface WebhookDeliveryOut {
   id: number;
@@ -729,7 +769,7 @@ export async function listWebhookDeliveries(
   return res.json();
 }
 
-// ── Organization Domain ───────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 export interface OrgDomainOut {
   organization_id: number;

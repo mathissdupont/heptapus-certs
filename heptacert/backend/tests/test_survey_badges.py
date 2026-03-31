@@ -220,3 +220,12 @@ async def test_badge_list_returns_enriched_badge_metadata():
         assert badge["badge_color_hex"] == "#F59E0B"
         assert badge["attendee_name"] == "Attendee One"
         assert badge["attendee_email"] == "badge@example.com"
+
+        public_listed = await ac.get(
+            f"/api/events/{seeded['event_id']}/attendees/{seeded['attendee_id']}/badges",
+            params={"email": "badge@example.com"},
+        )
+        assert public_listed.status_code == 200
+        public_payload = public_listed.json()
+        assert public_payload["total_badges"] == 1
+        assert public_payload["badges"][0]["badge_name"] == "Survey Star"
