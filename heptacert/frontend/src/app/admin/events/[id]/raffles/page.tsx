@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
@@ -36,10 +36,12 @@ import {
   CheckCircle2,
   Medal,
   Download,
+  MonitorPlay,
+  ExternalLink,
 } from "lucide-react";
 
 function fmtDate(value?: string | null) {
-  if (!value) return "Henüz çekilmedi";
+  if (!value) return "HenÃ¼z Ã§ekilmedi";
   return new Date(value).toLocaleString("tr-TR", {
     year: "numeric",
     month: "short",
@@ -52,7 +54,7 @@ function fmtDate(value?: string | null) {
 function statusMeta(status: string) {
   if (status === "drawn") {
     return {
-      label: "Kazananlar Çekildi",
+      label: "Kazananlar Ã‡ekildi",
       className: "border-emerald-200 bg-emerald-50 text-emerald-700",
     };
   }
@@ -130,7 +132,7 @@ export default function EventRafflesPage() {
       setRaffles(raffleRes);
       setPlanOk(hasPaidPlan);
     } catch (e: any) {
-      setError(e.message || "Çekilişler yüklenemedi.");
+      setError(e.message || "Ã‡ekiliÅŸler yÃ¼klenemedi.");
     } finally {
       setLoading(false);
     }
@@ -176,77 +178,77 @@ export default function EventRafflesPage() {
       };
       if (editingId) {
         await updateEventRaffle(eventId, editingId, payload);
-        toast.success("Çekiliş güncellendi.");
+        toast.success("Ã‡ekiliÅŸ gÃ¼ncellendi.");
       } else {
         await createEventRaffle(eventId, payload);
-        toast.success("Yeni çekiliş eklendi.");
+        toast.success("Yeni Ã§ekiliÅŸ eklendi.");
       }
       resetForm();
       await load();
     } catch (e: any) {
-      setError(e.message || "Kaydetme başarısız.");
-      toast.error(e.message || "Kaydetme başarısız.");
+      setError(e.message || "Kaydetme baÅŸarÄ±sÄ±z.");
+      toast.error(e.message || "Kaydetme baÅŸarÄ±sÄ±z.");
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(raffle: EventRaffleOut) {
-    if (!confirm(`"${raffle.title}" çekilişini silmek istediğinize emin misiniz?`)) return;
+    if (!confirm(`"${raffle.title}" Ã§ekiliÅŸini silmek istediÄŸinize emin misiniz?`)) return;
     setBusyId(raffle.id);
     try {
       await deleteEventRaffle(eventId, raffle.id);
-      toast.success("Çekiliş silindi.");
+      toast.success("Ã‡ekiliÅŸ silindi.");
       if (editingId === raffle.id) resetForm();
       await load();
     } catch (e: any) {
-      setError(e.message || "Silme başarısız.");
-      toast.error(e.message || "Silme başarısız.");
+      setError(e.message || "Silme baÅŸarÄ±sÄ±z.");
+      toast.error(e.message || "Silme baÅŸarÄ±sÄ±z.");
     } finally {
       setBusyId(null);
     }
   }
 
   async function handleDraw(raffle: EventRaffleOut) {
-    if (!confirm(`"${raffle.title}" için kazananları şimdi çekmek istiyor musunuz?`)) return;
+    if (!confirm(`"${raffle.title}" iÃ§in kazananlarÄ± ÅŸimdi Ã§ekmek istiyor musunuz?`)) return;
     setBusyId(raffle.id);
     try {
       await drawEventRaffle(eventId, raffle.id);
-      toast.success("Kazananlar çekildi.");
+      toast.success("Kazananlar Ã§ekildi.");
       await load();
     } catch (e: any) {
-      setError(e.message || "Çekiliş başlatılamadı.");
-      toast.error(e.message || "Çekiliş başlatılamadı.");
+      setError(e.message || "Ã‡ekiliÅŸ baÅŸlatÄ±lamadÄ±.");
+      toast.error(e.message || "Ã‡ekiliÅŸ baÅŸlatÄ±lamadÄ±.");
     } finally {
       setBusyId(null);
     }
   }
 
   async function handleReset(raffle: EventRaffleOut) {
-    if (!confirm(`"${raffle.title}" için mevcut kazananları temizlemek istiyor musunuz?`)) return;
+    if (!confirm(`"${raffle.title}" iÃ§in mevcut kazananlarÄ± temizlemek istiyor musunuz?`)) return;
     setBusyId(raffle.id);
     try {
       await resetEventRaffle(eventId, raffle.id);
-      toast.success("Çekiliş sıfırlandı.");
+      toast.success("Ã‡ekiliÅŸ sÄ±fÄ±rlandÄ±.");
       await load();
     } catch (e: any) {
-      setError(e.message || "Sıfırlama başarısız.");
-      toast.error(e.message || "Sıfırlama başarısız.");
+      setError(e.message || "SÄ±fÄ±rlama baÅŸarÄ±sÄ±z.");
+      toast.error(e.message || "SÄ±fÄ±rlama baÅŸarÄ±sÄ±z.");
     } finally {
       setBusyId(null);
     }
   }
 
   async function handleRedraw(raffle: EventRaffleOut) {
-    if (!confirm(`"${raffle.title}" için yeni tur çekip önceki kazananları hariç tutmak istiyor musunuz?`)) return;
+    if (!confirm(`"${raffle.title}" iÃ§in yeni tur Ã§ekip Ã¶nceki kazananlarÄ± hariÃ§ tutmak istiyor musunuz?`)) return;
     setBusyId(raffle.id);
     try {
       await redrawEventRaffle(eventId, raffle.id);
       toast.success("Yeni kazanan turu eklendi.");
       await load();
     } catch (e: any) {
-      setError(e.message || "Tekrar çekiliş başlatılamadı.");
-      toast.error(e.message || "Tekrar çekiliş başlatılamadı.");
+      setError(e.message || "Tekrar Ã§ekiliÅŸ baÅŸlatÄ±lamadÄ±.");
+      toast.error(e.message || "Tekrar Ã§ekiliÅŸ baÅŸlatÄ±lamadÄ±.");
     } finally {
       setBusyId(null);
     }
@@ -264,10 +266,10 @@ export default function EventRafflesPage() {
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-      toast.success("Çekiliş sonucu dışa aktarıldı.");
+      toast.success("Ã‡ekiliÅŸ sonucu dÄ±ÅŸa aktarÄ±ldÄ±.");
     } catch (e: any) {
-      setError(e.message || "Dışa aktarma başarısız.");
-      toast.error(e.message || "Dışa aktarma başarısız.");
+      setError(e.message || "DÄ±ÅŸa aktarma baÅŸarÄ±sÄ±z.");
+      toast.error(e.message || "DÄ±ÅŸa aktarma baÅŸarÄ±sÄ±z.");
     } finally {
       setBusyId(null);
     }
@@ -298,13 +300,13 @@ export default function EventRafflesPage() {
             <ShieldAlert className="mx-auto mb-3 h-12 w-12 text-amber-400" />
             <h2 className="mb-2 text-lg font-bold text-gray-800">Pro veya Enterprise plan gerekli</h2>
             <p className="mx-auto mb-4 max-w-md text-sm text-gray-500">
-              Çoklu oturum katılımına göre çekiliş oluşturma ve kazanan seçme özellikleri ücretli planlarda kullanılabilir.
+              Ã‡oklu oturum katÄ±lÄ±mÄ±na gÃ¶re Ã§ekiliÅŸ oluÅŸturma ve kazanan seÃ§me Ã¶zellikleri Ã¼cretli planlarda kullanÄ±labilir.
             </p>
             <Link
               href="/pricing"
               className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-700"
             >
-              <Sparkles className="h-4 w-4" /> Planı Yükselt
+              <Sparkles className="h-4 w-4" /> PlanÄ± YÃ¼kselt
             </Link>
           </div>
         )}
@@ -316,46 +318,46 @@ export default function EventRafflesPage() {
                 <div className="border-b border-slate-100 bg-[radial-gradient(circle_at_top_left,_rgba(249,115,22,0.18),_transparent_42%),linear-gradient(135deg,_#ffffff_22%,_#fff7ed_100%)] px-6 py-6">
                   <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
                     <PartyPopper className="h-3.5 w-3.5" />
-                    Etkinlik içi ödül akışı
+                    Etkinlik iÃ§i Ã¶dÃ¼l akÄ±ÅŸÄ±
                   </div>
                   <h1 className="mt-4 text-2xl font-black text-slate-900">
-                    {editingId ? "Çekilişi Düzenle" : "Yeni Çekiliş Oluştur"}
+                    {editingId ? "Ã‡ekiliÅŸi DÃ¼zenle" : "Yeni Ã‡ekiliÅŸ OluÅŸtur"}
                   </h1>
                   <p className="mt-2 text-sm leading-6 text-slate-600">
-                    Kurumlar aynı etkinliğe birden fazla çekiliş ekleyebilir. Her çekiliş kendi oturum eşiği ve kazanan sayısıyla yönetilir.
+                    Kurumlar aynÄ± etkinliÄŸe birden fazla Ã§ekiliÅŸ ekleyebilir. Her Ã§ekiliÅŸ kendi oturum eÅŸiÄŸi ve kazanan sayÄ±sÄ±yla yÃ¶netilir.
                   </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4 p-6">
                   <div>
-                    <label className="label">Çekiliş Başlığı</label>
+                    <label className="label">Ã‡ekiliÅŸ BaÅŸlÄ±ÄŸÄ±</label>
                     <input
                       className="input-field"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      placeholder="Örn. VIP Kulaklık Çekilişi"
+                      placeholder="Ã–rn. VIP KulaklÄ±k Ã‡ekiliÅŸi"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="label">Hediye / Ürün</label>
+                    <label className="label">Hediye / ÃœrÃ¼n</label>
                     <input
                       className="input-field"
                       value={prizeName}
                       onChange={(e) => setPrizeName(e.target.value)}
-                      placeholder="Örn. 1 adet kablosuz kulaklık"
+                      placeholder="Ã–rn. 1 adet kablosuz kulaklÄ±k"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="label">Kısa Açıklama</label>
+                    <label className="label">KÄ±sa AÃ§Ä±klama</label>
                     <textarea
                       className="input-field min-h-[100px]"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Çekiliş sonunda hangi ürünün, hangi katılım koşuluyla verileceğini kısaca anlatın."
+                      placeholder="Ã‡ekiliÅŸ sonunda hangi Ã¼rÃ¼nÃ¼n, hangi katÄ±lÄ±m koÅŸuluyla verileceÄŸini kÄ±saca anlatÄ±n."
                     />
                   </div>
 
@@ -376,7 +378,7 @@ export default function EventRafflesPage() {
                       </div>
                     </div>
                     <div>
-                      <label className="label">Kazanan Sayısı</label>
+                      <label className="label">Kazanan SayÄ±sÄ±</label>
                       <div className="relative">
                         <Trophy className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                         <input
@@ -416,7 +418,7 @@ export default function EventRafflesPage() {
                       className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50"
                     >
                       {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editingId ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                      {editingId ? "Çekilişi Güncelle" : "Çekiliş Ekle"}
+                      {editingId ? "Ã‡ekiliÅŸi GÃ¼ncelle" : "Ã‡ekiliÅŸ Ekle"}
                     </button>
                     {editingId && (
                       <button
@@ -425,7 +427,7 @@ export default function EventRafflesPage() {
                         className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                       >
                         <RotateCcw className="h-4 w-4" />
-                        Düzenlemeyi İptal Et
+                        DÃ¼zenlemeyi Ä°ptal Et
                       </button>
                     )}
                   </div>
@@ -438,13 +440,13 @@ export default function EventRafflesPage() {
                     <Gift className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">Özet</p>
-                    <p className="text-xs text-slate-500">Mevcut çekiliş görünümü</p>
+                    <p className="text-sm font-semibold text-slate-900">Ã–zet</p>
+                    <p className="text-xs text-slate-500">Mevcut Ã§ekiliÅŸ gÃ¶rÃ¼nÃ¼mÃ¼</p>
                   </div>
                 </div>
                 <div className="grid gap-3">
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Tur PlanÄ±</p>
+                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Tur PlanÃ„Â±</p>
                     <div className="mt-3 grid grid-cols-2 gap-3">
                       <div className="rounded-2xl border border-white/80 bg-white px-3 py-3">
                         <p className="text-2xl font-black text-slate-900">{winnerCount}</p>
@@ -457,18 +459,18 @@ export default function EventRafflesPage() {
                     </div>
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Başlık</p>
-                    <p className="mt-2 text-sm font-semibold text-slate-900">{title || "Çekiliş başlığınız burada görünür"}</p>
+                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">BaÅŸlÄ±k</p>
+                    <p className="mt-2 text-sm font-semibold text-slate-900">{title || "Ã‡ekiliÅŸ baÅŸlÄ±ÄŸÄ±nÄ±z burada gÃ¶rÃ¼nÃ¼r"}</p>
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Katılım Kuralı</p>
+                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">KatÄ±lÄ±m KuralÄ±</p>
                     <p className="mt-2 text-sm font-semibold text-slate-900">
-                      En az {minSessionsRequired} oturuma katılanlar arasından {winnerCount} kişi seçilecek
+                      En az {minSessionsRequired} oturuma katÄ±lanlar arasÄ±ndan {winnerCount} kiÅŸi seÃ§ilecek
                     </p>
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                     <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Hediye</p>
-                    <p className="mt-2 text-sm font-semibold text-slate-900">{prizeName || "Hediye / ürün bilgisi"}</p>
+                    <p className="mt-2 text-sm font-semibold text-slate-900">{prizeName || "Hediye / Ã¼rÃ¼n bilgisi"}</p>
                   </div>
                 </div>
               </div>
@@ -482,7 +484,7 @@ export default function EventRafflesPage() {
                       <Ticket className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">Toplam Çekiliş</p>
+                      <p className="text-sm font-semibold text-slate-900">Toplam Ã‡ekiliÅŸ</p>
                       <p className="text-2xl font-black text-slate-900">{raffles.length}</p>
                     </div>
                   </div>
@@ -514,9 +516,9 @@ export default function EventRafflesPage() {
               <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-xl font-black text-slate-900">Etkinlik Çekilişleri</h2>
+                    <h2 className="text-xl font-black text-slate-900">Etkinlik Ã‡ekiliÅŸleri</h2>
                     <p className="mt-1 text-sm text-slate-500">
-                      Her kart, oturum eşiğine göre ayrı bir çekilişi temsil eder. Toplam seçilen kazanan: {stats.totalWinners}
+                      Her kart, oturum eÅŸiÄŸine gÃ¶re ayrÄ± bir Ã§ekiliÅŸi temsil eder. Toplam seÃ§ilen kazanan: {stats.totalWinners}
                     </p>
                   </div>
                 </div>
@@ -524,9 +526,9 @@ export default function EventRafflesPage() {
                 {raffles.length === 0 ? (
                   <div className="mt-6 rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
                     <Gift className="mx-auto h-10 w-10 text-slate-300" />
-                    <p className="mt-4 text-lg font-semibold text-slate-800">Henüz çekiliş eklenmedi</p>
+                    <p className="mt-4 text-lg font-semibold text-slate-800">HenÃ¼z Ã§ekiliÅŸ eklenmedi</p>
                     <p className="mt-2 text-sm text-slate-500">
-                      İlk çekilişi oluşturarak belirli sayıda oturuma katılanlar için ödül akışını başlatabilirsiniz.
+                      Ä°lk Ã§ekiliÅŸi oluÅŸturarak belirli sayÄ±da oturuma katÄ±lanlar iÃ§in Ã¶dÃ¼l akÄ±ÅŸÄ±nÄ± baÅŸlatabilirsiniz.
                     </p>
                   </div>
                 ) : (
@@ -548,7 +550,7 @@ export default function EventRafflesPage() {
                                 </div>
                                 <h3 className="text-lg font-black text-slate-900">{raffle.title}</h3>
                                 <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                                  {raffle.description || "Bu çekiliş için ek açıklama girilmedi."}
+                                  {raffle.description || "Bu Ã§ekiliÅŸ iÃ§in ek aÃ§Ä±klama girilmedi."}
                                 </p>
                               </div>
                               <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${meta.className}`}>
@@ -557,23 +559,23 @@ export default function EventRafflesPage() {
                             </div>
                           </div>
 
-                          <div className="grid gap-5 p-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+                          <div className="grid gap-5 p-5 2xl:grid-cols-[minmax(0,1fr)_340px]">
                             <div className="space-y-4">
-                              <div className="grid gap-3 sm:grid-cols-4">
+                              <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Katılım Eşiği</p>
+                                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">KatÄ±lÄ±m EÅŸiÄŸi</p>
                                   <p className="mt-2 text-lg font-black text-slate-900">{raffle.min_sessions_required}</p>
                                   <p className="text-xs text-slate-500">minimum oturum</p>
                                 </div>
                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Kazanan Sayısı</p>
+                                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Kazanan SayÄ±sÄ±</p>
                                   <p className="mt-2 text-lg font-black text-slate-900">{raffle.winner_count}</p>
-                                  <p className="text-xs text-slate-500">planlanan kişi</p>
+                                  <p className="text-xs text-slate-500">planlanan kiÅŸi</p>
                                 </div>
                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                                   <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Uygun Aday</p>
                                   <p className="mt-2 text-lg font-black text-slate-900">{raffle.eligible_count}</p>
-                                  <p className="text-xs text-slate-500">toplam {raffle.total_attendees} katılımcı içinden</p>
+                                  <p className="text-xs text-slate-500">toplam {raffle.total_attendees} katÄ±lÄ±mcÄ± iÃ§inden</p>
                                 </div>
                               </div>
 
@@ -581,18 +583,18 @@ export default function EventRafflesPage() {
                                 <div className="flex items-center justify-between gap-3">
                                   <div>
                                     <p className="text-sm font-semibold text-slate-900">Kazananlar</p>
-                                    <p className="text-xs text-slate-500">Son çekiliş zamanı: {fmtDate(raffle.drawn_at)}</p>
+                                    <p className="text-xs text-slate-500">Son Ã§ekiliÅŸ zamanÄ±: {fmtDate(raffle.drawn_at)}</p>
                                   </div>
                                   {raffle.eligible_count > 0 && raffle.eligible_count < roundCapacity && (
                                     <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
-                                      Uygun aday sayısı planlanandan az
+                                      Uygun aday sayÄ±sÄ± planlanandan az
                                     </span>
                                   )}
                                 </div>
 
                                 {raffle.winners.length === 0 ? (
                                   <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-                                    Bu çekiliş için henüz kazanan seçilmedi.
+                                    Bu Ã§ekiliÅŸ iÃ§in henÃ¼z kazanan seÃ§ilmedi.
                                   </div>
                                 ) : (
                                   <div className="mt-4 space-y-4">
@@ -610,7 +612,7 @@ export default function EventRafflesPage() {
                                               <p className="text-sm font-semibold text-slate-900">Tur {roundData.round}</p>
                                               <p className="text-xs text-slate-500">
                                                 {roundData.primary.length} asil
-                                                {raffle.reserve_winner_count > 0 ? ` • ${roundData.reserve.length} yedek` : ""}
+                                                {raffle.reserve_winner_count > 0 ? ` â€¢ ${roundData.reserve.length} yedek` : ""}
                                               </p>
                                             </div>
                                             <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-600">
@@ -657,7 +659,7 @@ export default function EventRafflesPage() {
                                                 </p>
                                                 {roundData.reserve.length === 0 ? (
                                                   <div className="rounded-2xl border border-dashed border-amber-300 bg-white/70 px-4 py-6 text-center text-sm text-amber-700">
-                                                    Bu turda yedek kazanan Ã§Ä±kmadÄ±.
+                                                    Bu turda yedek kazanan ÃƒÂ§Ã„Â±kmadÃ„Â±.
                                                   </div>
                                                 ) : (
                                                   <div className="space-y-2">
@@ -697,13 +699,39 @@ export default function EventRafflesPage() {
                               <div className="rounded-3xl border border-indigo-100 bg-[linear-gradient(135deg,_rgba(99,102,241,0.08),_rgba(249,115,22,0.08))] p-4">
                                 <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Tur Kurgusu</p>
                                 <p className="mt-3 text-lg font-black text-slate-900">{drawPlan}</p>
-                                <p className="mt-2 text-sm leading-6 text-slate-600">
-                                  Her tekrar Ã§ek yeni bir tur ekler ve Ã¶nceki asil ile yedek isimleri havuz dÄ±ÅŸÄ± bÄ±rakarak ilerler.
-                                </p>
+                                <div className="mt-4 space-y-3">
+                                  <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Katilim Kurali</p>
+                                    <p className="mt-1 text-sm font-semibold text-slate-900">
+                                      En az {raffle.min_sessions_required} oturuma katilanlar havuza girer.
+                                    </p>
+                                  </div>
+                                  <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Tekrar Cek Mantigi</p>
+                                    <p className="mt-1 text-sm leading-6 text-slate-700">
+                                      Tekrar cek, onceki asil ve yedekleri havuz disinda birakarak yeni bir tur ekler.
+                                    </p>
+                                  </div>
+                                </div>
                               </div>
                               <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                                <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Çekiliş Aksiyonları</p>
+                                <div className="flex items-center justify-between gap-3">
+                                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Cekilis Aksiyonlari</p>
+                                  <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                                    {rounds.length} tur
+                                  </span>
+                                </div>
                                 <div className="mt-4 grid gap-3">
+                                  <Link
+                                    href={`/admin/events/${eventId}/raffles/${raffle.id}/present`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-900 bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                                  >
+                                    <MonitorPlay className="h-4 w-4" />
+                                    Sunum Modu
+                                    <ExternalLink className="h-3.5 w-3.5 opacity-80" />
+                                  </Link>
                                   <button
                                     type="button"
                                     onClick={() => handleDraw(raffle)}
@@ -711,7 +739,7 @@ export default function EventRafflesPage() {
                                     className="inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
                                   >
                                     {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trophy className="h-4 w-4" />}
-                                    Kazananları Çek
+                                    Kazananlari Cek
                                   </button>
                                   <button
                                     type="button"
@@ -720,7 +748,7 @@ export default function EventRafflesPage() {
                                     className="inline-flex items-center justify-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100 disabled:opacity-50"
                                   >
                                     <PartyPopper className="h-4 w-4" />
-                                    Tekrar Ã‡ek
+                                    Tekrar Cek
                                   </button>
                                   <button
                                     type="button"
@@ -729,7 +757,7 @@ export default function EventRafflesPage() {
                                     className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
                                   >
                                     <Pencil className="h-4 w-4" />
-                                    Düzenle
+                                    Duzenle
                                   </button>
                                   <button
                                     type="button"
@@ -738,7 +766,7 @@ export default function EventRafflesPage() {
                                     className="inline-flex items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700 transition hover:bg-amber-100 disabled:opacity-50"
                                   >
                                     <RotateCcw className="h-4 w-4" />
-                                    Sonucu Sıfırla
+                                    Sonucu Sifirla
                                   </button>
                                   <button
                                     type="button"
@@ -747,7 +775,7 @@ export default function EventRafflesPage() {
                                     className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
                                   >
                                     <Download className="h-4 w-4" />
-                                    Sonucu DÄ±ÅŸa Aktar
+                                    Sonucu Disa Aktar
                                   </button>
                                   <button
                                     type="button"
@@ -756,7 +784,7 @@ export default function EventRafflesPage() {
                                     className="inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-50"
                                   >
                                     <Trash2 className="h-4 w-4" />
-                                    Çekilişi Sil
+                                    Cekilisi Sil
                                   </button>
                                 </div>
                               </div>
@@ -775,3 +803,4 @@ export default function EventRafflesPage() {
     </div>
   );
 }
+
