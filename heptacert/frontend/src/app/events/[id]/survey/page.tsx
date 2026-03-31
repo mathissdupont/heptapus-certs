@@ -40,6 +40,12 @@ type EventInfo = {
   survey?: PublicSurvey | null;
 };
 
+const badgeDateFormatter = new Intl.DateTimeFormat("tr-TR", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "Europe/Istanbul",
+});
+
 function BadgeGallery({ badges }: { badges: PublicParticipantBadge[] }) {
   if (badges.length === 0) {
     return (
@@ -84,7 +90,7 @@ function BadgeGallery({ badges }: { badges: PublicParticipantBadge[] }) {
                 Tür: {badge.badge_type}
               </span>
               <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                {new Date(badge.awarded_at).toLocaleString("tr-TR")}
+                {badgeDateFormatter.format(new Date(badge.awarded_at))}
               </span>
             </div>
           </div>
