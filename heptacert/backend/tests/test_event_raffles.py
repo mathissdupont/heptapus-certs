@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -9,6 +11,7 @@ from src.main import (
     EventSession,
     Attendee,
     AttendanceRecord,
+    Subscription,
     Role,
     create_access_token,
 )
@@ -23,6 +26,20 @@ async def _create_admin(email: str) -> User:
             user_id = user.id
     async with SessionLocal() as sess:
         return await sess.get(User, user_id)
+
+
+async def _grant_paid_plan(user: User) -> None:
+    async with SessionLocal() as sess:
+        async with sess.begin():
+            sess.add(
+                Subscription(
+                    user_id=user.id,
+                    plan_id="pro",
+                    is_active=True,
+                    started_at=datetime.now(timezone.utc),
+                    expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+                )
+            )
 
 
 async def _seed_event_for_raffles(owner: User) -> dict:
@@ -77,6 +94,7 @@ async def _seed_event_for_raffles(owner: User) -> dict:
 @pytest.mark.asyncio
 async def test_event_raffle_draws_only_eligible_attendees():
     owner = await _create_admin("raffle-owner@example.com")
+    await _grant_paid_plan(owner)
     token = create_access_token(user_id=owner.id, role=Role.admin)
     seeded = await _seed_event_for_raffles(owner)
 
@@ -127,6 +145,7 @@ async def test_event_raffle_draws_only_eligible_attendees():
 @pytest.mark.asyncio
 async def test_updating_threshold_resets_existing_raffle_results():
     owner = await _create_admin("raffle-reset@example.com")
+    await _grant_paid_plan(owner)
     token = create_access_token(user_id=owner.id, role=Role.admin)
     seeded = await _seed_event_for_raffles(owner)
 
@@ -177,6 +196,7 @@ async def test_updating_threshold_resets_existing_raffle_results():
 @pytest.mark.asyncio
 async def test_redraw_excludes_previous_winners_and_export_returns_csv():
     owner = await _create_admin("raffle-redraw@example.com")
+    await _grant_paid_plan(owner)
     token = create_access_token(user_id=owner.id, role=Role.admin)
     seeded = await _seed_event_for_raffles(owner)
 

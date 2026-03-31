@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: heptacert
       POSTGRES_PASSWORD: heptacert
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - ${POSTGRES_DATA_DIR:-/mnt/HC_Volume_105029103/heptacert-data/postgres}:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U heptacert -d heptacert"]
       interval: 5s
@@ -46,7 +46,7 @@ services:
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
     volumes:
-      - heptacert_data:/data
+      - ${HEPTACERT_STORAGE_DIR:-/mnt/HC_Volume_105029103/heptacert-data/storage}:/data
     ports:
       - "8765:8000"
     command: >
@@ -117,7 +117,7 @@ services:
     environment:
       PGPASSWORD: heptacert
     volumes:
-      - backup_data:/backups
+      - ${HEPTACERT_BACKUP_DIR:-/mnt/HC_Volume_105029103/heptacert-data/backups}:/backups
     entrypoint: >
       sh -c "
         apk add --no-cache dcron && \
@@ -125,12 +125,6 @@ services:
         crond -f -l 2
       "
     restart: unless-stopped
-
-
-volumes:
-  db_data:
-  heptacert_data:
-  backup_data:
 
 networks:
   caddy_net:
