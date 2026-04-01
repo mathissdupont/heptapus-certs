@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import {
-  listAttendees, importAttendees, deleteAttendee,
+  listAttendees, importAttendees, deleteAttendee, getAdminAttendeeSurveyLink,
   getAttendanceMatrix, bulkCertifyQueue, getBulkGenerateJob,
   getAttendanceExportUrl, apiFetch, getMySubscription,
   type AttendeeOut, type AttendanceMatrix, type SubscriptionInfo
@@ -15,7 +15,7 @@ import {
   Users, Upload, Search, Trash2, Loader2, ChevronLeft, Download,
   Award, BarChart3, CheckSquare, XSquare, RefreshCw, AlertCircle,
   UserCheck, UserX, CheckCircle2, QrCode, LockKeyhole, Hash,
-  ShieldAlert, Sparkles
+  ShieldAlert, Sparkles, Copy, Link2
 } from "lucide-react";
 
 type Tab = "list" | "matrix";
@@ -39,6 +39,8 @@ export default function AdminAttendeesPage() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ added: number; skipped: number } | null>(null);
+  const [copyingSurveyId, setCopyingSurveyId] = useState<number | null>(null);
+  const [copiedSurveyId, setCopiedSurveyId] = useState<number | null>(null);
 
   // Matrix tab
   const [matrix, setMatrix] = useState<AttendanceMatrix | null>(null);
@@ -144,6 +146,23 @@ export default function AdminAttendeesPage() {
       setListError(e.message);
     } finally {
       setImporting(false);
+    }
+  }
+
+  async function handleCopySurveyLink(attendeeId: number) {
+    setCopyingSurveyId(attendeeId);
+    setListError(null);
+    try {
+      const linkData = await getAdminAttendeeSurveyLink(eventId, attendeeId);
+      await navigator.clipboard.writeText(linkData.survey_url);
+      setCopiedSurveyId(attendeeId);
+      window.setTimeout(() => {
+        setCopiedSurveyId((current) => (current === attendeeId ? null : current));
+      }, 2200);
+    } catch (e: any) {
+      setListError(e.message || "Anket linki kopyalanamadı.");
+    } finally {
+      setCopyingSurveyId(null);
     }
   }
 
@@ -346,6 +365,7 @@ export default function AdminAttendeesPage() {
                         <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden sm:table-cell">E-posta</th>
                         <th className="text-center px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Oturum</th>
                         <th className="text-center px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Sertifika</th>
+                        <th className="text-center px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden lg:table-cell">Anket</th>
                         <th className="px-4 py-2.5" />
                       </tr>
                     </thead>
@@ -372,14 +392,48 @@ export default function AdminAttendeesPage() {
                               <span className="text-gray-300 text-xs">—</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-right">
+                          <td className="px-4 py-3 text-center hidden lg:table-cell">
                             <button
-                              onClick={() => handleDelete(a.id)}
-                              disabled={deletingId === a.id}
-                              className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition"
+                              onClick={() => void handleCopySurveyLink(a.id)}
+                              disabled={copyingSurveyId === a.id}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100 disabled:opacity-60"
+                              title="Katılımcıya özel anket linkini kopyala"
                             >
-                              {deletingId === a.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                              {copyingSurveyId === a.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : copiedSurveyId === a.id ? (
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                              ) : (
+                                <Link2 className="w-3.5 h-3.5" />
+                              )}
+                              {copiedSurveyId === a.id ? "Kopyalandı" : "Anket Linki"}
                             </button>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => void handleCopySurveyLink(a.id)}
+                                disabled={copyingSurveyId === a.id}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 lg:hidden"
+                                title="Katılımcıya özel anket linkini kopyala"
+                              >
+                                {copyingSurveyId === a.id ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : copiedSurveyId === a.id ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                ) : (
+                                  <Copy className="w-3.5 h-3.5" />
+                                )}
+                                {copiedSurveyId === a.id ? "Kopyalandı" : "Anket"}
+                              </button>
+                              <button
+                                onClick={() => handleDelete(a.id)}
+                                disabled={deletingId === a.id}
+                                className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition"
+                              >
+                                {deletingId === a.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}

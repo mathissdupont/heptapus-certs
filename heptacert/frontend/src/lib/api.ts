@@ -297,6 +297,14 @@ export async function deleteAttendee(eventId: number, attendeeId: number) {
   await apiFetch(`/admin/events/${eventId}/attendees/${attendeeId}`, { method: "DELETE" });
 }
 
+export async function getAdminAttendeeSurveyLink(
+  eventId: number,
+  attendeeId: number,
+): Promise<{ attendee_id: number; attendee_name: string; attendee_email: string; survey_token: string; survey_url: string }> {
+  const res = await apiFetch(`/admin/events/${eventId}/attendees/${attendeeId}/survey-link`);
+  return res.json();
+}
+
 // -----------------------------------------------------------------------------
 
 export async function getAttendanceMatrix(eventId: number): Promise<AttendanceMatrix> {
@@ -438,7 +446,7 @@ export async function getPublicEventInfo(eventId: number) {
 export async function publicRegisterAttendee(
   eventId: number,
   data: { name: string; email: string }
-): Promise<{ ok: boolean; message: string; attendee_id: number }> {
+): Promise<{ ok: boolean; message: string; attendee_id: number; survey_token?: string; survey_url?: string }> {
   const res = await fetch(`${API_BASE}/events/${eventId}/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -453,17 +461,19 @@ export async function publicRegisterAttendee(
 
 export async function submitBuiltinSurvey(
   eventId: number,
-  attendeeId: number,
+  attendeeId: number | null,
   answers: Record<string, unknown>,
+  surveyToken?: string,
 ) {
   const res = await fetch(`${API_BASE}/surveys/${eventId}/submit`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "attendee-id": String(attendeeId),
+      ...(attendeeId ? { "attendee-id": String(attendeeId) } : {}),
     },
     body: JSON.stringify({
-      attendee_id: attendeeId,
+      attendee_id: attendeeId || undefined,
+      survey_token: surveyToken || undefined,
       survey_type: "builtin",
       answers,
     }),
@@ -474,6 +484,21 @@ export async function submitBuiltinSurvey(
     throw new Error(j?.detail || "Anket gönderilemedi");
   }
 
+  return res.json();
+}
+
+export async function resolvePublicSurveyToken(
+  eventId: number,
+  surveyToken: string,
+): Promise<{ attendee_id: number; attendee_name: string; attendee_email: string; survey_token: string }> {
+  const res = await fetch(
+    `${API_BASE}/events/${eventId}/survey-access?token=${encodeURIComponent(surveyToken)}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    throw new Error(j?.detail || "Anket bağlantısı doğrulanamadı");
+  }
   return res.json();
 }
 

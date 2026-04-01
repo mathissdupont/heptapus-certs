@@ -63,6 +63,7 @@ export default function EventRegisterPage() {
   const [success, setSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [attendeeId, setAttendeeId] = useState<number | null>(null);
+  const [surveyUrl, setSurveyUrl] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/branding")
@@ -134,10 +135,14 @@ export default function EventRegisterPage() {
       });
 
       setAttendeeId(registered.attendee_id);
+      setSurveyUrl(registered.survey_url || null);
 
       if (typeof window !== "undefined") {
         localStorage.setItem(`heptacert_attendee_${eventId}`, String(registered.attendee_id));
         localStorage.setItem(`heptacert_attendee_email_${eventId}`, email.trim().toLowerCase());
+        if (registered.survey_token) {
+          localStorage.setItem(`heptacert_survey_token_${eventId}`, registered.survey_token);
+        }
       }
 
       setSuccess(true);
@@ -381,11 +386,7 @@ export default function EventRegisterPage() {
                           </a>
                         ) : (
                           <a
-                            href={`/events/${event.id}/survey${
-                              attendeeId
-                                ? `?attendee_id=${attendeeId}&email=${encodeURIComponent(email.trim().toLowerCase())}`
-                                : ""
-                            }`}
+                            href={surveyUrl || "#"}
                             className="inline-flex items-center gap-2 rounded-xl bg-amber-400 text-black font-semibold px-4 py-2.5 text-sm hover:opacity-90 transition-opacity"
                           >
                             Anketi Doldur

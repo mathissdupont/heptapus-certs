@@ -265,6 +265,12 @@ type BadgeSummary = {
   };
 };
 
+const badgeDateFormatter = new Intl.DateTimeFormat("tr-TR", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "Europe/Istanbul",
+});
+
 
 
 export default function GamificationPage() {
@@ -889,7 +895,7 @@ export default function GamificationPage() {
                     {badge.is_automatic ? "Otomatik" : "Manuel"} • Tür: {badge.badge_type}
                   </div>
                   <div className="mt-1 text-xs text-gray-400">
-                    {new Date(badge.awarded_at).toLocaleString("tr-TR")}
+                    {badgeDateFormatter.format(new Date(badge.awarded_at))}
                   </div>
                 </div>
 

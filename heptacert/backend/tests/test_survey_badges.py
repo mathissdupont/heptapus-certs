@@ -95,6 +95,90 @@ async def test_optional_builtin_survey_can_be_submitted_and_unlocks_attendee():
 
 
 @pytest.mark.asyncio
+async def test_public_register_returns_survey_token_and_submit_accepts_it():
+    owner = await _create_admin("survey-link-owner@example.com")
+    token = create_access_token(user_id=owner.id, role=Role.admin)
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        async with SessionLocal() as sess:
+            async with sess.begin():
+                event = Event(
+                    admin_id=owner.id,
+                    name="Survey Token Event",
+                    template_image_url="template.png",
+                    config={},
+                )
+                sess.add(event)
+                await sess.flush()
+                event_id = event.id
+
+        configured = await ac.post(
+            f"/api/admin/events/{event_id}/survey-config",
+            json={
+                "is_required": True,
+                "survey_type": "builtin",
+                "builtin_questions": [
+                    {
+                        "id": "satisfaction",
+                        "type": "text",
+                        "question": "How was the event?",
+                        "required": True,
+                    }
+                ],
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert configured.status_code == 200
+
+        registered = await ac.post(
+            f"/api/events/{event_id}/register",
+            json={"name": "Token User", "email": "token-user@example.com"},
+        )
+        assert registered.status_code == 201
+        registration_payload = registered.json()
+        assert registration_payload["survey_token"]
+        assert f"/events/{event_id}/survey?token=" in registration_payload["survey_url"]
+
+        resolved = await ac.get(
+            f"/api/events/{event_id}/survey-access",
+            params={"token": registration_payload["survey_token"]},
+        )
+        assert resolved.status_code == 200
+        resolved_payload = resolved.json()
+        assert resolved_payload["attendee_email"] == "token-user@example.com"
+
+        submitted = await ac.post(
+            f"/api/surveys/{event_id}/submit",
+            json={
+                "survey_token": registration_payload["survey_token"],
+                "survey_type": "builtin",
+                "answers": {"satisfaction": "Great"},
+            },
+        )
+        assert submitted.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_admin_can_generate_attendee_specific_survey_link():
+    owner = await _create_admin("survey-admin-link@example.com")
+    token = create_access_token(user_id=owner.id, role=Role.admin)
+    seeded = await _seed_event_with_attendee(owner, attendee_email="owner-link@example.com")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.get(
+            f"/api/admin/events/{seeded['event_id']}/attendees/{seeded['attendee_id']}/survey-link",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["attendee_email"] == "owner-link@example.com"
+        assert payload["survey_token"]
+        assert f"/events/{seeded['event_id']}/survey?token=" in payload["survey_url"]
+
+
+@pytest.mark.asyncio
 async def test_survey_config_toggle_unlocks_attendees_and_generates_webhook_key():
     owner = await _create_admin("survey-toggle@example.com")
     token = create_access_token(user_id=owner.id, role=Role.admin)
