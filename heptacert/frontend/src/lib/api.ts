@@ -185,10 +185,12 @@ export interface EventRaffleOut {
 export interface AuditLogOut {
   id: number;
   user_id?: number | null;
+  user_email?: string | null;
   action: string;
   resource_type?: string | null;
   resource_id?: string | null;
   ip_address?: string | null;
+  details?: string | null;
   extra?: Record<string, any> | null;
   created_at: string;
 }
@@ -706,18 +708,6 @@ export async function updateSuperAdminRole(adminId: number, role: string): Promi
     body: JSON.stringify({ role }),
   });
   return res.json();
-}
-
-export interface AuditLogOut {
-  id: number;
-  user_id?: number;
-  user_email?: string;
-  action: string;
-  resource_type?: string;
-  resource_id?: string;
-  details?: string;
-  ip_address?: string;
-  created_at: string;
 }
 
 export async function listAuditLogs(params?: {
