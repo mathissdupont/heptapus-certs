@@ -35,6 +35,38 @@ type RevealItem = {
 
 type EligibleSpotlight = EventRaffleOut["eligible_attendees"][number];
 
+function EligibleMarquee({
+  items,
+  reverse = false,
+}: {
+  items: EligibleSpotlight[];
+  reverse?: boolean;
+}) {
+  const repeated = useMemo(() => [...items, ...items, ...items], [items]);
+
+  if (items.length === 0) return null;
+
+  return (
+    <div className="overflow-hidden rounded-full border border-white/10 bg-white/5 py-2 backdrop-blur">
+      <motion.div
+        className="flex w-max items-center gap-3 px-3"
+        animate={{ x: reverse ? ["-50%", "0%"] : ["0%", "-50%"] }}
+        transition={{ repeat: Infinity, duration: 26, ease: "linear" }}
+      >
+        {repeated.map((item, index) => (
+          <div
+            key={`${item.attendee_id}-${index}`}
+            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-3 py-1.5 text-sm font-medium text-white/90"
+          >
+            <span>{item.attendee_name}</span>
+            <span className="text-xs text-white/50">{item.sessions_attended} oturum</span>
+          </div>
+        ))}
+      </motion.div>
+    </div>
+  );
+}
+
 function buildRevealItems(raffle: EventRaffleOut | null): RevealItem[] {
   if (!raffle) return [];
 
@@ -158,6 +190,7 @@ export default function RafflePresentationPage() {
   const [spotlightIndex, setSpotlightIndex] = useState(0);
 
   const timersRef = useRef<number[]>([]);
+  const raffleSignatureRef = useRef("");
 
   const visibleItems = sequenceItems.slice(0, revealedCount);
   const latestWinner = visibleItems[visibleItems.length - 1] ?? null;
@@ -178,24 +211,38 @@ export default function RafflePresentationPage() {
       .catch(() => {});
   }, []);
 
+  function getRaffleSignature(nextRaffle: EventRaffleOut | null) {
+    if (!nextRaffle) return "empty";
+    return `${nextRaffle.drawn_at || "draft"}:${nextRaffle.winners.length}:${nextRaffle.eligible_count}`;
+  }
+
+  async function fetchCurrentRaffle() {
+    const [eventRes, raffles] = await Promise.all([
+      apiFetch(`/admin/events/${eventId}`).then((r) => r.json()),
+      apiFetch(`/admin/events/${eventId}/raffles?ts=${Date.now()}`).then(
+        (r) => r.json() as Promise<EventRaffleOut[]>,
+      ),
+    ]);
+
+    const found = raffles.find((item) => item.id === raffleId) || null;
+    return {
+      eventName: eventRes.name || "",
+      raffle: found,
+    };
+  }
+
   async function loadPresentation() {
     setLoading(true);
     setError(null);
     try {
-      const [eventRes, raffles] = await Promise.all([
-        apiFetch(`/admin/events/${eventId}`).then((r) => r.json()),
-        apiFetch(`/admin/events/${eventId}/raffles?ts=${Date.now()}`).then(
-          (r) => r.json() as Promise<EventRaffleOut[]>,
-        ),
-      ]);
-
-      const found = raffles.find((item) => item.id === raffleId) || null;
-      setEventName(eventRes.name || "");
-      setRaffle(found);
-      setSequenceItems(buildRevealItems(found));
+      const nextData = await fetchCurrentRaffle();
+      setEventName(nextData.eventName);
+      setRaffle(nextData.raffle);
+      setSequenceItems(buildRevealItems(nextData.raffle));
       setRevealedCount(0);
       setSpotlightIndex(0);
       setPhase("idle");
+      raffleSignatureRef.current = getRaffleSignature(nextData.raffle);
     } catch (e: any) {
       setError(e.message || "Sunum bilgileri yüklenemedi.");
     } finally {
@@ -231,6 +278,43 @@ export default function RafflePresentationPage() {
   }, [eventId, raffleId]);
 
   useEffect(() => {
+    if (!eventId || !raffleId || loading || drawing) return;
+
+    const pollTimer = window.setInterval(async () => {
+      try {
+        const nextData = await fetchCurrentRaffle();
+        const nextSignature = getRaffleSignature(nextData.raffle);
+        const currentSignature = raffleSignatureRef.current;
+
+        if (!nextData.raffle) return;
+
+        setEventName(nextData.eventName);
+
+        if (nextSignature !== currentSignature) {
+          raffleSignatureRef.current = nextSignature;
+
+          if (
+            nextData.raffle.winners.length > 0 &&
+            currentSignature !== "empty" &&
+            (phase === "idle" || phase === "complete")
+          ) {
+            runRevealSequence(nextData.raffle);
+            return;
+          }
+
+          setRaffle(nextData.raffle);
+          setSequenceItems(buildRevealItems(nextData.raffle));
+          return;
+        }
+
+        setRaffle(nextData.raffle);
+      } catch {}
+    }, 2500);
+
+    return () => window.clearInterval(pollTimer);
+  }, [eventId, raffleId, loading, drawing, phase]);
+
+  useEffect(() => {
     return () => {
       timersRef.current.forEach((timer) => window.clearTimeout(timer));
       timersRef.current = [];
@@ -256,6 +340,7 @@ export default function RafflePresentationPage() {
     setSequenceItems(nextItems);
     setRevealedCount(0);
     setSpotlightIndex(0);
+    raffleSignatureRef.current = getRaffleSignature(nextRaffle);
     if (nextItems.length === 0) {
       setPhase("complete");
       return;
@@ -541,20 +626,9 @@ export default function RafflePresentationPage() {
                           Bu çekiliş için uygun aday bulunmuyor.
                         </div>
                       ) : (
-                        <div className="mt-4 grid gap-3 md:grid-cols-2">
-                          {eligibleAttendees.slice(0, 10).map((attendee, index) => (
-                            <div
-                              key={`eligible-${attendee.attendee_id}`}
-                              className="rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-3"
-                            >
-                              <p className="text-sm font-semibold text-white">
-                                {index + 1}. {attendee.attendee_name}
-                              </p>
-                              <p className="mt-1 text-xs text-white/55">
-                                {attendee.sessions_attended} oturum katılımı
-                              </p>
-                            </div>
-                          ))}
+                        <div className="mt-4 space-y-3">
+                          <EligibleMarquee items={eligibleAttendees} />
+                          <EligibleMarquee items={eligibleAttendees} reverse />
                         </div>
                       )}
                     </div>
@@ -588,20 +662,9 @@ export default function RafflePresentationPage() {
                       </motion.div>
                     ) : null}
                     {eligibleAttendees.length > 0 ? (
-                      <div className="mt-8 grid w-full max-w-3xl gap-3 md:grid-cols-3">
-                        {eligibleAttendees.slice(0, 6).map((attendee) => (
-                          <div
-                            key={`pool-${attendee.attendee_id}`}
-                            className={`rounded-2xl border px-4 py-3 text-left transition ${
-                              spotlightCandidate?.attendee_id === attendee.attendee_id
-                                ? "border-white/30 bg-white/15"
-                                : "border-white/10 bg-white/5"
-                            }`}
-                          >
-                            <p className="text-sm font-semibold text-white">{attendee.attendee_name}</p>
-                            <p className="mt-1 text-xs text-white/55">{attendee.sessions_attended} oturum</p>
-                          </div>
-                        ))}
+                      <div className="mt-8 w-full max-w-3xl space-y-3">
+                        <EligibleMarquee items={eligibleAttendees} />
+                        <EligibleMarquee items={eligibleAttendees} reverse />
                       </div>
                     ) : null}
                   </div>
