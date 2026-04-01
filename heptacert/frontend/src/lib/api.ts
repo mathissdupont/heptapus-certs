@@ -156,6 +156,13 @@ export interface EventRaffleWinnerOut {
   drawn_at: string;
 }
 
+export interface EventRaffleEligibleOut {
+  attendee_id: number;
+  attendee_name: string;
+  attendee_email: string;
+  sessions_attended: number;
+}
+
 export interface EventRaffleOut {
   id: number;
   event_id: number;
@@ -171,6 +178,7 @@ export interface EventRaffleOut {
   drawn_at?: string | null;
   eligible_count: number;
   total_attendees: number;
+  eligible_attendees: EventRaffleEligibleOut[];
   winners: EventRaffleWinnerOut[];
 }
 

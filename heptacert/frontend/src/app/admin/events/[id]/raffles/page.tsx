@@ -222,6 +222,7 @@ export default function EventRafflesPage() {
     try {
       const drawn = await drawEventRaffle(eventId, raffle.id);
       replaceRaffle(drawn);
+      await load();
       toast.success("Kazananlar çekildi.");
     } catch (e: any) {
       setError(e.message || "Çekiliş başlatılamadı.");
@@ -237,6 +238,7 @@ export default function EventRafflesPage() {
     try {
       const reset = await resetEventRaffle(eventId, raffle.id);
       replaceRaffle(reset);
+      await load();
       toast.success("Çekiliş sıfırlandı.");
     } catch (e: any) {
       setError(e.message || "Sıfırlama başarısız.");
@@ -252,6 +254,7 @@ export default function EventRafflesPage() {
     try {
       const redrawn = await redrawEventRaffle(eventId, raffle.id);
       replaceRaffle(redrawn);
+      await load();
       toast.success("Yeni kazanan turu eklendi.");
     } catch (e: any) {
       setError(e.message || "Tekrar çekiliş başlatılamadı.");
@@ -502,7 +505,7 @@ export default function EventRafflesPage() {
                       <CheckCircle2 className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">Tamamlanan Draw</p>
+                      <p className="text-sm font-semibold text-slate-900">Tamamlanan Çekiliş</p>
                       <p className="text-2xl font-black text-slate-900">{stats.drawCompleted}</p>
                     </div>
                   </div>
@@ -584,6 +587,45 @@ export default function EventRafflesPage() {
                                   <p className="mt-2 text-lg font-black text-slate-900">{raffle.eligible_count}</p>
                                   <p className="text-xs text-slate-500">toplam {raffle.total_attendees} katılımcı içinden</p>
                                 </div>
+                              </div>
+
+                              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                                <div className="flex items-center justify-between gap-3">
+                                  <div>
+                                    <p className="text-sm font-semibold text-slate-900">Uygun Havuz</p>
+                                    <p className="text-xs text-slate-500">
+                                      Çekiliş başlamadan önce havuzda yer alan tüm uygun katılımcılar burada görünür.
+                                    </p>
+                                  </div>
+                                  <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-600">
+                                    {raffle.eligible_attendees.length} kişi
+                                  </span>
+                                </div>
+
+                                {raffle.eligible_attendees.length === 0 ? (
+                                  <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-6 text-center text-sm text-slate-500">
+                                    Bu çekiliş için henüz uygun katılımcı yok.
+                                  </div>
+                                ) : (
+                                  <div className="mt-4 max-h-64 space-y-2 overflow-y-auto pr-1">
+                                    {raffle.eligible_attendees.map((attendee, index) => (
+                                      <div
+                                        key={`${raffle.id}-eligible-${attendee.attendee_id}`}
+                                        className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3"
+                                      >
+                                        <div className="min-w-0">
+                                          <p className="truncate text-sm font-semibold text-slate-900">
+                                            {index + 1}. {attendee.attendee_name}
+                                          </p>
+                                          <p className="truncate text-xs text-slate-500">{attendee.attendee_email}</p>
+                                        </div>
+                                        <span className="shrink-0 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold text-indigo-700">
+                                          {attendee.sessions_attended} oturum
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
 
                               <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">

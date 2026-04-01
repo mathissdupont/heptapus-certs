@@ -1942,13 +1942,13 @@ async def require_paid_plan(
     if not sub or sub.plan_id not in ("pro", "growth", "enterprise"):
         raise HTTPException(
             status_code=403,
-            detail="Bu ÃƒÂ¶zellik sadece Pro, Growth ve Enterprise planlarÃ„Â±nda kullanÃ„Â±labilir.",
+            detail="Bu özellik sadece Pro, Growth ve Enterprise planlarında kullanılabilir.",
         )
     now = datetime.now(timezone.utc)
     if sub.expires_at and sub.expires_at < now:
         raise HTTPException(
             status_code=403,
-            detail="AboneliÃ„Å¸iniz sona ermiÃ…Å¸. LÃƒÂ¼tfen planÃ„Â±nÃ„Â±zÃ„Â± yenileyin.",
+            detail="Aboneliğiniz sona ermiş. Lütfen planınızı yenileyin.",
         )
     return me
 
@@ -1970,13 +1970,13 @@ async def require_email_system_access(
     if not sub or sub.plan_id not in ("growth", "enterprise"):
         raise HTTPException(
             status_code=403,
-            detail="Oto-mail sistemi Growth ve Enterprise planlarÃ„Â±nda kullanÃ„Â±labilir.",
+            detail="Oto-mail sistemi Growth ve Enterprise planlarında kullanılabilir.",
         )
     now = datetime.now(timezone.utc)
     if sub.expires_at and sub.expires_at < now:
         raise HTTPException(
             status_code=403,
-            detail="AboneliÃ„Å¸iniz sona ermiÃ…Å¸. LÃƒÂ¼tfen planÃ„Â±nÃ„Â±zÃ„Â± yenileyin.",
+            detail="Aboneliğiniz sona ermiş. Lütfen planınızı yenileyin.",
         )
     return me
 
@@ -2354,23 +2354,23 @@ async def startup():
                         event_id=None,
                         created_by=superadmin.id,
                         name="Sertifika Teslim - TR",
-                        subject_tr="ÄŸÅ¸Ââ€° SertifikanÃ„Â±z HazÃ„Â±r! | {{event_name}}",
-                        subject_en="ÄŸÅ¸Ââ€° Your Certificate is Ready! | {{event_name}}",
+                        subject_tr="Sertifikanız Hazır! | {{event_name}}",
+                        subject_en="Your Certificate is Ready! | {{event_name}}",
                         body_html="""
 <h2>Merhaba {{recipient_name}},</h2>
-<p>Tebrikler! {{event_name}} etkinliÃ„Å¸ine katÃ„Â±lÃ„Â±m iÃƒÂ§in sertifikanÃ„Â±z hazÃ„Â±r.</p>
+<p>Tebrikler! {{event_name}} etkinliğine katılım için sertifikanız hazır.</p>
 
 <div style="margin: 20px 0; padding: 15px; background: #f0f9ff; border-radius: 5px;">
-    <p><a href="{{certificate_link}}" style="display: inline-block; padding: 10px 20px; background: #3b82f6; color: white; text-decoration: none; border-radius: 5px;">SertifikayÃ„Â± Ã„Â°ndir</a></p>
+    <p><a href="{{certificate_link}}" style="display: inline-block; padding: 10px 20px; background: #3b82f6; color: white; text-decoration: none; border-radius: 5px;">Sertifikayı İndir</a></p>
 </div>
 
-<p><strong>QR Kod ile DoÃ„Å¸rulama:</strong></p>
-<p>SertifikanÃ„Â±z QR kodu tarafÃ„Â±ndan korunmaktadÃ„Â±r ve resmi olarak doÃ„Å¸rulanabilir.</p>
+<p><strong>QR Kod ile Doğrulama:</strong></p>
+<p>Sertifikanız QR kodu tarafından korunmaktadır ve resmi olarak doğrulanabilir.</p>
 
 <br>
-<p>SorularÃ„Â±nÃ„Â±z iÃƒÂ§in <a href="mailto:support@heptacert.com">destek@heptacert.com</a> adresine yazabilirsiniz.</p>
+<p>Sorularınız için <a href="mailto:support@heptacert.com">destek@heptacert.com</a> adresine yazabilirsiniz.</p>
 
-<p>SaygÃ„Â±larÃ„Â±mÃ„Â±zla,<br>HeptaCert Ekibi</p>
+<p>Saygılarımızla,<br>HeptaCert Ekibi</p>
                         """,
                         template_type="system",
                         is_default=True,
@@ -2378,25 +2378,25 @@ async def startup():
                     EmailTemplate(
                         event_id=None,
                         created_by=superadmin.id,
-                        name="KayÃ„Â±t OnayÃ„Â± - TR",
-                        subject_tr="Ã¢Å“â€¦ KaydÃ„Â±nÃ„Â±z BaÃ…Å¸arÃ„Â±yla AlÃ„Â±ndÃ„Â± | {{event_name}}",
-                        subject_en="Ã¢Å“â€¦ Your Registration is Confirmed | {{event_name}}",
+                        name="Kayıt Onayı - TR",
+                        subject_tr="Kaydınız Başarıyla Alındı | {{event_name}}",
+                        subject_en="Your Registration is Confirmed | {{event_name}}",
                         body_html="""
 <h2>Merhaba {{recipient_name}},</h2>
-<p>{{event_name}} etkinliÃ„Å¸ine kaydÃ„Â±nÃ„Â±z baÃ…Å¸arÃ„Â±yla tamamlanmÃ„Â±Ã…Å¸tÃ„Â±r.</p>
+<p>{{event_name}} etkinliğine kaydınız başarıyla tamamlanmıştır.</p>
 
-<p><strong>Etkinlik DetaylarÃ„Â±:</strong></p>
+<p><strong>Etkinlik Detayları:</strong></p>
 <ul>
     <li><strong>Tarih:</strong> {{event_date}}</li>
     <li><strong>Yer:</strong> {{event_location}}</li>
 </ul>
 
-<p>Etkinlik hakkÃ„Â±nda daha fazla bilgi iÃƒÂ§in lÃƒÂ¼tfen <a href="{{event_link}}">buraya tÃ„Â±klayÃ„Â±n</a>.</p>
+<p>Etkinlik hakkında daha fazla bilgi için lütfen <a href="{{event_link}}">buraya tıklayın</a>.</p>
 
 <br>
-<p>SorularÃ„Â±nÃ„Â±z iÃƒÂ§in <a href="mailto:support@heptacert.com">destek@heptacert.com</a> adresine yazabilirsiniz.</p>
+<p>Sorularınız için <a href="mailto:support@heptacert.com">destek@heptacert.com</a> adresine yazabilirsiniz.</p>
 
-<p>SaygÃ„Â±larÃ„Â±mÃ„Â±zla,<br>HeptaCert Ekibi</p>
+<p>Saygılarımızla,<br>HeptaCert Ekibi</p>
                         """,
                         template_type="system",
                         is_default=True,
@@ -8646,6 +8646,13 @@ class EventRaffleWinnerOut(BaseModel):
     drawn_at: datetime
 
 
+class EventRaffleEligibleOut(BaseModel):
+    attendee_id: int
+    attendee_name: str
+    attendee_email: str
+    sessions_attended: int
+
+
 class EventRaffleOut(BaseModel):
     id: int
     event_id: int
@@ -8661,6 +8668,7 @@ class EventRaffleOut(BaseModel):
     drawn_at: Optional[datetime] = None
     eligible_count: int = 0
     total_attendees: int = 0
+    eligible_attendees: List[EventRaffleEligibleOut] = Field(default_factory=list)
     winners: List[EventRaffleWinnerOut] = Field(default_factory=list)
 
 
@@ -8721,9 +8729,16 @@ def _raffle_to_out(
     attendance_counts: Dict[int, int],
 ) -> EventRaffleOut:
     attendee_map = {attendee.id: attendee for attendee in attendees}
-    eligible_count = sum(
-        1 for attendee in attendees if attendance_counts.get(attendee.id, 0) >= raffle.min_sessions_required
-    )
+    eligible_attendees = [
+        EventRaffleEligibleOut(
+            attendee_id=attendee.id,
+            attendee_name=attendee.name,
+            attendee_email=attendee.email,
+            sessions_attended=attendance_counts.get(attendee.id, 0),
+        )
+        for attendee in attendees
+        if attendance_counts.get(attendee.id, 0) >= raffle.min_sessions_required
+    ]
     winners: List[EventRaffleWinnerOut] = []
     for winner in sorted(raffle.winners, key=lambda item: item.drawn_at):
         attendee = attendee_map.get(winner.attendee_id) or winner.attendee
@@ -8752,8 +8767,9 @@ def _raffle_to_out(
         created_at=raffle.created_at,
         updated_at=raffle.updated_at,
         drawn_at=raffle.drawn_at,
-        eligible_count=eligible_count,
+        eligible_count=len(eligible_attendees),
         total_attendees=len(attendees),
+        eligible_attendees=eligible_attendees,
         winners=winners,
     )
 
@@ -8771,7 +8787,7 @@ def _pick_raffle_winners(
         if attendance_counts.get(attendee.id, 0) >= raffle.min_sessions_required and attendee.id not in excluded
     ]
     if not eligible_attendees:
-        raise HTTPException(status_code=400, detail="Ãƒâ€¡ekiliÃ…Å¸ iÃƒÂ§in uygun katÃ„Â±lÃ„Â±mcÃ„Â± bulunamadÃ„Â±")
+        raise HTTPException(status_code=400, detail="Çekiliş için uygun katılımcı bulunamadı")
 
     draw_count = min(raffle.winner_count + raffle.reserve_winner_count, len(eligible_attendees))
     return secrets.SystemRandom().sample(eligible_attendees, draw_count)
@@ -8842,7 +8858,7 @@ async def public_event_register(
         select(Attendee).where(Attendee.event_id == event_id, func.lower(Attendee.email) == payload.email.lower())
     )
     if existing.scalar_one_or_none():
-        raise HTTPException(status_code=409, detail="Bu e-posta ile zaten kaydolunmuÃ…Å¸")
+        raise HTTPException(status_code=409, detail="Bu e-posta ile zaten kaydolunmuş")
     attendee = Attendee(
         event_id=event_id,
         name=payload.name,
@@ -8877,7 +8893,7 @@ API_AUDIT_SKIP_PREFIXES_EXTENDED = ("/api/attend/", "/api/events/")
 async def get_session_by_token(checkin_token: str, db: AsyncSession = Depends(get_db)):
     ctx = await _get_checkin_context_by_token(checkin_token, db)
     if not ctx:
-        raise HTTPException(status_code=404, detail="GeÃƒÂ§ersiz QR kodu")
+        raise HTTPException(status_code=404, detail="Geçersiz QR kodu")
     count_res = await db.execute(
         select(func.count()).where(AttendanceRecord.session_id == ctx["session_id"])
     )
@@ -8907,9 +8923,9 @@ async def self_checkin(
 ):
     ctx = await _get_checkin_context_by_token(checkin_token, db)
     if not ctx:
-        raise HTTPException(status_code=404, detail="GeÃƒÂ§ersiz QR kodu")
+        raise HTTPException(status_code=404, detail="Geçersiz QR kodu")
     if not ctx["is_active"]:
-        raise HTTPException(status_code=403, detail="Bu oturum iÃƒÂ§in check-in kapalÃ„Â±")
+        raise HTTPException(status_code=403, detail="Bu oturum için check-in kapalı")
 
     att_res = await db.execute(
         select(Attendee).where(
@@ -8921,7 +8937,7 @@ async def self_checkin(
     if not attendee:
         raise HTTPException(
             status_code=404,
-            detail="Bu e-posta ile etkinlikte kayÃ„Â±tlÃ„Â± deÃ„Å¸ilsiniz. LÃƒÂ¼tfen ÃƒÂ¶nce kayÃ„Â±t olun.",
+            detail="Bu e-posta ile etkinlikte kayıtlı değilsiniz. Lütfen önce kayıt olun.",
         )
 
     ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else None)
@@ -8948,7 +8964,7 @@ async def self_checkin(
     if inserted_id is None:
         return CheckinOut(
             success=False,
-            message="Bu oturuma zaten check-in yaptÃ„Â±nÃ„Â±z.",
+            message="Bu oturuma zaten check-in yaptınız.",
             attendee_name=attendee.name,
             sessions_attended=attended_count,
             sessions_required=ctx["min_sessions_required"],
@@ -8957,7 +8973,7 @@ async def self_checkin(
 
     return CheckinOut(
         success=True,
-        message=f"Check-in baÃ…Å¸arÃ„Â±lÃ„Â±! HoÃ…Å¸ geldiniz, {attendee.name}.",
+        message=f"Check-in başarılı! Hoş geldiniz, {attendee.name}.",
         attendee_name=attendee.name,
         sessions_attended=attended_count,
         sessions_required=ctx["min_sessions_required"],

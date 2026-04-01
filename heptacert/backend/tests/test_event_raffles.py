@@ -115,6 +115,7 @@ async def test_event_raffle_draws_only_eligible_attendees():
         assert created.status_code == 200
         raffle = created.json()
         assert raffle["eligible_count"] == 2
+        assert len(raffle["eligible_attendees"]) == 2
         assert raffle["winner_count"] == 2
         assert raffle["reserve_winner_count"] == 0
 
@@ -139,6 +140,7 @@ async def test_event_raffle_draws_only_eligible_attendees():
         listed_payload = listed.json()
         assert len(listed_payload) == 1
         assert listed_payload[0]["eligible_count"] == 2
+        assert len(listed_payload[0]["eligible_attendees"]) == 2
         assert len(listed_payload[0]["winners"]) == 2
 
 

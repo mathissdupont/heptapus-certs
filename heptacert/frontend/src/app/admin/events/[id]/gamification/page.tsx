@@ -466,7 +466,7 @@ export default function GamificationPage() {
             icon: Award,
           },
           {
-            label: "Toplam Dagitim",
+            label: "Toplam Dağıtım",
             value: String(awardedBadges.length),
             hint: `${badgeSummary.automatic_vs_manual.automatic} otomatik / ${badgeSummary.automatic_vs_manual.manual} manuel`,
             icon: Trophy,
@@ -869,7 +869,7 @@ export default function GamificationPage() {
             <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
               <Trophy className="h-16 w-16 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500">
-                {awardedBadges.length === 0 ? "Henüz rozet verilmedi" : "Filtreye uyan rozet bulunamadi"}
+                {awardedBadges.length === 0 ? "Henüz rozet verilmedi" : "Filtreye uyan rozet bulunamadı"}
               </p>
             </div>
           ) : (
