@@ -1,19 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  apiFetch,
-  drawEventRaffle,
-  type EventRaffleOut,
-} from "@/lib/api";
-import {
-  formatRaffleDate,
-  formatWinnerPlan,
-  splitRaffleRounds,
-} from "@/lib/raffles";
+import { apiFetch, drawEventRaffle, type EventRaffleOut } from "@/lib/api";
+import { formatRaffleDate, formatWinnerPlan, splitRaffleRounds } from "@/lib/raffles";
 import {
   ArrowLeft,
   Expand,
@@ -21,10 +13,10 @@ import {
   Loader2,
   Medal,
   Play,
+  RotateCcw,
   Sparkles,
   Trophy,
   Users,
-  RotateCcw,
 } from "lucide-react";
 
 type BrandingData = {
@@ -40,6 +32,8 @@ type RevealItem = {
   index: number;
   winner: EventRaffleOut["winners"][number];
 };
+
+type EligibleSpotlight = EventRaffleOut["eligible_attendees"][number];
 
 function buildRevealItems(raffle: EventRaffleOut | null): RevealItem[] {
   if (!raffle) return [];
@@ -100,6 +94,51 @@ function NameMarquee({
   );
 }
 
+function CelebrationBurst({ visible, color }: { visible: boolean; color: string }) {
+  const particles = Array.from({ length: 18 }, (_, index) => ({
+    id: index,
+    left: 8 + ((index * 11) % 84),
+    top: 12 + ((index * 7) % 68),
+    delay: (index % 6) * 0.05,
+    rotate: index % 2 === 0 ? -24 : 24,
+  }));
+
+  return (
+    <AnimatePresence>
+      {visible ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="pointer-events-none absolute inset-0 overflow-hidden"
+        >
+          {particles.map((particle) => (
+            <motion.span
+              key={particle.id}
+              initial={{ opacity: 0, y: 0, scale: 0.4, rotate: 0 }}
+              animate={{
+                opacity: [0, 1, 0.9, 0],
+                y: [0, -36, 24],
+                x: [0, particle.id % 2 === 0 ? -18 : 18, 0],
+                scale: [0.4, 1, 0.8],
+                rotate: [0, particle.rotate, particle.rotate * 2],
+              }}
+              transition={{ duration: 1.6, delay: particle.delay, ease: "easeOut" }}
+              className="absolute h-3 w-3 rounded-full"
+              style={{
+                left: `${particle.left}%`,
+                top: `${particle.top}%`,
+                background: color,
+                boxShadow: `0 0 24px ${color}`,
+              }}
+            />
+          ))}
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
+  );
+}
+
 export default function RafflePresentationPage() {
   const params = useParams();
   const eventId = Number(params?.id);
@@ -114,6 +153,7 @@ export default function RafflePresentationPage() {
   const [phase, setPhase] = useState<"idle" | "scanning" | "revealing" | "complete">("idle");
   const [revealedCount, setRevealedCount] = useState(0);
   const [sequenceItems, setSequenceItems] = useState<RevealItem[]>([]);
+  const [spotlightIndex, setSpotlightIndex] = useState(0);
 
   const timersRef = useRef<number[]>([]);
 
@@ -121,6 +161,10 @@ export default function RafflePresentationPage() {
   const latestWinner = visibleItems[visibleItems.length - 1] ?? null;
   const brandColor = branding?.brand_color || "#2563eb";
   const brandName = branding?.org_name || "HeptaCert";
+  const eligibleAttendees = raffle?.eligible_attendees || [];
+  const celebrationColor = latestWinner?.kind === "asil" ? "#34d399" : "#fbbf24";
+  const spotlightCandidate: EligibleSpotlight | null =
+    eligibleAttendees.length > 0 ? eligibleAttendees[spotlightIndex % eligibleAttendees.length] : null;
 
   useEffect(() => {
     fetch("/api/branding", { credentials: "include" })
@@ -148,6 +192,7 @@ export default function RafflePresentationPage() {
       setRaffle(found);
       setSequenceItems(buildRevealItems(found));
       setRevealedCount(0);
+      setSpotlightIndex(0);
       setPhase("idle");
     } catch (e: any) {
       setError(e.message || "Sunum bilgileri yüklenemedi.");
@@ -208,6 +253,7 @@ export default function RafflePresentationPage() {
     setRaffle(nextRaffle);
     setSequenceItems(nextItems);
     setRevealedCount(0);
+    setSpotlightIndex(0);
     if (nextItems.length === 0) {
       setPhase("complete");
       return;
@@ -215,12 +261,21 @@ export default function RafflePresentationPage() {
 
     setPhase("scanning");
 
+    const eligiblePool = nextRaffle.eligible_attendees || [];
+    if (eligiblePool.length > 0) {
+      const cycleTimer = window.setInterval(() => {
+        setSpotlightIndex((current) => (current + 1) % eligiblePool.length);
+      }, 140);
+      timersRef.current.push(cycleTimer as unknown as number);
+    }
+
     const startTimer = window.setTimeout(() => {
       setPhase("revealing");
+      clearTimers();
       setRevealedCount(1);
 
       if (nextItems.length === 1) {
-        const doneTimer = window.setTimeout(() => setPhase("complete"), 900);
+        const doneTimer = window.setTimeout(() => setPhase("complete"), 1200);
         timersRef.current.push(doneTimer);
         return;
       }
@@ -229,13 +284,13 @@ export default function RafflePresentationPage() {
         const timer = window.setTimeout(() => {
           setRevealedCount((current) => Math.min(nextItems.length, current + 1));
           if (index === nextItems.length - 2) {
-            const doneTimer = window.setTimeout(() => setPhase("complete"), 900);
+            const doneTimer = window.setTimeout(() => setPhase("complete"), 1200);
             timersRef.current.push(doneTimer);
           }
-        }, (index + 1) * 1400);
+        }, (index + 1) * 1600);
         timersRef.current.push(timer);
       });
-    }, 1800);
+    }, 2200);
 
     timersRef.current.push(startTimer);
   }
@@ -264,7 +319,7 @@ export default function RafflePresentationPage() {
 
   function handleReplay() {
     if (!raffle || raffle.winners.length === 0) return;
-    enterFullscreen();
+    void enterFullscreen();
     runRevealSequence(raffle);
   }
 
@@ -421,7 +476,13 @@ export default function RafflePresentationPage() {
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/45">Sahne</p>
                   <p className="mt-2 text-2xl font-black text-white">
-                    {phase === "scanning" ? "İsimler hazırlanıyor" : phase === "complete" ? "Kazananlar açıklandı" : "Sunum hazır"}
+                    {phase === "scanning"
+                      ? "İsimler hazırlanıyor"
+                      : phase === "complete"
+                        ? "Kazananlar açıklandı"
+                        : phase === "revealing"
+                          ? "Kazanan sahnede"
+                          : "Sunum hazır"}
                   </p>
                 </div>
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/75">
@@ -432,12 +493,45 @@ export default function RafflePresentationPage() {
 
               <div className="mt-6 rounded-[30px] border border-white/10 bg-slate-950/55 p-6">
                 {phase === "idle" ? (
-                  <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
-                    <Gift className="h-12 w-12 text-white/35" />
-                    <p className="mt-5 text-3xl font-black text-white">Sunum başlamaya hazır</p>
-                    <p className="mt-3 max-w-xl text-base leading-7 text-white/60">
-                      Çekilişi başlattığınızda sistem kazananları sırayla sahneye çıkarır.
-                    </p>
+                  <div className="flex min-h-[360px] flex-col justify-center">
+                    <div className="text-center">
+                      <Gift className="mx-auto h-12 w-12 text-white/35" />
+                      <p className="mt-5 text-3xl font-black text-white">Sunum başlamaya hazır</p>
+                      <p className="mt-3 max-w-xl text-base leading-7 text-white/60">
+                        Aşağıda çekiliş havuzundaki uygun adayları görebilirsiniz. Başlattığınızda sistem bu havuz içinden seçim yapar.
+                      </p>
+                    </div>
+
+                    <div className="mt-8 rounded-[28px] border border-white/10 bg-white/5 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">Uygun Aday Havuzu</p>
+                        <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold text-white/75">
+                          {eligibleAttendees.length} kişi
+                        </span>
+                      </div>
+
+                      {eligibleAttendees.length === 0 ? (
+                        <div className="mt-4 rounded-2xl border border-dashed border-white/10 bg-slate-950/35 px-4 py-8 text-center text-sm text-white/50">
+                          Bu çekiliş için uygun aday bulunmuyor.
+                        </div>
+                      ) : (
+                        <div className="mt-4 grid gap-3 md:grid-cols-2">
+                          {eligibleAttendees.slice(0, 10).map((attendee, index) => (
+                            <div
+                              key={`eligible-${attendee.attendee_id}`}
+                              className="rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-3"
+                            >
+                              <p className="text-sm font-semibold text-white">
+                                {index + 1}. {attendee.attendee_name}
+                              </p>
+                              <p className="mt-1 text-xs text-white/55">
+                                {attendee.sessions_attended} oturum katılımı
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ) : phase === "scanning" ? (
                   <div className="flex min-h-[360px] flex-col items-center justify-center">
@@ -452,15 +546,42 @@ export default function RafflePresentationPage() {
                     <p className="mt-3 max-w-lg text-center text-base leading-7 text-white/60">
                       Oturum eşiği kontrol ediliyor, uygun katılımcılar sıralanıyor ve sahne akışı hazırlanıyor.
                     </p>
-                    {sequenceItems.length > 0 ? (
-                      <div className="mt-8 w-full max-w-2xl space-y-3">
-                        <NameMarquee items={sequenceItems} />
-                        <NameMarquee items={sequenceItems} reverse />
+                    {spotlightCandidate ? (
+                      <motion.div
+                        key={`spotlight-${spotlightCandidate.attendee_id}-${spotlightIndex}`}
+                        initial={{ opacity: 0.45, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.12 }}
+                        className="mt-8 rounded-[28px] border border-white/15 bg-white/10 px-6 py-5 text-center backdrop-blur"
+                      >
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">Havuzdan seçiliyor</p>
+                        <p className="mt-3 text-3xl font-black text-white">{spotlightCandidate.attendee_name}</p>
+                        <p className="mt-2 text-sm text-white/60">
+                          {spotlightCandidate.sessions_attended} oturum katılımı
+                        </p>
+                      </motion.div>
+                    ) : null}
+                    {eligibleAttendees.length > 0 ? (
+                      <div className="mt-8 grid w-full max-w-3xl gap-3 md:grid-cols-3">
+                        {eligibleAttendees.slice(0, 6).map((attendee) => (
+                          <div
+                            key={`pool-${attendee.attendee_id}`}
+                            className={`rounded-2xl border px-4 py-3 text-left transition ${
+                              spotlightCandidate?.attendee_id === attendee.attendee_id
+                                ? "border-white/30 bg-white/15"
+                                : "border-white/10 bg-white/5"
+                            }`}
+                          >
+                            <p className="text-sm font-semibold text-white">{attendee.attendee_name}</p>
+                            <p className="mt-1 text-xs text-white/55">{attendee.sessions_attended} oturum</p>
+                          </div>
+                        ))}
                       </div>
                     ) : null}
                   </div>
                 ) : (
-                  <div className="min-h-[360px]">
+                  <div className="relative min-h-[360px]">
+                    <CelebrationBurst visible={!!latestWinner} color={celebrationColor} />
                     <AnimatePresence mode="popLayout">
                       {latestWinner ? (
                         <motion.div
@@ -469,13 +590,25 @@ export default function RafflePresentationPage() {
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: -16, scale: 0.98 }}
                           transition={{ duration: 0.45, ease: "easeOut" }}
-                          className={`rounded-[30px] border p-6 ${
+                          className={`relative rounded-[30px] border p-6 ${
                             latestWinner.kind === "asil"
                               ? "border-emerald-300/30 bg-emerald-300/10"
                               : "border-amber-300/30 bg-amber-300/10"
                           }`}
                         >
-                          <div className="flex flex-wrap items-center justify-between gap-3">
+                          <motion.div
+                            initial={{ opacity: 0.4, scale: 0.9 }}
+                            animate={{ opacity: [0.25, 0.7, 0.25], scale: [0.92, 1.03, 0.97] }}
+                            transition={{ duration: 1.2, repeat: 1, ease: "easeInOut" }}
+                            className="absolute inset-0 rounded-[30px]"
+                            style={{
+                              background:
+                                latestWinner.kind === "asil"
+                                  ? "radial-gradient(circle at center, rgba(52,211,153,0.20) 0%, transparent 65%)"
+                                  : "radial-gradient(circle at center, rgba(251,191,36,0.20) 0%, transparent 65%)",
+                            }}
+                          />
+                          <div className="relative flex flex-wrap items-center justify-between gap-3">
                             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
                               <Medal className="h-3.5 w-3.5" />
                               Tur {latestWinner.round} • {latestWinner.kind === "asil" ? "Asil kazanan" : "Yedek kazanan"}
@@ -484,10 +617,12 @@ export default function RafflePresentationPage() {
                               {latestWinner.winner.sessions_attended} oturum
                             </div>
                           </div>
-                          <p className="mt-5 text-4xl font-black tracking-tight text-white md:text-5xl">
+                          <p className="relative mt-5 text-4xl font-black tracking-tight text-white md:text-5xl">
                             {latestWinner.winner.attendee_name}
                           </p>
-                          <p className="mt-3 text-lg text-white/72">{latestWinner.winner.attendee_email}</p>
+                          <p className="relative mt-3 text-lg text-white/72">
+                            {latestWinner.winner.sessions_attended} oturum katılımı
+                          </p>
                         </motion.div>
                       ) : null}
                     </AnimatePresence>
@@ -512,7 +647,7 @@ export default function RafflePresentationPage() {
                             <p className="text-xs font-semibold text-white/55">#{item.index + 1}</p>
                           </div>
                           <p className="mt-2 text-lg font-bold text-white">{item.winner.attendee_name}</p>
-                          <p className="mt-1 text-sm text-white/65">{item.winner.attendee_email}</p>
+                          <p className="mt-1 text-sm text-white/65">{item.winner.sessions_attended} oturum katılımı</p>
                         </motion.div>
                       ))}
                     </div>
@@ -522,7 +657,7 @@ export default function RafflePresentationPage() {
 
               <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
                 <span>
-                  Kural: En az {raffle?.min_sessions_required ?? 0} oturuma katılanlar arasından{" "}
+                  Kural: En az {raffle?.min_sessions_required ?? 0} oturuma katılanlar arasından {" "}
                   {raffle ? formatWinnerPlan(raffle.winner_count, raffle.reserve_winner_count) : "-"} seçilir.
                 </span>
                 <span>{eventName}</span>
