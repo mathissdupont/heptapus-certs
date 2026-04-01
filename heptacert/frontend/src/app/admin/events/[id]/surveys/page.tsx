@@ -120,6 +120,7 @@ export default function SurveysPage() {
   const [externalProvider, setExternalProvider] = useState("");
   const [externalUrl, setExternalUrl] = useState("");
   const [externalWebhookKey, setExternalWebhookKey] = useState("");
+  const [newOption, setNewOption] = useState("");
   const [newQuestion, setNewQuestion] = useState<Partial<SurveyQuestion>>({
     type: "text",
     required: true,
@@ -231,7 +232,30 @@ export default function SurveysPage() {
       },
     ]);
     setNewQuestion({ type: "text", required: true });
+    setNewOption("");
     setError(null);
+  };
+
+  const addMultipleChoiceOption = () => {
+    const option = newOption.trim();
+    if (!option) return;
+    if ((newQuestion.options || []).includes(option)) {
+      setError("Aynı seçenek zaten eklenmiş");
+      return;
+    }
+    setNewQuestion({
+      ...newQuestion,
+      options: [...(newQuestion.options || []), option],
+    });
+    setNewOption("");
+    setError(null);
+  };
+
+  const removeMultipleChoiceOption = (option: string) => {
+    setNewQuestion({
+      ...newQuestion,
+      options: (newQuestion.options || []).filter((item) => item !== option),
+    });
   };
 
   const removeQuestion = (index: number) => {
@@ -553,17 +577,55 @@ export default function SurveysPage() {
                     {newQuestion.type === "multiple_choice" && (
                       <div className="mt-4">
                         <label className="mb-2 block text-sm font-semibold text-gray-700">Seçenekler</label>
-                        <textarea
-                          placeholder="Her satıra bir seçenek girin"
-                          value={(newQuestion.options || []).join("\n")}
-                          onChange={(event) =>
-                            setNewQuestion({
-                              ...newQuestion,
-                              options: event.target.value.split("\n").map((item) => item.trim()).filter(Boolean),
-                            })
-                          }
-                          className="min-h-24 w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm"
-                        />
+                        <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              placeholder="Seçenek yazın"
+                              value={newOption}
+                              onChange={(event) => setNewOption(event.target.value)}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                  event.preventDefault();
+                                  addMultipleChoiceOption();
+                                }
+                              }}
+                              className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm"
+                            />
+                            <button
+                              type="button"
+                              onClick={addMultipleChoiceOption}
+                              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                            >
+                              <Plus className="h-4 w-4" />
+                              Ekle
+                            </button>
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {(newQuestion.options || []).length === 0 ? (
+                              <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-500">
+                                Henüz seçenek eklenmedi.
+                              </div>
+                            ) : (
+                              (newQuestion.options || []).map((option) => (
+                                <div
+                                  key={option}
+                                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700"
+                                >
+                                  <span>{option}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeMultipleChoiceOption(option)}
+                                    className="rounded-full p-0.5 text-slate-400 transition hover:bg-white hover:text-rose-600"
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
                       </div>
                     )}
 
