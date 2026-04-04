@@ -1584,6 +1584,14 @@ def compute_hosting_ends(term: str) -> datetime:
         return now + timedelta(days=30)
     return now + timedelta(days=365)
 
+
+def ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
 #helpers
 
 def hash_password(pw: str) -> str:
@@ -2175,7 +2183,8 @@ async def require_paid_plan(
             detail="Bu özellik sadece Pro, Growth ve Enterprise planlarında kullanılabilir.",
         )
     now = datetime.now(timezone.utc)
-    if sub.expires_at and sub.expires_at < now:
+    expires_at = ensure_utc(sub.expires_at)
+    if expires_at and expires_at < now:
         raise HTTPException(
             status_code=403,
             detail="Aboneliğiniz sona ermiş. Lütfen planınızı yenileyin.",
@@ -2203,7 +2212,8 @@ async def require_email_system_access(
             detail="Oto-mail sistemi Growth ve Enterprise planlarında kullanılabilir.",
         )
     now = datetime.now(timezone.utc)
-    if sub.expires_at and sub.expires_at < now:
+    expires_at = ensure_utc(sub.expires_at)
+    if expires_at and expires_at < now:
         raise HTTPException(
             status_code=403,
             detail="Aboneliğiniz sona ermiş. Lütfen planınızı yenileyin.",
