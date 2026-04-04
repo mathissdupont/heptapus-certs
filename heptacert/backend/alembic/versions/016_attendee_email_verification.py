@@ -1,7 +1,7 @@
 """Add attendee email verification fields.
 
 Revision ID: 016_attendee_email_verification
-Revises: 015_add_raffle_reserve_winner_count
+Revises: 015_raffle_reserve_ct
 Create Date: 2026-04-04
 """
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 revision = "016_attendee_email_verification"
-down_revision = "015_add_raffle_reserve_winner_count"
+down_revision = "015_raffle_reserve_ct"
 branch_labels = None
 depends_on = None
 
