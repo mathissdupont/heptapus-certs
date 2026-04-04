@@ -1,153 +1,59 @@
-import Link from "next/link";
-import type { Metadata } from "next";
+﻿"use client";
 
-export const metadata: Metadata = {
-  title: "Mesafeli Satış Sözleşmesi",
-  description: "HeptaCert — HeptaCoin ve abonelik satın alımlarına ilişkin mesafeli satış sözleşmesi.",
-};
+import Link from "next/link";
+import { useI18n } from "@/lib/i18n";
 
 export default function MesafeliSatisPage() {
+  const { lang } = useI18n();
+  const isTr = lang === "tr";
+  const sections = isTr
+    ? [
+        ["Madde 1 - Taraflar", "Satıcı Heptapus Group'tur. Alıcı, platform üzerinden satın alma yapan kayıtlı kullanıcıdır."],
+        ["Madde 2 - Konu", "Bu sözleşme, HeptaCoin ve abonelik gibi dijital hizmetlerin uzaktan satışı ile ilgili hak ve yükümlülükleri düzenler."],
+        ["Madde 3 - Hizmet", "Satın alım sonrası dijital hizmet ve bakiye hesabınıza elektronik olarak tanımlanır; fiziksel teslimat yoktur."],
+        ["Madde 4 - Ödeme", "Ödeme sipariş sırasında gösterilen bedel üzerinden güvenli ödeme altyapısı ile peşin tahsil edilir."],
+        ["Madde 5 - Cayma Hakkı", "İfasına anında başlanan dijital hizmetlerde mevzuat kapsamındaki cayma hakkı sınırlı olabilir; detaylar iade politikasında açıklanır."],
+        ["Madde 6 - Uyuşmazlık", "Uyuşmazlıklarda Türk Hukuku uygulanır ve tüketici mevzuatındaki yetkili merciler esas alınır."],
+      ]
+    : [
+        ["Article 1 - Parties", "The seller is Heptapus Group. The buyer is the registered user purchasing through the platform."],
+        ["Article 2 - Subject", "This agreement governs the rights and obligations related to the remote sale of digital services such as HeptaCoin and subscriptions."],
+        ["Article 3 - Service Delivery", "After purchase, digital services and balances are assigned electronically to your account; there is no physical delivery."],
+        ["Article 4 - Payment", "Payment is collected upfront through secure payment infrastructure based on the amount shown during checkout."],
+        ["Article 5 - Right of Withdrawal", "For digital services that begin immediately, the statutory right of withdrawal may be limited; details are explained in the refund policy."],
+        ["Article 6 - Disputes", "Turkish law applies to disputes and the competent consumer authorities and courts are determined under applicable regulation."],
+      ];
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
       <div className="mb-8 flex items-center gap-2 text-sm text-gray-400">
-        <Link href="/" className="hover:text-brand-600 transition-colors">Ana Sayfa</Link>
+        <Link href="/" className="transition-colors hover:text-brand-600">{isTr ? "Ana Sayfa" : "Home"}</Link>
         <span>/</span>
-        <span className="text-gray-600 font-medium">Mesafeli Satış Sözleşmesi</span>
+        <span className="font-medium text-gray-600">{isTr ? "Mesafeli Satış Sözleşmesi" : "Distance Sales Agreement"}</span>
       </div>
 
-      <div className="rounded-2xl border border-gray-100 bg-white shadow-card p-8 md:p-12 space-y-8">
+      <div className="space-y-8 rounded-2xl border border-gray-100 bg-white p-8 shadow-card md:p-12">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-brand-600 mb-2">Hukuki Belge</p>
-          <h1 className="text-3xl font-extrabold text-gray-900">Mesafeli Satış Sözleşmesi</h1>
-          <p className="mt-2 text-sm text-gray-500">Son güncelleme: 1 Mart 2026</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-brand-600">{isTr ? "Hukuki Belge" : "Legal Document"}</p>
+          <h1 className="text-3xl font-extrabold text-gray-900">{isTr ? "Mesafeli Satış Sözleşmesi" : "Distance Sales Agreement"}</h1>
+          <p className="mt-2 text-sm text-gray-500">{isTr ? "Son güncelleme: 1 Mart 2026" : "Last updated: March 1, 2026"}</p>
         </div>
 
-        <hr className="border-gray-100" />
+        {sections.map(([title, body]) => (
+          <section key={title} className="space-y-3">
+            <h2 className="text-lg font-bold text-gray-800">{title}</h2>
+            <p className="text-sm leading-relaxed text-gray-600">{body}</p>
+          </section>
+        ))}
 
-        {/* Taraflar */}
-        <section className="space-y-4">
-          <h2 className="text-lg font-bold text-gray-800">Madde 1 — Taraflar</h2>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 space-y-1">
-              <p className="text-xs font-semibold uppercase text-gray-400 tracking-widest">Satıcı</p>
-              <p className="text-sm font-semibold text-gray-800">Heptapus Group</p>
-              <p className="text-sm text-gray-600">E-posta: contact@heptapusgroup.com</p>
-              <p className="text-sm text-gray-600">Web: heptapusgroup.com</p>
-            </div>
-            <div className="rounded-xl border border-brand-100 bg-brand-50 p-4 space-y-1">
-              <p className="text-xs font-semibold uppercase text-brand-400 tracking-widest">Alıcı (Tüketici)</p>
-              <p className="text-sm text-brand-800">Kayıt sırasında bildirilen bilgilere sahip kullanıcı</p>
-            </div>
-          </div>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-lg font-bold text-gray-800">Madde 2 — Sözleşmenin Konusu</h2>
-          <p className="text-sm text-gray-600 leading-relaxed">
-            İşbu sözleşme, Alıcının <strong>cert.heptapusgroup.com</strong> platformu üzerinden dijital hizmet ve sanal birim (HeptaCoin)
-            satın almasına ilişkin koşulları, tarafların hak ve yükümlülüklerini, 6502 sayılı Tüketicinin Korunması Hakkında Kanun
-            ve Mesafeli Sözleşmeler Yönetmeliği çerçevesinde düzenler.
-          </p>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-lg font-bold text-gray-800">Madde 3 — Ürün / Hizmet Bilgileri</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left border-collapse">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="py-2 pr-4 text-gray-700 font-semibold">Hizmet</th>
-                  <th className="py-2 text-gray-700 font-semibold">Açıklama</th>
-                </tr>
-              </thead>
-              <tbody className="text-gray-600 divide-y divide-gray-100">
-                <tr>
-                  <td className="py-2 pr-4 font-medium">HeptaCoin Paketi</td>
-                  <td className="py-2">Platform hizmetlerinde kullanılacak sanal birim</td>
-                </tr>
-                <tr>
-                  <td className="py-2 pr-4 font-medium">Abonelik Planı</td>
-                  <td className="py-2">Aylık/yıllık HeptaCoin kotası ve premium özellikler</td>
-                </tr>
-                <tr>
-                  <td className="py-2 pr-4 font-medium">Sertifika Barındırma</td>
-                  <td className="py-2">Üretilen sertifika PDF'lerinin çevrimiçi erişilebilir tutulması</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-lg font-bold text-gray-800">Madde 4 — Ödeme</h2>
-          <p className="text-sm text-gray-600 leading-relaxed">
-            Satın alım bedeli, sipariş sırasında gösterilen fiyattır ve KDV dahildir. Ödeme; kredi kartı, banka kartı veya desteklenen
-            diğer ödeme yöntemleri ile güvenli ödeme altyapısı üzerinden peşin olarak tahsil edilir.
-            Satıcı, fiyat değişikliği hakkını saklı tutar; ancak onaylanmış siparişlere atanan fiyat değiştirilemez.
-          </p>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-lg font-bold text-gray-800">Madde 5 — Teslimat</h2>
-          <p className="text-sm text-gray-600 leading-relaxed">
-            Satın alım işleminin tamamlanmasının ardından HeptaCoin bakiyesi veya abonelik hakları hesabınıza
-            <strong> anında</strong> tanımlanır. Dijital hizmet niteliğinde olduğundan fiziksel teslimat bulunmamaktadır.
-          </p>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-lg font-bold text-gray-800">Madde 6 — Cayma Hakkı</h2>
-          <p className="text-sm text-gray-600 leading-relaxed">
-            Mesafeli Sözleşmeler Yönetmeliği md. 16/1(ğ) uyarınca; teslim anında ifası başlayan dijital içerik ve hizmetler için
-            alıcı tarafından açık onay verilmesi ve teslimata başlansa dahi cayma hakkının ortadan kalkacağının kabul edilmesi
-            koşuluyla cayma hakkı kullanılamaz.
-          </p>
-          <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
-            <p className="text-sm text-amber-800 leading-relaxed">
-              <strong>Önemli:</strong> Satın alım sırasında cayma hakkının kullanılamayacağını kabul ettiğinize dair onay
-              kutucuğunu işaretlemeniz, bu koşulların geçerliliği için zorunludur. Kullanılmamış HeptaCoin için 14 gün içinde
-              gönüllü iade politikamız geçerlidir; detaylar için <Link href="/iade" className="text-amber-700 font-semibold hover:underline">İade Politikasını</Link> inceleyin.
-            </p>
-          </div>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-lg font-bold text-gray-800">Madde 7 — Satıcının Yükümlülükleri</h2>
-          <ul className="list-disc list-inside space-y-1 text-sm text-gray-600 leading-relaxed pl-2">
-            <li>Platform hizmetini sürekli ve erişilebilir tutmak için gerekli teknik altyapıyı sağlamak</li>
-            <li>Teknik arıza durumlarında makul sürede müdahale etmek</li>
-            <li>Kişisel verileri KVKK ve gizlilik politikası doğrultusunda işlemek</li>
-            <li>Fatura / makbuz bilgilerini yasal süre boyunca saklamak</li>
-          </ul>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-lg font-bold text-gray-800">Madde 8 — Alıcının Yükümlülükleri</h2>
-          <ul className="list-disc list-inside space-y-1 text-sm text-gray-600 leading-relaxed pl-2">
-            <li>Platforma doğru ve eksiksiz bilgi ile kayıt olmak</li>
-            <li>Hesap güvenliğini korumak, şifresini üçüncü taraflarla paylaşmamak</li>
-            <li>Platformu münhasıran yasal amaçlarla ve <Link href="/gizlilik" className="text-brand-600 hover:underline">kullanım koşulları</Link> çerçevesinde kullanmak</li>
-            <li>Başkalarına ait kişisel verileri izinsiz işlememek</li>
-          </ul>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-lg font-bold text-gray-800">Madde 9 — Uyuşmazlık Çözümü</h2>
-          <p className="text-sm text-gray-600 leading-relaxed">
-            İşbu sözleşmeden doğan uyuşmazlıklarda Türk Hukuku uygulanır. Tüketici sıfatıyla uyuşmazlık yaşanması halinde
-            ikamet ettiğiniz yerdeki Tüketici Hakem Heyeti veya Tüketici Mahkemesi yetkilidir. Tüccar kullanıcılar için
-            İstanbul Çağlayan Mahkemeleri yetkili kılınmıştır.
-          </p>
-        </section>
-
-        <div className="rounded-xl border border-gray-100 bg-gray-50 p-5 flex flex-wrap gap-4 items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50 p-5">
           <div>
-            <p className="text-xs text-gray-500">Sözleşme sorularınız için</p>
+            <p className="text-xs text-gray-500">{isTr ? "Sözleşme soruları için" : "For agreement questions"}</p>
             <a href="mailto:legal@heptapusgroup.com" className="text-sm font-semibold text-brand-600 hover:underline">legal@heptapusgroup.com</a>
           </div>
           <div className="flex gap-3">
-            <Link href="/iade" className="text-sm text-gray-500 hover:text-brand-600 transition-colors">İade Politikası</Link>
-            <Link href="/kvkk" className="text-sm text-gray-500 hover:text-brand-600 transition-colors">KVKK</Link>
+            <Link href="/iade" className="text-sm text-gray-500 transition-colors hover:text-brand-600">{isTr ? "İade Politikası" : "Refund Policy"}</Link>
+            <Link href="/kvkk" className="text-sm text-gray-500 transition-colors hover:text-brand-600">{isTr ? "KVKK" : "Privacy Notice"}</Link>
           </div>
         </div>
       </div>

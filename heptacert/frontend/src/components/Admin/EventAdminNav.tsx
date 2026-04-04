@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { createContext, useContext, type ReactNode } from "react";
@@ -17,27 +17,7 @@ import {
   Palette,
   ClipboardList,
 } from "lucide-react";
-
-type NavItem = {
-  tab: EventAdminTab;
-  label: string;
-  icon: React.ElementType;
-  href: (id: string | number) => string;
-};
-
-const NAV_ITEMS: NavItem[] = [
-  { tab: "certificates", label: "Sertifikalar",  icon: LockKeyhole,  href: (id) => `/admin/events/${id}/certificates` },
-  { tab: "sessions",     label: "Oturumlar",      icon: QrCode,       href: (id) => `/admin/events/${id}/sessions` },
-  { tab: "attendees",    label: "Katılımcılar",   icon: Users,        href: (id) => `/admin/events/${id}/attendees` },
-  { tab: "checkin",      label: "Check-in",       icon: UserCheck,    href: (id) => `/admin/events/${id}/checkin` },
-  { tab: "gamification", label: "Gamification",   icon: Target,       href: (id) => `/admin/events/${id}/gamification` },
-  { tab: "raffles",      label: "Çekilişler",     icon: Gift,         href: (id) => `/admin/events/${id}/raffles` },
-  { tab: "surveys",      label: "Anket",          icon: ClipboardList,href: (id) => `/admin/events/${id}/surveys` },
-  { tab: "analytics",    label: "İleri Analitik", icon: BarChart3,    href: (id) => `/admin/events/${id}/advanced-analytics` },
-  { tab: "editor",       label: "Editör",         icon: Palette,      href: (id) => `/admin/events/${id}/editor` },
-  { tab: "email",        label: "Email",          icon: Mail,         href: (id) => `/admin/events/${id}/email-templates` },
-  { tab: "settings",     label: "Ayarlar",        icon: Settings,     href: (id) => `/admin/events/${id}/settings` },
-];
+import { useI18n } from "@/lib/i18n";
 
 type EventAdminTab =
   | "certificates"
@@ -51,6 +31,27 @@ type EventAdminTab =
   | "editor"
   | "email"
   | "settings";
+
+type NavItem = {
+  tab: EventAdminTab;
+  label: { tr: string; en: string };
+  icon: React.ElementType;
+  href: (id: string | number) => string;
+};
+
+const NAV_ITEMS: NavItem[] = [
+  { tab: "certificates", label: { tr: "Sertifikalar", en: "Certificates" }, icon: LockKeyhole, href: (id) => `/admin/events/${id}/certificates` },
+  { tab: "sessions", label: { tr: "Oturumlar", en: "Sessions" }, icon: QrCode, href: (id) => `/admin/events/${id}/sessions` },
+  { tab: "attendees", label: { tr: "Katılımcılar", en: "Attendees" }, icon: Users, href: (id) => `/admin/events/${id}/attendees` },
+  { tab: "checkin", label: { tr: "Check-in", en: "Check-in" }, icon: UserCheck, href: (id) => `/admin/events/${id}/checkin` },
+  { tab: "gamification", label: { tr: "Gamification", en: "Gamification" }, icon: Target, href: (id) => `/admin/events/${id}/gamification` },
+  { tab: "raffles", label: { tr: "Çekilişler", en: "Raffles" }, icon: Gift, href: (id) => `/admin/events/${id}/raffles` },
+  { tab: "surveys", label: { tr: "Anketler", en: "Surveys" }, icon: ClipboardList, href: (id) => `/admin/events/${id}/surveys` },
+  { tab: "analytics", label: { tr: "İleri Analitik", en: "Advanced Analytics" }, icon: BarChart3, href: (id) => `/admin/events/${id}/advanced-analytics` },
+  { tab: "editor", label: { tr: "Editör", en: "Editor" }, icon: Palette, href: (id) => `/admin/events/${id}/editor` },
+  { tab: "email", label: { tr: "E-posta", en: "Email" }, icon: Mail, href: (id) => `/admin/events/${id}/email-templates` },
+  { tab: "settings", label: { tr: "Ayarlar", en: "Settings" }, icon: Settings, href: (id) => `/admin/events/${id}/settings` },
+];
 
 type EventAdminNavProps = {
   eventId: string | number;
@@ -69,11 +70,7 @@ export function EventAdminLayoutProvider({
   hideInlineNav: boolean;
   children: ReactNode;
 }) {
-  return (
-    <EventAdminLayoutContext.Provider value={{ hideInlineNav }}>
-      {children}
-    </EventAdminLayoutContext.Provider>
-  );
+  return <EventAdminLayoutContext.Provider value={{ hideInlineNav }}>{children}</EventAdminLayoutContext.Provider>;
 }
 
 function getActiveFromPath(pathname: string): EventAdminTab {
@@ -85,12 +82,7 @@ function getActiveFromPath(pathname: string): EventAdminTab {
   if (pathname.includes("/surveys")) return "surveys";
   if (pathname.includes("/advanced-analytics") || pathname.includes("/analytics")) return "analytics";
   if (pathname.includes("/editor") || pathname.includes("/preview") || pathname.includes("/qr-present")) return "editor";
-  if (
-    pathname.includes("/email-templates") ||
-    pathname.includes("/bulk-emails") ||
-    pathname.includes("/schedule-email")
-  )
-    return "email";
+  if (pathname.includes("/email-templates") || pathname.includes("/bulk-emails") || pathname.includes("/schedule-email")) return "email";
   if (pathname.includes("/settings")) return "settings";
   return "certificates";
 }
@@ -102,49 +94,43 @@ export default function EventAdminNav({
   className,
   variant = "inline",
 }: EventAdminNavProps) {
+  const { lang } = useI18n();
   const pathname = usePathname() || "";
   const { hideInlineNav } = useContext(EventAdminLayoutContext);
   const resolvedActive = active ?? getActiveFromPath(pathname);
+  const copy = {
+    tr: {
+      allEvents: "Tüm Etkinlikler",
+      eventFallback: (id: string | number) => `Etkinlik #${id}`,
+    },
+    en: {
+      allEvents: "All Events",
+      eventFallback: (id: string | number) => `Event #${id}`,
+    },
+  }[lang];
 
   if (hideInlineNav && variant === "inline") {
     return null;
   }
 
-  /* ── Sidebar variant ──────────────────────────────────── */
   if (variant === "sidebar") {
     return (
-      <aside
-        className={
-          className ||
-          "h-fit rounded-xl border border-surface-200 bg-white shadow-soft lg:sticky lg:top-6"
-        }
-      >
-        {/* Back + event name */}
-        <div className="px-4 py-4 border-b border-surface-100">
-          <Link
-            href="/admin/events"
-            className="mb-1.5 flex items-center gap-1 text-xs font-medium text-surface-400 hover:text-surface-600 transition-colors w-fit"
-          >
+      <aside className={className || "h-fit rounded-xl border border-surface-200 bg-white shadow-soft lg:sticky lg:top-6"}>
+        <div className="border-b border-surface-100 px-4 py-4">
+          <Link href="/admin/events" className="mb-1.5 flex w-fit items-center gap-1 text-xs font-medium text-surface-400 transition-colors hover:text-surface-600">
             <ChevronLeft className="h-3.5 w-3.5" />
-            Tüm Etkinlikler
+            {copy.allEvents}
           </Link>
-          <p className="text-xs font-semibold text-surface-900 leading-snug">
-            {eventName || `Etkinlik #${eventId}`}
-          </p>
+          <p className="text-xs font-semibold leading-snug text-surface-900">{eventName || copy.eventFallback(eventId)}</p>
         </div>
 
-        {/* Nav items */}
-        <nav className="p-2 space-y-0.5">
+        <nav className="space-y-0.5 p-2">
           {NAV_ITEMS.map(({ tab, label, icon: Icon, href }) => {
             const isAct = resolvedActive === tab;
             return (
-              <Link
-                key={tab}
-                href={href(eventId)}
-                className={isAct ? "sidebar-item-active" : "sidebar-item"}
-              >
+              <Link key={tab} href={href(eventId)} className={isAct ? "sidebar-item-active" : "sidebar-item"}>
                 <Icon className="h-4 w-4 shrink-0" />
-                {label}
+                {label[lang]}
               </Link>
             );
           })}
@@ -153,34 +139,28 @@ export default function EventAdminNav({
     );
   }
 
-  /* ── Inline (horizontal tab bar) variant ─────────────── */
   return (
     <div className={className || "mb-6"}>
-      <Link
-        href="/admin/events"
-        className="mb-2 flex items-center gap-1 text-xs font-medium text-surface-400 hover:text-surface-600 transition-colors w-fit"
-      >
+      <Link href="/admin/events" className="mb-2 flex w-fit items-center gap-1 text-xs font-medium text-surface-400 transition-colors hover:text-surface-600">
         <ChevronLeft className="h-3.5 w-3.5" />
-        Tüm Etkinlikler
+        {copy.allEvents}
       </Link>
-      {eventName && (
-        <p className="mb-2 text-xs font-semibold text-surface-700">{eventName}</p>
-      )}
-      <div className="flex items-center gap-0.5 flex-wrap border-b border-surface-200">
+      {eventName && <p className="mb-2 text-xs font-semibold text-surface-700">{eventName}</p>}
+      <div className="flex flex-wrap items-center gap-0.5 border-b border-surface-200">
         {NAV_ITEMS.map(({ tab, label, icon: Icon, href }) => {
           const isAct = resolvedActive === tab;
           return (
             <Link
               key={tab}
               href={href(eventId)}
-              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors ${
+              className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-medium transition-colors ${
                 isAct
                   ? "border-brand-600 text-brand-700"
-                  : "border-transparent text-surface-500 hover:text-surface-800 hover:border-surface-300"
+                  : "border-transparent text-surface-500 hover:border-surface-300 hover:text-surface-800"
               }`}
             >
               <Icon className="h-3.5 w-3.5" />
-              {label}
+              {label[lang]}
             </Link>
           );
         })}

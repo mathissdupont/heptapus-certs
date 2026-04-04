@@ -1,143 +1,179 @@
-import Link from "next/link";
-import type { Metadata } from "next";
-import { Mail, Globe, MessageCircle } from "lucide-react";
+﻿"use client";
 
-export const metadata: Metadata = {
-  title: "İletişim",
-  description: "HeptaCert — Destek, iş geliştirme ve hukuki talepler için iletişim bilgileri.",
-};
+import Link from "next/link";
+import { Mail, Globe, MessageCircle } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 export default function IletisimPage() {
+  const { lang } = useI18n();
+  const isTr = lang === "tr";
+
+  const cards = isTr
+    ? [
+        {
+          title: "Genel Destek",
+          subtitle: "E-posta",
+          href: "mailto:contact@heptapusgroup.com",
+          label: "contact@heptapusgroup.com",
+          desc: "Hesap sorunları, ödeme, teknik destek ve genel sorular için. Yanıt süresi: 1-2 iş günü.",
+          icon: Mail,
+          iconClass: "bg-brand-50 text-brand-600",
+        },
+        {
+          title: "Ana Site",
+          subtitle: "Heptapus Group",
+          href: "https://heptapusgroup.com",
+          label: "heptapusgroup.com",
+          desc: "Heptapus Group bünyesindeki tüm ürünler ve şirket hakkında bilgi almak için ziyaret edin.",
+          icon: Globe,
+          iconClass: "bg-violet-50 text-violet-600",
+        },
+        {
+          title: "Hukuki ve KVKK",
+          subtitle: "Yasal Talepler",
+          href: "mailto:legal@heptapusgroup.com",
+          label: "legal@heptapusgroup.com",
+          desc: "KVKK başvuruları, gizlilik talepleri ve hukuki bildirimler için.",
+          icon: MessageCircle,
+          iconClass: "bg-emerald-50 text-emerald-600",
+        },
+        {
+          title: "İade ve Ödeme",
+          subtitle: "Finans Destek",
+          href: "mailto:iade@heptapusgroup.com",
+          label: "iade@heptapusgroup.com",
+          desc: "İade talepleri, fatura itirazları ve ödeme sorunları için.",
+          icon: Mail,
+          iconClass: "bg-amber-50 text-amber-600",
+        },
+      ]
+    : [
+        {
+          title: "General Support",
+          subtitle: "Email",
+          href: "mailto:contact@heptapusgroup.com",
+          label: "contact@heptapusgroup.com",
+          desc: "For account issues, payments, technical support, and general questions. Response time: 1-2 business days.",
+          icon: Mail,
+          iconClass: "bg-brand-50 text-brand-600",
+        },
+        {
+          title: "Main Website",
+          subtitle: "Heptapus Group",
+          href: "https://heptapusgroup.com",
+          label: "heptapusgroup.com",
+          desc: "Visit to learn more about Heptapus Group and its products.",
+          icon: Globe,
+          iconClass: "bg-violet-50 text-violet-600",
+        },
+        {
+          title: "Legal and Privacy",
+          subtitle: "Formal Requests",
+          href: "mailto:legal@heptapusgroup.com",
+          label: "legal@heptapusgroup.com",
+          desc: "For privacy requests, legal notices, and compliance matters.",
+          icon: MessageCircle,
+          iconClass: "bg-emerald-50 text-emerald-600",
+        },
+        {
+          title: "Refunds and Billing",
+          subtitle: "Finance Support",
+          href: "mailto:iade@heptapusgroup.com",
+          label: "iade@heptapusgroup.com",
+          desc: "For refund requests, invoice objections, and payment issues.",
+          icon: Mail,
+          iconClass: "bg-amber-50 text-amber-600",
+        },
+      ];
+
+  const timings = isTr
+    ? [
+        { channel: "Teknik Destek", time: "1-2 iş günü", color: "bg-brand-100 text-brand-700" },
+        { channel: "İade Talebi", time: "3 iş günü", color: "bg-amber-100 text-amber-700" },
+        { channel: "KVKK / Hukuki", time: "30 gün", color: "bg-emerald-100 text-emerald-700" },
+        { channel: "İş Geliştirme", time: "3-5 iş günü", color: "bg-violet-100 text-violet-700" },
+      ]
+    : [
+        { channel: "Technical Support", time: "1-2 business days", color: "bg-brand-100 text-brand-700" },
+        { channel: "Refund Request", time: "3 business days", color: "bg-amber-100 text-amber-700" },
+        { channel: "Privacy / Legal", time: "30 days", color: "bg-emerald-100 text-emerald-700" },
+        { channel: "Business Development", time: "3-5 business days", color: "bg-violet-100 text-violet-700" },
+      ];
+
+  const legalLinks = isTr
+    ? [
+        { href: "/kvkk", label: "KVKK Aydınlatma Metni" },
+        { href: "/gizlilik", label: "Gizlilik Politikası" },
+        { href: "/iade", label: "İade ve İptal Politikası" },
+        { href: "/mesafeli-satis", label: "Mesafeli Satış Sözleşmesi" },
+      ]
+    : [
+        { href: "/kvkk", label: "Privacy Disclosure Notice" },
+        { href: "/gizlilik", label: "Privacy Policy" },
+        { href: "/iade", label: "Refund and Cancellation Policy" },
+        { href: "/mesafeli-satis", label: "Distance Sales Agreement" },
+      ];
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
       <div className="mb-8 flex items-center gap-2 text-sm text-gray-400">
-        <Link href="/" className="hover:text-brand-600 transition-colors">Ana Sayfa</Link>
+        <Link href="/" className="transition-colors hover:text-brand-600">{isTr ? "Ana Sayfa" : "Home"}</Link>
         <span>/</span>
-        <span className="text-gray-600 font-medium">İletişim</span>
+        <span className="font-medium text-gray-600">{isTr ? "İletişim" : "Contact"}</span>
       </div>
 
       <div className="space-y-6">
-        {/* Header */}
-        <div className="rounded-2xl border border-gray-100 bg-white shadow-card p-8 md:p-12">
-          <p className="text-xs font-semibold uppercase tracking-widest text-brand-600 mb-2">Bize Ulaşın</p>
-          <h1 className="text-3xl font-extrabold text-gray-900">İletişim</h1>
-          <p className="mt-3 text-base text-gray-500 max-w-xl leading-relaxed">
-            Platform desteği, iş birlikleri veya hukuki talepler için aşağıdaki kanalları kullanabilirsiniz.
-            Mesajınızı en kısa sürede değerlendirip size geri döneceğiz.
+        <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-card md:p-12">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-brand-600">{isTr ? "Bize Ulaşın" : "Get in Touch"}</p>
+          <h1 className="text-3xl font-extrabold text-gray-900">{isTr ? "İletişim" : "Contact"}</h1>
+          <p className="mt-3 max-w-xl text-base leading-relaxed text-gray-500">
+            {isTr
+              ? "Platform desteği, iş birlikleri veya hukuki talepler için aşağıdaki kanalları kullanabilirsiniz. Mesajınızı en kısa sürede değerlendirip size geri döneceğiz."
+              : "Use the channels below for platform support, partnerships, or legal matters. We will review your message and get back to you as soon as possible."}
           </p>
         </div>
 
-        {/* Contact cards */}
-        <div className="grid md:grid-cols-2 gap-5">
-          <div className="rounded-2xl border border-gray-100 bg-white shadow-card p-6 space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-                <Mail className="h-5 w-5" />
+        <div className="grid gap-5 md:grid-cols-2">
+          {cards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <div key={card.label} className="space-y-3 rounded-2xl border border-gray-100 bg-white p-6 shadow-card">
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${card.iconClass}`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-gray-400">{card.title}</p>
+                    <p className="text-sm font-bold text-gray-800">{card.subtitle}</p>
+                  </div>
+                </div>
+                <a href={card.href} target={card.href.startsWith("http") ? "_blank" : undefined} rel={card.href.startsWith("http") ? "noopener noreferrer" : undefined} className="block text-sm font-semibold text-brand-600 transition-colors hover:text-brand-700 hover:underline">
+                  {card.label}
+                </a>
+                <p className="text-xs leading-relaxed text-gray-500">{card.desc}</p>
               </div>
-              <div>
-                <p className="text-xs text-gray-400 font-medium">Genel Destek</p>
-                <p className="text-sm font-bold text-gray-800">E-posta</p>
-              </div>
-            </div>
-            <a href="mailto:contact@heptapusgroup.com"
-              className="block text-sm font-semibold text-brand-600 hover:text-brand-700 hover:underline transition-colors">
-              contact@heptapusgroup.com
-            </a>
-            <p className="text-xs text-gray-500 leading-relaxed">
-              Hesap sorunları, ödeme, teknik destek ve genel sorularınız için.
-              Yanıt süresi: 1–2 iş günü.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-gray-100 bg-white shadow-card p-6 space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
-                <Globe className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 font-medium">Ana Site</p>
-                <p className="text-sm font-bold text-gray-800">Heptapus Group</p>
-              </div>
-            </div>
-            <a href="https://heptapusgroup.com" target="_blank" rel="noopener noreferrer"
-              className="block text-sm font-semibold text-violet-600 hover:text-violet-700 hover:underline transition-colors">
-              heptapusgroup.com
-            </a>
-            <p className="text-xs text-gray-500 leading-relaxed">
-              Heptapus Group bünyesindeki tüm ürünler ve şirket hakkında bilgi almak için ziyaret edin.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-gray-100 bg-white shadow-card p-6 space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                <MessageCircle className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 font-medium">Hukuki & KVKK</p>
-                <p className="text-sm font-bold text-gray-800">Yasal Talepler</p>
-              </div>
-            </div>
-            <a href="mailto:legal@heptapusgroup.com"
-              className="block text-sm font-semibold text-emerald-600 hover:text-emerald-700 hover:underline transition-colors">
-              legal@heptapusgroup.com
-            </a>
-            <p className="text-xs text-gray-500 leading-relaxed">
-              KVKK başvuruları, gizlilik talepleri ve hukuki bildirimler için.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-gray-100 bg-white shadow-card p-6 space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-                <Mail className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 font-medium">İade & Ödeme</p>
-                <p className="text-sm font-bold text-gray-800">Finans Destek</p>
-              </div>
-            </div>
-            <a href="mailto:iade@heptapusgroup.com"
-              className="block text-sm font-semibold text-amber-600 hover:text-amber-700 hover:underline transition-colors">
-              iade@heptapusgroup.com
-            </a>
-            <p className="text-xs text-gray-500 leading-relaxed">
-              İade talepleri, fatura itirazları ve ödeme sorunları için.
-            </p>
-          </div>
+            );
+          })}
         </div>
 
-        {/* Response time info */}
-        <div className="rounded-2xl border border-gray-100 bg-white shadow-card p-6">
-          <h2 className="text-base font-bold text-gray-800 mb-4">Yanıt Süreleri</h2>
+        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-card">
+          <h2 className="mb-4 text-base font-bold text-gray-800">{isTr ? "Yanıt Süreleri" : "Response Times"}</h2>
           <div className="space-y-3">
-            {[
-              { channel: "Teknik Destek", time: "1–2 iş günü", color: "bg-brand-100 text-brand-700" },
-              { channel: "İade Talebi", time: "3 iş günü", color: "bg-amber-100 text-amber-700" },
-              { channel: "KVKK / Hukuki", time: "30 gün (yasal süre)", color: "bg-emerald-100 text-emerald-700" },
-              { channel: "İş Geliştirme", time: "3–5 iş günü", color: "bg-violet-100 text-violet-700" },
-            ].map((item) => (
+            {timings.map((item) => (
               <div key={item.channel} className="flex items-center justify-between">
                 <span className="text-sm text-gray-700">{item.channel}</span>
-                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${item.color}`}>{item.time}</span>
+                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.color}`}>{item.time}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Legal links */}
         <div className="rounded-2xl border border-gray-100 bg-gray-50 p-6">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-4">Yasal Belgeler</p>
+          <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-500">{isTr ? "Yasal Belgeler" : "Legal Documents"}</p>
           <div className="grid grid-cols-2 gap-3">
-            {[
-              { href: "/kvkk", label: "KVKK Aydınlatma Metni" },
-              { href: "/gizlilik", label: "Gizlilik Politikası" },
-              { href: "/iade", label: "İade ve İptal Politikası" },
-              { href: "/mesafeli-satis", label: "Mesafeli Satış Sözleşmesi" },
-            ].map((link) => (
-              <Link key={link.href} href={link.href}
-                className="text-sm text-gray-600 hover:text-brand-600 transition-colors hover:underline">
-                → {link.label}
+            {legalLinks.map((link) => (
+              <Link key={link.href} href={link.href} className="text-sm text-gray-600 transition-colors hover:text-brand-600 hover:underline">
+                {isTr ? "→" : "→"} {link.label}
               </Link>
             ))}
           </div>
