@@ -116,6 +116,7 @@ CHECKIN_CONTEXT_TTL_SECONDS = 20
 EVENT_TOTAL_SESSIONS_TTL_SECONDS = 30
 _checkin_context_cache: Dict[str, tuple[float, Dict[str, Any]]] = {}
 _event_total_sessions_cache: Dict[int, tuple[float, int]] = {}
+REGISTRATION_DEVICE_COOKIE = "heptacert_reg_device"
 
 
 class Base(DeclarativeBase):
@@ -567,6 +568,9 @@ class Attendee(Base):
         default="import",
     )
     registered_at:        Mapped[datetime]              = mapped_column(DateTime(timezone=True), server_default=func.now())
+    email_verified:       Mapped[bool]                  = mapped_column(Boolean, default=False)
+    email_verification_token: Mapped[Optional[str]]     = mapped_column(String(512), nullable=True)
+    email_verified_at:    Mapped[Optional[datetime]]    = mapped_column(DateTime(timezone=True), nullable=True)
     survey_completed_at:  Mapped[Optional[datetime]]    = mapped_column(DateTime(timezone=True), nullable=True)
     survey_required:      Mapped[bool]                  = mapped_column(Boolean, default=False)
     can_download_cert:    Mapped[bool]                  = mapped_column(Boolean, default=True)
@@ -1231,6 +1235,7 @@ class PublicParticipantStatusOut(BaseModel):
     attendee_id: int
     attendee_name: str
     attendee_email: str
+    email_verified: bool = False
     event_id: int
     event_name: str
     sessions_attended: int
@@ -1646,6 +1651,29 @@ def build_public_status_url(*, event_id: int, attendee_id: int, email: str) -> s
     return f"{settings.frontend_base_url.rstrip('/')}/events/{event_id}/status?token={survey_token}"
 
 
+def build_attendee_verify_url(*, event_id: int, token: str) -> str:
+    return f"{settings.frontend_base_url.rstrip('/')}/events/{event_id}/verify-email?token={token}"
+
+
+async def send_attendee_verification_email(*, attendee: "Attendee", event: "Event") -> None:
+    token = attendee.email_verification_token
+    if not token:
+        return
+
+    verify_link = build_attendee_verify_url(event_id=event.id, token=token)
+    await send_email_async(
+        to=attendee.email,
+        subject=f"{event.name} etkinliği için e-posta adresinizi doğrulayın",
+        html_body=f"""
+        <p>Merhaba {attendee.name},</p>
+        <p>{event.name} etkinlik kaydınızı tamamlamak için e-posta adresinizi doğrulamanız gerekiyor.</p>
+        <p><a href="{verify_link}">{verify_link}</a></p>
+        <p>Bu bağlantıyı doğrulamadan check-in yapamaz ve çekilişlere dahil olamazsınız.</p>
+        <p>Bağlantı 24 saat geçerlidir.</p>
+        """,
+    )
+
+
 async def write_audit_log(
     db: AsyncSession,
     *,
@@ -1669,6 +1697,65 @@ async def write_audit_log(
         )
     )
 
+
+async def _enforce_registration_risk_controls(
+    db: AsyncSession,
+    *,
+    event_id: int,
+    email: str,
+    ip_address: Optional[str],
+    user_agent: Optional[str],
+    device_id: str,
+) -> None:
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(minutes=30)
+    recent_logs_res = await db.execute(
+        select(AuditLog)
+        .where(
+            AuditLog.action == "attendee.register",
+            AuditLog.created_at >= cutoff,
+        )
+        .order_by(AuditLog.created_at.desc())
+        .limit(250)
+    )
+    recent_logs = recent_logs_res.scalars().all()
+
+    def _extra(log: AuditLog) -> Dict[str, Any]:
+        return log.extra or {}
+
+    same_event_logs = [log for log in recent_logs if str(_extra(log).get("event_id")) == str(event_id)]
+    email_lc = email.lower()
+
+    same_ip_recent = [
+        log for log in same_event_logs
+        if ip_address and log.ip_address == ip_address and log.created_at >= now - timedelta(minutes=10)
+    ]
+    if len(same_ip_recent) >= 5:
+        raise HTTPException(status_code=429, detail="Bu IP adresinden cok fazla etkinlik kaydi denemesi algilandi.")
+
+    same_device_logs = [
+        log for log in same_event_logs
+        if _extra(log).get("device_id") == device_id
+    ]
+    distinct_device_emails = {
+        str(_extra(log).get("email") or "").lower()
+        for log in same_device_logs
+        if _extra(log).get("email")
+    }
+    if len(same_device_logs) >= 4 and email_lc not in distinct_device_emails:
+        raise HTTPException(status_code=429, detail="Bu cihazdan cok sayida farkli e-posta denemesi algilandi.")
+
+    same_ip_ua_logs = [
+        log for log in same_event_logs
+        if ip_address and log.ip_address == ip_address and (log.user_agent or "") == (user_agent or "")
+    ]
+    distinct_ip_ua_emails = {
+        str(_extra(log).get("email") or "").lower()
+        for log in same_ip_ua_logs
+        if _extra(log).get("email")
+    }
+    if len(distinct_ip_ua_emails) >= 4 and email_lc not in distinct_ip_ua_emails:
+        raise HTTPException(status_code=429, detail="Supheli kayit denemesi algilandi. Lutfen daha sonra tekrar deneyin.")
 
 async def build_public_participant_status(
     db: AsyncSession,
@@ -1724,7 +1811,7 @@ async def build_public_participant_status(
             "min_sessions_required": raffle.min_sessions_required,
         }
         for raffle in raffles
-        if sessions_attended >= raffle.min_sessions_required
+        if attendee.email_verified and sessions_attended >= raffle.min_sessions_required
     ]
 
     certificate_ready = bool(
@@ -1737,6 +1824,7 @@ async def build_public_participant_status(
         attendee_id=attendee.id,
         attendee_name=attendee.name,
         attendee_email=attendee.email,
+        email_verified=bool(attendee.email_verified),
         event_id=event.id,
         event_name=event.name,
         sessions_attended=sessions_attended,
@@ -2178,6 +2266,13 @@ def _client_ip_for_rate_limit(request: Request) -> str:
     if request.client and request.client.host:
         return request.client.host
     return "unknown"
+
+
+def _get_registration_device_id(request: Request) -> tuple[str, bool]:
+    existing = (request.cookies.get(REGISTRATION_DEVICE_COOKIE) or "").strip()
+    if existing and len(existing) <= 128:
+        return existing, False
+    return secrets.token_urlsafe(24), True
 
 
 async def _heptacert_rate_limit_handler(request: Request, exc: RateLimitExceeded):
@@ -8911,7 +9006,7 @@ def _raffle_to_out(
             sessions_attended=attendance_counts.get(attendee.id, 0),
         )
         for attendee in attendees
-        if attendance_counts.get(attendee.id, 0) >= raffle.min_sessions_required
+        if attendee.email_verified and attendance_counts.get(attendee.id, 0) >= raffle.min_sessions_required
     ]
     winners: List[EventRaffleWinnerOut] = []
     for winner in sorted(raffle.winners, key=lambda item: item.drawn_at):
@@ -8958,7 +9053,9 @@ def _pick_raffle_winners(
     eligible_attendees = [
         attendee
         for attendee in attendees
-        if attendance_counts.get(attendee.id, 0) >= raffle.min_sessions_required and attendee.id not in excluded
+        if attendee.email_verified
+        and attendance_counts.get(attendee.id, 0) >= raffle.min_sessions_required
+        and attendee.id not in excluded
     ]
     if not eligible_attendees:
         raise HTTPException(status_code=400, detail="Çekiliş için uygun katılımcı bulunamadı")
@@ -9027,23 +9124,100 @@ async def public_event_register(
     ev = res.scalar_one_or_none()
     if not ev:
         raise HTTPException(status_code=404, detail="Event not found")
+    client_ip = _client_ip_for_rate_limit(request)
+    user_agent = request.headers.get("User-Agent")
+    device_id, should_set_device_cookie = _get_registration_device_id(request)
+    await _enforce_registration_risk_controls(
+        db,
+        event_id=event_id,
+        email=payload.email.lower(),
+        ip_address=client_ip,
+        user_agent=user_agent,
+        device_id=device_id,
+    )
     # Check duplicate
     existing = await db.execute(
         select(Attendee).where(Attendee.event_id == event_id, func.lower(Attendee.email) == payload.email.lower())
     )
     existing_attendee = existing.scalar_one_or_none()
     if existing_attendee:
+        if not existing_attendee.email_verified:
+            existing_attendee.email_verification_token = make_email_token(
+                {
+                    "action": "attendee_verify",
+                    "attendee_id": existing_attendee.id,
+                    "event_id": event_id,
+                    "email": existing_attendee.email.lower(),
+                }
+            )
+            await write_audit_log(
+                db,
+                user_id=None,
+                action="attendee.register",
+                resource_type="attendee",
+                resource_id=str(existing_attendee.id),
+                ip_address=client_ip,
+                user_agent=user_agent,
+                extra={
+                    "event_id": event_id,
+                    "email": existing_attendee.email.lower(),
+                    "device_id": device_id,
+                    "result": "existing_unverified",
+                },
+            )
+            await db.commit()
+            await send_attendee_verification_email(attendee=existing_attendee, event=ev)
+            response = JSONResponse(
+                status_code=200,
+                content={
+                    "ok": True,
+                    "already_registered": True,
+                    "email_verified": False,
+                    "verification_required": True,
+                    "message": "Bu e-posta ile kayıt bulundu. Devam etmek için doğrulama e-postasını onaylayın.",
+                    "attendee_id": existing_attendee.id,
+                    "attendee_name": existing_attendee.name,
+                    "attendee_email": existing_attendee.email,
+                },
+            )
+            if should_set_device_cookie:
+                response.set_cookie(
+                    key=REGISTRATION_DEVICE_COOKIE,
+                    value=device_id,
+                    max_age=60 * 60 * 24 * 365,
+                    httponly=True,
+                    samesite="Lax",
+                )
+            return response
         survey_token = make_survey_access_token(
             attendee_id=existing_attendee.id,
             event_id=event_id,
             email=existing_attendee.email,
         )
-        return JSONResponse(
+        await write_audit_log(
+            db,
+            user_id=None,
+            action="attendee.register",
+            resource_type="attendee",
+            resource_id=str(existing_attendee.id),
+            ip_address=client_ip,
+            user_agent=user_agent,
+            extra={
+                "event_id": event_id,
+                "email": existing_attendee.email.lower(),
+                "device_id": device_id,
+                "result": "existing_verified",
+            },
+        )
+        await db.commit()
+        response = JSONResponse(
             status_code=200,
             content={
                 "ok": True,
                 "already_registered": True,
-                "message": "Bu e-posta ile zaten kayıtlısınız",
+                "email_verified": True,
+                "verification_required": False,
+                "message": "Bu e-posta ile zaten kay??tl??s??n??z",
                 "attendee_id": existing_attendee.id,
                 "attendee_name": existing_attendee.name,
                 "attendee_email": existing_attendee.email,
@@ -9060,38 +9234,104 @@ async def public_event_register(
                 ),
             },
         )
+        if should_set_device_cookie:
+            response.set_cookie(
+                key=REGISTRATION_DEVICE_COOKIE,
+                value=device_id,
+                max_age=60 * 60 * 24 * 365,
+                httponly=True,
+                samesite="Lax",
+            )
+        return response
     attendee = Attendee(
         event_id=event_id,
         name=payload.name,
         email=payload.email.lower(),
         source="self_register",
+        email_verified=False,
     )
     db.add(attendee)
+    await db.flush()
+    attendee.email_verification_token = make_email_token(
+        {
+            "action": "attendee_verify",
+            "attendee_id": attendee.id,
+            "event_id": event_id,
+            "email": attendee.email.lower(),
+        }
+    )
+    await write_audit_log(
+        db,
+        user_id=None,
+        action="attendee.register",
+        resource_type="attendee",
+        resource_id=str(attendee.id),
+        ip_address=client_ip,
+        user_agent=user_agent,
+        extra={
+            "event_id": event_id,
+            "email": attendee.email.lower(),
+            "device_id": device_id,
+            "result": "created_unverified",
+        },
+    )
     await db.commit()
-    survey_token = make_survey_access_token(
-        attendee_id=attendee.id,
-        event_id=event_id,
-        email=attendee.email,
+    await send_attendee_verification_email(attendee=attendee, event=ev)
+    response = JSONResponse(
+        status_code=201,
+        content={
+            "ok": True,
+            "already_registered": False,
+            "email_verified": False,
+            "verification_required": True,
+            "message": "Kayit alindi. Etkinlige katilimi tamamlamak icin e-posta dogrulamasi gerekiyor.",
+            "attendee_id": attendee.id,
+            "attendee_name": attendee.name,
+            "attendee_email": attendee.email,
+        },
     )
-    survey_url = build_public_survey_url(
-        event_id=event_id,
-        attendee_id=attendee.id,
-        email=attendee.email,
-    )
+    if should_set_device_cookie:
+        response.set_cookie(
+            key=REGISTRATION_DEVICE_COOKIE,
+            value=device_id,
+            max_age=60 * 60 * 24 * 365,
+            httponly=True,
+            samesite="Lax",
+        )
+    return response
+
+
+@app.get("/api/events/{event_id}/verify-email")
+async def verify_attendee_email(event_id: int, token: str = Query(...), db: AsyncSession = Depends(get_db)):
+    try:
+        payload = verify_email_token(token, max_age=86400)
+    except SignatureExpired:
+        raise bad_request("Dogrulama baglantisinin suresi dolmus.")
+    except (BadSignature, Exception):
+        raise bad_request("Gecersiz dogrulama baglantisi.")
+
+    if payload.get("action") != "attendee_verify":
+        raise bad_request("Gecersiz token turu.")
+    if int(payload.get("event_id") or 0) != event_id:
+        raise bad_request("Etkinlik dogrulama bilgisi eslesmiyor.")
+
+    attendee_id = int(payload.get("attendee_id") or 0)
+    email = str(payload.get("email") or "").lower()
+    res = await db.execute(select(Attendee).where(Attendee.id == attendee_id, Attendee.event_id == event_id))
+    attendee = res.scalar_one_or_none()
+    if not attendee or attendee.email.lower() != email:
+        raise HTTPException(status_code=404, detail="Katilimci bulunamadi.")
+
+    attendee.email_verified = True
+    attendee.email_verification_token = None
+    attendee.email_verified_at = datetime.now(timezone.utc)
+    await db.commit()
+
     return {
-        "ok": True,
-        "already_registered": False,
-        "message": "Kayıt başarılı",
+        "detail": "E-posta dogrulandi.",
         "attendee_id": attendee.id,
-        "attendee_name": attendee.name,
-        "attendee_email": attendee.email,
-        "survey_token": survey_token,
-        "survey_url": survey_url,
-        "status_url": build_public_status_url(
-            event_id=event_id,
-            attendee_id=attendee.id,
-            email=attendee.email,
-        ),
+        "event_id": event_id,
+        "status_url": build_public_status_url(event_id=event_id, attendee_id=attendee.id, email=attendee.email),
     }
 
 
@@ -9143,6 +9383,8 @@ async def self_checkin(
         )
     )
     attendee = att_res.scalar_one_or_none()
+    if attendee and not attendee.email_verified:
+        raise HTTPException(status_code=403, detail="Check-in icin once e-posta dogrulamasi yapmalisiniz.")
     if not attendee:
         raise HTTPException(
             status_code=404,

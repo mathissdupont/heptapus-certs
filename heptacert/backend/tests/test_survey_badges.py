@@ -1,5 +1,6 @@
 from httpx import ASGITransport, AsyncClient
 import pytest
+from sqlalchemy import select
 
 from src.main import (
     app,
@@ -9,6 +10,7 @@ from src.main import (
     SessionLocal,
     User,
     create_access_token,
+    make_survey_access_token,
 )
 
 
@@ -40,6 +42,7 @@ async def _seed_event_with_attendee(owner: User, attendee_email: str = "attendee
                 name="Attendee One",
                 email=attendee_email,
                 source="self_register",
+                email_verified=True,
             )
             sess.add(attendee)
             await sess.flush()
@@ -95,7 +98,7 @@ async def test_optional_builtin_survey_can_be_submitted_and_unlocks_attendee():
 
 
 @pytest.mark.asyncio
-async def test_public_register_returns_survey_token_and_submit_accepts_it():
+async def test_public_register_requires_email_verification_before_survey_access():
     owner = await _create_admin("survey-link-owner@example.com")
     token = create_access_token(user_id=owner.id, role=Role.admin)
 
@@ -137,12 +140,24 @@ async def test_public_register_returns_survey_token_and_submit_accepts_it():
         )
         assert registered.status_code == 201
         registration_payload = registered.json()
-        assert registration_payload["survey_token"]
-        assert f"/events/{event_id}/survey?token=" in registration_payload["survey_url"]
+        assert registration_payload["verification_required"] is True
+        assert registration_payload["email_verified"] is False
+
+        async with SessionLocal() as sess:
+            attendee = (await sess.execute(select(Attendee).where(Attendee.event_id == event_id))).scalar_one()
+            verify_token = attendee.email_verification_token
+            survey_token = make_survey_access_token(
+                attendee_id=attendee.id,
+                event_id=event_id,
+                email=attendee.email,
+            )
+
+        verified = await ac.get(f"/api/events/{event_id}/verify-email", params={"token": verify_token})
+        assert verified.status_code == 200
 
         resolved = await ac.get(
             f"/api/events/{event_id}/survey-access",
-            params={"token": registration_payload["survey_token"]},
+            params={"token": survey_token},
         )
         assert resolved.status_code == 200
         resolved_payload = resolved.json()
@@ -151,7 +166,7 @@ async def test_public_register_returns_survey_token_and_submit_accepts_it():
         submitted = await ac.post(
             f"/api/surveys/{event_id}/submit",
             json={
-                "survey_token": registration_payload["survey_token"],
+                "survey_token": survey_token,
                 "survey_type": "builtin",
                 "answers": {"satisfaction": "Great"},
             },

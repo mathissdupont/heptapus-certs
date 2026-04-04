@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
+import PageHeader from "@/components/Admin/PageHeader";
 import { useToast } from "@/hooks/useToast";
 import {
   apiFetch,
@@ -38,6 +39,7 @@ import {
   Download,
   MonitorPlay,
   ExternalLink,
+  Layers3,
 } from "lucide-react";
 
 function fmtDate(value?: string | null) {
@@ -291,6 +293,7 @@ export default function EventRafflesPage() {
     const totalEligible = raffles.reduce((sum, raffle) => sum + raffle.eligible_count, 0);
     return { totalWinners, drawCompleted, totalEligible };
   }, [raffles]);
+  const formReady = title.trim().length > 1 && prizeName.trim().length > 1;
 
   if (loading) {
     return (
@@ -301,9 +304,27 @@ export default function EventRafflesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(79,70,229,0.08),_transparent_24%),radial-gradient(circle_at_top_right,_rgba(249,115,22,0.08),_transparent_28%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] p-4 md:p-8">
       <div className="mx-auto max-w-7xl">
         <EventAdminNav eventId={eventId} eventName={eventName} active="raffles" className="mb-6 flex flex-col gap-2" />
+        <PageHeader
+          title="Çekiliş Kurgusu"
+          subtitle="Katılım eşiğini, ödül planını ve kazanan akışını tek panelden yönetin."
+          icon={<Gift className="h-5 w-5" />}
+          iconBg="bg-orange-50 text-orange-600"
+          actions={
+            <div className="flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
+                <Layers3 className="h-3.5 w-3.5" />
+                {raffles.length} aktif kurgı
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                {stats.drawCompleted} tamamlandı
+              </span>
+            </div>
+          }
+        />
 
         {planOk === false && (
           <div className="mb-6 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-8 text-center">
@@ -322,9 +343,9 @@ export default function EventRafflesPage() {
         )}
 
         {planOk !== false && (
-          <div className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
-            <div className="space-y-6">
-              <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <div className="grid gap-6 xl:grid-cols-[440px_minmax(0,1fr)]">
+            <div className="space-y-6 xl:sticky xl:top-6 xl:self-start">
+              <div className="overflow-hidden rounded-[30px] border border-slate-200 bg-white/95 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
                 <div className="border-b border-slate-100 bg-[radial-gradient(circle_at_top_left,_rgba(249,115,22,0.18),_transparent_42%),linear-gradient(135deg,_#ffffff_22%,_#fff7ed_100%)] px-6 py-6">
                   <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
                     <PartyPopper className="h-3.5 w-3.5" />
@@ -338,7 +359,36 @@ export default function EventRafflesPage() {
                   </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4 p-6">
+                <form onSubmit={handleSubmit} className="space-y-5 p-6">
+                  <div className="grid gap-3 rounded-3xl border border-slate-200 bg-slate-50/80 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Kurgu Özeti</p>
+                        <p className="mt-1 text-sm text-slate-600">Kaydetmeden önce planı hızlıca kontrol edin.</p>
+                      </div>
+                      <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${formReady ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>
+                        {formReady ? "Hazır" : "Taslak"}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="rounded-2xl bg-white px-3 py-3 shadow-sm">
+                        <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Asil</p>
+                        <p className="mt-1 text-2xl font-black text-slate-900">{winnerCount}</p>
+                      </div>
+                      <div className="rounded-2xl bg-white px-3 py-3 shadow-sm">
+                        <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Yedek</p>
+                        <p className="mt-1 text-2xl font-black text-slate-900">{reserveWinnerCount}</p>
+                      </div>
+                      <div className="rounded-2xl bg-white px-3 py-3 shadow-sm">
+                        <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Eşik</p>
+                        <p className="mt-1 text-2xl font-black text-slate-900">{minSessionsRequired}</p>
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-white bg-white px-4 py-3 shadow-sm">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Tur Planı</p>
+                      <p className="mt-2 text-sm font-semibold text-slate-900">{previewWinnerPlan}</p>
+                    </div>
+                  </div>
                   <div>
                     <label className="label">Çekiliş Başlığı</label>
                     <input
@@ -380,7 +430,7 @@ export default function EventRafflesPage() {
                           type="number"
                           min={1}
                           max={1000}
-                          className="input-field pl-10"
+                          className="input-field pl-10 text-center text-lg font-bold"
                           value={minSessionsRequired}
                           onChange={(e) => setMinSessionsRequired(Math.max(1, Number(e.target.value || 1)))}
                           required
@@ -395,7 +445,7 @@ export default function EventRafflesPage() {
                           type="number"
                           min={1}
                           max={100}
-                          className="input-field pl-10"
+                          className="input-field pl-10 text-center text-lg font-bold"
                           value={winnerCount}
                           onChange={(e) => setWinnerCount(Math.max(1, Number(e.target.value || 1)))}
                           required
@@ -410,7 +460,7 @@ export default function EventRafflesPage() {
                           type="number"
                           min={0}
                           max={100}
-                          className="input-field pl-10"
+                          className="input-field pl-10 text-center text-lg font-bold"
                           value={reserveWinnerCount}
                           onChange={(e) => setReserveWinnerCount(Math.max(0, Number(e.target.value || 0)))}
                           required
@@ -424,8 +474,8 @@ export default function EventRafflesPage() {
                   <div className="flex flex-wrap gap-3 pt-2">
                     <button
                       type="submit"
-                      disabled={saving}
-                      className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50"
+                      disabled={saving || !formReady}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
                     >
                       {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editingId ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
                       {editingId ? "Çekilişi Güncelle" : "Çekiliş Ekle"}
@@ -434,7 +484,7 @@ export default function EventRafflesPage() {
                       <button
                         type="button"
                         onClick={resetForm}
-                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                        className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                       >
                         <RotateCcw className="h-4 w-4" />
                         Düzenlemeyi İptal Et
@@ -444,7 +494,7 @@ export default function EventRafflesPage() {
                 </form>
               </div>
 
-              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="rounded-[30px] border border-slate-200 bg-white/95 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
                 <div className="mb-4 flex items-center gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
                     <Gift className="h-5 w-5" />
@@ -488,7 +538,7 @@ export default function EventRafflesPage() {
 
             <div className="space-y-6">
               <div className="grid gap-4 md:grid-cols-3">
-                <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="rounded-[28px] border border-slate-200 bg-white/95 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
                   <div className="flex items-center gap-3">
                     <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600">
                       <Ticket className="h-5 w-5" />
@@ -499,7 +549,7 @@ export default function EventRafflesPage() {
                     </div>
                   </div>
                 </div>
-                <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="rounded-[28px] border border-slate-200 bg-white/95 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
                   <div className="flex items-center gap-3">
                     <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
                       <CheckCircle2 className="h-5 w-5" />
@@ -510,7 +560,7 @@ export default function EventRafflesPage() {
                     </div>
                   </div>
                 </div>
-                <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="rounded-[28px] border border-slate-200 bg-white/95 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
                   <div className="flex items-center gap-3">
                     <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
                       <Users className="h-5 w-5" />

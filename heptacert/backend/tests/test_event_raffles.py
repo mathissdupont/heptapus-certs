@@ -73,6 +73,7 @@ async def _seed_event_for_raffles(owner: User) -> dict:
                     name=f"Attendee {idx + 1}",
                     email=f"attendee{idx + 1}@example.com",
                     source="import",
+                    email_verified=True,
                 )
                 sess.add(attendee)
                 attendees.append(attendee)
@@ -251,3 +252,34 @@ async def test_redraw_excludes_previous_winners_and_export_returns_csv():
         assert "asil" in csv_text
         assert "yedek" in csv_text
         assert len([line for line in csv_text.splitlines() if line.strip()]) == 4
+
+
+@pytest.mark.asyncio
+async def test_unverified_attendees_are_excluded_from_raffle_pool():
+    owner = await _create_admin("raffle-verified@example.com")
+    await _grant_paid_plan(owner)
+    token = create_access_token(user_id=owner.id, role=Role.admin)
+    seeded = await _seed_event_for_raffles(owner)
+
+    async with SessionLocal() as sess:
+        async with sess.begin():
+            attendee = await sess.get(Attendee, seeded["attendee_ids"][2])
+            attendee.email_verified = False
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        created = await ac.post(
+            f"/api/admin/events/{seeded['event_id']}/raffles",
+            json={
+                "title": "Verified Only",
+                "prize_name": "Badge",
+                "min_sessions_required": 1,
+                "winner_count": 1,
+                "reserve_winner_count": 0,
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert created.status_code == 200
+        payload = created.json()
+        assert payload["eligible_count"] == 2
+        assert {row["attendee_id"] for row in payload["eligible_attendees"]} == set(seeded["attendee_ids"][:2])

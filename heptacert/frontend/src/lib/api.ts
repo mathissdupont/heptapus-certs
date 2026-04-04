@@ -476,6 +476,8 @@ export async function publicRegisterAttendee(
   ok: boolean;
   message: string;
   already_registered?: boolean;
+  email_verified?: boolean;
+  verification_required?: boolean;
   attendee_id: number;
   attendee_name?: string;
   attendee_email?: string;
@@ -521,6 +523,13 @@ export async function submitBuiltinSurvey(
   }
 
   return res.json();
+}
+
+export async function verifyPublicAttendeeEmail(eventId: number, token: string): Promise<{ detail: string; attendee_id: number; event_id: number; status_url?: string }> {
+  const res = await fetch(`${API_BASE}/events/${eventId}/verify-email?token=${encodeURIComponent(token)}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.detail || "E-posta doğrulanamadı");
+  return data;
 }
 
 export async function resolvePublicSurveyToken(
@@ -680,7 +689,8 @@ export interface AdminOut {
   id: number;
   email: string;
   role: string;
-  created_at: string;
+  created_at?: string;
+  heptacoin_balance: number;
 }
 export interface SuperAdminStatsOut {
   total_users: number;
@@ -716,6 +726,14 @@ export async function updateSuperAdminRole(adminId: number, role: string): Promi
   const res = await apiFetch(`/superadmin/admins/${adminId}/role`, {
     method: "PATCH",
     body: JSON.stringify({ role }),
+  });
+  return res.json();
+}
+
+export async function creditSuperAdminCoins(data: { admin_user_id: number; amount: number }): Promise<{ admin_user_id: number; new_balance: number }> {
+  const res = await apiFetch(`/superadmin/coins/credit`, {
+    method: "POST",
+    body: JSON.stringify(data),
   });
   return res.json();
 }

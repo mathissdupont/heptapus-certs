@@ -62,6 +62,7 @@ export default function EventRegisterPage() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
+  const [verificationRequired, setVerificationRequired] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [surveyUrl, setSurveyUrl] = useState<string | null>(null);
   const [statusUrl, setStatusUrl] = useState<string | null>(null);
@@ -136,12 +137,13 @@ export default function EventRegisterPage() {
       });
 
       setAlreadyRegistered(Boolean(registered.already_registered));
+      setVerificationRequired(Boolean(registered.verification_required));
       setName(registered.attendee_name || name.trim());
       setEmail(registered.attendee_email || email.trim().toLowerCase());
-      setSurveyUrl(registered.survey_url || null);
-      setStatusUrl(registered.status_url || null);
+      setSurveyUrl(registered.email_verified ? registered.survey_url || null : null);
+      setStatusUrl(registered.email_verified ? registered.status_url || null : null);
 
-      if (typeof window !== "undefined") {
+      if (typeof window !== "undefined" && registered.email_verified) {
         localStorage.setItem(`heptacert_attendee_${eventId}`, String(registered.attendee_id));
         localStorage.setItem(`heptacert_attendee_email_${eventId}`, (registered.attendee_email || email.trim().toLowerCase()));
         if (registered.survey_token) {
@@ -426,7 +428,7 @@ export default function EventRegisterPage() {
                     </div>
                   </div>
 
-                  {event.survey?.is_required && (
+                  {!verificationRequired && event.survey?.is_required && (
                     <div className="mt-6 rounded-2xl border border-amber-400/25 bg-amber-400/10 p-4 text-left max-w-md mx-auto">
                       <p className="text-sm text-amber-200 font-semibold">Anket zorunlu</p>
                       <p className="text-xs text-amber-100/85 mt-1 leading-relaxed">
