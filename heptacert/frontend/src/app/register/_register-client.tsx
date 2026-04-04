@@ -1,12 +1,62 @@
-"use client";
+﻿"use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight, CheckCircle2 } from "lucide-react";
 
 export default function RegisterPage() {
+  const { lang } = useI18n();
+  const copy = useMemo(
+    () =>
+      lang === "tr"
+        ? {
+            passwordMin: "Şifre en az 8 karakter olmalıdır.",
+            passwordMismatch: "Şifreler eşleşmiyor.",
+            registerFailed: "Kayıt işlemi başarısız oldu.",
+            verifyTitle: "E-postanızı Doğrulayın",
+            verifyBody: "adresine bir doğrulama bağlantısı gönderdik. Gelen kutunuzu kontrol edin ve hesabınızı aktif edin.",
+            verifyHint: "E-posta gelmedi mi? Spam klasörünüzü kontrol edin.",
+            goLogin: "Giriş Sayfasına Git",
+            createAccount: "Hesap Oluştur",
+            giftBalance: "100 HC hediye bakiye ile başlayın",
+            email: "E-posta Adresi",
+            password: "Şifre",
+            confirmPassword: "Şifre Tekrar",
+            emailPlaceholder: "siz@sirket.com",
+            passwordPlaceholder: "En az 8 karakter",
+            confirmPlaceholder: "Şifrenizi tekrar girin",
+            loading: "Kayıt yapılıyor...",
+            submit: "Hesap Oluştur",
+            hasAccount: "Zaten hesabınız var mı?",
+            signIn: "Giriş Yapın",
+          }
+        : {
+            passwordMin: "Password must be at least 8 characters.",
+            passwordMismatch: "Passwords do not match.",
+            registerFailed: "Registration failed.",
+            verifyTitle: "Verify your email",
+            verifyBody: "We sent a verification link to this address. Check your inbox and activate your account.",
+            verifyHint: "Did not receive the email? Check your spam folder.",
+            goLogin: "Go to Login",
+            createAccount: "Create Account",
+            giftBalance: "Start with a 100 HC gift balance",
+            email: "Email Address",
+            password: "Password",
+            confirmPassword: "Confirm Password",
+            emailPlaceholder: "you@company.com",
+            passwordPlaceholder: "At least 8 characters",
+            confirmPlaceholder: "Re-enter your password",
+            loading: "Creating account...",
+            submit: "Create Account",
+            hasAccount: "Already have an account?",
+            signIn: "Sign In",
+          },
+    [lang]
+  );
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -20,11 +70,11 @@ export default function RegisterPage() {
     setErr(null);
 
     if (password.length < 8) {
-      setErr("Şifre en az 8 karakter olmalıdır.");
+      setErr(copy.passwordMin);
       return;
     }
     if (password !== confirm) {
-      setErr("Şifreler eşleşmiyor.");
+      setErr(copy.passwordMismatch);
       return;
     }
 
@@ -36,7 +86,7 @@ export default function RegisterPage() {
       });
       setSuccess(true);
     } catch (e: any) {
-      setErr(e?.message || "Kayıt işlemi başarısız oldu.");
+      setErr(e?.message || copy.registerFailed);
     } finally {
       setLoading(false);
     }
@@ -45,23 +95,17 @@ export default function RegisterPage() {
   if (success) {
     return (
       <div className="flex min-h-[80vh] items-center justify-center py-12">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="card max-w-md w-full p-10 text-center"
-        >
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="card w-full max-w-md p-10 text-center">
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
             <CheckCircle2 className="h-8 w-8" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-3">E-postanızı Doğrulayın</h2>
-          <p className="text-gray-500 text-sm leading-relaxed mb-6">
-            <strong className="text-gray-700">{email}</strong> adresine bir doğrulama bağlantısı gönderdik. Gelen kutunuzu kontrol edin ve hesabınızı aktif edin.
+          <h2 className="mb-3 text-xl font-bold text-gray-900">{copy.verifyTitle}</h2>
+          <p className="mb-6 text-sm leading-relaxed text-gray-500">
+            <strong className="text-gray-700">{email}</strong> {copy.verifyBody}
           </p>
-          <p className="text-xs text-gray-400">
-            E-posta gelmedi mi? Spam klasörünüzü kontrol edin.
-          </p>
+          <p className="text-xs text-gray-400">{copy.verifyHint}</p>
           <Link href="/admin/login" className="btn-secondary mt-6 w-full justify-center">
-            Giriş Sayfasına Git
+            {copy.goLogin}
           </Link>
         </motion.div>
       </div>
@@ -76,19 +120,17 @@ export default function RegisterPage() {
         transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
         className="card w-full max-w-md p-10"
       >
-        {/* Header */}
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-600 text-white shadow-brand">
             <ShieldCheck className="h-6 w-6" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Hesap Oluştur</h1>
-          <p className="mt-1.5 text-sm text-gray-500">100 HC hediye bakiye ile başlayın</p>
+          <h1 className="text-2xl font-bold text-gray-900">{copy.createAccount}</h1>
+          <p className="mt-1.5 text-sm text-gray-500">{copy.giftBalance}</p>
         </div>
 
         <form onSubmit={onSubmit} className="space-y-5">
-          {/* Email */}
           <div>
-            <label className="label">E-posta Adresi</label>
+            <label className="label">{copy.email}</label>
             <div className="relative">
               <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
@@ -96,16 +138,15 @@ export default function RegisterPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="siz@sirket.com"
+                placeholder={copy.emailPlaceholder}
                 required
                 autoComplete="email"
               />
             </div>
           </div>
 
-          {/* Password */}
           <div>
-            <label className="label">Şifre</label>
+            <label className="label">{copy.password}</label>
             <div className="relative">
               <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
@@ -113,7 +154,7 @@ export default function RegisterPage() {
                 type={showPw ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="En az 8 karakter"
+                placeholder={copy.passwordPlaceholder}
                 required
                 autoComplete="new-password"
               />
@@ -123,9 +164,8 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* Confirm password */}
           <div>
-            <label className="label">Şifre Tekrar</label>
+            <label className="label">{copy.confirmPassword}</label>
             <div className="relative">
               <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
@@ -133,14 +173,13 @@ export default function RegisterPage() {
                 type={showPw ? "text" : "password"}
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                placeholder="Şifrenizi tekrar girin"
+                placeholder={copy.confirmPlaceholder}
                 required
                 autoComplete="new-password"
               />
             </div>
           </div>
 
-          {/* Error */}
           <AnimatePresence mode="wait">
             {err && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
@@ -150,16 +189,14 @@ export default function RegisterPage() {
           </AnimatePresence>
 
           <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-3">
-            {loading ? "Kayıt yapılıyor..." : (
-              <>Hesap Oluştur <ArrowRight className="h-4 w-4" /></>
-            )}
+            {loading ? copy.loading : <>{copy.submit} <ArrowRight className="h-4 w-4" /></>}
           </button>
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-500">
-          Zaten hesabınız var mı?{" "}
+          {copy.hasAccount}{" "}
           <Link href="/admin/login" className="font-semibold text-brand-600 hover:text-brand-700">
-            Giriş Yapın
+            {copy.signIn}
           </Link>
         </div>
       </motion.div>

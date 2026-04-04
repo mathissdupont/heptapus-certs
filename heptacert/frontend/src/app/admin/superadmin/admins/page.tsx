@@ -1,6 +1,6 @@
-"use client";
+ï»¿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Loader2,
   AlertCircle,
@@ -19,12 +19,93 @@ import {
   creditSuperAdminCoins,
   AdminOut,
 } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 import PageHeader from "@/components/Admin/PageHeader";
 import ConfirmModal from "@/components/Admin/ConfirmModal";
 import { useToast } from "@/hooks/useToast";
 
 export default function SuperAdminAdminsPage() {
   const toast = useToast();
+  const { lang } = useI18n();
+  const copy = useMemo(
+    () =>
+      lang === "tr"
+        ? {
+            loadFailed: "YÃ¶neticiler yÃ¼klenemedi",
+            emailRequired: "Email gerekli",
+            createFailed: "YÃ¶netici oluÅŸturulamadÄ±",
+            roleFailed: "Rol gÃ¼ncellenemedi",
+            deleteFailed: "YÃ¶netici silinemedi",
+            chooseAdmin: "HeptaCoin yÃ¼klenecek yÃ¶netici seÃ§in",
+            validAmount: "GeÃ§erli bir HeptaCoin miktarÄ± girin",
+            creditSuccess: "hesabÄ±na {amount} HC tanÄ±mlandÄ±.",
+            creditFailed: "HeptaCoin yÃ¼klenemedi",
+            title: "YÃ¶netici YÃ¶netimi",
+            subtitle: "Sistem yÃ¶neticilerini yÃ¶netin, rolleri ayarlayÄ±n ve bakiye tanÄ±mlayÄ±n",
+            addAdmin: "YÃ¶netici Ekle",
+            coinTitle: "HeptaCoin TanÄ±mla",
+            coinSubtitle: "Admin hesaplarÄ±na bakiye yÃ¼kleyin ve anÄ±nda kullanÄ±ma aÃ§Ä±n.",
+            selectAdmin: "YÃ¶netici seÃ§in",
+            amount: "Miktar",
+            loadBalance: "Bakiye YÃ¼kle",
+            searchEmail: "Email ile ara...",
+            noAdmin: "YÃ¶netici bulunamadÄ±",
+            email: "Email",
+            role: "Rol",
+            balance: "Bakiye",
+            createdAt: "OluÅŸturma",
+            actions: "Ä°ÅŸlemler",
+            admin: "YÃ¶netici",
+            superadmin: "SÃ¼per YÃ¶netici",
+            saving: "Kaydediyor...",
+            save: "Kaydet",
+            cancel: "Ä°ptal",
+            newAdmin: "Yeni YÃ¶netici Ekle",
+            emailAddress: "Email Adresi",
+            add: "Ekle",
+            adding: "Ekleniyor...",
+            deleteTitle: "YÃ¶neticiyi sil",
+            deleteDesc: "Bu iÅŸlem geri alÄ±namaz. YÃ¶neticiyi silmek istediÄŸinizden emin misiniz?",
+          }
+        : {
+            loadFailed: "Failed to load admins",
+            emailRequired: "Email is required",
+            createFailed: "Failed to create admin",
+            roleFailed: "Failed to update role",
+            deleteFailed: "Failed to delete admin",
+            chooseAdmin: "Select an admin account to credit",
+            validAmount: "Enter a valid HeptaCoin amount",
+            creditSuccess: "account was credited with {amount} HC.",
+            creditFailed: "Failed to credit HeptaCoin",
+            title: "Admin Management",
+            subtitle: "Manage platform admins, update their roles, and assign balances",
+            addAdmin: "Add Admin",
+            coinTitle: "Assign HeptaCoin",
+            coinSubtitle: "Credit admin accounts and make the balance available immediately.",
+            selectAdmin: "Select admin",
+            amount: "Amount",
+            loadBalance: "Load Balance",
+            searchEmail: "Search by email...",
+            noAdmin: "No admin found",
+            email: "Email",
+            role: "Role",
+            balance: "Balance",
+            createdAt: "Created",
+            actions: "Actions",
+            admin: "Admin",
+            superadmin: "Super Admin",
+            saving: "Saving...",
+            save: "Save",
+            cancel: "Cancel",
+            newAdmin: "Add New Admin",
+            emailAddress: "Email Address",
+            add: "Add",
+            adding: "Adding...",
+            deleteTitle: "Delete admin",
+            deleteDesc: "This action cannot be undone. Are you sure you want to delete this admin?",
+          },
+    [lang]
+  );
 
   const [admins, setAdmins] = useState<AdminOut[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +135,7 @@ export default function SuperAdminAdminsPage() {
       setAdmins(data);
     } catch (e: any) {
       console.error("Failed to load admins:", e);
-      setError(e?.message || "Yöneticiler yüklenemedi");
+      setError(e?.message || copy.loadFailed);
     } finally {
       setLoading(false);
     }
@@ -62,7 +143,7 @@ export default function SuperAdminAdminsPage() {
 
   const handleCreate = async () => {
     if (!newAdminEmail.trim()) {
-      setError("Email gerekli");
+      setError(copy.emailRequired);
       return;
     }
 
@@ -76,7 +157,7 @@ export default function SuperAdminAdminsPage() {
       setNewAdminRole("admin");
     } catch (e: any) {
       console.error("Failed to create admin:", e);
-      setError(e?.message || "Yönetici oluþturulamadý");
+      setError(e?.message || copy.createFailed);
     } finally {
       setCreating(false);
     }
@@ -94,7 +175,7 @@ export default function SuperAdminAdminsPage() {
       setEditingRole(null);
     } catch (e: any) {
       console.error("Failed to update admin role:", e);
-      setError(e?.message || "Rol güncellenemedi");
+      setError(e?.message || copy.roleFailed);
     } finally {
       setUpdating(false);
     }
@@ -109,7 +190,7 @@ export default function SuperAdminAdminsPage() {
       setDeletingId(null);
     } catch (e: any) {
       console.error("Failed to delete admin:", e);
-      setError(e?.message || "Yönetici silinemedi");
+      setError(e?.message || copy.deleteFailed);
     } finally {
       setDeleting(false);
     }
@@ -117,11 +198,11 @@ export default function SuperAdminAdminsPage() {
 
   const handleCredit = async () => {
     if (!creditAdminId) {
-      setError("HeptaCoin yüklenecek yönetici seçin");
+      setError(copy.chooseAdmin);
       return;
     }
     if (!Number.isFinite(creditAmount) || creditAmount <= 0) {
-      setError("Geçerli bir HeptaCoin miktarý girin");
+      setError(copy.validAmount);
       return;
     }
 
@@ -131,19 +212,17 @@ export default function SuperAdminAdminsPage() {
       const creditedAdmin = admins.find((admin) => admin.id === creditAdminId);
       await creditSuperAdminCoins({ admin_user_id: creditAdminId, amount: creditAmount });
       await fetchAdmins();
-      toast.success(`${creditedAdmin?.email ?? "Yönetici"} hesabýna ${creditAmount} HC tanýmlandý.`);
+      toast.success(`${creditedAdmin?.email ?? copy.admin} ${copy.creditSuccess.replace("{amount}", String(creditAmount))}`);
       setCreditAmount(100);
     } catch (e: any) {
       console.error("Failed to credit coins:", e);
-      setError(e?.message || "HeptaCoin yüklenemedi");
+      setError(e?.message || copy.creditFailed);
     } finally {
       setCrediting(false);
     }
   };
 
-  const filteredAdmins = admins.filter((admin) =>
-    admin.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredAdmins = admins.filter((admin) => admin.email.toLowerCase().includes(searchTerm.toLowerCase()));
   const adminRecipients = admins.filter((admin) => admin.role === "admin");
 
   if (loading) {
@@ -157,12 +236,12 @@ export default function SuperAdminAdminsPage() {
   return (
     <div className="flex flex-col gap-6 pb-20">
       <PageHeader
-        title="Yönetici Yönetimi"
-        subtitle="Sistem yöneticilerini yönetin, rolleri ayarlayýn ve bakiye tanýmlayýn"
+        title={copy.title}
+        subtitle={copy.subtitle}
         icon={<Shield className="h-5 w-5" />}
         actions={
           <button onClick={() => setShowCreateModal(true)} className="btn-primary gap-2 text-xs">
-            <Plus className="h-4 w-4" /> Yönetici Ekle
+            <Plus className="h-4 w-4" /> {copy.addAdmin}
           </button>
         }
       />
@@ -179,17 +258,13 @@ export default function SuperAdminAdminsPage() {
             <Coins className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-base font-semibold text-surface-900">HeptaCoin Tanýmla</h2>
-            <p className="text-sm text-surface-500">Admin hesaplarýna bakiye yükleyin ve anýnda kullanýma açýn.</p>
+            <h2 className="text-base font-semibold text-surface-900">{copy.coinTitle}</h2>
+            <p className="text-sm text-surface-500">{copy.coinSubtitle}</p>
           </div>
         </div>
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto]">
-          <select
-            value={creditAdminId ?? ""}
-            onChange={(e) => setCreditAdminId(e.target.value ? Number(e.target.value) : null)}
-            className="input-field"
-          >
-            <option value="">Yönetici seçin</option>
+          <select value={creditAdminId ?? ""} onChange={(e) => setCreditAdminId(e.target.value ? Number(e.target.value) : null)} className="input-field">
+            <option value="">{copy.selectAdmin}</option>
             {adminRecipients.map((admin) => (
               <option key={admin.id} value={admin.id}>
                 {admin.email} ({admin.heptacoin_balance} HC)
@@ -203,45 +278,35 @@ export default function SuperAdminAdminsPage() {
             value={creditAmount}
             onChange={(e) => setCreditAmount(Number(e.target.value))}
             className="input-field"
-            placeholder="Miktar"
+            placeholder={copy.amount}
           />
-          <button
-            onClick={handleCredit}
-            disabled={crediting || !creditAdminId || adminRecipients.length === 0}
-            className="btn-primary gap-2 whitespace-nowrap"
-          >
+          <button onClick={handleCredit} disabled={crediting || !creditAdminId || adminRecipients.length === 0} className="btn-primary gap-2 whitespace-nowrap">
             {crediting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Coins className="h-4 w-4" />}
-            Bakiye Yükle
+            {copy.loadBalance}
           </button>
         </div>
       </div>
 
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-surface-400" />
-        <input
-          type="text"
-          placeholder="Email ile ara..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="input-field pl-10"
-        />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+        <input type="text" placeholder={copy.searchEmail} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="input-field pl-10" />
       </div>
 
       <div className="card overflow-hidden">
         {filteredAdmins.length === 0 ? (
           <div className="p-12 text-center">
             <Shield className="mx-auto mb-3 h-10 w-10 text-surface-200" />
-            <p className="text-sm font-medium text-surface-400">Yönetici bulunamadý</p>
+            <p className="text-sm font-medium text-surface-400">{copy.noAdmin}</p>
           </div>
         ) : (
           <table className="w-full">
             <thead className="border-b border-surface-200 bg-surface-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-500">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-500">Rol</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-500">Bakiye</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-500">Oluþturma</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-surface-500">Ýþlemler</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-500">{copy.email}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-500">{copy.role}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-500">{copy.balance}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-500">{copy.createdAt}</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-surface-500">{copy.actions}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-100">
@@ -252,37 +317,27 @@ export default function SuperAdminAdminsPage() {
                   </td>
                   <td className="px-6 py-4">
                     {editingId === admin.id ? (
-                      <select
-                        value={editingRole || admin.role}
-                        onChange={(e) => setEditingRole(e.target.value as "superadmin" | "admin")}
-                        className="input-field py-1.5 text-xs"
-                      >
-                        <option value="admin">Yönetici</option>
-                        <option value="superadmin">Süper Yönetici</option>
+                      <select value={editingRole || admin.role} onChange={(e) => setEditingRole(e.target.value as "superadmin" | "admin")} className="input-field py-1.5 text-xs">
+                        <option value="admin">{copy.admin}</option>
+                        <option value="superadmin">{copy.superadmin}</option>
                       </select>
                     ) : (
-                      <span
-                        className={`inline-block rounded-full px-2.5 py-1 text-xs font-bold ${
-                          admin.role === "superadmin" ? "bg-violet-100 text-violet-800" : "bg-blue-100 text-blue-800"
-                        }`}
-                      >
-                        {admin.role === "superadmin" ? "Süper Yönetici" : "Yönetici"}
+                      <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-bold ${admin.role === "superadmin" ? "bg-violet-100 text-violet-800" : "bg-blue-100 text-blue-800"}`}>
+                        {admin.role === "superadmin" ? copy.superadmin : copy.admin}
                       </span>
                     )}
                   </td>
                   <td className="px-6 py-4 text-sm font-semibold text-amber-600">{admin.heptacoin_balance} HC</td>
-                  <td className="px-6 py-4 text-sm text-surface-500">
-                    {admin.created_at ? new Date(admin.created_at).toLocaleDateString("tr-TR") : "-"}
-                  </td>
+                  <td className="px-6 py-4 text-sm text-surface-500">{admin.created_at ? new Date(admin.created_at).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US") : "-"}</td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                       {editingId === admin.id ? (
                         <>
                           <button onClick={() => handleUpdateRole(admin.id)} disabled={updating} className="btn-primary px-3 py-1.5 text-xs">
-                            {updating ? "Kaydediyor..." : "Kaydet"}
+                            {updating ? copy.saving : copy.save}
                           </button>
                           <button onClick={() => { setEditingId(null); setEditingRole(null); }} className="btn-secondary px-3 py-1.5 text-xs">
-                            Ýptal
+                            {copy.cancel}
                           </button>
                         </>
                       ) : (
@@ -307,36 +362,26 @@ export default function SuperAdminAdminsPage() {
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
           <div className="card w-full max-w-md p-6 shadow-xl">
-            <h2 className="mb-4 text-lg font-bold text-surface-900">Yeni Yönetici Ekle</h2>
+            <h2 className="mb-4 text-lg font-bold text-surface-900">{copy.newAdmin}</h2>
             <div className="mb-6 space-y-4">
               <div>
-                <label className="label">Email Adresi</label>
-                <input
-                  type="email"
-                  placeholder="admin@example.com"
-                  value={newAdminEmail}
-                  onChange={(e) => setNewAdminEmail(e.target.value)}
-                  className="input-field"
-                />
+                <label className="label">{copy.emailAddress}</label>
+                <input type="email" placeholder="admin@example.com" value={newAdminEmail} onChange={(e) => setNewAdminEmail(e.target.value)} className="input-field" />
               </div>
               <div>
-                <label className="label">Rol</label>
-                <select
-                  value={newAdminRole}
-                  onChange={(e) => setNewAdminRole(e.target.value as "superadmin" | "admin")}
-                  className="input-field appearance-none"
-                >
-                  <option value="admin">Yönetici</option>
-                  <option value="superadmin">Süper Yönetici</option>
+                <label className="label">{copy.role}</label>
+                <select value={newAdminRole} onChange={(e) => setNewAdminRole(e.target.value as "superadmin" | "admin")} className="input-field appearance-none">
+                  <option value="admin">{copy.admin}</option>
+                  <option value="superadmin">{copy.superadmin}</option>
                 </select>
               </div>
             </div>
             <div className="flex gap-3">
               <button onClick={() => { setShowCreateModal(false); setNewAdminEmail(""); setNewAdminRole("admin"); }} className="btn-secondary flex-1">
-                Ýptal
+                {copy.cancel}
               </button>
               <button onClick={handleCreate} disabled={creating || !newAdminEmail} className="btn-primary flex-1">
-                {creating ? "Ekleniyor..." : "Ekle"}
+                {creating ? copy.adding : copy.add}
               </button>
             </div>
           </div>
@@ -345,8 +390,8 @@ export default function SuperAdminAdminsPage() {
 
       <ConfirmModal
         open={deletingId !== null}
-        title="Yöneticiyi sil"
-        description="Bu iþlem geri alýnamaz. Yöneticiyi silmek istediðinizden emin misiniz?"
+        title={copy.deleteTitle}
+        description={copy.deleteDesc}
         danger
         loading={deleting}
         onConfirm={() => deletingId && handleDelete(deletingId)}
