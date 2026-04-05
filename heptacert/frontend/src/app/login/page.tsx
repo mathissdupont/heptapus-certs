@@ -105,7 +105,9 @@ function MemberLoginContent() {
             <button
               type="button"
               onClick={() => setMode("member")}
-              className={inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition }
+              className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                mode === "member" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
+              }`}
             >
               <UserRound className="h-4 w-4" />
               {copy.memberLabel}
@@ -113,7 +115,9 @@ function MemberLoginContent() {
             <button
               type="button"
               onClick={() => setMode("organizer")}
-              className={inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition }
+              className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                mode === "organizer" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
+              }`}
             >
               <Building2 className="h-4 w-4" />
               {copy.organizerLabel}

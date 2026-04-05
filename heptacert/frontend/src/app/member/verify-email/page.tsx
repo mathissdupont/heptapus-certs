@@ -45,7 +45,7 @@ function VerifyMemberEmailContent() {
       return;
     }
 
-    publicApiFetch(/public/auth/verify-email?token=)
+    publicApiFetch(`/public/auth/verify-email?token=${encodeURIComponent(token)}`)
       .then((res) => res.json())
       .then((data) => {
         setStatus("success");
@@ -70,7 +70,9 @@ function VerifyMemberEmailContent() {
         ) : (
           <>
             <div
-              className={mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full }
+              className={`mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full ${
+                status === "success" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
+              }`}
             >
               {status === "success" ? <CheckCircle2 className="h-8 w-8" /> : <MailWarning className="h-8 w-8" />}
             </div>

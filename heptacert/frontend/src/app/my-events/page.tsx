@@ -112,7 +112,7 @@ export default function MyEventsPage() {
         <h1 className="mt-4 text-4xl font-black tracking-tight text-slate-950">{copy.title}</h1>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
           {copy.subtitle}
-          {memberName ?   : ""}
+          {memberName ? ` ${memberName}` : ""}
         </p>
       </section>
 
@@ -128,6 +128,7 @@ export default function MyEventsPage() {
               <article key={item.attendee_id} className="card overflow-hidden p-0">
                 <div className="h-44 bg-slate-100">
                   {item.event_banner_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={item.event_banner_url} alt={item.event_name} className="h-full w-full object-cover" />
                   ) : (
                     <div className="flex h-full items-center justify-center bg-[linear-gradient(135deg,rgba(14,165,233,0.16),rgba(59,130,246,0.06))] px-6 text-center text-lg font-semibold text-slate-700">
@@ -139,7 +140,11 @@ export default function MyEventsPage() {
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <h2 className="text-2xl font-bold text-slate-950">{item.event_name}</h2>
                     <span
-                      className={ounded-full border px-3 py-1 text-xs font-semibold }
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                        verified
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          : "border-amber-200 bg-amber-50 text-amber-700"
+                      }`}
                     >
                       {verified ? copy.verified : copy.pending}
                     </span>
@@ -167,7 +172,7 @@ export default function MyEventsPage() {
                   </div>
 
                   <div className="flex flex-wrap gap-3">
-                    <Link href={/events/} className="btn-primary inline-flex">
+                    <Link href={`/events/${item.event_id}`} className="btn-primary inline-flex">
                       {copy.openEvent}
                     </Link>
                     {item.status_url ? (
