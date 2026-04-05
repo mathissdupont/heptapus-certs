@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
-import { getPublicEventInfo, publicRegisterAttendee } from "@/lib/api";
+import { getPublicEventInfo, publicRegisterAttendee, type RegistrationField } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import {
   CheckCircle2,
@@ -26,6 +26,7 @@ interface EventInfo {
   event_location: string | null;
   event_banner_url: string | null;
   min_sessions_required: number;
+  registration_fields?: RegistrationField[];
   survey?: {
     is_required: boolean;
     survey_type: "builtin" | "external" | "both";
@@ -93,6 +94,7 @@ export default function EventRegisterPage() {
             fullNamePlaceholder: "Adınız Soyadınız",
             email: "E-posta Adresi",
             emailPlaceholder: "ornek@mail.com",
+            customInfo: "Ek bilgiler",
             submit: "Kayıt Ol",
             cardRuleLabel: "Min. {count} oturum",
             poweredFooter: "Bu etkinlik sayfası kurumsal olarak özelleştirilmiş olsa da kayıt, doğrulama ve sertifika altyapısı HeptaCert tarafından sağlanır.",
@@ -132,6 +134,7 @@ export default function EventRegisterPage() {
             fullNamePlaceholder: "Your full name",
             email: "Email Address",
             emailPlaceholder: "name@email.com",
+            customInfo: "Additional details",
             submit: "Register",
             cardRuleLabel: "Min. {count} sessions",
             poweredFooter: "Even if this event page is customized for the organization, registration, verification, and certificate infrastructure are provided by HeptaCert.",
@@ -145,6 +148,7 @@ export default function EventRegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [registrationAnswers, setRegistrationAnswers] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
@@ -221,6 +225,7 @@ export default function EventRegisterPage() {
       const registered = await publicRegisterAttendee(eventId, {
         name: name.trim(),
         email: email.trim().toLowerCase(),
+        registration_answers: registrationAnswers,
       });
 
       setAlreadyRegistered(Boolean(registered.already_registered));
@@ -248,6 +253,13 @@ export default function EventRegisterPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function handleRegistrationAnswerChange(fieldId: string, value: string) {
+    setRegistrationAnswers((current) => ({
+      ...current,
+      [fieldId]: value,
+    }));
   }
 
   if (loading) {
@@ -505,6 +517,58 @@ export default function EventRegisterPage() {
                         style={inputFocusStyle}
                       />
                     </div>
+
+                    {event?.registration_fields && event.registration_fields.length > 0 && (
+                      <div className="space-y-4 rounded-[24px] border border-gray-200 bg-gray-50/70 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{copy.customInfo}</p>
+                        {event.registration_fields.map((field) => (
+                          <div key={field.id}>
+                            <label className="mb-2 block text-sm font-semibold text-gray-700">
+                              {field.label}
+                              {field.required ? <span className="ml-1 text-red-500">*</span> : null}
+                            </label>
+                            {field.helper_text && (
+                              <p className="mb-2 text-xs text-gray-500">{field.helper_text}</p>
+                            )}
+                            {field.type === "textarea" ? (
+                              <textarea
+                                value={registrationAnswers[field.id] || ""}
+                                onChange={(e) => handleRegistrationAnswerChange(field.id, e.target.value)}
+                                placeholder={field.placeholder || ""}
+                                required={field.required}
+                                className="min-h-28 w-full rounded-2xl border bg-white px-4 py-3.5 text-sm text-gray-900 placeholder-gray-400 transition-all focus:outline-none focus:ring-2"
+                                style={inputFocusStyle}
+                              />
+                            ) : field.type === "select" ? (
+                              <select
+                                value={registrationAnswers[field.id] || ""}
+                                onChange={(e) => handleRegistrationAnswerChange(field.id, e.target.value)}
+                                required={field.required}
+                                className="w-full rounded-2xl border bg-white px-4 py-3.5 text-sm text-gray-900 transition-all focus:outline-none focus:ring-2"
+                                style={inputFocusStyle}
+                              >
+                                <option value="">{field.placeholder || field.label}</option>
+                                {(field.options || []).map((option) => (
+                                  <option key={option} value={option}>
+                                    {option}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input
+                                type={field.type === "tel" || field.type === "number" || field.type === "date" ? field.type : "text"}
+                                value={registrationAnswers[field.id] || ""}
+                                onChange={(e) => handleRegistrationAnswerChange(field.id, e.target.value)}
+                                placeholder={field.placeholder || ""}
+                                required={field.required}
+                                className="w-full rounded-2xl border bg-white px-4 py-3.5 text-sm text-gray-900 placeholder-gray-400 transition-all focus:outline-none focus:ring-2"
+                                style={inputFocusStyle}
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     <AnimatePresence>
                       {submitError && (
