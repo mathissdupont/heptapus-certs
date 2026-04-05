@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,7 +10,7 @@ import { useI18n } from "@/lib/i18n";
 
 type LoginMode = "member" | "organizer";
 
-export default function MemberLoginPage() {
+function MemberLoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { lang } = useI18n();
@@ -234,5 +234,13 @@ export default function MemberLoginPage() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function MemberLoginPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-[80vh] items-center justify-center"><ShieldCheck className="h-8 w-8 animate-pulse text-brand-500" /></div>}>
+      <MemberLoginContent />
+    </Suspense>
   );
 }

@@ -27,7 +27,6 @@ import { useToast } from "@/hooks/useToast";
 type EventOut = {
   id: number;
   name: string;
-  template_image_url: string;
   config?: {
     registration_fields?: RegistrationField[];
     visibility?: "private" | "unlisted" | "public";
@@ -38,14 +37,6 @@ type EventOut = {
   auto_email_on_cert?: boolean;
   cert_email_template_id?: number | null;
   visibility?: "private" | "unlisted" | "public";
-};
-
-type CertificateTemplate = {
-  id: number;
-  name: string;
-  template_image_url: string;
-  config: unknown;
-  order_index: number;
 };
 
 type EmailTemplate = {
@@ -158,11 +149,6 @@ export default function EventSettingsPage() {
         noTemplates: "Henüz kullanılabilir e-posta şablonu yok. Önce bir şablon oluşturun.",
         manageTemplates: "E-posta şablonlarını yönet",
         manageCampaigns: "Toplu e-posta kampanyalarına git",
-        certificateTitle: "Sertifika tasarımı",
-        certificateBody: "Etkinliğin aktif sertifika görselini seçin. Seçim kaydedildiğinde uygulanır.",
-        currentDesign: "Mevcut tasarım",
-        selected: "Seçili",
-        applyHint: "Aktif tasarım editörde aynı şekilde düzenlenebilir.",
         openEditor: "Editörde aç",
         cancel: "Vazgeç",
         save: "Ayarları Kaydet",
@@ -223,11 +209,6 @@ export default function EventSettingsPage() {
         noTemplates: "No email template is available yet. Create one first.",
         manageTemplates: "Manage email templates",
         manageCampaigns: "Go to bulk email campaigns",
-        certificateTitle: "Certificate design",
-        certificateBody: "Choose the active certificate artwork for this event. The selected template is applied when you save.",
-        currentDesign: "Current design",
-        selected: "Selected",
-        applyHint: "The active design can still be refined in the editor.",
         openEditor: "Open in Editor",
         cancel: "Cancel",
         save: "Save Settings",
@@ -238,7 +219,6 @@ export default function EventSettingsPage() {
       };
 
   const [event, setEvent] = useState<EventOut | null>(null);
-  const [certTemplates, setCertTemplates] = useState<CertificateTemplate[]>([]);
   const [customEmailTemplates, setCustomEmailTemplates] = useState<EmailTemplate[]>([]);
   const [systemEmailTemplates, setSystemEmailTemplates] = useState<EmailTemplate[]>([]);
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
@@ -251,7 +231,6 @@ export default function EventSettingsPage() {
     auto_email_on_cert: false,
     cert_email_template_id: null,
   });
-  const [selectedCertTemplateId, setSelectedCertTemplateId] = useState<number | null>(null);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -269,11 +248,6 @@ export default function EventSettingsPage() {
     label: lang === "tr" ? option.tr : option.en,
   }));
 
-  const currentCertTemplateId = useMemo(() => {
-    if (!event?.template_image_url) return null;
-    return certTemplates.find((template) => template.template_image_url === event.template_image_url)?.id ?? null;
-  }, [certTemplates, event?.template_image_url]);
-
   const availableEmailTemplates = useMemo(
     () => [...customEmailTemplates, ...systemEmailTemplates],
     [customEmailTemplates, systemEmailTemplates],
@@ -287,25 +261,21 @@ export default function EventSettingsPage() {
     setLoading(true);
     setError(null);
     try {
-      const [eventRes, certRes, customRes, systemRes, subRes] = await Promise.all([
+      const [eventRes, customRes, systemRes, subRes] = await Promise.all([
         apiFetch(`/admin/events/${eventId}`),
-        apiFetch("/system/cert-templates"),
         apiFetch(`/admin/events/${eventId}/email-templates`),
         apiFetch("/system/email-templates"),
         getMySubscription(),
       ]);
 
       const eventData = (await eventRes.json()) as EventOut;
-      const certData = (await certRes.json()) as CertificateTemplate[];
       const customData = (await customRes.json()) as EmailTemplate[];
       const systemData = (await systemRes.json()) as EmailTemplate[];
 
       setEvent(eventData);
-      setCertTemplates(certData);
       setCustomEmailTemplates(customData || []);
       setSystemEmailTemplates(systemData || []);
       setSubscription(subRes);
-      setSelectedCertTemplateId(certData.find((template) => template.template_image_url === eventData.template_image_url)?.id ?? null);
       setFormData({
         name: eventData.name || "",
         event_description: eventData.event_description || "",
@@ -392,13 +362,6 @@ export default function EventSettingsPage() {
         body: JSON.stringify(payload),
       });
 
-      if (hasGrowthPlan && selectedCertTemplateId && selectedCertTemplateId !== currentCertTemplateId) {
-        await apiFetch(`/admin/events/${eventId}/apply-cert-template`, {
-          method: "POST",
-          body: JSON.stringify({ cert_template_id: selectedCertTemplateId }),
-        });
-      }
-
       if (bannerFile) {
         const uploadForm = new FormData();
         uploadForm.append("file", bannerFile);
@@ -465,8 +428,7 @@ export default function EventSettingsPage() {
         </div>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_360px]">
-        <div className="space-y-6">
+      <div className="space-y-6">
           <section className="card p-6 sm:p-7">
             <div className="flex items-start gap-3">
               <div className="rounded-2xl bg-brand-50 p-3 text-brand-600">
@@ -803,61 +765,6 @@ export default function EventSettingsPage() {
               </div>
             )}
           </section>
-        </div>
-
-        <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
-          <section className="card p-6">
-            <div className="flex items-start gap-3">
-              <div className="rounded-2xl bg-violet-50 p-3 text-violet-600">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-surface-900">{copy.certificateTitle}</h2>
-                <p className="mt-1 text-sm text-surface-500">{copy.certificateBody}</p>
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-4">
-              <div className="overflow-hidden rounded-3xl border border-surface-200 bg-surface-50">
-                {event?.template_image_url ? (
-                  <img src={event.template_image_url} alt={copy.currentDesign} className="h-48 w-full object-cover" />
-                ) : (
-                  <div className="flex h-48 items-center justify-center text-sm text-surface-400">{copy.noBanner}</div>
-                )}
-              </div>
-              <div className="rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3 text-sm text-surface-600">
-                <p className="font-semibold text-surface-900">{copy.currentDesign}</p>
-                <p className="mt-1">{copy.applyHint}</p>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                {certTemplates.map((template) => {
-                  const active = selectedCertTemplateId === template.id || (!selectedCertTemplateId && currentCertTemplateId === template.id);
-                  return (
-                    <button
-                      key={template.id}
-                      type="button"
-                      onClick={() => setSelectedCertTemplateId(template.id)}
-                      className={`overflow-hidden rounded-3xl border text-left transition ${active ? "border-brand-300 bg-brand-50 shadow-soft" : "border-surface-200 bg-white hover:border-surface-300"}`}
-                    >
-                      <img src={template.template_image_url} alt={template.name} className="h-36 w-full object-cover" />
-                      <div className="flex items-center justify-between gap-3 px-4 py-3">
-                        <div>
-                          <p className="font-semibold text-surface-900">{template.name}</p>
-                          <p className="text-xs text-surface-400">#{template.order_index}</p>
-                        </div>
-                        {active && (
-                          <span className="rounded-full bg-brand-600 px-2.5 py-1 text-[11px] font-semibold text-white">
-                            {copy.selected}
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </section>
-        </aside>
       </div>
     </div>
   );

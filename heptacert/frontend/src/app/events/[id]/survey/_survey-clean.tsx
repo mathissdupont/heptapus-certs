@@ -1,17 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  getPublicParticipantStatus,
-  getPublicAttendeeBadges,
-  getPublicEventInfo,
-  resolvePublicSurveyToken,
-  submitBuiltinSurvey,
-  type PublicParticipantBadge,
-  type PublicParticipantStatus,
-} from "@/lib/api";
+import { useParams } from "next/navigation";
 import {
   AlertCircle,
   ArrowLeft,
@@ -23,6 +14,15 @@ import {
   Sparkles,
   Ticket,
 } from "lucide-react";
+import {
+  getPublicEventInfo,
+  getPublicParticipantStatus,
+  resolvePublicSurveyToken,
+  submitBuiltinSurvey,
+  type PublicParticipantBadge,
+  type PublicParticipantStatus,
+} from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 
 type SurveyQuestion = {
   id: string;
@@ -46,65 +46,19 @@ type EventInfo = {
   survey?: PublicSurvey | null;
 };
 
-const badgeDateFormatter = new Intl.DateTimeFormat("tr-TR", {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "Europe/Istanbul",
-});
-
-function BadgeGallery({ badges }: { badges: PublicParticipantBadge[] }) {
-  if (badges.length === 0) {
-    return (
-      <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center text-sm text-slate-500">
-        Henüz görünür bir rozetiniz yok. Rozet verildiğinde burada görünecek.
-      </div>
-    );
+function renderFieldType(question: SurveyQuestion) {
+  if (question.type === "textarea" || question.type === "long_text") return "textarea";
+  if (question.type === "select" || question.type === "multiple_choice" || (question.options && question.options.length > 0)) {
+    return "select";
   }
-
-  return (
-    <div className="grid gap-3 md:grid-cols-2">
-      {badges.map((badge) => {
-        const color = badge.badge_color_hex || "#2563eb";
-        return (
-          <div key={badge.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-lg font-black text-slate-900">{badge.badge_name || badge.badge_type}</p>
-                {badge.badge_description ? (
-                  <p className="mt-1 text-sm leading-6 text-slate-600">{badge.badge_description}</p>
-                ) : null}
-              </div>
-              <div
-                className="inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold"
-                style={{
-                  color,
-                  borderColor: `${color}50`,
-                  backgroundColor: `${color}12`,
-                }}
-              >
-                <Award className="h-3.5 w-3.5" />
-                {badge.is_automatic ? "Otomatik" : "Manuel"}
-              </div>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                Tür: {badge.badge_type}
-              </span>
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                {badgeDateFormatter.format(new Date(badge.awarded_at))}
-              </span>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
+  if (question.type === "rating") return "rating";
+  return "text";
 }
 
 export default function EventSurveyPage() {
   const params = useParams();
   const eventId = Number(params?.id);
-
+  const { lang } = useI18n();
   const [eventInfo, setEventInfo] = useState<EventInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -114,10 +68,92 @@ export default function EventSurveyPage() {
   const [attendeeId, setAttendeeId] = useState<number | null>(null);
   const [attendeeEmail, setAttendeeEmail] = useState("");
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
-  const [badges, setBadges] = useState<PublicParticipantBadge[]>([]);
-  const [badgesLoading, setBadgesLoading] = useState(false);
   const [participantStatus, setParticipantStatus] = useState<PublicParticipantStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
+
+  const copy = useMemo(
+    () =>
+      lang === "tr"
+        ? {
+            badgeEmpty: "Hen?z g?r?n?r bir rozetiniz yok. Rozet verildi?inde burada g?r?necek.",
+            automatic: "Otomatik",
+            manual: "Manuel",
+            type: "T?r",
+            loadFailed: "Anket bilgileri y?klenemedi.",
+            submitFailed: "Anket g?nderilemedi.",
+            privateLink: "Bu anket ba?lant?s? ki?iye ?zeldir. L?tfen size g?nderilen ?zel ba?lant?y? kullan?n.",
+            requiredQuestions: "L?tfen zorunlu sorular? doldurun.",
+            eventNotFound: "Etkinlik bulunamad?.",
+            back: "Kay?t sayfas?na d?n",
+            flow: "Kat?l?mc? anket ak???",
+            intro: "Bu sayfa sadece kat?l?mc?ya g?nderilen ki?isel ba?lant? ile a??l?r. ?mzal? token, anketin yaln?zca do?ru ki?i taraf?ndan doldurulmas?n? sa?lar.",
+            surveyMissing: "Bu etkinlik i?in hen?z bir anket tan?mlanmam??.",
+            privateRequiredTitle: "Ki?iye ?zel ba?lant? gerekli",
+            privateRequiredBody: "Bu anket herkese a??k de?ildir. Sadece kat?l?mc?ya g?nderilen ?zel ba?lant? ile doldurulabilir.",
+            externalTitle: "Harici anket",
+            externalBody: "Bu etkinlik i?in harici anket ba?lant?s? tan?mland?. ?sterseniz bu ba?lant?y? yeni sekmede a?abilirsiniz.",
+            openExternal: "Harici anketi a?",
+            builtinTitle: "Dahili anket",
+            builtinSubtitle: "Yan?tlar?n?z etkinlik hesab?na g?venli ?ekilde kaydedilir.",
+            send: "Anketi g?nder",
+            sent: "Anket g?nderildi",
+            thankYou: "Yan?tlar?n?z kaydedildi. Sertifika ve rozet durumunuz a?a??da g?ncellenecek.",
+            statusTitle: "Kat?l?m ?zeti",
+            sessions: "Oturum",
+            survey: "Anket",
+            badges: "Rozet",
+            certificate: "Sertifika",
+            completed: "Tamam",
+            pending: "Bekliyor",
+            ready: "Haz?r",
+            notReady: "Bekliyor",
+            required: "Zorunlu",
+            optional: "Opsiyonel",
+            eligibleRaffles: "Uygun ?ekili?ler",
+            noRaffles: "Hen?z uygun oldu?unuz ?ekili? yok.",
+            badgeTitle: "Rozetlerim",
+          }
+        : {
+            badgeEmpty: "You do not have a visible badge yet. It will appear here once assigned.",
+            automatic: "Automatic",
+            manual: "Manual",
+            type: "Type",
+            loadFailed: "Could not load survey details.",
+            submitFailed: "Could not submit survey.",
+            privateLink: "This survey link is personal. Please use the private link sent to you.",
+            requiredQuestions: "Please fill in the required questions.",
+            eventNotFound: "Event not found.",
+            back: "Back to registration",
+            flow: "Participant survey flow",
+            intro: "This page is opened only through the participant's personal link. The signed token ensures only the correct attendee can submit the survey.",
+            surveyMissing: "No survey has been configured for this event yet.",
+            privateRequiredTitle: "Private link required",
+            privateRequiredBody: "This survey is not public. It can only be completed with the private link sent to the attendee.",
+            externalTitle: "External survey",
+            externalBody: "An external survey link is configured for this event. You can open it in a new tab.",
+            openExternal: "Open external survey",
+            builtinTitle: "Built-in survey",
+            builtinSubtitle: "Your answers are securely stored in the event account.",
+            send: "Submit survey",
+            sent: "Survey submitted",
+            thankYou: "Your answers were saved. Your certificate and badge status will refresh below.",
+            statusTitle: "Participation summary",
+            sessions: "Sessions",
+            survey: "Survey",
+            badges: "Badges",
+            certificate: "Certificate",
+            completed: "Done",
+            pending: "Pending",
+            ready: "Ready",
+            notReady: "Pending",
+            required: "Required",
+            optional: "Optional",
+            eligibleRaffles: "Eligible raffles",
+            noRaffles: "You are not eligible for any raffle yet.",
+            badgeTitle: "My badges",
+          },
+    [lang],
+  );
 
   const questions = eventInfo?.survey?.builtin_questions || [];
   const survey = eventInfo?.survey;
@@ -125,23 +161,6 @@ export default function EventSurveyPage() {
   const supportsBuiltin = surveyType === "builtin" || surveyType === "both";
   const supportsExternal = surveyType === "external" || surveyType === "both";
   const hasSurveyAccess = Boolean(surveyToken && attendeeId && attendeeEmail);
-
-  async function loadBadges(nextAttendeeId: number, nextEmail: string) {
-    if (!eventId || !nextAttendeeId || !nextEmail) {
-      setBadges([]);
-      return;
-    }
-
-    setBadgesLoading(true);
-    try {
-      const data = await getPublicAttendeeBadges(eventId, nextAttendeeId, nextEmail);
-      setBadges(data.badges || []);
-    } catch {
-      setBadges([]);
-    } finally {
-      setBadgesLoading(false);
-    }
-  }
 
   async function loadStatus(nextSurveyToken: string) {
     if (!eventId || !nextSurveyToken) {
@@ -153,7 +172,6 @@ export default function EventSurveyPage() {
     try {
       const status = await getPublicParticipantStatus(eventId, nextSurveyToken);
       setParticipantStatus(status);
-      setBadges(status.badges || []);
     } catch {
       setParticipantStatus(null);
     } finally {
@@ -181,9 +199,7 @@ export default function EventSurveyPage() {
           : "";
         const resolvedToken = tokenFromQuery || tokenFromStorage;
 
-        if (!resolvedToken) {
-          return;
-        }
+        if (!resolvedToken) return;
 
         const access = await resolvePublicSurveyToken(eventId, resolvedToken);
         setSurveyToken(access.survey_token);
@@ -200,32 +216,26 @@ export default function EventSurveyPage() {
           }
         }
       } catch (err: any) {
-        setError(err?.message || "Anket bilgileri yüklenemedi.");
+        setError(err?.message || copy.loadFailed);
       } finally {
         setLoading(false);
       }
     }
 
     void loadPage();
-  }, [eventId]);
+  }, [copy.loadFailed, eventId]);
 
-  useEffect(() => {
-    if (hasSurveyAccess && attendeeId && attendeeEmail) {
-      void loadBadges(attendeeId, attendeeEmail);
-    }
-  }, [attendeeEmail, attendeeId, eventId, hasSurveyAccess]);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(eventArg: React.FormEvent) {
+    eventArg.preventDefault();
 
     if (!hasSurveyAccess || !attendeeId) {
-      setError("Bu anket bağlantısı kişiye özeldir. Lütfen size gönderilen özel bağlantıyı kullanın.");
+      setError(copy.privateLink);
       return;
     }
 
     const missingRequired = questions.find((question) => question.required && !String(answers[question.id] ?? "").trim());
     if (missingRequired) {
-      setError("Lütfen zorunlu soruları doldurun.");
+      setError(copy.requiredQuestions);
       return;
     }
 
@@ -238,12 +248,42 @@ export default function EventSurveyPage() {
         localStorage.setItem(`heptacert_survey_done_${eventId}_${attendeeId}`, "1");
       }
       await loadStatus(surveyToken);
-      await loadBadges(attendeeId, attendeeEmail);
     } catch (err: any) {
-      setError(err?.message || "Anket gönderilemedi.");
+      setError(err?.message || copy.submitFailed);
     } finally {
       setSaving(false);
     }
+  }
+
+  function renderBadgeCard(badge: PublicParticipantBadge) {
+    const color = badge.badge_color_hex || "#2563eb";
+    return (
+      <div key={badge.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-lg font-black text-slate-900">{badge.badge_name || badge.badge_type}</p>
+            {badge.badge_description ? (
+              <p className="mt-1 text-sm leading-6 text-slate-600">{badge.badge_description}</p>
+            ) : null}
+          </div>
+          <div
+            className="inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold"
+            style={{ color, borderColor: `${color}50`, backgroundColor: `${color}12` }}
+          >
+            <Award className="h-3.5 w-3.5" />
+            {badge.is_automatic ? copy.automatic : copy.manual}
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+            {copy.type}: {badge.badge_type}
+          </span>
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+            {new Date(badge.awarded_at).toLocaleString(lang === "tr" ? "tr-TR" : "en-US")}
+          </span>
+        </div>
+      </div>
+    );
   }
 
   if (loading) {
@@ -258,7 +298,7 @@ export default function EventSurveyPage() {
     return (
       <div className="min-h-screen bg-slate-50 p-6">
         <div className="mx-auto max-w-xl rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-          <p className="text-base font-semibold text-slate-800">Etkinlik bulunamadı.</p>
+          <p className="text-base font-semibold text-slate-800">{copy.eventNotFound}</p>
         </div>
       </div>
     );
@@ -272,26 +312,23 @@ export default function EventSurveyPage() {
           className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
         >
           <ArrowLeft className="h-4 w-4" />
-          Kayıt sayfasına dön
+          {copy.back}
         </Link>
 
         <div className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
           <div className="border-b border-slate-100 bg-[radial-gradient(circle_at_top_left,_rgba(79,70,229,0.14),_transparent_38%),linear-gradient(135deg,_#ffffff_15%,_#eef2ff_100%)] px-6 py-7 md:px-8">
             <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
               <Sparkles className="h-3.5 w-3.5" />
-              Katılımcı anket akışı
+              {copy.flow}
             </div>
-            <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-900">{eventInfo.name} Anketi</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-              Bu sayfa sadece sertifika sahibine gönderilen kişisel bağlantı ile açılır. Linkteki imzalı token,
-              anketi yalnızca doğru katılımcının doldurmasını sağlar.
-            </p>
+            <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-900">{eventInfo.name}</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{copy.intro}</p>
           </div>
 
           <div className="space-y-6 px-6 py-6 md:px-8 md:py-8">
             {!survey ? (
               <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center text-sm text-slate-500">
-                Bu etkinlik için henüz bir anket tanımlanmamış.
+                {copy.surveyMissing}
               </div>
             ) : null}
 
@@ -302,12 +339,8 @@ export default function EventSurveyPage() {
                     <LockKeyhole className="h-5 w-5" />
                   </div>
                   <div className="flex-1">
-                    <h2 className="text-lg font-black text-amber-950">Kişiye özel bağlantı gerekli</h2>
-                    <p className="mt-2 text-sm leading-6 text-amber-900">
-                      Bu anket herkese açık değildir. Sadece sertifika sahibine gönderilen özel bağlantı ile
-                      doldurulabilir. Eğer bu sayfayı genel bir linkten açtıysanız organizasyondan size özel anket
-                      linkini istemeniz gerekir.
-                    </p>
+                    <h2 className="text-lg font-black text-amber-950">{copy.privateRequiredTitle}</h2>
+                    <p className="mt-2 text-sm leading-6 text-amber-900">{copy.privateRequiredBody}</p>
                     {error ? (
                       <div className="mt-4 inline-flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
                         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -319,251 +352,174 @@ export default function EventSurveyPage() {
               </div>
             ) : null}
 
-            {hasSurveyAccess && survey && !survey.is_required ? (
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-800">
-                Bu etkinlikte anket zorunlu değil. Yine de doldurursanız organizasyon geri bildirim toplayabilir.
+            {supportsExternal && survey?.external_url ? (
+              <div className="rounded-3xl border border-sky-200 bg-sky-50 p-5 md:p-6">
+                <h2 className="text-lg font-black text-sky-950">{copy.externalTitle}</h2>
+                <p className="mt-2 text-sm leading-6 text-sky-900">{copy.externalBody}</p>
+                <a
+                  href={survey.external_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-sky-700"
+                >
+                  {copy.openExternal}
+                  <ExternalLink className="h-4 w-4" />
+                </a>
               </div>
             ) : null}
 
-            {hasSurveyAccess && participantStatus ? (
-              <div className="rounded-3xl border border-slate-200 bg-white p-5 md:p-6">
-                <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            {supportsBuiltin && survey?.has_builtin_questions ? (
+              <form onSubmit={handleSubmit} className="rounded-3xl border border-slate-200 bg-slate-50 p-5 md:p-6">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h2 className="text-xl font-black text-slate-900">Katılımcı durumunuz</h2>
-                    <p className="mt-1 text-sm text-slate-500">Etkinlik içindeki ilerlemeniz tek bakışta burada.</p>
+                    <h2 className="text-lg font-black text-slate-950">{copy.builtinTitle}</h2>
+                    <p className="mt-2 text-sm text-slate-600">{copy.builtinSubtitle}</p>
                   </div>
-                  {statusLoading ? (
-                    <div className="inline-flex items-center gap-2 text-sm font-medium text-slate-500">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Durum yenileniyor
-                    </div>
-                  ) : null}
+                  <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                    {survey.is_required ? copy.required : copy.optional}
+                  </span>
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-4">
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Oturum</p>
-                    <p className="mt-2 text-2xl font-black text-slate-900">
-                      {participantStatus.sessions_attended}/{Math.max(participantStatus.total_sessions, participantStatus.sessions_required)}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500">Minimum {participantStatus.sessions_required} oturum</p>
-                  </div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Anket</p>
-                    <p className="mt-2 text-2xl font-black text-slate-900">
-                      {participantStatus.survey_completed ? "Tamam" : "Bekliyor"}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {participantStatus.survey_required ? "Sertifika için zorunlu" : "Opsiyonel geri bildirim"}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Rozet</p>
-                    <p className="mt-2 text-2xl font-black text-slate-900">{participantStatus.badge_count}</p>
-                    <p className="mt-1 text-xs text-slate-500">Toplam kazanılan rozet</p>
-                  </div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Sertifika</p>
-                    <p className="mt-2 text-2xl font-black text-slate-900">
-                      {participantStatus.certificate_ready ? "Hazır" : participantStatus.certificate_count > 0 ? "Üretildi" : "Bekliyor"}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {participantStatus.certificate_ready ? "İndirmeye uygun" : "Akış tamamlanınca görünür"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_auto]">
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                    <p className="text-sm font-semibold text-slate-900">Sonraki önerilen adım</p>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">
-                      {participantStatus.certificate_ready
-                        ? "Sertifikanız hazır. Doğrulama bağlantısı üzerinden görüntüleyebilir veya indirebilirsiniz."
-                        : participantStatus.survey_required && !participantStatus.survey_completed
-                          ? "Önce anketi tamamlayın. Sonrasında sertifika uygunluğu otomatik güncellenecek."
-                          : participantStatus.sessions_attended < participantStatus.sessions_required
-                            ? `Sertifika için ${participantStatus.sessions_required - participantStatus.sessions_attended} oturum daha tamamlamanız gerekiyor.`
-                            : "Katılım koşullarını tamamladınız. Sertifika üretimi veya paylaşımı için etkinlik akışını takip edin."}
-                    </p>
-                  </div>
-
-                  {participantStatus.latest_certificate_verify_url ? (
-                    <a
-                      href={participantStatus.latest_certificate_verify_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500"
-                    >
-                      Sertifikayı görüntüle
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                  ) : null}
-                </div>
-
-                {participantStatus.eligible_raffles.length > 0 ? (
-                  <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-amber-900">
-                      <Ticket className="h-4 w-4" />
-                      Uygun olduğunuz çekilişler
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {participantStatus.eligible_raffles.map((raffle) => (
-                        <span
-                          key={raffle.id}
-                          className="rounded-full border border-amber-200 bg-white px-3 py-1 text-xs font-semibold text-amber-800"
-                        >
-                          {raffle.title} • {raffle.prize_name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-
-            {hasSurveyAccess && supportsExternal && survey?.external_url ? (
-              <div className="rounded-3xl border border-amber-200 bg-amber-50/80 p-5">
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-amber-900">Harici anket bağlantısı hazır</p>
-                    <p className="mt-1 text-sm leading-6 text-amber-800">
-                      {supportsBuiltin
-                        ? "Yerleşik formu bu sayfadan doldurabilir, isterseniz harici anket bağlantısına da geçebilirsiniz."
-                        : "Anket bu etkinlikte harici sağlayıcı üzerinden toplanıyor."}
-                    </p>
-                  </div>
-                  <a
-                    href={survey.external_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-amber-500 px-4 py-3 text-sm font-semibold text-black transition hover:bg-amber-400"
-                  >
-                    Harici anketi aç
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                </div>
-              </div>
-            ) : null}
-
-            {hasSurveyAccess && supportsBuiltin && survey?.has_builtin_questions ? (
-              <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5 md:p-6">
-                <div className="mb-5">
-                  <h2 className="text-xl font-black text-slate-900">Yerleşik anket soruları</h2>
-                  <p className="mt-1 text-sm text-slate-500">Yanıtlarınız doğrudan etkinlik paneline kaydedilir.</p>
-                </div>
-
-                {!saved ? (
-                  <form className="space-y-4" onSubmit={handleSubmit}>
-                    {questions.map((question) => (
-                      <div key={question.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <label className="mb-2 block text-sm font-semibold text-slate-800">
-                          {question.question} {question.required ? <span className="text-rose-500">*</span> : null}
+                <div className="mt-6 space-y-4">
+                  {questions.map((question, index) => {
+                    const fieldType = renderFieldType(question);
+                    return (
+                      <div key={question.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                        <label className="block text-sm font-semibold text-slate-900">
+                          {index + 1}. {question.question}
+                          {question.required ? <span className="ml-1 text-rose-500">*</span> : null}
                         </label>
 
-                        {question.type === "multiple_choice" && Array.isArray(question.options) && question.options.length > 0 ? (
+                        {fieldType === "textarea" ? (
+                          <textarea
+                            rows={4}
+                            value={String(answers[question.id] ?? "")}
+                            onChange={(eventArg) => setAnswers((current) => ({ ...current, [question.id]: eventArg.target.value }))}
+                            className="mt-3 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+                          />
+                        ) : fieldType === "select" ? (
                           <select
                             value={String(answers[question.id] ?? "")}
-                            onChange={(e) => setAnswers((prev) => ({ ...prev, [question.id]: e.target.value }))}
-                            className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400"
+                            onChange={(eventArg) => setAnswers((current) => ({ ...current, [question.id]: eventArg.target.value }))}
+                            className="mt-3 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
                           >
-                            <option value="">Seçiniz</option>
-                            {question.options.map((option) => (
+                            <option value="">{lang === "tr" ? "Se?in" : "Select"}</option>
+                            {(question.options || []).map((option) => (
                               <option key={option} value={option}>{option}</option>
                             ))}
                           </select>
-                        ) : question.type === "yes_no" ? (
-                          <div className="grid grid-cols-2 gap-3">
-                            {[
-                              { value: "yes", label: "Evet" },
-                              { value: "no", label: "Hayır" },
-                            ].map((option) => (
-                              <button
-                                key={option.value}
-                                type="button"
-                                onClick={() => setAnswers((prev) => ({ ...prev, [question.id]: option.value }))}
-                                className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
-                                  String(answers[question.id] ?? "") === option.value
-                                    ? "border-indigo-500 bg-indigo-50 text-indigo-700"
-                                    : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-                                }`}
-                              >
-                                {option.label}
-                              </button>
-                            ))}
-                          </div>
-                        ) : question.type === "rating" ? (
+                        ) : fieldType === "rating" ? (
                           <input
                             type="number"
                             min={1}
-                            max={5}
+                            max={10}
                             value={String(answers[question.id] ?? "")}
-                            onChange={(e) => setAnswers((prev) => ({ ...prev, [question.id]: e.target.value }))}
-                            className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400"
-                            placeholder="1-5"
+                            onChange={(eventArg) => setAnswers((current) => ({ ...current, [question.id]: eventArg.target.value }))}
+                            className="mt-3 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
                           />
-                        ) : question.type === "text" ? (
+                        ) : (
                           <input
                             type="text"
                             value={String(answers[question.id] ?? "")}
-                            onChange={(e) => setAnswers((prev) => ({ ...prev, [question.id]: e.target.value }))}
-                            className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400"
-                            placeholder="Yanıtınızı yazın"
-                          />
-                        ) : (
-                          <textarea
-                            value={String(answers[question.id] ?? "")}
-                            onChange={(e) => setAnswers((prev) => ({ ...prev, [question.id]: e.target.value }))}
-                            className="min-h-28 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400"
-                            placeholder="Yanıtınızı yazın"
+                            onChange={(eventArg) => setAnswers((current) => ({ ...current, [question.id]: eventArg.target.value }))}
+                            className="mt-3 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
                           />
                         )}
                       </div>
-                    ))}
+                    );
+                  })}
+                </div>
 
-                    {error ? (
-                      <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
-                    ) : null}
+                {error ? (
+                  <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                    {error}
+                  </div>
+                ) : null}
 
-                    <button
-                      type="submit"
-                      disabled={saving}
-                      className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:opacity-60"
-                    >
-                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                      Anketi gönder
-                    </button>
-                  </form>
-                ) : (
-                  <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-5 text-emerald-900">
-                    <div className="flex items-center gap-2 text-base font-semibold">
-                      <CheckCircle2 className="h-5 w-5" />
-                      Anketiniz alındı
+                <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-sm text-slate-500">{attendeeEmail}</div>
+                  <button type="submit" disabled={saving || !hasSurveyAccess} className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60">
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                    {copy.send}
+                  </button>
+                </div>
+              </form>
+            ) : null}
+
+            {saved ? (
+              <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-900">
+                <div className="flex items-center gap-2 text-base font-semibold">
+                  <CheckCircle2 className="h-5 w-5" />
+                  {copy.sent}
+                </div>
+                <p className="mt-2 text-sm leading-6 text-emerald-800">{copy.thankYou}</p>
+              </div>
+            ) : null}
+
+            <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+              <div className="rounded-3xl border border-slate-200 bg-white p-5">
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                  <Ticket className="h-4 w-4 text-indigo-600" />
+                  {copy.statusTitle}
+                </div>
+                {statusLoading ? (
+                  <div className="mt-4 flex items-center gap-2 text-sm text-slate-500">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {lang === "tr" ? "Durum g?ncelleniyor..." : "Refreshing status..."}
+                  </div>
+                ) : participantStatus ? (
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                      {copy.sessions}: <span className="font-semibold">{participantStatus.sessions_attended}/{participantStatus.sessions_required}</span>
                     </div>
-                    <p className="mt-2 text-sm leading-6 text-emerald-800">
-                      Teşekkürler. Sertifika akışına devam edebilirsiniz. Rozetler atanırsa aşağıdaki bölümde görünecek.
-                    </p>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                      {copy.survey}: <span className="font-semibold">{participantStatus.survey_completed ? copy.completed : copy.pending}</span>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                      {copy.badges}: <span className="font-semibold">{participantStatus.badge_count}</span>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                      {copy.certificate}: <span className="font-semibold">{participantStatus.certificate_ready ? copy.ready : copy.notReady}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-4 text-sm text-slate-500">
+                    {lang === "tr" ? "Durum bilgisi hen?z y?klenemedi." : "Status is not available yet."}
                   </div>
                 )}
-              </div>
-            ) : null}
 
-            {hasSurveyAccess ? (
-              <div className="rounded-3xl border border-slate-200 bg-white p-5 md:p-6">
-                <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-                  <div>
-                    <h2 className="text-xl font-black text-slate-900">Kazandığınız rozetler</h2>
-                    <p className="mt-1 text-sm text-slate-500">Etkinlik yönetimi tarafından verilen rozetler burada görünür.</p>
+                <div className="mt-5">
+                  <p className="text-sm font-semibold text-slate-900">{copy.eligibleRaffles}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {participantStatus?.eligible_raffles?.length ? (
+                      participantStatus.eligible_raffles.map((raffle) => (
+                        <span key={raffle.id} className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+                          {raffle.title}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-sm text-slate-500">{copy.noRaffles}</span>
+                    )}
                   </div>
-                  {badgesLoading ? (
-                    <div className="inline-flex items-center gap-2 text-sm font-medium text-slate-500">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Rozetler yükleniyor
-                    </div>
-                  ) : null}
                 </div>
-                <BadgeGallery badges={badges} />
               </div>
-            ) : null}
+
+              <div className="rounded-3xl border border-slate-200 bg-white p-5">
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                  <Award className="h-4 w-4 text-indigo-600" />
+                  {copy.badgeTitle}
+                </div>
+                <div className="mt-4 space-y-3">
+                  {participantStatus?.badges?.length ? (
+                    participantStatus.badges.map(renderBadgeCard)
+                  ) : (
+                    <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center text-sm text-slate-500">
+                      {copy.badgeEmpty}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

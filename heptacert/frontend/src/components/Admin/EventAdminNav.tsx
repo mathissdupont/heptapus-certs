@@ -13,6 +13,7 @@ import {
   Gift,
   BarChart3,
   Mail,
+  MessageSquare,
   Settings,
   Palette,
   ClipboardList,
@@ -30,6 +31,7 @@ type EventAdminTab =
   | "analytics"
   | "editor"
   | "email"
+  | "comments"
   | "settings";
 
 type NavItem = {
@@ -50,6 +52,7 @@ const NAV_ITEMS: NavItem[] = [
   { tab: "analytics", label: { tr: "İleri Analitik", en: "Advanced Analytics" }, icon: BarChart3, href: (id) => `/admin/events/${id}/advanced-analytics` },
   { tab: "editor", label: { tr: "Editör", en: "Editor" }, icon: Palette, href: (id) => `/admin/events/${id}/editor` },
   { tab: "email", label: { tr: "E-posta", en: "Email" }, icon: Mail, href: (id) => `/admin/events/${id}/email-templates` },
+  { tab: "comments", label: { tr: "Yorumlar", en: "Comments" }, icon: MessageSquare, href: (id) => `/admin/events/${id}/comments` },
   { tab: "settings", label: { tr: "Ayarlar", en: "Settings" }, icon: Settings, href: (id) => `/admin/events/${id}/settings` },
 ];
 
@@ -83,6 +86,7 @@ function getActiveFromPath(pathname: string): EventAdminTab {
   if (pathname.includes("/advanced-analytics") || pathname.includes("/analytics")) return "analytics";
   if (pathname.includes("/editor") || pathname.includes("/preview") || pathname.includes("/qr-present")) return "editor";
   if (pathname.includes("/email-templates") || pathname.includes("/bulk-emails") || pathname.includes("/schedule-email")) return "email";
+  if (pathname.includes("/comments")) return "comments";
   if (pathname.includes("/settings")) return "settings";
   return "certificates";
 }

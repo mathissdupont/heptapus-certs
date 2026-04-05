@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Loader2, MailWarning } from "lucide-react";
 import { publicApiFetch } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
-export default function VerifyMemberEmailPage() {
+function VerifyMemberEmailContent() {
   const { lang } = useI18n();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") || "";
@@ -82,5 +82,13 @@ export default function VerifyMemberEmailPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function VerifyMemberEmailPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-[70vh] items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-brand-500" /></div>}>
+      <VerifyMemberEmailContent />
+    </Suspense>
   );
 }

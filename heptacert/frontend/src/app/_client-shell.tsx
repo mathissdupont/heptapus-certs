@@ -7,7 +7,12 @@ import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { I18nProvider, LanguageToggle, useT, useI18n } from "@/lib/i18n";
-import { clearPublicMemberToken, getPublicMemberMe, getPublicMemberToken } from "@/lib/api";
+import {
+  PUBLIC_MEMBER_TOKEN_EVENT,
+  clearPublicMemberToken,
+  getPublicMemberMe,
+  getPublicMemberToken,
+} from "@/lib/api";
 
 const HEPTACERT_PRIMARY_HOSTS = new Set([
   "heptacert.com",
@@ -29,7 +34,6 @@ function Navbar() {
   const [open, setOpen] = useState(false);
   const t = useT();
   const { lang } = useI18n();
-  const pathname = usePathname();
 
   const [brandLogo, setBrandLogo] = useState<string | null>(null);
   const [brandColor, setBrandColor] = useState<string | null>(null);
@@ -66,24 +70,41 @@ function Navbar() {
 
   useEffect(() => {
     let mounted = true;
-    if (!getPublicMemberToken()) {
-      setMember(null);
-      return () => {
-        mounted = false;
-      };
-    }
-    getPublicMemberMe()
-      .then((data) => {
+
+    async function syncMember() {
+      if (!getPublicMemberToken()) {
+        if (mounted) setMember(null);
+        return;
+      }
+
+      try {
+        const data = await getPublicMemberMe();
         if (mounted) setMember(data);
-      })
-      .catch(() => {
+      } catch {
         clearPublicMemberToken();
         if (mounted) setMember(null);
-      });
+      }
+    }
+
+    function handleStorage(event: StorageEvent) {
+      if (event.key && event.key !== "heptacert_public_member_token") return;
+      void syncMember();
+    }
+
+    function handleTokenChange() {
+      void syncMember();
+    }
+
+    void syncMember();
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener(PUBLIC_MEMBER_TOKEN_EVENT, handleTokenChange);
+
     return () => {
       mounted = false;
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(PUBLIC_MEMBER_TOKEN_EVENT, handleTokenChange);
     };
-  }, [pathname]);
+  }, []);
 
   const isHeptaCertHost = useMemo(() => {
     if (!host) return true; // Sayfa yüklenmeden layout shift olmaması için default true
@@ -97,7 +118,8 @@ function Navbar() {
   }, [host, isHeptaCertHost, settings]);
 
   const eventsLabel = lang === "tr" ? "Etkinlikler" : "Events";
-  const logoutLabel = lang === "tr" ? "Çıkış Yap" : "Sign Out";
+  const myEventsLabel = lang === "tr" ? "Katildiklarim" : "My Events";
+  const logoutLabel = lang === "tr" ? "Cikis Yap" : "Sign Out";
 
   const links = isWhiteLabel
     ? [
@@ -105,6 +127,7 @@ function Navbar() {
       ]
     : [
         { href: "/events", label: eventsLabel },
+        ...(member ? [{ href: "/my-events", label: myEventsLabel }] : []),
         { href: "/#features", label: t("nav_features") },
         { href: "/pricing", label: t("nav_pricing") },
         { href: "/verify", label: t("nav_verify") },

@@ -419,6 +419,11 @@ export default function AdminAttendeesPage() {
                             <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${a.source === "self_register" ? "bg-blue-50 text-blue-600" : "bg-gray-100 text-gray-500"}`}>
                               {a.source === "self_register" ? "kendi" : "import"}
                             </span>
+                            {a.public_member_name && (
+                              <span className="ml-2 inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                                uye: {a.public_member_name}
+                              </span>
+                            )}
                             {getRegistrationPreview(a).length > 0 && (
                               <div className="mt-2 space-y-1">
                                 {getRegistrationPreview(a).map((item) => (
@@ -686,6 +691,14 @@ export default function AdminAttendeesPage() {
                 </p>
               </div>
             </div>
+
+            {selectedAttendee.public_member_name && (
+              <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Bağlı Üye Hesabı</p>
+                <p className="mt-2 text-sm font-semibold text-slate-900">{selectedAttendee.public_member_name}</p>
+                <p className="mt-1 text-xs text-slate-500">{selectedAttendee.public_member_email}</p>
+              </div>
+            )}
 
             {registrationFields.length > 0 && (
               <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4">

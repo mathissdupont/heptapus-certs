@@ -30,14 +30,14 @@ export default function PublicEventsPage() {
       lang === "tr"
         ? {
             eyebrow: "Public Etkinlikler",
-            title: "Keşfedilebilir etkinlikler",
-            subtitle: "Organizatörlerin public olarak paylaştığı etkinlikleri burada keşfedebilir, detayları görüntüleyip kayıt akışına geçebilirsin.",
-            searchPlaceholder: "Etkinlik adı veya konum ara",
-            loading: "Etkinlikler yükleniyor...",
-            error: "Etkinlikler yüklenemedi.",
-            empty: "Henüz listelenen public etkinlik yok.",
+            title: "Kesfedilebilir etkinlikler",
+            subtitle: "Organizatorlerin public olarak paylastigi etkinlikleri burada kesfedebilir, detaylari goruntuleyip kayit akisina gecebilirsin.",
+            searchPlaceholder: "Etkinlik adi veya konum ara",
+            loading: "Etkinlikler yukleniyor...",
+            error: "Etkinlikler yuklenemedi.",
+            empty: "Henuz listelenen public etkinlik yok.",
             sessions: "oturum",
-            minSessions: "Sertifika eşiği",
+            minSessions: "Sertifika esigi",
             details: "Detaya Git",
           }
         : {
@@ -52,7 +52,7 @@ export default function PublicEventsPage() {
             minSessions: "Certificate threshold",
             details: "View Details",
           },
-    [lang]
+    [lang],
   );
 
   useEffect(() => {
@@ -119,7 +119,6 @@ export default function PublicEventsPage() {
             <article key={item.id} className="card overflow-hidden p-0">
               <div className="h-44 bg-slate-100">
                 {item.event_banner_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={item.event_banner_url} alt={item.name} className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full items-center justify-center bg-[linear-gradient(135deg,rgba(14,165,233,0.16),rgba(59,130,246,0.06))] text-lg font-semibold text-slate-600">

@@ -31,12 +31,21 @@ export function getPublicMemberToken(): string | null {
   return localStorage.getItem("heptacert_public_member_token");
 }
 
+export const PUBLIC_MEMBER_TOKEN_EVENT = "heptacert:public-member-token-change";
+
+function emitPublicMemberTokenChange() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(PUBLIC_MEMBER_TOKEN_EVENT));
+}
+
 export function setPublicMemberToken(token: string) {
   localStorage.setItem("heptacert_public_member_token", token);
+  emitPublicMemberTokenChange();
 }
 
 export function clearPublicMemberToken() {
   localStorage.removeItem("heptacert_public_member_token");
+  emitPublicMemberTokenChange();
 }
 
 export function getRoleFromToken(): string | null {
@@ -84,8 +93,8 @@ async function requestApi(
     });
   } catch (err: any) {
     clearTimeout(timeout);
-    if (err?.name === "AbortError") throw new ApiError(0, "İstek zaman aşımına uğradı.");
-    throw new ApiError(0, err?.message || "Ağ hatası.");
+    if (err?.name === "AbortError") throw new ApiError(0, "Istek zaman asimina ugradi.");
+    throw new ApiError(0, err?.message || "Ag hatasi.");
   }
   clearTimeout(timeout);
 
@@ -95,7 +104,7 @@ async function requestApi(
   }
 
   if (!res.ok) {
-    let detail = `İstek başarısız (${res.status})`;
+    let detail = `Istek basarisiz (${res.status})`;
     try {
       const j = await res.json();
       detail = j?.detail || JSON.stringify(j);
@@ -151,6 +160,20 @@ export interface PublicMemberMe {
   id: number;
   email: string;
   display_name: string;
+}
+
+export interface PublicMemberEvent {
+  attendee_id: number;
+  event_id: number;
+  event_name: string;
+  event_date?: string | null;
+  event_location?: string | null;
+  event_banner_url?: string | null;
+  registered_at: string;
+  email_verified: boolean;
+  sessions_attended: number;
+  min_sessions_required: number;
+  status_url?: string | null;
 }
 
 export interface PublicEventListItem {
@@ -219,6 +242,26 @@ export interface PublicEventDetail {
   visibility: "private" | "unlisted" | "public";
 }
 
+export interface PublicEventComment {
+  id: number;
+  event_id: number;
+  member_id: number;
+  member_name: string;
+  member_email?: string | null;
+  body: string;
+  status: "visible" | "hidden" | "reported";
+  report_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PublicSurveyAccess {
+  attendee_id: number;
+  attendee_name: string;
+  attendee_email: string;
+  survey_token: string;
+}
+
 export type RegistrationFieldType = "text" | "textarea" | "number" | "tel" | "select" | "date";
 
 export interface RegistrationField {
@@ -253,6 +296,9 @@ export interface AttendeeOut {
   registered_at: string;
   sessions_attended: number;
   has_certificate: boolean;
+  public_member_id?: number | null;
+  public_member_name?: string | null;
+  public_member_email?: string | null;
   registration_answers: Record<string, string>;
 }
 
@@ -633,6 +679,11 @@ export async function getPublicMemberMe(): Promise<PublicMemberMe> {
   return res.json();
 }
 
+export async function listMyPublicEvents(): Promise<PublicMemberEvent[]> {
+  const res = await memberApiFetch("/public/my-events");
+  return res.json();
+}
+
 export async function listPublicEvents(): Promise<PublicEventListItem[]> {
   const res = await publicApiFetch("/public/events");
   return res.json();
@@ -640,6 +691,46 @@ export async function listPublicEvents(): Promise<PublicEventListItem[]> {
 
 export async function getPublicEventDetail(eventId: number): Promise<PublicEventDetail> {
   const res = await publicApiFetch(`/public/events/${eventId}`);
+  return res.json();
+}
+
+export async function listPublicEventComments(eventId: number): Promise<PublicEventComment[]> {
+  const res = await publicApiFetch(`/public/events/${eventId}/comments`);
+  return res.json();
+}
+
+export async function createPublicEventComment(eventId: number, body: string): Promise<PublicEventComment> {
+  const res = await memberApiFetch(`/public/events/${eventId}/comments`, {
+    method: "POST",
+    body: JSON.stringify({ body }),
+  });
+  return res.json();
+}
+
+export async function reportPublicEventComment(
+  eventId: number,
+  commentId: number,
+): Promise<{ ok: boolean; status: string; report_count: number }> {
+  const res = await memberApiFetch(`/public/events/${eventId}/comments/${commentId}/report`, {
+    method: "POST",
+  });
+  return res.json();
+}
+
+export async function listAdminEventComments(eventId: number): Promise<PublicEventComment[]> {
+  const res = await apiFetch(`/admin/events/${eventId}/comments`);
+  return res.json();
+}
+
+export async function updateAdminEventComment(
+  eventId: number,
+  commentId: number,
+  status: "visible" | "hidden" | "reported",
+): Promise<PublicEventComment> {
+  const res = await apiFetch(`/admin/events/${eventId}/comments/${commentId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
   return res.json();
 }
 
@@ -664,15 +755,32 @@ export async function publicRegisterAttendee(
   survey_url?: string;
   status_url?: string;
 }> {
-  const res = await fetch(`${API_BASE}/events/${eventId}/register`, {
+  const fetcher = getPublicMemberToken() ? memberApiFetch : publicApiFetch;
+  const res = await fetcher(`/events/${eventId}/register`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  if (!res.ok) {
-    const j = await res.json().catch(() => ({}));
-    throw new Error(j?.detail || "Kayıt başarısız");
-  }
+  return res.json();
+}
+
+export async function resolvePublicSurveyToken(
+  eventId: number,
+  surveyToken: string,
+): Promise<PublicSurveyAccess> {
+  const res = await publicApiFetch(
+    `/events/${eventId}/survey-access?token=${encodeURIComponent(surveyToken)}`,
+  );
+  return res.json();
+}
+
+export async function verifyPublicAttendeeEmail(
+  eventId: number,
+  token: string,
+): Promise<{ detail: string; attendee_id: number; event_id: number; status_url?: string | null }> {
+  const res = await publicApiFetch(
+    `/events/${eventId}/verify-email?token=${encodeURIComponent(token)}`,
+    { method: "GET" },
+  );
   return res.json();
 }
 
@@ -698,30 +806,7 @@ export async function submitBuiltinSurvey(
 
   if (!res.ok) {
     const j = await res.json().catch(() => ({}));
-    throw new Error(j?.detail || "Anket gönderilemedi");
-  }
-
-  return res.json();
-}
-
-export async function verifyPublicAttendeeEmail(eventId: number, token: string): Promise<{ detail: string; attendee_id: number; event_id: number; status_url?: string }> {
-  const res = await fetch(`${API_BASE}/events/${eventId}/verify-email?token=${encodeURIComponent(token)}`);
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.detail || "E-posta doğrulanamadı");
-  return data;
-}
-
-export async function resolvePublicSurveyToken(
-  eventId: number,
-  surveyToken: string,
-): Promise<{ attendee_id: number; attendee_name: string; attendee_email: string; survey_token: string }> {
-  const res = await fetch(
-    `${API_BASE}/events/${eventId}/survey-access?token=${encodeURIComponent(surveyToken)}`,
-    { cache: "no-store" },
-  );
-  if (!res.ok) {
-    const j = await res.json().catch(() => ({}));
-    throw new Error(j?.detail || "Anket bağlantısı doğrulanamadı");
+    throw new Error(j?.detail || "Anket baglantisi dogrulanamadi");
   }
   return res.json();
 }
@@ -762,7 +847,7 @@ export async function getPublicParticipantStatus(
     { cache: "no-store" },
   );
   if (!res.ok) {
-    let detail = `İstek başarısız (${res.status})`;
+    let detail = `Istek basarisiz (${res.status})`;
     try {
       const j = await res.json();
       detail = j?.detail || JSON.stringify(j);

@@ -118,7 +118,6 @@ export default function LandingPage() {
         <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
           <motion.div variants={reveal} className="max-w-2xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
-              <Sparkles className="h-4 w-4" style={{ color: brandColor }} /> {copy.badge}
             </div>
             <h1 className="mt-8 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl lg:leading-[1.1]">
               {copy.title}

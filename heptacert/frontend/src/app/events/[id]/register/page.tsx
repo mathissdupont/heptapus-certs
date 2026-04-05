@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
-import { getPublicEventInfo, publicRegisterAttendee, type RegistrationField } from "@/lib/api";
+import { getPublicEventInfo, getPublicMemberMe, getPublicMemberToken, publicRegisterAttendee, type RegistrationField } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import {
   CheckCircle2,
@@ -156,6 +156,7 @@ export default function EventRegisterPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [surveyUrl, setSurveyUrl] = useState<string | null>(null);
   const [statusUrl, setStatusUrl] = useState<string | null>(null);
+  const [memberLocked, setMemberLocked] = useState(false);
 
   useEffect(() => {
     fetch("/api/branding")
@@ -177,6 +178,19 @@ export default function EventRegisterPage() {
       .catch(() => setError(copy.eventNotFound))
       .finally(() => setLoading(false));
   }, [eventId, copy.eventNotFound]);
+
+  useEffect(() => {
+    if (!getPublicMemberToken()) return;
+    getPublicMemberMe()
+      .then((member) => {
+        setName((current) => current || member.display_name);
+        setEmail(member.email);
+        setMemberLocked(true);
+      })
+      .catch(() => {
+        setMemberLocked(false);
+      });
+  }, []);
 
   const brandName = branding?.org_name || "HeptaCert";
   const brandColor = branding?.brand_color || "#7c73ff";
@@ -511,11 +525,19 @@ export default function EventRegisterPage() {
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        readOnly={memberLocked}
                         placeholder={copy.emailPlaceholder}
                         required
                         className="w-full rounded-2xl border bg-gray-50/80 px-4 py-3.5 text-sm text-gray-900 placeholder-gray-400 transition-all focus:outline-none focus:ring-2"
                         style={inputFocusStyle}
                       />
+                      {memberLocked && (
+                        <p className="mt-2 text-xs text-gray-500">
+                          {lang === "tr"
+                            ? "Giriş yaptığın üye hesabının e-postası kullanılacak."
+                            : "Your signed-in member email will be used for this registration."}
+                        </p>
+                      )}
                     </div>
 
                     {event?.registration_fields && event.registration_fields.length > 0 && (

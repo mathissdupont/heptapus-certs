@@ -168,6 +168,9 @@ class PublicMember(Base):
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     verification_token: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
 
+    attendees: Mapped[List["Attendee"]] = relationship(back_populates="public_member")
+    comments: Mapped[List["EventComment"]] = relationship(back_populates="public_member", cascade="all, delete-orphan")
+
 
 class Event(Base):
     __tablename__ = "events"
@@ -193,6 +196,7 @@ class Event(Base):
     certificates: Mapped[List["Certificate"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
     sessions: Mapped[List["EventSession"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
     attendees: Mapped[List["Attendee"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
+    comments: Mapped[List["EventComment"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
     raffles: Mapped[List["EventRaffle"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
     template_snapshots: Mapped[List["EventTemplateSnapshot"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
     email_templates: Mapped[List["EmailTemplate"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
@@ -587,14 +591,31 @@ class Attendee(Base):
     survey_completed_at:  Mapped[Optional[datetime]]    = mapped_column(DateTime(timezone=True), nullable=True)
     survey_required:      Mapped[bool]                  = mapped_column(Boolean, default=False)
     can_download_cert:    Mapped[bool]                  = mapped_column(Boolean, default=True)
+    public_member_id:     Mapped[Optional[int]]         = mapped_column(Integer, ForeignKey("public_members.id", ondelete="SET NULL"), index=True, nullable=True)
     registration_answers: Mapped[Optional[dict]]        = mapped_column(JSONB, nullable=True, default=dict)
 
     event: Mapped["Event"] = relationship(back_populates="attendees")
+    public_member: Mapped[Optional["PublicMember"]] = relationship(back_populates="attendees")
     attendance_records: Mapped[List["AttendanceRecord"]] = relationship(back_populates="attendee", cascade="all, delete-orphan")
 
     __table_args__ = (
         UniqueConstraint("event_id", "email", name="uq_attendee_event_email"),
     )
+
+
+class EventComment(Base):
+    __tablename__ = "event_comments"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id: Mapped[int] = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    public_member_id: Mapped[int] = mapped_column(Integer, ForeignKey("public_members.id", ondelete="CASCADE"), index=True)
+    body: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(20), default="visible", index=True)
+    report_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    event: Mapped["Event"] = relationship(back_populates="comments")
+    public_member: Mapped["PublicMember"] = relationship(back_populates="comments")
 
 
 class AttendanceRecord(Base):
@@ -910,6 +931,49 @@ class PublicEventDetailOut(BaseModel):
     survey: Optional[Dict[str, Any]] = None
     sessions: List[Dict[str, Any]] = Field(default_factory=list)
     visibility: str = "private"
+
+
+class PublicMemberEventOut(BaseModel):
+    attendee_id: int
+    event_id: int
+    event_name: str
+    event_date: Optional[str] = None
+    event_location: Optional[str] = None
+    event_banner_url: Optional[str] = None
+    registered_at: datetime
+    email_verified: bool = False
+    sessions_attended: int = 0
+    min_sessions_required: int = 1
+    status_url: Optional[str] = None
+
+
+class PublicEventCommentOut(BaseModel):
+    id: int
+    event_id: int
+    member_id: int
+    member_name: str
+    member_email: Optional[str] = None
+    body: str
+    status: str
+    report_count: int = 0
+    created_at: datetime
+    updated_at: datetime
+
+
+class PublicEventCommentCreateIn(BaseModel):
+    body: str = Field(min_length=2, max_length=1500)
+
+    @field_validator("body")
+    @classmethod
+    def validate_body(cls, value: str) -> str:
+        cleaned = " ".join(value.split())
+        if len(cleaned) < 2:
+            raise ValueError("Comment is too short.")
+        return cleaned
+
+
+class AdminEventCommentUpdateIn(BaseModel):
+    status: str = Field(pattern="^(visible|hidden|reported)$")
 
 
 class BulkGenerateOut(BaseModel):
@@ -2327,13 +2391,13 @@ async def get_current_user(db: AsyncSession = Depends(get_db), Authorization: Op
     return CurrentUser(id=user.id, role=user.role, email=user.email)
 
 
-async def get_current_public_member(
-    db: AsyncSession = Depends(get_db),
-    Authorization: Optional[str] = Header(default=None),
-) -> CurrentPublicMember:
-    if not Authorization or not Authorization.lower().startswith("bearer "):
-        raise HTTPException(status_code=401, detail="Missing bearer token")
-    token = Authorization.split(" ", 1)[1].strip()
+async def _resolve_public_member_from_authorization(
+    db: AsyncSession,
+    authorization: Optional[str],
+) -> Optional[CurrentPublicMember]:
+    if not authorization or not authorization.lower().startswith("bearer "):
+        return None
+    token = authorization.split(" ", 1)[1].strip()
 
     try:
         payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
@@ -2350,6 +2414,25 @@ async def get_current_public_member(
     if not member:
         raise HTTPException(status_code=401, detail="Member not found")
     return CurrentPublicMember(id=member.id, email=member.email, display_name=member.display_name)
+
+
+async def get_current_public_member(
+    db: AsyncSession = Depends(get_db),
+    Authorization: Optional[str] = Header(default=None),
+) -> CurrentPublicMember:
+    if not Authorization or not Authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Missing bearer token")
+    member = await _resolve_public_member_from_authorization(db, Authorization)
+    if not member:
+        raise HTTPException(status_code=401, detail="Missing bearer token")
+    return member
+
+
+async def get_optional_public_member(
+    db: AsyncSession = Depends(get_db),
+    Authorization: Optional[str] = Header(default=None),
+) -> Optional[CurrentPublicMember]:
+    return await _resolve_public_member_from_authorization(db, Authorization)
 
 
 def require_role(*allowed: Role):
@@ -5261,7 +5344,7 @@ async def verify_public_member_email(token: str = Query(...), db: AsyncSession =
         payload = verify_email_token(token, max_age=86400)
     except SignatureExpired:
         raise bad_request("Verification link expired. Please register again.")
-    except (BadSignature, Exception):
+    except BadSignature:
         raise bad_request("Invalid verification link.")
 
     if payload.get("action") != "public_member_verify":
@@ -5272,6 +5355,8 @@ async def verify_public_member_email(token: str = Query(...), db: AsyncSession =
     member = res.scalar_one_or_none()
     if not member:
         raise HTTPException(status_code=404, detail="Member not found.")
+    if not member.verification_token or not hmac.compare_digest(str(member.verification_token), token):
+        raise bad_request("Invalid verification link.")
     if member.is_verified:
         return {"detail": "Your member account is already verified."}
 
@@ -6963,6 +7048,62 @@ async def me(me: CurrentUser = Depends(get_current_user), db: AsyncSession = Dep
 @app.get("/api/public/me", response_model=PublicMemberMeOut)
 async def public_me(member: CurrentPublicMember = Depends(get_current_public_member)):
     return PublicMemberMeOut(id=member.id, email=member.email, display_name=member.display_name)
+
+
+@app.get("/api/public/my-events", response_model=list[PublicMemberEventOut])
+async def public_member_events(
+    member: CurrentPublicMember = Depends(get_current_public_member),
+    db: AsyncSession = Depends(get_db),
+):
+    legacy_res = await db.execute(
+        select(Attendee).where(
+            func.lower(Attendee.email) == member.email.lower(),
+            Attendee.public_member_id.is_(None),
+        )
+    )
+    legacy_attendees = legacy_res.scalars().all()
+    if legacy_attendees:
+        for attendee in legacy_attendees:
+            attendee.public_member_id = member.id
+        await db.commit()
+
+    attendee_res = await db.execute(
+        select(Attendee)
+        .options(selectinload(Attendee.event))
+        .where(Attendee.public_member_id == member.id)
+        .order_by(Attendee.registered_at.desc())
+    )
+    attendees = attendee_res.scalars().all()
+    if not attendees:
+        return []
+
+    attendance_counts_res = await db.execute(
+        select(AttendanceRecord.attendee_id, func.count().label("cnt"))
+        .where(AttendanceRecord.attendee_id.in_([attendee.id for attendee in attendees]))
+        .group_by(AttendanceRecord.attendee_id)
+    )
+    attendance_counts = {int(row.attendee_id): int(row.cnt or 0) for row in attendance_counts_res.all()}
+
+    return [
+        PublicMemberEventOut(
+            attendee_id=attendee.id,
+            event_id=attendee.event_id,
+            event_name=attendee.event.name,
+            event_date=attendee.event.event_date.isoformat() if attendee.event.event_date else None,
+            event_location=attendee.event.event_location,
+            event_banner_url=attendee.event.event_banner_url,
+            registered_at=attendee.registered_at,
+            email_verified=attendee.email_verified,
+            sessions_attended=attendance_counts.get(attendee.id, 0),
+            min_sessions_required=attendee.event.min_sessions_required,
+            status_url=build_public_status_url(
+                event_id=attendee.event_id,
+                attendee_id=attendee.id,
+                email=attendee.email,
+            ),
+        )
+        for attendee in attendees
+    ]
 
 
 @app.patch("/api/me/password", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
@@ -9389,6 +9530,9 @@ class AttendeeOut(BaseModel):
     registered_at: datetime
     sessions_attended: int = 0
     has_certificate: bool = False
+    public_member_id: Optional[int] = None
+    public_member_name: Optional[str] = None
+    public_member_email: Optional[str] = None
     registration_answers: Dict[str, str] = Field(default_factory=dict)
 
 
@@ -9638,10 +9782,45 @@ def _build_public_event_detail(
     )
 
 
+def _event_comment_to_out(comment: EventComment) -> PublicEventCommentOut:
+    return PublicEventCommentOut(
+        id=comment.id,
+        event_id=comment.event_id,
+        member_id=comment.public_member_id,
+        member_name=comment.public_member.display_name,
+        member_email=comment.public_member.email,
+        body=comment.body,
+        status=comment.status,
+        report_count=comment.report_count,
+        created_at=comment.created_at,
+        updated_at=comment.updated_at,
+    )
+
+
 @app.get("/api/public/events", response_model=list[PublicEventListItemOut])
 async def list_public_events(db: AsyncSession = Depends(get_db)):
-    events_res = await db.execute(select(Event).order_by(Event.created_at.desc()))
-    visible_events = [event for event in events_res.scalars().all() if _get_event_visibility(event) == "public"]
+    bind = db.get_bind()
+    dialect_name = bind.dialect.name if bind is not None else ""
+
+    if dialect_name == "sqlite":
+        events_res = await db.execute(
+            select(Event)
+            .where(func.lower(func.coalesce(func.json_extract(Event.config, "$.visibility"), "private")) == "public")
+            .order_by(Event.created_at.desc())
+        )
+        visible_events = events_res.scalars().all()
+    elif dialect_name == "postgresql":
+        visibility_expr = Event.config["visibility"]
+        visibility_text = visibility_expr.astext if hasattr(visibility_expr, "astext") else visibility_expr
+        events_res = await db.execute(
+            select(Event)
+            .where(func.lower(func.coalesce(visibility_text, "private")) == "public")
+            .order_by(Event.created_at.desc())
+        )
+        visible_events = events_res.scalars().all()
+    else:
+        events_res = await db.execute(select(Event).order_by(Event.created_at.desc()))
+        visible_events = [event for event in events_res.scalars().all() if _get_event_visibility(event) == "public"]
     if not visible_events:
         return []
 
@@ -9683,6 +9862,94 @@ async def get_public_event_detail(event_id: int, db: AsyncSession = Depends(get_
     return _build_public_event_detail(event, sessions_res.scalars().all(), survey_res.scalar_one_or_none())
 
 
+@app.get("/api/public/events/{event_id}/comments", response_model=list[PublicEventCommentOut])
+async def list_public_event_comments(event_id: int, db: AsyncSession = Depends(get_db)):
+    event_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = event_res.scalar_one_or_none()
+    if not event or _get_event_visibility(event) == "private":
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    comments_res = await db.execute(
+        select(EventComment)
+        .options(selectinload(EventComment.public_member))
+        .where(EventComment.event_id == event_id, EventComment.status == "visible")
+        .order_by(EventComment.created_at.desc())
+    )
+    return [_event_comment_to_out(comment) for comment in comments_res.scalars().all()]
+
+
+@app.post("/api/public/events/{event_id}/comments", response_model=PublicEventCommentOut, status_code=201)
+@limiter.limit("5/minute")
+async def create_public_event_comment(
+    request: Request,
+    event_id: int,
+    payload: PublicEventCommentCreateIn,
+    member: CurrentPublicMember = Depends(get_current_public_member),
+    db: AsyncSession = Depends(get_db),
+):
+    event_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = event_res.scalar_one_or_none()
+    if not event or _get_event_visibility(event) == "private":
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    comment = EventComment(
+        event_id=event_id,
+        public_member_id=member.id,
+        body=payload.body,
+        status="visible",
+    )
+    db.add(comment)
+    await db.commit()
+    await db.refresh(comment)
+    await db.refresh(comment, attribute_names=["public_member"])
+
+    await write_audit_log(
+        db,
+        user_id=None,
+        action="public.comment.create",
+        resource_type="event_comment",
+        resource_id=str(comment.id),
+        ip_address=_client_ip_for_rate_limit(request),
+        user_agent=request.headers.get("User-Agent"),
+        extra={"event_id": event_id, "public_member_id": member.id},
+    )
+    await db.commit()
+    return _event_comment_to_out(comment)
+
+
+@app.post("/api/public/events/{event_id}/comments/{comment_id}/report")
+@limiter.limit("10/minute")
+async def report_public_event_comment(
+    request: Request,
+    event_id: int,
+    comment_id: int,
+    member: CurrentPublicMember = Depends(get_current_public_member),
+    db: AsyncSession = Depends(get_db),
+):
+    comment_res = await db.execute(
+        select(EventComment).where(EventComment.id == comment_id, EventComment.event_id == event_id)
+    )
+    comment = comment_res.scalar_one_or_none()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+
+    comment.report_count += 1
+    if comment.status == "visible":
+        comment.status = "reported"
+    await write_audit_log(
+        db,
+        user_id=None,
+        action="public.comment.report",
+        resource_type="event_comment",
+        resource_id=str(comment.id),
+        ip_address=_client_ip_for_rate_limit(request),
+        user_agent=request.headers.get("User-Agent"),
+        extra={"event_id": event_id, "public_member_id": member.id},
+    )
+    await db.commit()
+    return {"ok": True, "status": comment.status, "report_count": comment.report_count}
+
+
 @app.get("/api/events/{event_id}/info")
 async def public_event_info(event_id: int, db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(Event).where(Event.id == event_id))
@@ -9703,11 +9970,17 @@ async def public_event_register(
     event_id: int,
     payload: SelfRegisterIn,
     db: AsyncSession = Depends(get_db),
+    member: Optional[CurrentPublicMember] = Depends(get_optional_public_member),
 ):
     res = await db.execute(select(Event).where(Event.id == event_id))
     ev = res.scalar_one_or_none()
     if not ev:
         raise HTTPException(status_code=404, detail="Event not found")
+
+    normalized_email = payload.email.lower()
+    if member and normalized_email != member.email.lower():
+        raise bad_request("Signed-in members must register with their own email address.")
+
     client_ip = _client_ip_for_rate_limit(request)
     user_agent = request.headers.get("User-Agent")
     device_id, should_set_device_cookie = _get_registration_device_id(request)
@@ -9716,22 +9989,26 @@ async def public_event_register(
         registration_fields,
         payload.registration_answers,
     )
+
     await _enforce_registration_risk_controls(
         db,
         event_id=event_id,
-        email=payload.email.lower(),
+        email=normalized_email,
         ip_address=client_ip,
         user_agent=user_agent,
         device_id=device_id,
     )
-    # Check duplicate
+
     existing = await db.execute(
-        select(Attendee).where(Attendee.event_id == event_id, func.lower(Attendee.email) == payload.email.lower())
+        select(Attendee).where(Attendee.event_id == event_id, func.lower(Attendee.email) == normalized_email)
     )
     existing_attendee = existing.scalar_one_or_none()
     if existing_attendee:
         existing_attendee.name = payload.name
         existing_attendee.registration_answers = registration_answers
+        if member and not existing_attendee.public_member_id:
+            existing_attendee.public_member_id = member.id
+
         if not existing_attendee.email_verified:
             existing_attendee.email_verification_token = make_email_token(
                 {
@@ -9751,8 +10028,9 @@ async def public_event_register(
                 user_agent=user_agent,
                 extra={
                     "event_id": event_id,
-                    "email": existing_attendee.email.lower(),
+                    "email": normalized_email,
                     "device_id": device_id,
+                    "public_member_id": member.id if member else None,
                     "result": "existing_unverified",
                 },
             )
@@ -9765,7 +10043,7 @@ async def public_event_register(
                     "already_registered": True,
                     "email_verified": False,
                     "verification_required": True,
-                    "message": "Bu e-posta ile kayıt bulundu. Devam etmek için doğrulama e-postasını onaylayın.",
+                    "message": "Bu e-posta ile kayit bulundu. Devam etmek icin dogrulama e-postasini onaylayin.",
                     "attendee_id": existing_attendee.id,
                     "attendee_name": existing_attendee.name,
                     "attendee_email": existing_attendee.email,
@@ -9780,6 +10058,7 @@ async def public_event_register(
                     samesite="Lax",
                 )
             return response
+
         survey_token = make_survey_access_token(
             attendee_id=existing_attendee.id,
             event_id=event_id,
@@ -9795,8 +10074,9 @@ async def public_event_register(
             user_agent=user_agent,
             extra={
                 "event_id": event_id,
-                "email": existing_attendee.email.lower(),
+                "email": normalized_email,
                 "device_id": device_id,
+                "public_member_id": member.id if member else None,
                 "result": "existing_verified",
             },
         )
@@ -9808,7 +10088,7 @@ async def public_event_register(
                 "already_registered": True,
                 "email_verified": True,
                 "verification_required": False,
-                "message": "Bu e-posta ile zaten kay??tl??s??n??z",
+                "message": "Bu e-posta ile zaten kayitlisiniz.",
                 "attendee_id": existing_attendee.id,
                 "attendee_name": existing_attendee.name,
                 "attendee_email": existing_attendee.email,
@@ -9834,12 +10114,14 @@ async def public_event_register(
                 samesite="Lax",
             )
         return response
+
     attendee = Attendee(
         event_id=event_id,
         name=payload.name,
-        email=payload.email.lower(),
+        email=normalized_email,
         source="self_register",
         email_verified=False,
+        public_member_id=member.id if member else None,
         registration_answers=registration_answers,
     )
     db.add(attendee)
@@ -9862,8 +10144,9 @@ async def public_event_register(
         user_agent=user_agent,
         extra={
             "event_id": event_id,
-            "email": attendee.email.lower(),
+            "email": normalized_email,
             "device_id": device_id,
+            "public_member_id": member.id if member else None,
             "result": "created_unverified",
         },
     )
@@ -10215,7 +10498,7 @@ async def list_attendees(
     db: AsyncSession = Depends(get_db),
 ):
     ev = await _get_event_for_admin(event_id, me, db)
-    q = select(Attendee).where(Attendee.event_id == event_id)
+    q = select(Attendee).options(selectinload(Attendee.public_member)).where(Attendee.event_id == event_id)
     if search:
         like = f"%{search.lower()}%"
         from sqlalchemy import or_
@@ -10249,6 +10532,9 @@ async def list_attendees(
             registered_at=a.registered_at,
             sessions_attended=cnt,
             has_certificate=has_cert,
+            public_member_id=a.public_member_id,
+            public_member_name=a.public_member.display_name if a.public_member else None,
+            public_member_email=a.public_member.email if a.public_member else None,
             registration_answers=(a.registration_answers or {}),
         ))
     return {"items": results, "total": total, "page": page, "limit": limit}
@@ -10288,6 +10574,54 @@ async def get_attendee_survey_link(
             email=attendee.email,
         ),
     }
+
+
+@app.get("/api/admin/events/{event_id}/comments", response_model=list[PublicEventCommentOut], dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def list_admin_event_comments(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_event_for_admin(event_id, me, db)
+    comments_res = await db.execute(
+        select(EventComment)
+        .options(selectinload(EventComment.public_member))
+        .where(EventComment.event_id == event_id)
+        .order_by(EventComment.created_at.desc())
+    )
+    return [_event_comment_to_out(comment) for comment in comments_res.scalars().all()]
+
+
+@app.patch("/api/admin/events/{event_id}/comments/{comment_id}", response_model=PublicEventCommentOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def update_admin_event_comment(
+    event_id: int,
+    comment_id: int,
+    payload: AdminEventCommentUpdateIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_event_for_admin(event_id, me, db)
+    comment_res = await db.execute(
+        select(EventComment)
+        .options(selectinload(EventComment.public_member))
+        .where(EventComment.id == comment_id, EventComment.event_id == event_id)
+    )
+    comment = comment_res.scalar_one_or_none()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+
+    comment.status = payload.status
+    await write_audit_log(
+        db,
+        user_id=me.id,
+        action="admin.comment.update",
+        resource_type="event_comment",
+        resource_id=str(comment.id),
+        extra={"event_id": event_id, "status": payload.status},
+    )
+    await db.commit()
+    await db.refresh(comment, attribute_names=["public_member"])
+    return _event_comment_to_out(comment)
 
 
 @app.get(
@@ -10633,7 +10967,9 @@ async def draw_event_raffle(
     selected_winners = _pick_raffle_winners(raffle, attendees, attendance_counts)
     draw_time = datetime.now(timezone.utc)
     for attendee in selected_winners:
-        db.add(EventRaffleWinner(raffle_id=raffle.id, attendee_id=attendee.id, drawn_at=draw_time))
+        raffle.winners.append(
+            EventRaffleWinner(attendee_id=attendee.id, drawn_at=draw_time)
+        )
 
     raffle.status = "drawn"
     raffle.drawn_at = draw_time
@@ -10675,7 +11011,9 @@ async def redraw_event_raffle(
 
     draw_time = datetime.now(timezone.utc)
     for attendee in selected_winners:
-        db.add(EventRaffleWinner(raffle_id=raffle.id, attendee_id=attendee.id, drawn_at=draw_time))
+        raffle.winners.append(
+            EventRaffleWinner(attendee_id=attendee.id, drawn_at=draw_time)
+        )
 
     raffle.status = "drawn"
     raffle.drawn_at = draw_time
@@ -10819,7 +11157,12 @@ async def get_attendance_matrix(
         select(EventSession).where(EventSession.event_id == event_id).order_by(EventSession.session_date, EventSession.session_start, EventSession.id)
     )
     sessions = sess_res.scalars().all()
-    att_res = await db.execute(select(Attendee).where(Attendee.event_id == event_id).order_by(Attendee.name))
+    att_res = await db.execute(
+        select(Attendee)
+        .options(selectinload(Attendee.public_member))
+        .where(Attendee.event_id == event_id)
+        .order_by(Attendee.name)
+    )
     attendees = att_res.scalars().all()
 
     # Build set of (attendee_id, session_id) for O(1) lookup
@@ -10834,100 +11177,17 @@ async def get_attendance_matrix(
     session_ids = [s.id for s in sessions]
     rows = []
     for a in attendees:
-        sessions_attended = sum(1 for sid in session_ids if (a.id, sid) in rec_set)
-        meets_threshold = sessions_attended >= ev.min_sessions_required
-        cert_res = await db.execute(
-            select(Certificate).where(
-                Certificate.event_id == event_id,
-                Certificate.student_name == a.name,
-                Certificate.deleted_at.is_(None),
-            )
-        )
-        cert = cert_res.scalar_one_or_none()
-        rows.append({
-            "attendee_id": a.id,
-            "name": a.name,
-            "email": a.email,
-            "source": a.source,
-            "sessions_attended": sessions_attended,
-            "meets_threshold": meets_threshold,
-            "has_certificate": cert is not None,
-            "certificate_uuid": cert.uuid if cert else None,
-            "checkins": {str(sid): rec_set.get((a.id, sid)) for sid in session_ids},
-        })
-    return {
-        "event_id": event_id,
-        "min_sessions_required": ev.min_sessions_required,
-        "sessions": [{"id": s.id, "name": s.name, "session_date": s.session_date.isoformat() if s.session_date else None} for s in sessions],
-        "rows": rows,
-    }
-
-
-@app.post(
-    "/api/admin/events/{event_id}/sessions/{session_id}/checkin",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
-)
-async def admin_manual_checkin(
-    event_id: int,
-    session_id: int,
-    payload: CheckinIn,
-    me: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    ev = await _get_event_for_admin(event_id, me, db)
-    sess_res = await db.execute(select(EventSession).where(EventSession.id == session_id, EventSession.event_id == event_id))
-    session = sess_res.scalar_one_or_none()
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
-    att_res = await db.execute(
-        select(Attendee).where(Attendee.event_id == event_id, func.lower(Attendee.email) == payload.email.lower())
-    )
-    attendee = att_res.scalar_one_or_none()
-    if not attendee:
-        raise HTTPException(status_code=404, detail="KatÃ„Â±lÃ„Â±mcÃ„Â± bulunamadÃ„Â±")
-    dup = await db.execute(
-        select(AttendanceRecord).where(AttendanceRecord.attendee_id == attendee.id, AttendanceRecord.session_id == session.id)
-    )
-    if dup.scalar_one_or_none():
-        return {"ok": False, "message": "Zaten check-in yapÃ„Â±lmÃ„Â±Ã…Å¸"}
-    db.add(AttendanceRecord(attendee_id=attendee.id, session_id=session.id))
-    await db.commit()
-    return {"ok": True, "message": f"{attendee.name} check-in baÃ…Å¸arÃ„Â±lÃ„Â±"}
-
-
-@app.get(
-    "/api/admin/events/{event_id}/attendance/export",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
-)
-async def export_attendance(
-    event_id: int,
-    fmt: str = Query(default="xlsx", pattern="^(xlsx|csv)$"),
-    me: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    ev = await _get_event_for_admin(event_id, me, db)
-    sess_res = await db.execute(
-        select(EventSession).where(EventSession.event_id == event_id).order_by(EventSession.session_date, EventSession.id)
-    )
-    sessions = sess_res.scalars().all()
-    att_res = await db.execute(select(Attendee).where(Attendee.event_id == event_id).order_by(Attendee.name))
-    attendees = att_res.scalars().all()
-    rec_res = await db.execute(
-        select(AttendanceRecord.attendee_id, AttendanceRecord.session_id).where(
-            AttendanceRecord.attendee_id.in_([a.id for a in attendees])
-        )
-    )
-    rec_set = set((r.attendee_id, r.session_id) for r in rec_res.all())
-    registration_fields = _get_event_registration_fields(ev)
-
-    import openpyxl
-    rows = []
-    for a in attendees:
-        row = {"Ad Soyad": a.name, "E-posta": a.email, "Kaynak": a.source}
+        row = {
+            "Ad Soyad": a.name,
+            "E-posta": a.email,
+            "Kaynak": a.source,
+            "Uye Hesabi": a.public_member.display_name if a.public_member else "",
+            "Uye E-postasi": a.public_member.email if a.public_member else "",
+        }
         for s in sessions:
-            row[s.name] = "Ã¢Å“â€œ" if (a.id, s.id) in rec_set else "Ã¢Å“â€”"
-        row["KatÃ„Â±lÃ„Â±nan Oturum"] = sum(1 for s in sessions if (a.id, s.id) in rec_set)
-        row["EÃ…Å¸iÃ„Å¸i GeÃƒÂ§iyor"] = "Evet" if row["KatÃ„Â±lÃ„Â±nan Oturum"] >= ev.min_sessions_required else "HayÃ„Â±r"
+            row[s.name] = "Evet" if (a.id, s.id) in rec_set else "Hayir"
+        row["Katilinan Oturum"] = sum(1 for s in sessions if (a.id, s.id) in rec_set)
+        row["Esigi Geciyor"] = "Evet" if row["Katilinan Oturum"] >= ev.min_sessions_required else "Hayir"
         answers = a.registration_answers or {}
         for field in registration_fields:
             row[field["label"]] = answers.get(field["id"], "")
@@ -10976,13 +11236,13 @@ async def bulk_certify_attendees(
 
     ev = await _get_event_for_admin(event_id, me, db)
     if not ev.config or ev.template_image_url in ("", "placeholder"):
-        raise HTTPException(status_code=400, detail="Etkinlik Ã…Å¸ablon yapÃ„Â±landÃ„Â±rmasÃ„Â± eksik")
+        raise HTTPException(status_code=400, detail="Etkinlik sablon yapilandirmasi eksik")
 
     # Fetch all attendees
     att_res = await db.execute(select(Attendee).where(Attendee.event_id == event_id))
     attendees = att_res.scalars().all()
     if not attendees:
-        raise HTTPException(status_code=400, detail="KatÃ„Â±lÃ„Â±mcÃ„Â± listesi boÃ…Å¸")
+        raise HTTPException(status_code=400, detail="Katilimci listesi bos")
 
     # Determine hologram policy: only Growth/Enterprise can disable it
     _allow_no_hologram = me.role == Role.superadmin
@@ -11194,13 +11454,13 @@ async def bulk_certify_attendees_queue(
     """
     ev = await _get_event_for_admin(event_id, me, db)
     if not ev.config or ev.template_image_url in ("", "placeholder"):
-        raise HTTPException(status_code=400, detail="Etkinlik Ã…Å¸ablon yapÃ„Â±landÃ„Â±rmasÃ„Â± eksik")
+        raise HTTPException(status_code=400, detail="Etkinlik sablon yapilandirmasi eksik")
 
     # Fetch all attendees
     att_res = await db.execute(select(Attendee).where(Attendee.event_id == event_id))
     attendees = att_res.scalars().all()
     if not attendees:
-        raise HTTPException(status_code=400, detail="KatÃ„Â±lÃ„Â±mcÃ„Â± listesi boÃ…Å¸")
+        raise HTTPException(status_code=400, detail="Katilimci listesi bos")
 
     # Count attendance per attendee
     rec_res = await db.execute(
@@ -11212,7 +11472,7 @@ async def bulk_certify_attendees_queue(
 
     eligible = [a for a in attendees if attend_counts.get(a.id, 0) >= ev.min_sessions_required]
     if not eligible:
-        raise HTTPException(status_code=400, detail="EÃ…Å¸iÃ„Å¸i geÃƒÂ§en katÃ„Â±lÃ„Â±mcÃ„Â± bulunamadÃ„Â±")
+        raise HTTPException(status_code=400, detail="Esigi gecen katilimci bulunamadi")
 
     names = [a.name for a in eligible]
 
