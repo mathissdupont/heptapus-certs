@@ -207,6 +207,7 @@ export default function PublicEventDetailClient() {
       <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-[0_24px_90px_rgba(15,23,42,0.08)]">
         <div className="h-56 bg-slate-100">
           {event.event_banner_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img src={event.event_banner_url} alt={event.name} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full items-center justify-center bg-[linear-gradient(135deg,rgba(56,189,248,0.18),rgba(59,130,246,0.08))] text-3xl font-black text-slate-800">
@@ -232,7 +233,7 @@ export default function PublicEventDetailClient() {
                 <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600 sm:text-base">{event.event_description}</p>
               ) : null}
             </div>
-            <Link href={/events//register} className="btn-primary inline-flex justify-center">
+            <Link href={`/events/${event.id}/register`} className="btn-primary inline-flex justify-center">
               {copy.register}
             </Link>
           </div>
