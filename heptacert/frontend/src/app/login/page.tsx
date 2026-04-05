@@ -4,7 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Building2, Compass, Lock, Mail, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowRight, Building2, Lock, Mail, ShieldCheck, UserRound } from "lucide-react";
 import { loginPublicMember, setPublicMemberToken } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
@@ -86,12 +86,12 @@ function MemberLoginContent() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[80vh] max-w-5xl items-center justify-center py-12">
+    <div className="mx-auto flex min-h-[80vh] max-w-xl items-center justify-center py-12">
       <motion.div
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-        className="grid w-full gap-6 lg:grid-cols-[1.15fr_0.85fr]"
+        className="w-full"
       >
         <div className="card p-10">
           <div className="mb-8 text-center lg:text-left">
@@ -214,36 +214,6 @@ function MemberLoginContent() {
               </div>
             </div>
           )}
-        </div>
-
-        <div className="card relative overflow-hidden p-8">
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-500 via-cyan-400 to-emerald-400" />
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white">
-            <Compass className="h-5 w-5" />
-          </div>
-          <h2 className="mt-5 text-2xl font-bold text-slate-900">
-            {lang === "tr" ? "Public etkinlik katmani hazir" : "The public event layer is ready"}
-          </h2>
-          <p className="mt-3 text-sm leading-6 text-slate-600">
-            {lang === "tr"
-              ? "Bu yeni hesap tipi mevcut organizer akisina dokunmaz. Ayri oturum yapisiyla public etkinlik kesfi ve sonraki sosyal ozellikler icin temiz bir temel kurar."
-              : "This new account type does not disturb the existing organizer flow. It creates a clean base for public event discovery and upcoming social features."}
-          </p>
-          <div className="mt-6 space-y-3 text-sm text-slate-600">
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-              {lang === "tr" ? "Public etkinlik listesi" : "Public event listing"}
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-              {lang === "tr" ? "Public etkinlik detay sayfasi" : "Public event detail pages"}
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-              {lang === "tr" ? "Kirilmayan organizer paneli" : "Organizer flow kept intact"}
-            </div>
-          </div>
-          <Link href="/events" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-600 hover:text-brand-700">
-            {lang === "tr" ? "Etkinlikleri kesfet" : "Explore events"}
-            <ArrowRight className="h-4 w-4" />
-          </Link>
         </div>
       </motion.div>
     </div>
