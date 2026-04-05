@@ -5,8 +5,8 @@ import { useParams } from "next/navigation";
 import {
   listAttendees, importAttendees, deleteAttendee, getAdminAttendeeSurveyLink,
   getAttendanceMatrix, bulkCertifyQueue, getBulkGenerateJob,
-  getAttendanceExportUrl, apiFetch, getMySubscription,
-  type AttendeeOut, type AttendanceMatrix, type SubscriptionInfo
+  exportAttendanceFile, apiFetch, getMySubscription,
+  type AttendeeOut, type AttendanceMatrix, type RegistrationField, type SubscriptionInfo
 } from "@/lib/api";
 import Link from "next/link";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
@@ -27,6 +27,7 @@ export default function AdminAttendeesPage() {
   const [tab, setTab] = useState<Tab>("list");
   const [eventName, setEventName] = useState("");
   const [minSessions, setMinSessions] = useState(1);
+  const [registrationFields, setRegistrationFields] = useState<RegistrationField[]>([]);
 
   // List tab
   const [attendees, setAttendees] = useState<AttendeeOut[]>([]);
@@ -38,6 +39,7 @@ export default function AdminAttendeesPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [importResult, setImportResult] = useState<{ added: number; skipped: number } | null>(null);
   const [copyingSurveyId, setCopyingSurveyId] = useState<number | null>(null);
   const [copiedSurveyId, setCopiedSurveyId] = useState<number | null>(null);
@@ -68,6 +70,7 @@ export default function AdminAttendeesPage() {
     ]);
     setEventName(r.name);
     setMinSessions(r.min_sessions_required ?? 1);
+    setRegistrationFields(Array.isArray(r.config?.registration_fields) ? r.config.registration_fields : []);
     const hasPaidPlan = subInfo.role === "superadmin" || (subInfo.active && ["pro", "growth", "enterprise"].includes(subInfo.plan_id ?? ""));
     setPlanOk(hasPaidPlan);
   }
@@ -167,6 +170,26 @@ export default function AdminAttendeesPage() {
     }
   }
 
+  async function handleExportAttendance(fmt: "xlsx" | "csv" = "xlsx") {
+    setExporting(true);
+    setListError(null);
+    try {
+      const { blob, filename } = await exportAttendanceFile(eventId, fmt);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      setListError(e.message || "Katılımcılar dışa aktarılamadı.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   function handleBulkCertify() {
     setShowCertifyConfirm(true);
   }
@@ -246,14 +269,14 @@ export default function AdminAttendeesPage() {
             <p className="text-sm text-gray-500 mt-0.5">{eventName} Â· Min. {minSessions} oturum</p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
-            <a
-              href={`${getAttendanceExportUrl(eventId, "xlsx")}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 border border-gray-200 bg-white text-gray-700 text-sm font-semibold px-4 py-2 rounded-xl hover:bg-gray-50 transition"
-            >
-              <Download className="w-4 h-4" /> Excel İndir
-            </a>
+              <button
+                type="button"
+                onClick={() => void handleExportAttendance("xlsx")}
+                disabled={exporting}
+                className="inline-flex items-center justify-center gap-2 border border-gray-200 bg-white text-gray-700 text-sm font-semibold px-4 py-2 rounded-xl hover:bg-gray-50 transition"
+              >
+                {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} Excel İndir
+              </button>
             <Link
               href={`/admin/events/${eventId}/checkin`}
               className="inline-flex items-center justify-center gap-2 border border-indigo-300 bg-indigo-50 text-indigo-700 text-sm font-semibold px-4 py-2 rounded-xl hover:bg-indigo-100 transition"
@@ -643,6 +666,23 @@ export default function AdminAttendeesPage() {
                 </p>
               </div>
             </div>
+
+            {registrationFields.length > 0 && (
+              <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="text-sm font-semibold text-slate-900">Özel kayıt alanları</p>
+                <div className="mt-4 grid gap-3">
+                  {registrationFields.map((field) => {
+                    const value = selectedAttendee.registration_answers?.[field.id];
+                    return (
+                      <div key={field.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{field.label}</p>
+                        <p className="mt-2 text-sm font-semibold text-slate-900">{value || "—"}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4">
               <p className="text-sm font-semibold text-slate-900">Hızlı aksiyonlar</p>

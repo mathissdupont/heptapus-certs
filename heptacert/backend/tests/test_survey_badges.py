@@ -175,6 +175,78 @@ async def test_public_register_requires_email_verification_before_survey_access(
 
 
 @pytest.mark.asyncio
+async def test_public_register_persists_custom_registration_answers():
+    owner = await _create_admin("custom-form-owner@example.com")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        async with SessionLocal() as sess:
+            async with sess.begin():
+                event = Event(
+                    admin_id=owner.id,
+                    name="Custom Form Event",
+                    template_image_url="template.png",
+                    config={
+                        "registration_fields": [
+                            {
+                                "id": "tc_identity",
+                                "label": "T.C. Kimlik No",
+                                "type": "text",
+                                "required": True,
+                                "placeholder": "11 haneli numara",
+                            },
+                            {
+                                "id": "department",
+                                "label": "Departman",
+                                "type": "select",
+                                "required": False,
+                                "options": ["Yazılım", "Pazarlama"],
+                            },
+                        ]
+                    },
+                )
+                sess.add(event)
+                await sess.flush()
+                event_id = event.id
+
+        info = await ac.get(f"/api/events/{event_id}/info")
+        assert info.status_code == 200
+        info_payload = info.json()
+        assert len(info_payload["registration_fields"]) == 2
+        assert info_payload["registration_fields"][0]["id"] == "tc_identity"
+
+        invalid = await ac.post(
+            f"/api/events/{event_id}/register",
+            json={"name": "Missing Field", "email": "missing@example.com", "registration_answers": {}},
+        )
+        assert invalid.status_code == 400
+
+        registered = await ac.post(
+            f"/api/events/{event_id}/register",
+            json={
+                "name": "Custom User",
+                "email": "custom-user@example.com",
+                "registration_answers": {
+                    "tc_identity": "12345678901",
+                    "department": "Pazarlama",
+                },
+            },
+        )
+        assert registered.status_code == 201
+
+    async with SessionLocal() as sess:
+        attendee = (
+            await sess.execute(
+                select(Attendee).where(Attendee.event_id == event_id, Attendee.email == "custom-user@example.com")
+            )
+        ).scalar_one()
+        assert attendee.registration_answers == {
+            "tc_identity": "12345678901",
+            "department": "Pazarlama",
+        }
+
+
+@pytest.mark.asyncio
 async def test_admin_can_generate_attendee_specific_survey_link():
     owner = await _create_admin("survey-admin-link@example.com")
     token = create_access_token(user_id=owner.id, role=Role.admin)

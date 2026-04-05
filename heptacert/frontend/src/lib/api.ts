@@ -105,6 +105,18 @@ export interface EventOut {
   event_banner_url?: string | null;
 }
 
+export type RegistrationFieldType = "text" | "textarea" | "number" | "tel" | "select" | "date";
+
+export interface RegistrationField {
+  id: string;
+  label: string;
+  type: RegistrationFieldType;
+  required: boolean;
+  placeholder?: string | null;
+  helper_text?: string | null;
+  options?: string[];
+}
+
 export interface SessionOut {
   id: number;
   event_id: number;
@@ -127,6 +139,7 @@ export interface AttendeeOut {
   registered_at: string;
   sessions_attended: number;
   has_certificate: boolean;
+  registration_answers: Record<string, string>;
 }
 
 export interface AttendanceMatrixRow {
@@ -423,6 +436,20 @@ export function getAttendanceExportUrl(eventId: number, fmt: "xlsx" | "csv" = "x
   return `${API_BASE}/admin/events/${eventId}/attendance/export?fmt=${fmt}`;
 }
 
+export async function exportAttendanceFile(
+  eventId: number,
+  fmt: "xlsx" | "csv" = "xlsx",
+): Promise<{ blob: Blob; filename: string }> {
+  const res = await apiFetch(`/admin/events/${eventId}/attendance/export?fmt=${fmt}`);
+  const blob = await res.blob();
+  const disposition = res.headers.get("content-disposition") || "";
+  const filenameMatch = disposition.match(/filename=\"?([^"]+)\"?/i);
+  return {
+    blob,
+    filename: filenameMatch?.[1] || `attendance_${eventId}.${fmt}`,
+  };
+}
+
 // -----------------------------------------------------------------------------
 
 export async function bulkCertifyAttendees(
@@ -471,7 +498,7 @@ export async function getPublicEventInfo(eventId: number) {
 
 export async function publicRegisterAttendee(
   eventId: number,
-  data: { name: string; email: string }
+  data: { name: string; email: string; registration_answers?: Record<string, string> }
 ): Promise<{
   ok: boolean;
   message: string;

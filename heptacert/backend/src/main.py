@@ -576,6 +576,7 @@ class Attendee(Base):
     survey_completed_at:  Mapped[Optional[datetime]]    = mapped_column(DateTime(timezone=True), nullable=True)
     survey_required:      Mapped[bool]                  = mapped_column(Boolean, default=False)
     can_download_cert:    Mapped[bool]                  = mapped_column(Boolean, default=True)
+    registration_answers: Mapped[Optional[dict]]        = mapped_column(JSONB, nullable=True, default=dict)
 
     event: Mapped["Event"] = relationship(back_populates="attendees")
     attendance_records: Mapped[List["AttendanceRecord"]] = relationship(back_populates="attendee", cascade="all, delete-orphan")
@@ -792,6 +793,7 @@ class EventRenameIn(BaseModel):
     event_banner_url: Optional[str] = Field(default=None, max_length=2000)
     auto_email_on_cert: Optional[bool] = Field(default=None)
     cert_email_template_id: Optional[int] = Field(default=None, ge=1)
+    registration_fields: Optional[List[Dict[str, Any]]] = None
 
 
 class CreditCoinsIn(BaseModel):
@@ -3060,6 +3062,104 @@ def _get_hc_quota(plan_id: str) -> Optional[int]:
 
 def bad_request(msg: str) -> HTTPException:
     return HTTPException(status_code=400, detail=msg)
+
+
+REGISTRATION_FIELD_TYPES = {"text", "textarea", "number", "tel", "select", "date"}
+
+
+def _normalize_registration_fields(raw_fields: Any) -> List[Dict[str, Any]]:
+    if not isinstance(raw_fields, list):
+        return []
+
+    normalized: List[Dict[str, Any]] = []
+    seen_ids: set[str] = set()
+
+    for index, item in enumerate(raw_fields):
+        if not isinstance(item, dict):
+            continue
+
+        field_id = str(item.get("id") or "").strip()[:64]
+        if not field_id:
+            field_id = f"field_{index + 1}"
+        if field_id in seen_ids:
+            continue
+
+        label = str(item.get("label") or "").strip()[:120]
+        if not label:
+            continue
+
+        field_type = str(item.get("type") or "text").strip().lower()
+        if field_type not in REGISTRATION_FIELD_TYPES:
+            field_type = "text"
+
+        placeholder = str(item.get("placeholder") or "").strip()[:200] or None
+        helper_text = str(item.get("helper_text") or "").strip()[:300] or None
+        required = bool(item.get("required"))
+
+        options: List[str] = []
+        raw_options = item.get("options")
+        if isinstance(raw_options, list):
+            options = [str(option).strip()[:120] for option in raw_options if str(option).strip()]
+        if field_type == "select":
+            options = list(dict.fromkeys(options))[:30]
+            if not options:
+                field_type = "text"
+
+        normalized_item: Dict[str, Any] = {
+            "id": field_id,
+            "label": label,
+            "type": field_type,
+            "required": required,
+            "placeholder": placeholder,
+            "helper_text": helper_text,
+        }
+        if field_type == "select":
+            normalized_item["options"] = options
+
+        normalized.append(normalized_item)
+        seen_ids.add(field_id)
+
+    return normalized
+
+
+def _get_event_registration_fields(event: Event) -> List[Dict[str, Any]]:
+    config = event.config or {}
+    return _normalize_registration_fields(config.get("registration_fields"))
+
+
+def _normalize_registration_answers(
+    registration_fields: List[Dict[str, Any]],
+    raw_answers: Any,
+) -> Dict[str, str]:
+    raw_map = raw_answers if isinstance(raw_answers, dict) else {}
+    normalized: Dict[str, str] = {}
+
+    for field in registration_fields:
+        field_id = field["id"]
+        raw_value = raw_map.get(field_id, "")
+        if raw_value is None:
+            value = ""
+        elif isinstance(raw_value, str):
+            value = raw_value.strip()
+        elif isinstance(raw_value, (int, float, bool)):
+            value = str(raw_value).strip()
+        else:
+            raise bad_request(f'"{field["label"]}" alanı için geçerli bir değer girin.')
+
+        if field.get("required") and not value:
+            raise bad_request(f'"{field["label"]}" alanı zorunludur.')
+
+        if not value:
+            continue
+
+        if field.get("type") == "select":
+            options = field.get("options") or []
+            if value not in options:
+                raise bad_request(f'"{field["label"]}" alanı için geçerli bir seçim yapın.')
+
+        normalized[field_id] = value[:1000]
+
+    return normalized
 
 
 async def _get_checkin_context_by_token(checkin_token: str, db: AsyncSession) -> Optional[Dict[str, Any]]:
@@ -6771,6 +6871,10 @@ async def rename_event(
         ev.min_sessions_required = payload.min_sessions_required
     if payload.event_banner_url is not None:
         ev.event_banner_url = payload.event_banner_url if payload.event_banner_url else None
+    if "registration_fields" in payload.model_fields_set:
+        next_config = dict(ev.config or {})
+        next_config["registration_fields"] = _normalize_registration_fields(payload.registration_fields)
+        ev.config = next_config
     if "auto_email_on_cert" in payload.model_fields_set:
         ev.auto_email_on_cert = bool(payload.auto_email_on_cert)
     if "cert_email_template_id" in payload.model_fields_set:
@@ -9074,11 +9178,13 @@ class AttendeeOut(BaseModel):
     registered_at: datetime
     sessions_attended: int = 0
     has_certificate: bool = False
+    registration_answers: Dict[str, str] = Field(default_factory=dict)
 
 
 class SelfRegisterIn(BaseModel):
     name: str = Field(min_length=2, max_length=200)
     email: EmailStr
+    registration_answers: Dict[str, Any] = Field(default_factory=dict)
 
 
 class CheckinIn(BaseModel):
@@ -9311,6 +9417,7 @@ async def public_event_info(event_id: int, db: AsyncSession = Depends(get_db)):
         "event_location": ev.event_location,
         "min_sessions_required": ev.min_sessions_required,
         "event_banner_url": ev.event_banner_url,
+        "registration_fields": _get_event_registration_fields(ev),
         "survey": survey_info,
         "sessions": [
             {
@@ -9340,6 +9447,11 @@ async def public_event_register(
     client_ip = _client_ip_for_rate_limit(request)
     user_agent = request.headers.get("User-Agent")
     device_id, should_set_device_cookie = _get_registration_device_id(request)
+    registration_fields = _get_event_registration_fields(ev)
+    registration_answers = _normalize_registration_answers(
+        registration_fields,
+        payload.registration_answers,
+    )
     await _enforce_registration_risk_controls(
         db,
         event_id=event_id,
@@ -9354,6 +9466,8 @@ async def public_event_register(
     )
     existing_attendee = existing.scalar_one_or_none()
     if existing_attendee:
+        existing_attendee.name = payload.name
+        existing_attendee.registration_answers = registration_answers
         if not existing_attendee.email_verified:
             existing_attendee.email_verification_token = make_email_token(
                 {
@@ -9462,6 +9576,7 @@ async def public_event_register(
         email=payload.email.lower(),
         source="self_register",
         email_verified=False,
+        registration_answers=registration_answers,
     )
     db.add(attendee)
     await db.flush()
@@ -9870,6 +9985,7 @@ async def list_attendees(
             registered_at=a.registered_at,
             sessions_attended=cnt,
             has_certificate=has_cert,
+            registration_answers=(a.registration_answers or {}),
         ))
     return {"items": results, "total": total, "page": page, "limit": limit}
 
@@ -10538,6 +10654,7 @@ async def export_attendance(
         )
     )
     rec_set = set((r.attendee_id, r.session_id) for r in rec_res.all())
+    registration_fields = _get_event_registration_fields(ev)
 
     import openpyxl
     rows = []
@@ -10547,6 +10664,9 @@ async def export_attendance(
             row[s.name] = "Ã¢Å“â€œ" if (a.id, s.id) in rec_set else "Ã¢Å“â€”"
         row["KatÃ„Â±lÃ„Â±nan Oturum"] = sum(1 for s in sessions if (a.id, s.id) in rec_set)
         row["EÃ…Å¸iÃ„Å¸i GeÃƒÂ§iyor"] = "Evet" if row["KatÃ„Â±lÃ„Â±nan Oturum"] >= ev.min_sessions_required else "HayÃ„Â±r"
+        answers = a.registration_answers or {}
+        for field in registration_fields:
+            row[field["label"]] = answers.get(field["id"], "")
         rows.append(row)
 
     df = pd.DataFrame(rows)

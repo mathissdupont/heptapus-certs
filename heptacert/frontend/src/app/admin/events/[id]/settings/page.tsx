@@ -15,8 +15,10 @@ import {
   Sparkles,
   Upload,
   Wand2,
+  Plus,
+  Trash2,
 } from "lucide-react";
-import { apiFetch, getMySubscription, type SubscriptionInfo } from "@/lib/api";
+import { apiFetch, getMySubscription, type RegistrationField, type SubscriptionInfo } from "@/lib/api";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 import PageHeader from "@/components/Admin/PageHeader";
 import { useI18n } from "@/lib/i18n";
@@ -26,6 +28,10 @@ type EventOut = {
   id: number;
   name: string;
   template_image_url: string;
+  config?: {
+    registration_fields?: RegistrationField[];
+    [key: string]: unknown;
+  };
   event_description?: string;
   event_banner_url?: string | null;
   auto_email_on_cert?: boolean;
@@ -53,9 +59,36 @@ type FormState = {
   name: string;
   event_description: string;
   event_banner_url: string;
+  registration_fields: RegistrationField[];
   auto_email_on_cert: boolean;
   cert_email_template_id: number | null;
 };
+
+const FIELD_TYPE_OPTIONS: Array<{ value: RegistrationField["type"]; tr: string; en: string }> = [
+  { value: "text", tr: "Kısa metin", en: "Short text" },
+  { value: "textarea", tr: "Uzun metin", en: "Long text" },
+  { value: "tel", tr: "Telefon", en: "Phone" },
+  { value: "number", tr: "Sayı", en: "Number" },
+  { value: "date", tr: "Tarih", en: "Date" },
+  { value: "select", tr: "Seçim listesi", en: "Select list" },
+];
+
+function createRegistrationField(): RegistrationField {
+  const id =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? `field_${crypto.randomUUID().slice(0, 8)}`
+      : `field_${Date.now().toString(36)}`;
+
+  return {
+    id,
+    label: "",
+    type: "text",
+    required: false,
+    placeholder: "",
+    helper_text: "",
+    options: [],
+  };
+}
 
 export default function EventSettingsPage() {
   const params = useParams();
@@ -77,6 +110,21 @@ export default function EventSettingsPage() {
         upgradeCta: "Planları Gör",
         basicTitle: "Temel Bilgiler",
         basicBody: "Etkinlik kaydı sırasında görünen ana bilgileri burada güncelleyin.",
+        registrationTitle: "Kayıt formu alanları",
+        registrationBody: "Katılımcılardan toplamak istediğiniz ek bilgileri belirleyin. Bu alanlar public kayıt sayfasında ad ve e-postanın altında görünür.",
+        addField: "Alan ekle",
+        emptyFields: "Henüz özel kayıt alanı eklenmedi.",
+        fieldLabel: "Alan etiketi",
+        fieldType: "Alan türü",
+        fieldPlaceholder: "Placeholder",
+        fieldHelper: "Yardım metni",
+        fieldOptions: "Seçenekler",
+        fieldOptionsHint: "Her satıra bir seçenek yazın.",
+        requiredField: "Zorunlu alan",
+        removeField: "Alanı kaldır",
+        labelPlaceholder: "Örn. T.C. Kimlik Numarası",
+        helperPlaceholder: "Katılımcının ne girmesi gerektiğini açıklayın",
+        previewHint: "Kayıt formunda bu alanlar verdiğiniz sıraya göre gösterilir.",
         name: "Etkinlik adı",
         namePlaceholder: "Örn. Hepta Summit 2026",
         description: "Etkinlik açıklaması",
@@ -123,6 +171,21 @@ export default function EventSettingsPage() {
         upgradeCta: "View Plans",
         basicTitle: "Basic Information",
         basicBody: "Update the main event details shown during registration.",
+        registrationTitle: "Registration form fields",
+        registrationBody: "Define the extra information you want to collect from attendees. These fields are shown below name and email on the public registration page.",
+        addField: "Add field",
+        emptyFields: "No custom registration field has been added yet.",
+        fieldLabel: "Field label",
+        fieldType: "Field type",
+        fieldPlaceholder: "Placeholder",
+        fieldHelper: "Helper text",
+        fieldOptions: "Options",
+        fieldOptionsHint: "Write one option per line.",
+        requiredField: "Required field",
+        removeField: "Remove field",
+        labelPlaceholder: "e.g. National ID Number",
+        helperPlaceholder: "Explain what the attendee should enter",
+        previewHint: "These fields appear on the public registration form in the same order.",
         name: "Event name",
         namePlaceholder: "e.g. Hepta Summit 2026",
         description: "Event description",
@@ -166,6 +229,7 @@ export default function EventSettingsPage() {
     name: "",
     event_description: "",
     event_banner_url: "",
+    registration_fields: [],
     auto_email_on_cert: false,
     cert_email_template_id: null,
   });
@@ -178,6 +242,10 @@ export default function EventSettingsPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   const hasGrowthPlan = subscription?.role === "superadmin" || (subscription?.active && ["growth", "enterprise"].includes(subscription?.plan_id || ""));
+  const fieldTypeOptions = FIELD_TYPE_OPTIONS.map((option) => ({
+    value: option.value,
+    label: lang === "tr" ? option.tr : option.en,
+  }));
 
   const currentCertTemplateId = useMemo(() => {
     if (!event?.template_image_url) return null;
@@ -220,6 +288,9 @@ export default function EventSettingsPage() {
         name: eventData.name || "",
         event_description: eventData.event_description || "",
         event_banner_url: eventData.event_banner_url || "",
+        registration_fields: Array.isArray(eventData.config?.registration_fields)
+          ? eventData.config.registration_fields
+          : [],
         auto_email_on_cert: Boolean(eventData.auto_email_on_cert),
         cert_email_template_id: eventData.cert_email_template_id || null,
       });
@@ -237,6 +308,29 @@ export default function EventSettingsPage() {
     reader.readAsDataURL(file);
   }
 
+  function addRegistrationField() {
+    setFormData((current) => ({
+      ...current,
+      registration_fields: [...current.registration_fields, createRegistrationField()],
+    }));
+  }
+
+  function updateRegistrationField(fieldId: string, patch: Partial<RegistrationField>) {
+    setFormData((current) => ({
+      ...current,
+      registration_fields: current.registration_fields.map((field) =>
+        field.id === fieldId ? { ...field, ...patch } : field,
+      ),
+    }));
+  }
+
+  function removeRegistrationField(fieldId: string) {
+    setFormData((current) => ({
+      ...current,
+      registration_fields: current.registration_fields.filter((field) => field.id !== fieldId),
+    }));
+  }
+
   async function handleSave() {
     if (!formData.name.trim()) {
       setError(copy.requiredName);
@@ -251,6 +345,17 @@ export default function EventSettingsPage() {
       const payload: Record<string, unknown> = {
         name: formData.name.trim(),
         event_description: formData.event_description.trim(),
+        registration_fields: formData.registration_fields.map((field) => ({
+          id: field.id,
+          label: field.label.trim(),
+          type: field.type,
+          required: Boolean(field.required),
+          placeholder: field.placeholder?.trim() || null,
+          helper_text: field.helper_text?.trim() || null,
+          options: field.type === "select"
+            ? (field.options || []).map((option) => option.trim()).filter(Boolean)
+            : [],
+        })).filter((field) => field.label),
       };
 
       if (hasGrowthPlan) {
@@ -407,6 +512,127 @@ export default function EventSettingsPage() {
                 />
               </label>
               <p className="text-xs text-surface-400">{copy.bannerHint}</p>
+            </div>
+          </section>
+
+          <section className="card p-6 sm:p-7">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="rounded-2xl bg-violet-50 p-3 text-violet-600">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-surface-900">{copy.registrationTitle}</h2>
+                  <p className="mt-1 text-sm text-surface-500">{copy.registrationBody}</p>
+                </div>
+              </div>
+              <button type="button" onClick={addRegistrationField} className="btn-secondary inline-flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                {copy.addField}
+              </button>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              {formData.registration_fields.length === 0 ? (
+                <div className="rounded-3xl border border-dashed border-surface-300 bg-surface-50 px-5 py-6 text-sm text-surface-500">
+                  <p className="font-medium text-surface-700">{copy.emptyFields}</p>
+                  <p className="mt-1">{copy.previewHint}</p>
+                </div>
+              ) : (
+                formData.registration_fields.map((field, index) => (
+                  <div key={field.id} className="rounded-3xl border border-surface-200 bg-surface-50 p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <p className="text-sm font-semibold text-surface-900">
+                        #{index + 1} {field.label || copy.fieldLabel}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => removeRegistrationField(field.id)}
+                        className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        {copy.removeField}
+                      </button>
+                    </div>
+
+                    <div className="mt-4 grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="label">{copy.fieldLabel}</label>
+                        <input
+                          value={field.label}
+                          onChange={(event) => updateRegistrationField(field.id, { label: event.target.value })}
+                          className="input-field"
+                          placeholder={copy.labelPlaceholder}
+                        />
+                      </div>
+                      <div>
+                        <label className="label">{copy.fieldType}</label>
+                        <select
+                          value={field.type}
+                          onChange={(event) =>
+                            updateRegistrationField(field.id, {
+                              type: event.target.value as RegistrationField["type"],
+                              options: event.target.value === "select" ? (field.options || [""]) : [],
+                            })
+                          }
+                          className="input-field"
+                        >
+                          {fieldTypeOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="label">{copy.fieldPlaceholder}</label>
+                        <input
+                          value={field.placeholder || ""}
+                          onChange={(event) => updateRegistrationField(field.id, { placeholder: event.target.value })}
+                          className="input-field"
+                          placeholder={copy.fieldPlaceholder}
+                        />
+                      </div>
+                      <div>
+                        <label className="label">{copy.fieldHelper}</label>
+                        <input
+                          value={field.helper_text || ""}
+                          onChange={(event) => updateRegistrationField(field.id, { helper_text: event.target.value })}
+                          className="input-field"
+                          placeholder={copy.helperPlaceholder}
+                        />
+                      </div>
+                    </div>
+
+                    {field.type === "select" && (
+                      <div className="mt-4">
+                        <label className="label">{copy.fieldOptions}</label>
+                        <textarea
+                          value={(field.options || []).join("\n")}
+                          onChange={(event) =>
+                            updateRegistrationField(field.id, {
+                              options: event.target.value.split("\n"),
+                            })
+                          }
+                          className="input-field min-h-28"
+                          placeholder={copy.fieldOptionsHint}
+                        />
+                        <p className="mt-2 text-xs text-surface-400">{copy.fieldOptionsHint}</p>
+                      </div>
+                    )}
+
+                    <label className="mt-4 inline-flex items-center gap-3 rounded-2xl border border-surface-200 bg-white px-4 py-3 text-sm font-medium text-surface-700">
+                      <input
+                        type="checkbox"
+                        checked={field.required}
+                        onChange={(event) => updateRegistrationField(field.id, { required: event.target.checked })}
+                        className="h-4 w-4 accent-brand-600"
+                      />
+                      {copy.requiredField}
+                    </label>
+                  </div>
+                ))
+              )}
             </div>
           </section>
 
