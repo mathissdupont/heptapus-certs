@@ -7169,15 +7169,16 @@ async def create_event(
 
 
 def _event_to_out(ev: Event) -> EventOut:
+    config = ev.config if isinstance(ev.config, dict) else {}
     return EventOut(
         id=ev.id,
         name=ev.name,
-        template_image_url=ev.template_image_url,
-        config=ev.config or {},
+        template_image_url=ev.template_image_url or "placeholder",
+        config=config,
         event_date=ev.event_date.isoformat() if ev.event_date else None,
         event_description=ev.event_description,
         event_location=ev.event_location,
-        min_sessions_required=ev.min_sessions_required,
+        min_sessions_required=int(ev.min_sessions_required or 1),
         event_banner_url=ev.event_banner_url,
         auto_email_on_cert=bool(ev.auto_email_on_cert),
         cert_email_template_id=ev.cert_email_template_id,
@@ -9764,7 +9765,7 @@ def _build_public_event_detail(
         event_date=event.event_date.isoformat() if event.event_date else None,
         event_description=event.event_description,
         event_location=event.event_location,
-        min_sessions_required=event.min_sessions_required,
+        min_sessions_required=int(event.min_sessions_required or 1),
         event_banner_url=event.event_banner_url,
         registration_fields=_get_event_registration_fields(event),
         survey=_build_public_survey_info(survey),
@@ -9846,7 +9847,7 @@ async def list_public_events(db: AsyncSession = Depends(get_db)):
             event_description=event.event_description,
             event_location=event.event_location,
             event_banner_url=event.event_banner_url,
-            min_sessions_required=event.min_sessions_required,
+            min_sessions_required=int(event.min_sessions_required or 1),
             visibility=_get_event_visibility(event),
             session_count=session_counts.get(event.id, 0),
         )
