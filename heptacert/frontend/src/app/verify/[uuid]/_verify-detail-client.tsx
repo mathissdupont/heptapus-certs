@@ -1,28 +1,12 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  CheckCircle2,
-  ShieldOff,
-  Clock,
-  AlertCircle,
-  Loader2,
-  Download,
-  ExternalLink,
-  Award,
-  Calendar,
-  Hash,
-  User,
-  Building2,
-  ArrowLeft,
-  BadgeCheck,
-  Linkedin,
-  Eye,
-} from "lucide-react";
-import { useT } from "@/lib/i18n";
+import { AnimatePresence, motion } from "framer-motion";
+import { AlertCircle, ArrowLeft, BadgeCheck, Calendar, CheckCircle2, Clock, Download, ExternalLink, Eye, FileCheck2, Hash, Linkedin, Loader2, ShieldOff, User, Building2 } from "lucide-react";
 import { API_BASE } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 
 type CertData = {
   uuid: string;
@@ -34,287 +18,192 @@ type CertData = {
   issued_at?: string | null;
   pdf_url?: string | null;
   png_url?: string | null;
-  hosting_ends_at?: string | null;
   view_count?: number;
   linkedin_url?: string | null;
-  branding?: {
-    org_name?: string;
-    brand_logo?: string | null;
-    brand_color?: string | null;
-  } | null;
-  settings?: {
-    verification_path?: string;
-    certificate_footer?: string;
-    hide_heptacert_home?: boolean;
-  } | null;
+  branding?: { org_name?: string; brand_logo?: string | null; brand_color?: string | null } | null;
+  settings?: { certificate_footer?: string; hide_heptacert_home?: boolean } | null;
 };
 
 type PageState = "loading" | "ok" | "not_found" | "error";
 
-function StatusBadge({ status }: { status: CertData["status"] }) {
-  if (status === "active") return (
-    <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 px-4 py-1.5 text-sm font-bold text-emerald-700">
-      <CheckCircle2 className="h-4 w-4" /> Geçerli
-    </span>
-  );
-  if (status === "revoked") return (
-    <span className="inline-flex items-center gap-2 rounded-full bg-rose-50 border border-rose-200 px-4 py-1.5 text-sm font-bold text-rose-700">
-      <ShieldOff className="h-4 w-4" /> İptal Edildi
-    </span>
-  );
-  return (
-    <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 border border-amber-200 px-4 py-1.5 text-sm font-bold text-amber-700">
-      <Clock className="h-4 w-4" /> Süresi Doldu
-    </span>
-  );
-}
-
-function statusTopColor(status: CertData["status"]) {
-  if (status === "active") return "bg-emerald-500";
-  if (status === "revoked") return "bg-rose-500";
-  return "bg-amber-500";
-}
-
 export default function VerifyPage({ params }: { params: { uuid: string } }) {
-  const { uuid } = params;
-  const t = useT();
-
+  const { lang } = useI18n();
   const [state, setState] = useState<PageState>("loading");
   const [cert, setCert] = useState<CertData | null>(null);
   const [errMsg, setErrMsg] = useState<string | null>(null);
 
+  const copy = useMemo(() => lang === "tr" ? {
+    back: "Ana sayfa",
+    loading: "Sertifika doğrulanıyor...",
+    notFoundTitle: "Sertifika bulunamadı",
+    notFoundBody: "Bu kimliğe ait doğrulanabilir bir sertifika kaydı bulunamadı.",
+    errorTitle: "Doğrulama sırasında hata oluştu",
+    errorBody: "Sertifika bilgisi alınırken beklenmeyen bir sorun yaşandı.",
+    badge: "Doğrulama sonucu",
+    valid: "Geçerli",
+    revoked: "İptal edildi",
+    expired: "Süresi doldu",
+    certificateId: "Sertifika kodu",
+    issuedAt: "Verilme tarihi",
+    eventDate: "Etkinlik tarihi",
+    verifyCode: "Doğrulama kimliği",
+    owner: "Sahip",
+    event: "Etkinlik",
+    downloadPdf: "PDF indir",
+    downloadPng: "PNG indir",
+    addLinkedIn: "LinkedIn'e ekle",
+    publicLink: "Paylaşılabilir doğrulama linki",
+    revokedNotice: "Bu sertifika iptal edildiği için aktif belge olarak kabul edilmez.",
+    expiredNotice: "Bu sertifikanın doğrulama veya barındırma süresi sona ermiş görünüyor.",
+    views: "görüntüleme",
+  } : {
+    back: "Home",
+    loading: "Verifying certificate...",
+    notFoundTitle: "Certificate not found",
+    notFoundBody: "We could not find a verifiable certificate for this identifier.",
+    errorTitle: "Verification error",
+    errorBody: "Something went wrong while loading the certificate details.",
+    badge: "Verification result",
+    valid: "Valid",
+    revoked: "Revoked",
+    expired: "Expired",
+    certificateId: "Certificate code",
+    issuedAt: "Issued at",
+    eventDate: "Event date",
+    verifyCode: "Verification ID",
+    owner: "Owner",
+    event: "Event",
+    downloadPdf: "Download PDF",
+    downloadPng: "Download PNG",
+    addLinkedIn: "Add to LinkedIn",
+    publicLink: "Shareable verification link",
+    revokedNotice: "This certificate has been revoked and should not be treated as an active credential.",
+    expiredNotice: "This certificate appears to have reached the end of its validation or hosting period.",
+    views: "views",
+  }, [lang]);
+
   useEffect(() => {
-    fetch(`${API_BASE}/verify/${uuid}`)
-      .then(async r => {
-        if (r.status === 404) { setState("not_found"); return; }
-        if (!r.ok) { setState("error"); setErrMsg(`HTTP ${r.status}`); return; }
+    fetch(`${API_BASE}/verify/${params.uuid}`)
+      .then(async (r) => {
+        if (r.status === 404) {
+          setState("not_found");
+          return;
+        }
+        if (!r.ok) {
+          setState("error");
+          setErrMsg(`HTTP ${r.status}`);
+          return;
+        }
         const data = await r.json();
         setCert(data);
         setState("ok");
       })
-      .catch(e => {
+      .catch((e) => {
         setState("error");
-        setErrMsg(e?.message || "Ağ hatası.");
+        setErrMsg(e?.message || "Network error");
       });
-  }, [uuid]);
+  }, [params.uuid]);
+
+  const locale = lang === "tr" ? "tr-TR" : "en-US";
+  const statusMeta = cert?.status === "active"
+    ? { label: copy.valid, icon: CheckCircle2, bar: "bg-emerald-500", chip: "bg-emerald-50 border-emerald-200 text-emerald-700" }
+    : cert?.status === "revoked"
+      ? { label: copy.revoked, icon: ShieldOff, bar: "bg-rose-500", chip: "bg-rose-50 border-rose-200 text-rose-700" }
+      : { label: copy.expired, icon: Clock, bar: "bg-amber-500", chip: "bg-amber-50 border-amber-200 text-amber-700" };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      {/* Minimal header */}
-      <header className="border-b border-gray-100 bg-white">
-        <div className="mx-auto max-w-5xl flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3 min-w-0">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      <header className="border-b border-slate-200 bg-white/92 backdrop-blur">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
             {cert?.branding?.brand_logo ? (
-              <img
-                src={cert.branding.brand_logo}
-                alt={cert.branding.org_name || "Organization Logo"}
-                className="h-9 w-auto object-contain"
-              />
+              <img src={cert.branding.brand_logo} alt={cert.branding.org_name || "Brand"} className="h-9 w-auto object-contain" />
             ) : (
-              <Award
-                className="h-5 w-5"
-                style={cert?.branding?.brand_color ? { color: cert.branding.brand_color } : {}}
-              />
+              <FileCheck2 className="h-5 w-5 text-brand-600" />
             )}
-
-            <span className="text-xl font-black text-gray-800 truncate">
-              {cert?.branding?.org_name || "HeptaCert"}
-            </span>
+            <span className="truncate text-lg font-black text-slate-950">{cert?.branding?.org_name || "HeptaCert"}</span>
           </div>
-
-          {!cert?.settings?.hide_heptacert_home && (
-            <Link
-              href="/"
-              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors font-medium"
-            >
-              <ArrowLeft className="h-4 w-4" /> {t("verify_home")}
-            </Link>
-          )}
+          {!cert?.settings?.hide_heptacert_home && <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition hover:text-slate-900"><ArrowLeft className="h-4 w-4" />{copy.back}</Link>}
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-6 py-16">
+      <main className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
         <AnimatePresence mode="wait">
-
-          {/* LOADING */}
           {state === "loading" && (
-            <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="flex flex-col items-center gap-5 py-20">
-              <div className="p-5 rounded-full bg-brand-50">
-                <Loader2 className="h-10 w-10 animate-spin text-brand-500" />
-              </div>
-              <p className="text-gray-500 font-medium">{t("verify_loading")}</p>
+            <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-4 py-24">
+              <div className="rounded-full bg-brand-50 p-5"><Loader2 className="h-10 w-10 animate-spin text-brand-600" /></div>
+              <p className="text-sm font-medium text-slate-500">{copy.loading}</p>
             </motion.div>
           )}
 
-          {/* NOT FOUND */}
           {state === "not_found" && (
-            <motion.div key="not_found" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              className="card overflow-hidden text-center">
-              <div className="h-2 bg-gray-300" />
-              <div className="p-12 flex flex-col items-center gap-4">
-                <div className="p-5 rounded-full bg-gray-50">
-                  <Hash className="h-10 w-10 text-gray-300" />
-                </div>
-                <h1 className="text-2xl font-black text-gray-800">{t("verify_not_found_title")}</h1>
-                <p className="text-gray-500 text-sm max-w-sm">{t("verify_not_found_desc")}</p>
-                <div className="mt-2 rounded-xl bg-gray-50 border border-gray-100 px-5 py-3">
-                  <code className="text-xs font-mono text-gray-400 break-all">{uuid}</code>
-                </div>
+            <motion.div key="missing" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="card overflow-hidden text-center">
+              <div className="h-2 bg-slate-300" />
+              <div className="p-10 sm:p-12">
+                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-slate-100"><Hash className="h-9 w-9 text-slate-400" /></div>
+                <h1 className="mt-6 text-2xl font-black text-slate-950">{copy.notFoundTitle}</h1>
+                <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-slate-500">{copy.notFoundBody}</p>
+                <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"><code className="break-all text-xs text-slate-500">{params.uuid}</code></div>
               </div>
             </motion.div>
           )}
 
-          {/* ERROR */}
           {state === "error" && (
-            <motion.div key="error" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              className="card overflow-hidden text-center">
+            <motion.div key="error" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="card overflow-hidden text-center">
               <div className="h-2 bg-rose-400" />
-              <div className="p-12 flex flex-col items-center gap-4">
-                <div className="p-5 rounded-full bg-rose-50">
-                  <AlertCircle className="h-10 w-10 text-rose-400" />
-                </div>
-                <h1 className="text-2xl font-black text-gray-800">{t("verify_error_title")}</h1>
-                <p className="text-gray-500 text-sm">{t("verify_error_desc")}</p>
-                {errMsg && <code className="text-xs text-rose-400 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">{errMsg}</code>}
+              <div className="p-10 sm:p-12">
+                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-rose-50"><AlertCircle className="h-9 w-9 text-rose-500" /></div>
+                <h1 className="mt-6 text-2xl font-black text-slate-950">{copy.errorTitle}</h1>
+                <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-slate-500">{copy.errorBody}</p>
+                {errMsg && <code className="mt-6 inline-flex rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-600">{errMsg}</code>}
               </div>
             </motion.div>
           )}
 
-          {/* OK */}
           {state === "ok" && cert && (
-            <motion.div key="ok" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              className="card overflow-hidden">
-
-              {/* Status color bar — use brand color if available */}
-              <div className={`h-1.5 ${statusTopColor(cert.status)}`}
-                style={cert.branding?.brand_color && cert.status === "active" ? { backgroundColor: cert.branding.brand_color } : {}} />
-
-              <div className="p-8 md:p-10">
-
-                {/* Branding header (white-label) */}
-                {cert.branding && (
-                  <div className="flex items-center gap-3 mb-6 pb-5 border-b border-gray-100">
-                    {cert.branding.brand_logo
-                      ? <img src={cert.branding.brand_logo} alt={cert.branding.org_name || ""} className="h-8 w-auto object-contain" />
-                      : <Award className="h-6 w-6" style={cert.branding.brand_color ? { color: cert.branding.brand_color } : {}} />}
-                    {cert.branding.org_name && <span className="font-bold text-gray-800">{cert.branding.org_name}</span>}
-                  </div>
-                )}
-
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
+            <motion.div key="ok" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="card overflow-hidden">
+              <div className={`h-1.5 ${statusMeta.bar}`} style={cert.branding?.brand_color && cert.status === "active" ? { backgroundColor: cert.branding.brand_color } : {}} />
+              <div className="p-6 sm:p-8 md:p-10">
+                <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <div className="flex items-center gap-2 text-xs font-bold text-gray-400 mb-2">
-                      <BadgeCheck className="h-3.5 w-3.5 text-brand-400" />
-                      {t("verify_title")}
-                    </div>
-                    <h1 className="text-3xl font-black text-gray-900 mb-1">{cert.student_name}</h1>
-                    <p className="text-gray-500 font-medium">{cert.event_name}</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{copy.badge}</p>
+                    <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">{cert.student_name}</h1>
+                    <p className="mt-2 text-base font-medium text-slate-500">{cert.event_name}</p>
                   </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <StatusBadge status={cert.status} />
-                    {cert.view_count !== undefined && cert.view_count > 0 && (
-                      <span className="inline-flex items-center gap-1.5 text-xs text-gray-400">
-                        <Eye className="h-3.5 w-3.5" /> {cert.view_count.toLocaleString()} görüntüleme
-                      </span>
-                    )}
+                  <div className="flex flex-col gap-2 sm:items-end">
+                    <span className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-bold ${statusMeta.chip}`}><statusMeta.icon className="h-4 w-4" />{statusMeta.label}</span>
+                    {typeof cert.view_count === "number" && cert.view_count > 0 && <span className="inline-flex items-center gap-1.5 text-xs text-slate-400"><Eye className="h-3.5 w-3.5" />{cert.view_count.toLocaleString(locale)} {copy.views}</span>}
                   </div>
                 </div>
 
-                {/* Details grid */}
-                <div className="grid sm:grid-cols-2 gap-4 mb-8">
-                  {cert.public_id && (
-                    <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
-                      <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wider">
-                        <Hash className="h-3 w-3" /> {t("verify_cert_id")}
-                      </div>
-                      <code className="text-sm font-mono font-bold text-gray-700">{cert.public_id}</code>
-                    </div>
-                  )}
-                  {cert.issued_at && (
-                    <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
-                      <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wider">
-                        <Calendar className="h-3 w-3" /> {t("verify_issued_at")}
-                      </div>
-                      <span className="text-sm font-bold text-gray-700">
-                        {new Date(cert.issued_at).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })}
-                      </span>
-                    </div>
-                  )}
-                  {cert.event_date && (
-                    <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
-                      <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wider">
-                        <Building2 className="h-3 w-3" /> {t("verify_event_date")}
-                      </div>
-                      <span className="text-sm font-bold text-gray-700">
-                        {new Date(cert.event_date).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })}
-                      </span>
-                    </div>
-                  )}
-                  <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wider">
-                      <User className="h-3 w-3" /> UUID
-                    </div>
-                    <code className="text-[11px] font-mono text-gray-400 break-all">{cert.uuid}</code>
-                  </div>
+                <div className="mt-8 grid gap-4 sm:grid-cols-2">
+                  {cert.public_id && <InfoCard icon={BadgeCheck} label={copy.certificateId} value={<code className="font-mono text-xs text-slate-700">{cert.public_id}</code>} />}
+                  {cert.issued_at && <InfoCard icon={Calendar} label={copy.issuedAt} value={new Date(cert.issued_at).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })} />}
+                  {cert.event_date && <InfoCard icon={Building2} label={copy.eventDate} value={new Date(cert.event_date).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })} />}
+                  <InfoCard icon={Hash} label={copy.verifyCode} value={<code className="font-mono text-xs text-slate-500 break-all">{cert.uuid}</code>} />
+                  <InfoCard icon={User} label={copy.owner} value={cert.student_name} />
+                  <InfoCard icon={FileCheck2} label={copy.event} value={cert.event_name} />
                 </div>
 
-                {/* Actions */}
-                <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-100">
-                  {cert.status === "active" && cert.pdf_url && (
-                    <a href={cert.pdf_url} target="_blank" rel="noopener noreferrer"
-                      className="btn-primary flex items-center gap-2 px-6 py-3">
-                      <Download className="h-4 w-4" /> {t("verify_download")}
-                    </a>
-                  )}
-                  {cert.status === "active" && cert.png_url && (
-                    <a href={cert.png_url} download={`sertifika-${cert.public_id ?? cert.uuid}.png`}
-                      className="flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-5 py-3 text-sm font-bold text-violet-700 hover:bg-violet-100 shadow-sm transition-colors">
-                      <Download className="h-4 w-4" />
-                      PNG İndir
-                      <span className="ml-1 rounded-full bg-violet-200 px-1.5 py-0.5 text-[10px] font-black text-violet-700 leading-none">
-                        Damgalı
-                      </span>
-                    </a>
-                  )}
-                  {cert.status === "active" && cert.linkedin_url && (
-                    <a href={cert.linkedin_url} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-2 rounded-xl border border-[#0077B5] bg-[#0077B5] px-5 py-3 text-sm font-bold text-white hover:bg-[#005885] shadow-sm transition-colors">
-                      <Linkedin className="h-4 w-4" /> LinkedIn&apos;e Ekle
-                    </a>
-                  )}
-                  <a href={`/verify/${cert.uuid}`} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-bold text-gray-600 hover:bg-gray-50 shadow-sm transition-colors">
-                    <ExternalLink className="h-4 w-4" /> {t("verify_link")}
-                  </a>
+                <div className="mt-8 flex flex-wrap gap-3 border-t border-slate-100 pt-6">
+                  {cert.status === "active" && cert.pdf_url && <a href={cert.pdf_url} target="_blank" rel="noopener noreferrer" className="btn-primary px-5 py-3"><Download className="h-4 w-4" />{copy.downloadPdf}</a>}
+                  {cert.status === "active" && cert.png_url && <a href={cert.png_url} download={`certificate-${cert.public_id ?? cert.uuid}.png`} className="btn-secondary px-5 py-3"><Download className="h-4 w-4" />{copy.downloadPng}</a>}
+                  {cert.status === "active" && cert.linkedin_url && <a href={cert.linkedin_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-[#0077B5] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#005e8d]"><Linkedin className="h-4 w-4" />{copy.addLinkedIn}</a>}
+                  <a href={`/verify/${cert.uuid}`} target="_blank" rel="noopener noreferrer" className="btn-secondary px-5 py-3"><ExternalLink className="h-4 w-4" />{copy.publicLink}</a>
                 </div>
 
-                {cert.status !== "active" && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                    className={`mt-4 rounded-xl p-4 flex items-start gap-3 border ${cert.status === "revoked" ? "bg-rose-50 border-rose-200" : "bg-amber-50 border-amber-200"}`}>
-                    <AlertCircle className={`h-4 w-4 shrink-0 mt-0.5 ${cert.status === "revoked" ? "text-rose-500" : "text-amber-500"}`} />
-                    <p className={`text-sm font-medium ${cert.status === "revoked" ? "text-rose-700" : "text-amber-700"}`}>
-                      {cert.status === "revoked" ? t("verify_revoked_notice") : t("verify_expired_notice")}
-                    </p>
-                  </motion.div>
-                )}
+                {cert.status !== "active" && <div className={`mt-6 flex items-start gap-3 rounded-2xl border px-4 py-4 text-sm ${cert.status === "revoked" ? "border-rose-200 bg-rose-50 text-rose-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{cert.status === "revoked" ? copy.revokedNotice : copy.expiredNotice}</div>}
+
+                {cert.settings?.certificate_footer && <div className="mt-8 border-t border-slate-100 pt-5 text-center text-xs text-slate-400">{cert.settings.certificate_footer}</div>}
               </div>
             </motion.div>
           )}
-
-          {cert?.settings?.certificate_footer && (
-              <div className="mt-8 pt-4 border-t border-gray-100 text-center text-xs text-gray-400">
-                {cert.settings.certificate_footer}
-              </div>
-            )}
-
         </AnimatePresence>
-
-        
       </main>
     </div>
-
-    
   );
+}
+
+function InfoCard({ icon: Icon, label, value }: { icon: any; label: string; value: ReactNode }) {
+  return <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400"><Icon className="h-3.5 w-3.5" />{label}</div><div className="text-sm font-semibold text-slate-900">{value}</div></div>;
 }

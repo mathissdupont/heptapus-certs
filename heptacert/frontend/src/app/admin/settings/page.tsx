@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
@@ -15,15 +15,15 @@ import PageHeader from "@/components/Admin/PageHeader";
 import { useToast } from "@/hooks/useToast";
 
 const TABS = [
-  { id: "account", label: "Hesap", icon: Lock },
-  { id: "2fa", label: "2FA Güvenlik", icon: ShieldCheck },
-  { id: "transactions", label: "Coin Geçmişi", icon: History },
-  { id: "domain", label: "Özel Domain", icon: Globe },
-  { id: "branding", label: "Kurumsal", icon: Settings },
+  { id: "account", label: "Hesap", description: "Sifre ve email", icon: Lock },
+  { id: "2fa", label: "2FA Guvenlik", description: "Kimlik korumasi", icon: ShieldCheck },
+  { id: "transactions", label: "Coin Gecmisi", description: "Harcama ve yukleme", icon: History },
+  { id: "domain", label: "Ozel Domain", description: "DNS ve dogrulama", icon: Globe },
+  { id: "branding", label: "Kurumsal", description: "Marka ve gorunum", icon: Settings },
 ];
 
 function fmtDate(s: string | null) {
-  if (!s) return "—";
+  if (!s) return "-";
   return new Date(s).toLocaleDateString("tr-TR", { year: "numeric", month: "short", day: "numeric" });
 }
 function titleCaseStatus(raw: string) {
@@ -50,16 +50,16 @@ function getDomainStatusMeta(status: string | null) {
       label: "Taslak",
       chipClass: "border-slate-200 bg-slate-100 text-slate-700",
       panelClass: "border-slate-200 bg-slate-50",
-      description: "Alan adınızı kaydedin, ardından DNS kaydı ekleyip doğrulamayı başlatın.",
+      description: "Alan adinizi kaydedin, ardindan DNS kaydi ekleyip dogrulamayi baslatin.",
     };
   }
 
   if (raw.includes("verified") || raw.includes("active") || raw === "ok") {
     return {
-      label: "Doğrulandı",
+      label: "Dogrulandi",
       chipClass: "border-emerald-200 bg-emerald-50 text-emerald-700",
       panelClass: "border-emerald-200 bg-emerald-50/70",
-      description: "Alan adınız doğrulanmış görünüyor. Sertifika bağlantılarınız kurumsal şekilde yayınlanabilir.",
+      description: "Alan adiniz dogrulanmis gorunuyor. Sertifika baglantilariniz kurumsal sekilde yayinlanabilir.",
     };
   }
 
@@ -68,7 +68,7 @@ function getDomainStatusMeta(status: string | null) {
       label: "Sorun Var",
       chipClass: "border-rose-200 bg-rose-50 text-rose-700",
       panelClass: "border-rose-200 bg-rose-50/70",
-      description: "DNS kaydı beklenen değerle eşleşmiyor olabilir. Kaydı ve token değerini yeniden kontrol edin.",
+      description: "DNS kaydi beklenen degerle eslesmiyor olabilir. Kaydi ve token degerini yeniden kontrol edin.",
     };
   }
 
@@ -76,7 +76,7 @@ function getDomainStatusMeta(status: string | null) {
     label: titleCaseStatus(status || "Bekleniyor"),
     chipClass: "border-amber-200 bg-amber-50 text-amber-700",
     panelClass: "border-amber-200 bg-amber-50/70",
-    description: "Kaydınız alındı. DNS yayılımı tamamlandığında doğrulama tekrar kontrol edilmelidir.",
+    description: "Kaydiniz alindi. DNS yayilimi tamamlandiginda dogrulama tekrar kontrol edilmelidir.",
   };
 }
 
@@ -98,7 +98,7 @@ function CopyBtn({ text }: { text: string }) {
     </button>
   );
 }
-// ─── Account Tab ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ Account Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function AccountTab({ me }: { me: { email: string } | null }) {
   const [curPw, setCurPw] = useState(""); const [newPw, setNewPw] = useState(""); const [confPw, setConfPw] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -108,13 +108,13 @@ function AccountTab({ me }: { me: { email: string } | null }) {
 
   async function changePassword(e: React.FormEvent) {
     e.preventDefault(); setPwErr(null); setPwOk(false);
-    if (newPw.length < 8) { setPwErr("Yeni şifre en az 8 karakter olmalıdır."); return; }
-    if (newPw !== confPw) { setPwErr("Şifreler eşleşmiyor."); return; }
+    if (newPw.length < 8) { setPwErr("Yeni sifre en az 8 karakter olmalidir."); return; }
+    if (newPw !== confPw) { setPwErr("Sifreler eslesmiyor."); return; }
     setPwLoading(true);
     try {
       await apiFetch("/me/password", { method: "PATCH", body: JSON.stringify({ current_password: curPw, new_password: newPw }) });
       setPwOk(true); setCurPw(""); setNewPw(""); setConfPw("");
-    } catch (e: any) { setPwErr(e?.message || "Şifre güncellenemedi."); } finally { setPwLoading(false); }
+    } catch (e: any) { setPwErr(e?.message || "Sifre guncellenemedi."); } finally { setPwLoading(false); }
   }
 
   async function changeEmail(e: React.FormEvent) {
@@ -122,7 +122,7 @@ function AccountTab({ me }: { me: { email: string } | null }) {
     try {
       await apiFetch("/me/email", { method: "PATCH", body: JSON.stringify({ current_password: emailPw, new_email: newEmail }) });
       setEmailOk(true); setNewEmail(""); setEmailPw("");
-    } catch (e: any) { setEmailErr(e?.message || "E-posta güncellenemedi."); } finally { setEmailLoading(false); }
+    } catch (e: any) { setEmailErr(e?.message || "E-posta guncellenemedi."); } finally { setEmailLoading(false); }
   }
 
   return (
@@ -132,11 +132,11 @@ function AccountTab({ me }: { me: { email: string } | null }) {
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><Lock className="h-5 w-5" /></div>
-          <div><h2 className="font-semibold text-gray-900">Şifre Değiştir</h2><p className="text-xs text-gray-400 mt-0.5">Güvenlik için düzenli olarak şifrenizi güncelleyin</p></div>
+          <div><h2 className="font-semibold text-gray-900">Sifre Degistir</h2><p className="text-xs text-gray-400 mt-0.5">Guvenlik icin duzenli olarak sifrenizi guncelleyin</p></div>
         </div>
         <form onSubmit={changePassword} className="space-y-4">
           <div>
-            <label className="label">Mevcut Şifre</label>
+            <label className="label">Mevcut Sifre</label>
             <div className="relative">
               <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input className="input-field pl-10 pr-10" type={showPw ? "text" : "password"} value={curPw} onChange={e => setCurPw(e.target.value)} required />
@@ -145,36 +145,36 @@ function AccountTab({ me }: { me: { email: string } | null }) {
               </button>
             </div>
           </div>
-          <div><label className="label">Yeni Şifre</label><input className="input-field" type={showPw ? "text" : "password"} value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="En az 8 karakter" required /></div>
-          <div><label className="label">Yeni Şifre Tekrar</label><input className="input-field" type={showPw ? "text" : "password"} value={confPw} onChange={e => setConfPw(e.target.value)} required /></div>
+          <div><label className="label">Yeni Sifre</label><input className="input-field" type={showPw ? "text" : "password"} value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="En az 8 karakter" required /></div>
+          <div><label className="label">Yeni Sifre Tekrar</label><input className="input-field" type={showPw ? "text" : "password"} value={confPw} onChange={e => setConfPw(e.target.value)} required /></div>
           <AnimatePresence>
             {pwErr && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden"><div className="error-banner">{pwErr}</div></motion.div>}
-            {pwOk && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden"><div className="success-banner"><CheckCircle2 className="h-4 w-4 shrink-0" /> Şifre başarıyla güncellendi.</div></motion.div>}
+            {pwOk && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden"><div className="success-banner"><CheckCircle2 className="h-4 w-4 shrink-0" /> Sifre basariyla guncellendi.</div></motion.div>}
           </AnimatePresence>
-          <button type="submit" disabled={pwLoading} className="btn-primary">{pwLoading ? "Kaydediliyor..." : "Şifreyi Güncelle"}</button>
+          <button type="submit" disabled={pwLoading} className="btn-primary">{pwLoading ? "Kaydediliyor..." : "Sifreyi Guncelle"}</button>
         </form>
       </div>
       {/* Email */}
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600"><Mail className="h-5 w-5" /></div>
-          <div><h2 className="font-semibold text-gray-900">E-posta Değiştir</h2><p className="text-xs text-gray-400 mt-0.5">Doğrulama için mevcut şifrenizi girmeniz gerekmektedir</p></div>
+          <div><h2 className="font-semibold text-gray-900">E-posta Degistir</h2><p className="text-xs text-gray-400 mt-0.5">Dogrulama icin mevcut sifrenizi girmeniz gerekmektedir</p></div>
         </div>
         <form onSubmit={changeEmail} className="space-y-4">
           <div><label className="label">Yeni E-posta Adresi</label><div className="relative"><Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" /><input className="input-field pl-10" type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="yeni@sirket.com" required autoComplete="email" /></div></div>
-          <div><label className="label">Mevcut Şifre (Doğrulama)</label><div className="relative"><Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" /><input className="input-field pl-10" type="password" value={emailPw} onChange={e => setEmailPw(e.target.value)} required /></div></div>
+          <div><label className="label">Mevcut Sifre (Dogrulama)</label><div className="relative"><Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" /><input className="input-field pl-10" type="password" value={emailPw} onChange={e => setEmailPw(e.target.value)} required /></div></div>
           <AnimatePresence>
             {emailErr && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden"><div className="error-banner">{emailErr}</div></motion.div>}
-            {emailOk && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden"><div className="success-banner"><CheckCircle2 className="h-4 w-4 shrink-0" /> E-posta başarıyla güncellendi.</div></motion.div>}
+            {emailOk && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden"><div className="success-banner"><CheckCircle2 className="h-4 w-4 shrink-0" /> E-posta basariyla guncellendi.</div></motion.div>}
           </AnimatePresence>
-          <button type="submit" disabled={emailLoading} className="btn-primary">{emailLoading ? "Kaydediliyor..." : "E-postayı Güncelle"}</button>
+          <button type="submit" disabled={emailLoading} className="btn-primary">{emailLoading ? "Kaydediliyor..." : "E-postayi Guncelle"}</button>
         </form>
       </div>
     </div>
   );
 }
 
-// ─── 2FA Tab ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ 2FA Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TwoFATab() {
   const [status, setStatus] = useState<"loading" | "disabled" | "setup" | "enabled">("loading");
   const [otpauthUrl, setOtpauthUrl] = useState("");
@@ -197,7 +197,7 @@ function TwoFATab() {
       const r = await apiFetch("/auth/2fa/setup", { method: "POST" });
       const data = await r.json();
       setOtpauthUrl(data.otpauth_url); setSecret(data.secret); setStatus("setup");
-    } catch (e: any) { setErr(e?.message || "Kurulum başlatılamadı."); } finally { setLoading(false); }
+    } catch (e: any) { setErr(e?.message || "Kurulum baslatilamadi."); } finally { setLoading(false); }
   }
 
   async function confirmSetup(e: React.FormEvent) {
@@ -205,7 +205,7 @@ function TwoFATab() {
     try {
       await apiFetch("/auth/2fa/confirm", { method: "POST", body: JSON.stringify({ code }) });
       setStatus("enabled"); setCode("");
-    } catch (e: any) { setErr(e?.message || "Geçersiz kod."); } finally { setLoading(false); }
+    } catch (e: any) { setErr(e?.message || "Gecersiz kod."); } finally { setLoading(false); }
   }
 
   async function disable2FA(e: React.FormEvent) {
@@ -213,7 +213,7 @@ function TwoFATab() {
     try {
       await apiFetch("/auth/2fa/disable", { method: "PATCH", body: JSON.stringify({ code }) });
       setStatus("disabled"); setCode("");
-    } catch (e: any) { setErr(e?.message || "Devre dışı bırakılamadı."); } finally { setLoading(false); }
+    } catch (e: any) { setErr(e?.message || "Devre disi birakilamadi."); } finally { setLoading(false); }
   }
 
   const qrUrl = otpauthUrl ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(otpauthUrl)}` : "";
@@ -223,36 +223,36 @@ function TwoFATab() {
   return (
     <div className="max-w-md space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-gray-900">İki Faktörlü Doğrulama (TOTP)</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Giriş yaparken Google Authenticator veya Authy ile ek güvenlik katmanı ekleyin.</p>
+        <h2 className="text-lg font-semibold text-gray-900">Iki Faktorlu Dogrulama (TOTP)</h2>
+        <p className="text-sm text-gray-500 mt-0.5">Giris yaparken Google Authenticator veya Authy ile ek guvenlik katmani ekleyin.</p>
       </div>
 
       {status === "disabled" && (
         <div className="card p-6 space-y-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100"><ShieldCheck className="h-5 w-5 text-gray-400" /></div>
-            <div><p className="font-medium text-gray-900">2FA Devre Dışı</p><p className="text-sm text-gray-500">Hesabınız yalnızca şifre ile korunuyor.</p></div>
+            <div><p className="font-medium text-gray-900">2FA Devre Disi</p><p className="text-sm text-gray-500">Hesabiniz yalnizca sifre ile korunuyor.</p></div>
           </div>
           {err && <div className="error-banner">{err}</div>}
           <button onClick={startSetup} disabled={loading} className="btn-primary gap-2">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} 2FA'yı Etkinleştir
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} 2FA'yi Etkinlestir
           </button>
         </div>
       )}
 
       {status === "setup" && (
         <div className="card p-6 space-y-5">
-          <p className="font-medium text-gray-900">Kimlik Doğrulayıcıyı Yapılandır</p>
+          <p className="font-medium text-gray-900">Kimlik Dogrulayiciyi Yapilandir</p>
           <ol className="text-sm text-gray-600 space-y-1.5 list-decimal list-inside">
-            <li>Telefonunuzda Google Authenticator veya Authy'yi açın.</li>
-            <li>Aşağıdaki QR kodu veya gizli anahtarı kullanarak ekleyin.</li>
-            <li>6 haneli kodu girin ve onaylayın.</li>
+            <li>Telefonunuzda Google Authenticator veya Authy'yi acin.</li>
+            <li>Asagidaki QR kodu veya gizli anahtari kullanarak ekleyin.</li>
+            <li>6 haneli kodu girin ve onaylayin.</li>
           </ol>
           {qrUrl && <div className="flex justify-center"><img src={qrUrl} alt="2FA QR" className="rounded-xl border border-gray-200 p-2" /></div>}
           <div>
-            <label className="label">El ile Giriş</label>
+            <label className="label">El ile Giris</label>
             <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-              <code className="text-xs font-mono text-gray-700 flex-1 break-all">{showSecret ? secret : "•".repeat(Math.min(secret.length, 32))}</code>
+              <code className="text-xs font-mono text-gray-700 flex-1 break-all">{showSecret ? secret : "*".repeat(Math.min(secret.length, 32))}</code>
               <button type="button" onClick={() => setShowSecret(!showSecret)} className="text-gray-400 hover:text-gray-700">
                 {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -261,14 +261,14 @@ function TwoFATab() {
           </div>
           <form onSubmit={confirmSetup} className="space-y-3">
             <div>
-              <label className="label">Doğrulama Kodu</label>
+              <label className="label">Dogrulama Kodu</label>
               <input className="input-field text-center text-xl tracking-[0.4em] font-mono" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" inputMode="numeric" required maxLength={6} />
             </div>
             {err && <div className="error-banner">{err}</div>}
             <button type="submit" disabled={loading || code.length !== 6} className="btn-primary w-full justify-center gap-2">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Onayla &amp; Etkinleştir
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Onayla &amp; Etkinlestir
             </button>
-            <button type="button" onClick={() => setStatus("disabled")} className="w-full text-center text-sm text-gray-400 hover:text-gray-600">İptal</button>
+            <button type="button" onClick={() => setStatus("disabled")} className="w-full text-center text-sm text-gray-400 hover:text-gray-600">Iptal</button>
           </form>
         </div>
       )}
@@ -277,14 +277,14 @@ function TwoFATab() {
         <div className="card p-6 space-y-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-100"><ShieldCheck className="h-5 w-5 text-green-600" /></div>
-            <div><p className="font-medium text-gray-900">2FA Etkin ✅</p><p className="text-sm text-gray-500">Hesabınız iki faktörlü kimlik doğrulama ile korunuyor.</p></div>
+            <div><p className="font-medium text-gray-900">2FA Etkin </p><p className="text-sm text-gray-500">Hesabiniz iki faktorlu kimlik dogrulama ile korunuyor.</p></div>
           </div>
           <form onSubmit={disable2FA} className="space-y-3 pt-2 border-t border-gray-100">
-            <p className="text-sm text-gray-500">Devre dışı bırakmak için mevcut kodunuzu girin:</p>
+            <p className="text-sm text-gray-500">Devre disi birakmak icin mevcut kodunuzu girin:</p>
             <input className="input-field text-center text-xl tracking-[0.4em] font-mono" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" inputMode="numeric" required maxLength={6} />
             {err && <div className="error-banner">{err}</div>}
             <button type="submit" disabled={loading || code.length !== 6} className="w-full btn-danger justify-center gap-2">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} 2FA'yı Devre Dışı Bırak
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} 2FA'yi Devre Disi Birak
             </button>
           </form>
         </div>
@@ -293,7 +293,7 @@ function TwoFATab() {
   );
 }
 
-// ─── Transactions Tab ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Transactions Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 type Transaction = {
   id: number;
   type: "credit" | "spend";
@@ -315,7 +315,7 @@ function TransactionsTab() {
     apiFetch(`/admin/transactions/list?page=${page}&limit=${limit}`)
       .then((r) => r.json())
       .then((d) => { setItems(d.items || []); setTotal(d.total || 0); })
-      .catch((e) => setErr(e?.message || "Geçmiş yüklenemedi."))
+      .catch((e) => setErr(e?.message || "Gecmis yuklenemedi."))
       .finally(() => setLoading(false));
   }, [page]);
 
@@ -326,7 +326,7 @@ function TransactionsTab() {
       <div className="card overflow-hidden">
         <div className="bg-gray-50 border-b border-gray-100 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3 font-bold text-gray-700">
-            <History className="h-4 w-4 text-gray-400" /> Coin İşlem Geçmişi
+            <History className="h-4 w-4 text-gray-400" /> Coin Islem Gecmisi
           </div>
           <span className="text-xs font-bold text-gray-400">Toplam: {total}</span>
         </div>
@@ -335,7 +335,7 @@ function TransactionsTab() {
         ) : err ? (
           <div className="p-8 text-rose-600 text-sm">{err}</div>
         ) : items.length === 0 ? (
-          <div className="p-12 text-center text-sm text-gray-400">Henüz işlem yok.</div>
+          <div className="p-12 text-center text-sm text-gray-400">Henuz islem yok.</div>
         ) : (
           <div className="divide-y divide-gray-100">
             {items.map((tx) => (
@@ -358,9 +358,9 @@ function TransactionsTab() {
         )}
         {totalPages > 1 && (
           <div className="bg-gray-50 border-t border-gray-100 px-4 py-3 flex items-center justify-between">
-            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="btn-ghost text-xs disabled:opacity-30">← Önceki</button>
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="btn-ghost text-xs disabled:opacity-30">{"<-"} Onceki</button>
             <span className="text-xs font-bold text-gray-400">{page}/{totalPages}</span>
-            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="btn-ghost text-xs disabled:opacity-30">Sonraki →</button>
+            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="btn-ghost text-xs disabled:opacity-30">Sonraki {"->"}</button>
           </div>
         )}
       </div>
@@ -368,7 +368,7 @@ function TransactionsTab() {
   );
 }
 
-// ─── Custom Domain Tab ────────────────────────────────────────────────────────
+// â”€â”€â”€ Custom Domain Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function CustomDomainTab() {
   const toast = useToast();
   const [domain, setDomain] = useState("");
@@ -448,7 +448,7 @@ function CustomDomainTab() {
         setExistingDomain(null);
         setToken(null); setStatus(null); setCreatedAt(null); setOk(true); setTimeout(() => setOk(false), 3000);
         await refreshDomains();
-        toast.success("Özel domain kaldırıldı.", "Kurumsal Alan Adı");
+        toast.success("Ozel domain kaldirildi.", "Kurumsal Alan Adi");
         return;
       }
 
@@ -465,7 +465,7 @@ function CustomDomainTab() {
       setOk(true);
       await refreshDomains();
       setTimeout(() => setOk(false), 3000);
-      toast.success("Özel domain kaydedildi.", "Kurumsal Alan Adı");
+      toast.success("Ozel domain kaydedildi.", "Kurumsal Alan Adi");
     } catch (e: any) {
       setErr(e?.message || "Kaydedilemedi.");
     } finally {
@@ -477,14 +477,14 @@ function CustomDomainTab() {
     setErr(null); setChecking(true);
     try {
       const dom = domain.trim();
-      if (!dom) throw new Error("Alan adı boş.");
+      if (!dom) throw new Error("Alan adi bos.");
       const r = await apiFetch(`/domains/${encodeURIComponent(dom)}/check`);
       const j = await r.json();
       setStatus(j.status || null);
       const nextStatus = getDomainStatusMeta(j.status || null);
       toast.info(nextStatus.description, nextStatus.label);
     } catch (e: any) {
-      setErr(e?.message || "Doğrulama başarısız.");
+      setErr(e?.message || "Dogrulama basarisiz.");
     } finally { setChecking(false); }
   }
 
@@ -492,7 +492,7 @@ function CustomDomainTab() {
     setErr(null);
     try {
       const dom = (targetDomain || domain.trim() || existingDomain || "").trim();
-      if (!dom) throw new Error("Alan adı boş.");
+      if (!dom) throw new Error("Alan adi bos.");
       const r = await apiFetch(`/domains/${encodeURIComponent(dom)}/regenerate`, { method: "POST" });
       const j = await r.json();
       if ((domain.trim() || existingDomain || "").trim() === dom) {
@@ -501,20 +501,20 @@ function CustomDomainTab() {
         setExistingDomain(dom);
       }
       await refreshDomains();
-      toast.success("Doğrulama tokeni yenilendi.", dom);
+      toast.success("Dogrulama tokeni yenilendi.", dom);
     } catch (e: any) { setErr(e?.message || "Token yenilenemedi."); }
   }
 
   async function removeDomain() {
-    if (!confirm("Bu alan adını silmek istediğinize emin misiniz?")) return;
+    if (!confirm("Bu alan adini silmek istediginize emin misiniz?")) return;
     setErr(null);
     try {
       const targetDomain = (domain.trim() || existingDomain || "").trim();
-      if (!targetDomain) throw new Error("Alan adı boş.");
+      if (!targetDomain) throw new Error("Alan adi bos.");
       await apiFetch(`/domains/${encodeURIComponent(targetDomain)}`, { method: "DELETE" });
       setDomain(""); setExistingDomain(null); setToken(null); setStatus(null); setCreatedAt(null);
       await refreshDomains();
-      toast.success("Alan adı silindi.", "Kurumsal Alan Adı");
+      toast.success("Alan adi silindi.", "Kurumsal Alan Adi");
     } catch (e: any) { setErr(e?.message || "Silinemedi."); }
   }
 
@@ -529,13 +529,13 @@ function CustomDomainTab() {
       <div className="space-y-6">
       {myDomains.length > 0 && (
         <div className="hidden">
-          <h3 className="text-sm font-semibold mb-2">Kayıtlı Alan Adlarınız</h3>
+          <h3 className="text-sm font-semibold mb-2">Kayitli Alan Adlariniz</h3>
           <ul className="space-y-2 text-sm">
             {myDomains.map(d => (
               <li key={d.domain} className="flex items-center justify-between">
                 <div>{d.domain} <span className="text-xs text-gray-400">{d.status}</span></div>
                 <div className="flex gap-2">
-                  <button className="btn-ghost" onClick={async () => { setDomain(d.domain); setExistingDomain(d.domain); setToken(d.token || null); setStatus(d.status || null); setCreatedAt(d.created_at || null); }}>{/* select */}Seç</button>
+                  <button className="btn-ghost" onClick={async () => { setDomain(d.domain); setExistingDomain(d.domain); setToken(d.token || null); setStatus(d.status || null); setCreatedAt(d.created_at || null); }}>{/* select */}Sec</button>
                   <button className="btn-ghost" onClick={async () => { await apiFetch(`/domains/${encodeURIComponent(d.domain)}/regenerate`, { method: 'POST' }); const list = await (await apiFetch('/admin/organization/domains')).json(); setMyDomains(list || []); }}>Token Yenile</button>
                 </div>
               </li>
@@ -547,16 +547,16 @@ function CustomDomainTab() {
         <div className="flex items-center gap-3 mb-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600"><Globe className="h-5 w-5" /></div>
           <div>
-            <h2 className="font-semibold text-gray-900">Özel Alan Adı</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Sertifika doğrulama sayfaları kendi alan adınızda görünsün</p>
+            <h2 className="font-semibold text-gray-900">Ozel Alan Adi</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Sertifika dogrulama sayfalari kendi alan adinizda gorunsun</p>
           </div>
         </div>
         <div className="rounded-xl border border-amber-100 bg-amber-50/60 p-3 mb-5">
-          <p className="text-xs text-amber-700 font-medium">Growth ve Enterprise planlarına özeldir. Doğrulama için DNS'inize bir <code className="font-mono bg-amber-100 px-1 rounded">TXT</code> kaydı eklemeniz gerekir (aşağıda gösteriliyor).</p>
+          <p className="text-xs text-amber-700 font-medium">Growth ve Enterprise planlarina ozeldir. Dogrulama icin DNS'inize bir <code className="font-mono bg-amber-100 px-1 rounded">TXT</code> kaydi eklemeniz gerekir (asagida gosteriliyor).</p>
         </div>
         <form onSubmit={save} className="space-y-4">
           <div>
-            <label className="label">Alan Adı</label>
+            <label className="label">Alan Adi</label>
             <div className="relative">
               <Globe className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
@@ -568,10 +568,10 @@ function CustomDomainTab() {
                 autoComplete="off"
               />
             </div>
-            <p className="text-xs text-gray-400 mt-1.5">Boş bırakırsanız özel alan adı kaldırılır.</p>
+            <p className="text-xs text-gray-400 mt-1.5">Bos birakirsaniz ozel alan adi kaldirilir.</p>
           </div>
           {err && <div className="error-banner">{err}</div>}
-          {ok && <div className="success-banner"><CheckCircle2 className="h-4 w-4 shrink-0" /> Alan adı kaydedildi.</div>}
+          {ok && <div className="success-banner"><CheckCircle2 className="h-4 w-4 shrink-0" /> Alan adi kaydedildi.</div>}
           <button type="submit" disabled={saving} className="btn-primary gap-2">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
             Kaydet
@@ -579,20 +579,20 @@ function CustomDomainTab() {
         </form>
       </div>
       <div className="card border border-slate-200/80 p-5 space-y-4">
-        <h3 className="text-sm font-semibold text-gray-800">DNS Yapılandırması</h3>
+        <h3 className="text-sm font-semibold text-gray-800">DNS Yapilandirmasi</h3>
         <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 text-xs font-mono space-y-2">
-          <p className="text-gray-500"># DNS sağlayıcınıza şu TXT kaydını ekleyin:</p>
+          <p className="text-gray-500"># DNS saglayiciniza su TXT kaydini ekleyin:</p>
           <p className="text-gray-800">Ad: <span className="font-mono">{dnsHost}</span></p>
-          <p className="text-gray-800">Değer: <span className="font-mono">{token || '<kaydetmeden sonra token görünür>'}</span> <CopyBtn text={token || ''} /></p>
-          {createdAt && <p className="text-gray-500">Oluşturulma: <span className="font-mono">{new Date(createdAt).toLocaleString()}</span></p>}
+          <p className="text-gray-800">Deger: <span className="font-mono">{token || '<kaydetmeden sonra token gorunur>'}</span> <CopyBtn text={token || ''} /></p>
+          {createdAt && <p className="text-gray-500">Olusturulma: <span className="font-mono">{new Date(createdAt).toLocaleString()}</span></p>}
           <div className="flex gap-2">
-            <button onClick={checkDNS} disabled={checking || !domain} className="btn-ghost">{checking ? 'Kontrol ediliyor...' : 'DNS Kontrolü Yap'}</button>
+            <button onClick={checkDNS} disabled={checking || !domain} className="btn-ghost">{checking ? 'Kontrol ediliyor...' : 'DNS Kontrolu Yap'}</button>
             <button onClick={() => regenerate()} disabled={!domain} className="btn-ghost">Token Yenile</button>
-            <button onClick={removeDomain} disabled={!domain} className="btn-danger">Alan Adını Sil</button>
+            <button onClick={removeDomain} disabled={!domain} className="btn-danger">Alan Adini Sil</button>
           </div>
           {status && <p className="text-sm">Durum: <strong>{status}</strong></p>}
         </div>
-        <p className="text-xs text-gray-400">DNS değişikliklerinin yayılması: genelde birkaç dakika, maksimum 24 saat.</p>
+        <p className="text-xs text-gray-400">DNS degisikliklerinin yayilmasi: genelde birkac dakika, maksimum 24 saat.</p>
       </div>
       </div>
       <div className="space-y-6">
@@ -716,7 +716,7 @@ function CustomDomainTab() {
   );
 }
 
-// ─── Branding Tab ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Branding Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function BrandingTab() {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
@@ -738,7 +738,7 @@ function BrandingTab() {
         setOrgName(d.org_name || "");
         setSettingsState(d.settings || {});
       })
-      .catch((e) => setErr(e?.message || "Yüklenemedi"))
+      .catch((e) => setErr(e?.message || "Yuklenemedi"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -753,7 +753,7 @@ function BrandingTab() {
       setBrandLogo(j.brand_logo || null);
       toast.success("Logo guncellendi.", "Kurumsal Gorunum");
     } catch (e: any) {
-      setErr(e?.message || "Yükleme başarısız");
+      setErr(e?.message || "Yukleme basarisiz");
     } finally { setLogoUploading(false); }
   }
 
@@ -803,8 +803,8 @@ function BrandingTab() {
         <div className="flex items-center gap-3 mb-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-600"><Settings className="h-5 w-5" /></div>
           <div>
-            <h2 className="font-semibold text-gray-900">Kurumsal Görünüm</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Logo, renk ve diğer marka ayarlarını yönetebilirsiniz.</p>
+            <h2 className="font-semibold text-gray-900">Kurumsal Gorunum</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Logo, renk ve diger marka ayarlarini yonetebilirsiniz.</p>
           </div>
         </div>
 
@@ -819,7 +819,7 @@ function BrandingTab() {
               </div>
               <div className="flex flex-col gap-2">
                 <label className="btn-ghost cursor-pointer">
-                  {logoUploading ? 'Yükleniyor...' : 'Logo Yükle'}
+                  {logoUploading ? 'Yukleniyor...' : 'Logo Yukle'}
                   <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={e => uploadLogo(e.target.files ? e.target.files[0] : null)} />
                 </label>
                 <button
@@ -835,19 +835,19 @@ function BrandingTab() {
                       const data = await resp.json();
                       setBrandLogo(data.brand_logo || null);
                     } catch (e: any) {
-                      setErr(e?.message || "Logo kaldırılamadı.");
+                      setErr(e?.message || "Logo kaldirilamadi.");
                     }
                   }}
                 >
-                  Logoyu Kaldır
+                  Logoyu Kaldir
                 </button>
               </div>
             </div>
           </div>
 
           <div>
-            <label className="label">Kurum Adı</label>
-            <input className="input-field" value={orgName} onChange={e => setOrgName(e.target.value)} placeholder="Şirket / organizasyon adı" />
+            <label className="label">Kurum Adi</label>
+            <input className="input-field" value={orgName} onChange={e => setOrgName(e.target.value)} placeholder="Sirket / organizasyon adi" />
           </div>
 
           <div>
@@ -859,24 +859,24 @@ function BrandingTab() {
           </div>
 
           <div>
-            <label className="label">Doğrulama Yolu (verification_path)</label>
+            <label className="label">Dogrulama Yolu (verification_path)</label>
             <input className="input-field" value={settingsState.verification_path || ''} onChange={e => setSettingsState(s => ({ ...s, verification_path: e.target.value }))} placeholder="/verify" />
-            <p className="text-xs text-gray-400 mt-1">Boş bırakılırsa varsayılan doğrulama yolu kullanılır.</p>
+            <p className="text-xs text-gray-400 mt-1">Bos birakilirsa varsayilan dogrulama yolu kullanilir.</p>
           </div>
 
           <div>
             <label className="label">Sertifika Altbilgisi (certificate_footer)</label>
-            <input className="input-field" value={settingsState.certificate_footer || ''} onChange={e => setSettingsState(s => ({ ...s, certificate_footer: e.target.value }))} placeholder="© Şirketiniz 2026" />
+            <input className="input-field" value={settingsState.certificate_footer || ''} onChange={e => setSettingsState(s => ({ ...s, certificate_footer: e.target.value }))} placeholder="(c) Sirketiniz 2026" />
           </div>
 
           <div className="flex items-center gap-3">
             <input id="hide" type="checkbox" checked={!!settingsState.hide_heptacert_home} onChange={e => setSettingsState(s => ({ ...s, hide_heptacert_home: e.target.checked }))} />
-            <label htmlFor="hide" className="text-sm text-gray-700">HeptaCert ana sayfasını gizle (`hide_heptacert_home`)</label>
+            <label htmlFor="hide" className="text-sm text-gray-700">HeptaCert ana sayfasini gizle (`hide_heptacert_home`)</label>
           </div>
 
           <div className="flex gap-2">
-            <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Kaydediliyor...' : 'Ayarları Kaydet'}</button>
-            <button type="button" onClick={() => { setSettingsState({}); setBrandColor('#6366f1'); setOrgName(''); }} className="btn-ghost">Sıfırla</button>
+            <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Kaydediliyor...' : 'Ayarlari Kaydet'}</button>
+            <button type="button" onClick={() => { setSettingsState({}); setBrandColor('#6366f1'); setOrgName(''); }} className="btn-ghost">Sifirla</button>
           </div>
         </form>
       </div>
@@ -960,43 +960,65 @@ function BrandingTab() {
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function AdminSettingsPage() {
   const router = useRouter();
   const [me, setMe] = useState<{ email: string } | null>(null);
   const [activeTab, setActiveTab] = useState("account");
+  const activeTabMeta = TABS.find((tab) => tab.id === activeTab) || TABS[0];
 
   useEffect(() => {
     apiFetch("/me", { method: "GET" }).then(r => r.json()).then(d => setMe(d)).catch(() => router.push("/admin/login"));
   }, [router]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       <PageHeader
         title="Ayarlar"
-        subtitle="Hesap, güvenlik ve entegrasyon ayarlarını yönetin"
+        subtitle="Hesap, guvenlik ve kurumsal ayarlari daha rahat yonetebilmeniz icin tek bir operasyon alani."
         icon={<Settings className="h-5 w-5" />}
       />
 
-      {/* Tabs – underline style */}
-      <div className="flex gap-0 border-b border-surface-200 overflow-x-auto">
-        {TABS.map(tab => {
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-all ${
+              className={`card flex items-start gap-3 p-4 text-left transition ${
                 isActive
-                  ? "border-brand-600 text-brand-700"
-                  : "border-transparent text-surface-500 hover:text-surface-800 hover:border-surface-300"
+                  ? "border-brand-200 bg-brand-50 shadow-soft"
+                  : "hover:border-surface-300 hover:bg-surface-50"
               }`}
             >
-              <Icon className="h-4 w-4" />{tab.label}
+              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${isActive ? "bg-white text-brand-600" : "bg-surface-100 text-surface-500"}`}>
+                <Icon className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className={`text-sm font-semibold ${isActive ? "text-surface-900" : "text-surface-700"}`}>{tab.label}</p>
+                <p className="mt-1 text-xs leading-5 text-surface-500">{tab.description}</p>
+              </div>
             </button>
           );
         })}
+      </div>
+
+      <div className="card p-4 sm:p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-surface-400">Aktif Bolum</p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-surface-900">{activeTabMeta.label}</h2>
+            <p className="mt-2 text-sm leading-6 text-surface-500">{activeTabMeta.description}</p>
+          </div>
+          {me && (
+            <div className="rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3 text-right">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-400">Admin</p>
+              <p className="mt-1 text-sm font-semibold text-surface-900">{me.email}</p>
+            </div>
+          )}
+        </div>
       </div>
 
       <AnimatePresence mode="wait">
@@ -1006,9 +1028,9 @@ export default function AdminSettingsPage() {
           {activeTab === "transactions" && <TransactionsTab />}
           {activeTab === "domain" && <CustomDomainTab />}
           {activeTab === "branding" && <BrandingTab />}
-          {activeTab === "kurumsal" && <BrandingTab />}
         </motion.div>
       </AnimatePresence>
     </div>
   );
 }
+

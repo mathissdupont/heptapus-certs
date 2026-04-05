@@ -299,25 +299,26 @@ export default function SuperAdminAdminsPage() {
             <p className="text-sm font-medium text-surface-400">{copy.noAdmin}</p>
           </div>
         ) : (
-          <table className="w-full">
-            <thead className="border-b border-surface-200 bg-surface-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-500">{copy.email}</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-500">{copy.role}</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-500">{copy.balance}</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-500">{copy.createdAt}</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-surface-500">{copy.actions}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-100">
+          <>
+            <div className="divide-y divide-surface-100 md:hidden">
               {filteredAdmins.map((admin) => (
-                <tr key={admin.id} className="transition-colors hover:bg-surface-50">
-                  <td className="px-6 py-4">
-                    <p className="font-medium text-surface-800">{admin.email}</p>
-                  </td>
-                  <td className="px-6 py-4">
+                <div key={admin.id} className="space-y-4 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-surface-900">{admin.email}</p>
+                      <p className="mt-1 text-xs text-surface-500">
+                        {copy.createdAt}: {admin.created_at ? new Date(admin.created_at).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US") : "-"}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-surface-400">{copy.balance}</p>
+                      <p className="text-sm font-bold text-amber-600">{admin.heptacoin_balance} HC</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
                     {editingId === admin.id ? (
-                      <select value={editingRole || admin.role} onChange={(e) => setEditingRole(e.target.value as "superadmin" | "admin")} className="input-field py-1.5 text-xs">
+                      <select value={editingRole || admin.role} onChange={(e) => setEditingRole(e.target.value as "superadmin" | "admin")} className="input-field py-2 text-xs">
                         <option value="admin">{copy.admin}</option>
                         <option value="superadmin">{copy.superadmin}</option>
                       </select>
@@ -326,36 +327,95 @@ export default function SuperAdminAdminsPage() {
                         {admin.role === "superadmin" ? copy.superadmin : copy.admin}
                       </span>
                     )}
-                  </td>
-                  <td className="px-6 py-4 text-sm font-semibold text-amber-600">{admin.heptacoin_balance} HC</td>
-                  <td className="px-6 py-4 text-sm text-surface-500">{admin.created_at ? new Date(admin.created_at).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US") : "-"}</td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      {editingId === admin.id ? (
-                        <>
-                          <button onClick={() => handleUpdateRole(admin.id)} disabled={updating} className="btn-primary px-3 py-1.5 text-xs">
-                            {updating ? copy.saving : copy.save}
-                          </button>
-                          <button onClick={() => { setEditingId(null); setEditingRole(null); }} className="btn-secondary px-3 py-1.5 text-xs">
-                            {copy.cancel}
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button onClick={() => { setEditingId(admin.id); setEditingRole(admin.role as "admin" | "superadmin"); }} className="rounded-lg p-2 transition-colors hover:bg-surface-100">
-                            <Edit2 className="h-4 w-4 text-surface-500" />
-                          </button>
-                          <button onClick={() => setDeletingId(admin.id)} className="rounded-lg p-2 transition-colors hover:bg-rose-50">
-                            <Trash2 className="h-4 w-4 text-rose-500" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {editingId === admin.id ? (
+                      <>
+                        <button onClick={() => handleUpdateRole(admin.id)} disabled={updating} className="btn-primary flex-1 text-xs">
+                          {updating ? copy.saving : copy.save}
+                        </button>
+                        <button onClick={() => { setEditingId(null); setEditingRole(null); }} className="btn-secondary flex-1 text-xs">
+                          {copy.cancel}
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button onClick={() => { setEditingId(admin.id); setEditingRole(admin.role as "admin" | "superadmin"); }} className="btn-secondary flex-1 text-xs">
+                          <Edit2 className="h-4 w-4" />
+                          {copy.role}
+                        </button>
+                        <button onClick={() => setDeletingId(admin.id)} className="btn-danger flex-1 text-xs">
+                          <Trash2 className="h-4 w-4" />
+                          {copy.deleteTitle}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full">
+                <thead className="border-b border-surface-200 bg-surface-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-500">{copy.email}</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-500">{copy.role}</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-500">{copy.balance}</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-500">{copy.createdAt}</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-surface-500">{copy.actions}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-surface-100">
+                  {filteredAdmins.map((admin) => (
+                    <tr key={admin.id} className="transition-colors hover:bg-surface-50">
+                      <td className="px-6 py-4">
+                        <p className="font-medium text-surface-800">{admin.email}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        {editingId === admin.id ? (
+                          <select value={editingRole || admin.role} onChange={(e) => setEditingRole(e.target.value as "superadmin" | "admin")} className="input-field py-1.5 text-xs">
+                            <option value="admin">{copy.admin}</option>
+                            <option value="superadmin">{copy.superadmin}</option>
+                          </select>
+                        ) : (
+                          <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-bold ${admin.role === "superadmin" ? "bg-violet-100 text-violet-800" : "bg-blue-100 text-blue-800"}`}>
+                            {admin.role === "superadmin" ? copy.superadmin : copy.admin}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-semibold text-amber-600">{admin.heptacoin_balance} HC</td>
+                      <td className="px-6 py-4 text-sm text-surface-500">{admin.created_at ? new Date(admin.created_at).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US") : "-"}</td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          {editingId === admin.id ? (
+                            <>
+                              <button onClick={() => handleUpdateRole(admin.id)} disabled={updating} className="btn-primary px-3 py-1.5 text-xs">
+                                {updating ? copy.saving : copy.save}
+                              </button>
+                              <button onClick={() => { setEditingId(null); setEditingRole(null); }} className="btn-secondary px-3 py-1.5 text-xs">
+                                {copy.cancel}
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button onClick={() => { setEditingId(admin.id); setEditingRole(admin.role as "admin" | "superadmin"); }} className="rounded-lg p-2 transition-colors hover:bg-surface-100">
+                                <Edit2 className="h-4 w-4 text-surface-500" />
+                              </button>
+                              <button onClick={() => setDeletingId(admin.id)} className="rounded-lg p-2 transition-colors hover:bg-rose-50">
+                                <Trash2 className="h-4 w-4 text-rose-500" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
@@ -376,7 +436,7 @@ export default function SuperAdminAdminsPage() {
                 </select>
               </div>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row">
               <button onClick={() => { setShowCreateModal(false); setNewAdminEmail(""); setNewAdminRole("admin"); }} className="btn-secondary flex-1">
                 {copy.cancel}
               </button>

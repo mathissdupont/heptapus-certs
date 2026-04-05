@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
@@ -27,21 +27,21 @@ function RegisterLinkBanner({ eventId }: { eventId: number }) {
   }
 
   return (
-    <div className="mb-6 flex items-center gap-3 bg-sky-50 border border-sky-200 rounded-2xl px-4 py-3">
+    <div className="mb-6 flex flex-col items-stretch gap-3 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 sm:flex-row sm:items-center">
       <Link2 className="w-4 h-4 text-sky-500 shrink-0" />
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold text-sky-700 mb-0.5">Katılımcı Kayıt Linki</p>
+        <p className="text-xs font-semibold text-sky-700 mb-0.5">KatÄ±lÄ±mcÄ± KayÄ±t Linki</p>
         <p className="text-xs text-sky-500 truncate font-mono">{url}</p>
       </div>
-      <a href={url} target="_blank" rel="noopener noreferrer" className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-sky-600 hover:text-sky-800 border border-sky-200 bg-white rounded-lg px-2.5 py-1.5 transition">
-        <ExternalLink className="w-3.5 h-3.5" /> Aç
+      <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-sky-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-sky-600 transition hover:text-sky-800 sm:w-auto">
+        <ExternalLink className="w-3.5 h-3.5" /> AÃ§
       </a>
       <button
         onClick={copy}
-        className="shrink-0 inline-flex items-center gap-1 text-xs font-bold border rounded-lg px-2.5 py-1.5 transition-colors"
+        className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition-colors sm:w-auto"
         style={copied ? { background: "#d1fae5", borderColor: "#6ee7b7", color: "#065f46" } : { background: "#0ea5e9", borderColor: "#0ea5e9", color: "#fff" }}
       >
-        {copied ? <><ClipboardCheck className="w-3.5 h-3.5" /> Kopyalandı!</> : <><Link2 className="w-3.5 h-3.5" /> Kopyala</>}
+        {copied ? <><ClipboardCheck className="w-3.5 h-3.5" /> KopyalandÄ±!</> : <><Link2 className="w-3.5 h-3.5" /> Kopyala</>}
       </button>
     </div>
   );
@@ -91,7 +91,7 @@ export default function AdminSessionsPage() {
       setEventName(evRes.name);
       setMinSessions(evRes.min_sessions_required ?? 1);
     } catch (e: any) {
-      setError(e.message || "Yükleme başarısız");
+      setError(e.message || "YÃ¼kleme baÅŸarÄ±sÄ±z");
     } finally {
       setLoading(false);
     }
@@ -136,7 +136,7 @@ export default function AdminSessionsPage() {
       setShowForm(false);
       await load();
     } catch (e: any) {
-      setFormError(e.message || "Kayıt başarısız");
+      setFormError(e.message || "KayÄ±t baÅŸarÄ±sÄ±z");
     } finally {
       setSaving(false);
     }
@@ -189,7 +189,7 @@ export default function AdminSessionsPage() {
         body: JSON.stringify({ name: eventName, min_sessions_required: clamped }),
       });
     } catch (e: any) {
-      setError(e.message || "Kayıt başarısız");
+      setError(e.message || "KayÄ±t baÅŸarÄ±sÄ±z");
     } finally {
       setSavingMin(false);
     }
@@ -205,7 +205,7 @@ export default function AdminSessionsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <div className="max-w-3xl mx-auto">
+      <div className="mx-auto max-w-4xl">
         <EventAdminNav eventId={eventId} eventName={eventName} active="sessions" className="mb-6 flex flex-col gap-2" />
 
         {/* Plan gate */}
@@ -214,34 +214,34 @@ export default function AdminSessionsPage() {
             <ShieldAlert className="w-12 h-12 text-indigo-400 mx-auto mb-3" />
             <h2 className="text-lg font-bold text-gray-800 mb-2">Pro veya Enterprise Plan Gerekli</h2>
             <p className="text-sm text-gray-500 mb-4 max-w-md mx-auto">
-              Oturum yönetimi, QR ile yoklama ve katılım takibi özellikleri sadece Pro ve Enterprise planlarında kullanılabilir.
+              Oturum yÃ¶netimi, QR ile yoklama ve katÄ±lÄ±m takibi Ã¶zellikleri sadece Pro ve Enterprise planlarÄ±nda kullanÄ±labilir.
             </p>
             <Link
               href="/pricing"
               className="inline-flex items-center gap-2 bg-indigo-600 text-white font-semibold px-6 py-2.5 rounded-xl hover:bg-indigo-700 transition text-sm"
             >
-              <Sparkles className="w-4 h-4" /> Planı Yükselt
+              <Sparkles className="w-4 h-4" /> PlanÄ± YÃ¼kselt
             </Link>
           </div>
         )}
 
         {planOk !== false && (
           <>
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-extrabold text-gray-900">Oturum Yönetimi</h1>
+            <h1 className="text-2xl font-extrabold text-gray-900">Oturum YÃ¶netimi</h1>
             <p className="text-sm text-gray-500 mt-0.5">{eventName}</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <Link
               href={`/admin/events/${eventId}/attendees`}
-              className="btn-secondary text-sm px-4 py-2 rounded-xl font-semibold"
+              className="btn-secondary justify-center text-sm px-4 py-2 rounded-xl font-semibold"
             >
-              Katılımcılar
+              KatÄ±lÄ±mcÄ±lar
             </Link>
             <button
               onClick={openCreate}
-              className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm transition"
+              className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm transition"
             >
               <Plus className="w-4 h-4" /> Oturum Ekle
             </button>
@@ -252,13 +252,13 @@ export default function AdminSessionsPage() {
         <RegisterLinkBanner eventId={eventId} />
 
         {/* Min sessions required setting */}
-        <div className="mb-5 flex items-center gap-4 bg-white border border-gray-200 rounded-2xl px-5 py-4 shadow-sm">
+        <div className="mb-5 flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm sm:flex-row sm:items-center">
           <Hash className="w-5 h-5 text-indigo-500 shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-gray-800">Sertifika İçin Gereken Minimum Oturum Sayısı</p>
-            <p className="text-xs text-gray-400 mt-0.5">Katılımcının sertifika alabilmesi için katılması gereken minimum oturum adedi</p>
+            <p className="text-sm font-bold text-gray-800">Sertifika Ä°Ã§in Gereken Minimum Oturum SayÄ±sÄ±</p>
+            <p className="text-xs text-gray-400 mt-0.5">KatÄ±lÄ±mcÄ±nÄ±n sertifika alabilmesi iÃ§in katÄ±lmasÄ± gereken minimum oturum adedi</p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
             <input
               type="number"
               min={1}
@@ -280,21 +280,21 @@ export default function AdminSessionsPage() {
         {showForm && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 mb-5">
             <h2 className="font-semibold text-gray-800 mb-4">
-              {editingSession ? "Oturumu Düzenle" : "Yeni Oturum"}
+              {editingSession ? "Oturumu DÃ¼zenle" : "Yeni Oturum"}
             </h2>
             <form onSubmit={handleSaveSession} className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Oturum Adı *</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Oturum AdÄ± *</label>
                 <input
                   type="text"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  placeholder="örn. Açılış Töreni"
+                  placeholder="Ã¶rn. AÃ§Ä±lÄ±ÅŸ TÃ¶reni"
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                   required
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Tarih</label>
                   <input
@@ -325,9 +325,9 @@ export default function AdminSessionsPage() {
                 />
               </div>
               {formError && <p className="text-xs text-red-600">{formError}</p>}
-              <div className="flex gap-2 justify-end pt-1">
+              <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:justify-end">
                 <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-sm rounded-xl border hover:bg-gray-50 transition">
-                  İptal
+                  Ä°ptal
                 </button>
                 <button
                   type="submit"
@@ -346,8 +346,8 @@ export default function AdminSessionsPage() {
         {sessions.length === 0 && !showForm ? (
           <div className="text-center py-16 text-gray-400">
             <QrCode className="w-12 h-12 mx-auto mb-3 opacity-40" />
-            <p className="font-medium">Henüz oturum yok</p>
-            <p className="text-sm mt-1">İlk oturumu ekleyerek QR ile yoklama almaya başlayın.</p>
+            <p className="font-medium">HenÃ¼z oturum yok</p>
+            <p className="text-sm mt-1">Ä°lk oturumu ekleyerek QR ile yoklama almaya baÅŸlayÄ±n.</p>
             <button onClick={openCreate} className="mt-4 inline-flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition">
               <Plus className="w-4 h-4" /> Oturum Ekle
             </button>
@@ -356,14 +356,14 @@ export default function AdminSessionsPage() {
           <div className="space-y-3">
             {sessions.map((s) => (
               <div key={s.id} className={`bg-white rounded-2xl border p-4 shadow-sm ${s.is_active ? "border-green-300" : "border-gray-200"}`}>
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-gray-800">{s.name}</span>
                       {s.is_active && (
                         <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">
                           <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse inline-block" />
-                          Check-in Açık
+                          Check-in AÃ§Ä±k
                         </span>
                       )}
                     </div>
@@ -386,16 +386,16 @@ export default function AdminSessionsPage() {
                           {s.session_location}
                         </span>
                       )}
-                      <span className="text-indigo-600 font-medium">{s.attendance_count} kişi katıldı</span>
+                      <span className="text-indigo-600 font-medium">{s.attendance_count} kiÅŸi katÄ±ldÄ±</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex flex-wrap items-center gap-1 shrink-0">
                     {/* QR */}
                     <button
                       onClick={() => handleShowQr(s)}
                       disabled={qrLoading === s.id}
-                      title="QR Göster"
+                      title="QR GÃ¶ster"
                       className="p-2 rounded-lg hover:bg-indigo-50 text-indigo-600 transition disabled:opacity-40"
                     >
                       {qrLoading === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
@@ -405,7 +405,7 @@ export default function AdminSessionsPage() {
                     <button
                       onClick={() => handleToggle(s)}
                       disabled={toggling === s.id}
-                      title={s.is_active ? "Check-in kapat" : "Check-in aç"}
+                      title={s.is_active ? "Check-in kapat" : "Check-in aÃ§"}
                       className={`p-2 rounded-lg transition ${s.is_active ? "text-green-600 hover:bg-green-50" : "text-gray-400 hover:bg-gray-50"}`}
                     >
                       {toggling === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : s.is_active ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
@@ -414,7 +414,7 @@ export default function AdminSessionsPage() {
                     {/* Edit */}
                     <button
                       onClick={() => openEdit(s)}
-                      title="Düzenle"
+                      title="DÃ¼zenle"
                       className="p-2 rounded-lg hover:bg-gray-50 text-gray-500 hover:text-gray-700 transition"
                     >
                       <Pencil className="w-4 h-4" />
@@ -441,7 +441,7 @@ export default function AdminSessionsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setQrModal(null)}>
           <div className="bg-white rounded-3xl shadow-2xl p-6 max-w-xs w-full text-center" onClick={(e) => e.stopPropagation()}>
             <h2 className="font-bold text-gray-800 mb-1">{qrModal.sessionName}</h2>
-            <p className="text-xs text-gray-400 mb-4">QR kodu ekranınızda gösterin veya yazdırın</p>
+            <p className="text-xs text-gray-400 mb-4">QR kodu ekranÄ±nÄ±zda gÃ¶sterin veya yazdÄ±rÄ±n</p>
             <img src={qrModal.url} alt="Check-in QR" className="w-48 h-48 mx-auto rounded-xl border" />
             <p className="text-xs text-gray-400 mt-3 break-all">{qrModal.checkinUrl}</p>
             <div className="flex gap-2 mt-4">
@@ -450,7 +450,7 @@ export default function AdminSessionsPage() {
                 download={`checkin-qr.png`}
                 className="flex-1 inline-flex items-center justify-center gap-2 bg-indigo-600 text-white text-sm font-semibold py-2 rounded-xl hover:bg-indigo-700 transition"
               >
-                <Download className="w-4 h-4" /> İndir
+                <Download className="w-4 h-4" /> Ä°ndir
               </a>
               <button
                 onClick={() => {
@@ -476,3 +476,4 @@ export default function AdminSessionsPage() {
     </div>
   );
 }
+

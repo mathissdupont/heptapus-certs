@@ -1,8 +1,7 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import VerifyDetailClient from "./_verify-detail-client";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8765/api";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8765/api";
 
 type Props = { params: { uuid: string } };
 
@@ -13,8 +12,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     });
     if (res.ok) {
       const cert = await res.json();
-      const title = `${cert.student_name} — ${cert.event_name}`;
-      const description = `${cert.student_name} adlı kişiye "${cert.event_name}" etkinliği için düzenlenmiş HeptaCert dijital sertifikası. Doğrulama: ${params.uuid}`;
+      const title = `${cert.student_name} - ${cert.event_name}`;
+      const description = `${cert.student_name} received a digital certificate for ${cert.event_name}. Verification code: ${params.uuid}`;
       return {
         title,
         description,
@@ -26,12 +25,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       };
     }
   } catch {
-    // fall through to default
+    // fall through
   }
+
   return {
-    title: "Sertifika Doğrulama",
-    description:
-      "Bu dijital sertifikanın gerçekliğini doğrulayın.",
+    title: "Certificate Verification",
+    description: "Verify the authenticity of this digital certificate.",
   };
 }
 

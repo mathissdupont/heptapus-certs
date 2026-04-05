@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
 import { getPublicEventInfo, publicRegisterAttendee } from "@/lib/api";
+import { useToast } from "@/hooks/useToast";
 import {
   CheckCircle2,
   Calendar,
@@ -53,6 +54,7 @@ export default function EventRegisterPage() {
   const params = useParams();
   const eventId = Number(params?.id);
   const { lang } = useI18n();
+  const toast = useToast();
   const copy = useMemo(
     () =>
       lang === "tr"
@@ -77,6 +79,8 @@ export default function EventRegisterPage() {
             status: "Durum",
             newRegistrationCreated: "Yeni kayıt oluşturuldu",
             registrationExists: "Kayıt zaten mevcut",
+            verifyEmailTitle: "E-posta doğrulaması gerekiyor",
+            verifyEmailBody: "Doğrulama e-postası gönderildi. Gelen kutunuzu ve spam klasörünü kontrol edin. E-postayı onayladıktan sonra katılım kartınız aktif olacak.",
             openCard: "Katılım Kartını Aç",
             surveyLink: "Anket Bağlantısı",
             surveyRequired: "Anket zorunlu",
@@ -114,6 +118,8 @@ export default function EventRegisterPage() {
             status: "Status",
             newRegistrationCreated: "New registration created",
             registrationExists: "Registration already exists",
+            verifyEmailTitle: "Email verification required",
+            verifyEmailBody: "A verification email has been sent. Please check your inbox and spam folder. Your attendance card will become active after you confirm your email.",
             openCard: "Open Attendance Card",
             surveyLink: "Survey Link",
             surveyRequired: "Survey required",
@@ -223,6 +229,10 @@ export default function EventRegisterPage() {
       setEmail(registered.attendee_email || email.trim().toLowerCase());
       setSurveyUrl(registered.email_verified ? registered.survey_url || null : null);
       setStatusUrl(registered.email_verified ? registered.status_url || null : null);
+
+      if (registered.verification_required && !registered.email_verified) {
+        toast.info(copy.verifyEmailBody, copy.verifyEmailTitle, 7000);
+      }
 
       if (typeof window !== "undefined" && registered.email_verified) {
         localStorage.setItem(`heptacert_attendee_${eventId}`, String(registered.attendee_id));
@@ -413,18 +423,25 @@ export default function EventRegisterPage() {
                       </div>
                     </div>
 
-                    <div className="mt-5 flex flex-wrap gap-3">
-                      <a href={statusUrl || `/events/${eventId}/status`} className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:opacity-90">
-                        {copy.openCard}
-                        <ArrowRight className="h-4 w-4" />
-                      </a>
-                      {surveyUrl ? (
-                        <a href={surveyUrl} className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-semibold text-black transition-opacity hover:opacity-90">
-                          {copy.surveyLink}
+                    {verificationRequired ? (
+                      <div className="mt-5 rounded-2xl border border-sky-300/30 bg-sky-400/10 px-4 py-4">
+                        <p className="text-sm font-semibold text-sky-100">{copy.verifyEmailTitle}</p>
+                        <p className="mt-1 text-xs leading-relaxed text-sky-50/85">{copy.verifyEmailBody}</p>
+                      </div>
+                    ) : (
+                      <div className="mt-5 flex flex-wrap gap-3">
+                        <a href={statusUrl || `/events/${eventId}/status`} className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:opacity-90">
+                          {copy.openCard}
                           <ArrowRight className="h-4 w-4" />
                         </a>
-                      ) : null}
-                    </div>
+                        {surveyUrl ? (
+                          <a href={surveyUrl} className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-semibold text-black transition-opacity hover:opacity-90">
+                            {copy.surveyLink}
+                            <ArrowRight className="h-4 w-4" />
+                          </a>
+                        ) : null}
+                      </div>
+                    )}
                   </div>
 
                   {!verificationRequired && event.survey?.is_required && (

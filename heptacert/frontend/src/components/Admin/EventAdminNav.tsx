@@ -115,27 +115,45 @@ export default function EventAdminNav({
 
   if (variant === "sidebar") {
     return (
-      <aside className={className || "h-fit rounded-xl border border-surface-200 bg-white shadow-soft lg:sticky lg:top-6"}>
-        <div className="border-b border-surface-100 px-4 py-4">
-          <Link href="/admin/events" className="mb-1.5 flex w-fit items-center gap-1 text-xs font-medium text-surface-400 transition-colors hover:text-surface-600">
+      <div className={className || "space-y-3"}>
+        <div className="card p-4 lg:p-5">
+          <Link
+            href="/admin/events"
+            className="mb-2 flex w-fit items-center gap-1 text-xs font-medium text-surface-400 transition-colors hover:text-surface-600"
+          >
             <ChevronLeft className="h-3.5 w-3.5" />
             {copy.allEvents}
           </Link>
-          <p className="text-xs font-semibold leading-snug text-surface-900">{eventName || copy.eventFallback(eventId)}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-surface-400">
+            {getActiveLabel(resolvedActive, lang)}
+          </p>
+          <p className="mt-1 text-base font-bold leading-snug text-surface-900 lg:text-lg">
+            {eventName || copy.eventFallback(eventId)}
+          </p>
         </div>
 
-        <nav className="space-y-0.5 p-2">
-          {NAV_ITEMS.map(({ tab, label, icon: Icon, href }) => {
-            const isAct = resolvedActive === tab;
-            return (
-              <Link key={tab} href={href(eventId)} className={isAct ? "sidebar-item-active" : "sidebar-item"}>
-                <Icon className="h-4 w-4 shrink-0" />
-                {label[lang]}
-              </Link>
-            );
-          })}
-        </nav>
-      </aside>
+        <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex min-w-max items-center gap-2">
+            {NAV_ITEMS.map(({ tab, label, icon: Icon, href }) => {
+              const isAct = resolvedActive === tab;
+              return (
+                <Link
+                  key={tab}
+                  href={href(eventId)}
+                  className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                    isAct
+                      ? "border-brand-200 bg-brand-50 text-surface-900 shadow-soft"
+                      : "border-surface-200 bg-white text-surface-500 hover:border-surface-300 hover:text-surface-900"
+                  }`}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {label[lang]}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -146,25 +164,31 @@ export default function EventAdminNav({
         {copy.allEvents}
       </Link>
       {eventName && <p className="mb-2 text-xs font-semibold text-surface-700">{eventName}</p>}
-      <div className="flex flex-wrap items-center gap-0.5 border-b border-surface-200">
-        {NAV_ITEMS.map(({ tab, label, icon: Icon, href }) => {
-          const isAct = resolvedActive === tab;
-          return (
-            <Link
-              key={tab}
-              href={href(eventId)}
-              className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-medium transition-colors ${
-                isAct
-                  ? "border-brand-600 text-brand-700"
-                  : "border-transparent text-surface-500 hover:border-surface-300 hover:text-surface-800"
-              }`}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              {label[lang]}
-            </Link>
-          );
-        })}
+      <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex min-w-max items-center gap-0.5 border-b border-surface-200">
+          {NAV_ITEMS.map(({ tab, label, icon: Icon, href }) => {
+            const isAct = resolvedActive === tab;
+            return (
+              <Link
+                key={tab}
+                href={href(eventId)}
+                className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-medium transition-colors ${
+                  isAct
+                    ? "border-brand-600 text-brand-700"
+                    : "border-transparent text-surface-500 hover:border-surface-300 hover:text-surface-800"
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label[lang]}
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
+}
+
+function getActiveLabel(active: EventAdminTab, lang: "tr" | "en") {
+  return NAV_ITEMS.find((item) => item.tab === active)?.label[lang] ?? "";
 }

@@ -451,6 +451,7 @@ class BulkEmailJob(Base):
     event_id: Mapped[int] = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
     created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
     email_template_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("email_templates.id", ondelete="SET NULL"), nullable=True)
+    recipient_type: Mapped[str] = mapped_column(String(32), default="attendees")
     recipients_count: Mapped[int] = mapped_column(Integer, default=0)
     sent_count: Mapped[int] = mapped_column(Integer, default=0)
     failed_count: Mapped[int] = mapped_column(Integer, default=0)
@@ -1333,6 +1334,7 @@ class BulkEmailJobOut(BaseModel):
     event_id: int
     created_by: int
     email_template_id: Optional[int]
+    recipient_type: str
     recipients_count: int
     sent_count: int
     failed_count: int
@@ -2788,26 +2790,18 @@ async def startup():
                             await db_bulk.commit()
                             continue
                         
-                        # Get recipients (attendees or certificate holders)
-                        # For now, assume "attendees" -- could parse from job metadata
+                        # Get recipients (all attendees or only certified attendees)
                         att_res = await db_bulk.execute(
                             select(Attendee).where(Attendee.event_id == job.event_id)
                         )
-                        attendees = att_res.scalars().all()
-                        
-                        if not attendees:
-                            job.status = "completed"
-                            job.sent_count = 0
-                            db_bulk.add(job)
-                            await db_bulk.commit()
-                            continue
+                        all_attendees = att_res.scalars().all()
 
-                        # Build attendee-name -> latest certificate UUID map for template variables
                         cert_res = await db_bulk.execute(
                             select(Certificate)
                             .where(
                                 Certificate.event_id == job.event_id,
                                 Certificate.status == CertStatus.active,
+                                Certificate.deleted_at.is_(None),
                             )
                             .order_by(Certificate.created_at.desc())
                         )
@@ -2817,6 +2811,22 @@ async def startup():
                             name_key = (cert.student_name or "").strip().lower()
                             if name_key and name_key not in cert_uuid_by_name:
                                 cert_uuid_by_name[name_key] = cert.uuid
+
+                        if (job.recipient_type or "attendees") == "certified":
+                            attendees = [
+                                attendee
+                                for attendee in all_attendees
+                                if (attendee.name or "").strip().lower() in cert_uuid_by_name
+                            ]
+                        else:
+                            attendees = all_attendees
+
+                        if not attendees:
+                            job.status = "completed"
+                            job.sent_count = 0
+                            db_bulk.add(job)
+                            await db_bulk.commit()
+                            continue
                         
                         # Process in batches for rate limiting
                         batch_size = 50
@@ -5348,23 +5358,37 @@ async def start_bulk_email(
         count_res = await db.execute(
             select(func.count(Attendee.id)).where(Attendee.event_id == event_id)
         )
+        recipients_count = count_res.scalar() or 0
     else:  # certified
-        count_res = await db.execute(
-            select(func.count(Certificate.id)).where(
+        attendee_res = await db.execute(
+            select(Attendee.name).where(Attendee.event_id == event_id)
+        )
+        attendee_names = {
+            (name or "").strip().lower()
+            for name in attendee_res.scalars().all()
+            if (name or "").strip()
+        }
+        cert_res = await db.execute(
+            select(Certificate.student_name).where(
                 Certificate.event_id == event_id,
                 Certificate.deleted_at.is_(None),
+                Certificate.status == CertStatus.active,
             )
         )
-    
-    recipients_count = count_res.scalar() or 0
+        certified_names = {
+            (name or "").strip().lower()
+            for name in cert_res.scalars().all()
+            if (name or "").strip()
+        }
+        recipients_count = len(attendee_names & certified_names)
     if recipients_count == 0:
-        raise HTTPException(status_code=400, detail="AlÃ„Â±cÃ„Â± bulunamadÃ„Â±")
-    
+        raise HTTPException(status_code=400, detail="Al??c?? bulunamad??")
     # Create job
     job = BulkEmailJob(
         event_id=event_id,
         created_by=me.id,
         email_template_id=payload.email_template_id,
+        recipient_type=payload.recipient_type,
         recipients_count=recipients_count,
         status="pending",
     )
@@ -5470,23 +5494,37 @@ async def schedule_email_job(
         count_res = await db.execute(
             select(func.count(Attendee.id)).where(Attendee.event_id == event_id)
         )
+        recipients_count = count_res.scalar() or 0
     else:  # certified
-        count_res = await db.execute(
-            select(func.count(Certificate.id)).where(
+        attendee_res = await db.execute(
+            select(Attendee.name).where(Attendee.event_id == event_id)
+        )
+        attendee_names = {
+            (name or "").strip().lower()
+            for name in attendee_res.scalars().all()
+            if (name or "").strip()
+        }
+        cert_res = await db.execute(
+            select(Certificate.student_name).where(
                 Certificate.event_id == event_id,
                 Certificate.deleted_at.is_(None),
+                Certificate.status == CertStatus.active,
             )
         )
-    
-    recipients_count = count_res.scalar() or 0
+        certified_names = {
+            (name or "").strip().lower()
+            for name in cert_res.scalars().all()
+            if (name or "").strip()
+        }
+        recipients_count = len(attendee_names & certified_names)
     if recipients_count == 0:
-        raise HTTPException(status_code=400, detail="AlÃ„Â±cÃ„Â± bulunamadÃ„Â±")
-    
+        raise HTTPException(status_code=400, detail="Al??c?? bulunamad??")
     # Create the bulk email job
     job = BulkEmailJob(
         event_id=event_id,
         created_by=me.id,
         email_template_id=payload.email_template_id,
+        recipient_type=payload.recipient_type,
         recipients_count=recipients_count,
         status="pending" if payload.schedule_type == "immediate" else "scheduled",
     )

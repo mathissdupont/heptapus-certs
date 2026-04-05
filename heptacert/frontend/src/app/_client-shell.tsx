@@ -183,6 +183,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
   const hideNavbar =
     pathname === "/verify" ||
     pathname?.startsWith("/verify/") ||
+    pathname?.startsWith("/checkout") ||
     pathname?.startsWith("/attend/") ||
     pathname?.match(/^\/events\/\d+\/register$/) !== null;
 
@@ -214,7 +215,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
   return (
     <I18nProvider>
       <HtmlLangSync />
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 min-h-screen flex flex-col">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 min-h-screen flex flex-col">
         <Navbar />
         <motion.main
           initial={{ opacity: 0, y: 8 }}

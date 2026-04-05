@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { clearToken, getRoleFromToken } from "@/lib/api";
@@ -64,6 +64,14 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/admin/superadmin", label: { tr: "Super Admin", en: "Super Admin" }, icon: Shield, superadminOnly: true },
     ],
   },
+];
+
+const PRIMARY_MOBILE_ITEMS: NavItem[] = [
+  NAV_GROUPS[0].items[0],
+  NAV_GROUPS[0].items[1],
+  NAV_GROUPS[1].items[0],
+  NAV_GROUPS[2].items[0],
+  NAV_GROUPS[2].items[3],
 ];
 
 const AUTH_PATH_PREFIXES = ["/admin/login", "/admin/magic-verify", "/admin/auth"];
@@ -187,6 +195,11 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const currentSection = getCurrentSection(pathname);
   const { lang } = useI18n();
+  const role = getRoleFromToken();
+  const mobileNavItems =
+    role === "superadmin"
+      ? [...PRIMARY_MOBILE_ITEMS.slice(0, 4), NAV_GROUPS[2].items[4]]
+      : PRIMARY_MOBILE_ITEMS;
 
   const topbarText = useMemo(
     () => ({
@@ -198,6 +211,10 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
     }),
     [lang]
   );
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   if (isAuthPage(pathname)) {
     return <>{children}</>;
@@ -216,7 +233,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
       {mobileOpen && (
         <div className="fixed inset-0 z-50 flex lg:hidden">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <aside className="relative z-10 w-[240px] border-r border-sidebar-border bg-sidebar/95 backdrop-blur">
+          <aside className="relative z-10 w-[min(88vw,320px)] border-r border-sidebar-border bg-sidebar/95 backdrop-blur">
             <SidebarContent pathname={pathname} collapsed={false} onClose={() => setMobileOpen(false)} />
           </aside>
         </div>
@@ -241,11 +258,14 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
             {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
           </button>
 
-          <div className="flex items-center gap-2 lg:hidden">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-brand-600 text-white">
+          <div className="flex min-w-0 items-center gap-2 lg:hidden">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-600 text-white">
               <Layers className="h-3.5 w-3.5" />
             </div>
-            <span className="text-sm font-bold text-surface-900">HeptaCert</span>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-bold text-surface-900">HeptaCert</div>
+              <div className="truncate text-[11px] font-medium text-surface-400">{currentSection}</div>
+            </div>
           </div>
 
           <div className="ml-auto flex min-w-0 items-center gap-3">
@@ -269,12 +289,31 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.18, ease: "easeOut" }}
-              className="mx-auto w-full max-w-[1600px] p-4 lg:p-6"
+              className="mx-auto w-full max-w-[1600px] p-4 pb-28 lg:p-6 lg:pb-6"
             >
               {children}
             </motion.div>
           </AnimatePresence>
         </main>
+
+        <nav className="mobile-bottom-nav" aria-label={lang === "tr" ? "Hızlı gezinti" : "Quick navigation"}>
+          <div className="flex items-stretch gap-1">
+            {mobileNavItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(pathname, item);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={active ? "mobile-bottom-nav-item-active" : "mobile-bottom-nav-item"}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{item.label[lang]}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
       </div>
     </div>
   );
