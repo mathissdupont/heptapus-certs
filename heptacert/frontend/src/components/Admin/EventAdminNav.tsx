@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useRef, type ReactNode, type WheelEvent } from "react";
 import { usePathname } from "next/navigation";
 import {
   ChevronLeft,
@@ -98,6 +98,7 @@ export default function EventAdminNav({
   const pathname = usePathname() || "";
   const { hideInlineNav } = useContext(EventAdminLayoutContext);
   const resolvedActive = active ?? getActiveFromPath(pathname);
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
   const copy = {
     tr: {
       allEvents: "Tüm Etkinlikler",
@@ -111,6 +112,15 @@ export default function EventAdminNav({
 
   if (hideInlineNav && variant === "inline") {
     return null;
+  }
+
+  function handleWheel(event: WheelEvent<HTMLDivElement>) {
+    const container = scrollerRef.current;
+    if (!container) return;
+    if (container.scrollWidth <= container.clientWidth) return;
+    if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+    event.preventDefault();
+    container.scrollLeft += event.deltaY;
   }
 
   if (variant === "sidebar") {
@@ -132,8 +142,12 @@ export default function EventAdminNav({
           </p>
         </div>
 
-        <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex min-w-max items-center gap-2">
+        <div
+          ref={scrollerRef}
+          onWheel={handleWheel}
+          className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          <div className="flex min-w-max items-center gap-2 lg:min-w-0 lg:flex-wrap">
             {NAV_ITEMS.map(({ tab, label, icon: Icon, href }) => {
               const isAct = resolvedActive === tab;
               return (
@@ -164,18 +178,22 @@ export default function EventAdminNav({
         {copy.allEvents}
       </Link>
       {eventName && <p className="mb-2 text-xs font-semibold text-surface-700">{eventName}</p>}
-      <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="flex min-w-max items-center gap-0.5 border-b border-surface-200">
+      <div
+        ref={scrollerRef}
+        onWheel={handleWheel}
+        className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        <div className="flex min-w-max items-center gap-0.5 border-b border-surface-200 lg:min-w-0 lg:flex-wrap lg:gap-1 lg:border-b-0">
           {NAV_ITEMS.map(({ tab, label, icon: Icon, href }) => {
             const isAct = resolvedActive === tab;
             return (
               <Link
                 key={tab}
                 href={href(eventId)}
-                className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-medium transition-colors ${
+                className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-medium transition-colors lg:mb-0 lg:rounded-full lg:border lg:px-4 ${
                   isAct
-                    ? "border-brand-600 text-brand-700"
-                    : "border-transparent text-surface-500 hover:border-surface-300 hover:text-surface-800"
+                    ? "border-brand-600 text-brand-700 lg:border-brand-200 lg:bg-brand-50"
+                    : "border-transparent text-surface-500 hover:border-surface-300 hover:text-surface-800 lg:border-surface-200 lg:bg-white"
                 }`}
               >
                 <Icon className="h-3.5 w-3.5" />

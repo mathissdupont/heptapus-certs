@@ -126,7 +126,7 @@ export default function EmailAnalyticsPage() {
                     <Link href={`/admin/events/${event.id}/bulk-emails`} className="btn-secondary flex items-center gap-1 px-3 py-1.5 text-xs">
                       <Send className="h-3.5 w-3.5" /> {copy.bulkEmail}
                     </Link>
-                    <Link href={`/admin/events/${event.id}/analytics`} className="btn-secondary flex items-center gap-1 px-3 py-1.5 text-xs">
+                    <Link href={`/admin/events/${event.id}/advanced-analytics`} className="btn-secondary flex items-center gap-1 px-3 py-1.5 text-xs">
                       <BarChart3 className="h-3.5 w-3.5" /> {copy.analytics}
                     </Link>
                   </div>

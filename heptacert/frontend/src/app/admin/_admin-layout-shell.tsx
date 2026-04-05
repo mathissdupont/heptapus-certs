@@ -14,7 +14,6 @@ import {
   Gauge,
   KeyRound,
   Mail,
-  MailOpen,
   Settings,
   Shield,
   Webhook,
@@ -51,7 +50,6 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/admin/email-dashboard", label: { tr: "Email Merkezi", en: "Email Center" }, icon: Mail },
       { href: "/admin/email-analytics", label: { tr: "Email Analitik", en: "Email Analytics" }, icon: ChartNoAxesCombined },
-      { href: "/admin/email-settings/smtp-config", label: { tr: "SMTP Ayarları", en: "SMTP Settings" }, icon: MailOpen },
     ],
   },
   {

@@ -46,7 +46,7 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
 from sqlalchemy import (
     Boolean, String, Integer, BigInteger, DateTime, ForeignKey, Text,
-    Enum as SAEnum, UniqueConstraint, Index, select, func, distinct, update, delete, Date as sa_Date, Time as sa_Time
+    Enum as SAEnum, UniqueConstraint, Index, select, func, distinct, update, delete, or_, Date as sa_Date, Time as sa_Time
 )
 from sqlalchemy import JSON as _JSON
 from sqlalchemy.dialects.postgresql import JSONB as _PgJSONB, INET as _PgINET, insert as _pg_insert
@@ -790,6 +790,8 @@ class EventRenameIn(BaseModel):
     event_location: Optional[str] = Field(default=None, max_length=300)
     min_sessions_required: Optional[int] = Field(default=None, ge=1, le=1000)
     event_banner_url: Optional[str] = Field(default=None, max_length=2000)
+    auto_email_on_cert: Optional[bool] = Field(default=None)
+    cert_email_template_id: Optional[int] = Field(default=None, ge=1)
 
 
 class CreditCoinsIn(BaseModel):
@@ -1943,6 +1945,96 @@ async def send_email_async(
         logger.error("SMTP send failed to %s: %s", to, exc)
         if raise_on_error:
             raise
+
+
+def _certificate_png_rel_path(event_id: int, cert_uuid: str) -> str:
+    return f"pngs/event_{event_id}/{cert_uuid}.png"
+
+
+def _certificate_png_public_url(event_id: int, cert_uuid: str) -> Optional[str]:
+    rel_png_path = _certificate_png_rel_path(event_id, cert_uuid)
+    abs_png_path = Path(settings.local_storage_dir) / rel_png_path
+    if not abs_png_path.exists():
+        return None
+    return build_public_pdf_url(rel_png_path)
+
+
+async def send_certificate_delivery_email_task(
+    *,
+    event_id: int,
+    cert_uuid: str,
+    recipient_name: str,
+    recipient_email: str,
+) -> None:
+    if not recipient_email:
+        return
+
+    async with SessionLocal() as db_email:
+        event_res = await db_email.execute(select(Event).where(Event.id == event_id))
+        event = event_res.scalar_one_or_none()
+        if not event or not event.auto_email_on_cert or not event.cert_email_template_id:
+            return
+
+        template_res = await db_email.execute(
+            select(EmailTemplate).where(EmailTemplate.id == event.cert_email_template_id)
+        )
+        template = template_res.scalar_one_or_none()
+        if not template:
+            logger.warning("Certificate delivery email skipped: template=%s not found", event.cert_email_template_id)
+            return
+
+        cert_res = await db_email.execute(
+            select(Certificate).where(
+                Certificate.uuid == cert_uuid,
+                Certificate.event_id == event_id,
+                Certificate.deleted_at.is_(None),
+            )
+        )
+        cert = cert_res.scalar_one_or_none()
+        if not cert:
+            logger.warning("Certificate delivery email skipped: cert=%s not found", cert_uuid)
+            return
+
+        pdf_rel_path = f"pdfs/event_{event_id}/{cert_uuid}.pdf"
+        pdf_abs_path = Path(settings.local_storage_dir) / pdf_rel_path
+        png_rel_path = _certificate_png_rel_path(event_id, cert_uuid)
+        png_abs_path = Path(settings.local_storage_dir) / png_rel_path
+
+        attachments: List[tuple[str, bytes, str]] = []
+        safe_public_id = cert.public_id or cert.uuid
+        if pdf_abs_path.exists():
+            attachments.append((f"certificate-{safe_public_id}.pdf", pdf_abs_path.read_bytes(), "application/pdf"))
+        if png_abs_path.exists():
+            attachments.append((f"certificate-{safe_public_id}.png", png_abs_path.read_bytes(), "image/png"))
+
+        verify_url = build_certificate_verify_url(cert.uuid)
+        pdf_url = cert.pdf_url if cert.status == CertStatus.active else None
+        png_url = _certificate_png_public_url(event_id, cert_uuid)
+        template_vars = {
+            "recipient_name": recipient_name,
+            "recipient_email": recipient_email,
+            "event_name": event.name,
+            "event_date": event.event_date.isoformat() if event.event_date else "",
+            "event_location": event.event_location or "",
+            "certificate_link": verify_url,
+            "certificate_verify_url": verify_url,
+            "certificate_pdf_url": pdf_url or verify_url,
+            "certificate_png_url": png_url or pdf_url or verify_url,
+            "certificate_public_id": cert.public_id or "",
+            "event_link": f"{settings.public_base_url}/events/{event.id}/register",
+        }
+
+        try:
+            await send_email_async(
+                to=recipient_email,
+                subject=template.subject_tr,
+                html_body=template.body_html,
+                template_vars=template_vars,
+                attachments=attachments or None,
+                raise_on_error=False,
+            )
+        except Exception as exc:
+            logger.error("Automatic certificate email failed for %s: %s", recipient_email, exc)
 
 
 async def trigger_webhooks(
@@ -3181,6 +3273,22 @@ async def _process_one_bulk_certificate_job(job_id: int) -> None:
                 abs_pdf_path = Path(settings.local_storage_dir) / rel_pdf_path
                 abs_pdf_path.parent.mkdir(parents=True, exist_ok=True)
                 abs_pdf_path.write_bytes(pdf_bytes)
+                try:
+                    png_bytes = await asyncio.to_thread(
+                        render_certificate_png_watermarked,
+                        template_image_bytes=template_bytes,
+                        student_name=student_name,
+                        verify_url=verify_url,
+                        config=cfg,
+                        public_id=public_id,
+                        brand_logo_bytes=brand_logo_bytes,
+                    )
+                    rel_png_path = _certificate_png_rel_path(ev.id, cert_uuid)
+                    abs_png_path = Path(settings.local_storage_dir) / rel_png_path
+                    abs_png_path.parent.mkdir(parents=True, exist_ok=True)
+                    abs_png_path.write_bytes(png_bytes)
+                except Exception as png_ex:
+                    logger.warning("Bulk certificate PNG render failed for job=%s idx=%s: %s", job.id, idx, png_ex)
 
                 asset_size_bytes = abs_pdf_path.stat().st_size
                 hosting_term = "yearly"
@@ -3223,6 +3331,24 @@ async def _process_one_bulk_certificate_job(job_id: int) -> None:
                 })
                 job.generated_files = generated_files
                 job.current_index = idx + 1
+
+                attendee_res = await db_job.execute(
+                    select(Attendee)
+                    .where(
+                        Attendee.event_id == ev.id,
+                        func.lower(Attendee.name) == (student_name or "").strip().lower(),
+                    )
+                    .order_by(Attendee.id.asc())
+                    .limit(1)
+                )
+                attendee_for_email = attendee_res.scalar_one_or_none()
+                if attendee_for_email and attendee_for_email.email:
+                    await send_certificate_delivery_email_task(
+                        event_id=ev.id,
+                        cert_uuid=cert_uuid,
+                        recipient_name=attendee_for_email.name,
+                        recipient_email=attendee_for_email.email,
+                    )
             except Exception as ex:
                 logger.error("Bulk certificate job %s failed at idx=%s: %s", job.id, idx, ex)
                 job.failed_count += 1
@@ -6645,6 +6771,23 @@ async def rename_event(
         ev.min_sessions_required = payload.min_sessions_required
     if payload.event_banner_url is not None:
         ev.event_banner_url = payload.event_banner_url if payload.event_banner_url else None
+    if "auto_email_on_cert" in payload.model_fields_set:
+        ev.auto_email_on_cert = bool(payload.auto_email_on_cert)
+    if "cert_email_template_id" in payload.model_fields_set:
+        template_id = payload.cert_email_template_id
+        if template_id is None:
+            ev.cert_email_template_id = None
+        else:
+            template_res = await db.execute(
+                select(EmailTemplate).where(
+                    EmailTemplate.id == template_id,
+                    or_(EmailTemplate.event_id == event_id, EmailTemplate.template_type == "system"),
+                )
+            )
+            template = template_res.scalar_one_or_none()
+            if not template:
+                raise HTTPException(status_code=404, detail="Email template not found")
+            ev.cert_email_template_id = template.id
     await db.commit()
     return _event_to_out(ev)
 
@@ -7463,6 +7606,7 @@ async def issue_certificate(
     abs_pdf_path.write_bytes(pdf_bytes)
     asset_size_bytes = abs_pdf_path.stat().st_size
 
+    rel_png_path: Optional[str] = None
     # Save watermarked PNG alongside PDF (steganographic verification support)
     try:
         png_bytes = await asyncio.to_thread(
@@ -7514,6 +7658,25 @@ async def issue_certificate(
     await db.commit()
     await db.refresh(cert)
 
+    attendee_res = await db.execute(
+        select(Attendee)
+        .where(
+            Attendee.event_id == ev.id,
+            func.lower(Attendee.name) == (payload.student_name or "").strip().lower(),
+        )
+        .order_by(Attendee.id.asc())
+        .limit(1)
+    )
+    attendee_for_email = attendee_res.scalar_one_or_none()
+    if attendee_for_email and attendee_for_email.email:
+        background_tasks.add_task(
+            send_certificate_delivery_email_task,
+            event_id=ev.id,
+            cert_uuid=cert.uuid,
+            recipient_name=attendee_for_email.name,
+            recipient_email=attendee_for_email.email,
+        )
+
     # Ã¢â€â‚¬Ã¢â€â‚¬ Fire webhook Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     from .webhooks import deliver_webhook, WebhookEvent
     background_tasks.add_task(
@@ -7532,6 +7695,7 @@ async def issue_certificate(
         hosting_term=cert.hosting_term,
         hosting_ends_at=cert.hosting_ends_at,
         pdf_url=cert.pdf_url,
+        png_url=_certificate_png_public_url(ev.id, cert.uuid),
     )
 
 
@@ -10419,7 +10583,12 @@ async def bulk_certify_attendees(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    from .generator import render_certificate_pdf, new_certificate_uuid, TemplateConfig
+    from .generator import (
+        TemplateConfig,
+        new_certificate_uuid,
+        render_certificate_pdf,
+        render_certificate_png_watermarked,
+    )
 
     ev = await _get_event_for_admin(event_id, me, db)
     if not ev.config or ev.template_image_url in ("", "placeholder"):
@@ -10551,6 +10720,9 @@ async def bulk_certify_attendees(
         rel_path = f"pdfs/event_{event_id}/{cert_uuid}.pdf"
         abs_path = Path(settings.local_storage_dir) / rel_path
         abs_path.parent.mkdir(parents=True, exist_ok=True)
+        rel_png_path = _certificate_png_rel_path(event_id, cert_uuid)
+        abs_png_path = Path(settings.local_storage_dir) / rel_png_path
+        abs_png_path.parent.mkdir(parents=True, exist_ok=True)
 
         try:
             pdf_bytes = render_certificate_pdf(
@@ -10563,6 +10735,19 @@ async def bulk_certify_attendees(
                 certificate_footer=(cfg_raw.get("certificate_footer") if isinstance(cfg_raw, dict) else None),
             )
             abs_path.write_bytes(pdf_bytes)
+            try:
+                png_bytes = render_certificate_png_watermarked(
+                    template_image_bytes=template_bytes,
+                    student_name=attendee.name,
+                    verify_url=build_certificate_verify_url(cert_uuid),
+                    config=tc,
+                    public_id=public_id,
+                    brand_logo_bytes=brand_logo_bytes,
+                    certificate_footer=(cfg_raw.get("certificate_footer") if isinstance(cfg_raw, dict) else None),
+                )
+                abs_png_path.write_bytes(png_bytes)
+            except Exception as png_error:
+                logger.warning("BulkCertify PNG render error for %s: %s", attendee.name, png_error)
         except Exception as e:
             logger.error("BulkCertify render error for %s: %s", attendee.name, e)
             continue
@@ -10588,6 +10773,14 @@ async def bulk_certify_attendees(
         created += 1
         total_spent += cost
         await db.flush()
+        if attendee.email:
+            background_tasks.add_task(
+                send_certificate_delivery_email_task,
+                event_id=event_id,
+                cert_uuid=cert_uuid,
+                recipient_name=attendee.name,
+                recipient_email=attendee.email,
+            )
 
     await db.commit()
     return BulkCertifyOut(

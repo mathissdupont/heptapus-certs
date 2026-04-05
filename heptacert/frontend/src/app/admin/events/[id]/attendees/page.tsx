@@ -161,7 +161,7 @@ export default function AdminAttendeesPage() {
         setCopiedSurveyId((current) => (current === attendeeId ? null : current));
       }, 2200);
     } catch (e: any) {
-      setListError(e.message || "Anket linki kopyalanamadÄ±.");
+      setListError(e.message || "Anket linki kopyalanamadı.");
     } finally {
       setCopyingSurveyId(null);
     }
@@ -183,7 +183,7 @@ export default function AdminAttendeesPage() {
 
       while (true) {
         if (Date.now() - startedAt > MAX_WAIT_MS) {
-          setCertResult(`âš ï¸ Ä°ÅŸlem arka planda devam ediyor (Job #${jobId}). Sertifikalar sayfasÄ±ndan takip edebilirsiniz.`);
+          setCertResult(`⚠️ İşlem arka planda devam ediyor (Job #${jobId}). Sertifikalar sayfasından takip edebilirsiniz.`);
           break;
         }
         await new Promise((r) => setTimeout(r, 2000));
@@ -191,24 +191,24 @@ export default function AdminAttendeesPage() {
         const total = status.total_count || 0;
         const current = status.current_index || 0;
         const created = status.created_count || 0;
-        setCertResult(`â³ Ä°ÅŸleniyor: ${current}/${total} â€¢ OluÅŸan: ${created}`);
+        setCertResult(`⏳ İşleniyor: ${current}/${total} • Oluşan: ${created}`);
 
         if (status.status === "completed") {
-          setCertResult(`âœ… ${created} sertifika Ã¼retildi Â· ${status.already_exists_count} zaten vardÄ± Â· ${status.spent_heptacoin} HC harcandÄ±`);
+          setCertResult(`✅ ${created} sertifika üretildi · ${status.already_exists_count} zaten vardı · ${status.spent_heptacoin} HC harcandı`);
           if (tab === "matrix") await loadMatrix();
           break;
         }
         if (status.status === "failed") {
-          setCertResult(`âŒ ${status.error_message || "Toplu sertifika Ã¼retimi baÅŸarÄ±sÄ±z."}`);
+          setCertResult(`❌ ${status.error_message || "Toplu sertifika üretimi başarısız."}`);
           break;
         }
         if (status.status === "cancelled") {
-          setCertResult(`âŒ Ä°ÅŸlem iptal edildi.`);
+          setCertResult(`❌ İşlem iptal edildi.`);
           break;
         }
       }
     } catch (e: any) {
-      setCertResult(`âŒ ${e.message}`);
+      setCertResult(`❌ ${e.message}`);
     } finally {
       setCertifying(false);
     }
@@ -227,13 +227,13 @@ export default function AdminAttendeesPage() {
             <ShieldAlert className="w-12 h-12 text-violet-400 mx-auto mb-3" />
             <h2 className="text-lg font-bold text-gray-800 mb-2">Pro veya Enterprise Plan Gerekli</h2>
             <p className="text-sm text-gray-500 mb-4 max-w-md mx-auto">
-              KatÄ±lÄ±mcÄ± yÃ¶netimi, yoklama matrisi ve toplu sertifika Ã¼retimi Ã¶zellikleri sadece Pro ve Enterprise planlarÄ±nda kullanÄ±labilir.
+              Katılımcı yönetimi, yoklama matrisi ve toplu sertifika üretimi özellikleri sadece Pro ve Enterprise planlarında kullanılabilir.
             </p>
             <Link
               href="/pricing"
               className="inline-flex items-center gap-2 bg-violet-600 text-white font-semibold px-6 py-2.5 rounded-xl hover:bg-violet-700 transition text-sm"
             >
-              <Sparkles className="w-4 h-4" /> PlanÄ± YÃ¼kselt
+              <Sparkles className="w-4 h-4" /> Planı Yükselt
             </Link>
           </div>
         )}
@@ -242,7 +242,7 @@ export default function AdminAttendeesPage() {
           <>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-extrabold text-gray-900">KatÄ±lÄ±mcÄ± YÃ¶netimi</h1>
+            <h1 className="text-2xl font-extrabold text-gray-900">Katılımcı Yönetimi</h1>
             <p className="text-sm text-gray-500 mt-0.5">{eventName} Â· Min. {minSessions} oturum</p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
@@ -252,7 +252,7 @@ export default function AdminAttendeesPage() {
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 border border-gray-200 bg-white text-gray-700 text-sm font-semibold px-4 py-2 rounded-xl hover:bg-gray-50 transition"
             >
-              <Download className="w-4 h-4" /> Excel Ä°ndir
+              <Download className="w-4 h-4" /> Excel İndir
             </a>
             <Link
               href={`/admin/events/${eventId}/checkin`}
@@ -266,7 +266,7 @@ export default function AdminAttendeesPage() {
               className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold px-4 py-2 rounded-xl hover:opacity-90 disabled:opacity-50 transition text-sm"
             >
               {certifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Award className="w-4 h-4" />}
-              Sertifika Ãœret
+              Sertifika Üret
             </button>
           </div>
         </div>
@@ -297,11 +297,11 @@ export default function AdminAttendeesPage() {
             {/* Import */}
             <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-5 shadow-sm">
               <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <Upload className="w-4 h-4 text-indigo-500" /> Excel/CSV Ä°Ã§e Aktar
+                <Upload className="w-4 h-4 text-indigo-500" /> Excel/CSV İçe Aktar
               </h2>
               <div className="flex gap-2 flex-wrap">
                 <label className="flex-1 min-w-0">
-                  <span className="sr-only">Dosya seÃ§</span>
+                  <span className="sr-only">Dosya seç</span>
                   <input
                     type="file"
                     accept=".xlsx,.xls,.csv"
@@ -315,15 +315,15 @@ export default function AdminAttendeesPage() {
                   className="inline-flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-4 py-1.5 rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition shrink-0"
                 >
                   {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                  YÃ¼kle
+                  Yükle
                 </button>
               </div>
               {importResult && (
                 <p className="text-xs text-green-700 mt-2">
-                  âœ… {importResult.added} katÄ±lÄ±mcÄ± eklendi, {importResult.skipped} atlandÄ±.
+                  ✅ {importResult.added} katılımcı eklendi, {importResult.skipped} atlandı.
                 </p>
               )}
-              <p className="text-xs text-gray-400 mt-1">Dosyada <code>name</code>/<code>ad</code> ve <code>email</code>/<code>e-posta</code> sÃ¼tunlarÄ± olmalÄ±.</p>
+              <p className="text-xs text-gray-400 mt-1">Dosyada <code>name</code>/<code>ad</code> ve <code>email</code>/<code>e-posta</code> sütunları olmalı.</p>
             </div>
 
             {/* Search */}
@@ -354,11 +354,11 @@ export default function AdminAttendeesPage() {
             ) : attendees.length === 0 ? (
               <div className="text-center py-16 text-gray-400">
                 <Users className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                <p className="font-medium">KatÄ±lÄ±mcÄ± bulunamadÄ±</p>
+                <p className="font-medium">Katılımcı bulunamadı</p>
               </div>
             ) : (
               <>
-                <p className="text-xs text-gray-400 mb-2">{total} katÄ±lÄ±mcÄ±</p>
+                <p className="text-xs text-gray-400 mb-2">{total} katılımcı</p>
                 <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 border-b border-gray-100">
@@ -397,7 +397,7 @@ export default function AdminAttendeesPage() {
                             {a.has_certificate ? (
                               <CheckCircle2 className="w-4 h-4 text-green-500 mx-auto" />
                             ) : (
-                              <span className="text-gray-300 text-xs">â€”</span>
+                              <span className="text-gray-300 text-xs">—</span>
                             )}
                           </td>
                           <td className="px-4 py-3 text-center hidden lg:table-cell">
@@ -405,7 +405,7 @@ export default function AdminAttendeesPage() {
                               onClick={() => void handleCopySurveyLink(a.id)}
                               disabled={copyingSurveyId === a.id}
                               className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100 disabled:opacity-60"
-                              title="KatÄ±lÄ±mcÄ±ya Ã¶zel anket linkini kopyala"
+                              title="Katılımcıya özel anket linkini kopyala"
                             >
                               {copyingSurveyId === a.id ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -414,7 +414,7 @@ export default function AdminAttendeesPage() {
                               ) : (
                                 <Link2 className="w-3.5 h-3.5" />
                               )}
-                              {copiedSurveyId === a.id ? "KopyalandÄ±" : "Anket Linki"}
+                              {copiedSurveyId === a.id ? "Kopyalandı" : "Anket Linki"}
                             </button>
                           </td>
                           <td className="px-4 py-3 text-right">
@@ -423,7 +423,7 @@ export default function AdminAttendeesPage() {
                                 onClick={() => void handleCopySurveyLink(a.id)}
                                 disabled={copyingSurveyId === a.id}
                                 className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 lg:hidden"
-                                title="KatÄ±lÄ±mcÄ±ya Ã¶zel anket linkini kopyala"
+                                title="Katılımcıya özel anket linkini kopyala"
                               >
                                 {copyingSurveyId === a.id ? (
                                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -432,7 +432,7 @@ export default function AdminAttendeesPage() {
                                 ) : (
                                   <Copy className="w-3.5 h-3.5" />
                                 )}
-                                {copiedSurveyId === a.id ? "KopyalandÄ±" : "Anket"}
+                                {copiedSurveyId === a.id ? "Kopyalandı" : "Anket"}
                               </button>
                               <button
                                 onClick={() => handleDelete(a.id)}
@@ -457,7 +457,7 @@ export default function AdminAttendeesPage() {
                       disabled={page === 1}
                       className="px-3 py-1.5 rounded-lg border text-sm hover:bg-gray-50 disabled:opacity-40 transition"
                     >
-                      â† Ã–nceki
+                      ← Önceki
                     </button>
                     <span className="px-3 py-1.5 text-sm text-gray-500">{page}/{totalPages}</span>
                     <button
@@ -465,7 +465,7 @@ export default function AdminAttendeesPage() {
                       disabled={page === totalPages}
                       className="px-3 py-1.5 rounded-lg border text-sm hover:bg-gray-50 disabled:opacity-40 transition"
                     >
-                      Sonraki â†’
+                      Sonraki →
                     </button>
                   </div>
                 )}
@@ -477,7 +477,7 @@ export default function AdminAttendeesPage() {
         {tab === "matrix" && (
           <>
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-gray-500">Her katÄ±lÄ±mcÄ±nÄ±n oturum bazlÄ± durumu</p>
+              <p className="text-sm text-gray-500">Her katılımcının oturum bazlı durumu</p>
               <button onClick={loadMatrix} className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-indigo-600 transition">
                 <RefreshCw className="w-3.5 h-3.5" /> Yenile
               </button>
@@ -501,24 +501,24 @@ export default function AdminAttendeesPage() {
                   </div>
                   <div className="bg-white rounded-xl border border-green-200 p-3 text-center shadow-sm">
                     <p className="text-2xl font-bold text-green-600">{matrix.rows.filter((r) => r.meets_threshold).length}</p>
-                    <p className="text-xs text-gray-500">EÅŸiÄŸi GeÃ§en</p>
+                    <p className="text-xs text-gray-500">Eşiği Geçen</p>
                   </div>
                   <div className="bg-white rounded-xl border border-indigo-200 p-3 text-center shadow-sm">
                     <p className="text-2xl font-bold text-indigo-600">{matrix.rows.filter((r) => r.has_certificate).length}</p>
-                    <p className="text-xs text-gray-500">Sertifika AldÄ±</p>
+                    <p className="text-xs text-gray-500">Sertifika Aldı</p>
                   </div>
                 </div>
 
                 {eligibleCount > 0 && (
                   <div className="mb-4 flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 sm:flex-row sm:items-center sm:justify-between">
-                    <span>âš¡ {eligibleCount} katÄ±lÄ±mcÄ± eÅŸiÄŸi geÃ§ti ama henÃ¼z sertifika almadÄ±.</span>
+                    <span>⚡ {eligibleCount} katılımcı eşiği geçti ama henüz sertifika almadı.</span>
                     <button
                       onClick={handleBulkCertify}
                       disabled={certifying}
                       className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-amber-700 disabled:opacity-50"
                     >
                       {certifying ? <Loader2 className="w-3 h-3 animate-spin" /> : <Award className="w-3 h-3" />}
-                      Ãœret
+                      Üret
                     </button>
                   </div>
                 )}
@@ -526,7 +526,7 @@ export default function AdminAttendeesPage() {
                 {matrix.rows.length === 0 ? (
                   <div className="text-center py-12 text-gray-400">
                     <Users className="w-10 h-10 mx-auto mb-2 opacity-40" />
-                    <p>HenÃ¼z katÄ±lÄ±mcÄ± yok</p>
+                    <p>Henüz katılımcı yok</p>
                   </div>
                 ) : (
                   <div className="bg-white rounded-2xl border border-gray-200 overflow-x-auto shadow-sm">
@@ -536,7 +536,7 @@ export default function AdminAttendeesPage() {
                           <th className="text-left px-3 py-2.5 font-semibold text-gray-500 whitespace-nowrap">Ad Soyad</th>
                           {matrix.sessions.map((s) => (
                             <th key={s.id} className="text-center px-2 py-2.5 font-semibold text-gray-500 whitespace-nowrap max-w-[80px]" title={s.session_date || ""}>
-                              {s.name.length > 12 ? s.name.slice(0, 12) + "â€¦" : s.name}
+                              {s.name.length > 12 ? s.name.slice(0, 12) + "…" : s.name}
                             </th>
                           ))}
                           <th className="text-center px-3 py-2.5 font-semibold text-gray-500">Toplam</th>
@@ -566,10 +566,10 @@ export default function AdminAttendeesPage() {
                                 </span>
                               ) : row.meets_threshold ? (
                                 <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium">
-                                  âœ“ Uygun
+                                  ✓ Uygun
                                 </span>
                               ) : (
-                                <span className="text-gray-300 text-xs">â€”</span>
+                                <span className="text-gray-300 text-xs">—</span>
                               )}
                             </td>
                           </tr>
@@ -586,8 +586,8 @@ export default function AdminAttendeesPage() {
         )}
           <ConfirmModal
             open={pendingDeleteId !== null}
-            title="KatÄ±lÄ±mcÄ±yÄ± sil"
-            description="Bu katÄ±lÄ±mcÄ±yÄ± silmek istediÄŸinize emin misiniz?"
+            title="Katılımcıyı sil"
+            description="Bu katılımcıyı silmek istediğinize emin misiniz?"
             danger
             loading={deletingId !== null}
             onConfirm={confirmDelete}
@@ -595,8 +595,8 @@ export default function AdminAttendeesPage() {
           />
       <ConfirmModal
         open={showCertifyConfirm}
-            title="Toplu sertifika Ã¼ret"
-            description="EÅŸiÄŸi geÃ§en tÃ¼m katÄ±lÄ±mcÄ±lara sertifika Ã¼retilecek. OnaylÄ±yor musunuz?"
+            title="Toplu sertifika üret"
+            description="Eşiği geçen tüm katılımcılara sertifika üretilecek. Onaylıyor musunuz?"
             onConfirm={executeBulkCertify}
             onCancel={() => setShowCertifyConfirm(false)}
       />
@@ -606,7 +606,7 @@ export default function AdminAttendeesPage() {
           <div className="h-full w-full max-w-full overflow-y-auto border-l border-slate-200 bg-white p-5 shadow-2xl sm:max-w-md sm:p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">KatÄ±lÄ±mcÄ± KartÄ±</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Katılımcı Kartı</p>
                 <h3 className="mt-2 text-2xl font-black text-slate-900">{selectedAttendee.name}</h3>
                 <p className="mt-1 text-sm text-slate-500">{selectedAttendee.email}</p>
               </div>
@@ -621,9 +621,9 @@ export default function AdminAttendeesPage() {
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">KayÄ±t Tipi</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Kayıt Tipi</p>
                 <p className="mt-2 text-lg font-black text-slate-900">
-                  {selectedAttendee.source === "self_register" ? "Kendi kaydÄ±" : "Ä°Ã§e aktarÄ±ldÄ±"}
+                  {selectedAttendee.source === "self_register" ? "Kendi kaydı" : "İçe aktarıldı"}
                 </p>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
@@ -637,7 +637,7 @@ export default function AdminAttendeesPage() {
                 </p>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">KayÄ±t Tarihi</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Kayıt Tarihi</p>
                 <p className="mt-2 text-sm font-semibold text-slate-900">
                   {new Date(selectedAttendee.registered_at).toLocaleString("tr-TR")}
                 </p>
@@ -645,7 +645,7 @@ export default function AdminAttendeesPage() {
             </div>
 
             <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-sm font-semibold text-slate-900">HÄ±zlÄ± aksiyonlar</p>
+              <p className="text-sm font-semibold text-slate-900">Hızlı aksiyonlar</p>
               <div className="mt-4 grid gap-3">
                 <button
                   type="button"
@@ -653,7 +653,7 @@ export default function AdminAttendeesPage() {
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
                 >
                   <Link2 className="h-4 w-4" />
-                  KiÅŸisel anket linkini kopyala
+                  Kişisel anket linkini kopyala
                 </button>
                 <button
                   type="button"
@@ -664,7 +664,7 @@ export default function AdminAttendeesPage() {
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
                 >
                   <Trash2 className="h-4 w-4" />
-                  KatÄ±lÄ±mcÄ±yÄ± sil
+                  Katılımcıyı sil
                 </button>
               </div>
             </div>

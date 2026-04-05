@@ -1,23 +1,33 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useState } from "react";
-import { apiFetch, getMySubscription, type SubscriptionInfo } from "@/lib/api";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { motion } from "framer-motion";
 import {
-  Settings, Save, Upload, AlertCircle, Loader2,
-  CheckCircle2, Mail, Image as ImageIcon, Lock, Eye, FileText,
-  Eye as EyeIcon,
+  AlertCircle,
+  CheckCircle2,
+  FileText,
+  Image as ImageIcon,
+  Loader2,
+  Lock,
+  Mail,
+  Save,
+  Sparkles,
+  Upload,
+  Wand2,
 } from "lucide-react";
+import { apiFetch, getMySubscription, type SubscriptionInfo } from "@/lib/api";
+import EventAdminNav from "@/components/Admin/EventAdminNav";
+import PageHeader from "@/components/Admin/PageHeader";
+import { useI18n } from "@/lib/i18n";
+import { useToast } from "@/hooks/useToast";
 
 type EventOut = {
   id: number;
   name: string;
   template_image_url: string;
   event_description?: string;
-  event_banner_url?: string;
-  config: any;
+  event_banner_url?: string | null;
   auto_email_on_cert?: boolean;
   cert_email_template_id?: number | null;
 };
@@ -26,65 +36,195 @@ type CertificateTemplate = {
   id: number;
   name: string;
   template_image_url: string;
-  config: any;
+  config: unknown;
   order_index: number;
+};
+
+type EmailTemplate = {
+  id: number;
+  name: string;
+  subject_tr: string;
+  subject_en: string;
+  template_type: string;
+  event_id?: number | null;
+};
+
+type FormState = {
+  name: string;
+  event_description: string;
+  event_banner_url: string;
+  auto_email_on_cert: boolean;
+  cert_email_template_id: number | null;
 };
 
 export default function EventSettingsPage() {
   const params = useParams();
   const eventId = params.id as string;
+  const toast = useToast();
+  const { lang } = useI18n();
+
+  const copy = lang === "tr"
+    ? {
+        title: "Etkinlik Ayarları",
+        subtitle: "Etkinlik bilgisini, sertifika görünümünü ve otomatik e-posta akışını tek yerden yönetin.",
+        loadingError: "Veriler yüklenemedi.",
+        requiredName: "Etkinlik adı zorunludur.",
+        saveSuccess: "Ayarlar kaydedildi.",
+        saveError: "Ayarlar kaydedilemedi.",
+        bannerError: "Banner yüklenemedi.",
+        upgradeTitle: "Otomatik e-posta için Growth veya Enterprise gerekir",
+        upgradeBody: "Sertifika verildiğinde otomatik e-posta gönderimi ve sistem şablonları yalnızca üst planlarda kullanılabilir.",
+        upgradeCta: "Planları Gör",
+        basicTitle: "Temel Bilgiler",
+        basicBody: "Etkinlik kaydı sırasında görünen ana bilgileri burada güncelleyin.",
+        name: "Etkinlik adı",
+        namePlaceholder: "Örn. Hepta Summit 2026",
+        description: "Etkinlik açıklaması",
+        descriptionPlaceholder: "Katılımcıların kayıt sayfasında göreceği kısa açıklama",
+        bannerTitle: "Etkinlik bannerı",
+        bannerBody: "Kayıt ekranı ve üst başlıklarda kullanılan görseli güncelleyin.",
+        uploadBanner: "Banner Yükle",
+        bannerHint: "Önerilen boyut: 1200×400 · JPG, PNG veya WebP",
+        noBanner: "Henüz banner yüklenmedi",
+        emailTitle: "Otomatik sertifika e-postası",
+        emailBody: "Sertifika oluşturulduğunda hangi e-posta şablonunun kullanılacağını belirleyin.",
+        autoEmail: "Sertifika oluşturulunca otomatik e-posta gönder",
+        autoEmailHint: "Katılımcı sertifikası üretildiği anda seçili şablonla teslim e-postası gönderilir.",
+        templateLabel: "E-posta şablonu",
+        templatePlaceholder: "Şablon seçin",
+        customTemplates: "Etkinliğe özel şablonlar",
+        systemTemplates: "Sistem şablonları",
+        noTemplates: "Henüz kullanılabilir e-posta şablonu yok. Önce bir şablon oluşturun.",
+        manageTemplates: "E-posta şablonlarını yönet",
+        manageCampaigns: "Toplu e-posta kampanyalarına git",
+        certificateTitle: "Sertifika tasarımı",
+        certificateBody: "Etkinliğin aktif sertifika görselini seçin. Seçim kaydedildiğinde uygulanır.",
+        currentDesign: "Mevcut tasarım",
+        selected: "Seçili",
+        applyHint: "Aktif tasarım editörde aynı şekilde düzenlenebilir.",
+        openEditor: "Editörde aç",
+        cancel: "Vazgeç",
+        save: "Ayarları Kaydet",
+        saving: "Kaydediliyor...",
+        active: "Aktif",
+        enterprise: "Enterprise",
+        growth: "Growth",
+      }
+    : {
+        title: "Event Settings",
+        subtitle: "Manage event details, certificate appearance, and automated email delivery from one place.",
+        loadingError: "Failed to load data.",
+        requiredName: "Event name is required.",
+        saveSuccess: "Settings saved.",
+        saveError: "Failed to save settings.",
+        bannerError: "Banner upload failed.",
+        upgradeTitle: "Growth or Enterprise is required for automated email",
+        upgradeBody: "Automatic certificate delivery emails and system templates are only available on higher plans.",
+        upgradeCta: "View Plans",
+        basicTitle: "Basic Information",
+        basicBody: "Update the main event details shown during registration.",
+        name: "Event name",
+        namePlaceholder: "e.g. Hepta Summit 2026",
+        description: "Event description",
+        descriptionPlaceholder: "Short copy attendees will see on the registration page",
+        bannerTitle: "Event banner",
+        bannerBody: "Update the visual used on registration and event headers.",
+        uploadBanner: "Upload Banner",
+        bannerHint: "Recommended size: 1200×400 · JPG, PNG or WebP",
+        noBanner: "No banner uploaded yet",
+        emailTitle: "Automatic certificate email",
+        emailBody: "Choose which email template should be sent when a certificate is issued.",
+        autoEmail: "Send an automatic email when a certificate is issued",
+        autoEmailHint: "As soon as a participant certificate is generated, the selected delivery email is sent.",
+        templateLabel: "Email template",
+        templatePlaceholder: "Select a template",
+        customTemplates: "Event templates",
+        systemTemplates: "System templates",
+        noTemplates: "No email template is available yet. Create one first.",
+        manageTemplates: "Manage email templates",
+        manageCampaigns: "Go to bulk email campaigns",
+        certificateTitle: "Certificate design",
+        certificateBody: "Choose the active certificate artwork for this event. The selected template is applied when you save.",
+        currentDesign: "Current design",
+        selected: "Selected",
+        applyHint: "The active design can still be refined in the editor.",
+        openEditor: "Open in Editor",
+        cancel: "Cancel",
+        save: "Save Settings",
+        saving: "Saving...",
+        active: "Active",
+        enterprise: "Enterprise",
+        growth: "Growth",
+      };
 
   const [event, setEvent] = useState<EventOut | null>(null);
   const [certTemplates, setCertTemplates] = useState<CertificateTemplate[]>([]);
+  const [customEmailTemplates, setCustomEmailTemplates] = useState<EmailTemplate[]>([]);
+  const [systemEmailTemplates, setSystemEmailTemplates] = useState<EmailTemplate[]>([]);
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
+  const [formData, setFormData] = useState<FormState>({
+    name: "",
+    event_description: "",
+    event_banner_url: "",
+    auto_email_on_cert: false,
+    cert_email_template_id: null,
+  });
+  const [selectedCertTemplateId, setSelectedCertTemplateId] = useState<number | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Form state
-  const [formData, setFormData] = useState({
-    name: "",
-    event_description: "",
-    event_banner_url: "",
-    auto_email_on_cert: false,
-    cert_email_template_id: null as number | null,
-  });
+  const hasGrowthPlan = subscription?.role === "superadmin" || (subscription?.active && ["growth", "enterprise"].includes(subscription?.plan_id || ""));
 
-  const [bannerFile, setBannerFile] = useState<File | null>(null);
-  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const currentCertTemplateId = useMemo(() => {
+    if (!event?.template_image_url) return null;
+    return certTemplates.find((template) => template.template_image_url === event.template_image_url)?.id ?? null;
+  }, [certTemplates, event?.template_image_url]);
+
+  const availableEmailTemplates = useMemo(
+    () => [...customEmailTemplates, ...systemEmailTemplates],
+    [customEmailTemplates, systemEmailTemplates],
+  );
 
   useEffect(() => {
-    loadData();
+    void loadData();
   }, [eventId]);
 
   async function loadData() {
     setLoading(true);
     setError(null);
-
     try {
-      const [eventRes, certRes, subRes] = await Promise.all([
+      const [eventRes, certRes, customRes, systemRes, subRes] = await Promise.all([
         apiFetch(`/admin/events/${eventId}`),
         apiFetch("/system/cert-templates"),
+        apiFetch(`/admin/events/${eventId}/email-templates`),
+        apiFetch("/system/email-templates"),
         getMySubscription(),
       ]);
 
       const eventData = (await eventRes.json()) as EventOut;
       const certData = (await certRes.json()) as CertificateTemplate[];
-      
+      const customData = (await customRes.json()) as EmailTemplate[];
+      const systemData = (await systemRes.json()) as EmailTemplate[];
+
       setEvent(eventData);
       setCertTemplates(certData);
+      setCustomEmailTemplates(customData || []);
+      setSystemEmailTemplates(systemData || []);
       setSubscription(subRes);
-
+      setSelectedCertTemplateId(certData.find((template) => template.template_image_url === eventData.template_image_url)?.id ?? null);
       setFormData({
         name: eventData.name || "",
         event_description: eventData.event_description || "",
         event_banner_url: eventData.event_banner_url || "",
-        auto_email_on_cert: eventData.auto_email_on_cert || false,
+        auto_email_on_cert: Boolean(eventData.auto_email_on_cert),
         cert_email_template_id: eventData.cert_email_template_id || null,
       });
     } catch (e: any) {
-      setError(e?.message || "Veri yükleme başarısız");
+      setError(e?.message || copy.loadingError);
     } finally {
       setLoading(false);
     }
@@ -93,371 +233,346 @@ export default function EventSettingsPage() {
   function handleBannerSelect(file: File) {
     setBannerFile(file);
     const reader = new FileReader();
-    reader.onload = (e) => {
-      setBannerPreview(e.target?.result as string);
-    };
+    reader.onload = (event) => setBannerPreview(event.target?.result as string);
     reader.readAsDataURL(file);
   }
 
   async function handleSave() {
+    if (!formData.name.trim()) {
+      setError(copy.requiredName);
+      return;
+    }
+
     setSaving(true);
     setError(null);
     setSuccess(null);
 
     try {
-      if (!formData.name.trim()) {
-        setError("Etkinlik adı gereklidir");
-        setSaving(false);
-        return;
-      }
-
-      const updateData: any = {
-        name: formData.name,
-        event_description: formData.event_description,
+      const payload: Record<string, unknown> = {
+        name: formData.name.trim(),
+        event_description: formData.event_description.trim(),
       };
 
-      // Only update cert-related fields if Growth plan is active
-      if (subscription?.active && ["growth", "enterprise"].includes(subscription.plan_id || "")) {
-        updateData.auto_email_on_cert = formData.auto_email_on_cert;
-        updateData.cert_email_template_id = formData.cert_email_template_id;
+      if (hasGrowthPlan) {
+        payload.auto_email_on_cert = formData.auto_email_on_cert;
+        payload.cert_email_template_id = formData.cert_email_template_id;
       }
 
-      const res = await apiFetch(`/admin/events/${eventId}`, {
+      await apiFetch(`/admin/events/${eventId}`, {
         method: "PATCH",
-        body: JSON.stringify(updateData),
+        body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("Güncelleme başarısız");
-
-      // Handle banner upload if selected
-      if (bannerFile) {
-        const formDataBanner = new FormData();
-        formDataBanner.append("file", bannerFile);
-
-        const uploadRes = await apiFetch(`/admin/events/${eventId}/banner-upload`, {
+      if (hasGrowthPlan && selectedCertTemplateId && selectedCertTemplateId !== currentCertTemplateId) {
+        await apiFetch(`/admin/events/${eventId}/apply-cert-template`, {
           method: "POST",
-          body: formDataBanner,
+          body: JSON.stringify({ cert_template_id: selectedCertTemplateId }),
         });
+      }
 
-        if (!uploadRes.ok) {
-          throw new Error("Banner yükleme başarısız");
-        }
-
+      if (bannerFile) {
+        const uploadForm = new FormData();
+        uploadForm.append("file", bannerFile);
+        await apiFetch(`/admin/events/${eventId}/banner-upload`, {
+          method: "POST",
+          body: uploadForm,
+        });
         setBannerFile(null);
         setBannerPreview(null);
       }
 
-      setSuccess("Ayarlar başarıyla kaydedildi!");
+      setSuccess(copy.saveSuccess);
+      toast.success(copy.saveSuccess);
       await loadData();
     } catch (e: any) {
-      setError(e?.message || "İşlem başarısız oldu");
+      const message = e?.message || copy.saveError;
+      setError(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
   }
 
-  const hasGrowthPlan = subscription?.active && ["growth", "enterprise"].includes(subscription?.plan_id || "");
-
   if (loading) {
     return (
       <div className="flex items-center justify-center p-24">
-        <Loader2 className="w-8 h-8 animate-spin text-brand-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
       </div>
     );
   }
 
   return (
-    <div className="py-8">
-      <div className="mx-auto max-w-4xl px-4">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <Settings className="w-8 h-8 text-brand-600" />
-            Etkinlik Ayarları
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">Etkinlik bilgilerini ve özelliklerini yönetin</p>
-        </div>
+    <div className="flex flex-col gap-6 pb-20">
+      <EventAdminNav eventId={eventId} eventName={event?.name} active="settings" className="mb-2 flex flex-col gap-2" />
 
-        {error && (
-          <div className="error-banner mb-6">
-            <AlertCircle className="w-5 h-5 shrink-0" />
-            <span>{error}</span>
+      <PageHeader
+        title={copy.title}
+        subtitle={copy.subtitle}
+        icon={<Wand2 className="h-5 w-5" />}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/admin/events/${eventId}/editor`} className="btn-secondary">
+              {copy.openEditor}
+            </Link>
+            <button onClick={handleSave} disabled={saving} className="btn-primary inline-flex items-center gap-2 disabled:opacity-60">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {saving ? copy.saving : copy.save}
+            </button>
           </div>
-        )}
+        }
+      />
 
-        {success && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 flex items-center gap-3 rounded-lg bg-green-50 p-4 text-green-700"
-          >
-            <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
-            <span>{success}</span>
-          </motion.div>
-        )}
+      {error && (
+        <div className="error-banner">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error}
+        </div>
+      )}
 
+      {success && (
+        <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          {success}
+        </div>
+      )}
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_360px]">
         <div className="space-y-6">
-          {/* Basic Information Card */}
-          <div className="card p-6">
-            <div className="mb-6 flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-brand-50 text-brand-600">
-                <FileText className="w-5 h-5" />
-              </span>
-              <h2 className="text-xl font-bold text-gray-900">Temel Bilgiler</h2>
+          <section className="card p-6 sm:p-7">
+            <div className="flex items-start gap-3">
+              <div className="rounded-2xl bg-brand-50 p-3 text-brand-600">
+                <FileText className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-surface-900">{copy.basicTitle}</h2>
+                <p className="mt-1 text-sm text-surface-500">{copy.basicBody}</p>
+              </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="mt-6 grid gap-4">
               <div>
-                <label className="label">Etkinlik Adı *</label>
+                <label className="label">{copy.name}</label>
                 <input
-                  type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(event) => setFormData((current) => ({ ...current, name: event.target.value }))}
                   className="input-field"
-                  placeholder="ör. DevConf 2024"
+                  placeholder={copy.namePlaceholder}
                 />
               </div>
-
               <div>
-                <label className="label flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  Etkinlik Açıklaması
-                </label>
+                <label className="label">{copy.description}</label>
                 <textarea
                   value={formData.event_description}
-                  onChange={(e) => setFormData({ ...formData, event_description: e.target.value })}
-                  placeholder="Etkinliğinizin ayrıntılı açıklamasını yazın..."
+                  onChange={(event) => setFormData((current) => ({ ...current, event_description: event.target.value }))}
                   className="input-field min-h-32"
+                  placeholder={copy.descriptionPlaceholder}
                 />
-                <p className="text-xs text-gray-500 mt-2">
-                  Bu açıklama, katılımcılar etkinliği kaydettiğinde gösterilecektir.
-                </p>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* Banner Card */}
-          <div className="card p-6">
-            <div className="mb-6 flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-brand-50 text-brand-600">
-                <ImageIcon className="w-5 h-5" />
-              </span>
-              <h2 className="text-xl font-bold text-gray-900">Etkinlik Banneri</h2>
+          <section className="card p-6 sm:p-7">
+            <div className="flex items-start gap-3">
+              <div className="rounded-2xl bg-sky-50 p-3 text-sky-600">
+                <ImageIcon className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-surface-900">{copy.bannerTitle}</h2>
+                <p className="mt-1 text-sm text-surface-500">{copy.bannerBody}</p>
+              </div>
             </div>
 
-            <div className="space-y-4">
-              {bannerPreview ? (
-                <div className="rounded-lg overflow-hidden bg-gray-100 h-48">
-                  <img src={bannerPreview} alt="Banner Preview" className="w-full h-full object-cover" />
-                </div>
-              ) : formData.event_banner_url ? (
-                <div className="rounded-lg overflow-hidden bg-gray-100 h-48">
-                  <img src={formData.event_banner_url} alt="Current Banner" className="w-full h-full object-cover" />
-                </div>
-              ) : (
-                <div className="rounded-lg bg-gray-100 h-48 flex items-center justify-center">
-                  <p className="text-gray-500 text-sm">Banner seçilmedi</p>
-                </div>
-              )}
-
-              <label className="btn btn-secondary w-full flex items-center justify-center gap-2 cursor-pointer">
-                <Upload className="w-4 h-4" />
-                Banner Yükle
+            <div className="mt-6 space-y-4">
+              <div className="overflow-hidden rounded-3xl border border-surface-200 bg-surface-50">
+                {bannerPreview || formData.event_banner_url ? (
+                  <img
+                    src={bannerPreview || formData.event_banner_url}
+                    alt={copy.bannerTitle}
+                    className="h-52 w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-52 items-center justify-center text-sm text-surface-400">{copy.noBanner}</div>
+                )}
+              </div>
+              <label className="btn-secondary inline-flex cursor-pointer items-center gap-2 w-fit">
+                <Upload className="h-4 w-4" />
+                {copy.uploadBanner}
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(e) => {
-                    if (e.target.files?.[0]) {
-                      handleBannerSelect(e.target.files[0]);
-                    }
-                  }}
                   className="hidden"
+                  onChange={(event) => {
+                    if (event.target.files?.[0]) handleBannerSelect(event.target.files[0]);
+                  }}
                 />
               </label>
-
-              <p className="text-xs text-gray-500">
-                Önerilen boyut: 1200x400px. Desteklenen formatlar: JPG, PNG, WebP
-              </p>
+              <p className="text-xs text-surface-400">{copy.bannerHint}</p>
             </div>
-          </div>
+          </section>
 
-          {/* Email & Certificate Settings */}
-          {!hasGrowthPlan ? (
-            <div className="card p-6 border-orange-200 bg-orange-50">
-              <div className="flex items-start gap-3">
-                <Lock className="w-5 h-5 text-orange-600 flex-shrink-0 mt-1" />
-                <div>
-                  <h3 className="font-bold text-gray-900 mb-1">Email & Sertifika Ayarları</h3>
-                  <p className="text-sm text-gray-700 mb-3">
-                    Otomatik email gönderme, sertifika şablonu seçimi ve diğer gelişmiş özellikleri kullanmak için Growth veya Enterprise planına yükseltmeniz gerekir.
-                  </p>
-                  <Link href="/pricing" className="text-sm font-medium text-orange-600 hover:text-orange-700 flex items-center gap-1">
-                    Planlara Gözat →
-                  </Link>
+          <section className="card p-6 sm:p-7">
+            <div className="flex items-start gap-3">
+              <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600">
+                <Mail className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-xl font-bold text-surface-900">{copy.emailTitle}</h2>
+                  {hasGrowthPlan && (
+                    <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                      {subscription?.plan_id === "enterprise" ? copy.enterprise : copy.growth}
+                    </span>
+                  )}
                 </div>
+                <p className="mt-1 text-sm text-surface-500">{copy.emailBody}</p>
               </div>
             </div>
-          ) : (
-            <div className="card p-6">
-              <div className="mb-6 flex items-center gap-2">
-                <span className="p-1.5 rounded-lg bg-green-50 text-green-600">
-                  <Mail className="w-5 h-5" />
-                </span>
-                <h2 className="text-xl font-bold text-gray-900">Email & Sertifika Ayarları</h2>
-                <span className="ml-auto text-xs font-medium bg-green-100 text-green-700 px-2 py-1 rounded">
-                  {subscription?.plan_id === "enterprise" ? "Enterprise" : "Growth"}
-                </span>
-              </div>
 
-              <div className="space-y-6">
-                {/* Auto-email toggle */}
-                <div>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.auto_email_on_cert}
-                      onChange={(e) => setFormData({ ...formData, auto_email_on_cert: e.target.checked })}
-                      className="w-4 h-4 accent-brand-600 cursor-pointer"
-                    />
-                    <div>
-                      <p className="font-medium text-gray-900">Sertifika Otomatik Emaili Gönder</p>
-                      <p className="text-sm text-gray-600">
-                        Sertifika verildiğinde otomatik olarak katılımcıya email gönderin
-                      </p>
-                    </div>
-                  </label>
+            {!hasGrowthPlan ? (
+              <div className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 p-5">
+                <div className="flex items-start gap-3">
+                  <Lock className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                  <div>
+                    <p className="font-semibold text-amber-900">{copy.upgradeTitle}</p>
+                    <p className="mt-1 text-sm leading-6 text-amber-800">{copy.upgradeBody}</p>
+                    <Link href="/pricing" className="mt-3 inline-flex text-sm font-semibold text-amber-700 hover:underline">
+                      {copy.upgradeCta}
+                    </Link>
+                  </div>
                 </div>
+              </div>
+            ) : (
+              <div className="mt-6 space-y-5">
+                <label className="flex items-start gap-3 rounded-3xl border border-surface-200 bg-surface-50 px-4 py-4">
+                  <input
+                    type="checkbox"
+                    checked={formData.auto_email_on_cert}
+                    onChange={(event) => setFormData((current) => ({ ...current, auto_email_on_cert: event.target.checked }))}
+                    className="mt-1 h-4 w-4 accent-brand-600"
+                  />
+                  <div>
+                    <p className="font-semibold text-surface-900">{copy.autoEmail}</p>
+                    <p className="mt-1 text-sm text-surface-500">{copy.autoEmailHint}</p>
+                  </div>
+                </label>
 
-                {/* Certificate template selector */}
                 {formData.auto_email_on_cert && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}>
-                    <label className="label mb-2">Email Şablonu</label>
-                    <p className="text-sm text-gray-600 mb-3">
-                      Katılımcılara sertifika gönderilirken kullanılacak email şablonunu seçin. Email şablonları sertifika fotoğrafı, başarı metni ve bağlantıları içerir.
-                    </p>
+                  <div className="grid gap-3">
+                    <label className="label">{copy.templateLabel}</label>
                     <select
                       value={formData.cert_email_template_id || ""}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          cert_email_template_id: e.target.value ? parseInt(e.target.value) : null,
-                        })
+                      onChange={(event) =>
+                        setFormData((current) => ({
+                          ...current,
+                          cert_email_template_id: event.target.value ? Number(event.target.value) : null,
+                        }))
                       }
                       className="input-field"
                     >
-                      <option value="">Şablon Seçin</option>
-                      <optgroup label="Sistem Şablonları">
-                        {/* We'll fetch system templates separately */}
-                        <option value="">Sertifika Şablonu Seç</option>
-                      </optgroup>
+                      <option value="">{copy.templatePlaceholder}</option>
+                      {customEmailTemplates.length > 0 && (
+                        <optgroup label={copy.customTemplates}>
+                          {customEmailTemplates.map((template) => (
+                            <option key={`custom-${template.id}`} value={template.id}>
+                              {template.name}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                      {systemEmailTemplates.length > 0 && (
+                        <optgroup label={copy.systemTemplates}>
+                          {systemEmailTemplates.map((template) => (
+                            <option key={`system-${template.id}`} value={template.id}>
+                              {template.name}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
                     </select>
-                    <p className="text-xs text-gray-500 mt-2">
-                      <Link href={`/admin/events/${eventId}/email-templates`} className="text-brand-600 font-medium">
-                        Email şablonlarını yönet →
+
+                    {availableEmailTemplates.length === 0 && (
+                      <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                        {copy.noTemplates}
+                      </p>
+                    )}
+
+                    {formData.cert_email_template_id && (
+                      <div className="rounded-3xl border border-surface-200 bg-white p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.active}</p>
+                        <p className="mt-2 font-semibold text-surface-900">
+                          {availableEmailTemplates.find((template) => template.id === formData.cert_email_template_id)?.name}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap gap-3 text-sm font-semibold">
+                      <Link href={`/admin/events/${eventId}/email-templates`} className="text-brand-600 hover:text-brand-700">
+                        {copy.manageTemplates}
                       </Link>
-                    </p>
-                  </motion.div>
+                      <Link href={`/admin/events/${eventId}/bulk-emails`} className="text-surface-600 hover:text-surface-900">
+                        {copy.manageCampaigns}
+                      </Link>
+                    </div>
+                  </div>
                 )}
+              </div>
+            )}
+          </section>
+        </div>
 
-                {/* Certificate design selector */}
-                <div>
-                  <div className="mb-4">
-                    <label className="label mb-2">Sertifika Tasarımı</label>
-                    <p className="text-sm text-gray-600 mb-3">
-                      Katılımcılara verilecek sertifikaların görünümünü seçin. Her tasarım farklı bir stil sunar.
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {certTemplates.map((template) => {
-                      const descriptions: { [key: string]: string } = {
-                        "Minimalist": "Basit ve temiz tasarım",
-                        "Profesyonel": "Kurumsal görünüm",
-                        "Renkli": "Canlı ve dinamik tasarım",
-                        "Kurumsal": "Resmi sertifika formatı",
-                        "Modern": "Çağdaş ve stilish tasarım",
-                        "Elegant": "Şık ve zarif tasarım",
-                        "Akademik": "Akademik sertifika formatı",
-                      };
-                      return (
-                        <button
-                          key={template.id}
-                          onClick={() => setFormData({ ...formData, cert_email_template_id: template.id })}
-                          className={`relative group rounded-lg overflow-hidden transition-all ${
-                            formData.cert_email_template_id === template.id
-                              ? "ring-2 ring-brand-600 shadow-lg"
-                              : "hover:shadow-md"
-                          }`}
-                          title={descriptions[template.name] || template.name}
-                        >
-                          <div className="bg-gray-200 aspect-video flex items-center justify-center">
-                            <img
-                              src={template.template_image_url}
-                              alt={template.name}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center">
-                            {formData.cert_email_template_id === template.id && (
-                              <CheckCircle2 className="w-8 h-8 text-white" />
-                            )}
-                          </div>
-                          <div className="p-3 text-sm bg-white">
-                            <p className="font-medium text-gray-900 text-center">{template.name}</p>
-                            <p className="text-xs text-gray-500 text-center mt-1">
-                              {descriptions[template.name] || ""}
-                            </p>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Quick links */}
-                <div className="pt-4 border-t border-gray-200 space-y-2">
-                  <Link
-                    href={`/admin/events/${eventId}/email-templates`}
-                    className="flex items-center gap-2 text-brand-600 font-medium hover:text-brand-700"
-                  >
-                    <Mail className="w-4 h-4" />
-                    Email Şablonlarını Yönet
-                  </Link>
-                  <Link
-                    href={`/admin/events/${eventId}/bulk-emails`}
-                    className="flex items-center gap-2 text-brand-600 font-medium hover:text-brand-700"
-                  >
-                    <EyeIcon className="w-4 h-4" />
-                    Toplu Email Kampanyalarını Yönet
-                  </Link>
-                </div>
+        <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
+          <section className="card p-6">
+            <div className="flex items-start gap-3">
+              <div className="rounded-2xl bg-violet-50 p-3 text-violet-600">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-surface-900">{copy.certificateTitle}</h2>
+                <p className="mt-1 text-sm text-surface-500">{copy.certificateBody}</p>
               </div>
             </div>
-          )}
 
-          {/* Save Button */}
-          <div className="flex gap-3 justify-end">
-            <Link href={`/admin/events/${eventId}/editor`} className="btn btn-secondary">
-              İptal
-            </Link>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="btn btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Kaydediliyor...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  Ayarları Kaydet
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+            <div className="mt-6 space-y-4">
+              <div className="overflow-hidden rounded-3xl border border-surface-200 bg-surface-50">
+                {event?.template_image_url ? (
+                  <img src={event.template_image_url} alt={copy.currentDesign} className="h-48 w-full object-cover" />
+                ) : (
+                  <div className="flex h-48 items-center justify-center text-sm text-surface-400">{copy.noBanner}</div>
+                )}
+              </div>
+              <div className="rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3 text-sm text-surface-600">
+                <p className="font-semibold text-surface-900">{copy.currentDesign}</p>
+                <p className="mt-1">{copy.applyHint}</p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                {certTemplates.map((template) => {
+                  const active = selectedCertTemplateId === template.id || (!selectedCertTemplateId && currentCertTemplateId === template.id);
+                  return (
+                    <button
+                      key={template.id}
+                      type="button"
+                      onClick={() => setSelectedCertTemplateId(template.id)}
+                      className={`overflow-hidden rounded-3xl border text-left transition ${active ? "border-brand-300 bg-brand-50 shadow-soft" : "border-surface-200 bg-white hover:border-surface-300"}`}
+                    >
+                      <img src={template.template_image_url} alt={template.name} className="h-36 w-full object-cover" />
+                      <div className="flex items-center justify-between gap-3 px-4 py-3">
+                        <div>
+                          <p className="font-semibold text-surface-900">{template.name}</p>
+                          <p className="text-xs text-surface-400">#{template.order_index}</p>
+                        </div>
+                        {active && (
+                          <span className="rounded-full bg-brand-600 px-2.5 py-1 text-[11px] font-semibold text-white">
+                            {copy.selected}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        </aside>
       </div>
     </div>
   );

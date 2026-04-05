@@ -1,153 +1,159 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Loader2,
   AlertCircle,
+  FileText,
+  Loader2,
   LogIn,
   LogOut,
-  Edit,
+  PencilLine,
+  RefreshCw,
+  Search,
+  ShieldAlert,
   Trash2,
-  FileText,
 } from "lucide-react";
 import { listAuditLogs, AuditLogOut } from "@/lib/api";
-import { DataTable } from "@/components/DataTable/DataTable";
-import { ColumnDef } from "@tanstack/react-table";
+import PageHeader from "@/components/Admin/PageHeader";
+import EmptyState from "@/components/Admin/EmptyState";
 import { useToast } from "@/hooks/useToast";
+import { useI18n } from "@/lib/i18n";
+
+function actionIcon(action: string) {
+  if (action.includes("login")) return LogIn;
+  if (action.includes("logout")) return LogOut;
+  if (action.includes("delete") || action.includes("revoke")) return Trash2;
+  if (action.includes("update") || action.includes("edit")) return PencilLine;
+  return FileText;
+}
+
+function actionTone(action: string) {
+  if (action.includes("login")) return "bg-emerald-50 text-emerald-700";
+  if (action.includes("logout")) return "bg-sky-50 text-sky-700";
+  if (action.includes("delete") || action.includes("revoke")) return "bg-rose-50 text-rose-700";
+  if (action.includes("update") || action.includes("edit")) return "bg-amber-50 text-amber-700";
+  return "bg-surface-100 text-surface-700";
+}
 
 export default function AuditLogsPage() {
-  const router = useRouter();
   const toast = useToast();
-
+  const { lang } = useI18n();
   const [logs, setLogs] = useState<AuditLogOut[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [actionFilter, setActionFilter] = useState("all");
 
-  useEffect(() => {
-    fetchLogs();
-  }, []);
+  const copy = lang === "tr"
+    ? {
+        title: "Denetim Kayıtları",
+        subtitle: "Platformdaki kritik değişiklikleri, erişim hareketlerini ve sistem olaylarını izleyin",
+        loadFailed: "Denetim kayıtları yüklenemedi",
+        refresh: "Yenile",
+        totalLogs: "Toplam kayıt",
+        uniqueUsers: "Etkilenen kullanıcı",
+        recentChanges: "Son 24 saat",
+        actionTypes: "Aksiyon türü",
+        search: "Kullanıcı, aksiyon veya kaynak ara...",
+        allActions: "Tüm aksiyonlar",
+        actor: "Aktör",
+        target: "Hedef",
+        details: "Detay",
+        emptyTitle: "Gösterilecek kayıt yok",
+        emptyBody: "Arama ya da filtreyi temizleyerek daha fazla kayıt görüntüleyin.",
+        system: "Sistem",
+        noDetails: "Ek detay yok",
+        justNow: "Az önce",
+        last24Hours: "24 saatte",
+        records: "kayıt",
+        locale: "tr-TR",
+      }
+    : {
+        title: "Audit Log",
+        subtitle: "Track critical platform changes, access activity, and system events in one place",
+        loadFailed: "Failed to load audit logs",
+        refresh: "Refresh",
+        totalLogs: "Total logs",
+        uniqueUsers: "Affected users",
+        recentChanges: "Last 24 hours",
+        actionTypes: "Action types",
+        search: "Search by user, action, or resource...",
+        allActions: "All actions",
+        actor: "Actor",
+        target: "Target",
+        details: "Details",
+        emptyTitle: "No matching logs",
+        emptyBody: "Clear the search or filters to reveal more activity.",
+        system: "System",
+        noDetails: "No extra details",
+        justNow: "Just now",
+        last24Hours: "in the last 24h",
+        records: "records",
+        locale: "en-US",
+      };
 
-  const fetchLogs = async () => {
+  const fetchLogs = async (mode: "load" | "refresh" = "load") => {
     try {
+      if (mode === "load") setLoading(true);
+      if (mode === "refresh") setRefreshing(true);
       setError(null);
       const result = await listAuditLogs({ page: 1, limit: 100 });
       setLogs(result.items);
     } catch (e: any) {
-      console.error("Failed to load audit logs:", e);
-      setError(e?.message || "Denetim günlükleri yüklenemedi");
-      toast.error("Failed to load audit logs");
+      const message = e?.message || copy.loadFailed;
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const getActionIcon = (action: string) => {
-    switch (action) {
-      case "login":
-        return <LogIn className="h-4 w-4 text-emerald-600" />;
-      case "logout":
-        return <LogOut className="h-4 w-4 text-blue-600" />;
-      case "update":
-        return <Edit className="h-4 w-4 text-orange-600" />;
-      case "delete":
-        return <Trash2 className="h-4 w-4 text-red-600" />;
-      default:
-        return <FileText className="h-4 w-4 text-gray-600" />;
-    }
-  };
+  useEffect(() => {
+    fetchLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
 
-  const getActionLabel = (action: string) => {
-    const labels: Record<string, string> = {
-      login: "Giriş",
-      logout: "Çıkış",
-      create: "Oluştur",
-      update: "Güncelle",
-      delete: "Sil",
-    };
-    return labels[action] || action;
-  };
+  const actions = useMemo(() => Array.from(new Set(logs.map((log) => log.action))).sort(), [logs]);
 
-  const getActionBadgeColor = (action: string) => {
-    switch (action) {
-      case "login":
-        return "bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200";
-      case "logout":
-        return "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200";
-      case "update":
-        return "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200";
-      case "delete":
-        return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
-      default:
-        return "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200";
-    }
-  };
+  const filteredLogs = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return logs.filter((log) => {
+      const matchesAction = actionFilter === "all" || log.action === actionFilter;
+      const haystack = [log.user_email, log.action, log.resource_type, log.resource_id, log.details]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return matchesAction && (!term || haystack.includes(term));
+    });
+  }, [actionFilter, logs, search]);
 
-  const columns = useMemo<ColumnDef<AuditLogOut>[]>(
-    () => [
-      {
-        accessorKey: "id",
-        header: "ID",
-        cell: (info) => <span className="font-mono text-xs text-gray-500">#{info.getValue() as number}</span>,
-        size: 60,
-      },
-      {
-        accessorKey: "user_email",
-        header: "User",
-        cell: (info) => <span className="text-gray-800 dark:text-gray-200">{info.getValue() as string}</span>,
-      },
-      {
-        accessorKey: "action",
-        header: "Action",
-        cell: (info) => {
-          const action = info.getValue() as string;
-          return (
-            <div className="flex items-center gap-2">
-              {getActionIcon(action)}
-              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getActionBadgeColor(action)}`}>
-                {getActionLabel(action)}
-              </span>
-            </div>
-          );
-        },
-      },
-      {
-        accessorKey: "resource_type",
-        header: "Resource",
-        cell: (info) => (
-          <span className="text-gray-700 dark:text-gray-300 font-medium">{info.getValue() as string}</span>
-        ),
-      },
-      {
-        accessorKey: "resource_id",
-        header: "Resource ID",
-        cell: (info) => <span className="font-mono text-xs text-gray-500">{info.getValue() as string}</span>,
-      },
-      {
-        accessorKey: "details",
-        header: "Details",
-        cell: (info) => (
-          <div className="max-w-xs">
-            <p className="text-gray-700 dark:text-gray-300 text-sm truncate">{info.getValue() as string}</p>
-          </div>
-        ),
-      },
-      {
-        accessorKey: "created_at",
-        header: "Timestamp",
-        cell: (info) => {
-          const date = new Date(info.getValue() as string);
-          return (
-            <div className="text-gray-600 dark:text-gray-400 text-sm">
-              <div className="font-mono">{date.toLocaleDateString()}</div>
-              <div className="text-xs text-gray-500">{date.toLocaleTimeString()}</div>
-            </div>
-          );
-        },
-      },
-    ],
-    []
+  const recentCount = useMemo(
+    () => logs.filter((log) => Date.now() - new Date(log.created_at).getTime() <= 24 * 60 * 60 * 1000).length,
+    [logs]
   );
+
+  const uniqueUsers = useMemo(
+    () => new Set(logs.map((log) => log.user_email || `${copy.system}-${log.user_id ?? "0"}`)).size,
+    [copy.system, logs]
+  );
+
+  const timeFormatter = useMemo(
+    () => new Intl.RelativeTimeFormat(lang === "tr" ? "tr" : "en", { numeric: "auto" }),
+    [lang]
+  );
+
+  const formatRelative = (value: string) => {
+    const diffMs = new Date(value).getTime() - Date.now();
+    const diffMinutes = Math.round(diffMs / 60000);
+    if (Math.abs(diffMinutes) < 1) return copy.justNow;
+    if (Math.abs(diffMinutes) < 60) return timeFormatter.format(diffMinutes, "minute");
+    const diffHours = Math.round(diffMinutes / 60);
+    if (Math.abs(diffHours) < 24) return timeFormatter.format(diffHours, "hour");
+    const diffDays = Math.round(diffHours / 24);
+    return timeFormatter.format(diffDays, "day");
+  };
 
   if (loading) {
     return (
@@ -158,41 +164,108 @@ export default function AuditLogsPage() {
   }
 
   return (
-    <div className="p-6">
-      <div>
-        {/* Header */}
-        <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-bold text-surface-900">Denetim Günlükleri</h1>
-            <p className="text-sm text-surface-500 mt-1">
-              Sistem aktivitesini ve değişiklikleri izleyin — {logs.length} kayıt
-            </p>
-          </div>
+    <div className="flex flex-col gap-6 pb-20">
+      <PageHeader
+        title={copy.title}
+        subtitle={copy.subtitle}
+        icon={<ShieldAlert className="h-5 w-5" />}
+        actions={
+          <button onClick={() => fetchLogs("refresh")} disabled={refreshing} className="btn-secondary gap-2 text-xs">
+            {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            {copy.refresh}
+          </button>
+        }
+      />
+
+      {error && (
+        <div className="error-banner flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error}
         </div>
+      )}
 
-        {/* Error Alert */}
-        {error && (
-          <div className="error-banner mb-6">
-            <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="font-semibold">Hata</p>
-              <p className="mt-0.5">{error}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Advanced DataTable */}
-        <DataTable
-          columns={columns}
-          data={logs}
-          pageSize={20}
-          searchable={true}
-          searchPlaceholder="Search by user, resource, or details..."
-          enableExport={true}
-          exportFileName="audit-logs.csv"
-          enableColumnVisibility={true}
-        />
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <div className="card p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-surface-400">{copy.totalLogs}</p>
+          <p className="mt-3 text-3xl font-black text-surface-900">{logs.length}</p>
+          <p className="mt-1 text-sm text-surface-500">{copy.records}</p>
+        </div>
+        <div className="card p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-surface-400">{copy.uniqueUsers}</p>
+          <p className="mt-3 text-3xl font-black text-surface-900">{uniqueUsers}</p>
+          <p className="mt-1 text-sm text-surface-500">{copy.actor}</p>
+        </div>
+        <div className="card p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-surface-400">{copy.recentChanges}</p>
+          <p className="mt-3 text-3xl font-black text-surface-900">{recentCount}</p>
+          <p className="mt-1 text-sm text-surface-500">{copy.last24Hours}</p>
+        </div>
+        <div className="card p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-surface-400">{copy.actionTypes}</p>
+          <p className="mt-3 text-3xl font-black text-surface-900">{actions.length}</p>
+          <p className="mt-1 text-sm text-surface-500">{copy.records}</p>
+        </div>
       </div>
+
+      <div className="card p-4 sm:p-5">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
+          <label className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+            <input value={search} onChange={(event) => setSearch(event.target.value)} className="input-field pl-10" placeholder={copy.search} />
+          </label>
+          <select value={actionFilter} onChange={(event) => setActionFilter(event.target.value)} className="input-field">
+            <option value="all">{copy.allActions}</option>
+            {actions.map((action) => (
+              <option key={action} value={action}>{action}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {filteredLogs.length === 0 ? (
+        <EmptyState icon={<ShieldAlert className="h-7 w-7" />} title={copy.emptyTitle} description={copy.emptyBody} />
+      ) : (
+        <div className="grid gap-4">
+          {filteredLogs.map((log) => {
+            const Icon = actionIcon(log.action);
+            return (
+              <article key={log.id} className="card overflow-hidden p-4 transition-shadow hover:shadow-soft sm:p-5">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${actionTone(log.action)}`}>
+                        <Icon className="h-3.5 w-3.5" />
+                        {log.action}
+                      </span>
+                      <span className="rounded-full border border-surface-200 px-3 py-1 text-xs font-medium text-surface-500">#{log.id}</span>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-surface-400">{copy.actor}</p>
+                        <p className="mt-1 break-all text-sm font-medium text-surface-900">{log.user_email || copy.system}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-surface-400">{copy.target}</p>
+                        <p className="mt-1 text-sm font-medium text-surface-900">{[log.resource_type, log.resource_id].filter(Boolean).join(" #") || "-"}</p>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-surface-400">{copy.details}</p>
+                        <p className="mt-1 text-sm text-surface-600">{log.details || copy.noDetails}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3 text-sm">
+                    <p className="font-semibold text-surface-900">{new Date(log.created_at).toLocaleString(copy.locale)}</p>
+                    <p className="mt-1 text-xs text-surface-500">{formatRelative(log.created_at)}</p>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

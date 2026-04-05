@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
@@ -106,6 +106,7 @@ export default function EventRafflesPage() {
   const [error, setError] = useState<string | null>(null);
   const [planOk, setPlanOk] = useState<boolean | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [selectedRaffleId, setSelectedRaffleId] = useState<number | null>(null);
 
   const [title, setTitle] = useState("");
   const [prizeName, setPrizeName] = useState("");
@@ -132,6 +133,9 @@ export default function EventRafflesPage() {
 
       setEventName(eventRes.name);
       setRaffles(raffleRes);
+      setSelectedRaffleId((current) =>
+        raffleRes.some((item) => item.id === current) ? current : (raffleRes[0]?.id ?? null),
+      );
       setPlanOk(hasPaidPlan);
     } catch (e: any) {
       setError(e.message || "Çekilişler yüklenemedi.");
@@ -155,6 +159,7 @@ export default function EventRafflesPage() {
   }
 
   function startEdit(raffle: EventRaffleOut) {
+    setSelectedRaffleId(raffle.id);
     setEditingId(raffle.id);
     setTitle(raffle.title);
     setPrizeName(raffle.prize_name);
@@ -187,10 +192,12 @@ export default function EventRafflesPage() {
       if (editingId) {
         const updated = await updateEventRaffle(eventId, editingId, payload);
         replaceRaffle(updated);
+        setSelectedRaffleId(updated.id);
         toast.success("Çekiliş güncellendi.");
       } else {
         const created = await createEventRaffle(eventId, payload);
         setRaffles((current) => [created, ...current]);
+        setSelectedRaffleId(created.id);
         toast.success("Yeni çekiliş eklendi.");
       }
       resetForm();
@@ -207,7 +214,13 @@ export default function EventRafflesPage() {
     setBusyId(raffle.id);
     try {
       await deleteEventRaffle(eventId, raffle.id);
-      setRaffles((current) => current.filter((item) => item.id !== raffle.id));
+      setRaffles((current) => {
+        const next = current.filter((item) => item.id !== raffle.id);
+        setSelectedRaffleId((selected) =>
+          selected === raffle.id ? (next[0]?.id ?? null) : selected,
+        );
+        return next;
+      });
       toast.success("Çekiliş silindi.");
       if (editingId === raffle.id) resetForm();
     } catch (e: any) {
@@ -293,6 +306,10 @@ export default function EventRafflesPage() {
     const totalEligible = raffles.reduce((sum, raffle) => sum + raffle.eligible_count, 0);
     return { totalWinners, drawCompleted, totalEligible };
   }, [raffles]);
+  const selectedRaffle = useMemo(
+    () => raffles.find((raffle) => raffle.id === selectedRaffleId) ?? raffles[0] ?? null,
+    [raffles, selectedRaffleId],
+  );
   const formReady = title.trim().length > 1 && prizeName.trim().length > 1;
 
   if (loading) {
@@ -593,7 +610,47 @@ export default function EventRafflesPage() {
                   </div>
                 ) : (
                   <div className="mt-6 space-y-5">
-                    {raffles.map((raffle) => {
+                    <div className="grid gap-3 lg:grid-cols-2">
+                      {raffles.map((raffle) => {
+                        const active = raffle.id === selectedRaffle?.id;
+                        const meta = statusMeta(raffle.status);
+                        return (
+                          <button
+                            key={`summary-${raffle.id}`}
+                            type="button"
+                            onClick={() => setSelectedRaffleId(raffle.id)}
+                            className={`rounded-3xl border px-4 py-4 text-left transition ${
+                              active
+                                ? "border-brand-200 bg-brand-50 shadow-soft"
+                                : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-slate-900">{raffle.title}</p>
+                                <p className="mt-1 truncate text-xs text-slate-500">{raffle.prize_name}</p>
+                              </div>
+                              <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${meta.className}`}>
+                                {meta.label}
+                              </span>
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-600">
+                              <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1">
+                                Eşik {raffle.min_sessions_required}
+                              </span>
+                              <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1">
+                                Kazanan {raffle.winner_count}
+                              </span>
+                              <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1">
+                                Uygun {raffle.eligible_count}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {(selectedRaffle ? [selectedRaffle] : []).map((raffle) => {
                       const meta = statusMeta(raffle.status);
                       const busy = busyId === raffle.id;
                       const rounds = splitRaffleRounds(raffle);

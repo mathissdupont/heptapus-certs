@@ -30,18 +30,18 @@ function RegisterLinkBanner({ eventId }: { eventId: number }) {
     <div className="mb-6 flex flex-col items-stretch gap-3 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 sm:flex-row sm:items-center">
       <Link2 className="w-4 h-4 text-sky-500 shrink-0" />
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold text-sky-700 mb-0.5">KatÄ±lÄ±mcÄ± KayÄ±t Linki</p>
+        <p className="text-xs font-semibold text-sky-700 mb-0.5">Katılımcı Kayıt Linki</p>
         <p className="text-xs text-sky-500 truncate font-mono">{url}</p>
       </div>
       <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-sky-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-sky-600 transition hover:text-sky-800 sm:w-auto">
-        <ExternalLink className="w-3.5 h-3.5" /> AÃ§
+        <ExternalLink className="w-3.5 h-3.5" /> Aç
       </a>
       <button
         onClick={copy}
         className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition-colors sm:w-auto"
         style={copied ? { background: "#d1fae5", borderColor: "#6ee7b7", color: "#065f46" } : { background: "#0ea5e9", borderColor: "#0ea5e9", color: "#fff" }}
       >
-        {copied ? <><ClipboardCheck className="w-3.5 h-3.5" /> KopyalandÄ±!</> : <><Link2 className="w-3.5 h-3.5" /> Kopyala</>}
+        {copied ? <><ClipboardCheck className="w-3.5 h-3.5" /> Kopyalandı!</> : <><Link2 className="w-3.5 h-3.5" /> Kopyala</>}
       </button>
     </div>
   );
@@ -91,7 +91,7 @@ export default function AdminSessionsPage() {
       setEventName(evRes.name);
       setMinSessions(evRes.min_sessions_required ?? 1);
     } catch (e: any) {
-      setError(e.message || "YÃ¼kleme baÅŸarÄ±sÄ±z");
+      setError(e.message || "Yükleme başarısız");
     } finally {
       setLoading(false);
     }
@@ -136,7 +136,7 @@ export default function AdminSessionsPage() {
       setShowForm(false);
       await load();
     } catch (e: any) {
-      setFormError(e.message || "KayÄ±t baÅŸarÄ±sÄ±z");
+      setFormError(e.message || "Kayıt başarısız");
     } finally {
       setSaving(false);
     }
@@ -189,7 +189,7 @@ export default function AdminSessionsPage() {
         body: JSON.stringify({ name: eventName, min_sessions_required: clamped }),
       });
     } catch (e: any) {
-      setError(e.message || "KayÄ±t baÅŸarÄ±sÄ±z");
+      setError(e.message || "Kayıt başarısız");
     } finally {
       setSavingMin(false);
     }
@@ -214,13 +214,13 @@ export default function AdminSessionsPage() {
             <ShieldAlert className="w-12 h-12 text-indigo-400 mx-auto mb-3" />
             <h2 className="text-lg font-bold text-gray-800 mb-2">Pro veya Enterprise Plan Gerekli</h2>
             <p className="text-sm text-gray-500 mb-4 max-w-md mx-auto">
-              Oturum yÃ¶netimi, QR ile yoklama ve katÄ±lÄ±m takibi Ã¶zellikleri sadece Pro ve Enterprise planlarÄ±nda kullanÄ±labilir.
+              Oturum yönetimi, QR ile yoklama ve katılım takibi özellikleri sadece Pro ve Enterprise planlarında kullanılabilir.
             </p>
             <Link
               href="/pricing"
               className="inline-flex items-center gap-2 bg-indigo-600 text-white font-semibold px-6 py-2.5 rounded-xl hover:bg-indigo-700 transition text-sm"
             >
-              <Sparkles className="w-4 h-4" /> PlanÄ± YÃ¼kselt
+              <Sparkles className="w-4 h-4" /> Planı Yükselt
             </Link>
           </div>
         )}
@@ -229,7 +229,7 @@ export default function AdminSessionsPage() {
           <>
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-extrabold text-gray-900">Oturum YÃ¶netimi</h1>
+            <h1 className="text-2xl font-extrabold text-gray-900">Oturum Yönetimi</h1>
             <p className="text-sm text-gray-500 mt-0.5">{eventName}</p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
@@ -237,7 +237,7 @@ export default function AdminSessionsPage() {
               href={`/admin/events/${eventId}/attendees`}
               className="btn-secondary justify-center text-sm px-4 py-2 rounded-xl font-semibold"
             >
-              KatÄ±lÄ±mcÄ±lar
+              Katılımcılar
             </Link>
             <button
               onClick={openCreate}
@@ -255,8 +255,8 @@ export default function AdminSessionsPage() {
         <div className="mb-5 flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm sm:flex-row sm:items-center">
           <Hash className="w-5 h-5 text-indigo-500 shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-gray-800">Sertifika Ä°Ã§in Gereken Minimum Oturum SayÄ±sÄ±</p>
-            <p className="text-xs text-gray-400 mt-0.5">KatÄ±lÄ±mcÄ±nÄ±n sertifika alabilmesi iÃ§in katÄ±lmasÄ± gereken minimum oturum adedi</p>
+            <p className="text-sm font-bold text-gray-800">Sertifika İçin Gereken Minimum Oturum Sayısı</p>
+            <p className="text-xs text-gray-400 mt-0.5">Katılımcının sertifika alabilmesi için katılması gereken minimum oturum adedi</p>
           </div>
           <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
             <input
@@ -280,16 +280,16 @@ export default function AdminSessionsPage() {
         {showForm && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 mb-5">
             <h2 className="font-semibold text-gray-800 mb-4">
-              {editingSession ? "Oturumu DÃ¼zenle" : "Yeni Oturum"}
+              {editingSession ? "Oturumu Düzenle" : "Yeni Oturum"}
             </h2>
             <form onSubmit={handleSaveSession} className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Oturum AdÄ± *</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Oturum Adı *</label>
                 <input
                   type="text"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  placeholder="Ã¶rn. AÃ§Ä±lÄ±ÅŸ TÃ¶reni"
+                  placeholder="örn. Açılış Töreni"
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                   required
                 />
@@ -327,7 +327,7 @@ export default function AdminSessionsPage() {
               {formError && <p className="text-xs text-red-600">{formError}</p>}
               <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:justify-end">
                 <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-sm rounded-xl border hover:bg-gray-50 transition">
-                  Ä°ptal
+                  İptal
                 </button>
                 <button
                   type="submit"
@@ -346,8 +346,8 @@ export default function AdminSessionsPage() {
         {sessions.length === 0 && !showForm ? (
           <div className="text-center py-16 text-gray-400">
             <QrCode className="w-12 h-12 mx-auto mb-3 opacity-40" />
-            <p className="font-medium">HenÃ¼z oturum yok</p>
-            <p className="text-sm mt-1">Ä°lk oturumu ekleyerek QR ile yoklama almaya baÅŸlayÄ±n.</p>
+            <p className="font-medium">Henüz oturum yok</p>
+            <p className="text-sm mt-1">İlk oturumu ekleyerek QR ile yoklama almaya başlayın.</p>
             <button onClick={openCreate} className="mt-4 inline-flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition">
               <Plus className="w-4 h-4" /> Oturum Ekle
             </button>
@@ -363,7 +363,7 @@ export default function AdminSessionsPage() {
                       {s.is_active && (
                         <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">
                           <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse inline-block" />
-                          Check-in AÃ§Ä±k
+                          Check-in Açık
                         </span>
                       )}
                     </div>
@@ -386,7 +386,7 @@ export default function AdminSessionsPage() {
                           {s.session_location}
                         </span>
                       )}
-                      <span className="text-indigo-600 font-medium">{s.attendance_count} kiÅŸi katÄ±ldÄ±</span>
+                      <span className="text-indigo-600 font-medium">{s.attendance_count} kişi katıldı</span>
                     </div>
                   </div>
 
@@ -395,7 +395,7 @@ export default function AdminSessionsPage() {
                     <button
                       onClick={() => handleShowQr(s)}
                       disabled={qrLoading === s.id}
-                      title="QR GÃ¶ster"
+                      title="QR Göster"
                       className="p-2 rounded-lg hover:bg-indigo-50 text-indigo-600 transition disabled:opacity-40"
                     >
                       {qrLoading === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
@@ -405,7 +405,7 @@ export default function AdminSessionsPage() {
                     <button
                       onClick={() => handleToggle(s)}
                       disabled={toggling === s.id}
-                      title={s.is_active ? "Check-in kapat" : "Check-in aÃ§"}
+                      title={s.is_active ? "Check-in kapat" : "Check-in aç"}
                       className={`p-2 rounded-lg transition ${s.is_active ? "text-green-600 hover:bg-green-50" : "text-gray-400 hover:bg-gray-50"}`}
                     >
                       {toggling === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : s.is_active ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
@@ -414,7 +414,7 @@ export default function AdminSessionsPage() {
                     {/* Edit */}
                     <button
                       onClick={() => openEdit(s)}
-                      title="DÃ¼zenle"
+                      title="Düzenle"
                       className="p-2 rounded-lg hover:bg-gray-50 text-gray-500 hover:text-gray-700 transition"
                     >
                       <Pencil className="w-4 h-4" />
@@ -441,7 +441,7 @@ export default function AdminSessionsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setQrModal(null)}>
           <div className="bg-white rounded-3xl shadow-2xl p-6 max-w-xs w-full text-center" onClick={(e) => e.stopPropagation()}>
             <h2 className="font-bold text-gray-800 mb-1">{qrModal.sessionName}</h2>
-            <p className="text-xs text-gray-400 mb-4">QR kodu ekranÄ±nÄ±zda gÃ¶sterin veya yazdÄ±rÄ±n</p>
+            <p className="text-xs text-gray-400 mb-4">QR kodu ekranınızda gösterin veya yazdırın</p>
             <img src={qrModal.url} alt="Check-in QR" className="w-48 h-48 mx-auto rounded-xl border" />
             <p className="text-xs text-gray-400 mt-3 break-all">{qrModal.checkinUrl}</p>
             <div className="flex gap-2 mt-4">
@@ -450,7 +450,7 @@ export default function AdminSessionsPage() {
                 download={`checkin-qr.png`}
                 className="flex-1 inline-flex items-center justify-center gap-2 bg-indigo-600 text-white text-sm font-semibold py-2 rounded-xl hover:bg-indigo-700 transition"
               >
-                <Download className="w-4 h-4" /> Ä°ndir
+                <Download className="w-4 h-4" /> İndir
               </a>
               <button
                 onClick={() => {

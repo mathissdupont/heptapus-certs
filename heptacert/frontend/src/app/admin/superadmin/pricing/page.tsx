@@ -1,172 +1,285 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  AlertCircle,
+  Coins,
+  Loader2,
+  Plus,
+  RefreshCw,
+  Save,
+  Tag,
+  X,
+} from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import { motion } from "framer-motion";
-import { Tag, Loader2, AlertCircle, Plus, X, Save } from "lucide-react";
+import PageHeader from "@/components/Admin/PageHeader";
 import { useToast } from "@/hooks/useToast";
+import { useI18n } from "@/lib/i18n";
 
 type PricingTier = {
-  id: string; name_tr: string; name_en: string;
-  price_monthly: number; price_annual: number; hc_quota: number;
-  features_tr: string[]; features_en: string[]; is_free: boolean; is_enterprise: boolean;
+  id: string;
+  name_tr: string;
+  name_en: string;
+  price_monthly: number;
+  price_annual: number;
+  hc_quota: number;
+  features_tr: string[];
+  features_en: string[];
+  is_free: boolean;
+  is_enterprise: boolean;
 };
 
-const tierBorders = ["border-brand-200", "border-violet-200", "border-rose-200", "border-amber-200"];
-const tierBadgeBg = [
-  "bg-brand-50 text-brand-700",
-  "bg-violet-50 text-violet-700",
-  "bg-rose-50 text-rose-700",
-  "bg-amber-50 text-amber-700",
+const TONES = [
+  "border-brand-200 bg-brand-50/40",
+  "border-violet-200 bg-violet-50/40",
+  "border-rose-200 bg-rose-50/40",
+  "border-amber-200 bg-amber-50/40",
 ];
 
 export default function SuperadminPricingPage() {
   const toast = useToast();
+  const { lang } = useI18n();
   const [tiers, setTiers] = useState<PricingTier[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true); setErr(null);
+  const copy = lang === "tr"
+    ? {
+        title: "Fiyatlandırma",
+        subtitle: "Plan isimlerini, ücretleri, HeptaCoin kotalarını ve özellik listelerini tek panelden düzenleyin",
+        save: "Kaydet",
+        refresh: "Yenile",
+        loadFailed: "Fiyatlandırma yüklenemedi",
+        saveFailed: "Fiyatlandırma kaydedilemedi",
+        saveSuccess: "Fiyatlandırma kaydedildi",
+        monthly: "Aylık",
+        annual: "Yıllık",
+        quota: "HC kota",
+        trFeatures: "Özellikler (TR)",
+        enFeatures: "Features (EN)",
+        locale: "tr-TR",
+      }
+    : {
+        title: "Pricing",
+        subtitle: "Edit plan names, pricing, HeptaCoin quotas, and feature lists from a single panel",
+        save: "Save",
+        refresh: "Refresh",
+        loadFailed: "Failed to load pricing",
+        saveFailed: "Failed to save pricing",
+        saveSuccess: "Pricing saved",
+        monthly: "Monthly",
+        annual: "Annual",
+        quota: "HC quota",
+        trFeatures: "Features (TR)",
+        enFeatures: "Features (EN)",
+        locale: "en-US",
+      };
+
+  const load = async (mode: "load" | "refresh" = "load") => {
     try {
-      const r = await apiFetch("/superadmin/pricing");
-      const data = await r.json();
-      // API may return array directly or { tiers: [] } / { data: [] } / { items: [] }
-      const arr = Array.isArray(data) ? data : (data.tiers ?? data.data ?? data.items ?? []);
-      setTiers(arr);
-    } catch (e: any) { setErr(e?.message || "Fiyatlandırma yüklenemedi."); }
-    finally { setLoading(false); }
-  }, []);
+      if (mode === "load") setLoading(true);
+      if (mode === "refresh") setRefreshing(true);
+      setError(null);
+      const response = await apiFetch("/superadmin/pricing");
+      const data = await response.json();
+      setTiers(Array.isArray(data) ? data : data.tiers ?? []);
+    } catch (e: any) {
+      setError(e?.message || copy.loadFailed);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
 
-  function updateTier(id: string, key: keyof PricingTier, value: any) {
-    setTiers(p => p.map(t => t.id === id ? { ...t, [key]: value } : t));
-  }
+  const stats = useMemo(() => {
+    const freeCount = tiers.filter((tier) => tier.is_free).length;
+    const enterpriseCount = tiers.filter((tier) => tier.is_enterprise).length;
+    const totalQuota = tiers.reduce((sum, tier) => sum + (tier.hc_quota || 0), 0);
+    return [
+      { label: "Plans", value: tiers.length, detail: lang === "tr" ? "toplam kademe" : "tiers" },
+      { label: "Free", value: freeCount, detail: lang === "tr" ? "ücretsiz plan" : "free tiers" },
+      { label: "Enterprise", value: enterpriseCount, detail: lang === "tr" ? "kurumsal plan" : "enterprise tiers" },
+      { label: copy.quota, value: totalQuota, detail: "HC" },
+    ];
+  }, [copy.quota, lang, tiers]);
 
-  function updateFeature(id: string, lang: "tr" | "en", idx: number, value: string) {
-    setTiers(p => p.map(t => {
-      if (t.id !== id) return t;
-      const key = lang === "tr" ? "features_tr" : "features_en";
-      const newF = [...(t[key] as string[])];
-      newF[idx] = value;
-      return { ...t, [key]: newF };
-    }));
-  }
+  const updateTier = <K extends keyof PricingTier>(id: string, key: K, value: PricingTier[K]) => {
+    setTiers((current) => current.map((tier) => (tier.id === id ? { ...tier, [key]: value } : tier)));
+  };
 
-  function addFeature(id: string, lang: "tr" | "en") {
-    setTiers(p => p.map(t => {
-      if (t.id !== id) return t;
-      const key = lang === "tr" ? "features_tr" : "features_en";
-      return { ...t, [key]: [...(t[key] as string[]), ""] };
-    }));
-  }
+  const updateFeature = (id: string, field: "features_tr" | "features_en", index: number, value: string) => {
+    setTiers((current) =>
+      current.map((tier) => {
+        if (tier.id !== id) return tier;
+        const next = [...tier[field]];
+        next[index] = value;
+        return { ...tier, [field]: next };
+      })
+    );
+  };
 
-  function removeFeature(id: string, lang: "tr" | "en", idx: number) {
-    setTiers(p => p.map(t => {
-      if (t.id !== id) return t;
-      const key = lang === "tr" ? "features_tr" : "features_en";
-      return { ...t, [key]: (t[key] as string[]).filter((_, i) => i !== idx) };
-    }));
-  }
+  const addFeature = (id: string, field: "features_tr" | "features_en") => {
+    setTiers((current) => current.map((tier) => (tier.id === id ? { ...tier, [field]: [...tier[field], ""] } : tier)));
+  };
 
-  async function save() {
-    setSaving(true);
+  const removeFeature = (id: string, field: "features_tr" | "features_en", index: number) => {
+    setTiers((current) =>
+      current.map((tier) =>
+        tier.id === id ? { ...tier, [field]: tier[field].filter((_, currentIndex) => currentIndex !== index) } : tier
+      )
+    );
+  };
+
+  const save = async () => {
     try {
+      setSaving(true);
+      setError(null);
       await apiFetch("/superadmin/pricing", {
-        method: "PUT",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(tiers),
+        body: JSON.stringify({ tiers }),
       });
-      toast.success("Fiyatlandırma kaydedildi.");
-    } catch (e: any) { toast.error(e?.message || "Kaydedilemedi."); }
-    finally { setSaving(false); }
+      toast.success(copy.saveSuccess);
+    } catch (e: any) {
+      const message = e?.message || copy.saveFailed;
+      setError(message);
+      toast.error(message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-24">
+        <Loader2 className="h-8 w-8 animate-spin text-brand-500" />
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h2 className="text-lg font-semibold text-surface-900">Fiyatlandırma Planları</h2>
-          <p className="text-sm text-surface-500">Plan adları, fiyatlar ve özellikleri düzenleyin.</p>
-        </div>
-        <button onClick={save} disabled={saving || loading} className="btn-primary gap-2">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Kaydet
-        </button>
-      </div>
+    <div className="flex flex-col gap-6 pb-20">
+      <PageHeader
+        title={copy.title}
+        subtitle={copy.subtitle}
+        icon={<Tag className="h-5 w-5" />}
+        actions={
+          <>
+            <button onClick={() => load("refresh")} disabled={refreshing} className="btn-secondary gap-2 text-xs">
+              {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              {copy.refresh}
+            </button>
+            <button onClick={save} disabled={saving} className="btn-primary gap-2 text-xs">
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              {copy.save}
+            </button>
+          </>
+        }
+      />
 
-      {err && <div className="flex items-center gap-2 text-rose-600 text-sm"><AlertCircle className="h-4 w-4" />{err}</div>}
-
-      {loading ? (
-        <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-brand-500" /></div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          {tiers.map((tier, idx) => (
-            <motion.div key={tier.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.07 }}
-              className={`card p-5 border-2 ${tierBorders[idx % tierBorders.length]}`}>
-              {/* Badge */}
-              <div className="flex items-center justify-between mb-4">
-                <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${tierBadgeBg[idx % tierBadgeBg.length]}`}>{tier.id}</span>
-                <div className="flex gap-2 text-xs text-surface-400">
-                  {tier.is_free && <span className="text-emerald-600 font-semibold">Ücretsiz</span>}
-                  {tier.is_enterprise && <span className="text-amber-600 font-semibold">Kurumsal</span>}
-                </div>
-              </div>
-
-              {/* Names */}
-              <div className="space-y-2 mb-3">
-                <input value={tier.name_tr} onChange={e => updateTier(tier.id, "name_tr", e.target.value)} placeholder="Ad (TR)" className="input-field text-sm" />
-                <input value={tier.name_en} onChange={e => updateTier(tier.id, "name_en", e.target.value)} placeholder="Name (EN)" className="input-field text-sm" />
-              </div>
-
-              {/* Prices & Quota */}
-              <div className="grid grid-cols-3 gap-2 mb-3">
-                <div>
-                  <label className="label text-xs">Aylık ₺</label>
-                  <input type="number" min={0} value={tier.price_monthly} onChange={e => updateTier(tier.id, "price_monthly", Number(e.target.value))} className="input-field text-sm" />
-                </div>
-                <div>
-                  <label className="label text-xs">Yıllık ₺</label>
-                  <input type="number" min={0} value={tier.price_annual} onChange={e => updateTier(tier.id, "price_annual", Number(e.target.value))} className="input-field text-sm" />
-                </div>
-                <div>
-                  <label className="label text-xs">HC Kota</label>
-                  <input type="number" min={0} value={tier.hc_quota} onChange={e => updateTier(tier.id, "hc_quota", Number(e.target.value))} className="input-field text-sm" />
-                </div>
-              </div>
-
-              {/* Features TR */}
-              <div className="mb-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="label text-xs">Özellikler (TR)</span>
-                  <button onClick={() => addFeature(tier.id, "tr")} className="text-brand-500 hover:text-brand-700"><Plus className="h-3.5 w-3.5" /></button>
-                </div>
-                {tier.features_tr.map((f, fi) => (
-                  <div key={fi} className="flex items-center gap-1 mb-1">
-                    <input value={f} onChange={e => updateFeature(tier.id, "tr", fi, e.target.value)} className="input-field text-xs flex-1" />
-                    <button onClick={() => removeFeature(tier.id, "tr", fi)} className="text-rose-400 hover:text-rose-600"><X className="h-3.5 w-3.5" /></button>
-                  </div>
-                ))}
-              </div>
-
-              {/* Features EN */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="label text-xs">Features (EN)</span>
-                  <button onClick={() => addFeature(tier.id, "en")} className="text-brand-500 hover:text-brand-700"><Plus className="h-3.5 w-3.5" /></button>
-                </div>
-                {tier.features_en.map((f, fi) => (
-                  <div key={fi} className="flex items-center gap-1 mb-1">
-                    <input value={f} onChange={e => updateFeature(tier.id, "en", fi, e.target.value)} className="input-field text-xs flex-1" />
-                    <button onClick={() => removeFeature(tier.id, "en", fi)} className="text-rose-400 hover:text-rose-600"><X className="h-3.5 w-3.5" /></button>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          ))}
+      {error && (
+        <div className="error-banner flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error}
         </div>
       )}
+
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        {stats.map((stat) => (
+          <div key={stat.label} className="card p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-surface-400">{stat.label}</p>
+            <p className="mt-3 text-2xl font-black text-surface-900">{stat.value}</p>
+            <p className="mt-1 text-sm text-surface-500">{stat.detail}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-4">
+        {tiers.map((tier, index) => (
+          <section key={tier.id} className={`card border-2 p-5 ${TONES[index % TONES.length]}`}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase text-surface-600 shadow-soft">{tier.id}</span>
+                <h2 className="mt-3 text-lg font-semibold text-surface-900">{lang === "tr" ? tier.name_tr : tier.name_en}</h2>
+              </div>
+              <div className="text-right text-xs text-surface-500">
+                {tier.is_free && <p>Free</p>}
+                {tier.is_enterprise && <p>Enterprise</p>}
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3">
+              <input value={tier.name_tr} onChange={(event) => updateTier(tier.id, "name_tr", event.target.value)} className="input-field" placeholder="Ad (TR)" />
+              <input value={tier.name_en} onChange={(event) => updateTier(tier.id, "name_en", event.target.value)} className="input-field" placeholder="Name (EN)" />
+            </div>
+
+            <div className="mt-4 grid grid-cols-3 gap-3">
+              <label className="space-y-2">
+                <span className="label text-xs">{copy.monthly}</span>
+                <input type="number" min={0} value={tier.price_monthly} onChange={(event) => updateTier(tier.id, "price_monthly", Number(event.target.value))} className="input-field" />
+              </label>
+              <label className="space-y-2">
+                <span className="label text-xs">{copy.annual}</span>
+                <input type="number" min={0} value={tier.price_annual} onChange={(event) => updateTier(tier.id, "price_annual", Number(event.target.value))} className="input-field" />
+              </label>
+              <label className="space-y-2">
+                <span className="label text-xs">{copy.quota}</span>
+                <div className="relative">
+                  <Coins className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+                  <input type="number" min={0} value={tier.hc_quota} onChange={(event) => updateTier(tier.id, "hc_quota", Number(event.target.value))} className="input-field pl-10" />
+                </div>
+              </label>
+            </div>
+
+            <div className="mt-5 space-y-4">
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="label text-xs">{copy.trFeatures}</span>
+                  <button type="button" onClick={() => addFeature(tier.id, "features_tr")} className="btn-secondary h-8 w-8 px-0">
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {tier.features_tr.map((feature, featureIndex) => (
+                    <div key={`${tier.id}-tr-${featureIndex}`} className="flex items-center gap-2">
+                      <input value={feature} onChange={(event) => updateFeature(tier.id, "features_tr", featureIndex, event.target.value)} className="input-field flex-1 text-sm" />
+                      <button type="button" onClick={() => removeFeature(tier.id, "features_tr", featureIndex)} className="btn-secondary h-10 w-10 px-0">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="label text-xs">{copy.enFeatures}</span>
+                  <button type="button" onClick={() => addFeature(tier.id, "features_en")} className="btn-secondary h-8 w-8 px-0">
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {tier.features_en.map((feature, featureIndex) => (
+                    <div key={`${tier.id}-en-${featureIndex}`} className="flex items-center gap-2">
+                      <input value={feature} onChange={(event) => updateFeature(tier.id, "features_en", featureIndex, event.target.value)} className="input-field flex-1 text-sm" />
+                      <button type="button" onClick={() => removeFeature(tier.id, "features_en", featureIndex)} className="btn-secondary h-10 w-10 px-0">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        ))}
+      </div>
     </div>
   );
 }
