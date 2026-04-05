@@ -239,6 +239,17 @@ export default function AdminAttendeesPage() {
 
   const totalPages = Math.ceil(total / limit);
   const eligibleCount = matrix ? matrix.rows.filter((r) => r.meets_threshold && !r.has_certificate).length : 0;
+  const getRegistrationPreview = useCallback((attendee: AttendeeOut) => {
+    if (!registrationFields.length) return [];
+    return registrationFields
+      .map((field) => {
+        const value = attendee.registration_answers?.[field.id];
+        if (!value) return null;
+        return { label: field.label, value };
+      })
+      .filter((item): item is { label: string; value: string } => Boolean(item))
+      .slice(0, 2);
+  }, [registrationFields]);
 
   return (
     <div className="flex flex-col gap-6 pb-20">
@@ -266,7 +277,7 @@ export default function AdminAttendeesPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900">Katılımcı Yönetimi</h1>
-            <p className="text-sm text-gray-500 mt-0.5">{eventName} Â· Min. {minSessions} oturum</p>
+            <p className="text-sm text-gray-500 mt-0.5">{eventName} - Min. {minSessions} oturum</p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
               <button
@@ -408,6 +419,15 @@ export default function AdminAttendeesPage() {
                             <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${a.source === "self_register" ? "bg-blue-50 text-blue-600" : "bg-gray-100 text-gray-500"}`}>
                               {a.source === "self_register" ? "kendi" : "import"}
                             </span>
+                            {getRegistrationPreview(a).length > 0 && (
+                              <div className="mt-2 space-y-1">
+                                {getRegistrationPreview(a).map((item) => (
+                                  <p key={`${a.id}-${item.label}`} className="max-w-xs truncate text-xs font-medium text-gray-500">
+                                    <span className="text-gray-400">{item.label}:</span> {item.value}
+                                  </p>
+                                ))}
+                              </div>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{a.email}</td>
                           <td className="px-4 py-3 text-center">

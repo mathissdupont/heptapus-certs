@@ -1,34 +1,20 @@
-"""Add registration_answers to attendees.
+"""Follow-up no-op migration after registration_answers column addition.
 
-Revision ID: 018_attendee_registration_answers
-Revises: 017_bulk_email_recipient_type
+Revision ID: 019_reg_answers_guard
+Revises: 018_att_reg_answers
 Create Date: 2026-04-05
 """
 
-from alembic import op
-import sqlalchemy as sa
 
-
-revision = "018_attendee_registration_answers"
-down_revision = "017_bulk_email_recipient_type"
+revision = "019_reg_answers_guard"
+down_revision = "018_att_reg_answers"
 branch_labels = None
 depends_on = None
 
 
 def upgrade() -> None:
-    conn = op.get_bind()
-    inspector = sa.inspect(conn)
-    columns = [col["name"] for col in inspector.get_columns("attendees")]
-    if "registration_answers" not in columns:
-        op.add_column(
-            "attendees",
-            sa.Column("registration_answers", sa.JSON(), nullable=True),
-        )
+    pass
 
 
 def downgrade() -> None:
-    conn = op.get_bind()
-    inspector = sa.inspect(conn)
-    columns = [col["name"] for col in inspector.get_columns("attendees")]
-    if "registration_answers" in columns:
-        op.drop_column("attendees", "registration_answers")
+    pass
