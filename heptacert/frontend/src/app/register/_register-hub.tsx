@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowRight, Building2, CheckCircle2, Eye, EyeOff, Lock, Mail, ShieldCheck, UserRound } from "lucide-react";
 import { apiFetch, registerPublicMember } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
-import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight, CheckCircle2, Building2, UserRound } from "lucide-react";
 
 type RegisterMode = "organizer" | "member";
 
@@ -28,45 +28,45 @@ export default function RegisterHub() {
       lang === "tr"
         ? {
             organizer: {
-              label: "Organizatör",
-              title: "Etkinlik planlayıcı hesabı oluştur",
-              subtitle: "Etkinliklerini yönet, sertifika üret ve admin paneline eriş.",
-              benefit: "100 HC hediye bakiye ile başlayın",
-              verifyTitle: "Organizatör hesabını doğrula",
-              verifyBody: "adresine organizatör hesabın için doğrulama bağlantısı gönderdik.",
+              label: "Organizator",
+              title: "Etkinlik planlayici hesabi olustur",
+              subtitle: "Etkinliklerini yonet, sertifika uret ve admin paneline eris.",
+              benefit: "100 HC hediye bakiye ile baslayin",
+              verifyTitle: "Organizator hesabini dogrula",
+              verifyBody: "adresine organizator hesabin icin dogrulama baglantisi gonderdik.",
               loginHref: "/admin/login",
-              loginLabel: "Admin Girişine Git",
+              loginLabel: "Admin Girisine Git",
             },
             member: {
-              label: "Katılımcı",
-              title: "Üye hesabı oluştur",
-              subtitle: "Public etkinlikleri keşfet, kayıt ol ve yeni topluluk katmanına bağlan.",
-              benefit: "Etkinlik keşfi ve katılım için kişisel üye hesabı",
-              verifyTitle: "Üye hesabını doğrula",
-              verifyBody: "adresine üye hesabın için doğrulama bağlantısı gönderdik.",
+              label: "Katilimci",
+              title: "Uye hesabi olustur",
+              subtitle: "Public etkinlikleri kesfet, kayit ol ve topluluk katmanina baglan.",
+              benefit: "Etkinlik kesfi ve katilim icin kisisel uye hesabi",
+              verifyTitle: "Uye hesabini dogrula",
+              verifyBody: "adresine uye hesabin icin dogrulama baglantisi gonderdik.",
               loginHref: "/login?mode=member",
-              loginLabel: "Üye Girişine Git",
+              loginLabel: "Uye Girisine Git",
             },
-            passwordMin: "Şifre en az 8 karakter olmalıdır.",
-            passwordMismatch: "Şifreler eşleşmiyor.",
-            registerFailed: "Kayıt işlemi başarısız oldu.",
-            verifyHint: "E-posta gelmediyse spam klasörünü de kontrol edin.",
-            createAccount: "Hesap Oluştur",
+            passwordMin: "Sifre en az 8 karakter olmali.",
+            passwordMismatch: "Sifreler eslesmiyor.",
+            registerFailed: "Kayit islemi basarisiz oldu.",
+            verifyHint: "E-posta gelmediyse spam klasorunu de kontrol edin.",
+            createAccount: "Hesap Olustur",
             name: "Ad Soyad",
-            namePlaceholder: "Örn. Ayşe Yılmaz",
+            namePlaceholder: "Orn. Ayse Yilmaz",
             email: "E-posta Adresi",
-            password: "Şifre",
-            confirmPassword: "Şifre Tekrar",
+            password: "Sifre",
+            confirmPassword: "Sifre Tekrar",
             emailPlaceholder: "siz@example.com",
             passwordPlaceholder: "En az 8 karakter",
-            confirmPlaceholder: "Şifrenizi tekrar girin",
-            loading: "Kayıt yapılıyor...",
-            submitOrganizer: "Organizatör Hesabı Oluştur",
-            submitMember: "Üye Hesabı Oluştur",
-            hasAccount: "Zaten hesabınız var mı?",
-            signInOrganizer: "Admin girişi",
-            signInMember: "Üye girişi",
-            switchHint: "İstersen diğer hesap tipine de hemen geçebilirsin.",
+            confirmPlaceholder: "Sifrenizi tekrar girin",
+            loading: "Kayit yapiliyor...",
+            submitOrganizer: "Organizator Hesabi Olustur",
+            submitMember: "Uye Hesabi Olustur",
+            hasAccount: "Zaten hesabin var mi?",
+            signInOrganizer: "Admin girisi",
+            signInMember: "Uye girisi",
+            switchHint: "Istersen diger hesap tipine de hemen gecebilirsin.",
           }
         : {
             organizer: {
@@ -82,7 +82,7 @@ export default function RegisterHub() {
             member: {
               label: "Member",
               title: "Create a member account",
-              subtitle: "Discover public events, register faster, and join the new community layer.",
+              subtitle: "Discover public events, register faster, and join the community layer.",
               benefit: "A personal member profile for event discovery and participation",
               verifyTitle: "Verify your member account",
               verifyBody: "We sent a verification link to this address for your member account.",
@@ -110,7 +110,7 @@ export default function RegisterHub() {
             signInMember: "Member login",
             switchHint: "You can switch to the other account type anytime.",
           },
-    [lang]
+    [lang],
   );
 
   useEffect(() => {
@@ -120,14 +120,15 @@ export default function RegisterHub() {
 
   const modeCopy = copy[mode];
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setErr(null);
 
     if (password.length < 8) {
       setErr(copy.passwordMin);
       return;
     }
+
     if (password !== confirm) {
       setErr(copy.passwordMismatch);
       return;
@@ -148,8 +149,8 @@ export default function RegisterHub() {
         });
       }
       setSuccess(true);
-    } catch (e: any) {
-      setErr(e?.message || copy.registerFailed);
+    } catch (error: any) {
+      setErr(error?.message || copy.registerFailed);
     } finally {
       setLoading(false);
     }
@@ -195,9 +196,7 @@ export default function RegisterHub() {
           <button
             type="button"
             onClick={() => setMode("organizer")}
-            className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition ${
-              mode === "organizer" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
-            }`}
+            className={inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition }
           >
             <Building2 className="h-4 w-4" />
             {copy.organizer.label}
@@ -205,9 +204,7 @@ export default function RegisterHub() {
           <button
             type="button"
             onClick={() => setMode("member")}
-            className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition ${
-              mode === "member" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
-            }`}
+            className={inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition }
           >
             <UserRound className="h-4 w-4" />
             {copy.member.label}
@@ -220,7 +217,7 @@ export default function RegisterHub() {
         </div>
 
         <form onSubmit={onSubmit} className="space-y-5">
-          {mode === "member" && (
+          {mode === "member" ? (
             <div>
               <label className="label">{copy.name}</label>
               <div className="relative">
@@ -229,14 +226,14 @@ export default function RegisterHub() {
                   className="input-field pl-10"
                   type="text"
                   value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
+                  onChange={(event) => setDisplayName(event.target.value)}
                   placeholder={copy.namePlaceholder}
                   required
                   autoComplete="name"
                 />
               </div>
             </div>
-          )}
+          ) : null}
 
           <div>
             <label className="label">{copy.email}</label>
@@ -246,7 +243,7 @@ export default function RegisterHub() {
                 className="input-field pl-10"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(event) => setEmail(event.target.value)}
                 placeholder={copy.emailPlaceholder}
                 required
                 autoComplete="email"
@@ -262,7 +259,7 @@ export default function RegisterHub() {
                 className="input-field pl-10 pr-10"
                 type={showPw ? "text" : "password"}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(event) => setPassword(event.target.value)}
                 placeholder={copy.passwordPlaceholder}
                 required
                 autoComplete="new-password"
@@ -281,7 +278,7 @@ export default function RegisterHub() {
                 className="input-field pl-10"
                 type={showPw ? "text" : "password"}
                 value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
+                onChange={(event) => setConfirm(event.target.value)}
                 placeholder={copy.confirmPlaceholder}
                 required
                 autoComplete="new-password"
@@ -290,15 +287,22 @@ export default function RegisterHub() {
           </div>
 
           <AnimatePresence mode="wait">
-            {err && (
+            {err ? (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                 <div className="error-banner">{err}</div>
               </motion.div>
-            )}
+            ) : null}
           </AnimatePresence>
 
           <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-3">
-            {loading ? copy.loading : <>{mode === "organizer" ? copy.submitOrganizer : copy.submitMember} <ArrowRight className="h-4 w-4" /></>}
+            {loading ? (
+              copy.loading
+            ) : (
+              <>
+                {mode === "organizer" ? copy.submitOrganizer : copy.submitMember}
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
           </button>
         </form>
 
