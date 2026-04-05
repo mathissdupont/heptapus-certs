@@ -28,18 +28,19 @@ export default function MyEventsPage() {
     () =>
       lang === "tr"
         ? {
-            eyebrow: "?ye Alan?",
-            title: "Kat?ld???m Etkinlikler",
-            subtitle: "Giri? yapt???n?z ?ye hesab?na ba?l? kay?tlar? burada takip edebilirsiniz.",
-            empty: "Bu hesaba ba?l? bir etkinlik kayd? bulunamad?.",
-            loginRequired: "Bu alan? g?rmek i?in ?ye hesab?n?zla giri? yapmal?s?n?z.",
-            goLogin: "?ye Giri?i",
-            openEvent: "Etkinli?i A?",
-            status: "Durum Sayfas?",
-            verified: "Do?ruland?",
-            pending: "Do?rulama Bekliyor",
-            attendance: "Kat?l?m",
-            fallback: "Etkinlikler y?klenemedi.",
+            eyebrow: "Uye Alani",
+            title: "Katildigim Etkinlikler",
+            subtitle: "Giris yaptiginiz uye hesabina bagli kayitlari burada takip edebilirsiniz.",
+            empty: "Bu hesaba bagli bir etkinlik kaydi bulunamadi.",
+            loginRequired: "Bu alani gormek icin uye hesabinla giris yapmalisin.",
+            goLogin: "Uye Girisi",
+            openEvent: "Etkinligi Ac",
+            status: "Durum Sayfasi",
+            verified: "Dogrulandi",
+            pending: "Dogrulama Bekliyor",
+            attendance: "Katilim",
+            fallback: "Etkinlikler yuklenemedi.",
+            sessionWord: "oturum",
           }
         : {
             eyebrow: "Member Area",
@@ -54,6 +55,7 @@ export default function MyEventsPage() {
             pending: "Pending Verification",
             attendance: "Attendance",
             fallback: "Failed to load events.",
+            sessionWord: "sessions",
           },
     [lang],
   );
@@ -110,7 +112,7 @@ export default function MyEventsPage() {
         <h1 className="mt-4 text-4xl font-black tracking-tight text-slate-950">{copy.title}</h1>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
           {copy.subtitle}
-          {memberName ? ` ${memberName}` : ""}
+          {memberName ?   : ""}
         </p>
       </section>
 
@@ -126,7 +128,6 @@ export default function MyEventsPage() {
               <article key={item.attendee_id} className="card overflow-hidden p-0">
                 <div className="h-44 bg-slate-100">
                   {item.event_banner_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={item.event_banner_url} alt={item.event_name} className="h-full w-full object-cover" />
                   ) : (
                     <div className="flex h-full items-center justify-center bg-[linear-gradient(135deg,rgba(14,165,233,0.16),rgba(59,130,246,0.06))] px-6 text-center text-lg font-semibold text-slate-700">
@@ -138,11 +139,7 @@ export default function MyEventsPage() {
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <h2 className="text-2xl font-bold text-slate-950">{item.event_name}</h2>
                     <span
-                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                        verified
-                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                          : "border-amber-200 bg-amber-50 text-amber-700"
-                      }`}
+                      className={ounded-full border px-3 py-1 text-xs font-semibold }
                     >
                       {verified ? copy.verified : copy.pending}
                     </span>
@@ -164,21 +161,21 @@ export default function MyEventsPage() {
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 sm:col-span-2">
                       <div className="flex items-center gap-2">
                         <Ticket className="h-4 w-4 text-brand-500" />
-                        {copy.attendance}: {item.sessions_attended}/{item.min_sessions_required}
+                        {copy.attendance}: {item.sessions_attended}/{item.min_sessions_required} {copy.sessionWord}
                       </div>
                     </div>
                   </div>
 
                   <div className="flex flex-wrap gap-3">
-                    <Link href={`/events/${item.event_id}`} className="btn-primary inline-flex">
+                    <Link href={/events/} className="btn-primary inline-flex">
                       {copy.openEvent}
                     </Link>
-                    {item.status_url && (
+                    {item.status_url ? (
                       <a href={item.status_url} className="btn-secondary inline-flex items-center gap-2">
                         <ShieldCheck className="h-4 w-4" />
                         {copy.status}
                       </a>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </article>

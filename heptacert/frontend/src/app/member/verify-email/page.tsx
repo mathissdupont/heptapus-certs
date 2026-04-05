@@ -18,11 +18,13 @@ function VerifyMemberEmailContent() {
     () =>
       lang === "tr"
         ? {
-            loading: "Üye hesabınız doğrulanıyor...",
-            successTitle: "Üye hesabı doğrulandı",
-            errorTitle: "Doğrulama başarısız",
-            signIn: "Üye Girişine Git",
-            register: "Yeniden Kayıt Ol",
+            loading: "Uye hesabiniz dogrulaniyor...",
+            successTitle: "Uye hesabi dogrulandi",
+            errorTitle: "Dogrulama basarisiz",
+            signIn: "Uye Girisine Git",
+            register: "Yeniden Kayit Ol",
+            missing: "Dogrulama baglantisi eksik.",
+            failed: "Dogrulama tamamlanamadi.",
           }
         : {
             loading: "Verifying your member account...",
@@ -30,18 +32,20 @@ function VerifyMemberEmailContent() {
             errorTitle: "Verification failed",
             signIn: "Go to Member Login",
             register: "Register Again",
+            missing: "Verification token is missing.",
+            failed: "Verification could not be completed.",
           },
-    [lang]
+    [lang],
   );
 
   useEffect(() => {
     if (!token) {
       setStatus("error");
-      setMessage(lang === "tr" ? "Doğrulama bağlantısı eksik." : "Verification token is missing.");
+      setMessage(copy.missing);
       return;
     }
 
-    publicApiFetch(`/public/auth/verify-email?token=${encodeURIComponent(token)}`)
+    publicApiFetch(/public/auth/verify-email?token=)
       .then((res) => res.json())
       .then((data) => {
         setStatus("success");
@@ -49,9 +53,9 @@ function VerifyMemberEmailContent() {
       })
       .catch((err: any) => {
         setStatus("error");
-        setMessage(err?.message || (lang === "tr" ? "Doğrulama yapılamadı." : "Verification could not be completed."));
+        setMessage(err?.message || copy.failed);
       });
-  }, [lang, token]);
+  }, [copy.failed, copy.missing, token]);
 
   return (
     <div className="flex min-h-[70vh] items-center justify-center py-12">
@@ -65,7 +69,9 @@ function VerifyMemberEmailContent() {
           </>
         ) : (
           <>
-            <div className={`mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full ${status === "success" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}>
+            <div
+              className={mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full }
+            >
               {status === "success" ? <CheckCircle2 className="h-8 w-8" /> : <MailWarning className="h-8 w-8" />}
             </div>
             <h1 className="text-xl font-bold text-slate-900">{status === "success" ? copy.successTitle : copy.errorTitle}</h1>
@@ -87,7 +93,13 @@ function VerifyMemberEmailContent() {
 
 export default function VerifyMemberEmailPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-[70vh] items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-brand-500" /></div>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-[70vh] items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-brand-500" />
+        </div>
+      }
+    >
       <VerifyMemberEmailContent />
     </Suspense>
   );

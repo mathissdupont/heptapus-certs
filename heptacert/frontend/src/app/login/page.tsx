@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Building2, Compass, Lock, Mail, ShieldCheck, UserRound } from "lucide-react";
 import { loginPublicMember, setPublicMemberToken } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
@@ -24,31 +24,31 @@ function MemberLoginContent() {
     () =>
       lang === "tr"
         ? {
-            memberLabel: "Katılımcı",
-            organizerLabel: "Organizatör",
-            title: "Giriş Yap",
-            memberTitle: "Üye hesabınla devam et",
-            memberBody: "Public etkinlikleri keşfetmek ve topluluk katmanını kullanmak için üye hesabına giriş yap.",
-            organizerTitle: "Etkinlik yönetimi için admin paneli",
-            organizerBody: "Etkinlik oluşturma, sertifika üretme ve operasyon ekranları için mevcut admin panelini kullan.",
+            memberLabel: "Katilimci",
+            organizerLabel: "Organizator",
+            title: "Giris Yap",
+            memberTitle: "Uye hesabinla devam et",
+            memberBody: "Public etkinlikleri kesfetmek ve topluluk ozelliklerini kullanmak icin uye hesabina giris yap.",
+            organizerTitle: "Etkinlik yonetimi icin admin paneli",
+            organizerBody: "Etkinlik olusturma, sertifika uretme ve operasyon ekranlari icin mevcut admin panelini kullan.",
             email: "E-posta Adresi",
-            password: "Şifre",
+            password: "Sifre",
             emailPlaceholder: "siz@example.com",
-            passwordPlaceholder: "Şifreniz",
-            submit: "Üye Girişi Yap",
-            loading: "Giriş yapılıyor...",
-            loginFailed: "Giriş başarısız oldu.",
+            passwordPlaceholder: "Sifreniz",
+            submit: "Uye Girisi Yap",
+            loading: "Giris yapiliyor...",
+            loginFailed: "Giris basarisiz oldu.",
             organizerCta: "Admin Paneline Git",
-            noAccount: "Hesabın yok mu?",
-            memberRegister: "Üye hesabı oluştur",
-            organizerRegister: "Organizatör hesabı oluştur",
+            noAccount: "Hesabin yok mu?",
+            memberRegister: "Uye hesabi olustur",
+            organizerRegister: "Organizator hesabi olustur",
           }
         : {
             memberLabel: "Member",
             organizerLabel: "Organizer",
             title: "Sign In",
             memberTitle: "Continue with your member account",
-            memberBody: "Sign in to discover public events and use the new community layer.",
+            memberBody: "Sign in to discover public events and use the community layer.",
             organizerTitle: "Use the admin panel for event operations",
             organizerBody: "Keep using the existing admin panel for event creation, certification, and operations.",
             email: "Email Address",
@@ -63,15 +63,15 @@ function MemberLoginContent() {
             memberRegister: "Create member account",
             organizerRegister: "Create organizer account",
           },
-    [lang]
+    [lang],
   );
 
   useEffect(() => {
     setMode(searchParams.get("mode") === "organizer" ? "organizer" : "member");
   }, [searchParams]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setError(null);
     setLoading(true);
     try {
@@ -105,9 +105,7 @@ function MemberLoginContent() {
             <button
               type="button"
               onClick={() => setMode("member")}
-              className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition ${
-                mode === "member" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
-              }`}
+              className={inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition }
             >
               <UserRound className="h-4 w-4" />
               {copy.memberLabel}
@@ -115,9 +113,7 @@ function MemberLoginContent() {
             <button
               type="button"
               onClick={() => setMode("organizer")}
-              className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition ${
-                mode === "organizer" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
-              }`}
+              className={inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition }
             >
               <Building2 className="h-4 w-4" />
               {copy.organizerLabel}
@@ -140,7 +136,7 @@ function MemberLoginContent() {
                       className="input-field pl-10"
                       type="email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(event) => setEmail(event.target.value)}
                       placeholder={copy.emailPlaceholder}
                       autoComplete="email"
                       required
@@ -156,7 +152,7 @@ function MemberLoginContent() {
                       className="input-field pl-10"
                       type="password"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(event) => setPassword(event.target.value)}
                       placeholder={copy.passwordPlaceholder}
                       autoComplete="current-password"
                       required
@@ -165,15 +161,27 @@ function MemberLoginContent() {
                 </div>
 
                 <AnimatePresence mode="wait">
-                  {error && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                  {error ? (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
                       <div className="error-banner">{error}</div>
                     </motion.div>
-                  )}
+                  ) : null}
                 </AnimatePresence>
 
                 <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-3">
-                  {loading ? copy.loading : <>{copy.submit} <ArrowRight className="h-4 w-4" /></>}
+                  {loading ? (
+                    copy.loading
+                  ) : (
+                    <>
+                      {copy.submit}
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
                 </button>
               </form>
 
@@ -210,26 +218,27 @@ function MemberLoginContent() {
             <Compass className="h-5 w-5" />
           </div>
           <h2 className="mt-5 text-2xl font-bold text-slate-900">
-            {lang === "tr" ? "Public etkinlik katmanı hazır" : "The public event layer is ready"}
+            {lang === "tr" ? "Public etkinlik katmani hazir" : "The public event layer is ready"}
           </h2>
           <p className="mt-3 text-sm leading-6 text-slate-600">
             {lang === "tr"
-              ? "Bu yeni hesap tipi mevcut organizer akışını bozmaz. Ayrı oturum yapısıyla public etkinlik keşfi ve sonraki sosyal özellikler için temel oluşturur."
-              : "This new account type does not disturb the existing organizer flow. It creates a clean base for public event discovery and the upcoming social features."}
+              ? "Bu yeni hesap tipi mevcut organizer akisina dokunmaz. Ayri oturum yapisiyla public etkinlik kesfi ve sonraki sosyal ozellikler icin temiz bir temel kurar."
+              : "This new account type does not disturb the existing organizer flow. It creates a clean base for public event discovery and upcoming social features."}
           </p>
           <div className="mt-6 space-y-3 text-sm text-slate-600">
             <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
               {lang === "tr" ? "Public etkinlik listesi" : "Public event listing"}
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-              {lang === "tr" ? "Public etkinlik detay sayfası" : "Public event detail pages"}
+              {lang === "tr" ? "Public etkinlik detay sayfasi" : "Public event detail pages"}
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-              {lang === "tr" ? "Kırılmayan organizer paneli" : "Organizer flow kept intact"}
+              {lang === "tr" ? "Kirilmayan organizer paneli" : "Organizer flow kept intact"}
             </div>
           </div>
           <Link href="/events" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-600 hover:text-brand-700">
-            {lang === "tr" ? "Etkinlikleri keşfet" : "Explore events"} <ArrowRight className="h-4 w-4" />
+            {lang === "tr" ? "Etkinlikleri kesfet" : "Explore events"}
+            <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </motion.div>
@@ -239,7 +248,13 @@ function MemberLoginContent() {
 
 export default function MemberLoginPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-[80vh] items-center justify-center"><ShieldCheck className="h-8 w-8 animate-pulse text-brand-500" /></div>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-[80vh] items-center justify-center">
+          <ShieldCheck className="h-8 w-8 animate-pulse text-brand-500" />
+        </div>
+      }
+    >
       <MemberLoginContent />
     </Suspense>
   );

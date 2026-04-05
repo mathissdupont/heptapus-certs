@@ -5717,7 +5717,7 @@ async def apply_cert_template(
     await db.commit()
     await db.refresh(event)
     
-    return EventOut.from_attributes(event) if hasattr(EventOut, 'from_attributes') else EventOut(**event.__dict__)
+    return _event_to_out(event)
 
 
 # Ã¢â€â‚¬Ã¢â€â‚¬ Admin: Email Configuration (SMTP) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
@@ -7179,7 +7179,7 @@ def _event_to_out(ev: Event) -> EventOut:
         event_location=ev.event_location,
         min_sessions_required=ev.min_sessions_required,
         event_banner_url=ev.event_banner_url,
-        auto_email_on_cert=ev.auto_email_on_cert,
+        auto_email_on_cert=bool(ev.auto_email_on_cert),
         cert_email_template_id=ev.cert_email_template_id,
         visibility=_get_event_visibility(ev),
     )
@@ -9810,11 +9810,17 @@ async def list_public_events(db: AsyncSession = Depends(get_db)):
         )
         visible_events = events_res.scalars().all()
     elif dialect_name == "postgresql":
-        visibility_expr = Event.config["visibility"]
-        visibility_text = visibility_expr.astext if hasattr(visibility_expr, "astext") else visibility_expr
         events_res = await db.execute(
             select(Event)
-            .where(func.lower(func.coalesce(visibility_text, "private")) == "public")
+            .where(
+                func.lower(
+                    func.coalesce(
+                        func.jsonb_extract_path_text(Event.config, "visibility"),
+                        "private",
+                    )
+                )
+                == "public"
+            )
             .order_by(Event.created_at.desc())
         )
         visible_events = events_res.scalars().all()
