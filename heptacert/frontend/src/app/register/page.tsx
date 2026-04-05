@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import RegisterClient from "./_register-client";
+import RegisterHub from "./_register-hub";
 
 export const metadata: Metadata = {
   title: "Hesap Oluştur",
@@ -14,5 +14,5 @@ export const metadata: Metadata = {
 };
 
 export default function RegisterPage() {
-  return <RegisterClient />;
+  return <RegisterHub />;
 }

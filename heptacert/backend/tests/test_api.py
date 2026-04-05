@@ -54,6 +54,20 @@ class TestAuthEndpoints:
         assert resp.status_code == 422
 
     @pytest.mark.asyncio
+    async def test_public_member_register_missing_body(self):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.post("/api/public/auth/register", json={})
+        assert resp.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_public_member_login_missing_body(self):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.post("/api/public/auth/login", json={})
+        assert resp.status_code == 422
+
+    @pytest.mark.asyncio
     async def test_register_weak_password(self):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
@@ -92,6 +106,13 @@ class TestAuthRequired:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
             resp = await ac.get("/api/me")
+        assert resp.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_public_me_requires_auth(self):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.get("/api/public/me")
         assert resp.status_code == 401
 
     @pytest.mark.asyncio
@@ -220,6 +241,11 @@ class TestPublicEndpoints:
     async def test_event_info_nonexistent(self):
         resp = await _safe_get("/api/events/999999/info")
         assert resp.status_code in (404, 500)
+
+    @pytest.mark.asyncio
+    async def test_public_events_endpoint(self):
+        resp = await _safe_get("/api/public/events")
+        assert resp.status_code in (200, 500)
 
     @pytest.mark.asyncio
     async def test_attend_invalid_token(self):

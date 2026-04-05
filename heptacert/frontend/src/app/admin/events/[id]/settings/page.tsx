@@ -30,12 +30,14 @@ type EventOut = {
   template_image_url: string;
   config?: {
     registration_fields?: RegistrationField[];
+    visibility?: "private" | "unlisted" | "public";
     [key: string]: unknown;
   };
   event_description?: string;
   event_banner_url?: string | null;
   auto_email_on_cert?: boolean;
   cert_email_template_id?: number | null;
+  visibility?: "private" | "unlisted" | "public";
 };
 
 type CertificateTemplate = {
@@ -59,6 +61,7 @@ type FormState = {
   name: string;
   event_description: string;
   event_banner_url: string;
+  visibility: "private" | "unlisted" | "public";
   registration_fields: RegistrationField[];
   auto_email_on_cert: boolean;
   cert_email_template_id: number | null;
@@ -72,6 +75,12 @@ const FIELD_TYPE_OPTIONS: Array<{ value: RegistrationField["type"]; tr: string; 
   { value: "date", tr: "Tarih", en: "Date" },
   { value: "select", tr: "Seçim listesi", en: "Select list" },
 ];
+
+const VISIBILITY_OPTIONS = [
+  { value: "private", tr: "Private", en: "Private" },
+  { value: "unlisted", tr: "Liste dışı", en: "Unlisted" },
+  { value: "public", tr: "Public", en: "Public" },
+] as const;
 
 function createRegistrationField(): RegistrationField {
   const id =
@@ -110,6 +119,10 @@ export default function EventSettingsPage() {
         upgradeCta: "Planları Gör",
         basicTitle: "Temel Bilgiler",
         basicBody: "Etkinlik kaydı sırasında görünen ana bilgileri burada güncelleyin.",
+        visibilityTitle: "Public görünürlük",
+        visibilityBody: "Bu ayar yalnızca public keşif ekranını etkiler. Mevcut kayıt linklerin ve organizer akışın bozulmaz.",
+        visibilityLabel: "Görünürlük modu",
+        visibilityHint: "Private etkinlikler listede görünmez. Unlisted sadece direkt link ile açılır. Public etkinlikler keşif ekranına düşer.",
         registrationTitle: "Kayıt formu alanları",
         registrationBody: "Katılımcılardan toplamak istediğiniz ek bilgileri belirleyin. Bu alanlar public kayıt sayfasında ad ve e-postanın altında görünür.",
         addField: "Alan ekle",
@@ -171,6 +184,10 @@ export default function EventSettingsPage() {
         upgradeCta: "View Plans",
         basicTitle: "Basic Information",
         basicBody: "Update the main event details shown during registration.",
+        visibilityTitle: "Public visibility",
+        visibilityBody: "This setting only affects the public discovery layer. Your current registration links and organizer workflow remain intact.",
+        visibilityLabel: "Visibility mode",
+        visibilityHint: "Private stays hidden. Unlisted opens only via direct link. Public events appear in the discovery list.",
         registrationTitle: "Registration form fields",
         registrationBody: "Define the extra information you want to collect from attendees. These fields are shown below name and email on the public registration page.",
         addField: "Add field",
@@ -229,6 +246,7 @@ export default function EventSettingsPage() {
     name: "",
     event_description: "",
     event_banner_url: "",
+    visibility: "private",
     registration_fields: [],
     auto_email_on_cert: false,
     cert_email_template_id: null,
@@ -243,6 +261,10 @@ export default function EventSettingsPage() {
 
   const hasGrowthPlan = subscription?.role === "superadmin" || (subscription?.active && ["growth", "enterprise"].includes(subscription?.plan_id || ""));
   const fieldTypeOptions = FIELD_TYPE_OPTIONS.map((option) => ({
+    value: option.value,
+    label: lang === "tr" ? option.tr : option.en,
+  }));
+  const visibilityOptions = VISIBILITY_OPTIONS.map((option) => ({
     value: option.value,
     label: lang === "tr" ? option.tr : option.en,
   }));
@@ -288,6 +310,7 @@ export default function EventSettingsPage() {
         name: eventData.name || "",
         event_description: eventData.event_description || "",
         event_banner_url: eventData.event_banner_url || "",
+        visibility: eventData.visibility || (eventData.config?.visibility as FormState["visibility"]) || "private",
         registration_fields: Array.isArray(eventData.config?.registration_fields)
           ? eventData.config.registration_fields
           : [],
@@ -345,6 +368,7 @@ export default function EventSettingsPage() {
       const payload: Record<string, unknown> = {
         name: formData.name.trim(),
         event_description: formData.event_description.trim(),
+        visibility: formData.visibility,
         registration_fields: formData.registration_fields.map((field) => ({
           id: field.id,
           label: field.label.trim(),
@@ -473,6 +497,41 @@ export default function EventSettingsPage() {
                   placeholder={copy.descriptionPlaceholder}
                 />
               </div>
+            </div>
+          </section>
+
+          <section className="card p-6 sm:p-7">
+            <div className="flex items-start gap-3">
+              <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-surface-900">{copy.visibilityTitle}</h2>
+                <p className="mt-1 text-sm text-surface-500">{copy.visibilityBody}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              <div>
+                <label className="label">{copy.visibilityLabel}</label>
+                <select
+                  value={formData.visibility}
+                  onChange={(event) =>
+                    setFormData((current) => ({
+                      ...current,
+                      visibility: event.target.value as FormState["visibility"],
+                    }))
+                  }
+                  className="input-field"
+                >
+                  {visibilityOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p className="text-xs text-surface-400">{copy.visibilityHint}</p>
             </div>
           </section>
 

@@ -247,7 +247,7 @@ export default function AdminLogin() {
 
               <div className="mt-6 text-center text-sm text-gray-500">
                 {copy.noAccount}{" "}
-                <Link href="/register" className="font-semibold text-brand-600 hover:text-brand-700">
+                <Link href="/register?mode=organizer" className="font-semibold text-brand-600 hover:text-brand-700">
                   {copy.register}
                 </Link>
               </div>

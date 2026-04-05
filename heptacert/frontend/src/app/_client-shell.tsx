@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { I18nProvider, LanguageToggle, useT, useI18n } from "@/lib/i18n";
-import { apiFetch } from "@/lib/api";
+import { clearPublicMemberToken, getPublicMemberMe, getPublicMemberToken } from "@/lib/api";
 
 const HEPTACERT_PRIMARY_HOSTS = new Set([
   "heptacert.com",
@@ -28,12 +28,15 @@ function HtmlLangSync() {
 function Navbar() {
   const [open, setOpen] = useState(false);
   const t = useT();
+  const { lang } = useI18n();
+  const pathname = usePathname();
 
   const [brandLogo, setBrandLogo] = useState<string | null>(null);
   const [brandColor, setBrandColor] = useState<string | null>(null);
   const [orgName, setOrgName] = useState<string | null>(null);
   const [settings, setSettings] = useState<{ hide_heptacert_home?: boolean } | null>(null);
   const [host, setHost] = useState<string>("");
+  const [member, setMember] = useState<{ display_name: string; email: string } | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -61,6 +64,27 @@ function Navbar() {
     };
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+    if (!getPublicMemberToken()) {
+      setMember(null);
+      return () => {
+        mounted = false;
+      };
+    }
+    getPublicMemberMe()
+      .then((data) => {
+        if (mounted) setMember(data);
+      })
+      .catch(() => {
+        clearPublicMemberToken();
+        if (mounted) setMember(null);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [pathname]);
+
   const isHeptaCertHost = useMemo(() => {
     if (!host) return true; // Sayfa yüklenmeden layout shift olmaması için default true
     return HEPTACERT_PRIMARY_HOSTS.has(host);
@@ -72,15 +96,27 @@ function Navbar() {
     return !isHeptaCertHost;
   }, [host, isHeptaCertHost, settings]);
 
+  const eventsLabel = lang === "tr" ? "Etkinlikler" : "Events";
+  const logoutLabel = lang === "tr" ? "Çıkış Yap" : "Sign Out";
+
   const links = isWhiteLabel
     ? [
         { href: "/verify", label: t("nav_verify") },
       ]
     : [
+        { href: "/events", label: eventsLabel },
         { href: "/#features", label: t("nav_features") },
         { href: "/pricing", label: t("nav_pricing") },
         { href: "/verify", label: t("nav_verify") },
       ];
+
+  const memberName = member?.display_name || member?.email || "";
+
+  function handleLogout() {
+    clearPublicMemberToken();
+    setMember(null);
+    setOpen(false);
+  }
 
   return (
     <motion.header
@@ -126,11 +162,28 @@ function Navbar() {
         </nav>
         <div className="hidden md:flex items-center gap-2 pr-4 py-3">
           <LanguageToggle />
-          <Link href="/admin/login" className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors">{t("nav_login")}</Link>
-          
-          {!isWhiteLabel && (
+          {member ? (
+            <>
+              <div className="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+                {memberName}
+              </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 transition-colors hover:text-gray-900"
+              >
+                {logoutLabel}
+              </button>
+            </>
+          ) : (
+            <Link href="/login" className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors">
+              {t("nav_login")}
+            </Link>
+          )}
+
+          {!isWhiteLabel && !member && (
             <Link
-              href="/register"
+              href="/register?mode=organizer"
               className="inline-flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-brand hover:opacity-90 transition-opacity"
               style={{
                 background: `linear-gradient(90deg, ${brandColor || "#7c3aed"}, #7c3aed)`,
@@ -154,11 +207,28 @@ function Navbar() {
             <div className="px-3 py-2 flex items-center gap-2">
               <LanguageToggle />
             </div>
-            <Link href="/admin/login" onClick={() => setOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">{t("nav_login")}</Link>
-            
-            {!isWhiteLabel && (
+            {member ? (
+              <>
+                <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">
+                  {memberName}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                >
+                  {logoutLabel}
+                </button>
+              </>
+            ) : (
+              <Link href="/login" onClick={() => setOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
+                {t("nav_login")}
+              </Link>
+            )}
+
+            {!isWhiteLabel && !member && (
               <Link
-                href="/register"
+                href="/register?mode=organizer"
                 onClick={() => setOpen(false)}
                 className="mt-1 inline-flex w-full items-center justify-center rounded-xl py-3 text-sm font-bold text-white shadow-brand"
                 style={{
