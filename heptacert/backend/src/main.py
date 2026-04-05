@@ -158,6 +158,17 @@ class User(Base):
     email_config: Mapped[Optional["UserEmailConfig"]] = relationship(back_populates="user", uselist=False)
 
 
+class PublicMember(Base):
+    __tablename__ = "public_members"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
+    display_name: Mapped[str] = mapped_column(String(120))
+    password_hash: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    verification_token: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+
+
 class Event(Base):
     __tablename__ = "events"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -760,6 +771,17 @@ class RegisterIn(BaseModel):
     password: str = Field(min_length=8, max_length=128)
 
 
+class PublicMemberRegisterIn(BaseModel):
+    display_name: str = Field(min_length=2, max_length=120)
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
+
+
+class PublicMemberLoginIn(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
+
+
 class ForgotPasswordIn(BaseModel):
     email: EmailStr
 
@@ -794,6 +816,7 @@ class EventRenameIn(BaseModel):
     auto_email_on_cert: Optional[bool] = Field(default=None)
     cert_email_template_id: Optional[int] = Field(default=None, ge=1)
     registration_fields: Optional[List[Dict[str, Any]]] = None
+    visibility: Optional[str] = Field(default=None, max_length=32)
 
 
 class CreditCoinsIn(BaseModel):
@@ -848,6 +871,45 @@ class EventOut(BaseModel):
     event_location: Optional[str] = None
     min_sessions_required: int = 1
     event_banner_url: Optional[str] = None
+    auto_email_on_cert: bool = False
+    cert_email_template_id: Optional[int] = None
+    visibility: str = "private"
+
+
+class PublicMemberMeOut(BaseModel):
+    id: int
+    email: EmailStr
+    display_name: str
+
+
+class PublicMemberTokenOut(TokenOut):
+    member: PublicMemberMeOut
+
+
+class PublicEventListItemOut(BaseModel):
+    id: int
+    name: str
+    event_date: Optional[str] = None
+    event_description: Optional[str] = None
+    event_location: Optional[str] = None
+    event_banner_url: Optional[str] = None
+    min_sessions_required: int = 1
+    visibility: str = "public"
+    session_count: int = 0
+
+
+class PublicEventDetailOut(BaseModel):
+    id: int
+    name: str
+    event_date: Optional[str] = None
+    event_description: Optional[str] = None
+    event_location: Optional[str] = None
+    min_sessions_required: int = 1
+    event_banner_url: Optional[str] = None
+    registration_fields: List[Dict[str, Any]] = Field(default_factory=list)
+    survey: Optional[Dict[str, Any]] = None
+    sessions: List[Dict[str, Any]] = Field(default_factory=list)
+    visibility: str = "private"
 
 
 class BulkGenerateOut(BaseModel):
@@ -2179,6 +2241,13 @@ def create_access_token(*, user_id: int, role: Role) -> str:
     return jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
 
 
+def create_public_member_access_token(*, member_id: int) -> str:
+    now = datetime.now(timezone.utc)
+    exp = now + timedelta(minutes=settings.jwt_expires_minutes)
+    payload = {"sub": str(member_id), "scope": "public_member", "iat": int(now.timestamp()), "exp": exp}
+    return jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
+
+
 def create_partial_token(*, user_id: int) -> str:
     """Short-lived token issued after password check when 2FA is required."""
     now = datetime.now(timezone.utc)
@@ -2196,6 +2265,12 @@ class CurrentUser(BaseModel):
     id: int
     role: Role
     email: EmailStr
+
+
+class CurrentPublicMember(BaseModel):
+    id: int
+    email: EmailStr
+    display_name: str
 
 
 from fastapi import Header
@@ -2250,6 +2325,31 @@ async def get_current_user(db: AsyncSession = Depends(get_db), Authorization: Op
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     return CurrentUser(id=user.id, role=user.role, email=user.email)
+
+
+async def get_current_public_member(
+    db: AsyncSession = Depends(get_db),
+    Authorization: Optional[str] = Header(default=None),
+) -> CurrentPublicMember:
+    if not Authorization or not Authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Missing bearer token")
+    token = Authorization.split(" ", 1)[1].strip()
+
+    try:
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+        if payload.get("scope") != "public_member":
+            raise HTTPException(status_code=401, detail="Invalid token scope")
+        member_id = int(payload.get("sub"))
+    except HTTPException:
+        raise
+    except (JWTError, ValueError, TypeError):
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    res = await db.execute(select(PublicMember).where(PublicMember.id == member_id))
+    member = res.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=401, detail="Member not found")
+    return CurrentPublicMember(id=member.id, email=member.email, display_name=member.display_name)
 
 
 def require_role(*allowed: Role):
@@ -3065,6 +3165,7 @@ def bad_request(msg: str) -> HTTPException:
 
 
 REGISTRATION_FIELD_TYPES = {"text", "textarea", "number", "tel", "select", "date"}
+EVENT_VISIBILITY_VALUES = {"private", "unlisted", "public"}
 
 
 def _normalize_registration_fields(raw_fields: Any) -> List[Dict[str, Any]]:
@@ -3125,6 +3226,18 @@ def _normalize_registration_fields(raw_fields: Any) -> List[Dict[str, Any]]:
 def _get_event_registration_fields(event: Event) -> List[Dict[str, Any]]:
     config = event.config or {}
     return _normalize_registration_fields(config.get("registration_fields"))
+
+
+def _normalize_event_visibility(raw_visibility: Any) -> str:
+    value = str(raw_visibility or "private").strip().lower()
+    if value not in EVENT_VISIBILITY_VALUES:
+        return "private"
+    return value
+
+
+def _get_event_visibility(event: Event) -> str:
+    config = event.config or {}
+    return _normalize_event_visibility(config.get("visibility"))
 
 
 def _normalize_registration_answers(
@@ -5087,6 +5200,87 @@ async def verify_email_endpoint(token: str = Query(...), db: AsyncSession = Depe
     return {"detail": "E-posta baÃ…Å¸arÃ„Â±yla doÃ„Å¸rulandÃ„Â±. GiriÃ…Å¸ yapabilirsiniz."}
 
 
+@app.post("/api/public/auth/register", status_code=201)
+@limiter.limit("3/minute")
+async def public_member_register(request: Request, data: PublicMemberRegisterIn, db: AsyncSession = Depends(get_db)):
+    email = str(data.email).strip().lower()
+    display_name = data.display_name.strip()
+    if not display_name:
+        raise bad_request("Display name is required.")
+
+    res = await db.execute(select(PublicMember).where(PublicMember.email == email))
+    if res.scalar_one_or_none():
+        raise bad_request("This email address is already registered.")
+
+    token = make_email_token({"email": email, "action": "public_member_verify"})
+    member = PublicMember(
+        email=email,
+        display_name=display_name,
+        password_hash=hash_password(data.password),
+        is_verified=False,
+        verification_token=token,
+    )
+    db.add(member)
+    await db.commit()
+
+    verify_link = f"{settings.frontend_base_url}/member/verify-email?token={token}"
+    await send_email_async(
+        to=email,
+        subject="HeptaCert - Verify your member account",
+        html_body=f"""
+        <p>Hello {display_name},</p>
+        <p>Verify your HeptaCert member account to browse public events and join community features.</p>
+        <p><a href="{verify_link}">{verify_link}</a></p>
+        <p>This link is valid for 24 hours.</p>
+        """,
+    )
+    return {"detail": "Member registration successful. Verification email sent."}
+
+
+@app.post("/api/public/auth/login", response_model=PublicMemberTokenOut)
+@limiter.limit("5/minute")
+async def public_member_login(request: Request, data: PublicMemberLoginIn, db: AsyncSession = Depends(get_db)):
+    email = str(data.email).strip().lower()
+    res = await db.execute(select(PublicMember).where(PublicMember.email == email))
+    member = res.scalar_one_or_none()
+    if not member or not verify_password(data.password, member.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password.")
+    if not member.is_verified:
+        raise HTTPException(status_code=403, detail="Please verify your email before signing in.")
+
+    member_out = PublicMemberMeOut(id=member.id, email=member.email, display_name=member.display_name)
+    return PublicMemberTokenOut(
+        access_token=create_public_member_access_token(member_id=member.id),
+        member=member_out,
+    )
+
+
+@app.get("/api/public/auth/verify-email")
+async def verify_public_member_email(token: str = Query(...), db: AsyncSession = Depends(get_db)):
+    try:
+        payload = verify_email_token(token, max_age=86400)
+    except SignatureExpired:
+        raise bad_request("Verification link expired. Please register again.")
+    except (BadSignature, Exception):
+        raise bad_request("Invalid verification link.")
+
+    if payload.get("action") != "public_member_verify":
+        raise bad_request("Invalid token action.")
+
+    email = str(payload.get("email") or "").strip().lower()
+    res = await db.execute(select(PublicMember).where(PublicMember.email == email))
+    member = res.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found.")
+    if member.is_verified:
+        return {"detail": "Your member account is already verified."}
+
+    member.is_verified = True
+    member.verification_token = None
+    await db.commit()
+    return {"detail": "Member email verified successfully. You can now sign in."}
+
+
 @app.post("/api/auth/forgot-password")
 @limiter.limit("3/minute")
 async def forgot_password(request: Request, data: ForgotPasswordIn, db: AsyncSession = Depends(get_db)):
@@ -6758,11 +6952,17 @@ class MeOut(BaseModel):
     role: Role
     heptacoin_balance: int
 
+
 @app.get("/api/me", response_model=MeOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
 async def me(me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(User).where(User.id == me.id))
     u = res.scalar_one()
     return MeOut(id=u.id, email=u.email, role=u.role, heptacoin_balance=u.heptacoin_balance)
+
+
+@app.get("/api/public/me", response_model=PublicMemberMeOut)
+async def public_me(member: CurrentPublicMember = Depends(get_current_public_member)):
+    return PublicMemberMeOut(id=member.id, email=member.email, display_name=member.display_name)
 
 
 @app.patch("/api/me/password", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
@@ -6813,11 +7013,13 @@ async def create_event(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    next_config = dict(payload.config or {})
+    next_config["visibility"] = _normalize_event_visibility(next_config.get("visibility"))
     ev = Event(
         admin_id=me.id,
         name=payload.name,
         template_image_url=payload.template_image_url or "placeholder",
-        config=payload.config or {},
+        config=next_config,
     )
     db.add(ev)
     await db.commit()
@@ -6836,6 +7038,9 @@ def _event_to_out(ev: Event) -> EventOut:
         event_location=ev.event_location,
         min_sessions_required=ev.min_sessions_required,
         event_banner_url=ev.event_banner_url,
+        auto_email_on_cert=ev.auto_email_on_cert,
+        cert_email_template_id=ev.cert_email_template_id,
+        visibility=_get_event_visibility(ev),
     )
 
 
@@ -6871,9 +7076,15 @@ async def rename_event(
         ev.min_sessions_required = payload.min_sessions_required
     if payload.event_banner_url is not None:
         ev.event_banner_url = payload.event_banner_url if payload.event_banner_url else None
+    next_config = dict(ev.config or {})
+    config_dirty = False
     if "registration_fields" in payload.model_fields_set:
-        next_config = dict(ev.config or {})
         next_config["registration_fields"] = _normalize_registration_fields(payload.registration_fields)
+        config_dirty = True
+    if "visibility" in payload.model_fields_set:
+        next_config["visibility"] = _normalize_event_visibility(payload.visibility)
+        config_dirty = True
+    if config_dirty:
         ev.config = next_config
     if "auto_email_on_cert" in payload.model_fields_set:
         ev.auto_email_on_cert = bool(payload.auto_email_on_cert)
@@ -9385,41 +9596,36 @@ def _pick_raffle_winners(
 
 # Ã¢â€â‚¬Ã¢â€â‚¬ Public: event info & self-register Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
-@app.get("/api/events/{event_id}/info")
-async def public_event_info(event_id: int, db: AsyncSession = Depends(get_db)):
-    res = await db.execute(select(Event).where(Event.id == event_id))
-    ev = res.scalar_one_or_none()
-    if not ev:
-        raise HTTPException(status_code=404, detail="Event not found")
-    sess_res = await db.execute(
-        select(EventSession).where(EventSession.event_id == event_id).order_by(EventSession.session_date, EventSession.session_start)
-    )
-    sessions = sess_res.scalars().all()
-    survey_res = await db.execute(select(EventSurvey).where(EventSurvey.event_id == event_id))
-    survey = survey_res.scalar_one_or_none()
-
-    survey_info: Optional[Dict[str, Any]] = None
-    if survey:
-        builtin_questions = survey.builtin_questions or []
-        survey_info = {
-            "is_required": bool(survey.is_required),
-            "survey_type": survey.survey_type,
-            "external_url": survey.external_url,
-            "has_builtin_questions": len(builtin_questions) > 0,
-            "builtin_questions": builtin_questions,
-        }
-
+def _build_public_survey_info(survey: Optional["EventSurvey"]) -> Optional[Dict[str, Any]]:
+    if not survey:
+        return None
+    builtin_questions = survey.builtin_questions or []
     return {
-        "id": ev.id,
-        "name": ev.name,
-        "event_date": ev.event_date.isoformat() if ev.event_date else None,
-        "event_description": ev.event_description,
-        "event_location": ev.event_location,
-        "min_sessions_required": ev.min_sessions_required,
-        "event_banner_url": ev.event_banner_url,
-        "registration_fields": _get_event_registration_fields(ev),
-        "survey": survey_info,
-        "sessions": [
+        "is_required": bool(survey.is_required),
+        "survey_type": survey.survey_type,
+        "external_url": survey.external_url,
+        "has_builtin_questions": len(builtin_questions) > 0,
+        "builtin_questions": builtin_questions,
+    }
+
+
+def _build_public_event_detail(
+    event: Event,
+    sessions: List[EventSession],
+    survey: Optional["EventSurvey"],
+) -> PublicEventDetailOut:
+    return PublicEventDetailOut(
+        id=event.id,
+        name=event.name,
+        event_date=event.event_date.isoformat() if event.event_date else None,
+        event_description=event.event_description,
+        event_location=event.event_location,
+        min_sessions_required=event.min_sessions_required,
+        event_banner_url=event.event_banner_url,
+        registration_fields=_get_event_registration_fields(event),
+        survey=_build_public_survey_info(survey),
+        visibility=_get_event_visibility(event),
+        sessions=[
             {
                 "id": s.id,
                 "name": s.name,
@@ -9429,7 +9635,65 @@ async def public_event_info(event_id: int, db: AsyncSession = Depends(get_db)):
             }
             for s in sessions
         ],
-    }
+    )
+
+
+@app.get("/api/public/events", response_model=list[PublicEventListItemOut])
+async def list_public_events(db: AsyncSession = Depends(get_db)):
+    events_res = await db.execute(select(Event).order_by(Event.created_at.desc()))
+    visible_events = [event for event in events_res.scalars().all() if _get_event_visibility(event) == "public"]
+    if not visible_events:
+        return []
+
+    event_ids = [event.id for event in visible_events]
+    session_counts_res = await db.execute(
+        select(EventSession.event_id, func.count(EventSession.id).label("cnt"))
+        .where(EventSession.event_id.in_(event_ids))
+        .group_by(EventSession.event_id)
+    )
+    session_counts = {int(row.event_id): int(row.cnt or 0) for row in session_counts_res.all()}
+
+    return [
+        PublicEventListItemOut(
+            id=event.id,
+            name=event.name,
+            event_date=event.event_date.isoformat() if event.event_date else None,
+            event_description=event.event_description,
+            event_location=event.event_location,
+            event_banner_url=event.event_banner_url,
+            min_sessions_required=event.min_sessions_required,
+            visibility=_get_event_visibility(event),
+            session_count=session_counts.get(event.id, 0),
+        )
+        for event in visible_events
+    ]
+
+
+@app.get("/api/public/events/{event_id}", response_model=PublicEventDetailOut)
+async def get_public_event_detail(event_id: int, db: AsyncSession = Depends(get_db)):
+    res = await db.execute(select(Event).where(Event.id == event_id))
+    event = res.scalar_one_or_none()
+    if not event or _get_event_visibility(event) == "private":
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    sessions_res = await db.execute(
+        select(EventSession).where(EventSession.event_id == event_id).order_by(EventSession.session_date, EventSession.session_start)
+    )
+    survey_res = await db.execute(select(EventSurvey).where(EventSurvey.event_id == event_id))
+    return _build_public_event_detail(event, sessions_res.scalars().all(), survey_res.scalar_one_or_none())
+
+
+@app.get("/api/events/{event_id}/info")
+async def public_event_info(event_id: int, db: AsyncSession = Depends(get_db)):
+    res = await db.execute(select(Event).where(Event.id == event_id))
+    ev = res.scalar_one_or_none()
+    if not ev:
+        raise HTTPException(status_code=404, detail="Event not found")
+    sess_res = await db.execute(
+        select(EventSession).where(EventSession.event_id == event_id).order_by(EventSession.session_date, EventSession.session_start)
+    )
+    survey_res = await db.execute(select(EventSurvey).where(EventSurvey.event_id == event_id))
+    return _build_public_event_detail(ev, sess_res.scalars().all(), survey_res.scalar_one_or_none()).model_dump()
 
 
 @app.post("/api/events/{event_id}/register", status_code=201)

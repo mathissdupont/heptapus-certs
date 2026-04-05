@@ -26,6 +26,19 @@ export function clearToken() {
   localStorage.removeItem("heptacert_token");
 }
 
+export function getPublicMemberToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("heptacert_public_member_token");
+}
+
+export function setPublicMemberToken(token: string) {
+  localStorage.setItem("heptacert_public_member_token", token);
+}
+
+export function clearPublicMemberToken() {
+  localStorage.removeItem("heptacert_public_member_token");
+}
+
 export function getRoleFromToken(): string | null {
   const token = getToken();
   if (!token) return null;
@@ -44,8 +57,12 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiFetch(path: string, init: RequestInit = {}) {
-  const token = getToken();
+async function requestApi(
+  path: string,
+  init: RequestInit = {},
+  options: { token?: string | null; onUnauthorized?: () => void } = {}
+) {
+  const token = options.token ?? null;
   const headers = new Headers(init.headers);
   const method = (init.method || "GET").toUpperCase();
 
@@ -73,10 +90,7 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
   clearTimeout(timeout);
 
   if (res.status === 401) {
-    clearToken();
-    if (typeof window !== "undefined") {
-      window.location.href = "/admin/login";
-    }
+    options.onUnauthorized?.();
     throw new ApiError(401, "Oturum sona erdi.");
   }
 
@@ -91,6 +105,31 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
   return res;
 }
 
+export async function apiFetch(path: string, init: RequestInit = {}) {
+  return requestApi(path, init, {
+    token: getToken(),
+    onUnauthorized: () => {
+      clearToken();
+      if (typeof window !== "undefined") {
+        window.location.href = "/admin/login";
+      }
+    },
+  });
+}
+
+export async function publicApiFetch(path: string, init: RequestInit = {}) {
+  return requestApi(path, init);
+}
+
+export async function memberApiFetch(path: string, init: RequestInit = {}) {
+  return requestApi(path, init, {
+    token: getPublicMemberToken(),
+    onUnauthorized: () => {
+      clearPublicMemberToken();
+    },
+  });
+}
+
 // -----------------------------------------------------------------------------
 
 export interface EventOut {
@@ -103,6 +142,81 @@ export interface EventOut {
   event_location?: string | null;
   min_sessions_required: number;
   event_banner_url?: string | null;
+  auto_email_on_cert?: boolean;
+  cert_email_template_id?: number | null;
+  visibility?: "private" | "unlisted" | "public";
+}
+
+export interface PublicMemberMe {
+  id: number;
+  email: string;
+  display_name: string;
+}
+
+export interface PublicEventListItem {
+  id: number;
+  name: string;
+  event_date?: string | null;
+  event_description?: string | null;
+  event_location?: string | null;
+  event_banner_url?: string | null;
+  min_sessions_required: number;
+  visibility: "private" | "unlisted" | "public";
+  session_count: number;
+}
+
+export interface PublicSurvey {
+  is_required: boolean;
+  survey_type: "builtin" | "external" | "both";
+  external_url?: string | null;
+  has_builtin_questions: boolean;
+  builtin_questions?: Array<{
+    id: string;
+    type: string;
+    question: string;
+    required?: boolean;
+    options?: string[];
+  }>;
+}
+
+export interface PublicEventInfo {
+  id: number;
+  name: string;
+  event_date: string | null;
+  event_description: string | null;
+  event_location: string | null;
+  min_sessions_required: number;
+  event_banner_url: string | null;
+  registration_fields?: RegistrationField[];
+  survey?: PublicSurvey | null;
+  sessions: Array<{
+    id: number;
+    name: string;
+    session_date: string | null;
+    session_start: string | null;
+    session_location: string | null;
+  }>;
+  visibility: "private" | "unlisted" | "public";
+}
+
+export interface PublicEventDetail {
+  id: number;
+  name: string;
+  event_date?: string | null;
+  event_description?: string | null;
+  event_location?: string | null;
+  min_sessions_required: number;
+  event_banner_url?: string | null;
+  registration_fields: RegistrationField[];
+  survey?: Record<string, unknown> | null;
+  sessions: Array<{
+    id: number;
+    name: string;
+    session_date?: string | null;
+    session_start?: string | null;
+    session_location?: string | null;
+  }>;
+  visibility: "private" | "unlisted" | "public";
 }
 
 export type RegistrationFieldType = "text" | "textarea" | "number" | "tel" | "select" | "date";
@@ -490,9 +604,47 @@ export async function getBulkGenerateJob(eventId: number, jobId: number): Promis
 
 // -----------------------------------------------------------------------------
 
-export async function getPublicEventInfo(eventId: number) {
-  const res = await fetch(`${API_BASE}/events/${eventId}/info`);
-  if (!res.ok) throw new Error("Event not found");
+export async function registerPublicMember(data: {
+  display_name: string;
+  email: string;
+  password: string;
+}) {
+  const res = await publicApiFetch("/public/auth/register", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function loginPublicMember(data: { email: string; password: string }): Promise<{
+  access_token: string;
+  token_type: string;
+  member: PublicMemberMe;
+}> {
+  const res = await publicApiFetch("/public/auth/login", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function getPublicMemberMe(): Promise<PublicMemberMe> {
+  const res = await memberApiFetch("/public/me");
+  return res.json();
+}
+
+export async function listPublicEvents(): Promise<PublicEventListItem[]> {
+  const res = await publicApiFetch("/public/events");
+  return res.json();
+}
+
+export async function getPublicEventDetail(eventId: number): Promise<PublicEventDetail> {
+  const res = await publicApiFetch(`/public/events/${eventId}`);
+  return res.json();
+}
+
+export async function getPublicEventInfo(eventId: number): Promise<PublicEventInfo> {
+  const res = await publicApiFetch(`/events/${eventId}/info`);
   return res.json();
 }
 
