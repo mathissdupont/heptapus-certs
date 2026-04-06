@@ -2,7 +2,7 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, resetPublicMemberPassword } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,6 +10,8 @@ import { Lock, Eye, EyeOff, CheckCircle2, Loader2 } from "lucide-react";
 
 function ResetPasswordContent() {
   const { lang } = useI18n();
+  const params = useSearchParams();
+  const isMemberMode = params.get("mode") === "member";
   const copy = useMemo(
     () =>
       lang === "tr"
@@ -21,7 +23,7 @@ function ResetPasswordContent() {
             successTitle: "Şifre Güncellendi!",
             successBody: "Yeni şifrenizle giriş yapabilirsiniz.",
             login: "Giriş Yap",
-            title: "Yeni Şifre Belirle",
+            title: isMemberMode ? "Üye İçin Yeni Şifre Belirle" : "Yeni Şifre Belirle",
             subtitle: "En az 8 karakterli yeni bir şifre seçin.",
             newPassword: "Yeni Şifre",
             confirmPassword: "Şifre Tekrar",
@@ -38,7 +40,7 @@ function ResetPasswordContent() {
             successTitle: "Password Updated!",
             successBody: "You can now sign in with your new password.",
             login: "Sign In",
-            title: "Set New Password",
+            title: isMemberMode ? "Set New Member Password" : "Set New Password",
             subtitle: "Choose a new password with at least 8 characters.",
             newPassword: "New Password",
             confirmPassword: "Confirm Password",
@@ -47,11 +49,11 @@ function ResetPasswordContent() {
             saving: "Saving...",
             submit: "Update Password",
           },
-    [lang]
+    [isMemberMode, lang]
   );
 
-  const params = useSearchParams();
   const token = params.get("token") || "";
+  const loginHref = isMemberMode ? "/login?mode=member" : "/admin/login";
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -77,10 +79,14 @@ function ResetPasswordContent() {
 
     setLoading(true);
     try {
-      await apiFetch("/auth/reset-password", {
-        method: "POST",
-        body: JSON.stringify({ token, new_password: password }),
-      });
+      if (isMemberMode) {
+        await resetPublicMemberPassword({ token, new_password: password });
+      } else {
+        await apiFetch("/auth/reset-password", {
+          method: "POST",
+          body: JSON.stringify({ token, new_password: password }),
+        });
+      }
       setSuccess(true);
     } catch (e: any) {
       setErr(e?.message || copy.failed);
@@ -98,7 +104,7 @@ function ResetPasswordContent() {
           </div>
           <h2 className="mb-2 text-xl font-bold text-gray-900">{copy.successTitle}</h2>
           <p className="mb-6 text-sm text-gray-500">{copy.successBody}</p>
-          <Link href="/admin/login" className="btn-primary w-full justify-center">{copy.login}</Link>
+          <Link href={loginHref} className="btn-primary w-full justify-center">{copy.login}</Link>
         </motion.div>
       </div>
     );

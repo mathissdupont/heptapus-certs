@@ -175,6 +175,41 @@ async def test_public_register_requires_email_verification_before_survey_access(
 
 
 @pytest.mark.asyncio
+async def test_public_register_can_skip_email_verification_per_event():
+    owner = await _create_admin("survey-skip-verify@example.com")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        async with SessionLocal() as sess:
+            async with sess.begin():
+                event = Event(
+                    admin_id=owner.id,
+                    name="No Verification Event",
+                    template_image_url="template.png",
+                    config={"require_email_verification": False},
+                )
+                sess.add(event)
+                await sess.flush()
+                event_id = event.id
+
+        registered = await ac.post(
+            f"/api/events/{event_id}/register",
+            json={"name": "Direct User", "email": "direct-user@example.com"},
+        )
+        assert registered.status_code == 201
+        payload = registered.json()
+        assert payload["verification_required"] is False
+        assert payload["email_verified"] is True
+        assert payload["status_url"]
+        assert payload["survey_url"]
+
+    async with SessionLocal() as sess:
+        attendee = (await sess.execute(select(Attendee).where(Attendee.event_id == event_id))).scalar_one()
+        assert attendee.email_verified is True
+        assert attendee.email_verification_token is None
+
+
+@pytest.mark.asyncio
 async def test_public_register_persists_custom_registration_answers():
     owner = await _create_admin("custom-form-owner@example.com")
 
@@ -244,6 +279,85 @@ async def test_public_register_persists_custom_registration_answers():
             "tc_identity": "12345678901",
             "department": "Pazarlama",
         }
+
+
+@pytest.mark.asyncio
+async def test_event_description_rich_text_is_sanitized_and_preserved():
+    owner = await _create_admin("richtext-owner@example.com")
+    token = create_access_token(user_id=owner.id, role=Role.admin)
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        async with SessionLocal() as sess:
+            async with sess.begin():
+                event = Event(
+                    admin_id=owner.id,
+                    name="Rich Text Event",
+                    template_image_url="template.png",
+                    config={},
+                )
+                sess.add(event)
+                await sess.flush()
+                event_id = event.id
+
+        updated = await ac.patch(
+            f"/api/admin/events/{event_id}",
+            json={
+                "name": "Rich Text Event",
+                "event_description": '<div><strong>Kalin</strong><br><font size="5" face="Georgia" color="#112233">Buyuk yazi</font><script>alert(1)</script></div>',
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert updated.status_code == 200
+        payload = updated.json()
+        assert "<strong>Kalin</strong>" in payload["event_description"]
+        assert "font-size: 24px" in payload["event_description"]
+        assert "font-family: Georgia" in payload["event_description"]
+        assert "<script" not in payload["event_description"]
+
+
+@pytest.mark.asyncio
+async def test_new_events_use_public_id_for_public_routes_while_legacy_numeric_ids_still_work():
+    owner = await _create_admin("public-id-owner@example.com")
+    token = create_access_token(user_id=owner.id, role=Role.admin)
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        created = await ac.post(
+            "/api/admin/events",
+            json={
+                "name": "Public Id Event",
+                "template_image_url": "template.png",
+                "config": {"visibility": "public"},
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert created.status_code == 201
+        created_payload = created.json()
+        assert created_payload["public_id"].startswith("evt_")
+
+        public_info = await ac.get(f"/api/events/{created_payload['public_id']}/info")
+        assert public_info.status_code == 200
+        assert public_info.json()["public_id"] == created_payload["public_id"]
+
+        numeric_info = await ac.get(f"/api/events/{created_payload['id']}/info")
+        assert numeric_info.status_code == 404
+
+        async with SessionLocal() as sess:
+            async with sess.begin():
+                legacy_event = Event(
+                    admin_id=owner.id,
+                    name="Legacy Public Event",
+                    template_image_url="template.png",
+                    config={"visibility": "public"},
+                )
+                sess.add(legacy_event)
+                await sess.flush()
+                legacy_event_id = legacy_event.id
+
+        legacy_info = await ac.get(f"/api/events/{legacy_event_id}/info")
+        assert legacy_info.status_code == 200
+        assert legacy_info.json()["public_id"] == str(legacy_event_id)
 
 
 @pytest.mark.asyncio

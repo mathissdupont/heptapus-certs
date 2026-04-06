@@ -142,7 +142,7 @@
   superadmin_credit: "Bakiye Yükle",
   superadmin_balance: "Mevcut Bakiye",
   superadmin_pricing_title: "Fiyatlandırma Yönetimi",
-  superadmin_pricing_subtitle: "Public fiyatlandırma sayfasındaki içerikleri düzenleyin.",
+  superadmin_pricing_subtitle: "Açık fiyatlandırma sayfasındaki içerikleri düzenleyin.",
   superadmin_tier_name_tr: "Paket Adı (TR)",
   superadmin_tier_name_en: "Paket Adı (EN)",
   superadmin_price_monthly: "Aylık Fiyat (₺)",

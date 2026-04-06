@@ -53,7 +53,8 @@ type BrandingData = {
 
 export default function EventRegisterPage() {
   const params = useParams();
-  const eventId = Number(params?.id);
+  const rawEventId = Array.isArray(params?.id) ? params.id[0] : params?.id;
+  const eventId = rawEventId ? String(rawEventId) : "";
   const { lang } = useI18n();
   const toast = useToast();
   const copy = useMemo(
@@ -359,7 +360,12 @@ export default function EventRegisterPage() {
               )}
             </div>
 
-            {event.event_description && <p className="max-w-2xl text-sm leading-relaxed text-white/80 md:text-base">{event.event_description}</p>}
+            {event.event_description && (
+              <div
+                className="rich-text-content max-w-2xl text-sm text-white/80 md:text-base"
+                dangerouslySetInnerHTML={{ __html: event.event_description }}
+              />
+            )}
           </motion.div>
         </div>
       </section>
@@ -456,7 +462,7 @@ export default function EventRegisterPage() {
                       </div>
                     ) : (
                       <div className="mt-5 flex flex-wrap gap-3">
-                        <a href={statusUrl || `/events/${eventId}/status`} className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:opacity-90">
+                          <a href={statusUrl || `/events/${eventId}/status`} className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:opacity-90">
                           {copy.openCard}
                           <ArrowRight className="h-4 w-4" />
                         </a>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -42,7 +42,7 @@ function formatDate(value: string | null | undefined, lang: "tr" | "en") {
 export default function PublicEventDetailClient() {
   const params = useParams();
   const rawEventId = Array.isArray(params.id) ? params.id[0] : params.id;
-  const eventId = Number(rawEventId);
+  const eventId = rawEventId ? String(rawEventId) : "";
   const { lang } = useI18n();
 
   const [event, setEvent] = useState<PublicEventDetail | null>(null);
@@ -58,31 +58,31 @@ export default function PublicEventDetailClient() {
     () =>
       lang === "tr"
         ? {
-            back: "Etkinlik listesine don",
-            loading: "Etkinlik detaylari yukleniyor...",
-            error: "Etkinlik detaylari yuklenemedi.",
-            register: "Etkinlige Kayit Ol",
+            back: "Etkinlik listesine dön",
+            loading: "Etkinlik detayları yükleniyor...",
+            error: "Etkinlik detayları yüklenemedi.",
+            register: "Etkinliğe Kayıt Ol",
             sessions: "Oturumlar",
-            customFields: "Kayitta istenecek ek bilgiler",
-            minSessions: "Sertifika icin minimum oturum",
-            unlisted: "Listede gosterilmeyen paylasim",
-            noSessions: "Henuz oturum eklenmedi.",
-            defaultFields: "Bu etkinlikte simdilik standart ad ve e-posta alanlari kullaniliyor.",
-            defaultHelper: "Kayit sirasinda doldurulacak ek alan.",
+            customFields: "Kayıtta istenecek ek bilgiler",
+            minSessions: "Sertifika için minimum oturum",
+            unlisted: "Liste dışı paylaşım",
+            noSessions: "Henüz oturum eklenmedi.",
+            defaultFields: "Bu etkinlikte şimdilik standart ad ve e-posta alanları kullanılıyor.",
+            defaultHelper: "Kayıt sırasında doldurulacak ek alan.",
             required: "Zorunlu",
             commentsTitle: "Yorumlar",
-            commentsSubtitle: "Toplulugun etkinlik hakkindaki goruslerini inceleyin veya siz de yorum birakin.",
-            noComments: "Henuz yorum yok. Ilk yorumu sen birak.",
-            commentPlaceholder: "Bu etkinlik hakkinda ne dusunuyorsun?",
-            commentSubmit: "Yorum Gonder",
-            loginPrompt: "Yorum yazmak icin uye hesabinla giris yap.",
-            loginCta: "Uye Girisi",
+            commentsSubtitle: "Topluluğun etkinlik hakkındaki görüşlerini inceleyin veya siz de yorum bırakın.",
+            noComments: "Henüz yorum yok. İlk yorumu sen bırak.",
+            commentPlaceholder: "Bu etkinlik hakkında ne düşünüyorsun?",
+            commentSubmit: "Yorum Gönder",
+            loginPrompt: "Yorum yazmak için üye hesabınla giriş yap.",
+            loginCta: "Üye Girişi",
             report: "Bildir",
-            reportBusy: "Gonderiliyor",
-            writeError: "Yorum gonderilemedi.",
+            reportBusy: "Gönderiliyor",
+            writeError: "Yorum gönderilemedi.",
             sessionLabel: "Oturum",
             fieldType: "Alan tipi",
-            postingAs: "olarak yorum yapiyorsunuz.",
+            postingAs: "olarak yorum yapıyorsunuz.",
           }
         : {
             back: "Back to events",
@@ -117,7 +117,7 @@ export default function PublicEventDetailClient() {
   useEffect(() => {
     let active = true;
 
-    if (!Number.isFinite(eventId) || eventId <= 0) {
+    if (!eventId) {
       setEvent(null);
       setComments([]);
       setMember(null);
@@ -211,7 +211,6 @@ export default function PublicEventDetailClient() {
       <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-[0_24px_90px_rgba(15,23,42,0.08)]">
         <div className="h-56 bg-slate-100">
           {event.event_banner_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img src={event.event_banner_url} alt={event.name} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full items-center justify-center bg-[linear-gradient(135deg,rgba(56,189,248,0.18),rgba(59,130,246,0.08))] text-3xl font-black text-slate-800">
@@ -235,10 +234,13 @@ export default function PublicEventDetailClient() {
               </div>
               <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-950">{event.name}</h1>
               {event.event_description ? (
-                <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600 sm:text-base">{event.event_description}</p>
+                <div
+                  className="rich-text-content mt-4 max-w-3xl text-sm text-slate-600 sm:text-base"
+                  dangerouslySetInnerHTML={{ __html: event.event_description }}
+                />
               ) : null}
             </div>
-            <Link href={`/events/${event.id}/register`} className="btn-primary inline-flex justify-center">
+            <Link href={`/events/${event.public_id}/register`} className="btn-primary inline-flex justify-center">
               {copy.register}
             </Link>
           </div>

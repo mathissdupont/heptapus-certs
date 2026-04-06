@@ -24,7 +24,7 @@ type BrandingData = {
   brand_color?: string | null;
 };
 
-function readStoredSurveyToken(eventId: number) {
+function readStoredSurveyToken(eventId: string) {
   if (typeof window === "undefined") return "";
   const query = new URLSearchParams(window.location.search);
   return (query.get("token") || localStorage.getItem(`heptacert_survey_token_${eventId}`) || "").trim();
@@ -133,7 +133,8 @@ export default function EventParticipantStatusPage() {
   );
 
   const params = useParams();
-  const eventId = Number(params?.id);
+  const rawEventId = Array.isArray(params?.id) ? params.id[0] : params?.id;
+  const eventId = rawEventId ? String(rawEventId) : "";
   const [branding, setBranding] = useState<BrandingData | null>(null);
   const [status, setStatus] = useState<PublicParticipantStatus | null>(null);
   const [token, setToken] = useState("");

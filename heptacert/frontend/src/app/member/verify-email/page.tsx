@@ -18,13 +18,13 @@ function VerifyMemberEmailContent() {
     () =>
       lang === "tr"
         ? {
-            loading: "Uye hesabiniz dogrulaniyor...",
-            successTitle: "Uye hesabi dogrulandi",
-            errorTitle: "Dogrulama basarisiz",
-            signIn: "Uye Girisine Git",
-            register: "Yeniden Kayit Ol",
-            missing: "Dogrulama baglantisi eksik.",
-            failed: "Dogrulama tamamlanamadi.",
+            loading: "Üye hesabınız doğrulanıyor...",
+            successTitle: "Üye hesabı doğrulandı",
+            errorTitle: "Doğrulama başarısız",
+            signIn: "Üye Girişine Git",
+            register: "Yeniden Kayıt Ol",
+            missing: "Doğrulama bağlantısı eksik.",
+            failed: "Doğrulama tamamlanamadı.",
           }
         : {
             loading: "Verifying your member account...",

@@ -10,10 +10,14 @@ import logging
 import time
 import zipfile
 import asyncio
+import re
 from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.utils import formataddr
 from enum import Enum
+from html import escape
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Dict, Optional, List
 from pydantic import field_validator
@@ -61,6 +65,155 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship,
 from .generator import TemplateConfig, render_certificate_pdf, render_certificate_png_watermarked, new_certificate_uuid
 
 logger = logging.getLogger("heptacert")
+
+ALLOWED_RICH_TEXT_STYLES = {
+    "color",
+    "font-size",
+    "font-family",
+    "font-weight",
+    "font-style",
+    "text-decoration",
+}
+FONT_SIZE_MAP = {
+    "1": "12px",
+    "2": "14px",
+    "3": "16px",
+    "4": "18px",
+    "5": "24px",
+    "6": "30px",
+    "7": "36px",
+}
+
+
+def _sanitize_rich_text_style(style_text: str) -> str:
+    sanitized: List[str] = []
+    for chunk in style_text.split(";"):
+        if ":" not in chunk:
+            continue
+        raw_key, raw_value = chunk.split(":", 1)
+        key = raw_key.strip().lower()
+        value = raw_value.strip()
+        if key not in ALLOWED_RICH_TEXT_STYLES or not value:
+            continue
+        if key == "color" and not re.fullmatch(r"#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})|rgba?\([\d\s.,%]+\)", value):
+            continue
+        if key == "font-size" and not re.fullmatch(r"\d{1,3}(?:px|em|rem|%)", value):
+            continue
+        if key == "font-family" and not re.fullmatch(r"[A-Za-z0-9 ,\"'_-]{1,120}", value):
+            continue
+        if key == "font-weight" and value.lower() not in {"normal", "bold", "600", "700", "800"}:
+            continue
+        if key == "font-style" and value.lower() not in {"normal", "italic"}:
+            continue
+        if key == "text-decoration" and value.lower() not in {"none", "underline", "line-through"}:
+            continue
+        sanitized.append(f"{key}: {escape(value, quote=True)}")
+    return "; ".join(sanitized)
+
+
+class _RichTextSanitizer(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.parts: List[str] = []
+        self.open_tags: List[str] = []
+
+    def handle_starttag(self, tag: str, attrs: List[tuple[str, Optional[str]]]) -> None:
+        canonical = self._canonical_tag(tag)
+        if canonical is None:
+            return
+        if canonical == "br":
+            self.parts.append("<br>")
+            return
+        attr_html = self._sanitize_attrs(tag, attrs, canonical)
+        self.parts.append(f"<{canonical}{attr_html}>")
+        self.open_tags.append(canonical)
+
+    def handle_endtag(self, tag: str) -> None:
+        canonical = self._canonical_tag(tag)
+        if canonical in (None, "br"):
+            return
+        if self.open_tags and self.open_tags[-1] == canonical:
+            self.parts.append(f"</{canonical}>")
+            self.open_tags.pop()
+
+    def handle_data(self, data: str) -> None:
+        if data:
+            self.parts.append(escape(data))
+
+    def handle_entityref(self, name: str) -> None:
+        self.parts.append(f"&{name};")
+
+    def handle_charref(self, name: str) -> None:
+        self.parts.append(f"&#{name};")
+
+    def get_html(self) -> str:
+        while self.open_tags:
+            self.parts.append(f"</{self.open_tags.pop()}>")
+        return "".join(self.parts)
+
+    def _canonical_tag(self, tag: str) -> Optional[str]:
+        tag_name = tag.lower()
+        mapping = {
+            "b": "strong",
+            "strong": "strong",
+            "i": "em",
+            "em": "em",
+            "u": "u",
+            "p": "p",
+            "div": "p",
+            "br": "br",
+            "ul": "ul",
+            "ol": "ol",
+            "li": "li",
+            "span": "span",
+            "font": "span",
+        }
+        return mapping.get(tag_name)
+
+    def _sanitize_attrs(
+        self,
+        source_tag: str,
+        attrs: List[tuple[str, Optional[str]]],
+        canonical: str,
+    ) -> str:
+        styles: List[str] = []
+        for key, raw_value in attrs:
+            attr_key = (key or "").lower()
+            value = (raw_value or "").strip()
+            if not value:
+                continue
+            if attr_key == "style":
+                cleaned_style = _sanitize_rich_text_style(value)
+                if cleaned_style:
+                    styles.append(cleaned_style)
+            if source_tag.lower() == "font":
+                if attr_key == "size" and value in FONT_SIZE_MAP:
+                    styles.append(f"font-size: {FONT_SIZE_MAP[value]}")
+                if attr_key == "face" and re.fullmatch(r"[A-Za-z0-9 ,\"'_-]{1,120}", value):
+                    styles.append(f"font-family: {escape(value, quote=True)}")
+                if attr_key == "color" and re.fullmatch(r"#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})", value):
+                    styles.append(f"color: {value}")
+        if canonical not in {"p", "span"} or not styles:
+            return ""
+        style_attr = _sanitize_rich_text_style("; ".join(styles))
+        if not style_attr:
+            return ""
+        return f' style="{style_attr}"'
+
+
+def sanitize_event_description_html(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    cleaned = value.strip()
+    if not cleaned:
+        return None
+    if "<" not in cleaned and ">" not in cleaned:
+        return escape(cleaned).replace("\r\n", "\n").replace("\r", "\n").replace("\n", "<br>") or None
+    parser = _RichTextSanitizer()
+    parser.feed(cleaned)
+    parser.close()
+    html = parser.get_html().strip()
+    return html or None
 
 
 class Settings(BaseSettings):
@@ -163,10 +316,12 @@ class PublicMember(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
     display_name: Mapped[str] = mapped_column(String(120))
+    bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     verification_token: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    password_reset_token: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
 
     attendees: Mapped[List["Attendee"]] = relationship(back_populates="public_member")
     comments: Mapped[List["EventComment"]] = relationship(back_populates="public_member", cascade="all, delete-orphan")
@@ -175,6 +330,7 @@ class PublicMember(Base):
 class Event(Base):
     __tablename__ = "events"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    public_id: Mapped[Optional[str]] = mapped_column(String(64), unique=True, index=True, nullable=True)
     admin_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(200))
     template_image_url: Mapped[str] = mapped_column(Text)
@@ -420,8 +576,10 @@ class UserEmailConfig(Base):
     smtp_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     smtp_host: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     smtp_port: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    smtp_use_tls: Mapped[bool] = mapped_column(Boolean, default=True)
     smtp_user: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     smtp_password: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    from_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     from_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     reply_to: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     auto_cc: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
@@ -803,6 +961,16 @@ class PublicMemberLoginIn(BaseModel):
     password: str = Field(min_length=8, max_length=128)
 
 
+class PublicMemberProfileUpdateIn(BaseModel):
+    display_name: str = Field(min_length=2, max_length=120)
+    bio: Optional[str] = Field(default=None, max_length=1000)
+
+
+class PublicMemberChangePasswordIn(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
 class ForgotPasswordIn(BaseModel):
     email: EmailStr
 
@@ -830,7 +998,7 @@ class CreateAdminIn(BaseModel):
 class EventRenameIn(BaseModel):
     name: str = Field(min_length=2, max_length=200)
     event_date: Optional[str] = Field(default=None)  # ISO date string YYYY-MM-DD
-    event_description: Optional[str] = Field(default=None, max_length=4000)
+    event_description: Optional[str] = Field(default=None, max_length=20000)
     event_location: Optional[str] = Field(default=None, max_length=300)
     min_sessions_required: Optional[int] = Field(default=None, ge=1, le=1000)
     event_banner_url: Optional[str] = Field(default=None, max_length=2000)
@@ -838,6 +1006,7 @@ class EventRenameIn(BaseModel):
     cert_email_template_id: Optional[int] = Field(default=None, ge=1)
     registration_fields: Optional[List[Dict[str, Any]]] = None
     visibility: Optional[str] = Field(default=None, max_length=32)
+    require_email_verification: Optional[bool] = Field(default=None)
 
 
 class CreditCoinsIn(BaseModel):
@@ -884,6 +1053,7 @@ class EventConfigIn(BaseModel):
 
 class EventOut(BaseModel):
     id: int
+    public_id: Optional[str] = None
     name: str
     template_image_url: str
     config: Dict[str, Any]
@@ -895,12 +1065,14 @@ class EventOut(BaseModel):
     auto_email_on_cert: bool = False
     cert_email_template_id: Optional[int] = None
     visibility: str = "private"
+    require_email_verification: bool = True
 
 
 class PublicMemberMeOut(BaseModel):
     id: int
     email: EmailStr
     display_name: str
+    bio: Optional[str] = None
 
 
 class PublicMemberTokenOut(TokenOut):
@@ -909,6 +1081,7 @@ class PublicMemberTokenOut(TokenOut):
 
 class PublicEventListItemOut(BaseModel):
     id: int
+    public_id: str
     name: str
     event_date: Optional[str] = None
     event_description: Optional[str] = None
@@ -921,6 +1094,7 @@ class PublicEventListItemOut(BaseModel):
 
 class PublicEventDetailOut(BaseModel):
     id: int
+    public_id: str
     name: str
     event_date: Optional[str] = None
     event_description: Optional[str] = None
@@ -931,6 +1105,7 @@ class PublicEventDetailOut(BaseModel):
     survey: Optional[Dict[str, Any]] = None
     sessions: List[Dict[str, Any]] = Field(default_factory=list)
     visibility: str = "private"
+    require_email_verification: bool = True
 
 
 class PublicMemberEventOut(BaseModel):
@@ -1483,7 +1658,9 @@ class UserEmailConfigOut(BaseModel):
     smtp_enabled: bool
     smtp_host: Optional[str] = None
     smtp_port: Optional[int] = None
+    smtp_use_tls: bool = True
     smtp_user: Optional[str] = None
+    from_email: Optional[str] = None
     from_name: Optional[str]
     reply_to: Optional[str]
     auto_cc: Optional[str]
@@ -1493,6 +1670,8 @@ class UserEmailConfigOut(BaseModel):
 
 class EmailConfigUpdateIn(BaseModel):
     smtp_enabled: bool
+    smtp_use_tls: bool = True
+    from_email: Optional[EmailStr] = None
     from_name: Optional[str] = None
     reply_to: Optional[str] = None
     auto_cc: Optional[str] = None
@@ -1506,9 +1685,11 @@ class EmailConfigUpdateIn(BaseModel):
 class EmailConfigTestRequest(BaseModel):
     smtp_host: str
     smtp_port: int
+    smtp_use_tls: bool = True
     smtp_user: str
     smtp_password: str
-    from_email: str
+    from_email: EmailStr
+    test_email: EmailStr
 
 
 class EmailConfigTestResponse(BaseModel):
@@ -1774,7 +1955,7 @@ def verify_survey_access_token(token: str, *, event_id: int, max_age: int = 60 *
     return payload
 
 
-def build_public_survey_url(*, event_id: int, attendee_id: int, email: str) -> str:
+def build_public_survey_url(*, event_id: str, attendee_id: int, email: str) -> str:
     survey_token = make_survey_access_token(
         attendee_id=attendee_id,
         event_id=event_id,
@@ -1783,7 +1964,7 @@ def build_public_survey_url(*, event_id: int, attendee_id: int, email: str) -> s
     return f"{settings.frontend_base_url.rstrip('/')}/events/{event_id}/survey?token={survey_token}"
 
 
-def build_public_status_url(*, event_id: int, attendee_id: int, email: str) -> str:
+def build_public_status_url(*, event_id: str, attendee_id: int, email: str) -> str:
     survey_token = make_survey_access_token(
         attendee_id=attendee_id,
         event_id=event_id,
@@ -1792,8 +1973,21 @@ def build_public_status_url(*, event_id: int, attendee_id: int, email: str) -> s
     return f"{settings.frontend_base_url.rstrip('/')}/events/{event_id}/status?token={survey_token}"
 
 
-def build_attendee_verify_url(*, event_id: int, token: str) -> str:
+def build_attendee_verify_url(*, event_id: str, token: str) -> str:
     return f"{settings.frontend_base_url.rstrip('/')}/events/{event_id}/verify-email?token={token}"
+
+
+async def _ensure_user_email_config(db: AsyncSession, user_id: int) -> "UserEmailConfig":
+    res = await db.execute(select(UserEmailConfig).where(UserEmailConfig.user_id == user_id))
+    config = res.scalar_one_or_none()
+    if config:
+        return config
+
+    config = UserEmailConfig(user_id=user_id, smtp_enabled=False, smtp_use_tls=True)
+    db.add(config)
+    await db.commit()
+    await db.refresh(config)
+    return config
 
 
 async def send_attendee_verification_email(*, attendee: "Attendee", event: "Event") -> None:
@@ -1801,7 +1995,7 @@ async def send_attendee_verification_email(*, attendee: "Attendee", event: "Even
     if not token:
         return
 
-    verify_link = build_attendee_verify_url(event_id=event.id, token=token)
+    verify_link = build_attendee_verify_url(event_id=_get_public_event_identifier(event), token=token)
     await send_email_async(
         to=attendee.email,
         subject=f"{event.name} etkinliği için e-posta adresinizi doğrulayın",
@@ -1812,6 +2006,7 @@ async def send_attendee_verification_email(*, attendee: "Attendee", event: "Even
         <p>Bu bağlantıyı doğrulamadan check-in yapamaz ve çekilişlere dahil olamazsınız.</p>
         <p>Bağlantı 24 saat geçerlidir.</p>
         """,
+        sender_user_id=event.admin_id,
     )
 
 
@@ -1993,6 +2188,7 @@ async def send_email_async(
     template_vars: Optional[Dict[str, Any]] = None,
     attachments: Optional[List[tuple[str, bytes, str]]] = None,  # [(filename, bytes, mimetype),...]
     raise_on_error: bool = False,
+    sender_user_id: Optional[int] = None,
 ) -> None:
     """
     Send email asynchronously.
@@ -2004,7 +2200,38 @@ async def send_email_async(
         template_vars: Variables to render in Jinja2 template
         attachments: Optional list of (filename, bytes_content, mimetype) tuples
     """
-    if not settings.smtp_host:
+    smtp_host = settings.smtp_host
+    smtp_port = settings.smtp_port
+    smtp_user = settings.smtp_user or None
+    smtp_password = settings.smtp_password or None
+    smtp_from_email = settings.smtp_from
+    smtp_from_name = ""
+    smtp_reply_to: Optional[str] = None
+    smtp_auto_cc: Optional[str] = None
+    smtp_use_tls = True
+
+    if sender_user_id is not None:
+        async with SessionLocal() as db_mail:
+            res = await db_mail.execute(select(UserEmailConfig).where(UserEmailConfig.user_id == sender_user_id))
+            user_config = res.scalar_one_or_none()
+            if (
+                user_config
+                and user_config.smtp_enabled
+                and user_config.smtp_host
+                and user_config.smtp_port
+                and (user_config.from_email or user_config.smtp_user)
+            ):
+                smtp_host = user_config.smtp_host
+                smtp_port = int(user_config.smtp_port)
+                smtp_user = user_config.smtp_user or None
+                smtp_password = user_config.smtp_password or None
+                smtp_from_email = user_config.from_email or user_config.smtp_user or settings.smtp_from
+                smtp_from_name = (user_config.from_name or "").strip()
+                smtp_reply_to = (user_config.reply_to or "").strip() or None
+                smtp_auto_cc = (user_config.auto_cc or "").strip() or None
+                smtp_use_tls = bool(user_config.smtp_use_tls)
+
+    if not smtp_host:
         logger.warning(
             "[EMAIL Ã¢â‚¬â€ no SMTP configured] To: %s | Subject: %s\nBody: %s",
             to, subject, html_body
@@ -2026,10 +2253,14 @@ async def send_email_async(
     
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
-    msg["From"] = settings.smtp_from
+    msg["From"] = formataddr((smtp_from_name, smtp_from_email)) if smtp_from_name else smtp_from_email
     msg["To"] = to
+    if smtp_reply_to:
+        msg["Reply-To"] = smtp_reply_to
+    if smtp_auto_cc:
+        msg["Cc"] = smtp_auto_cc
     # Add unsubscribe header (RFC 2369)
-    msg["List-Unsubscribe"] = f"<mailto:{settings.smtp_from}?subject=unsubscribe>"
+    msg["List-Unsubscribe"] = f"<mailto:{smtp_reply_to or smtp_from_email}?subject=unsubscribe>"
     
     msg.attach(MIMEText(html_body, "html"))
     
@@ -2058,14 +2289,18 @@ async def send_email_async(
             attachment.add_header("Content-Disposition", "attachment", filename=filename)
             msg.attach(attachment)
     
+    use_implicit_tls = bool(smtp_use_tls and int(smtp_port or 0) == 465)
+    use_starttls = bool(smtp_use_tls and not use_implicit_tls)
+
     try:
         await aiosmtplib.send(
             msg,
-            hostname=settings.smtp_host,
-            port=settings.smtp_port,
-            username=settings.smtp_user or None,
-            password=settings.smtp_password or None,
-            start_tls=True,
+            hostname=smtp_host,
+            port=smtp_port,
+            username=smtp_user,
+            password=smtp_password,
+            start_tls=use_starttls,
+            use_tls=use_implicit_tls,
             timeout=20,
         )
         logger.info("Email sent successfully to %s", to)
@@ -2160,6 +2395,7 @@ async def send_certificate_delivery_email_task(
                 template_vars=template_vars,
                 attachments=attachments or None,
                 raise_on_error=False,
+                sender_user_id=event.admin_id,
             )
         except Exception as exc:
             logger.error("Automatic certificate email failed for %s: %s", recipient_email, exc)
@@ -3126,11 +3362,11 @@ async def startup():
                                         "certificate_link": (
                                             build_certificate_verify_url(cert_uuid_by_name[(attendee.name or '').strip().lower()])
                                             if (attendee.name or "").strip().lower() in cert_uuid_by_name
-                                            else f"{settings.public_base_url}/events/{event.id}/register"
+                                            else f"{settings.public_base_url}/events/{_get_public_event_identifier(event)}/register"
                                         ),
-                                        "event_link": f"{settings.public_base_url}/events/{event.id}/register",
+                                        "event_link": f"{settings.public_base_url}/events/{_get_public_event_identifier(event)}/register",
                                         "survey_link": build_public_survey_url(
-                                            event_id=event.id,
+                                            event_id=_get_public_event_identifier(event),
                                             attendee_id=attendee.id,
                                             email=attendee.email,
                                         ),
@@ -3146,6 +3382,7 @@ async def startup():
                                         subject=subj,
                                         html_body=body,
                                         raise_on_error=True,
+                                        sender_user_id=event.admin_id,
                                     )
                                     
                                     # Log delivery
@@ -3323,6 +3560,45 @@ def _get_event_visibility(event: Event) -> str:
     return _normalize_event_visibility(config.get("visibility"))
 
 
+def _get_event_email_verification_required(event: Event) -> bool:
+    config = event.config or {}
+    raw_value = config.get("require_email_verification")
+    if raw_value is None:
+        return True
+    return bool(raw_value)
+
+
+def _get_public_event_identifier(event: Event) -> str:
+    return event.public_id or str(event.id)
+
+
+async def _resolve_public_event(db: AsyncSession, event_ref: str) -> Optional[Event]:
+    identifier = str(event_ref or "").strip()
+    if not identifier:
+        return None
+
+    public_res = await db.execute(select(Event).where(Event.public_id == identifier))
+    event = public_res.scalar_one_or_none()
+    if event:
+        return event
+
+    if identifier.isdigit():
+        legacy_res = await db.execute(select(Event).where(Event.id == int(identifier)))
+        legacy_event = legacy_res.scalar_one_or_none()
+        if legacy_event and not legacy_event.public_id:
+            return legacy_event
+    return None
+
+
+async def _generate_event_public_id(db: AsyncSession) -> str:
+    for _ in range(10):
+        candidate = f"evt_{secrets.token_hex(8)}"
+        exists_res = await db.execute(select(Event.id).where(Event.public_id == candidate))
+        if exists_res.scalar_one_or_none() is None:
+            return candidate
+    raise RuntimeError("Unable to generate a unique event public id")
+
+
 def _normalize_registration_answers(
     registration_fields: List[Dict[str, Any]],
     raw_answers: Any,
@@ -3373,6 +3649,7 @@ async def _get_checkin_context_by_token(checkin_token: str, db: AsyncSession) ->
             EventSession.session_location,
             EventSession.is_active,
             Event.id.label("event_id"),
+            Event.public_id.label("event_public_id"),
             Event.name.label("event_name"),
             Event.event_date,
             Event.min_sessions_required,
@@ -3393,6 +3670,7 @@ async def _get_checkin_context_by_token(checkin_token: str, db: AsyncSession) ->
         "session_location": row.session_location,
         "is_active": bool(row.is_active),
         "event_id": row.event_id,
+        "event_public_id": row.event_public_id or str(row.event_id),
         "event_name": row.event_name,
         "event_date": row.event_date,
         "min_sessions_required": int(row.min_sessions_required or 0),
@@ -3909,20 +4187,20 @@ async def list_badges(
 
 @app.get("/api/events/{event_id}/attendees/{attendee_id}/badges")
 async def list_public_attendee_badges(
-    event_id: int,
+    event_id: str,
     attendee_id: int,
     email: str = Query(..., min_length=3),
     db: AsyncSession = Depends(get_db),
 ):
     """List awarded badges for a public attendee view."""
-    event_res = await db.execute(select(Event.id).where(Event.id == event_id))
-    if event_res.scalar_one_or_none() is None:
+    event = await _resolve_public_event(db, event_id)
+    if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
     attendee_res = await db.execute(
         select(Attendee).where(
             Attendee.id == attendee_id,
-            Attendee.event_id == event_id,
+            Attendee.event_id == event.id,
         )
     )
     attendee = attendee_res.scalar_one_or_none()
@@ -3932,13 +4210,13 @@ async def list_public_attendee_badges(
     pb_res = await db.execute(
         select(ParticipantBadge)
         .where(
-            ParticipantBadge.event_id == event_id,
+            ParticipantBadge.event_id == event.id,
             ParticipantBadge.attendee_id == attendee_id,
         )
         .order_by(ParticipantBadge.awarded_at.desc())
     )
     badges = pb_res.scalars().all()
-    badge_items = await _build_participant_badge_items(db, event_id, badges)
+    badge_items = await _build_participant_badge_items(db, event.id, badges)
 
     return {
         "total_badges": len(badge_items),
@@ -3948,13 +4226,16 @@ async def list_public_attendee_badges(
 
 @app.get("/api/events/{event_id}/survey-access")
 async def resolve_public_survey_access(
-    event_id: int,
+    event_id: str,
     token: str = Query(..., min_length=8),
     db: AsyncSession = Depends(get_db),
 ):
     """Resolve a signed public survey token to attendee context."""
+    event = await _resolve_public_event(db, event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
     try:
-        payload = verify_survey_access_token(token, event_id=event_id)
+        payload = verify_survey_access_token(token, event_id=event.id)
     except SignatureExpired:
         raise HTTPException(status_code=410, detail="Survey access link expired")
     except BadSignature:
@@ -3964,7 +4245,7 @@ async def resolve_public_survey_access(
     attendee_res = await db.execute(
         select(Attendee).where(
             Attendee.id == attendee_id,
-            Attendee.event_id == event_id,
+            Attendee.event_id == event.id,
         )
     )
     attendee = attendee_res.scalar_one_or_none()
@@ -3981,27 +4262,25 @@ async def resolve_public_survey_access(
 
 @app.get("/api/events/{event_id}/participant-status", response_model=PublicParticipantStatusOut)
 async def get_public_participant_status(
-    event_id: int,
+    event_id: str,
     token: str = Query(..., min_length=8),
     db: AsyncSession = Depends(get_db),
 ):
+    event = await _resolve_public_event(db, event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
     try:
-        payload = verify_survey_access_token(token, event_id=event_id)
+        payload = verify_survey_access_token(token, event_id=event.id)
     except SignatureExpired:
         raise HTTPException(status_code=410, detail="Survey access link expired")
     except BadSignature:
         raise HTTPException(status_code=400, detail="Invalid survey access link")
 
-    event_res = await db.execute(select(Event).where(Event.id == event_id))
-    event = event_res.scalar_one_or_none()
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-
     attendee_id = int(payload.get("attendee_id") or 0)
     attendee_res = await db.execute(
         select(Attendee).where(
             Attendee.id == attendee_id,
-            Attendee.event_id == event_id,
+            Attendee.event_id == event.id,
         )
     )
     attendee = attendee_res.scalar_one_or_none()
@@ -4402,18 +4681,22 @@ async def get_event_survey(
 
 @app.post("/api/surveys/{event_id}/submit", response_model=SurveyResponseOut)
 async def submit_builtin_survey(
-    event_id: int,
+    event_id: str,
     survey_resp_in: SurveyResponseIn,
     attendee_id_header_snake: Optional[int] = Header(default=None, alias="attendee_id"),
     attendee_id_header_kebab: Optional[int] = Header(default=None, alias="attendee-id"),
     db: AsyncSession = Depends(get_db),
 ):
     """Submit a built-in survey response. Attendee endpoint."""
+    event = await _resolve_public_event(db, event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    event_db_id = event.id
     attendee_id = survey_resp_in.attendee_id or attendee_id_header_snake or attendee_id_header_kebab
     token_email: Optional[str] = None
     if survey_resp_in.survey_token:
         try:
-            token_payload = verify_survey_access_token(survey_resp_in.survey_token, event_id=event_id)
+            token_payload = verify_survey_access_token(survey_resp_in.survey_token, event_id=event_db_id)
         except SignatureExpired:
             raise HTTPException(status_code=410, detail="Survey access link expired")
         except BadSignature:
@@ -4428,7 +4711,7 @@ async def submit_builtin_survey(
     att_res = await db.execute(
         select(Attendee).where(
             Attendee.id == attendee_id,
-            Attendee.event_id == event_id,
+            Attendee.event_id == event_db_id,
         )
     )
     attendee = att_res.scalar_one_or_none()
@@ -4437,7 +4720,7 @@ async def submit_builtin_survey(
     if token_email and attendee.email.lower() != token_email:
         raise HTTPException(status_code=404, detail="KatÃ„Â±lÃ„Â±mcÃ„Â± bulunamadÃ„Â±")
 
-    es_res = await db.execute(select(EventSurvey).where(EventSurvey.event_id == event_id))
+    es_res = await db.execute(select(EventSurvey).where(EventSurvey.event_id == event_db_id))
     event_survey = es_res.scalar_one_or_none()
     if not event_survey:
         raise HTTPException(status_code=400, detail="Bu etkinlik i?in anket yap?land?r?lmam??")
@@ -4470,7 +4753,7 @@ async def submit_builtin_survey(
 
     sr_res = await db.execute(
         select(SurveyResponse).where(
-            SurveyResponse.event_id == event_id,
+            SurveyResponse.event_id == event_db_id,
             SurveyResponse.attendee_id == attendee_id,
             SurveyResponse.survey_type == survey_resp_in.survey_type,
         )
@@ -4481,7 +4764,7 @@ async def submit_builtin_survey(
 
     now = datetime.utcnow()
     survey_response = SurveyResponse(
-        event_id=event_id,
+        event_id=event_db_id,
         attendee_id=attendee_id,
         survey_type=survey_resp_in.survey_type,
         answers=answers,
@@ -5331,7 +5614,12 @@ async def public_member_login(request: Request, data: PublicMemberLoginIn, db: A
     if not member.is_verified:
         raise HTTPException(status_code=403, detail="Please verify your email before signing in.")
 
-    member_out = PublicMemberMeOut(id=member.id, email=member.email, display_name=member.display_name)
+    member_out = PublicMemberMeOut(
+        id=member.id,
+        email=member.email,
+        display_name=member.display_name,
+        bio=member.bio,
+    )
     return PublicMemberTokenOut(
         access_token=create_public_member_access_token(member_id=member.id),
         member=member_out,
@@ -5364,6 +5652,58 @@ async def verify_public_member_email(token: str = Query(...), db: AsyncSession =
     member.verification_token = None
     await db.commit()
     return {"detail": "Member email verified successfully. You can now sign in."}
+
+
+@app.post("/api/public/auth/forgot-password")
+@limiter.limit("3/minute")
+async def public_member_forgot_password(request: Request, data: ForgotPasswordIn, db: AsyncSession = Depends(get_db)):
+    email = str(data.email).strip().lower()
+    res = await db.execute(select(PublicMember).where(PublicMember.email == email))
+    member = res.scalar_one_or_none()
+    if member and member.is_verified:
+        token = make_email_token({"email": email, "action": "public_member_reset"})
+        member.password_reset_token = token
+        await db.commit()
+
+        reset_link = f"{settings.frontend_base_url}/reset-password?token={token}&mode=member"
+        await send_email_async(
+            to=email,
+            subject="HeptaCert - Reset your member password",
+            html_body=f"""
+            <p>Hello {member.display_name},</p>
+            <p>Click the link below to reset your member account password:</p>
+            <p><a href="{reset_link}">{reset_link}</a></p>
+            <p>This link is valid for 1 hour.</p>
+            """,
+        )
+    return {"detail": "If the account exists, password reset instructions were sent to the email address."}
+
+
+@app.post("/api/public/auth/reset-password")
+@limiter.limit("5/minute")
+async def public_member_reset_password(request: Request, data: ResetPasswordIn, db: AsyncSession = Depends(get_db)):
+    try:
+        payload = verify_email_token(data.token, max_age=3600)
+    except SignatureExpired:
+        raise bad_request("Password reset link expired.")
+    except (BadSignature, Exception):
+        raise bad_request("Invalid password reset link.")
+
+    if payload.get("action") != "public_member_reset":
+        raise bad_request("Invalid token action.")
+
+    email = str(payload.get("email") or "").strip().lower()
+    res = await db.execute(select(PublicMember).where(PublicMember.email == email))
+    member = res.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found.")
+    if not member.password_reset_token or not hmac.compare_digest(str(member.password_reset_token), data.token):
+        raise bad_request("Invalid password reset link.")
+
+    member.password_hash = hash_password(data.new_password)
+    member.password_reset_token = None
+    await db.commit()
+    return {"detail": "Password reset successful."}
 
 
 @app.post("/api/auth/forgot-password")
@@ -5732,13 +6072,7 @@ async def get_email_config(
     db: AsyncSession = Depends(get_db),
 ):
     """Get current user's email configuration."""
-    res = await db.execute(
-        select(UserEmailConfig).where(UserEmailConfig.user_id == me.id)
-    )
-    config = res.scalar_one_or_none()
-    if not config:
-        raise HTTPException(status_code=404, detail="Email yapÃ„Â±landÃ„Â±rmasÃ„Â± bulunamadÃ„Â±")
-    return config
+    return await _ensure_user_email_config(db, me.id)
 
 
 @app.patch(
@@ -5752,31 +6086,28 @@ async def update_email_config(
     db: AsyncSession = Depends(get_db),
 ):
     """Update user's email configuration (including encrypted SMTP password)."""
-    res = await db.execute(
-        select(UserEmailConfig).where(UserEmailConfig.user_id == me.id)
-    )
-    config = res.scalar_one_or_none()
-    if not config:
-        raise HTTPException(status_code=404, detail="Email yapÃ„Â±landÃ„Â±rmasÃ„Â± bulunamadÃ„Â±")
-    
-    # Update fields
+    config = await _ensure_user_email_config(db, me.id)
+
     config.smtp_enabled = payload.smtp_enabled
+    config.smtp_use_tls = payload.smtp_use_tls
     if payload.smtp_host is not None:
-        config.smtp_host = payload.smtp_host
+        config.smtp_host = payload.smtp_host.strip() or None
     if payload.smtp_port is not None:
         config.smtp_port = payload.smtp_port
+    if payload.from_email is not None:
+        config.from_email = str(payload.from_email).strip().lower() or None
     if payload.smtp_user is not None:
-        config.smtp_user = payload.smtp_user
+        config.smtp_user = payload.smtp_user.strip() or None
     if payload.smtp_password:
         config.smtp_password = payload.smtp_password
     if payload.from_name is not None:
-        config.from_name = payload.from_name
+        config.from_name = payload.from_name.strip() or None
     if payload.reply_to is not None:
-        config.reply_to = payload.reply_to
+        config.reply_to = payload.reply_to.strip() or None
     if payload.auto_cc is not None:
-        config.auto_cc = payload.auto_cc
+        config.auto_cc = payload.auto_cc.strip() or None
     config.enable_tracking_pixel = payload.enable_tracking_pixel
-    
+
     db.add(config)
     await db.commit()
     await db.refresh(config)
@@ -5797,15 +6128,18 @@ async def test_smtp_connection(
     
     try:
         # Create SMTP connection
-        with smtplib.SMTP(payload.smtp_host, payload.smtp_port, timeout=10) as server:
-            server.starttls()
+        server_factory = smtplib.SMTP_SSL if payload.smtp_use_tls and payload.smtp_port == 465 else smtplib.SMTP
+        with server_factory(payload.smtp_host, payload.smtp_port, timeout=10) as server:
+            if payload.smtp_use_tls and payload.smtp_port != 465:
+                server.starttls()
             server.login(payload.smtp_user, payload.smtp_password)
-            
+
             # Try to send a test email
             msg = MIMEText("Test connection")
             msg['Subject'] = "HeptaCert SMTP Test"
-            msg['From'] = payload.from_email
-            server.send_message(msg, from_addr=payload.from_email, to_addrs=[payload.from_email])
+            msg['From'] = str(payload.from_email)
+            msg['To'] = str(payload.test_email)
+            server.send_message(msg, from_addr=str(payload.from_email), to_addrs=[str(payload.test_email)])
         
         return EmailConfigTestResponse(
             status="success",
@@ -7046,8 +7380,69 @@ async def me(me: CurrentUser = Depends(get_current_user), db: AsyncSession = Dep
 
 
 @app.get("/api/public/me", response_model=PublicMemberMeOut)
-async def public_me(member: CurrentPublicMember = Depends(get_current_public_member)):
-    return PublicMemberMeOut(id=member.id, email=member.email, display_name=member.display_name)
+async def public_me(
+    member: CurrentPublicMember = Depends(get_current_public_member),
+    db: AsyncSession = Depends(get_db),
+):
+    res = await db.execute(select(PublicMember).where(PublicMember.id == member.id))
+    db_member = res.scalar_one_or_none()
+    if not db_member:
+        raise HTTPException(status_code=404, detail="Member not found.")
+    return PublicMemberMeOut(
+        id=db_member.id,
+        email=db_member.email,
+        display_name=db_member.display_name,
+        bio=db_member.bio,
+    )
+
+
+@app.patch("/api/public/me", response_model=PublicMemberMeOut)
+async def update_public_me(
+    data: PublicMemberProfileUpdateIn,
+    member: CurrentPublicMember = Depends(get_current_public_member),
+    db: AsyncSession = Depends(get_db),
+):
+    res = await db.execute(select(PublicMember).where(PublicMember.id == member.id))
+    db_member = res.scalar_one_or_none()
+    if not db_member:
+        raise HTTPException(status_code=404, detail="Member not found.")
+
+    display_name = data.display_name.strip()
+    if not display_name:
+        raise bad_request("Display name is required.")
+
+    bio = (data.bio or "").strip()
+    db_member.display_name = display_name
+    db_member.bio = bio or None
+    await db.commit()
+    await db.refresh(db_member)
+    return PublicMemberMeOut(
+        id=db_member.id,
+        email=db_member.email,
+        display_name=db_member.display_name,
+        bio=db_member.bio,
+    )
+
+
+@app.patch("/api/public/me/password")
+async def change_public_member_password(
+    data: PublicMemberChangePasswordIn,
+    member: CurrentPublicMember = Depends(get_current_public_member),
+    db: AsyncSession = Depends(get_db),
+):
+    res = await db.execute(select(PublicMember).where(PublicMember.id == member.id))
+    db_member = res.scalar_one_or_none()
+    if not db_member:
+        raise HTTPException(status_code=404, detail="Member not found.")
+    if not verify_password(data.current_password, db_member.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect.")
+    if verify_password(data.new_password, db_member.password_hash):
+        raise HTTPException(status_code=400, detail="New password must be different from the current password.")
+
+    db_member.password_hash = hash_password(data.new_password)
+    db_member.password_reset_token = None
+    await db.commit()
+    return {"detail": "Password updated successfully."}
 
 
 @app.get("/api/public/my-events", response_model=list[PublicMemberEventOut])
@@ -7097,7 +7492,7 @@ async def public_member_events(
             sessions_attended=attendance_counts.get(attendee.id, 0),
             min_sessions_required=attendee.event.min_sessions_required,
             status_url=build_public_status_url(
-                event_id=attendee.event_id,
+                event_id=_get_public_event_identifier(attendee.event),
                 attendee_id=attendee.id,
                 email=attendee.email,
             ),
@@ -7156,7 +7551,9 @@ async def create_event(
 ):
     next_config = dict(payload.config or {})
     next_config["visibility"] = _normalize_event_visibility(next_config.get("visibility"))
+    public_id = await _generate_event_public_id(db)
     ev = Event(
+        public_id=public_id,
         admin_id=me.id,
         name=payload.name,
         template_image_url=payload.template_image_url or "placeholder",
@@ -7172,17 +7569,19 @@ def _event_to_out(ev: Event) -> EventOut:
     config = ev.config if isinstance(ev.config, dict) else {}
     return EventOut(
         id=ev.id,
+        public_id=ev.public_id,
         name=ev.name,
         template_image_url=ev.template_image_url or "placeholder",
         config=config,
         event_date=ev.event_date.isoformat() if ev.event_date else None,
-        event_description=ev.event_description,
+        event_description=sanitize_event_description_html(ev.event_description),
         event_location=ev.event_location,
         min_sessions_required=int(ev.min_sessions_required or 1),
         event_banner_url=ev.event_banner_url,
         auto_email_on_cert=bool(ev.auto_email_on_cert),
         cert_email_template_id=ev.cert_email_template_id,
         visibility=_get_event_visibility(ev),
+        require_email_verification=_get_event_email_verification_required(ev),
     )
 
 
@@ -7211,7 +7610,7 @@ async def rename_event(
         from datetime import date as _date
         ev.event_date = _date.fromisoformat(payload.event_date) if payload.event_date else None
     if payload.event_description is not None:
-        ev.event_description = payload.event_description
+        ev.event_description = sanitize_event_description_html(payload.event_description)
     if payload.event_location is not None:
         ev.event_location = payload.event_location
     if payload.min_sessions_required is not None:
@@ -7225,6 +7624,9 @@ async def rename_event(
         config_dirty = True
     if "visibility" in payload.model_fields_set:
         next_config["visibility"] = _normalize_event_visibility(payload.visibility)
+        config_dirty = True
+    if "require_email_verification" in payload.model_fields_set:
+        next_config["require_email_verification"] = bool(payload.require_email_verification)
         config_dirty = True
     if config_dirty:
         ev.config = next_config
@@ -9671,7 +10073,15 @@ def _raffle_to_out(
     raffle: EventRaffle,
     attendees: List[Attendee],
     attendance_counts: Dict[int, int],
+    *,
+    require_email_verification: bool,
 ) -> EventRaffleOut:
+    def _winner_draw_sort_key(winner: EventRaffleWinner) -> datetime:
+        drawn_at = winner.drawn_at or datetime.min
+        if drawn_at.tzinfo is None:
+            return drawn_at.replace(tzinfo=timezone.utc)
+        return drawn_at.astimezone(timezone.utc)
+
     attendee_map = {attendee.id: attendee for attendee in attendees}
     eligible_attendees = [
         EventRaffleEligibleOut(
@@ -9681,10 +10091,11 @@ def _raffle_to_out(
             sessions_attended=attendance_counts.get(attendee.id, 0),
         )
         for attendee in attendees
-        if attendee.email_verified and attendance_counts.get(attendee.id, 0) >= raffle.min_sessions_required
+        if (attendee.email_verified or not require_email_verification)
+        and attendance_counts.get(attendee.id, 0) >= raffle.min_sessions_required
     ]
     winners: List[EventRaffleWinnerOut] = []
-    for winner in sorted(raffle.winners, key=lambda item: item.drawn_at):
+    for winner in sorted(raffle.winners, key=_winner_draw_sort_key):
         attendee = attendee_map.get(winner.attendee_id) or winner.attendee
         if not attendee:
             continue
@@ -9722,13 +10133,15 @@ def _pick_raffle_winners(
     raffle: EventRaffle,
     attendees: List[Attendee],
     attendance_counts: Dict[int, int],
+    *,
+    require_email_verification: bool,
     excluded_attendee_ids: Optional[set[int]] = None,
 ) -> List[Attendee]:
     excluded = excluded_attendee_ids or set()
     eligible_attendees = [
         attendee
         for attendee in attendees
-        if attendee.email_verified
+        if (attendee.email_verified or not require_email_verification)
         and attendance_counts.get(attendee.id, 0) >= raffle.min_sessions_required
         and attendee.id not in excluded
     ]
@@ -9761,15 +10174,17 @@ def _build_public_event_detail(
 ) -> PublicEventDetailOut:
     return PublicEventDetailOut(
         id=event.id,
+        public_id=_get_public_event_identifier(event),
         name=event.name,
         event_date=event.event_date.isoformat() if event.event_date else None,
-        event_description=event.event_description,
+        event_description=sanitize_event_description_html(event.event_description),
         event_location=event.event_location,
         min_sessions_required=int(event.min_sessions_required or 1),
         event_banner_url=event.event_banner_url,
         registration_fields=_get_event_registration_fields(event),
         survey=_build_public_survey_info(survey),
         visibility=_get_event_visibility(event),
+        require_email_verification=_get_event_email_verification_required(event),
         sessions=[
             {
                 "id": s.id,
@@ -9842,9 +10257,10 @@ async def list_public_events(db: AsyncSession = Depends(get_db)):
     return [
         PublicEventListItemOut(
             id=event.id,
+            public_id=_get_public_event_identifier(event),
             name=event.name,
             event_date=event.event_date.isoformat() if event.event_date else None,
-            event_description=event.event_description,
+            event_description=sanitize_event_description_html(event.event_description),
             event_location=event.event_location,
             event_banner_url=event.event_banner_url,
             min_sessions_required=int(event.min_sessions_required or 1),
@@ -9856,30 +10272,28 @@ async def list_public_events(db: AsyncSession = Depends(get_db)):
 
 
 @app.get("/api/public/events/{event_id}", response_model=PublicEventDetailOut)
-async def get_public_event_detail(event_id: int, db: AsyncSession = Depends(get_db)):
-    res = await db.execute(select(Event).where(Event.id == event_id))
-    event = res.scalar_one_or_none()
+async def get_public_event_detail(event_id: str, db: AsyncSession = Depends(get_db)):
+    event = await _resolve_public_event(db, event_id)
     if not event or _get_event_visibility(event) == "private":
         raise HTTPException(status_code=404, detail="Event not found")
 
     sessions_res = await db.execute(
-        select(EventSession).where(EventSession.event_id == event_id).order_by(EventSession.session_date, EventSession.session_start)
+        select(EventSession).where(EventSession.event_id == event.id).order_by(EventSession.session_date, EventSession.session_start)
     )
-    survey_res = await db.execute(select(EventSurvey).where(EventSurvey.event_id == event_id))
+    survey_res = await db.execute(select(EventSurvey).where(EventSurvey.event_id == event.id))
     return _build_public_event_detail(event, sessions_res.scalars().all(), survey_res.scalar_one_or_none())
 
 
 @app.get("/api/public/events/{event_id}/comments", response_model=list[PublicEventCommentOut])
-async def list_public_event_comments(event_id: int, db: AsyncSession = Depends(get_db)):
-    event_res = await db.execute(select(Event).where(Event.id == event_id))
-    event = event_res.scalar_one_or_none()
+async def list_public_event_comments(event_id: str, db: AsyncSession = Depends(get_db)):
+    event = await _resolve_public_event(db, event_id)
     if not event or _get_event_visibility(event) == "private":
         raise HTTPException(status_code=404, detail="Event not found")
 
     comments_res = await db.execute(
         select(EventComment)
         .options(selectinload(EventComment.public_member))
-        .where(EventComment.event_id == event_id, EventComment.status == "visible")
+        .where(EventComment.event_id == event.id, EventComment.status == "visible")
         .order_by(EventComment.created_at.desc())
     )
     return [_event_comment_to_out(comment) for comment in comments_res.scalars().all()]
@@ -9889,18 +10303,17 @@ async def list_public_event_comments(event_id: int, db: AsyncSession = Depends(g
 @limiter.limit("5/minute")
 async def create_public_event_comment(
     request: Request,
-    event_id: int,
+    event_id: str,
     payload: PublicEventCommentCreateIn,
     member: CurrentPublicMember = Depends(get_current_public_member),
     db: AsyncSession = Depends(get_db),
 ):
-    event_res = await db.execute(select(Event).where(Event.id == event_id))
-    event = event_res.scalar_one_or_none()
+    event = await _resolve_public_event(db, event_id)
     if not event or _get_event_visibility(event) == "private":
         raise HTTPException(status_code=404, detail="Event not found")
 
     comment = EventComment(
-        event_id=event_id,
+        event_id=event.id,
         public_member_id=member.id,
         body=payload.body,
         status="visible",
@@ -9918,7 +10331,7 @@ async def create_public_event_comment(
         resource_id=str(comment.id),
         ip_address=_client_ip_for_rate_limit(request),
         user_agent=request.headers.get("User-Agent"),
-        extra={"event_id": event_id, "public_member_id": member.id},
+        extra={"event_id": event.id, "public_member_id": member.id},
     )
     await db.commit()
     return _event_comment_to_out(comment)
@@ -9928,13 +10341,16 @@ async def create_public_event_comment(
 @limiter.limit("10/minute")
 async def report_public_event_comment(
     request: Request,
-    event_id: int,
+    event_id: str,
     comment_id: int,
     member: CurrentPublicMember = Depends(get_current_public_member),
     db: AsyncSession = Depends(get_db),
 ):
+    event = await _resolve_public_event(db, event_id)
+    if not event or _get_event_visibility(event) == "private":
+        raise HTTPException(status_code=404, detail="Event not found")
     comment_res = await db.execute(
-        select(EventComment).where(EventComment.id == comment_id, EventComment.event_id == event_id)
+        select(EventComment).where(EventComment.id == comment_id, EventComment.event_id == event.id)
     )
     comment = comment_res.scalar_one_or_none()
     if not comment:
@@ -9951,22 +10367,21 @@ async def report_public_event_comment(
         resource_id=str(comment.id),
         ip_address=_client_ip_for_rate_limit(request),
         user_agent=request.headers.get("User-Agent"),
-        extra={"event_id": event_id, "public_member_id": member.id},
+        extra={"event_id": event.id, "public_member_id": member.id},
     )
     await db.commit()
     return {"ok": True, "status": comment.status, "report_count": comment.report_count}
 
 
 @app.get("/api/events/{event_id}/info")
-async def public_event_info(event_id: int, db: AsyncSession = Depends(get_db)):
-    res = await db.execute(select(Event).where(Event.id == event_id))
-    ev = res.scalar_one_or_none()
+async def public_event_info(event_id: str, db: AsyncSession = Depends(get_db)):
+    ev = await _resolve_public_event(db, event_id)
     if not ev:
         raise HTTPException(status_code=404, detail="Event not found")
     sess_res = await db.execute(
-        select(EventSession).where(EventSession.event_id == event_id).order_by(EventSession.session_date, EventSession.session_start)
+        select(EventSession).where(EventSession.event_id == ev.id).order_by(EventSession.session_date, EventSession.session_start)
     )
-    survey_res = await db.execute(select(EventSurvey).where(EventSurvey.event_id == event_id))
+    survey_res = await db.execute(select(EventSurvey).where(EventSurvey.event_id == ev.id))
     return _build_public_event_detail(ev, sess_res.scalars().all(), survey_res.scalar_one_or_none()).model_dump()
 
 
@@ -9974,15 +10389,16 @@ async def public_event_info(event_id: int, db: AsyncSession = Depends(get_db)):
 @limiter.limit("10/minute")
 async def public_event_register(
     request: Request,
-    event_id: int,
+    event_id: str,
     payload: SelfRegisterIn,
     db: AsyncSession = Depends(get_db),
     member: Optional[CurrentPublicMember] = Depends(get_optional_public_member),
 ):
-    res = await db.execute(select(Event).where(Event.id == event_id))
-    ev = res.scalar_one_or_none()
+    ev = await _resolve_public_event(db, event_id)
     if not ev:
         raise HTTPException(status_code=404, detail="Event not found")
+    event_db_id = ev.id
+    require_email_verification = _get_event_email_verification_required(ev)
 
     normalized_email = payload.email.lower()
     if member and normalized_email != member.email.lower():
@@ -9999,7 +10415,7 @@ async def public_event_register(
 
     await _enforce_registration_risk_controls(
         db,
-        event_id=event_id,
+        event_id=event_db_id,
         email=normalized_email,
         ip_address=client_ip,
         user_agent=user_agent,
@@ -10007,7 +10423,7 @@ async def public_event_register(
     )
 
     existing = await db.execute(
-        select(Attendee).where(Attendee.event_id == event_id, func.lower(Attendee.email) == normalized_email)
+        select(Attendee).where(Attendee.event_id == event_db_id, func.lower(Attendee.email) == normalized_email)
     )
     existing_attendee = existing.scalar_one_or_none()
     if existing_attendee:
@@ -10016,12 +10432,12 @@ async def public_event_register(
         if member and not existing_attendee.public_member_id:
             existing_attendee.public_member_id = member.id
 
-        if not existing_attendee.email_verified:
+        if not existing_attendee.email_verified and require_email_verification:
             existing_attendee.email_verification_token = make_email_token(
                 {
                     "action": "attendee_verify",
                     "attendee_id": existing_attendee.id,
-                    "event_id": event_id,
+                    "event_id": event_db_id,
                     "email": existing_attendee.email.lower(),
                 }
             )
@@ -10035,10 +10451,12 @@ async def public_event_register(
                 user_agent=user_agent,
                 extra={
                     "event_id": event_id,
+                    "event_public_id": _get_public_event_identifier(ev),
                     "email": normalized_email,
                     "device_id": device_id,
                     "public_member_id": member.id if member else None,
                     "result": "existing_unverified",
+                    "verification_required": True,
                 },
             )
             await db.commit()
@@ -10066,9 +10484,14 @@ async def public_event_register(
                 )
             return response
 
+        if not existing_attendee.email_verified and not require_email_verification:
+            existing_attendee.email_verified = True
+            existing_attendee.email_verification_token = None
+            existing_attendee.email_verified_at = datetime.now(timezone.utc)
+
         survey_token = make_survey_access_token(
             attendee_id=existing_attendee.id,
-            event_id=event_id,
+            event_id=event_db_id,
             email=existing_attendee.email,
         )
         await write_audit_log(
@@ -10080,11 +10503,12 @@ async def public_event_register(
             ip_address=client_ip,
             user_agent=user_agent,
             extra={
-                "event_id": event_id,
+                "event_id": event_db_id,
                 "email": normalized_email,
                 "device_id": device_id,
                 "public_member_id": member.id if member else None,
-                "result": "existing_verified",
+                "result": "existing_verified" if existing_attendee.email_verified else "existing_auto_verified",
+                "verification_required": require_email_verification,
             },
         )
         await db.commit()
@@ -10093,20 +10517,20 @@ async def public_event_register(
             content={
                 "ok": True,
                 "already_registered": True,
-                "email_verified": True,
-                "verification_required": False,
+                "email_verified": bool(existing_attendee.email_verified),
+                "verification_required": require_email_verification,
                 "message": "Bu e-posta ile zaten kayitlisiniz.",
                 "attendee_id": existing_attendee.id,
                 "attendee_name": existing_attendee.name,
                 "attendee_email": existing_attendee.email,
                 "survey_token": survey_token,
                 "survey_url": build_public_survey_url(
-                    event_id=event_id,
+                    event_id=_get_public_event_identifier(ev),
                     attendee_id=existing_attendee.id,
                     email=existing_attendee.email,
                 ),
                 "status_url": build_public_status_url(
-                    event_id=event_id,
+                    event_id=_get_public_event_identifier(ev),
                     attendee_id=existing_attendee.id,
                     email=existing_attendee.email,
                 ),
@@ -10123,24 +10547,28 @@ async def public_event_register(
         return response
 
     attendee = Attendee(
-        event_id=event_id,
+        event_id=event_db_id,
         name=payload.name,
         email=normalized_email,
         source="self_register",
-        email_verified=False,
+        email_verified=not require_email_verification,
         public_member_id=member.id if member else None,
         registration_answers=registration_answers,
     )
     db.add(attendee)
     await db.flush()
-    attendee.email_verification_token = make_email_token(
-        {
-            "action": "attendee_verify",
-            "attendee_id": attendee.id,
-            "event_id": event_id,
-            "email": attendee.email.lower(),
-        }
-    )
+    if require_email_verification:
+        attendee.email_verification_token = make_email_token(
+            {
+                "action": "attendee_verify",
+                "attendee_id": attendee.id,
+                "event_id": event_db_id,
+                "email": attendee.email.lower(),
+            }
+        )
+    else:
+        attendee.email_verification_token = None
+        attendee.email_verified_at = datetime.now(timezone.utc)
     await write_audit_log(
         db,
         user_id=None,
@@ -10150,26 +10578,44 @@ async def public_event_register(
         ip_address=client_ip,
         user_agent=user_agent,
         extra={
-            "event_id": event_id,
+            "event_id": event_db_id,
             "email": normalized_email,
             "device_id": device_id,
             "public_member_id": member.id if member else None,
-            "result": "created_unverified",
+            "result": "created_unverified" if require_email_verification else "created_verified",
+            "verification_required": require_email_verification,
         },
     )
     await db.commit()
-    await send_attendee_verification_email(attendee=attendee, event=ev)
+    if require_email_verification:
+        await send_attendee_verification_email(attendee=attendee, event=ev)
+    survey_token = make_survey_access_token(
+        attendee_id=attendee.id,
+        event_id=event_db_id,
+        email=attendee.email,
+    )
     response = JSONResponse(
         status_code=201,
         content={
             "ok": True,
             "already_registered": False,
-            "email_verified": False,
-            "verification_required": True,
-            "message": "Kayit alindi. Etkinlige katilimi tamamlamak icin e-posta dogrulamasi gerekiyor.",
+            "email_verified": bool(attendee.email_verified),
+            "verification_required": require_email_verification,
+            "message": "Kayit alindi. Etkinlige katilimi tamamlamak icin e-posta dogrulamasi gerekiyor." if require_email_verification else "Kayit alindi.",
             "attendee_id": attendee.id,
             "attendee_name": attendee.name,
             "attendee_email": attendee.email,
+            "survey_token": survey_token if attendee.email_verified else None,
+            "survey_url": build_public_survey_url(
+                event_id=_get_public_event_identifier(ev),
+                attendee_id=attendee.id,
+                email=attendee.email,
+            ) if attendee.email_verified else None,
+            "status_url": build_public_status_url(
+                event_id=_get_public_event_identifier(ev),
+                attendee_id=attendee.id,
+                email=attendee.email,
+            ) if attendee.email_verified else None,
         },
     )
     if should_set_device_cookie:
@@ -10184,7 +10630,10 @@ async def public_event_register(
 
 
 @app.get("/api/events/{event_id}/verify-email")
-async def verify_attendee_email(event_id: int, token: str = Query(...), db: AsyncSession = Depends(get_db)):
+async def verify_attendee_email(event_id: str, token: str = Query(...), db: AsyncSession = Depends(get_db)):
+    event = await _resolve_public_event(db, event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
     try:
         payload = verify_email_token(token, max_age=86400)
     except SignatureExpired:
@@ -10194,12 +10643,12 @@ async def verify_attendee_email(event_id: int, token: str = Query(...), db: Asyn
 
     if payload.get("action") != "attendee_verify":
         raise bad_request("Gecersiz token turu.")
-    if int(payload.get("event_id") or 0) != event_id:
+    if int(payload.get("event_id") or 0) != event.id:
         raise bad_request("Etkinlik dogrulama bilgisi eslesmiyor.")
 
     attendee_id = int(payload.get("attendee_id") or 0)
     email = str(payload.get("email") or "").lower()
-    res = await db.execute(select(Attendee).where(Attendee.id == attendee_id, Attendee.event_id == event_id))
+    res = await db.execute(select(Attendee).where(Attendee.id == attendee_id, Attendee.event_id == event.id))
     attendee = res.scalar_one_or_none()
     if not attendee or attendee.email.lower() != email:
         raise HTTPException(status_code=404, detail="Katilimci bulunamadi.")
@@ -10212,8 +10661,8 @@ async def verify_attendee_email(event_id: int, token: str = Query(...), db: Asyn
     return {
         "detail": "E-posta dogrulandi.",
         "attendee_id": attendee.id,
-        "event_id": event_id,
-        "status_url": build_public_status_url(event_id=event_id, attendee_id=attendee.id, email=attendee.email),
+        "event_id": event.id,
+        "status_url": build_public_status_url(event_id=_get_public_event_identifier(event), attendee_id=attendee.id, email=attendee.email),
     }
 
 
@@ -10237,6 +10686,7 @@ async def get_session_by_token(checkin_token: str, db: AsyncSession = Depends(ge
         "session_location": ctx["session_location"],
         "is_active": ctx["is_active"],
         "event_id": ctx["event_id"],
+        "event_public_id": ctx["event_public_id"],
         "event_name": ctx["event_name"],
         "event_date": ctx["event_date"].isoformat() if ctx["event_date"] else None,
         "min_sessions_required": ctx["min_sessions_required"],
@@ -10265,7 +10715,10 @@ async def self_checkin(
         )
     )
     attendee = att_res.scalar_one_or_none()
-    if attendee and not attendee.email_verified:
+    event_res = await db.execute(select(Event).where(Event.id == ctx["event_id"]))
+    event = event_res.scalar_one_or_none()
+    require_email_verification = _get_event_email_verification_required(event) if event else True
+    if attendee and require_email_verification and not attendee.email_verified:
         raise HTTPException(status_code=403, detail="Check-in icin once e-posta dogrulamasi yapmalisiniz.")
     if not attendee:
         raise HTTPException(
@@ -10549,7 +11002,7 @@ async def list_attendees(
 
 @app.get(
     "/api/admin/events/{event_id}/attendees/{attendee_id}/survey-link",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
 )
 async def get_attendee_survey_link(
     event_id: int,
@@ -10557,7 +11010,7 @@ async def get_attendee_survey_link(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db)
     res = await db.execute(
         select(Attendee).where(Attendee.id == attendee_id, Attendee.event_id == event_id)
     )
@@ -10576,7 +11029,7 @@ async def get_attendee_survey_link(
         "attendee_email": attendee.email,
         "survey_token": survey_token,
         "survey_url": build_public_survey_url(
-            event_id=event_id,
+            event_id=_get_public_event_identifier(event),
             attendee_id=attendee.id,
             email=attendee.email,
         ),
@@ -10788,7 +11241,7 @@ async def list_event_raffles(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db)
     raffles_res = await db.execute(
         select(EventRaffle)
         .options(selectinload(EventRaffle.winners).selectinload(EventRaffleWinner.attendee))
@@ -10797,7 +11250,16 @@ async def list_event_raffles(
     )
     raffles = raffles_res.scalars().all()
     attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
-    return [_raffle_to_out(raffle, attendees, attendance_counts) for raffle in raffles]
+    require_email_verification = _get_event_email_verification_required(event)
+    return [
+        _raffle_to_out(
+            raffle,
+            attendees,
+            attendance_counts,
+            require_email_verification=require_email_verification,
+        )
+        for raffle in raffles
+    ]
 
 
 @app.get(
@@ -10834,7 +11296,7 @@ async def create_event_raffle(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db)
     raffle = EventRaffle(
         event_id=event_id,
         title=payload.title.strip(),
@@ -10865,7 +11327,12 @@ async def create_event_raffle(
     await db.commit()
     raffle = await _get_raffle_for_admin(event_id, raffle.id, me, db)
     attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
-    return _raffle_to_out(raffle, attendees, attendance_counts)
+    return _raffle_to_out(
+        raffle,
+        attendees,
+        attendance_counts,
+        require_email_verification=_get_event_email_verification_required(event),
+    )
 
 
 @app.patch(
@@ -10880,6 +11347,7 @@ async def update_event_raffle(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    event = await _get_event_for_admin(event_id, me, db)
     raffle = await _get_raffle_for_admin(event_id, raffle_id, me, db)
     should_reset_draw = False
 
@@ -10902,6 +11370,7 @@ async def update_event_raffle(
 
     if should_reset_draw:
         await db.execute(delete(EventRaffleWinner).where(EventRaffleWinner.raffle_id == raffle.id))
+        raffle.winners.clear()
         raffle.status = "draft"
         raffle.drawn_at = None
 
@@ -10924,7 +11393,12 @@ async def update_event_raffle(
     await db.commit()
     refreshed = await _get_raffle_for_admin(event_id, raffle_id, me, db)
     attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
-    return _raffle_to_out(refreshed, attendees, attendance_counts)
+    return _raffle_to_out(
+        refreshed,
+        attendees,
+        attendance_counts,
+        require_email_verification=_get_event_email_verification_required(event),
+    )
 
 
 @app.delete(
@@ -10967,11 +11441,17 @@ async def draw_event_raffle(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    event = await _get_event_for_admin(event_id, me, db)
     raffle = await _get_raffle_for_admin(event_id, raffle_id, me, db)
     if raffle.winners:
         raise HTTPException(status_code=400, detail="Kazananlar zaten ÃƒÂ§ekildi. Yeni tur iÃƒÂ§in tekrar ÃƒÂ§ek kullanÃ„Â±n")
     attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
-    selected_winners = _pick_raffle_winners(raffle, attendees, attendance_counts)
+    selected_winners = _pick_raffle_winners(
+        raffle,
+        attendees,
+        attendance_counts,
+        require_email_verification=_get_event_email_verification_required(event),
+    )
     draw_time = datetime.now(timezone.utc)
     for attendee in selected_winners:
         raffle.winners.append(
@@ -10997,7 +11477,12 @@ async def draw_event_raffle(
 
     refreshed = await _get_raffle_for_admin(event_id, raffle_id, me, db)
     attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
-    return _raffle_to_out(refreshed, attendees, attendance_counts)
+    return _raffle_to_out(
+        refreshed,
+        attendees,
+        attendance_counts,
+        require_email_verification=_get_event_email_verification_required(event),
+    )
 
 
 @app.post(
@@ -11011,10 +11496,17 @@ async def redraw_event_raffle(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    event = await _get_event_for_admin(event_id, me, db)
     raffle = await _get_raffle_for_admin(event_id, raffle_id, me, db)
     attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
     excluded_attendee_ids = {winner.attendee_id for winner in raffle.winners}
-    selected_winners = _pick_raffle_winners(raffle, attendees, attendance_counts, excluded_attendee_ids)
+    selected_winners = _pick_raffle_winners(
+        raffle,
+        attendees,
+        attendance_counts,
+        require_email_verification=_get_event_email_verification_required(event),
+        excluded_attendee_ids=excluded_attendee_ids,
+    )
 
     draw_time = datetime.now(timezone.utc)
     for attendee in selected_winners:
@@ -11042,7 +11534,12 @@ async def redraw_event_raffle(
 
     refreshed = await _get_raffle_for_admin(event_id, raffle_id, me, db)
     attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
-    return _raffle_to_out(refreshed, attendees, attendance_counts)
+    return _raffle_to_out(
+        refreshed,
+        attendees,
+        attendance_counts,
+        require_email_verification=_get_event_email_verification_required(event),
+    )
 
 
 @app.get(
@@ -11055,9 +11552,15 @@ async def export_event_raffle(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    event = await _get_event_for_admin(event_id, me, db)
     raffle = await _get_raffle_for_admin(event_id, raffle_id, me, db)
     attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
-    raffle_out = _raffle_to_out(raffle, attendees, attendance_counts)
+    raffle_out = _raffle_to_out(
+        raffle,
+        attendees,
+        attendance_counts,
+        require_email_verification=_get_event_email_verification_required(event),
+    )
 
     buffer = io.StringIO()
     writer = csv.writer(buffer)
@@ -11131,8 +11634,10 @@ async def reset_event_raffle(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    event = await _get_event_for_admin(event_id, me, db)
     raffle = await _get_raffle_for_admin(event_id, raffle_id, me, db)
     await db.execute(delete(EventRaffleWinner).where(EventRaffleWinner.raffle_id == raffle.id))
+    raffle.winners.clear()
     raffle.status = "draft"
     raffle.drawn_at = None
     await write_audit_log(
@@ -11150,7 +11655,12 @@ async def reset_event_raffle(
 
     refreshed = await _get_raffle_for_admin(event_id, raffle_id, me, db)
     attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
-    return _raffle_to_out(refreshed, attendees, attendance_counts)
+    return _raffle_to_out(
+        refreshed,
+        attendees,
+        attendance_counts,
+        require_email_verification=_get_event_email_verification_required(event),
+    )
 
 
 @app.get("/api/admin/events/{event_id}/attendance", dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)])

@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+.pydeps/
+.tmpdeps/
+
+# Node / Next
+frontend/node_modules/
+frontend/.next/
+frontend/tsconfig.tsbuildinfo
+
+# Local env / OS
+.env.local
+.env.*.local
+.DS_Store
+Thumbs.db

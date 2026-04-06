@@ -21,6 +21,7 @@ import {
 import { apiFetch, getMySubscription, type RegistrationField, type SubscriptionInfo } from "@/lib/api";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 import PageHeader from "@/components/Admin/PageHeader";
+import RichTextEditor from "@/components/RichTextEditor";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/useToast";
 
@@ -37,6 +38,7 @@ type EventOut = {
   auto_email_on_cert?: boolean;
   cert_email_template_id?: number | null;
   visibility?: "private" | "unlisted" | "public";
+  require_email_verification?: boolean;
 };
 
 type EmailTemplate = {
@@ -54,6 +56,7 @@ type FormState = {
   event_banner_url: string;
   visibility: "private" | "unlisted" | "public";
   registration_fields: RegistrationField[];
+  require_email_verification: boolean;
   auto_email_on_cert: boolean;
   cert_email_template_id: number | null;
 };
@@ -68,9 +71,9 @@ const FIELD_TYPE_OPTIONS: Array<{ value: RegistrationField["type"]; tr: string; 
 ];
 
 const VISIBILITY_OPTIONS = [
-  { value: "private", tr: "Private", en: "Private" },
+  { value: "private", tr: "Özel", en: "Private" },
   { value: "unlisted", tr: "Liste dışı", en: "Unlisted" },
-  { value: "public", tr: "Public", en: "Public" },
+  { value: "public", tr: "Herkese açık", en: "Public" },
 ] as const;
 
 function createRegistrationField(): RegistrationField {
@@ -110,12 +113,16 @@ export default function EventSettingsPage() {
         upgradeCta: "Planları Gör",
         basicTitle: "Temel Bilgiler",
         basicBody: "Etkinlik kaydı sırasında görünen ana bilgileri burada güncelleyin.",
-        visibilityTitle: "Public görünürlük",
-        visibilityBody: "Bu ayar yalnızca public keşif ekranını etkiler. Mevcut kayıt linklerin ve organizer akışın bozulmaz.",
+        visibilityTitle: "Açık görünürlük",
+        visibilityBody: "Bu ayar yalnızca açık etkinlik keşif ekranını etkiler. Mevcut kayıt bağlantıların ve organizatör akışın bozulmaz.",
         visibilityLabel: "Görünürlük modu",
-        visibilityHint: "Private etkinlikler listede görünmez. Unlisted sadece direkt link ile açılır. Public etkinlikler keşif ekranına düşer.",
+        visibilityHint: "Özel etkinlikler listede görünmez. Liste dışı etkinlikler sadece doğrudan bağlantıyla açılır. Herkese açık etkinlikler keşif ekranında görünür.",
         registrationTitle: "Kayıt formu alanları",
-        registrationBody: "Katılımcılardan toplamak istediğiniz ek bilgileri belirleyin. Bu alanlar public kayıt sayfasında ad ve e-postanın altında görünür.",
+        registrationBody: "Katılımcılardan toplamak istediğiniz ek bilgileri belirleyin. Bu alanlar açık kayıt sayfasında ad ve e-postanın altında görünür.",
+        verificationTitle: "E-posta doğrulaması",
+        verificationBody: "İstersen bu etkinlik için kayıt sonrası e-posta doğrulamasını zorunlu tutabilir, istemiyorsan tamamen kapatabilirsin.",
+        verificationToggle: "Kayıttan sonra e-posta doğrulaması zorunlu olsun",
+        verificationHint: "Kapalıysa katılımcı kayıt olur olmaz aktif sayılır; check-in ve çekiliş akışı doğrulama beklemez.",
         addField: "Alan ekle",
         emptyFields: "Henüz özel kayıt alanı eklenmedi.",
         fieldLabel: "Alan etiketi",
@@ -132,7 +139,7 @@ export default function EventSettingsPage() {
         name: "Etkinlik adı",
         namePlaceholder: "Örn. Hepta Summit 2026",
         description: "Etkinlik açıklaması",
-        descriptionPlaceholder: "Katılımcıların kayıt sayfasında göreceği kısa açıklama",
+        descriptionPlaceholder: "Satır atlayabilir, kalın/italik yapabilir, font ve boyut değiştirebilirsin.",
         bannerTitle: "Etkinlik bannerı",
         bannerBody: "Kayıt ekranı ve üst başlıklarda kullanılan görseli güncelleyin.",
         uploadBanner: "Banner Yükle",
@@ -176,6 +183,10 @@ export default function EventSettingsPage() {
         visibilityHint: "Private stays hidden. Unlisted opens only via direct link. Public events appear in the discovery list.",
         registrationTitle: "Registration form fields",
         registrationBody: "Define the extra information you want to collect from attendees. These fields are shown below name and email on the public registration page.",
+        verificationTitle: "Email verification",
+        verificationBody: "You can require post-registration email verification for this event, or turn it off entirely when it adds unnecessary friction.",
+        verificationToggle: "Require email verification after registration",
+        verificationHint: "When off, attendees become active immediately and check-in or raffle flows do not wait for email confirmation.",
         addField: "Add field",
         emptyFields: "No custom registration field has been added yet.",
         fieldLabel: "Field label",
@@ -192,7 +203,7 @@ export default function EventSettingsPage() {
         name: "Event name",
         namePlaceholder: "e.g. Hepta Summit 2026",
         description: "Event description",
-        descriptionPlaceholder: "Short copy attendees will see on the registration page",
+        descriptionPlaceholder: "Use line breaks, bold text, font choices, and size changes as needed.",
         bannerTitle: "Event banner",
         bannerBody: "Update the visual used on registration and event headers.",
         uploadBanner: "Upload Banner",
@@ -228,6 +239,7 @@ export default function EventSettingsPage() {
     event_banner_url: "",
     visibility: "private",
     registration_fields: [],
+    require_email_verification: true,
     auto_email_on_cert: false,
     cert_email_template_id: null,
   });
@@ -284,6 +296,7 @@ export default function EventSettingsPage() {
         registration_fields: Array.isArray(eventData.config?.registration_fields)
           ? eventData.config.registration_fields
           : [],
+        require_email_verification: eventData.require_email_verification ?? true,
         auto_email_on_cert: Boolean(eventData.auto_email_on_cert),
         cert_email_template_id: eventData.cert_email_template_id || null,
       });
@@ -350,6 +363,7 @@ export default function EventSettingsPage() {
             ? (field.options || []).map((option) => option.trim()).filter(Boolean)
             : [],
         })).filter((field) => field.label),
+        require_email_verification: formData.require_email_verification,
       };
 
       if (hasGrowthPlan) {
@@ -452,10 +466,9 @@ export default function EventSettingsPage() {
               </div>
               <div>
                 <label className="label">{copy.description}</label>
-                <textarea
+                <RichTextEditor
                   value={formData.event_description}
-                  onChange={(event) => setFormData((current) => ({ ...current, event_description: event.target.value }))}
-                  className="input-field min-h-32"
+                  onChange={(value) => setFormData((current) => ({ ...current, event_description: value }))}
                   placeholder={copy.descriptionPlaceholder}
                 />
               </div>
@@ -494,6 +507,38 @@ export default function EventSettingsPage() {
                 </select>
               </div>
               <p className="text-xs text-surface-400">{copy.visibilityHint}</p>
+            </div>
+          </section>
+
+          <section className="card p-6 sm:p-7">
+            <div className="flex items-start gap-3">
+              <div className="rounded-2xl bg-amber-50 p-3 text-amber-600">
+                <Mail className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-surface-900">{copy.verificationTitle}</h2>
+                <p className="mt-1 text-sm text-surface-500">{copy.verificationBody}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              <label className="flex items-start gap-3 rounded-2xl border border-surface-200 bg-surface-50 px-4 py-4">
+                <input
+                  type="checkbox"
+                  checked={formData.require_email_verification}
+                  onChange={(event) =>
+                    setFormData((current) => ({
+                      ...current,
+                      require_email_verification: event.target.checked,
+                    }))
+                  }
+                  className="mt-1 h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500"
+                />
+                <div>
+                  <p className="text-sm font-semibold text-surface-900">{copy.verificationToggle}</p>
+                  <p className="mt-1 text-xs text-surface-500">{copy.verificationHint}</p>
+                </div>
+              </label>
             </div>
           </section>
 

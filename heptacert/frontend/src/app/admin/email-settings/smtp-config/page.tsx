@@ -1,76 +1,102 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
-  Loader2,
   AlertCircle,
-  Save,
-  TestTube,
-  Mail,
-  Lock,
+  CheckCircle2,
   Eye,
   EyeOff,
-  CheckCircle2,
+  Loader2,
+  Lock,
+  Mail,
+  Save,
+  TestTube,
   XCircle,
   Zap,
 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
-import { FeatureGate } from '@/lib/useSubscription';
+import { FeatureGate } from "@/lib/useSubscription";
+import { apiFetch } from "@/lib/api";
 
-interface SMTPConfig {
-  host: string;
-  port: number;
-  use_tls: boolean;
-  username?: string;
-  password?: string;
+type SMTPConfig = {
+  smtp_enabled: boolean;
+  smtp_host: string;
+  smtp_port: number;
+  smtp_use_tls: boolean;
+  smtp_user: string;
+  smtp_password: string;
   from_email: string;
-  from_name?: string;
-}
+  from_name: string;
+  reply_to: string;
+  auto_cc: string;
+  enable_tracking_pixel: boolean;
+};
+
+const DEFAULT_CONFIG: SMTPConfig = {
+  smtp_enabled: false,
+  smtp_host: "",
+  smtp_port: 587,
+  smtp_use_tls: true,
+  smtp_user: "",
+  smtp_password: "",
+  from_email: "",
+  from_name: "HeptaCert",
+  reply_to: "",
+  auto_cc: "",
+  enable_tracking_pixel: false,
+};
 
 export default function SMTPConfigurationPage() {
-  const router = useRouter();
-
-  const [config, setConfig] = useState<SMTPConfig>({
-    host: "",
-    port: 587,
-    use_tls: true,
-    username: "",
-    password: "",
-    from_email: "",
-    from_name: "HeptaCert",
-  });
-
+  const [config, setConfig] = useState<SMTPConfig>(DEFAULT_CONFIG);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [testEmail, setTestEmail] = useState("");
   const [testResult, setTestResult] = useState<"success" | "error" | null>(null);
   const [testMessage, setTestMessage] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    // Simulate loading existing SMTP config
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
+    void loadConfig();
   }, []);
 
-  const handleInputChange = (key: keyof SMTPConfig, value: any) => {
-    setConfig((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
+  async function loadConfig() {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await apiFetch("/admin/email-config");
+      const data = await response.json();
+      setConfig({
+        smtp_enabled: Boolean(data.smtp_enabled),
+        smtp_host: data.smtp_host || "",
+        smtp_port: data.smtp_port || 587,
+        smtp_use_tls: data.smtp_use_tls ?? true,
+        smtp_user: data.smtp_user || "",
+        smtp_password: "",
+        from_email: data.from_email || "",
+        from_name: data.from_name || "HeptaCert",
+        reply_to: data.reply_to || "",
+        auto_cc: data.auto_cc || "",
+        enable_tracking_pixel: Boolean(data.enable_tracking_pixel),
+      });
+    } catch (err: any) {
+      setError(err?.message || "SMTP ayarları yüklenemedi.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleInputChange<K extends keyof SMTPConfig>(key: K, value: SMTPConfig[K]) {
+    setConfig((prev) => ({ ...prev, [key]: value }));
     setError(null);
     setSuccess(null);
-  };
+  }
 
-  const handleSave = async () => {
-    if (!config.host || !config.port || !config.from_email) {
-      setError("SMTP sunucusu, port ve gönderici email gerekli");
+  async function handleSave() {
+    if (!config.smtp_host || !config.smtp_port || !config.from_email) {
+      setError("SMTP sunucusu, port ve gönderici e-posta adresi gerekli.");
       return;
     }
 
@@ -79,22 +105,27 @@ export default function SMTPConfigurationPage() {
       setError(null);
       setSuccess(null);
 
-      // In a real app, this would call an API endpoint
-      // await updateSMTPConfig(config);
-      
-      setSuccess("SMTP yapılandırması başarıyla kaydedildi!");
-      setTimeout(() => setSuccess(null), 5000);
-    } catch (e: any) {
-      console.error("Failed to save SMTP config:", e);
-      setError(e?.message || "SMTP yapılandırması kaydedilemedi");
+      await apiFetch("/admin/email-config", {
+        method: "PATCH",
+        body: JSON.stringify(config),
+      });
+
+      setSuccess("SMTP yapılandırması başarıyla kaydedildi.");
+      setConfig((prev) => ({ ...prev, smtp_password: "" }));
+    } catch (err: any) {
+      setError(err?.message || "SMTP yapılandırması kaydedilemedi.");
     } finally {
       setSaving(false);
     }
-  };
+  }
 
-  const handleTestConnection = async () => {
+  async function handleTestConnection() {
     if (!testEmail) {
-      setError("Test email adresi gerekli");
+      setError("Test e-posta adresi gerekli.");
+      return;
+    }
+    if (!config.smtp_host || !config.smtp_port || !config.smtp_user || !config.smtp_password || !config.from_email) {
+      setError("Bağlantı testi için host, port, kullanıcı, şifre ve gönderici e-postası doldurulmalı.");
       return;
     }
 
@@ -104,22 +135,28 @@ export default function SMTPConfigurationPage() {
       setTestResult(null);
       setTestMessage(null);
 
-      // In a real app, this would call an API endpoint
-      // await testSMTPConnection({ ...config, test_email: testEmail });
-      
-      // Simulate successful test
-      setTimeout(() => {
-        setTestResult("success");
-        setTestMessage("Bağlantı başarılı! Test email gönderildi.");
-        setTesting(false);
-      }, 2000);
-    } catch (e: any) {
-      console.error("Failed to test SMTP:", e);
+      const response = await apiFetch("/admin/email-config/test-connection", {
+        method: "POST",
+        body: JSON.stringify({
+          smtp_host: config.smtp_host,
+          smtp_port: config.smtp_port,
+          smtp_use_tls: config.smtp_use_tls,
+          smtp_user: config.smtp_user,
+          smtp_password: config.smtp_password,
+          from_email: config.from_email,
+          test_email: testEmail,
+        }),
+      });
+      const data = await response.json();
+      setTestResult(data.status === "success" ? "success" : "error");
+      setTestMessage(data.message || null);
+    } catch (err: any) {
       setTestResult("error");
-      setTestMessage(e?.message || "SMTP bağlantısı başarısız oldu");
+      setTestMessage(err?.message || "SMTP bağlantısı başarısız oldu.");
+    } finally {
       setTesting(false);
     }
-  };
+  }
 
   if (loading) {
     return (
@@ -130,199 +167,206 @@ export default function SMTPConfigurationPage() {
   }
 
   return (
-    <FeatureGate requiredPlans={["growth","enterprise"]}>
-      <div className="space-y-6 max-w-2xl">
-      <PageHeader
-        title="SMTP Yapılandırması"
-        subtitle="Email gönderim sunucu ayarlarını yapılandırın"
-        icon={<Mail className="h-5 w-5" />}
-      />
+    <FeatureGate requiredPlans={["growth", "enterprise"]}>
+      <div className="max-w-2xl space-y-6">
+        <PageHeader
+          title="SMTP Yapılandırması"
+          subtitle="Doğrulama, sertifika ve kampanya e-postalarını kendi gönderici hesabınız üzerinden yollayın."
+          icon={<Mail className="h-5 w-5" />}
+        />
 
-      {/* Error/Success */}
-      {error && (
-        <div className="error-banner">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-      {success && (
-        <div className="success-banner">
-          <CheckCircle2 className="h-4 w-4 shrink-0" />
-          <span>{success}</span>
-        </div>
-      )}
-
-      {/* Configuration Form */}
-      <div className="card p-6 space-y-5">
-        <h2 className="text-base font-semibold text-surface-800 pb-1 border-b border-surface-100">SMTP Sunucu Ayarları</h2>
-
-        {/* Host */}
-        <div>
-          <label className="label">SMTP Sunucusu (Host)</label>
-          <input
-            type="text"
-            placeholder="smtp.gmail.com"
-            value={config.host}
-            onChange={(e) => handleInputChange("host", e.target.value)}
-            className="input-field"
-          />
-          <p className="text-xs text-surface-400 mt-1.5">Örnek: smtp.gmail.com, smtp.sendgrid.net</p>
-        </div>
-
-        {/* Port */}
-        <div>
-          <label className="label">Port</label>
-          <input
-            type="number"
-            value={config.port}
-            onChange={(e) => handleInputChange("port", parseInt(e.target.value))}
-            className="input-field"
-          />
-          <p className="text-xs text-surface-400 mt-1.5">Tipik portlar: 587 (TLS), 465 (SSL), 25 (SMTP)</p>
-        </div>
-
-        {/* Use TLS */}
-        <div>
-          <label className="flex items-center gap-2.5 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={config.use_tls}
-              onChange={(e) => handleInputChange("use_tls", e.target.checked)}
-              className="w-4 h-4 rounded accent-brand-600"
-            />
-            <span className="text-sm font-medium text-surface-700">TLS Şifrelemesi Kullan</span>
-          </label>
-          <p className="text-xs text-surface-400 mt-1.5 ml-6.5">Bağlantı güvenliği için önerilen</p>
-        </div>
-
-        {/* Username */}
-        <div>
-          <label className="label">Kullanıcı Adı</label>
-          <input
-            type="text"
-            placeholder="your-email@gmail.com"
-            value={config.username}
-            onChange={(e) => handleInputChange("username", e.target.value)}
-            className="input-field"
-          />
-          <p className="text-xs text-surface-400 mt-1.5">SMTP kimlik doğrulaması için kullanıcı adınızı</p>
-        </div>
-
-        {/* Password */}
-        <div>
-          <label className="label">Şifre</label>
-          <div className="relative">
-            <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="••••••••"
-              value={config.password}
-              onChange={(e) => handleInputChange("password", e.target.value)}
-              className="input-field pl-10 pr-10"
-            />
-            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-700">
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
+        {error && (
+          <div className="error-banner">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{error}</span>
           </div>
-          <p className="text-xs text-surface-400 mt-1.5">Gmail kullanıyorsanız uygulama şifresi kullanın</p>
-        </div>
-
-        {/* From Email */}
-        <div>
-          <label className="label">Gönderici Email Adresi</label>
-          <div className="relative">
-            <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
-            <input
-              type="email"
-              placeholder="noreply@example.com"
-              value={config.from_email}
-              onChange={(e) => handleInputChange("from_email", e.target.value)}
-              className="input-field pl-10"
-            />
-          </div>
-          <p className="text-xs text-surface-400 mt-1.5">Tüm sistem emaillerinde "From" alanında gösterilir</p>
-        </div>
-
-        {/* From Name */}
-        <div>
-          <label className="label">Gönderici Adı</label>
-          <input
-            type="text"
-            placeholder="HeptaCert"
-            value={config.from_name}
-            onChange={(e) => handleInputChange("from_name", e.target.value)}
-            className="input-field"
-          />
-          <p className="text-xs text-surface-400 mt-1.5">Email alıcılarında görüntülenecek ad</p>
-        </div>
-
-        {/* Save Button */}
-        <div className="pt-2 border-t border-surface-100">
-          <button onClick={handleSave} disabled={saving} className="btn-primary gap-2">
-            <Save className="h-4 w-4" />
-            {saving ? "Kaydediliyor..." : "Yapılandırmayı Kaydet"}
-          </button>
-        </div>
-      </div>
-
-      {/* Test Connection */}
-      <div className="card p-6 space-y-5">
-        <h2 className="text-base font-semibold text-surface-800 pb-1 border-b border-surface-100 flex items-center gap-2">
-          <Zap className="h-4 w-4 text-amber-500" />
-          Bağlantı Testi
-        </h2>
-
-        <div>
-          <label className="label">Test Email Adresi</label>
-          <input
-            type="email"
-            placeholder="test@example.com"
-            value={testEmail}
-            onChange={(e) => setTestEmail(e.target.value)}
-            className="input-field"
-          />
-          <p className="text-xs text-surface-400 mt-1.5">SMTP yapılandırmasını test etmek için bir email adresi girin</p>
-        </div>
-
-        {/* Test Result */}
-        {testResult && (
-          <div className={testResult === "success" ? "success-banner" : "error-banner"}>
-            {testResult === "success" ? (
-              <CheckCircle2 className="h-4 w-4 shrink-0" />
-            ) : (
-              <XCircle className="h-4 w-4 shrink-0" />
-            )}
-            <span>{testMessage}</span>
+        )}
+        {success && (
+          <div className="success-banner">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <span>{success}</span>
           </div>
         )}
 
-        {/* Test Button */}
-        <button
-          onClick={handleTestConnection}
-          disabled={testing || !testEmail}
-          className="btn-secondary gap-2"
-        >
-          {testing ? (
-            <><Loader2 className="h-4 w-4 animate-spin" /> Test Ediliyor...</>
-          ) : (
-            <><TestTube className="h-4 w-4" /> Bağlantı Testi Yap</>
-          )}
-        </button>
-      </div>
+        <div className="card space-y-5 p-6">
+          <h2 className="border-b border-surface-100 pb-1 text-base font-semibold text-surface-800">SMTP Sunucu Ayarları</h2>
 
-      {/* Info Box */}
-      <div className="info-banner rounded-xl p-5 space-y-2">
-        <h3 className="font-semibold flex items-center gap-2">
-          <Mail className="h-4 w-4" />
-          Gmail Kullanıyorsanız
-        </h3>
-        <ul className="text-sm space-y-1 list-disc list-inside opacity-90">
-          <li>2-adımlı doğrulama etkinleştirin (myaccount.google.com/security)</li>
-          <li>"Uygulama şifresi" oluşturun ve yukarıya yapıştırın</li>
-          <li>Host: smtp.gmail.com, Port: 587, TLS: Etkin</li>
-          <li>Gönderici adresinde @gmail.com hesabınızı kullanın</li>
-        </ul>
-      </div>
+          <label className="flex items-center gap-2.5">
+            <input
+              type="checkbox"
+              checked={config.smtp_enabled}
+              onChange={(event) => handleInputChange("smtp_enabled", event.target.checked)}
+              className="h-4 w-4 rounded accent-brand-600"
+            />
+            <span className="text-sm font-medium text-surface-700">Bu hesabın SMTP ayarlarını etkinleştir</span>
+          </label>
+
+          <div>
+            <label className="label">SMTP Sunucusu</label>
+            <input
+              type="text"
+              value={config.smtp_host}
+              onChange={(event) => handleInputChange("smtp_host", event.target.value)}
+              className="input-field"
+              placeholder="smtp.gmail.com"
+            />
+          </div>
+
+          <div>
+            <label className="label">Port</label>
+            <input
+              type="number"
+              value={config.smtp_port}
+              onChange={(event) => handleInputChange("smtp_port", Number(event.target.value || 0))}
+              className="input-field"
+            />
+          </div>
+
+          <label className="flex items-center gap-2.5">
+            <input
+              type="checkbox"
+              checked={config.smtp_use_tls}
+              onChange={(event) => handleInputChange("smtp_use_tls", event.target.checked)}
+              className="h-4 w-4 rounded accent-brand-600"
+            />
+            <span className="text-sm font-medium text-surface-700">TLS / güvenli bağlantı kullan</span>
+          </label>
+
+          <div>
+            <label className="label">Kullanıcı Adı</label>
+            <input
+              type="text"
+              value={config.smtp_user}
+              onChange={(event) => handleInputChange("smtp_user", event.target.value)}
+              className="input-field"
+              placeholder="your-email@gmail.com"
+            />
+          </div>
+
+          <div>
+            <label className="label">Şifre / Uygulama Şifresi</label>
+            <div className="relative">
+              <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+              <input
+                type={showPassword ? "text" : "password"}
+                value={config.smtp_password}
+                onChange={(event) => handleInputChange("smtp_password", event.target.value)}
+                className="input-field pl-10 pr-10"
+                placeholder="Şifrenizi yalnızca değiştirecekseniz yeniden girin"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-700"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="label">Gönderici E-posta Adresi</label>
+            <div className="relative">
+              <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+              <input
+                type="email"
+                value={config.from_email}
+                onChange={(event) => handleInputChange("from_email", event.target.value)}
+                className="input-field pl-10"
+                placeholder="noreply@example.com"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="label">Gönderici Adı</label>
+            <input
+              type="text"
+              value={config.from_name}
+              onChange={(event) => handleInputChange("from_name", event.target.value)}
+              className="input-field"
+              placeholder="HeptaCert"
+            />
+          </div>
+
+          <div>
+            <label className="label">Yanıt Adresi</label>
+            <input
+              type="email"
+              value={config.reply_to}
+              onChange={(event) => handleInputChange("reply_to", event.target.value)}
+              className="input-field"
+              placeholder="destek@example.com"
+            />
+          </div>
+
+          <div>
+            <label className="label">Otomatik CC</label>
+            <input
+              type="text"
+              value={config.auto_cc}
+              onChange={(event) => handleInputChange("auto_cc", event.target.value)}
+              className="input-field"
+              placeholder="ekip@example.com"
+            />
+          </div>
+
+          <label className="flex items-center gap-2.5">
+            <input
+              type="checkbox"
+              checked={config.enable_tracking_pixel}
+              onChange={(event) => handleInputChange("enable_tracking_pixel", event.target.checked)}
+              className="h-4 w-4 rounded accent-brand-600"
+            />
+            <span className="text-sm font-medium text-surface-700">Takip pikseli ayarını sakla</span>
+          </label>
+
+          <div className="border-t border-surface-100 pt-2">
+            <button onClick={handleSave} disabled={saving} className="btn-primary gap-2">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {saving ? "Kaydediliyor..." : "Yapılandırmayı Kaydet"}
+            </button>
+          </div>
+        </div>
+
+        <div className="card space-y-5 p-6">
+          <h2 className="flex items-center gap-2 border-b border-surface-100 pb-1 text-base font-semibold text-surface-800">
+            <Zap className="h-4 w-4 text-amber-500" />
+            Bağlantı Testi
+          </h2>
+
+          <div>
+            <label className="label">Test E-posta Adresi</label>
+            <input
+              type="email"
+              value={testEmail}
+              onChange={(event) => setTestEmail(event.target.value)}
+              className="input-field"
+              placeholder="test@example.com"
+            />
+          </div>
+
+          {testResult && (
+            <div className={testResult === "success" ? "success-banner" : "error-banner"}>
+              {testResult === "success" ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <XCircle className="h-4 w-4 shrink-0" />}
+              <span>{testMessage}</span>
+            </div>
+          )}
+
+          <button onClick={handleTestConnection} disabled={testing} className="btn-secondary gap-2">
+            {testing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Test Ediliyor...
+              </>
+            ) : (
+              <>
+                <TestTube className="h-4 w-4" />
+                Bağlantı Testi Yap
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </FeatureGate>
   );

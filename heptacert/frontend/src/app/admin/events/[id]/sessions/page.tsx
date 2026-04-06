@@ -15,7 +15,7 @@ import {
   LockKeyhole, Users, UserCheck, Hash, Link2, ClipboardCheck, ShieldAlert, Sparkles
 } from "lucide-react";
 
-function RegisterLinkBanner({ eventId }: { eventId: number }) {
+function RegisterLinkBanner({ eventId }: { eventId: string }) {
   const [copied, setCopied] = useState(false);
   const url = typeof window !== "undefined" ? `${window.location.origin}/events/${eventId}/register` : `/events/${eventId}/register`;
 
@@ -53,6 +53,7 @@ export default function AdminSessionsPage() {
 
   const [sessions, setSessions] = useState<SessionOut[]>([]);
   const [eventName, setEventName] = useState("");
+  const [eventPublicId, setEventPublicId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [planOk, setPlanOk] = useState<boolean | null>(null);
@@ -89,6 +90,7 @@ export default function AdminSessionsPage() {
       setPlanOk(hasPaidPlan);
       setSessions(sessRes);
       setEventName(evRes.name);
+      setEventPublicId(evRes.public_id || String(eventId));
       setMinSessions(evRes.min_sessions_required ?? 1);
     } catch (e: any) {
       setError(e.message || "Yükleme başarısız");
@@ -249,7 +251,7 @@ export default function AdminSessionsPage() {
         </div>
 
         {/* Registration link banner */}
-        <RegisterLinkBanner eventId={eventId} />
+      <RegisterLinkBanner eventId={eventPublicId || String(eventId)} />
 
         {/* Min sessions required setting */}
         <div className="mb-5 flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm sm:flex-row sm:items-center">

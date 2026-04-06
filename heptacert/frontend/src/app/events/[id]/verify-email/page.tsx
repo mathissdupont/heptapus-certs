@@ -40,7 +40,8 @@ function VerifyAttendeeEmailContent() {
 
   const params = useParams();
   const searchParams = useSearchParams();
-  const eventId = Number(params?.id);
+  const rawEventId = Array.isArray(params?.id) ? params.id[0] : params?.id;
+  const eventId = rawEventId ? String(rawEventId) : "";
   const token = searchParams.get("token");
 
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");

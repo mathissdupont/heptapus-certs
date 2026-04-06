@@ -1,14 +1,17 @@
 ﻿"use client";
 
-import { useMemo, useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { Suspense, useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Mail, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
+import { apiFetch, forgotPublicMemberPassword } from "@/lib/api";
 
-export default function ForgotPasswordPage() {
+function ForgotPasswordContent() {
   const { lang } = useI18n();
+  const searchParams = useSearchParams();
+  const isMemberMode = searchParams.get("mode") === "member";
   const copy = useMemo(
     () =>
       lang === "tr"
@@ -16,12 +19,14 @@ export default function ForgotPasswordPage() {
             failed: "İstek gönderilemedi.",
             sentTitle: "E-posta Gönderildi",
             sentBody: "Şifre sıfırlama talimatları",
-            sentBody2: "adresine gönderildi. Spam klasörünüzü de kontrol edin.",
-            backToLogin: "Giriş Sayfasına Dön",
-            title: "Şifremi Unuttum",
-            subtitle: "E-posta adresinizi girin, sıfırlama bağlantısı göndereceğiz.",
+            sentBody2: "adresine gönderildi. Spam klasörünü de kontrol et.",
+            backToLogin: isMemberMode ? "Üye girişine dön" : "Yönetici girişine dön",
+            title: isMemberMode ? "Üye Şifremi Unuttum" : "Şifremi Unuttum",
+            subtitle: isMemberMode
+              ? "Üye hesabının e-posta adresini gir, sana sıfırlama bağlantısı gönderelim."
+              : "E-posta adresinizi girin, sıfırlama bağlantısı göndereceğiz.",
             email: "E-posta Adresi",
-            emailPlaceholder: "siz@sirket.com",
+            emailPlaceholder: isMemberMode ? "siz@example.com" : "siz@sirket.com",
             sending: "Gönderiliyor...",
             submit: "Sıfırlama Bağlantısı Gönder",
           }
@@ -30,17 +35,20 @@ export default function ForgotPasswordPage() {
             sentTitle: "Email Sent",
             sentBody: "Password reset instructions were sent to",
             sentBody2: ". Please also check your spam folder.",
-            backToLogin: "Back to Login",
-            title: "Forgot Password",
-            subtitle: "Enter your email address and we will send a reset link.",
+            backToLogin: isMemberMode ? "Back to member login" : "Back to admin login",
+            title: isMemberMode ? "Forgot Member Password" : "Forgot Password",
+            subtitle: isMemberMode
+              ? "Enter your member account email address and we will send a reset link."
+              : "Enter your email address and we will send a reset link.",
             email: "Email Address",
-            emailPlaceholder: "you@company.com",
+            emailPlaceholder: "you@example.com",
             sending: "Sending...",
             submit: "Send Reset Link",
           },
-    [lang]
+    [isMemberMode, lang],
   );
 
+  const backHref = isMemberMode ? "/login?mode=member" : "/admin/login";
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -51,10 +59,14 @@ export default function ForgotPasswordPage() {
     setErr(null);
     setLoading(true);
     try {
-      await apiFetch("/auth/forgot-password", {
-        method: "POST",
-        body: JSON.stringify({ email }),
-      });
+      if (isMemberMode) {
+        await forgotPublicMemberPassword({ email });
+      } else {
+        await apiFetch("/auth/forgot-password", {
+          method: "POST",
+          body: JSON.stringify({ email }),
+        });
+      }
       setSent(true);
     } catch (e: any) {
       setErr(e?.message || copy.failed);
@@ -74,7 +86,7 @@ export default function ForgotPasswordPage() {
           <p className="mb-6 text-sm text-gray-500">
             {copy.sentBody} <strong className="text-gray-700">{email}</strong> {copy.sentBody2}
           </p>
-          <Link href="/admin/login" className="btn-secondary w-full justify-center">{copy.backToLogin}</Link>
+          <Link href={backHref} className="btn-secondary w-full justify-center">{copy.backToLogin}</Link>
         </motion.div>
       </div>
     );
@@ -107,9 +119,23 @@ export default function ForgotPasswordPage() {
           </button>
         </form>
         <div className="mt-6 text-center text-sm text-gray-500">
-          <Link href="/admin/login" className="font-semibold text-brand-600 hover:text-brand-700">{copy.backToLogin}</Link>
+          <Link href={backHref} className="font-semibold text-brand-600 hover:text-brand-700">{copy.backToLogin}</Link>
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function ForgotPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[80vh] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-brand-500" />
+        </div>
+      }
+    >
+      <ForgotPasswordContent />
+    </Suspense>
   );
 }
