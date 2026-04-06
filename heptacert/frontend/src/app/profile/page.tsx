@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { AlertTriangle, ArrowRight, Camera, Globe, KeyRound, Loader2, MapPin, Save, UserCircle2 } from "lucide-react";
-import { PUBLIC_MEMBER_TOKEN_EVENT, changePublicMemberPassword, clearPublicMemberToken, deletePublicMemberAccount, getPublicMemberMe, updatePublicMemberProfile, uploadPublicMemberAvatar } from "@/lib/api";
+import { PUBLIC_MEMBER_TOKEN_EVENT, changePublicMemberPassword, clearPublicMemberToken, deletePublicMemberAccount, getPublicMemberMe, getPublicMemberSubscription, updatePublicMemberProfile, uploadPublicMemberAvatar, type PublicMemberSubscriptionInfo } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 export default function ProfilePage() {
@@ -45,6 +45,12 @@ export default function ProfilePage() {
             profileSuccess: "Profil bilgileri güncellendi.",
             passwordSuccess: "Şifren başarıyla güncellendi.",
             fallback: "Profil bilgileri yüklenemedi.",
+            memberPlanCard: "Uyelik Plani",
+            memberPlanNone: "Ucretsiz uye",
+            memberPlanActive: "Aktif premium",
+            memberPlanExpires: "Bitis tarihi",
+            memberPlanCta: "Uyelik planlarini incele",
+            memberPlanBody: "Topluluk, profil ve sosyal ozellikler icin uye premium planlari kullanabilirsin.",
           }
         : {
             eyebrow: "Member Profile",
@@ -79,6 +85,12 @@ export default function ProfilePage() {
             profileSuccess: "Profile updated successfully.",
             passwordSuccess: "Password updated successfully.",
             fallback: "Failed to load profile.",
+            memberPlanCard: "Membership Plan",
+            memberPlanNone: "Free member",
+            memberPlanActive: "Premium active",
+            memberPlanExpires: "Expiry",
+            memberPlanCta: "Explore membership plans",
+            memberPlanBody: "Use member premium plans for community, profile, and social features.",
           },
     [lang],
   );
@@ -92,6 +104,7 @@ export default function ProfilePage() {
   const [savingPassword, setSavingPassword] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [memberSubscription, setMemberSubscription] = useState<PublicMemberSubscriptionInfo | null>(null);
 
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -132,6 +145,16 @@ export default function ProfilePage() {
       })
       .finally(() => {
         if (active) setLoading(false);
+      });
+
+    getPublicMemberSubscription()
+      .then((subscription) => {
+        if (!active) return;
+        setMemberSubscription(subscription);
+      })
+      .catch(() => {
+        if (!active) return;
+        setMemberSubscription(null);
       });
 
     return () => {
@@ -339,6 +362,39 @@ export default function ProfilePage() {
           </button>
         </form>
 
+        <div className="space-y-8">
+        <section className="card space-y-5 p-8">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
+              <UserCircle2 className="h-5 w-5" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-900">{copy.memberPlanCard}</h2>
+          </div>
+          <div className="rounded-[24px] border border-amber-200 bg-amber-50 px-5 py-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
+              {memberSubscription?.active && memberSubscription.plan_id ? copy.memberPlanActive : copy.memberPlanNone}
+            </p>
+            <p className="mt-2 text-2xl font-black text-slate-900">
+              {memberSubscription?.active && memberSubscription.plan_id
+                ? memberSubscription.plan_id.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())
+                : copy.memberPlanNone}
+            </p>
+            <p className="mt-3 text-sm leading-6 text-slate-600">{copy.memberPlanBody}</p>
+            {memberSubscription?.active && memberSubscription.expires_at ? (
+              <p className="mt-4 text-sm font-semibold text-slate-700">
+                {copy.memberPlanExpires}: {new Date(memberSubscription.expires_at).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US")}
+              </p>
+            ) : null}
+            <Link
+              href="/pricing#member-premium"
+              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
+            >
+              {copy.memberPlanCta}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </section>
+
         <form onSubmit={handlePasswordSubmit} className="card space-y-5 p-8">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
@@ -417,6 +473,7 @@ export default function ProfilePage() {
               : (lang === "tr" ? "Hesabi ve Verileri Sil" : "Delete Account and Data")}
           </button>
         </form>
+        </div>
       </div>
     </div>
   );

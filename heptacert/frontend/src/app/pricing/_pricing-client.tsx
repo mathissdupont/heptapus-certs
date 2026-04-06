@@ -84,7 +84,10 @@ export default function PricingPage() {
     annualSuffix: "/ yıl",
     faqTitle: "Sıkça Sorulan Sorular",
     enterpriseContact: "Satış Ekibiyle Görüşün",
-    startFree: "Ücretsiz Başla"
+    startFree: "Ücretsiz Başla",
+    memberTitle: "Uyelik Premium",
+    memberSubtitle: "Normal kullanicilar icin tasarlanmis sosyal ve profil odakli premium paketler.",
+    memberCta: "Uyelik hesabimdan incele"
   } : {
     badge: paymentEnabled ? "Checkout is Live" : "Paid Plans Coming Soon",
     title: "Simple, transparent pricing",
@@ -101,7 +104,10 @@ export default function PricingPage() {
     annualSuffix: "/ yr",
     faqTitle: "Frequently Asked Questions",
     enterpriseContact: "Contact Sales",
-    startFree: "Start for Free"
+    startFree: "Start for Free",
+    memberTitle: "Member Premium",
+    memberSubtitle: "Premium plans designed for regular users with a stronger focus on profile and social features.",
+    memberCta: "Manage from my membership"
   };
 
   return (
@@ -123,6 +129,58 @@ export default function PricingPage() {
             {copy.subtitle}
           </motion.p>
         </motion.div>
+      </section>
+
+      <section id="member-premium" className="mx-auto w-full max-w-6xl px-6 lg:px-8">
+        <div className="mb-8 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">
+            <Globe2 className="h-4 w-4" />
+            {copy.memberTitle}
+          </div>
+          <h2 className="mt-5 text-3xl font-extrabold tracking-tight text-slate-900">{copy.memberTitle}</h2>
+          <p className="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-slate-600">{copy.memberSubtitle}</p>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          {[
+            {
+              id: "member_plus",
+              title: "Member Plus",
+              tone: "border-sky-200 bg-sky-50/70",
+              features: lang === "tr"
+                ? ["Gelistirilmis profil gorunumu", "Topluluk ve feed tarafinda premium uye katmani", "Sosyal ozelliklerde premium hazirlik"]
+                : ["Enhanced profile visibility", "Premium member tier across communities and feed", "Premium-ready tier for social features"],
+            },
+            {
+              id: "member_pro",
+              title: "Member Pro",
+              tone: "border-emerald-200 bg-emerald-50/70",
+              features: lang === "tr"
+                ? ["Plus ozelliklerinin tamami", "Topluluklarda daha guclu gorunurluk", "Yeni sosyal ozellikler icin oncelikli premium katman"]
+                : ["Everything in Plus", "Stronger visibility across communities", "Priority premium tier for upcoming social features"],
+            },
+          ].map((plan) => (
+            <div key={plan.id} className={`rounded-[2rem] border p-8 shadow-sm ${plan.tone}`}>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">{plan.id.replace("_", " ")}</p>
+              <h3 className="mt-3 text-2xl font-extrabold text-slate-900">{plan.title}</h3>
+              <ul className="mt-6 space-y-3 text-sm text-slate-700">
+                {plan.features.map((feature) => (
+                  <li key={feature} className="flex items-start gap-3">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-slate-900" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/profile"
+                className="mt-8 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
+              >
+                {copy.memberCta}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* PRICING SECTION */}
