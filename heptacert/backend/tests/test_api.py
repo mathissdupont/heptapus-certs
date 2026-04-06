@@ -5,7 +5,7 @@ Tests the actual HTTP endpoints with mocked DB where needed.
 import pytest
 from httpx import AsyncClient, ASGITransport
 
-from src.main import app, create_access_token, Role
+from src.main import app, create_access_token, hash_password, PublicMember, Role, SessionLocal
 
 
 @pytest.fixture
@@ -148,6 +148,16 @@ class TestAuthRequired:
             resp = await ac.patch(
                 "/api/public/me/password",
                 json={"current_password": "oldpassword123", "new_password": "newpassword123"},
+            )
+        assert resp.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_public_avatar_upload_requires_auth(self):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.post(
+                "/api/public/me/avatar",
+                files={"file": ("avatar.png", b"fake-image", "image/png")},
             )
         assert resp.status_code == 401
 
@@ -428,6 +438,37 @@ class TestEmailConfigEndpoints:
         assert hasattr(UserEmailConfig, "smtp_password")
 
     def test_public_member_model_has_profile_fields(self):
-        from src.main import PublicMember
         assert hasattr(PublicMember, "bio")
         assert hasattr(PublicMember, "password_reset_token")
+        assert hasattr(PublicMember, "avatar_url")
+        assert hasattr(PublicMember, "headline")
+        assert hasattr(PublicMember, "location")
+        assert hasattr(PublicMember, "website_url")
+
+    @pytest.mark.asyncio
+    async def test_public_member_profile_can_be_viewed(self):
+        async with SessionLocal() as sess:
+            async with sess.begin():
+                member = PublicMember(
+                    email="viewer@example.com",
+                    display_name="Viewer User",
+                    bio="Profile bio",
+                    headline="Community Builder",
+                    location="Istanbul",
+                    website_url="https://example.com",
+                    password_hash=hash_password("password123"),
+                    is_verified=True,
+                )
+                sess.add(member)
+                await sess.flush()
+                member_id = member.id
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.get(f"/api/public/members/{member_id}")
+        assert resp.status_code == 200
+        payload = resp.json()
+        assert payload["display_name"] == "Viewer User"
+        assert payload["headline"] == "Community Builder"
+        assert payload["location"] == "Istanbul"
+        assert payload["website_url"] == "https://example.com"

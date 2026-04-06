@@ -163,6 +163,24 @@ export interface PublicMemberMe {
   email: string;
   display_name: string;
   bio?: string | null;
+  avatar_url?: string | null;
+  headline?: string | null;
+  location?: string | null;
+  website_url?: string | null;
+  created_at: string;
+}
+
+export interface PublicMemberProfile {
+  id: number;
+  display_name: string;
+  bio?: string | null;
+  avatar_url?: string | null;
+  headline?: string | null;
+  location?: string | null;
+  website_url?: string | null;
+  created_at: string;
+  event_count: number;
+  comment_count: number;
 }
 
 export interface PublicMemberEvent {
@@ -255,6 +273,7 @@ export interface PublicEventComment {
   member_id: number;
   member_name: string;
   member_email?: string | null;
+  member_avatar_url?: string | null;
   body: string;
   status: "visible" | "hidden" | "reported";
   report_count: number;
@@ -695,10 +714,23 @@ export async function getPublicMemberMe(): Promise<PublicMemberMe> {
 export async function updatePublicMemberProfile(data: {
   display_name: string;
   bio?: string | null;
+  headline?: string | null;
+  location?: string | null;
+  website_url?: string | null;
 }): Promise<PublicMemberMe> {
   const res = await memberApiFetch("/public/me", {
     method: "PATCH",
     body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function uploadPublicMemberAvatar(file: File): Promise<PublicMemberMe> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await memberApiFetch("/public/me/avatar", {
+    method: "POST",
+    body: form,
   });
   return res.json();
 }
@@ -735,6 +767,11 @@ export async function resetPublicMemberPassword(data: {
 
 export async function listMyPublicEvents(): Promise<PublicMemberEvent[]> {
   const res = await memberApiFetch("/public/my-events");
+  return res.json();
+}
+
+export async function getPublicMemberProfile(memberId: number): Promise<PublicMemberProfile> {
+  const res = await publicApiFetch(`/public/members/${memberId}`);
   return res.json();
 }
 
@@ -874,6 +911,7 @@ export type PublicParticipantStatus = {
   sessions_attended: number;
   total_sessions: number;
   sessions_required: number;
+  survey_enabled: boolean;
   survey_required: boolean;
   survey_completed: boolean;
   can_download_cert: boolean;

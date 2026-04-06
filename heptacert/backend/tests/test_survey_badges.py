@@ -452,6 +452,51 @@ async def test_survey_config_toggle_unlocks_attendees_and_generates_webhook_key(
 
 
 @pytest.mark.asyncio
+async def test_disabled_survey_hides_public_survey_info_and_status_cta_signal():
+    owner = await _create_admin("survey-disabled@example.com")
+    token = create_access_token(user_id=owner.id, role=Role.admin)
+    seeded = await _seed_event_with_attendee(owner, attendee_email="disabled@example.com")
+    survey_token = make_survey_access_token(
+        attendee_id=seeded["attendee_id"],
+        event_id=seeded["event_id"],
+        email="disabled@example.com",
+    )
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        configured = await ac.post(
+            f"/api/admin/events/{seeded['event_id']}/survey-config",
+            json={
+                "is_required": False,
+                "survey_type": "disabled",
+                "builtin_questions": [],
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert configured.status_code == 200
+        assert configured.json()["survey_type"] == "disabled"
+
+        public_info = await ac.get(f"/api/events/{seeded['event_id']}/info")
+        assert public_info.status_code == 200
+        assert public_info.json()["survey"] is None
+
+        participant_status = await ac.get(
+            f"/api/events/{seeded['event_id']}/participant-status",
+            params={"token": survey_token},
+        )
+        assert participant_status.status_code == 200
+        status_payload = participant_status.json()
+        assert status_payload["survey_enabled"] is False
+        assert status_payload["survey_required"] is False
+
+    async with SessionLocal() as sess:
+        attendee = await sess.get(Attendee, seeded["attendee_id"])
+        assert attendee is not None
+        assert attendee.survey_required is False
+        assert attendee.can_download_cert is True
+
+
+@pytest.mark.asyncio
 async def test_badge_list_returns_enriched_badge_metadata():
     owner = await _create_admin("badge-owner@example.com")
     token = create_access_token(user_id=owner.id, role=Role.admin)
