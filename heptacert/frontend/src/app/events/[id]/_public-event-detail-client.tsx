@@ -62,6 +62,7 @@ export default function PublicEventDetailClient() {
             loading: "Etkinlik detayları yükleniyor...",
             error: "Etkinlik detayları yüklenemedi.",
             register: "Etkinliğe Kayıt Ol",
+            registrationClosed: "Kayıt Kapalı",
             sessions: "Oturumlar",
             customFields: "Kayıtta istenecek ek bilgiler",
             minSessions: "Sertifika için minimum oturum",
@@ -89,6 +90,7 @@ export default function PublicEventDetailClient() {
             loading: "Loading event details...",
             error: "Failed to load event details.",
             register: "Register for Event",
+            registrationClosed: "Registration Closed",
             sessions: "Sessions",
             customFields: "Additional registration fields",
             minSessions: "Minimum sessions for certificate",
@@ -233,6 +235,19 @@ export default function PublicEventDetailClient() {
                 </span>
               </div>
               <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-950">{event.name}</h1>
+              {event.organization_public_id && event.organization_name ? (
+                <Link
+                  href={`/organizations/${event.organization_public_id}`}
+                  className="mt-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                >
+                  {event.organization_logo ? (
+                    <img src={event.organization_logo} alt={event.organization_name} className="h-6 w-6 rounded-full object-cover" />
+                  ) : (
+                    <Users className="h-4 w-4" />
+                  )}
+                  {event.organization_name}
+                </Link>
+              ) : null}
               {event.event_description ? (
                 <div
                   className="rich-text-content mt-4 max-w-3xl text-sm text-slate-600 sm:text-base"
@@ -240,9 +255,15 @@ export default function PublicEventDetailClient() {
                 />
               ) : null}
             </div>
-            <Link href={`/events/${event.public_id}/register`} className="btn-primary inline-flex justify-center">
-              {copy.register}
-            </Link>
+            {event.registration_closed ? (
+              <span className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-500">
+                {copy.registrationClosed}
+              </span>
+            ) : (
+              <Link href={`/events/${event.public_id}/register`} className="btn-primary inline-flex justify-center">
+                {copy.register}
+              </Link>
+            )}
           </div>
 
           <div className="grid gap-3 md:grid-cols-3">
@@ -390,17 +411,17 @@ export default function PublicEventDetailClient() {
               <article key={comment.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex items-start gap-3">
-                    <Link href={`/members/${comment.member_id}`} className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                    <Link href={`/members/${comment.member_public_id}`} className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
                       {comment.member_avatar_url ? <img src={comment.member_avatar_url} alt={comment.member_name} className="h-full w-full object-cover" /> : <MessageSquare className="h-4 w-4 text-slate-300" />}
                     </Link>
                     <div>
-                    <Link href={`/members/${comment.member_id}`} className="text-sm font-semibold text-slate-900 transition hover:text-slate-600">{comment.member_name}</Link>
+                    <Link href={`/members/${comment.member_public_id}`} className="text-sm font-semibold text-slate-900 transition hover:text-slate-600">{comment.member_name}</Link>
                     <div className="mt-1 text-xs text-slate-400">
                       {new Date(comment.created_at).toLocaleString(lang === "tr" ? "tr-TR" : "en-US")}
                     </div>
                     </div>
                   </div>
-                  {member && member.id !== comment.member_id ? (
+                  {member && member.public_id !== comment.member_public_id ? (
                     <button
                       type="button"
                       onClick={() => void handleReport(comment.id)}

@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState, useEffect } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, clearToken, deleteAdminAccount } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -99,12 +99,15 @@ function CopyBtn({ text }: { text: string }) {
   );
 }
 // â”€â”€â”€ Account Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function AccountTab({ me }: { me: { email: string } | null }) {
+function AccountTab({ me }: { me: { email: string; role?: string } | null }) {
   const [curPw, setCurPw] = useState(""); const [newPw, setNewPw] = useState(""); const [confPw, setConfPw] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [pwErr, setPwErr] = useState<string | null>(null); const [pwOk, setPwOk] = useState(false); const [pwLoading, setPwLoading] = useState(false);
   const [newEmail, setNewEmail] = useState(""); const [emailPw, setEmailPw] = useState("");
   const [emailErr, setEmailErr] = useState<string | null>(null); const [emailOk, setEmailOk] = useState(false); const [emailLoading, setEmailLoading] = useState(false);
+  const [deletePw, setDeletePw] = useState("");
+  const [deleteErr, setDeleteErr] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   async function changePassword(e: React.FormEvent) {
     e.preventDefault(); setPwErr(null); setPwOk(false);
@@ -123,6 +126,15 @@ function AccountTab({ me }: { me: { email: string } | null }) {
       await apiFetch("/me/email", { method: "PATCH", body: JSON.stringify({ current_password: emailPw, new_email: newEmail }) });
       setEmailOk(true); setNewEmail(""); setEmailPw("");
     } catch (e: any) { setEmailErr(e?.message || "E-posta guncellenemedi."); } finally { setEmailLoading(false); }
+  }
+
+  async function removeAccount(e: React.FormEvent) {
+    e.preventDefault(); setDeleteErr(null); setDeleteLoading(true);
+    try {
+      await deleteAdminAccount({ current_password: deletePw });
+      clearToken();
+      if (typeof window !== "undefined") window.location.href = "/admin/login";
+    } catch (e: any) { setDeleteErr(e?.message || "Hesap silinemedi."); } finally { setDeleteLoading(false); }
   }
 
   return (
@@ -170,6 +182,22 @@ function AccountTab({ me }: { me: { email: string } | null }) {
           <button type="submit" disabled={emailLoading} className="btn-primary">{emailLoading ? "Kaydediliyor..." : "E-postayi Guncelle"}</button>
         </form>
       </div>
+
+      {me?.role !== "superadmin" ? (
+        <div className="card border border-rose-200 bg-rose-50/70 p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100 text-rose-600"><Trash2 className="h-5 w-5" /></div>
+            <div><h2 className="font-semibold text-rose-900">Hesabi ve Verileri Sil</h2><p className="text-xs text-rose-700 mt-0.5">Bu islem geri alinamaz. Etkinlikleriniz ve iliskili verileriniz kalici olarak silinir.</p></div>
+          </div>
+          <form onSubmit={removeAccount} className="space-y-4">
+            <div><label className="label text-rose-900">Mevcut Sifre ile Onay</label><input className="input-field border-rose-200 bg-white" type="password" value={deletePw} onChange={e => setDeletePw(e.target.value)} required /></div>
+            <AnimatePresence>
+              {deleteErr && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden"><div className="error-banner">{deleteErr}</div></motion.div>}
+            </AnimatePresence>
+            <button type="submit" disabled={deleteLoading} className="btn-danger">{deleteLoading ? "Siliniyor..." : "Hesabi ve Verileri Sil"}</button>
+          </form>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -722,10 +750,15 @@ function BrandingTab() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
+  const [postLoading, setPostLoading] = useState(false);
+  const [postSaving, setPostSaving] = useState(false);
+  const [publicId, setPublicId] = useState("");
   const [brandColor, setBrandColor] = useState("#6366f1");
   const [brandLogo, setBrandLogo] = useState<string | null>(null);
   const [orgName, setOrgName] = useState("");
   const [settingsState, setSettingsState] = useState<Record<string, any>>({});
+  const [communityPosts, setCommunityPosts] = useState<Array<{ public_id: string; author_name: string; body: string; created_at: string }>>([]);
+  const [postBody, setPostBody] = useState("");
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
@@ -733,6 +766,7 @@ function BrandingTab() {
     apiFetch("/admin/organization/settings")
       .then((r) => r.json())
       .then((d) => {
+        setPublicId(d.public_id || "");
         setBrandLogo(d.brand_logo || null);
         setBrandColor(d.brand_color || "#6366f1");
         setOrgName(d.org_name || "");
@@ -740,6 +774,13 @@ function BrandingTab() {
       })
       .catch((e) => setErr(e?.message || "Yuklenemedi"))
       .finally(() => setLoading(false));
+
+    setPostLoading(true);
+    apiFetch("/admin/community/posts")
+      .then((r) => r.json())
+      .then((items) => setCommunityPosts(items || []))
+      .catch(() => null)
+      .finally(() => setPostLoading(false));
   }, []);
 
   async function uploadLogo(file: File | null) {
@@ -769,6 +810,12 @@ function BrandingTab() {
         verification_path: settingsState.verification_path || "",
         certificate_footer: settingsState.certificate_footer || "",
         hide_heptacert_home: !!settingsState.hide_heptacert_home,
+        public_bio: settingsState.public_bio || "",
+        public_website_url: settingsState.public_website_url || "",
+        public_linkedin_url: settingsState.public_linkedin_url || "",
+        public_github_url: settingsState.public_github_url || "",
+        public_x_url: settingsState.public_x_url || "",
+        public_instagram_url: settingsState.public_instagram_url || "",
       };
 
       const resp = await apiFetch("/admin/organization/settings", {
@@ -778,6 +825,7 @@ function BrandingTab() {
 
       const data = await resp.json();
       setSettingsState(data.settings || {});
+      setPublicId(data.public_id || "");
       setBrandColor(data.brand_color || "#6366f1");
       setOrgName(data.org_name || "");
       toast.success("Kurumsal ayarlar kaydedildi.", "Marka Kimligi");
@@ -785,6 +833,37 @@ function BrandingTab() {
       setErr(e?.message || "Kaydedilemedi.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function createCommunityPost() {
+    if (!postBody.trim()) return;
+    setPostSaving(true);
+    setErr(null);
+    try {
+      const resp = await apiFetch("/admin/community/posts", {
+        method: "POST",
+        body: JSON.stringify({ body: postBody.trim() }),
+      });
+      const data = await resp.json();
+      setCommunityPosts((current) => [data, ...current]);
+      setPostBody("");
+      toast.success("Topluluk gonderisi yayinlandi.", "Community");
+    } catch (e: any) {
+      setErr(e?.message || "Gonderi yayinlanamadi.");
+    } finally {
+      setPostSaving(false);
+    }
+  }
+
+  async function removeCommunityPost(postPublicId: string) {
+    setErr(null);
+    try {
+      await apiFetch(`/admin/community/posts/${postPublicId}`, { method: "DELETE" });
+      setCommunityPosts((current) => current.filter((item) => item.public_id !== postPublicId));
+      toast.success("Topluluk gonderisi silindi.", "Community");
+    } catch (e: any) {
+      setErr(e?.message || "Gonderi silinemedi.");
     }
   }
 
@@ -796,6 +875,9 @@ function BrandingTab() {
   const previewLogoLetter = previewName.charAt(0).toUpperCase() || "K";
   const heroGlow = withAlpha(brandColor, 0.2);
   const heroSoft = withAlpha(brandColor, 0.12);
+  const publicPageUrl = publicId
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/organizations/${publicId}`
+    : "";
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_380px]">
@@ -851,6 +933,50 @@ function BrandingTab() {
           </div>
 
           <div>
+            <label className="label">Topluluk Biyografisi</label>
+            <textarea
+              className="input-field min-h-28"
+              value={settingsState.public_bio || ""}
+              onChange={e => setSettingsState(s => ({ ...s, public_bio: e.target.value }))}
+              placeholder="Kulubunuzun veya kurumunuzun ne yaptigini, kimlere hitap ettigini anlatin."
+            />
+          </div>
+
+          <div>
+            <label className="label">Public Website</label>
+            <input className="input-field" value={settingsState.public_website_url || ""} onChange={e => setSettingsState(s => ({ ...s, public_website_url: e.target.value }))} placeholder="https://..." />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="label">LinkedIn</label>
+              <input className="input-field" value={settingsState.public_linkedin_url || ""} onChange={e => setSettingsState(s => ({ ...s, public_linkedin_url: e.target.value }))} placeholder="https://linkedin.com/..." />
+            </div>
+            <div>
+              <label className="label">GitHub</label>
+              <input className="input-field" value={settingsState.public_github_url || ""} onChange={e => setSettingsState(s => ({ ...s, public_github_url: e.target.value }))} placeholder="https://github.com/..." />
+            </div>
+            <div>
+              <label className="label">X</label>
+              <input className="input-field" value={settingsState.public_x_url || ""} onChange={e => setSettingsState(s => ({ ...s, public_x_url: e.target.value }))} placeholder="https://x.com/..." />
+            </div>
+            <div>
+              <label className="label">Instagram</label>
+              <input className="input-field" value={settingsState.public_instagram_url || ""} onChange={e => setSettingsState(s => ({ ...s, public_instagram_url: e.target.value }))} placeholder="https://instagram.com/..." />
+            </div>
+          </div>
+
+          {publicId ? (
+            <div>
+              <label className="label">Topluluk Sayfasi</label>
+              <div className="input-field flex items-center justify-between gap-3">
+                <span className="truncate text-sm text-gray-700">{publicPageUrl}</span>
+                <CopyBtn text={publicPageUrl} />
+              </div>
+            </div>
+          ) : null}
+
+          <div>
             <label className="label">Marka Rengi</label>
             <div className="flex items-center gap-3">
               <input type="color" value={brandColor} onChange={e => setBrandColor(e.target.value)} className="w-12 h-8 p-0 border rounded" />
@@ -879,6 +1005,58 @@ function BrandingTab() {
             <button type="button" onClick={() => { setSettingsState({}); setBrandColor('#6366f1'); setOrgName(''); }} className="btn-ghost">Sifirla</button>
           </div>
         </form>
+
+        <div className="mt-8 rounded-[24px] border border-slate-200 bg-slate-50 p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-sm">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900">Topluluk Akisi</h3>
+              <p className="text-xs text-slate-500">Kurum adina resmi guncelleme ve duyurular paylasin.</p>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            <textarea
+              className="input-field min-h-28"
+              value={postBody}
+              onChange={(e) => setPostBody(e.target.value)}
+              maxLength={1500}
+              placeholder="Toplulugunuz icin bir duyuru veya guncelleme yazin."
+            />
+            <div className="flex justify-end">
+              <button type="button" onClick={() => void createCommunityPost()} disabled={postSaving || !postBody.trim()} className="btn-primary">
+                {postSaving ? "Paylasiliyor..." : "Gonderi Paylas"}
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {postLoading ? (
+              <div className="flex items-center text-sm text-slate-500"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Yukleniyor...</div>
+            ) : communityPosts.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-5 text-sm text-slate-500">
+                Henuz kurum gonderisi yok.
+              </div>
+            ) : (
+              communityPosts.map((post) => (
+                <div key={post.public_id} className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-900">{post.author_name}</p>
+                      <p className="mt-1 text-xs text-slate-400">{new Date(post.created_at).toLocaleString("tr-TR")}</p>
+                    </div>
+                    <button type="button" onClick={() => void removeCommunityPost(post.public_id)} className="rounded-xl border border-rose-200 bg-rose-50 p-2 text-rose-600 transition hover:bg-rose-100">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">{post.body}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
       <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-4">
         <div className="rounded-[24px] border border-white/80 bg-white p-4 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.28)]">
@@ -963,7 +1141,7 @@ function BrandingTab() {
 // â”€â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function AdminSettingsPage() {
   const router = useRouter();
-  const [me, setMe] = useState<{ email: string } | null>(null);
+  const [me, setMe] = useState<{ email: string; role?: string } | null>(null);
   const [activeTab, setActiveTab] = useState("account");
   const activeTabMeta = TABS.find((tab) => tab.id === activeTab) || TABS[0];
 

@@ -24,8 +24,8 @@ const cardVariant = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, t
 
 export default function PublicEventsPage() {
   const { lang } = useI18n();
-  const [items, setItems] = useState<PublicEventListItem[]>([]);
-  const [filtered, setFiltered] = useState<PublicEventListItem[]>([]);
+  const [upcomingItems, setUpcomingItems] = useState<PublicEventListItem[]>([]);
+  const [pastItems, setPastItems] = useState<PublicEventListItem[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,31 +56,27 @@ export default function PublicEventsPage() {
 
   useEffect(() => {
     setLoading(true);
-    listPublicEvents()
-      .then((data) => {
-        setItems(data);
-        setFiltered(data);
-      })
-      .catch((err: any) => {
-        setError(err?.message || copy.error);
-      })
-      .finally(() => setLoading(false));
-  }, [copy.error]);
+    const handle = window.setTimeout(() => {
+      const normalizedSearch = search.trim();
+      Promise.all([
+        listPublicEvents({ scope: "upcoming", limit: 24, search: normalizedSearch || undefined }),
+        listPublicEvents({ scope: "past", limit: 24, search: normalizedSearch || undefined }),
+      ])
+        .then(([upcomingData, pastData]) => {
+          setUpcomingItems(upcomingData);
+          setPastItems(pastData);
+          setError(null);
+        })
+        .catch((err: any) => {
+          setError(err?.message || copy.error);
+          setUpcomingItems([]);
+          setPastItems([]);
+        })
+        .finally(() => setLoading(false));
+    }, search.trim() ? 250 : 0);
 
-  useEffect(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) {
-      setFiltered(items);
-      return;
-    }
-    setFiltered(
-      items.filter((item) =>
-        [item.name, item.event_location, stripRichTextToPlainText(item.event_description)].some((value) =>
-          String(value || "").toLowerCase().includes(term)
-        )
-      )
-    );
-  }, [items, search]);
+    return () => window.clearTimeout(handle);
+  }, [copy.error, search]);
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 selection:bg-slate-200 pb-24">
@@ -148,7 +144,7 @@ export default function PublicEventsPage() {
             <ShieldCheck className="mb-4 h-10 w-10 text-rose-500" />
             <p className="text-sm font-bold text-rose-800">{error}</p>
           </div>
-        ) : filtered.length === 0 ? (
+        ) : upcomingItems.length === 0 && pastItems.length === 0 ? (
           /* EMPTY STATE */
           <div className="mx-auto flex max-w-lg flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50/50 px-6 py-16 text-center">
             <Search className="mb-4 h-10 w-10 text-slate-300" />
@@ -156,83 +152,105 @@ export default function PublicEventsPage() {
             <p className="mt-2 text-sm text-slate-500">Arama terimini değiştirerek tekrar deneyebilirsiniz.</p>
           </div>
         ) : (
-          /* EVENT CARDS */
-          <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            <AnimatePresence>
-              {filtered.map((item) => (
-                <motion.article
-                  key={item.id}
-                  layout
-                  variants={cardVariant}
-                  initial="hidden"
-                  animate="show"
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="group flex flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:border-slate-300 hover:shadow-xl"
-                >
-                  <Link href={`/events/${item.public_id}`} className="flex flex-col h-full">
-                    {/* IMAGE CONTAINER */}
-                    <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100">
-                      {item.event_banner_url ? (
-                        <img
-                          src={item.event_banner_url}
-                          alt={item.name}
-                          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 p-6 text-center">
-                          <span className="text-xl font-bold text-white/80 line-clamp-2">{item.name}</span>
+          <div className="space-y-10">
+            <div>
+              <div className="mb-5 flex items-center justify-between">
+                <h2 className="text-2xl font-black text-slate-900">{lang === "tr" ? "Yaklaşan Etkinlikler" : "Upcoming Events"}</h2>
+                <span className="text-sm text-slate-500">{upcomingItems.length}</span>
+              </div>
+              <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                <AnimatePresence>
+                  {upcomingItems.map((item) => (
+                    <motion.article
+                      key={item.id}
+                      layout
+                      variants={cardVariant}
+                      initial="hidden"
+                      animate="show"
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className="group flex flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:border-slate-300 hover:shadow-xl"
+                    >
+                      <Link href={`/events/${item.public_id}`} className="flex flex-col h-full">
+                        <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100">
+                          {item.event_banner_url ? (
+                            <img src={item.event_banner_url} alt={item.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                          ) : (
+                            <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 p-6 text-center">
+                              <span className="text-xl font-bold text-white/80 line-clamp-2">{item.name}</span>
+                            </div>
+                          )}
+                          <div className="absolute right-4 top-4 rounded-full bg-white/90 backdrop-blur-md px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-900 shadow-sm">
+                            {item.session_count} {copy.sessions}
+                          </div>
                         </div>
-                      )}
-
-                      {/* FLOATING BADGE */}
-                      <div className="absolute right-4 top-4 rounded-full bg-white/90 backdrop-blur-md px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-900 shadow-sm">
-                        {item.session_count} {copy.sessions}
-                      </div>
-                    </div>
-
-                    {/* CONTENT CONTAINER */}
-                    <div className="flex flex-1 flex-col p-6 sm:p-8">
-                      <h2 className="text-xl font-bold text-slate-900 line-clamp-2 group-hover:text-brand-600 transition-colors">
-                        {item.name}
-                      </h2>
-
-                      {stripRichTextToPlainText(item.event_description) && (
-                        <p className="mt-3 text-sm leading-relaxed text-slate-500 line-clamp-2">
-                          {stripRichTextToPlainText(item.event_description)}
-                        </p>
-                      )}
-
-                      {/* METADATA LIST (Clean, no boxes) */}
-                      <div className="mt-6 flex flex-col gap-3">
-                        <div className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                          <CalendarDays className="h-4 w-4 text-slate-400" />
-                          <span className="line-clamp-1">{formatDate(item.event_date, lang)}</span>
+                        <div className="flex flex-1 flex-col p-6 sm:p-8">
+                          <h2 className="text-xl font-bold text-slate-900 line-clamp-2 group-hover:text-brand-600 transition-colors">{item.name}</h2>
+                          {item.organization_public_id && item.organization_name ? <div className="mt-3"><span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">{item.organization_name}</span></div> : null}
+                          {stripRichTextToPlainText(item.event_description) && <p className="mt-3 text-sm leading-relaxed text-slate-500 line-clamp-2">{stripRichTextToPlainText(item.event_description)}</p>}
+                          <div className="mt-6 flex flex-col gap-3">
+                            <div className="flex items-center gap-3 text-sm font-medium text-slate-600"><CalendarDays className="h-4 w-4 text-slate-400" /><span className="line-clamp-1">{formatDate(item.event_date, lang)}</span></div>
+                            <div className="flex items-center gap-3 text-sm font-medium text-slate-600"><MapPin className="h-4 w-4 text-slate-400" /><span className="line-clamp-1">{item.event_location || "-"}</span></div>
+                            <div className="flex items-center gap-3 text-sm font-medium text-slate-600"><Layers className="h-4 w-4 text-slate-400" /><span>{copy.minSessions}: <strong className="text-slate-900">{item.min_sessions_required}</strong></span></div>
+                          </div>
+                          <div className="mt-auto pt-6"><div className="flex items-center justify-between border-t border-slate-100 pt-5 text-sm font-bold text-slate-900">{copy.details}<ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-brand-600" /></div></div>
                         </div>
+                      </Link>
+                    </motion.article>
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+            </div>
 
-                        <div className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                          <MapPin className="h-4 w-4 text-slate-400" />
-                          <span className="line-clamp-1">{item.event_location || "-"}</span>
-                        </div>
-
-                        <div className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                          <Layers className="h-4 w-4 text-slate-400" />
-                          <span>{copy.minSessions}: <strong className="text-slate-900">{item.min_sessions_required}</strong></span>
-                        </div>
-                      </div>
-
-                      {/* ACTION FOOTER */}
-                      <div className="mt-auto pt-6">
-                        <div className="flex items-center justify-between border-t border-slate-100 pt-5 text-sm font-bold text-slate-900">
-                          {copy.details}
-                          <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-brand-600" />
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                </motion.article>
-              ))}
-            </AnimatePresence>
-          </motion.div>
+            {pastItems.length > 0 ? (
+              <div>
+                <div className="mb-5 flex items-center justify-between">
+                  <h2 className="text-2xl font-black text-slate-900">{lang === "tr" ? "Geçmiş Etkinlikler" : "Past Events"}</h2>
+                  <span className="text-sm text-slate-500">{pastItems.length}</span>
+                </div>
+                <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                  <AnimatePresence>
+                    {pastItems.map((item) => (
+                      <motion.article
+                        key={`past-${item.id}`}
+                        layout
+                        variants={cardVariant}
+                        initial="hidden"
+                        animate="show"
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="group flex flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:border-slate-300 hover:shadow-xl"
+                      >
+                        <Link href={`/events/${item.public_id}`} className="flex flex-col h-full">
+                          <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100">
+                            {item.event_banner_url ? (
+                              <img src={item.event_banner_url} alt={item.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                            ) : (
+                              <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 p-6 text-center">
+                                <span className="text-xl font-bold text-white/80 line-clamp-2">{item.name}</span>
+                              </div>
+                            )}
+                            <div className="absolute right-4 top-4 rounded-full bg-white/90 backdrop-blur-md px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-900 shadow-sm">
+                              {item.session_count} {copy.sessions}
+                            </div>
+                          </div>
+                          <div className="flex flex-1 flex-col p-6 sm:p-8">
+                            <h2 className="text-xl font-bold text-slate-900 line-clamp-2 group-hover:text-brand-600 transition-colors">{item.name}</h2>
+                            {item.organization_public_id && item.organization_name ? <div className="mt-3"><span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">{item.organization_name}</span></div> : null}
+                            {stripRichTextToPlainText(item.event_description) && <p className="mt-3 text-sm leading-relaxed text-slate-500 line-clamp-2">{stripRichTextToPlainText(item.event_description)}</p>}
+                            <div className="mt-6 flex flex-col gap-3">
+                              <div className="flex items-center gap-3 text-sm font-medium text-slate-600"><CalendarDays className="h-4 w-4 text-slate-400" /><span className="line-clamp-1">{formatDate(item.event_date, lang)}</span></div>
+                              <div className="flex items-center gap-3 text-sm font-medium text-slate-600"><MapPin className="h-4 w-4 text-slate-400" /><span className="line-clamp-1">{item.event_location || "-"}</span></div>
+                              <div className="flex items-center gap-3 text-sm font-medium text-slate-600"><Layers className="h-4 w-4 text-slate-400" /><span>{copy.minSessions}: <strong className="text-slate-900">{item.min_sessions_required}</strong></span></div>
+                            </div>
+                            <div className="mt-auto pt-6"><div className="flex items-center justify-between border-t border-slate-100 pt-5 text-sm font-bold text-slate-900">{copy.details}<ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-brand-600" /></div></div>
+                          </div>
+                        </Link>
+                      </motion.article>
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
+              </div>
+            ) : null}
+          </div>
         )}
       </section>
     </div>

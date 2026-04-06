@@ -132,7 +132,7 @@ export default function EventCommentsAdminPage() {
                     </div>
                     <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-surface-700">{comment.body}</p>
                     <div className="mt-4 flex flex-wrap gap-4 text-xs text-surface-400">
-                      <span>{copy.member}: #{comment.member_id}</span>
+                      <span>{copy.member}: {comment.member_public_id}</span>
                       <span>{copy.reported}: {comment.report_count}</span>
                       <span>{copy.updated}: {new Date(comment.updated_at).toLocaleString(lang === "tr" ? "tr-TR" : "en-US")}</span>
                     </div>

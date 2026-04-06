@@ -151,6 +151,7 @@ export interface EventOut {
   event_description?: string | null;
   event_location?: string | null;
   min_sessions_required: number;
+  registration_closed?: boolean;
   event_banner_url?: string | null;
   auto_email_on_cert?: boolean;
   cert_email_template_id?: number | null;
@@ -160,6 +161,7 @@ export interface EventOut {
 
 export interface PublicMemberMe {
   id: number;
+  public_id: string;
   email: string;
   display_name: string;
   bio?: string | null;
@@ -171,7 +173,7 @@ export interface PublicMemberMe {
 }
 
 export interface PublicMemberProfile {
-  id: number;
+  public_id: string;
   display_name: string;
   bio?: string | null;
   avatar_url?: string | null;
@@ -201,11 +203,15 @@ export interface PublicEventListItem {
   id: number;
   public_id: string;
   name: string;
+  organization_public_id?: string | null;
+  organization_name?: string | null;
+  organization_logo?: string | null;
   event_date?: string | null;
   event_description?: string | null;
   event_location?: string | null;
   event_banner_url?: string | null;
   min_sessions_required: number;
+  registration_closed: boolean;
   visibility: "private" | "unlisted" | "public";
   session_count: number;
 }
@@ -232,6 +238,7 @@ export interface PublicEventInfo {
   event_description: string | null;
   event_location: string | null;
   min_sessions_required: number;
+  registration_closed?: boolean;
   event_banner_url: string | null;
   registration_fields?: RegistrationField[];
   survey?: PublicSurvey | null;
@@ -250,10 +257,14 @@ export interface PublicEventDetail {
   id: number;
   public_id: string;
   name: string;
+  organization_public_id?: string | null;
+  organization_name?: string | null;
+  organization_logo?: string | null;
   event_date?: string | null;
   event_description?: string | null;
   event_location?: string | null;
   min_sessions_required: number;
+  registration_closed: boolean;
   event_banner_url?: string | null;
   registration_fields: RegistrationField[];
   survey?: Record<string, unknown> | null;
@@ -270,13 +281,60 @@ export interface PublicEventDetail {
 export interface PublicEventComment {
   id: number;
   event_id: number;
-  member_id: number;
+  member_public_id: string;
   member_name: string;
   member_email?: string | null;
   member_avatar_url?: string | null;
   body: string;
   status: "visible" | "hidden" | "reported";
   report_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PublicOrganizationListItem {
+  public_id: string;
+  org_name: string;
+  brand_logo?: string | null;
+  brand_color: string;
+  bio?: string | null;
+  website_url?: string | null;
+  event_count: number;
+  follower_count: number;
+}
+
+export interface PublicOrganizationDetail extends PublicOrganizationListItem {
+  linkedin_url?: string | null;
+  github_url?: string | null;
+  x_url?: string | null;
+  instagram_url?: string | null;
+  is_following: boolean;
+  events: PublicEventListItem[];
+}
+
+export interface CommunityPostComment {
+  id: number;
+  post_public_id: string;
+  member_public_id: string;
+  member_name: string;
+  member_avatar_url?: string | null;
+  body: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CommunityPost {
+  public_id: string;
+  organization_public_id: string;
+  organization_name: string;
+  author_type: "organization" | "member" | string;
+  author_public_id?: string | null;
+  author_name: string;
+  author_avatar_url?: string | null;
+  body: string;
+  like_count: number;
+  comment_count: number;
+  liked_by_me: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -411,6 +469,16 @@ export interface SubscriptionInfo {
 
 export async function getMySubscription(): Promise<SubscriptionInfo> {
   const res = await apiFetch("/billing/subscription");
+  return res.json();
+}
+
+export async function deleteAdminAccount(data: {
+  current_password: string;
+}): Promise<{ detail: string }> {
+  const res = await apiFetch("/me", {
+    method: "DELETE",
+    body: JSON.stringify(data),
+  });
   return res.json();
 }
 
@@ -746,6 +814,16 @@ export async function changePublicMemberPassword(data: {
   return res.json();
 }
 
+export async function deletePublicMemberAccount(data: {
+  current_password: string;
+}): Promise<{ detail: string }> {
+  const res = await memberApiFetch("/public/me", {
+    method: "DELETE",
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
 export async function forgotPublicMemberPassword(data: { email: string }): Promise<{ detail: string }> {
   const res = await publicApiFetch("/public/auth/forgot-password", {
     method: "POST",
@@ -770,13 +848,132 @@ export async function listMyPublicEvents(): Promise<PublicMemberEvent[]> {
   return res.json();
 }
 
-export async function getPublicMemberProfile(memberId: number): Promise<PublicMemberProfile> {
-  const res = await publicApiFetch(`/public/members/${memberId}`);
+export async function getPublicMemberProfile(memberPublicId: string): Promise<PublicMemberProfile> {
+  const res = await publicApiFetch(`/public/members/${memberPublicId}`);
   return res.json();
 }
 
-export async function listPublicEvents(): Promise<PublicEventListItem[]> {
-  const res = await publicApiFetch("/public/events");
+export async function listPublicEvents(params: {
+  scope?: "all" | "upcoming" | "past";
+  limit?: number;
+  offset?: number;
+  search?: string;
+} = {}): Promise<PublicEventListItem[]> {
+  const qs = new URLSearchParams();
+  if (params.scope) qs.set("scope", params.scope);
+  if (typeof params.limit === "number") qs.set("limit", String(params.limit));
+  if (typeof params.offset === "number") qs.set("offset", String(params.offset));
+  if (params.search?.trim()) qs.set("search", params.search.trim());
+  const query = qs.toString();
+  const res = await publicApiFetch(`/public/events${query ? `?${query}` : ""}`);
+  return res.json();
+}
+
+export async function listPublicOrganizations(): Promise<PublicOrganizationListItem[]> {
+  const res = await publicApiFetch("/public/organizations");
+  return res.json();
+}
+
+export async function getPublicOrganizationDetail(orgPublicId: string): Promise<PublicOrganizationDetail> {
+  const token = getPublicMemberToken();
+  const res = token
+    ? await memberApiFetch(`/public/organizations/${orgPublicId}`)
+    : await publicApiFetch(`/public/organizations/${orgPublicId}`);
+  return res.json();
+}
+
+export async function followPublicOrganization(orgPublicId: string): Promise<{ ok: boolean }> {
+  const res = await memberApiFetch(`/public/organizations/${orgPublicId}/follow`, { method: "POST" });
+  return res.json();
+}
+
+export async function unfollowPublicOrganization(orgPublicId: string): Promise<{ ok: boolean }> {
+  const res = await memberApiFetch(`/public/organizations/${orgPublicId}/follow`, { method: "DELETE" });
+  return res.json();
+}
+
+export async function listPublicFeed(params: {
+  limit?: number;
+  offset?: number;
+} = {}): Promise<CommunityPost[]> {
+  const qs = new URLSearchParams();
+  if (typeof params.limit === "number") qs.set("limit", String(params.limit));
+  if (typeof params.offset === "number") qs.set("offset", String(params.offset));
+  const query = qs.toString();
+  const token = getPublicMemberToken();
+  const res = token
+    ? await memberApiFetch(`/public/feed${query ? `?${query}` : ""}`)
+    : await publicApiFetch(`/public/feed${query ? `?${query}` : ""}`);
+  return res.json();
+}
+
+export async function listOrganizationFeed(orgPublicId: string, params: {
+  limit?: number;
+  offset?: number;
+} = {}): Promise<CommunityPost[]> {
+  const qs = new URLSearchParams();
+  if (typeof params.limit === "number") qs.set("limit", String(params.limit));
+  if (typeof params.offset === "number") qs.set("offset", String(params.offset));
+  const query = qs.toString();
+  const token = getPublicMemberToken();
+  const path = `/public/organizations/${orgPublicId}/feed${query ? `?${query}` : ""}`;
+  const res = token ? await memberApiFetch(path) : await publicApiFetch(path);
+  return res.json();
+}
+
+export async function createOrganizationFeedPost(orgPublicId: string, body: string): Promise<CommunityPost> {
+  const res = await memberApiFetch(`/public/organizations/${orgPublicId}/feed`, {
+    method: "POST",
+    body: JSON.stringify({ body }),
+  });
+  return res.json();
+}
+
+export async function likeCommunityPost(postPublicId: string): Promise<{ ok: boolean }> {
+  const res = await memberApiFetch(`/public/posts/${postPublicId}/like`, { method: "POST" });
+  return res.json();
+}
+
+export async function unlikeCommunityPost(postPublicId: string): Promise<{ ok: boolean }> {
+  const res = await memberApiFetch(`/public/posts/${postPublicId}/like`, { method: "DELETE" });
+  return res.json();
+}
+
+export async function listCommunityPostComments(postPublicId: string, params: {
+  limit?: number;
+} = {}): Promise<CommunityPostComment[]> {
+  const qs = new URLSearchParams();
+  if (typeof params.limit === "number") qs.set("limit", String(params.limit));
+  const query = qs.toString();
+  const token = getPublicMemberToken();
+  const path = `/public/posts/${postPublicId}/comments${query ? `?${query}` : ""}`;
+  const res = token ? await memberApiFetch(path) : await publicApiFetch(path);
+  return res.json();
+}
+
+export async function createCommunityPostComment(postPublicId: string, body: string): Promise<CommunityPostComment> {
+  const res = await memberApiFetch(`/public/posts/${postPublicId}/comments`, {
+    method: "POST",
+    body: JSON.stringify({ body }),
+  });
+  return res.json();
+}
+
+export async function listAdminCommunityPosts(): Promise<CommunityPost[]> {
+  const res = await apiFetch("/admin/community/posts");
+  return res.json();
+}
+
+export async function createAdminCommunityPost(body: string): Promise<CommunityPost> {
+  const res = await apiFetch("/admin/community/posts", {
+    method: "POST",
+    body: JSON.stringify({ body }),
+  });
+  return res.json();
+}
+
+export async function deleteAdminCommunityPost(postPublicId: string): Promise<{ ok: boolean }> {
+  const res = await apiFetch(`/admin/community/posts/${postPublicId}`, { method: "DELETE" });
   return res.json();
 }
 

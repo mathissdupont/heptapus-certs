@@ -3,9 +3,10 @@ API endpoint integration tests using FastAPI TestClient.
 Tests the actual HTTP endpoints with mocked DB where needed.
 """
 import pytest
+from datetime import date, timedelta
 from httpx import AsyncClient, ASGITransport
 
-from src.main import app, create_access_token, hash_password, PublicMember, Role, SessionLocal
+from src.main import app, create_access_token, hash_password, PublicMember, Role, SessionLocal, User, Event, Organization, Subscription, CommunityPost
 
 
 @pytest.fixture
@@ -258,8 +259,168 @@ class TestPublicEndpoints:
     @pytest.mark.asyncio
     async def test_verify_nonexistent_cert(self):
         resp = await _safe_get("/api/verify/00000000-0000-0000-0000-000000000000")
-        # 404 when no cert found, 500 if test DB not connected
-        assert resp.status_code in (404, 500)
+
+
+class TestPublicSocialAndEventControls:
+    @pytest.mark.asyncio
+    async def test_public_event_registration_closed_returns_403(self):
+        async with SessionLocal() as db:
+            admin = User(email="event-admin@test.com", password_hash=hash_password("AdminPass123!"), role=Role.admin)
+            db.add(admin)
+            await db.flush()
+            event = Event(
+                admin_id=admin.id,
+                public_id="evt_test_closed",
+                name="Closed Event",
+                template_image_url="placeholder",
+                config={"visibility": "public", "registration_closed": True},
+            )
+            db.add(event)
+            await db.commit()
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.post(
+                "/api/events/evt_test_closed/register",
+                json={"name": "Test User", "email": "attendee@test.com", "registration_answers": {}},
+            )
+        assert resp.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_public_organizations_hidden_without_premium_plan(self):
+        async with SessionLocal() as db:
+            admin = User(email="org-admin@test.com", password_hash=hash_password("AdminPass123!"), role=Role.admin)
+            db.add(admin)
+            await db.flush()
+            org = Organization(
+                user_id=admin.id,
+                public_id="org_test_basic",
+                org_name="Basic Org",
+                brand_color="#123456",
+                settings={},
+            )
+            db.add(org)
+            await db.commit()
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.get("/api/public/organizations")
+        assert resp.status_code == 200
+        payload = resp.json()
+        assert all(item["public_id"] != "org_test_basic" for item in payload)
+
+    @pytest.mark.asyncio
+    async def test_public_organizations_visible_with_growth_plan(self):
+        async with SessionLocal() as db:
+            admin = User(email="org-premium@test.com", password_hash=hash_password("AdminPass123!"), role=Role.admin)
+            db.add(admin)
+            await db.flush()
+            org = Organization(
+                user_id=admin.id,
+                public_id="org_test_growth",
+                org_name="Growth Org",
+                brand_color="#654321",
+                settings={},
+            )
+            db.add(org)
+            db.add(Subscription(user_id=admin.id, plan_id="growth", is_active=True))
+            await db.commit()
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.get("/api/public/organizations")
+        assert resp.status_code == 200
+        payload = resp.json()
+        assert any(item["public_id"] == "org_test_growth" for item in payload)
+
+    @pytest.mark.asyncio
+    async def test_public_events_scope_filters_upcoming_and_past(self):
+        today = date.today()
+        async with SessionLocal() as db:
+            admin = User(email="scope-admin@test.com", password_hash=hash_password("AdminPass123!"), role=Role.admin)
+            db.add(admin)
+            await db.flush()
+            db.add_all([
+                Event(
+                    admin_id=admin.id,
+                    public_id="evt_scope_upcoming",
+                    name="Upcoming Scope Event",
+                    template_image_url="placeholder",
+                    config={"visibility": "public"},
+                    event_date=today + timedelta(days=2),
+                ),
+                Event(
+                    admin_id=admin.id,
+                    public_id="evt_scope_past",
+                    name="Past Scope Event",
+                    template_image_url="placeholder",
+                    config={"visibility": "public"},
+                    event_date=today - timedelta(days=2),
+                ),
+            ])
+            await db.commit()
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            upcoming_resp = await ac.get("/api/public/events", params={"scope": "upcoming", "limit": 10})
+            past_resp = await ac.get("/api/public/events", params={"scope": "past", "limit": 10})
+
+        assert upcoming_resp.status_code == 200
+        assert any(item["public_id"] == "evt_scope_upcoming" for item in upcoming_resp.json())
+        assert all(item["public_id"] != "evt_scope_past" for item in upcoming_resp.json())
+
+        assert past_resp.status_code == 200
+        assert any(item["public_id"] == "evt_scope_past" for item in past_resp.json())
+        assert all(item["public_id"] != "evt_scope_upcoming" for item in past_resp.json())
+
+    @pytest.mark.asyncio
+    async def test_public_feed_hides_posts_without_premium_org(self):
+        async with SessionLocal() as db:
+            admin = User(email="feed-basic@test.com", password_hash=hash_password("AdminPass123!"), role=Role.admin)
+            db.add(admin)
+            await db.flush()
+            org = Organization(
+                user_id=admin.id,
+                public_id="org_feed_basic",
+                org_name="Feed Basic",
+                brand_color="#112233",
+                settings={},
+            )
+            db.add(org)
+            await db.flush()
+            db.add(CommunityPost(public_id="post_feed_basic", org_id=org.id, author_user_id=admin.id, body="basic post"))
+            await db.commit()
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.get("/api/public/feed")
+        assert resp.status_code == 200
+        assert all(item["public_id"] != "post_feed_basic" for item in resp.json())
+
+    @pytest.mark.asyncio
+    async def test_public_feed_shows_posts_for_growth_org(self):
+        async with SessionLocal() as db:
+            admin = User(email="feed-growth@test.com", password_hash=hash_password("AdminPass123!"), role=Role.admin)
+            db.add(admin)
+            await db.flush()
+            org = Organization(
+                user_id=admin.id,
+                public_id="org_feed_growth",
+                org_name="Feed Growth",
+                brand_color="#445566",
+                settings={},
+            )
+            db.add(org)
+            db.add(Subscription(user_id=admin.id, plan_id="growth", is_active=True))
+            await db.flush()
+            db.add(CommunityPost(public_id="post_feed_growth", org_id=org.id, author_user_id=admin.id, body="growth post"))
+            await db.commit()
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.get("/api/public/feed")
+        assert resp.status_code == 200
+        assert any(item["public_id"] == "post_feed_growth" for item in resp.json())
 
     @pytest.mark.asyncio
     async def test_pricing_config(self):

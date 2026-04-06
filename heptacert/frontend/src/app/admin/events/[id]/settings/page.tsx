@@ -33,8 +33,11 @@ type EventOut = {
     visibility?: "private" | "unlisted" | "public";
     [key: string]: unknown;
   };
+  event_date?: string | null;
   event_description?: string;
+  event_location?: string | null;
   event_banner_url?: string | null;
+  registration_closed?: boolean;
   auto_email_on_cert?: boolean;
   cert_email_template_id?: number | null;
   visibility?: "private" | "unlisted" | "public";
@@ -52,8 +55,11 @@ type EmailTemplate = {
 
 type FormState = {
   name: string;
+  event_date: string;
   event_description: string;
+  event_location: string;
   event_banner_url: string;
+  registration_closed: boolean;
   visibility: "private" | "unlisted" | "public";
   registration_fields: RegistrationField[];
   require_email_verification: boolean;
@@ -121,6 +127,10 @@ export default function EventSettingsPage() {
         registrationBody: "Katılımcılardan toplamak istediğiniz ek bilgileri belirleyin. Bu alanlar açık kayıt sayfasında ad ve e-postanın altında görünür.",
         verificationTitle: "E-posta doğrulaması",
         verificationBody: "İstersen bu etkinlik için kayıt sonrası e-posta doğrulamasını zorunlu tutabilir, istemiyorsan tamamen kapatabilirsin.",
+        registrationStatusTitle: "Kayıt durumu",
+        registrationStatusBody: "Etkinlik bittiğinde veya kapasite dolduğunda kayıt sayfasını sistem üzerinden kapatabilirsiniz.",
+        registrationToggle: "Yeni kayıtları kapat",
+        registrationHint: "Kapalıysa public kayıt endpoint'i yeni katılımcı kabul etmez.",
         verificationToggle: "Kayıttan sonra e-posta doğrulaması zorunlu olsun",
         verificationHint: "Kapalıysa katılımcı kayıt olur olmaz aktif sayılır; check-in ve çekiliş akışı doğrulama beklemez.",
         addField: "Alan ekle",
@@ -138,6 +148,10 @@ export default function EventSettingsPage() {
         previewHint: "Kayıt formunda bu alanlar verdiğiniz sıraya göre gösterilir.",
         name: "Etkinlik adı",
         namePlaceholder: "Örn. Hepta Summit 2026",
+        date: "Etkinlik tarihi",
+        datePlaceholder: "Etkinlik tarihini seçin",
+        location: "Etkinlik konumu",
+        locationPlaceholder: "Örn. İzmir Atatürk Kültür Merkezi",
         description: "Etkinlik açıklaması",
         descriptionPlaceholder: "Satır atlayabilir, kalın/italik yapabilir, font ve boyut değiştirebilirsin.",
         bannerTitle: "Etkinlik bannerı",
@@ -185,6 +199,10 @@ export default function EventSettingsPage() {
         registrationBody: "Define the extra information you want to collect from attendees. These fields are shown below name and email on the public registration page.",
         verificationTitle: "Email verification",
         verificationBody: "You can require post-registration email verification for this event, or turn it off entirely when it adds unnecessary friction.",
+        registrationStatusTitle: "Registration status",
+        registrationStatusBody: "Close the registration flow from the system when the event is over or you no longer want new signups.",
+        registrationToggle: "Close new registrations",
+        registrationHint: "When enabled, the public registration endpoint rejects new attendees.",
         verificationToggle: "Require email verification after registration",
         verificationHint: "When off, attendees become active immediately and check-in or raffle flows do not wait for email confirmation.",
         addField: "Add field",
@@ -202,6 +220,10 @@ export default function EventSettingsPage() {
         previewHint: "These fields appear on the public registration form in the same order.",
         name: "Event name",
         namePlaceholder: "e.g. Hepta Summit 2026",
+        date: "Event date",
+        datePlaceholder: "Select the event date",
+        location: "Event location",
+        locationPlaceholder: "e.g. Izmir Ataturk Cultural Center",
         description: "Event description",
         descriptionPlaceholder: "Use line breaks, bold text, font choices, and size changes as needed.",
         bannerTitle: "Event banner",
@@ -235,8 +257,11 @@ export default function EventSettingsPage() {
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [formData, setFormData] = useState<FormState>({
     name: "",
+    event_date: "",
     event_description: "",
+    event_location: "",
     event_banner_url: "",
+    registration_closed: false,
     visibility: "private",
     registration_fields: [],
     require_email_verification: true,
@@ -290,8 +315,11 @@ export default function EventSettingsPage() {
       setSubscription(subRes);
       setFormData({
         name: eventData.name || "",
+        event_date: eventData.event_date || "",
         event_description: eventData.event_description || "",
+        event_location: eventData.event_location || "",
         event_banner_url: eventData.event_banner_url || "",
+        registration_closed: Boolean(eventData.registration_closed),
         visibility: eventData.visibility || (eventData.config?.visibility as FormState["visibility"]) || "private",
         registration_fields: Array.isArray(eventData.config?.registration_fields)
           ? eventData.config.registration_fields
@@ -350,7 +378,10 @@ export default function EventSettingsPage() {
     try {
       const payload: Record<string, unknown> = {
         name: formData.name.trim(),
+        event_date: formData.event_date || null,
         event_description: formData.event_description.trim(),
+        event_location: formData.event_location.trim(),
+        registration_closed: formData.registration_closed,
         visibility: formData.visibility,
         registration_fields: formData.registration_fields.map((field) => ({
           id: field.id,
@@ -464,6 +495,27 @@ export default function EventSettingsPage() {
                   placeholder={copy.namePlaceholder}
                 />
               </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="label">{copy.date}</label>
+                  <input
+                    type="date"
+                    value={formData.event_date}
+                    onChange={(event) => setFormData((current) => ({ ...current, event_date: event.target.value }))}
+                    className="input-field"
+                    placeholder={copy.datePlaceholder}
+                  />
+                </div>
+                <div>
+                  <label className="label">{copy.location}</label>
+                  <input
+                    value={formData.event_location}
+                    onChange={(event) => setFormData((current) => ({ ...current, event_location: event.target.value }))}
+                    className="input-field"
+                    placeholder={copy.locationPlaceholder}
+                  />
+                </div>
+              </div>
               <div>
                 <label className="label">{copy.description}</label>
                 <RichTextEditor
@@ -507,6 +559,38 @@ export default function EventSettingsPage() {
                 </select>
               </div>
               <p className="text-xs text-surface-400">{copy.visibilityHint}</p>
+            </div>
+          </section>
+
+          <section className="card p-6 sm:p-7">
+            <div className="flex items-start gap-3">
+              <div className="rounded-2xl bg-rose-50 p-3 text-rose-600">
+                <AlertCircle className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-surface-900">{copy.registrationStatusTitle}</h2>
+                <p className="mt-1 text-sm text-surface-500">{copy.registrationStatusBody}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              <label className="flex items-start gap-3 rounded-2xl border border-surface-200 bg-surface-50 px-4 py-4">
+                <input
+                  type="checkbox"
+                  checked={formData.registration_closed}
+                  onChange={(event) =>
+                    setFormData((current) => ({
+                      ...current,
+                      registration_closed: event.target.checked,
+                    }))
+                  }
+                  className="mt-1 h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500"
+                />
+                <div>
+                  <p className="text-sm font-semibold text-surface-900">{copy.registrationToggle}</p>
+                  <p className="mt-1 text-xs text-surface-500">{copy.registrationHint}</p>
+                </div>
+              </label>
             </div>
           </section>
 

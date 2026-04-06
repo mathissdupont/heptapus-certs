@@ -9,7 +9,7 @@ import { useI18n } from "@/lib/i18n";
 
 export default function PublicMemberProfilePage() {
   const params = useParams();
-  const memberId = Number(Array.isArray(params?.id) ? params.id[0] : params?.id);
+  const memberPublicId = Array.isArray(params?.id) ? params.id[0] : params?.id;
   const { lang } = useI18n();
   const [profile, setProfile] = useState<PublicMemberProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,18 +30,18 @@ export default function PublicMemberProfilePage() {
   }, [lang]);
 
   useEffect(() => {
-    if (!memberId) {
+    if (!memberPublicId) {
       setLoading(false);
       setError(copy.fallback);
       return;
     }
     setLoading(true);
     setError(null);
-    getPublicMemberProfile(memberId)
+    getPublicMemberProfile(memberPublicId)
       .then(setProfile)
       .catch((err: any) => setError(err?.message || copy.fallback))
       .finally(() => setLoading(false));
-  }, [copy.fallback, memberId]);
+  }, [copy.fallback, memberPublicId]);
 
   if (loading) {
     return <div className="flex min-h-[70vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-slate-500" /></div>;

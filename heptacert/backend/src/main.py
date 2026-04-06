@@ -314,6 +314,7 @@ class User(Base):
 class PublicMember(Base):
     __tablename__ = "public_members"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    public_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
     display_name: Mapped[str] = mapped_column(String(120))
     bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -522,10 +523,12 @@ class Organization(Base):
     __tablename__ = "organizations"
     id:            Mapped[int]           = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id:       Mapped[int]           = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True)
+    public_id:     Mapped[str]           = mapped_column(String(64), unique=True, index=True)
     org_name:      Mapped[str]           = mapped_column(String(200))
     custom_domain: Mapped[Optional[str]] = mapped_column(String(253), unique=True, nullable=True)
     brand_logo:    Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     brand_color:   Mapped[str]           = mapped_column(String(7), default="#6366f1")
+    settings:      Mapped[dict]          = mapped_column(JSONB, default=dict)
     created_at:    Mapped[datetime]      = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -535,6 +538,54 @@ class OrganizationAllowlist(Base):
     org_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
     email: Mapped[str] = mapped_column(String(320), nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class OrganizationFollower(Base):
+    __tablename__ = "organization_followers"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    org_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    public_member_id: Mapped[int] = mapped_column(Integer, ForeignKey("public_members.id", ondelete="CASCADE"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("org_id", "public_member_id", name="uq_org_follow_member"),
+    )
+
+
+class CommunityPost(Base):
+    __tablename__ = "community_posts"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    public_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    org_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    author_user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True)
+    author_public_member_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("public_members.id", ondelete="SET NULL"), index=True, nullable=True)
+    body: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(20), default="visible", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class CommunityPostLike(Base):
+    __tablename__ = "community_post_likes"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    post_id: Mapped[int] = mapped_column(Integer, ForeignKey("community_posts.id", ondelete="CASCADE"), index=True)
+    public_member_id: Mapped[int] = mapped_column(Integer, ForeignKey("public_members.id", ondelete="CASCADE"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("post_id", "public_member_id", name="uq_comm_post_like_member"),
+    )
+
+
+class CommunityPostComment(Base):
+    __tablename__ = "community_post_comments"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    post_id: Mapped[int] = mapped_column(Integer, ForeignKey("community_posts.id", ondelete="CASCADE"), index=True)
+    public_member_id: Mapped[int] = mapped_column(Integer, ForeignKey("public_members.id", ondelete="CASCADE"), index=True)
+    body: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(20), default="visible", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
 
@@ -978,6 +1029,10 @@ class PublicMemberChangePasswordIn(BaseModel):
     new_password: str = Field(min_length=8, max_length=128)
 
 
+class DeleteAccountIn(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+
+
 class ForgotPasswordIn(BaseModel):
     email: EmailStr
 
@@ -1014,6 +1069,7 @@ class EventRenameIn(BaseModel):
     registration_fields: Optional[List[Dict[str, Any]]] = None
     visibility: Optional[str] = Field(default=None, max_length=32)
     require_email_verification: Optional[bool] = Field(default=None)
+    registration_closed: Optional[bool] = Field(default=None)
 
 
 class CreditCoinsIn(BaseModel):
@@ -1077,6 +1133,7 @@ class EventOut(BaseModel):
 
 class PublicMemberMeOut(BaseModel):
     id: int
+    public_id: str
     email: EmailStr
     display_name: str
     bio: Optional[str] = None
@@ -1088,7 +1145,7 @@ class PublicMemberMeOut(BaseModel):
 
 
 class PublicMemberProfileOut(BaseModel):
-    id: int
+    public_id: str
     display_name: str
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
@@ -1108,11 +1165,15 @@ class PublicEventListItemOut(BaseModel):
     id: int
     public_id: str
     name: str
+    organization_public_id: Optional[str] = None
+    organization_name: Optional[str] = None
+    organization_logo: Optional[str] = None
     event_date: Optional[str] = None
     event_description: Optional[str] = None
     event_location: Optional[str] = None
     event_banner_url: Optional[str] = None
     min_sessions_required: int = 1
+    registration_closed: bool = False
     visibility: str = "public"
     session_count: int = 0
 
@@ -1121,10 +1182,14 @@ class PublicEventDetailOut(BaseModel):
     id: int
     public_id: str
     name: str
+    organization_public_id: Optional[str] = None
+    organization_name: Optional[str] = None
+    organization_logo: Optional[str] = None
     event_date: Optional[str] = None
     event_description: Optional[str] = None
     event_location: Optional[str] = None
     min_sessions_required: int = 1
+    registration_closed: bool = False
     event_banner_url: Optional[str] = None
     registration_fields: List[Dict[str, Any]] = Field(default_factory=list)
     survey: Optional[Dict[str, Any]] = None
@@ -1150,13 +1215,68 @@ class PublicMemberEventOut(BaseModel):
 class PublicEventCommentOut(BaseModel):
     id: int
     event_id: int
-    member_id: int
+    member_public_id: str
     member_name: str
     member_email: Optional[str] = None
     member_avatar_url: Optional[str] = None
     body: str
     status: str
     report_count: int = 0
+    created_at: datetime
+    updated_at: datetime
+
+
+class PublicOrganizationListItemOut(BaseModel):
+    public_id: str
+    org_name: str
+    brand_logo: Optional[str] = None
+    brand_color: str
+    bio: Optional[str] = None
+    website_url: Optional[str] = None
+    event_count: int = 0
+    follower_count: int = 0
+
+
+class PublicOrganizationDetailOut(BaseModel):
+    public_id: str
+    org_name: str
+    brand_logo: Optional[str] = None
+    brand_color: str
+    bio: Optional[str] = None
+    website_url: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    github_url: Optional[str] = None
+    x_url: Optional[str] = None
+    instagram_url: Optional[str] = None
+    follower_count: int = 0
+    event_count: int = 0
+    is_following: bool = False
+    events: List[PublicEventListItemOut] = Field(default_factory=list)
+
+
+class CommunityPostCommentOut(BaseModel):
+    id: int
+    post_public_id: str
+    member_public_id: str
+    member_name: str
+    member_avatar_url: Optional[str] = None
+    body: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class CommunityPostOut(BaseModel):
+    public_id: str
+    organization_public_id: str
+    organization_name: str
+    author_type: str
+    author_public_id: Optional[str] = None
+    author_name: str
+    author_avatar_url: Optional[str] = None
+    body: str
+    like_count: int = 0
+    comment_count: int = 0
+    liked_by_me: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -1545,6 +1665,7 @@ class OrgOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     user_id: int
+    public_id: str
     org_name: str
     custom_domain: Optional[str] = None
     brand_logo: Optional[str] = None
@@ -2869,6 +2990,18 @@ except Exception:
     # Import errors at startup shouldn't break the app; log and continue.
     logger.debug("domains_api not loaded at startup (will try on demand)")
 
+try:
+    from . import community_api as _community_api
+    app.include_router(_community_api.router)
+except Exception:
+    logger.debug("community_api not loaded at startup")
+
+try:
+    from . import social_api as _social_api
+    app.include_router(_social_api.router)
+except Exception:
+    logger.debug("social_api not loaded at startup")
+
 origins = [o.strip() for o in settings.cors_origins.split(",")] if settings.cors_origins else ["*"]
 # When wildcard, allow_credentials must be False (browser blocks credentials+wildcard per CORS spec).
 # JWT auth uses Authorization header Ã¢â‚¬â€ no cookies Ã¢â‚¬â€ so credentials=False is fine.
@@ -3610,6 +3743,15 @@ def _get_event_email_verification_required(event: Event) -> bool:
     return bool(raw_value)
 
 
+def _is_event_registration_closed(event: Event) -> bool:
+    config = event.config or {}
+    if bool(config.get("registration_closed")):
+        return True
+    if event.event_date and event.event_date < datetime.now(timezone.utc).date():
+        return True
+    return False
+
+
 def _get_public_event_identifier(event: Event) -> str:
     return event.public_id or str(event.id)
 
@@ -3639,6 +3781,50 @@ async def _generate_event_public_id(db: AsyncSession) -> str:
         if exists_res.scalar_one_or_none() is None:
             return candidate
     raise RuntimeError("Unable to generate a unique event public id")
+
+
+async def _generate_public_member_public_id(db: AsyncSession) -> str:
+    for _ in range(10):
+        candidate = f"mem_{secrets.token_hex(8)}"
+        exists_res = await db.execute(select(PublicMember.id).where(PublicMember.public_id == candidate))
+        if exists_res.scalar_one_or_none() is None:
+            return candidate
+    raise RuntimeError("Unable to generate a unique public member id")
+
+
+async def _generate_organization_public_id(db: AsyncSession) -> str:
+    for _ in range(10):
+        candidate = f"org_{secrets.token_hex(8)}"
+        exists_res = await db.execute(select(Organization.id).where(Organization.public_id == candidate))
+        if exists_res.scalar_one_or_none() is None:
+            return candidate
+    raise RuntimeError("Unable to generate a unique organization public id")
+
+
+def _get_organization_public_settings(org: Organization) -> Dict[str, Any]:
+    settings_map = getattr(org, "settings", {}) or {}
+    if not isinstance(settings_map, dict):
+        settings_map = {}
+    return settings_map
+
+
+def _build_public_org_summary(
+    org: Organization,
+    *,
+    event_count: int = 0,
+    follower_count: int = 0,
+) -> PublicOrganizationListItemOut:
+    settings_map = _get_organization_public_settings(org)
+    return PublicOrganizationListItemOut(
+        public_id=org.public_id,
+        org_name=org.org_name,
+        brand_logo=org.brand_logo,
+        brand_color=org.brand_color,
+        bio=settings_map.get("public_bio"),
+        website_url=settings_map.get("public_website_url"),
+        event_count=event_count,
+        follower_count=follower_count,
+    )
 
 
 def _normalize_registration_answers(
@@ -5637,6 +5823,7 @@ async def public_member_register(request: Request, data: PublicMemberRegisterIn,
 
     token = make_email_token({"email": email, "action": "public_member_verify"})
     member = PublicMember(
+        public_id=await _generate_public_member_public_id(db),
         email=email,
         display_name=display_name,
         password_hash=hash_password(data.password),
@@ -5673,6 +5860,7 @@ async def public_member_login(request: Request, data: PublicMemberLoginIn, db: A
 
     member_out = PublicMemberMeOut(
         id=member.id,
+        public_id=member.public_id,
         email=member.email,
         display_name=member.display_name,
         bio=member.bio,
@@ -7452,6 +7640,7 @@ async def public_me(
         raise HTTPException(status_code=404, detail="Member not found.")
     return PublicMemberMeOut(
         id=db_member.id,
+        public_id=db_member.public_id,
         email=db_member.email,
         display_name=db_member.display_name,
         bio=db_member.bio,
@@ -7491,6 +7680,7 @@ async def update_public_me(
     await db.refresh(db_member)
     return PublicMemberMeOut(
         id=db_member.id,
+        public_id=db_member.public_id,
         email=db_member.email,
         display_name=db_member.display_name,
         bio=db_member.bio,
@@ -7527,6 +7717,7 @@ async def upload_public_member_avatar(
     await db.refresh(db_member)
     return PublicMemberMeOut(
         id=db_member.id,
+        public_id=db_member.public_id,
         email=db_member.email,
         display_name=db_member.display_name,
         bio=db_member.bio,
@@ -7538,21 +7729,21 @@ async def upload_public_member_avatar(
     )
 
 
-@app.get("/api/public/members/{member_id}", response_model=PublicMemberProfileOut)
-async def get_public_member_profile(member_id: int, db: AsyncSession = Depends(get_db)):
-    res = await db.execute(select(PublicMember).where(PublicMember.id == member_id))
+@app.get("/api/public/members/{member_public_id}", response_model=PublicMemberProfileOut)
+async def get_public_member_profile(member_public_id: str, db: AsyncSession = Depends(get_db)):
+    res = await db.execute(select(PublicMember).where(PublicMember.public_id == member_public_id))
     db_member = res.scalar_one_or_none()
     if not db_member:
         raise HTTPException(status_code=404, detail="Member not found.")
 
     event_count_res = await db.execute(
-        select(func.count(func.distinct(Attendee.event_id))).where(Attendee.public_member_id == member_id)
+        select(func.count(func.distinct(Attendee.event_id))).where(Attendee.public_member_id == db_member.id)
     )
     comment_count_res = await db.execute(
-        select(func.count(EventComment.id)).where(EventComment.public_member_id == member_id, EventComment.status == "visible")
+        select(func.count(EventComment.id)).where(EventComment.public_member_id == db_member.id, EventComment.status == "visible")
     )
     return PublicMemberProfileOut(
-        id=db_member.id,
+        public_id=db_member.public_id,
         display_name=db_member.display_name,
         bio=db_member.bio,
         avatar_url=db_member.avatar_url,
@@ -7584,6 +7775,29 @@ async def change_public_member_password(
     db_member.password_reset_token = None
     await db.commit()
     return {"detail": "Password updated successfully."}
+
+
+@app.delete("/api/public/me")
+async def delete_public_member_account(
+    data: DeleteAccountIn,
+    member: CurrentPublicMember = Depends(get_current_public_member),
+    db: AsyncSession = Depends(get_db),
+):
+    res = await db.execute(select(PublicMember).where(PublicMember.id == member.id))
+    db_member = res.scalar_one_or_none()
+    if not db_member:
+        raise HTTPException(status_code=404, detail="Member not found.")
+    if not verify_password(data.current_password, db_member.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect.")
+
+    await db.execute(update(Attendee).where(Attendee.public_member_id == db_member.id).values(public_member_id=None))
+    await db.execute(delete(OrganizationFollower).where(OrganizationFollower.public_member_id == db_member.id))
+    await db.execute(delete(CommunityPostLike).where(CommunityPostLike.public_member_id == db_member.id))
+    await db.execute(delete(CommunityPostComment).where(CommunityPostComment.public_member_id == db_member.id))
+    await db.execute(delete(CommunityPost).where(CommunityPost.author_public_member_id == db_member.id))
+    await db.delete(db_member)
+    await db.commit()
+    return {"detail": "Account and personal data deleted successfully."}
 
 
 @app.get("/api/public/my-events", response_model=list[PublicMemberEventOut])
@@ -7673,6 +7887,26 @@ async def change_email(
     user.email = str(data.new_email)
     await db.commit()
     return {"detail": "E-posta baÃ…Å¸arÃ„Â±yla gÃƒÂ¼ncellendi."}
+
+
+@app.delete("/api/me", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def delete_admin_account(
+    data: DeleteAccountIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    res = await db.execute(select(User).where(User.id == me.id))
+    user = res.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Kullanici bulunamadi.")
+    if user.role == Role.superadmin:
+        raise HTTPException(status_code=400, detail="Superadmin hesabi panelden silinemez.")
+    if not verify_password(data.current_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Mevcut sifre hatali.")
+
+    await db.delete(user)
+    await db.commit()
+    return {"detail": "Hesap ve iliskili veriler silindi."}
 
 
 @app.get("/api/admin/events", response_model=list[EventOut], dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
@@ -7768,6 +8002,9 @@ async def rename_event(
         config_dirty = True
     if "require_email_verification" in payload.model_fields_set:
         next_config["require_email_verification"] = bool(payload.require_email_verification)
+        config_dirty = True
+    if "registration_closed" in payload.model_fields_set:
+        next_config["registration_closed"] = bool(payload.registration_closed)
         config_dirty = True
     if config_dirty:
         ev.config = next_config
@@ -9038,7 +9275,14 @@ async def update_custom_domain(
     org_res = await db.execute(select(Organization).where(Organization.user_id == me.id))
     org = org_res.scalar_one_or_none()
     if org is None:
-        org = Organization(user_id=me.id, org_name="", custom_domain=payload.custom_domain or None, brand_color="#6366f1")
+        org = Organization(
+            user_id=me.id,
+            public_id=await _generate_organization_public_id(db),
+            org_name="",
+            custom_domain=payload.custom_domain or None,
+            brand_color="#6366f1",
+            settings={},
+        )
         db.add(org)
     else:
         org.custom_domain = payload.custom_domain or None
@@ -9058,17 +9302,19 @@ async def get_organization_settings(
     org = res.scalar_one_or_none()
     if org is None:
         # Create a default organization record for this user to simplify UX
-        org = Organization(user_id=me.id, org_name="", brand_color="#6366f1")
-        # ensure settings column exists before assigning
-        try:
-            org.settings = {}
-        except Exception:
-            pass
+        org = Organization(
+            user_id=me.id,
+            public_id=await _generate_organization_public_id(db),
+            org_name="",
+            brand_color="#6366f1",
+            settings={},
+        )
         db.add(org)
         await db.commit()
         await db.refresh(org)
     return {
         "id": org.id,
+        "public_id": org.public_id,
         "org_name": org.org_name,
         "brand_logo": org.brand_logo,
         "brand_color": org.brand_color,
@@ -9112,11 +9358,13 @@ async def add_organization_allowlist(
     res = await db.execute(select(Organization).where(Organization.user_id == me.id))
     org = res.scalar_one_or_none()
     if not org:
-        org = Organization(user_id=me.id, org_name="", brand_color="#6366f1")
-        try:
-            org.settings = {}
-        except Exception:
-            pass
+        org = Organization(
+            user_id=me.id,
+            public_id=await _generate_organization_public_id(db),
+            org_name="",
+            brand_color="#6366f1",
+            settings={},
+        )
         db.add(org)
         await db.commit()
         await db.refresh(org)
@@ -9170,14 +9418,12 @@ async def patch_organization_settings(
     if not org:
         org = Organization(
             user_id=me.id,
+            public_id=await _generate_organization_public_id(db),
             org_name="",
             brand_color="#6366f1",
             brand_logo=None,
+            settings={},
         )
-        try:
-            org.settings = {}
-        except Exception:
-            pass
         db.add(org)
         await db.commit()
         await db.refresh(org)
@@ -9216,6 +9462,7 @@ async def patch_organization_settings(
     return {
         "ok": True,
         "id": org.id,
+        "public_id": org.public_id,
         "org_name": org.org_name,
         "brand_logo": org.brand_logo,
         "brand_color": org.brand_color,
@@ -9372,10 +9619,12 @@ async def create_org(
         raise HTTPException(status_code=400, detail=f"User with id {target_user_id} not found")
     org = Organization(
         user_id=target_user_id,
+        public_id=await _generate_organization_public_id(db),
         org_name=data.org_name,
         custom_domain=data.custom_domain,
         brand_logo=data.brand_logo,
         brand_color=data.brand_color,
+        settings={},
     )
     db.add(org)
     await db.commit()
@@ -10312,15 +10561,20 @@ def _build_public_event_detail(
     event: Event,
     sessions: List[EventSession],
     survey: Optional["EventSurvey"],
+    organization: Optional[Organization] = None,
 ) -> PublicEventDetailOut:
     return PublicEventDetailOut(
         id=event.id,
         public_id=_get_public_event_identifier(event),
         name=event.name,
+        organization_public_id=organization.public_id if organization else None,
+        organization_name=organization.org_name if organization else None,
+        organization_logo=organization.brand_logo if organization else None,
         event_date=event.event_date.isoformat() if event.event_date else None,
         event_description=sanitize_event_description_html(event.event_description),
         event_location=event.event_location,
         min_sessions_required=int(event.min_sessions_required or 1),
+        registration_closed=_is_event_registration_closed(event),
         event_banner_url=event.event_banner_url,
         registration_fields=_get_event_registration_fields(event),
         survey=_build_public_survey_info(survey),
@@ -10343,7 +10597,7 @@ def _event_comment_to_out(comment: EventComment) -> PublicEventCommentOut:
     return PublicEventCommentOut(
         id=comment.id,
         event_id=comment.event_id,
-        member_id=comment.public_member_id,
+        member_public_id=comment.public_member.public_id,
         member_name=comment.public_member.display_name,
         member_email=comment.public_member.email,
         member_avatar_url=comment.public_member.avatar_url,
@@ -10356,38 +10610,71 @@ def _event_comment_to_out(comment: EventComment) -> PublicEventCommentOut:
 
 
 @app.get("/api/public/events", response_model=list[PublicEventListItemOut])
-async def list_public_events(db: AsyncSession = Depends(get_db)):
+async def list_public_events(
+    scope: str = Query(default="all", pattern="^(all|upcoming|past)$"),
+    limit: int = Query(default=24, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    search: Optional[str] = Query(default=None, min_length=1, max_length=120),
+    db: AsyncSession = Depends(get_db),
+):
     bind = db.get_bind()
     dialect_name = bind.dialect.name if bind is not None else ""
 
     if dialect_name == "sqlite":
-        events_res = await db.execute(
-            select(Event)
-            .where(func.lower(func.coalesce(func.json_extract(Event.config, "$.visibility"), "private")) == "public")
-            .order_by(Event.created_at.desc())
-        )
-        visible_events = events_res.scalars().all()
+        visibility_clause = func.lower(func.coalesce(func.json_extract(Event.config, "$.visibility"), "private")) == "public"
     elif dialect_name == "postgresql":
-        events_res = await db.execute(
-            select(Event)
-            .where(
-                func.lower(
-                    func.coalesce(
-                        func.jsonb_extract_path_text(Event.config, "visibility"),
-                        "private",
-                    )
+        visibility_clause = (
+            func.lower(
+                func.coalesce(
+                    func.jsonb_extract_path_text(Event.config, "visibility"),
+                    "private",
                 )
-                == "public"
             )
-            .order_by(Event.created_at.desc())
+            == "public"
         )
-        visible_events = events_res.scalars().all()
     else:
-        events_res = await db.execute(select(Event).order_by(Event.created_at.desc()))
-        visible_events = [event for event in events_res.scalars().all() if _get_event_visibility(event) == "public"]
-    if not visible_events:
+        visibility_clause = None
+
+    stmt = select(Event, Organization).outerjoin(Organization, Organization.user_id == Event.admin_id)
+
+    if visibility_clause is not None:
+        stmt = stmt.where(visibility_clause)
+
+    today = datetime.now(timezone.utc).date()
+    if scope == "upcoming":
+        stmt = stmt.where(or_(Event.event_date.is_(None), Event.event_date >= today))
+        stmt = stmt.order_by(Event.event_date.asc().nulls_last(), Event.created_at.desc())
+    elif scope == "past":
+        stmt = stmt.where(Event.event_date.is_not(None), Event.event_date < today)
+        stmt = stmt.order_by(Event.event_date.desc(), Event.created_at.desc())
+    else:
+        stmt = stmt.order_by(Event.created_at.desc())
+
+    normalized_search = (search or "").strip().lower()
+    if normalized_search:
+        like_term = f"%{normalized_search}%"
+        stmt = stmt.where(
+            or_(
+                func.lower(func.coalesce(Event.name, "")).like(like_term),
+                func.lower(func.coalesce(Event.event_location, "")).like(like_term),
+                func.lower(func.coalesce(Event.event_description, "")).like(like_term),
+                func.lower(func.coalesce(Organization.org_name, "")).like(like_term),
+            )
+        )
+
+    stmt = stmt.offset(offset).limit(limit)
+    events_res = await db.execute(stmt)
+    event_rows = events_res.all()
+    if visibility_clause is None:
+        event_rows = [(event, org) for event, org in event_rows if _get_event_visibility(event) == "public"]
+
+    if not event_rows:
         return []
 
+    visible_events = [event for event, _org in event_rows]
+    orgs_by_user_id: Dict[int, Organization] = {
+        org.user_id: org for _event, org in event_rows if org is not None
+    }
     event_ids = [event.id for event in visible_events]
     session_counts_res = await db.execute(
         select(EventSession.event_id, func.count(EventSession.id).label("cnt"))
@@ -10401,11 +10688,15 @@ async def list_public_events(db: AsyncSession = Depends(get_db)):
             id=event.id,
             public_id=_get_public_event_identifier(event),
             name=event.name,
+            organization_public_id=orgs_by_user_id.get(event.admin_id).public_id if orgs_by_user_id.get(event.admin_id) else None,
+            organization_name=orgs_by_user_id.get(event.admin_id).org_name if orgs_by_user_id.get(event.admin_id) else None,
+            organization_logo=orgs_by_user_id.get(event.admin_id).brand_logo if orgs_by_user_id.get(event.admin_id) else None,
             event_date=event.event_date.isoformat() if event.event_date else None,
             event_description=sanitize_event_description_html(event.event_description),
             event_location=event.event_location,
             event_banner_url=event.event_banner_url,
             min_sessions_required=int(event.min_sessions_required or 1),
+            registration_closed=_is_event_registration_closed(event),
             visibility=_get_event_visibility(event),
             session_count=session_counts.get(event.id, 0),
         )
@@ -10423,7 +10714,8 @@ async def get_public_event_detail(event_id: str, db: AsyncSession = Depends(get_
         select(EventSession).where(EventSession.event_id == event.id).order_by(EventSession.session_date, EventSession.session_start)
     )
     survey_res = await db.execute(select(EventSurvey).where(EventSurvey.event_id == event.id))
-    return _build_public_event_detail(event, sessions_res.scalars().all(), survey_res.scalar_one_or_none())
+    org_res = await db.execute(select(Organization).where(Organization.user_id == event.admin_id))
+    return _build_public_event_detail(event, sessions_res.scalars().all(), survey_res.scalar_one_or_none(), org_res.scalar_one_or_none())
 
 
 @app.get("/api/public/events/{event_id}/comments", response_model=list[PublicEventCommentOut])
@@ -10539,6 +10831,8 @@ async def public_event_register(
     ev = await _resolve_public_event(db, event_id)
     if not ev:
         raise HTTPException(status_code=404, detail="Event not found")
+    if _is_event_registration_closed(ev):
+        raise HTTPException(status_code=403, detail="Registration is closed for this event.")
     event_db_id = ev.id
     require_email_verification = _get_event_email_verification_required(ev)
 

@@ -26,6 +26,7 @@ interface EventInfo {
   event_location: string | null;
   event_banner_url: string | null;
   min_sessions_required: number;
+  registration_closed?: boolean;
   registration_fields?: RegistrationField[];
   survey?: {
     is_required: boolean;
@@ -91,6 +92,7 @@ export default function EventRegisterPage() {
             openSurvey: "Anketi Aç",
             fillSurvey: "Anketi Doldur",
             registerForEvent: "Etkinliğe Kayıt Ol",
+            registrationClosed: "Bu etkinlik için kayıtlar kapatıldı.",
             fullName: "Ad Soyad",
             fullNamePlaceholder: "Adınız Soyadınız",
             email: "E-posta Adresi",
@@ -131,6 +133,7 @@ export default function EventRegisterPage() {
             openSurvey: "Open Survey",
             fillSurvey: "Fill Survey",
             registerForEvent: "Register for Event",
+            registrationClosed: "Registration is closed for this event.",
             fullName: "Full Name",
             fullNamePlaceholder: "Your full name",
             email: "Email Address",
@@ -234,6 +237,10 @@ export default function EventRegisterPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (event?.registration_closed) {
+      setSubmitError(copy.registrationClosed);
+      return;
+    }
     setSubmitError(null);
     setSubmitting(true);
 
@@ -618,11 +625,11 @@ export default function EventRegisterPage() {
 
                     <button
                       type="submit"
-                      disabled={submitting || !name.trim() || !email.trim()}
+                      disabled={submitting || !name.trim() || !email.trim() || Boolean(event.registration_closed)}
                       className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-bold text-white transition-all disabled:cursor-not-allowed disabled:opacity-50"
                       style={primaryBtnStyle}
                     >
-                      {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>{copy.submit}<ArrowRight className="h-4 w-4" /></>}
+                      {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>{event.registration_closed ? copy.registrationClosed : copy.submit}<ArrowRight className="h-4 w-4" /></>}
                     </button>
                   </form>
                 </motion.div>

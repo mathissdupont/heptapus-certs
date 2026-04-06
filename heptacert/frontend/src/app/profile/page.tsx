@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Camera, Globe, KeyRound, Loader2, MapPin, Save, UserCircle2 } from "lucide-react";
-import { PUBLIC_MEMBER_TOKEN_EVENT, changePublicMemberPassword, getPublicMemberMe, updatePublicMemberProfile, uploadPublicMemberAvatar } from "@/lib/api";
+import { AlertTriangle, ArrowRight, Camera, Globe, KeyRound, Loader2, MapPin, Save, UserCircle2 } from "lucide-react";
+import { PUBLIC_MEMBER_TOKEN_EVENT, changePublicMemberPassword, clearPublicMemberToken, deletePublicMemberAccount, getPublicMemberMe, updatePublicMemberProfile, uploadPublicMemberAvatar } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 export default function ProfilePage() {
@@ -91,6 +91,7 @@ export default function ProfilePage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -102,6 +103,7 @@ export default function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [deletePassword, setDeletePassword] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -208,6 +210,23 @@ export default function ProfilePage() {
       setError(err?.message || copy.fallback);
     } finally {
       setSavingPassword(false);
+    }
+  }
+
+  async function handleDeleteAccount(event: React.FormEvent) {
+    event.preventDefault();
+    setError(null);
+    setDeletingAccount(true);
+    try {
+      await deletePublicMemberAccount({ current_password: deletePassword });
+      clearPublicMemberToken();
+      if (typeof window !== "undefined") {
+        window.location.href = "/";
+      }
+    } catch (err: any) {
+      setError(err?.message || copy.fallback);
+    } finally {
+      setDeletingAccount(false);
     }
   }
 
@@ -366,6 +385,36 @@ export default function ProfilePage() {
           </div>
           <button type="submit" disabled={savingPassword} className="btn-primary justify-center">
             {savingPassword ? copy.savingPassword : <><KeyRound className="h-4 w-4" /> {copy.savePassword}</>}
+          </button>
+        </form>
+
+        <form onSubmit={handleDeleteAccount} className="card space-y-5 border border-rose-200 bg-rose-50/70 p-8">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+            <h2 className="text-xl font-bold text-rose-900">{lang === "tr" ? "Hesabi Sil" : "Delete Account"}</h2>
+          </div>
+          <p className="text-sm leading-6 text-rose-800">
+            {lang === "tr"
+              ? "KVKK kapsaminda hesabini ve buna bagli kisisel verilerini kalici olarak silebilirsin. Bu islem geri alinamaz."
+              : "You can permanently delete your account and related personal data. This action cannot be undone."}
+          </p>
+          <div>
+            <label className="label text-rose-900">{lang === "tr" ? "Mevcut Sifre ile Onay" : "Confirm with Current Password"}</label>
+            <input
+              className="input-field border-rose-200 bg-white"
+              type="password"
+              value={deletePassword}
+              onChange={(event) => setDeletePassword(event.target.value)}
+              required
+              autoComplete="current-password"
+            />
+          </div>
+          <button type="submit" disabled={deletingAccount} className="inline-flex items-center justify-center rounded-xl bg-rose-700 py-3.5 text-sm font-bold text-white transition hover:bg-rose-800 disabled:opacity-60">
+            {deletingAccount
+              ? (lang === "tr" ? "Siliniyor..." : "Deleting...")
+              : (lang === "tr" ? "Hesabi ve Verileri Sil" : "Delete Account and Data")}
           </button>
         </form>
       </div>
