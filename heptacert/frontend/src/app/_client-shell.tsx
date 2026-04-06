@@ -118,8 +118,9 @@ function Navbar() {
   }, [host, isHeptaCertHost, settings]);
 
   const eventsLabel = lang === "tr" ? "Etkinlikler" : "Events";
-  const myEventsLabel = lang === "tr" ? "Katildiklarim" : "My Events";
-  const logoutLabel = lang === "tr" ? "Cikis Yap" : "Sign Out";
+  const myEventsLabel = lang === "tr" ? "Katıldıklarım" : "My Events";
+  const profileLabel = lang === "tr" ? "Profilim" : "My Profile";
+  const logoutLabel = lang === "tr" ? "Çıkış Yap" : "Sign Out";
 
   const links = isWhiteLabel
     ? [
@@ -128,6 +129,7 @@ function Navbar() {
     : [
         { href: "/events", label: eventsLabel },
         ...(member ? [{ href: "/my-events", label: myEventsLabel }] : []),
+        ...(member ? [{ href: "/profile", label: profileLabel }] : []),
         { href: "/#features", label: t("nav_features") },
         { href: "/pricing", label: t("nav_pricing") },
         { href: "/verify", label: t("nav_verify") },

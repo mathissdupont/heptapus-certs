@@ -283,3 +283,36 @@ async def test_unverified_attendees_are_excluded_from_raffle_pool():
         payload = created.json()
         assert payload["eligible_count"] == 2
         assert {row["attendee_id"] for row in payload["eligible_attendees"]} == set(seeded["attendee_ids"][:2])
+
+
+@pytest.mark.asyncio
+async def test_unverified_attendees_are_included_when_event_skips_email_verification():
+    owner = await _create_admin("raffle-no-verify@example.com")
+    await _grant_paid_plan(owner)
+    token = create_access_token(user_id=owner.id, role=Role.admin)
+    seeded = await _seed_event_for_raffles(owner)
+
+    async with SessionLocal() as sess:
+        async with sess.begin():
+            event = await sess.get(Event, seeded["event_id"])
+            attendee = await sess.get(Attendee, seeded["attendee_ids"][2])
+            event.config = {**(event.config or {}), "require_email_verification": False}
+            attendee.email_verified = False
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        created = await ac.post(
+            f"/api/admin/events/{seeded['event_id']}/raffles",
+            json={
+                "title": "Open Entry",
+                "prize_name": "Sticker Pack",
+                "min_sessions_required": 1,
+                "winner_count": 1,
+                "reserve_winner_count": 0,
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert created.status_code == 200
+        payload = created.json()
+        assert payload["eligible_count"] == 3
+        assert {row["attendee_id"] for row in payload["eligible_attendees"]} == set(seeded["attendee_ids"])

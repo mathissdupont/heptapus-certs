@@ -97,6 +97,25 @@ class TestAuthEndpoints:
             })
         assert resp.status_code == 400
 
+    @pytest.mark.asyncio
+    async def test_public_member_forgot_password_always_200(self):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.post("/api/public/auth/forgot-password", json={
+                "email": "nonexistent@example.com"
+            })
+        assert resp.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_public_member_reset_password_invalid_token(self):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.post("/api/public/auth/reset-password", json={
+                "token": "invalid-token",
+                "new_password": "newpassword123"
+            })
+        assert resp.status_code == 400
+
 
 # ── Protected endpoints require auth ─────────────────────────────────────────
 
@@ -113,6 +132,23 @@ class TestAuthRequired:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
             resp = await ac.get("/api/public/me")
+        assert resp.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_public_profile_update_requires_auth(self):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.patch("/api/public/me", json={"display_name": "Test User", "bio": "Hello"})
+        assert resp.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_public_password_change_requires_auth(self):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.patch(
+                "/api/public/me/password",
+                json={"current_password": "oldpassword123", "new_password": "newpassword123"},
+            )
         assert resp.status_code == 401
 
     @pytest.mark.asyncio
@@ -291,6 +327,10 @@ class TestRateLimitingExists:
         from src.main import forgot_password
         assert callable(forgot_password)
 
+    def test_public_member_forgot_password_has_rate_limit(self):
+        from src.main import public_member_forgot_password
+        assert callable(public_member_forgot_password)
+
 
 # ── Superadmin subscription endpoints ───────────────────────────────────────
 
@@ -386,3 +426,8 @@ class TestEmailConfigEndpoints:
         assert hasattr(UserEmailConfig, "smtp_port")
         assert hasattr(UserEmailConfig, "smtp_user")
         assert hasattr(UserEmailConfig, "smtp_password")
+
+    def test_public_member_model_has_profile_fields(self):
+        from src.main import PublicMember
+        assert hasattr(PublicMember, "bio")
+        assert hasattr(PublicMember, "password_reset_token")

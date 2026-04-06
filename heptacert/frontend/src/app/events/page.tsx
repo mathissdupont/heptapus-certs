@@ -6,6 +6,7 @@ import { CalendarDays, MapPin, Search, Users, ArrowRight, ShieldCheck, Layers } 
 import { motion, AnimatePresence } from "framer-motion";
 import { listPublicEvents, type PublicEventListItem } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import { stripRichTextToPlainText } from "@/lib/richText";
 
 function formatDate(value: string | null | undefined, lang: "tr" | "en") {
   if (!value) return null;
@@ -74,7 +75,7 @@ export default function PublicEventsPage() {
     }
     setFiltered(
       items.filter((item) =>
-        [item.name, item.event_location, item.event_description].some((value) =>
+        [item.name, item.event_location, stripRichTextToPlainText(item.event_description)].some((value) =>
           String(value || "").toLowerCase().includes(term)
         )
       )
@@ -168,7 +169,7 @@ export default function PublicEventsPage() {
                   exit={{ opacity: 0, scale: 0.95 }}
                   className="group flex flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:border-slate-300 hover:shadow-xl"
                 >
-                  <Link href={`/events/${item.id}`} className="flex flex-col h-full">
+                  <Link href={`/events/${item.public_id}`} className="flex flex-col h-full">
                     {/* IMAGE CONTAINER */}
                     <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100">
                       {item.event_banner_url ? (
@@ -195,9 +196,9 @@ export default function PublicEventsPage() {
                         {item.name}
                       </h2>
 
-                      {item.event_description && (
+                      {stripRichTextToPlainText(item.event_description) && (
                         <p className="mt-3 text-sm leading-relaxed text-slate-500 line-clamp-2">
-                          {item.event_description}
+                          {stripRichTextToPlainText(item.event_description)}
                         </p>
                       )}
 

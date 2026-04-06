@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -24,24 +24,25 @@ function MemberLoginContent() {
     () =>
       lang === "tr"
         ? {
-            memberLabel: "Katilimci",
-            organizerLabel: "Organizator",
-            title: "Giris Yap",
-            memberTitle: "Uye hesabinla devam et",
-            memberBody: "Public etkinlikleri kesfetmek ve topluluk ozelliklerini kullanmak icin uye hesabina giris yap.",
-            organizerTitle: "Etkinlik yonetimi icin admin paneli",
-            organizerBody: "Etkinlik olusturma, sertifika uretme ve operasyon ekranlari icin mevcut admin panelini kullan.",
+            memberLabel: "Katılımcı",
+            organizerLabel: "Organizatör",
+            title: "Giriş Yap",
+            memberTitle: "Üye hesabınla devam et",
+            memberBody: "Açık etkinlikleri keşfetmek ve topluluk özelliklerini kullanmak için üye hesabına giriş yap.",
+            organizerTitle: "Etkinlik yönetimi için yönetici paneli",
+            organizerBody: "Etkinlik oluşturma, sertifika üretme ve operasyon ekranları için mevcut yönetici panelini kullan.",
             email: "E-posta Adresi",
-            password: "Sifre",
+            password: "Şifre",
+            forgotPassword: "Şifremi unuttum",
             emailPlaceholder: "siz@example.com",
-            passwordPlaceholder: "Sifreniz",
-            submit: "Uye Girisi Yap",
-            loading: "Giris yapiliyor...",
-            loginFailed: "Giris basarisiz oldu.",
-            organizerCta: "Admin Paneline Git",
-            noAccount: "Hesabin yok mu?",
-            memberRegister: "Uye hesabi olustur",
-            organizerRegister: "Organizator hesabi olustur",
+            passwordPlaceholder: "Şifreniz",
+            submit: "Üye Girişi Yap",
+            loading: "Giriş yapılıyor...",
+            loginFailed: "Giriş başarısız oldu.",
+            organizerCta: "Yönetici Paneline Git",
+            noAccount: "Hesabın yok mu?",
+            memberRegister: "Üye hesabı oluştur",
+            organizerRegister: "Organizatör hesabı oluştur",
           }
         : {
             memberLabel: "Member",
@@ -53,6 +54,7 @@ function MemberLoginContent() {
             organizerBody: "Keep using the existing admin panel for event creation, certification, and operations.",
             email: "Email Address",
             password: "Password",
+            forgotPassword: "Forgot password",
             emailPlaceholder: "you@example.com",
             passwordPlaceholder: "Your password",
             submit: "Sign In as Member",
@@ -149,7 +151,12 @@ function MemberLoginContent() {
                 </div>
 
                 <div>
-                  <label className="label">{copy.password}</label>
+                  <div className="mb-2 flex items-center justify-between">
+                    <label className="label mb-0">{copy.password}</label>
+                    <Link href="/forgot-password?mode=member" className="text-sm font-semibold text-brand-600 hover:text-brand-700">
+                      {copy.forgotPassword}
+                    </Link>
+                  </div>
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                     <input

@@ -106,6 +106,7 @@ export default function SurveysPage() {
   const [config, setConfig] = useState<EventSurvey | null>(null);
   const [responses, setResponses] = useState<SurveyResponse[]>([]);
   const [responseStats, setResponseStats] = useState<ResponseStats>({ completed: 0, pending: 0 });
+  const [eventPublicId, setEventPublicId] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -138,6 +139,10 @@ export default function SurveysPage() {
         apiFetch(`/admin/events/${eventId}/survey-config`, { method: "GET" }),
         apiFetch(`/admin/events/${eventId}/surveys/responses`, { method: "GET" }),
       ]);
+      apiFetch(`/admin/events/${eventId}`, { method: "GET" })
+        .then((response) => response.json())
+        .then((eventData) => setEventPublicId(eventData.public_id || String(eventId)))
+        .catch(() => setEventPublicId(String(eventId)));
 
       const configData = configRes ? await configRes.json() : null;
       const responsesData = responsesRes ? await responsesRes.json() : null;
@@ -293,7 +298,7 @@ export default function SurveysPage() {
     : 0;
   const webhookEndpoint = `/api/surveys/external/webhook?event_id=${eventId}&attendee_id=[ATTENDEE_ID]`;
   const surveyLandingUrl =
-    typeof window !== "undefined" ? `${window.location.origin}/events/${eventId}/survey` : `/events/${eventId}/survey`;
+    typeof window !== "undefined" ? `${window.location.origin}/events/${eventPublicId || eventId}/survey` : `/events/${eventPublicId || eventId}/survey`;
 
   async function copyText(value: string, message: string) {
     try {

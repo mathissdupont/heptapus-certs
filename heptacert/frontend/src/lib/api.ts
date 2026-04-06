@@ -143,6 +143,7 @@ export async function memberApiFetch(path: string, init: RequestInit = {}) {
 
 export interface EventOut {
   id: number;
+  public_id?: string | null;
   name: string;
   template_image_url: string;
   config: Record<string, unknown>;
@@ -154,12 +155,14 @@ export interface EventOut {
   auto_email_on_cert?: boolean;
   cert_email_template_id?: number | null;
   visibility?: "private" | "unlisted" | "public";
+  require_email_verification?: boolean;
 }
 
 export interface PublicMemberMe {
   id: number;
   email: string;
   display_name: string;
+  bio?: string | null;
 }
 
 export interface PublicMemberEvent {
@@ -178,6 +181,7 @@ export interface PublicMemberEvent {
 
 export interface PublicEventListItem {
   id: number;
+  public_id: string;
   name: string;
   event_date?: string | null;
   event_description?: string | null;
@@ -204,6 +208,7 @@ export interface PublicSurvey {
 
 export interface PublicEventInfo {
   id: number;
+  public_id: string;
   name: string;
   event_date: string | null;
   event_description: string | null;
@@ -220,10 +225,12 @@ export interface PublicEventInfo {
     session_location: string | null;
   }>;
   visibility: "private" | "unlisted" | "public";
+  require_email_verification: boolean;
 }
 
 export interface PublicEventDetail {
   id: number;
+  public_id: string;
   name: string;
   event_date?: string | null;
   event_description?: string | null;
@@ -260,6 +267,12 @@ export interface PublicSurveyAccess {
   attendee_name: string;
   attendee_email: string;
   survey_token: string;
+}
+
+export type EventRouteId = string | number;
+
+function toEventRouteId(eventId: EventRouteId) {
+  return encodeURIComponent(String(eventId));
 }
 
 export type RegistrationFieldType = "text" | "textarea" | "number" | "tel" | "select" | "date";
@@ -679,6 +692,47 @@ export async function getPublicMemberMe(): Promise<PublicMemberMe> {
   return res.json();
 }
 
+export async function updatePublicMemberProfile(data: {
+  display_name: string;
+  bio?: string | null;
+}): Promise<PublicMemberMe> {
+  const res = await memberApiFetch("/public/me", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function changePublicMemberPassword(data: {
+  current_password: string;
+  new_password: string;
+}): Promise<{ detail: string }> {
+  const res = await memberApiFetch("/public/me/password", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function forgotPublicMemberPassword(data: { email: string }): Promise<{ detail: string }> {
+  const res = await publicApiFetch("/public/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function resetPublicMemberPassword(data: {
+  token: string;
+  new_password: string;
+}): Promise<{ detail: string }> {
+  const res = await publicApiFetch("/public/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
 export async function listMyPublicEvents(): Promise<PublicMemberEvent[]> {
   const res = await memberApiFetch("/public/my-events");
   return res.json();
@@ -689,18 +743,18 @@ export async function listPublicEvents(): Promise<PublicEventListItem[]> {
   return res.json();
 }
 
-export async function getPublicEventDetail(eventId: number): Promise<PublicEventDetail> {
-  const res = await publicApiFetch(`/public/events/${eventId}`);
+export async function getPublicEventDetail(eventId: EventRouteId): Promise<PublicEventDetail> {
+  const res = await publicApiFetch(`/public/events/${toEventRouteId(eventId)}`);
   return res.json();
 }
 
-export async function listPublicEventComments(eventId: number): Promise<PublicEventComment[]> {
-  const res = await publicApiFetch(`/public/events/${eventId}/comments`);
+export async function listPublicEventComments(eventId: EventRouteId): Promise<PublicEventComment[]> {
+  const res = await publicApiFetch(`/public/events/${toEventRouteId(eventId)}/comments`);
   return res.json();
 }
 
-export async function createPublicEventComment(eventId: number, body: string): Promise<PublicEventComment> {
-  const res = await memberApiFetch(`/public/events/${eventId}/comments`, {
+export async function createPublicEventComment(eventId: EventRouteId, body: string): Promise<PublicEventComment> {
+  const res = await memberApiFetch(`/public/events/${toEventRouteId(eventId)}/comments`, {
     method: "POST",
     body: JSON.stringify({ body }),
   });
@@ -708,10 +762,10 @@ export async function createPublicEventComment(eventId: number, body: string): P
 }
 
 export async function reportPublicEventComment(
-  eventId: number,
+  eventId: EventRouteId,
   commentId: number,
 ): Promise<{ ok: boolean; status: string; report_count: number }> {
-  const res = await memberApiFetch(`/public/events/${eventId}/comments/${commentId}/report`, {
+  const res = await memberApiFetch(`/public/events/${toEventRouteId(eventId)}/comments/${commentId}/report`, {
     method: "POST",
   });
   return res.json();
@@ -734,13 +788,13 @@ export async function updateAdminEventComment(
   return res.json();
 }
 
-export async function getPublicEventInfo(eventId: number): Promise<PublicEventInfo> {
-  const res = await publicApiFetch(`/events/${eventId}/info`);
+export async function getPublicEventInfo(eventId: EventRouteId): Promise<PublicEventInfo> {
+  const res = await publicApiFetch(`/events/${toEventRouteId(eventId)}/info`);
   return res.json();
 }
 
 export async function publicRegisterAttendee(
-  eventId: number,
+  eventId: EventRouteId,
   data: { name: string; email: string; registration_answers?: Record<string, string> }
 ): Promise<{
   ok: boolean;
@@ -756,7 +810,7 @@ export async function publicRegisterAttendee(
   status_url?: string;
 }> {
   const fetcher = getPublicMemberToken() ? memberApiFetch : publicApiFetch;
-  const res = await fetcher(`/events/${eventId}/register`, {
+  const res = await fetcher(`/events/${toEventRouteId(eventId)}/register`, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -764,33 +818,33 @@ export async function publicRegisterAttendee(
 }
 
 export async function resolvePublicSurveyToken(
-  eventId: number,
+  eventId: EventRouteId,
   surveyToken: string,
 ): Promise<PublicSurveyAccess> {
   const res = await publicApiFetch(
-    `/events/${eventId}/survey-access?token=${encodeURIComponent(surveyToken)}`,
+    `/events/${toEventRouteId(eventId)}/survey-access?token=${encodeURIComponent(surveyToken)}`,
   );
   return res.json();
 }
 
 export async function verifyPublicAttendeeEmail(
-  eventId: number,
+  eventId: EventRouteId,
   token: string,
 ): Promise<{ detail: string; attendee_id: number; event_id: number; status_url?: string | null }> {
   const res = await publicApiFetch(
-    `/events/${eventId}/verify-email?token=${encodeURIComponent(token)}`,
+    `/events/${toEventRouteId(eventId)}/verify-email?token=${encodeURIComponent(token)}`,
     { method: "GET" },
   );
   return res.json();
 }
 
 export async function submitBuiltinSurvey(
-  eventId: number,
+  eventId: EventRouteId,
   attendeeId: number | null,
   answers: Record<string, unknown>,
   surveyToken?: string,
 ) {
-  const res = await fetch(`${API_BASE}/surveys/${eventId}/submit`, {
+  const res = await fetch(`${API_BASE}/surveys/${toEventRouteId(eventId)}/submit`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -839,11 +893,11 @@ export type PublicParticipantStatus = {
 };
 
 export async function getPublicParticipantStatus(
-  eventId: number,
+  eventId: EventRouteId,
   surveyToken: string,
 ): Promise<PublicParticipantStatus> {
   const res = await fetch(
-    `${API_BASE}/events/${eventId}/participant-status?token=${encodeURIComponent(surveyToken)}`,
+    `${API_BASE}/events/${toEventRouteId(eventId)}/participant-status?token=${encodeURIComponent(surveyToken)}`,
     { cache: "no-store" },
   );
   if (!res.ok) {
@@ -876,12 +930,12 @@ export type PublicParticipantBadge = {
 };
 
 export async function getPublicAttendeeBadges(
-  eventId: number,
+  eventId: EventRouteId,
   attendeeId: number,
   email: string,
 ): Promise<{ total_badges: number; badges: PublicParticipantBadge[] }> {
   const res = await fetch(
-    `${API_BASE}/events/${eventId}/attendees/${attendeeId}/badges?email=${encodeURIComponent(email)}`,
+    `${API_BASE}/events/${toEventRouteId(eventId)}/attendees/${attendeeId}/badges?email=${encodeURIComponent(email)}`,
     { cache: "no-store" },
   );
   if (!res.ok) {

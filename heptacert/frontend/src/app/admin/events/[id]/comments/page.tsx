@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { Loader2, MessageSquare, ShieldAlert } from "lucide-react";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 import PageHeader from "@/components/Admin/PageHeader";
-import { getPublicEventInfo, listAdminEventComments, updateAdminEventComment, type PublicEventComment } from "@/lib/api";
+import { apiFetch, listAdminEventComments, updateAdminEventComment, type PublicEventComment } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -29,14 +29,14 @@ export default function EventCommentsAdminPage() {
       lang === "tr"
         ? {
             title: "Yorum Moderasyonu",
-            subtitle: "Public etkinlik sayfas?ndaki yorumlar? tek yerden g?r?n, raporlananlar? inceleyin ve g?r?n?rl??? y?netin.",
-            empty: "Bu etkinlik i?in hen?z yorum yok.",
+            subtitle: "Açık etkinlik sayfasındaki yorumları tek yerden görün, raporlananları inceleyin ve görünürlüğü yönetin.",
+            empty: "Bu etkinlik için henüz yorum yok.",
             reported: "Rapor",
             hide: "Gizle",
-            publish: "Yay?na Al",
-            member: "?ye",
-            updated: "G?ncellendi",
-            fallback: "Yorumlar y?klenemedi.",
+            publish: "Yayına Al",
+            member: "Üye",
+            updated: "Güncellendi",
+            fallback: "Yorumlar yüklenemedi.",
           }
         : {
             title: "Comment Moderation",
@@ -59,7 +59,7 @@ export default function EventCommentsAdminPage() {
 
     Promise.all([
       listAdminEventComments(Number(eventId)),
-      getPublicEventInfo(Number(eventId)).catch(() => null),
+      apiFetch(`/admin/events/${eventId}`).then((response) => response.json()).catch(() => null),
     ])
       .then(([commentData, eventInfo]) => {
         if (!active) return;

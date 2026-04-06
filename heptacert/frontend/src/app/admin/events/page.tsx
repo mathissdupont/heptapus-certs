@@ -34,7 +34,7 @@ import EmptyState from "@/components/Admin/EmptyState";
 import { StatCard } from "@/components/Admin/StatCard";
 import { useI18n } from "@/lib/i18n";
 
-type EventOut = { id: number; name: string; template_image_url: string; config: any };
+type EventOut = { id: number; public_id?: string | null; name: string; template_image_url: string; config: any };
 type MeOut = { id: number; email: string; role: "admin" | "superadmin"; heptacoin_balance: number };
 type EventStat = { event_id: number; active: number; total: number };
 
@@ -157,8 +157,9 @@ export default function AdminEvents() {
     },
   }[lang];
 
-  function copyRegisterLink(id: number) {
-    const url = `${window.location.origin}/events/${id}/register`;
+  function copyRegisterLink(id: number, publicId?: string | null) {
+    const routeId = publicId || String(id);
+    const url = `${window.location.origin}/events/${routeId}/register`;
     navigator.clipboard.writeText(url).then(() => {
       setCopiedId(id);
       setTimeout(() => setCopiedId(null), 2000);
@@ -499,7 +500,7 @@ export default function AdminEvents() {
                             <Hash className="h-3.5 w-3.5" /> {copy.sessions}
                           </Link>
                           {hasPaidPlan && (
-                            <button onClick={() => copyRegisterLink(ev.id)} className="inline-flex items-center gap-1.5 rounded-lg border border-sky-100 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-100">
+                            <button onClick={() => copyRegisterLink(ev.id, ev.public_id)} className="inline-flex items-center gap-1.5 rounded-lg border border-sky-100 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-100">
                               {copiedId === ev.id ? (
                                 <>
                                   <ClipboardCheck className="h-3.5 w-3.5" /> {copy.copied}

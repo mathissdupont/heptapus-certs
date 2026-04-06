@@ -27,6 +27,7 @@ interface SessionInfo {
   session_location: string | null;
   is_active: boolean;
   event_id: number;
+  event_public_id: string;
   event_name: string;
   event_date: string | null;
   min_sessions_required: number;
@@ -127,8 +128,8 @@ export default function AttendCheckinPage() {
 
   const brandName = branding?.org_name || "HeptaCert";
   const brandColor = branding?.brand_color || "#2563eb";
-  const eventHref = sessionInfo ? `/events/${sessionInfo.event_id}/register` : "#";
-  const statusHref = sessionInfo ? `/events/${sessionInfo.event_id}/status` : "#";
+  const eventHref = sessionInfo ? `/events/${sessionInfo.event_public_id}/register` : "#";
+  const statusHref = sessionInfo ? `/events/${sessionInfo.event_public_id}/status` : "#";
   const locale = lang === "tr" ? "tr-TR" : "en-US";
 
   const pageBg = useMemo(
