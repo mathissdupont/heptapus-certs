@@ -1,6 +1,6 @@
 """Add richer public member profile fields.
 
-Revision ID: 025_public_member_profile_enrichment
+Revision ID: 025_pub_member_profile_enrich
 Revises: 024_public_member_profile_fields
 Create Date: 2026-04-06
 """
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "025_public_member_profile_enrichment"
+revision = "025_pub_member_profile_enrich"
 down_revision = "024_public_member_profile_fields"
 branch_labels = None
 depends_on = None
