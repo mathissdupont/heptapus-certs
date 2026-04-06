@@ -48,7 +48,13 @@ async def test_get_domain_returns_owned_domain_details():
 
     async with SessionLocal() as sess:
         async with sess.begin():
-            org = Organization(user_id=user.id, org_name="Acme", custom_domain="brand.example.test", brand_color="#123456")
+            org = Organization(
+                user_id=user.id,
+                public_id="org_domain_detail",
+                org_name="Acme",
+                custom_domain="brand.example.test",
+                brand_color="#123456",
+            )
             sess.add(org)
             sess.add(Domain(domain="brand.example.test", owner=str(user.id), token="secret-token", status="pending"))
 
@@ -73,7 +79,13 @@ async def test_delete_domain_clears_custom_domain_and_blocks_other_users():
 
     async with SessionLocal() as sess:
         async with sess.begin():
-            sess.add(Organization(user_id=owner.id, org_name="OwnerOrg", custom_domain="delete.example.test", brand_color="#654321"))
+            sess.add(Organization(
+                user_id=owner.id,
+                public_id="org_domain_delete",
+                org_name="OwnerOrg",
+                custom_domain="delete.example.test",
+                brand_color="#654321",
+            ))
             sess.add(Domain(domain="delete.example.test", owner=str(owner.id), token="delete-token", status="pending"))
 
     transport = ASGITransport(app=app)
