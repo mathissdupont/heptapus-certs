@@ -5,8 +5,26 @@ Tests the actual HTTP endpoints with mocked DB where needed.
 import pytest
 from datetime import date, timedelta
 from httpx import AsyncClient, ASGITransport
+from sqlalchemy import func, select
 
-from src.main import app, create_access_token, hash_password, PublicMember, Role, SessionLocal, User, Event, Organization, Subscription, CommunityPost
+from src.main import (
+    app,
+    Attendee,
+    CommunityPost,
+    CommunityPostComment,
+    CommunityPostLike,
+    Event,
+    Organization,
+    OrganizationFollower,
+    PublicMember,
+    Role,
+    SessionLocal,
+    Subscription,
+    User,
+    create_access_token,
+    create_public_member_access_token,
+    hash_password,
+)
 
 
 @pytest.fixture
@@ -23,6 +41,48 @@ def superadmin_token():
 def partial_token():
     from src.main import create_partial_token
     return create_partial_token(user_id=1)
+
+
+async def _create_public_member(*, email: str, public_id: str, password: str = "MemberPass123!", display_name: str = "Member User"):
+    async with SessionLocal() as db:
+        member = PublicMember(
+            public_id=public_id,
+            email=email,
+            display_name=display_name,
+            password_hash=hash_password(password),
+            is_verified=True,
+        )
+        db.add(member)
+        await db.commit()
+        await db.refresh(member)
+        return member.id, create_public_member_access_token(member_id=member.id)
+
+
+async def _create_admin_with_org(
+    *,
+    email: str,
+    org_public_id: str,
+    org_name: str,
+    premium_plan: str | None = "growth",
+):
+    async with SessionLocal() as db:
+        admin = User(email=email, password_hash=hash_password("AdminPass123!"), role=Role.admin)
+        db.add(admin)
+        await db.flush()
+        org = Organization(
+            user_id=admin.id,
+            public_id=org_public_id,
+            org_name=org_name,
+            brand_color="#123456",
+            settings={},
+        )
+        db.add(org)
+        if premium_plan:
+            db.add(Subscription(user_id=admin.id, plan_id=premium_plan, is_active=True))
+        await db.commit()
+        await db.refresh(admin)
+        await db.refresh(org)
+        return admin.id, org.id, create_access_token(user_id=admin.id, role=Role.admin)
 
 
 # ── Health check ─────────────────────────────────────────────────────────────
@@ -611,6 +671,7 @@ class TestEmailConfigEndpoints:
         async with SessionLocal() as sess:
             async with sess.begin():
                 member = PublicMember(
+                    public_id="mem_viewer_user",
                     email="viewer@example.com",
                     display_name="Viewer User",
                     bio="Profile bio",
@@ -622,14 +683,298 @@ class TestEmailConfigEndpoints:
                 )
                 sess.add(member)
                 await sess.flush()
-                member_id = member.id
+                member_public_id = member.public_id
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            resp = await ac.get(f"/api/public/members/{member_id}")
+            resp = await ac.get(f"/api/public/members/{member_public_id}")
         assert resp.status_code == 200
         payload = resp.json()
         assert payload["display_name"] == "Viewer User"
         assert payload["headline"] == "Community Builder"
         assert payload["location"] == "Istanbul"
         assert payload["website_url"] == "https://example.com"
+
+
+class TestRouterRegistration:
+    def test_public_community_routes_are_registered(self):
+        paths = {route.path for route in app.routes}
+        assert "/api/public/organizations" in paths
+        assert "/api/public/feed" in paths
+        assert "/api/admin/community/posts" in paths
+
+
+class TestAccountDeletionFlows:
+    @pytest.mark.asyncio
+    async def test_public_member_delete_account_removes_related_social_data(self):
+        member_id, member_token = await _create_public_member(
+            email="delete-member@test.com",
+            public_id="mem_delete_member",
+        )
+        admin_id, org_id, _admin_token = await _create_admin_with_org(
+            email="delete-org-admin@test.com",
+            org_public_id="org_delete_member",
+            org_name="Delete Member Org",
+        )
+
+        async with SessionLocal() as db:
+            event = Event(
+                admin_id=admin_id,
+                public_id="evt_delete_member",
+                name="Delete Member Event",
+                template_image_url="placeholder",
+                config={"visibility": "public"},
+            )
+            db.add(event)
+            await db.flush()
+
+            attendee = Attendee(
+                event_id=event.id,
+                name="Delete Member",
+                email="delete-member@test.com",
+                public_member_id=member_id,
+            )
+            admin_post = CommunityPost(
+                public_id="post_delete_admin",
+                org_id=org_id,
+                author_user_id=admin_id,
+                body="Admin post for deletion test",
+            )
+            member_post = CommunityPost(
+                public_id="post_delete_member",
+                org_id=org_id,
+                author_public_member_id=member_id,
+                body="Member post to be deleted",
+            )
+            db.add_all([
+                attendee,
+                admin_post,
+                member_post,
+                OrganizationFollower(org_id=org_id, public_member_id=member_id),
+            ])
+            await db.flush()
+            attendee_id = attendee.id
+            db.add(CommunityPostLike(post_id=admin_post.id, public_member_id=member_id))
+            db.add(CommunityPostComment(post_id=admin_post.id, public_member_id=member_id, body="Delete my comment"))
+            await db.commit()
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.request(
+                "DELETE",
+                "/api/public/me",
+                json={"current_password": "MemberPass123!"},
+                headers={"Authorization": f"Bearer {member_token}"},
+            )
+        assert resp.status_code == 200
+
+        async with SessionLocal() as db:
+            member = await db.get(PublicMember, member_id)
+            attendee_res = await db.get(Attendee, attendee_id)
+            follower_count = await db.scalar(
+                select(func.count(OrganizationFollower.id)).where(OrganizationFollower.public_member_id == member_id)
+            )
+            like_count = await db.scalar(
+                select(func.count(CommunityPostLike.id)).where(CommunityPostLike.public_member_id == member_id)
+            )
+            comment_count = await db.scalar(
+                select(func.count(CommunityPostComment.id)).where(CommunityPostComment.public_member_id == member_id)
+            )
+            post_count = await db.scalar(
+                select(func.count(CommunityPost.id)).where(CommunityPost.author_public_member_id == member_id)
+            )
+
+        assert member is None
+        assert attendee_res is not None
+        assert attendee_res.public_member_id is None
+        assert follower_count == 0
+        assert like_count == 0
+        assert comment_count == 0
+        assert post_count == 0
+
+    @pytest.mark.asyncio
+    async def test_public_member_delete_account_rejects_wrong_password(self):
+        member_id, member_token = await _create_public_member(
+            email="delete-member-wrong@test.com",
+            public_id="mem_delete_wrong",
+        )
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.request(
+                "DELETE",
+                "/api/public/me",
+                json={"current_password": "WrongPassword123!"},
+                headers={"Authorization": f"Bearer {member_token}"},
+            )
+        assert resp.status_code == 400
+
+        async with SessionLocal() as db:
+            member = await db.get(PublicMember, member_id)
+        assert member is not None
+
+    @pytest.mark.asyncio
+    async def test_admin_delete_account_success(self):
+        async with SessionLocal() as db:
+            admin = User(email="delete-admin@test.com", password_hash=hash_password("AdminPass123!"), role=Role.admin)
+            db.add(admin)
+            await db.commit()
+            await db.refresh(admin)
+            admin_id = admin.id
+
+        token = create_access_token(user_id=admin_id, role=Role.admin)
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.request(
+                "DELETE",
+                "/api/me",
+                json={"current_password": "AdminPass123!"},
+                headers={"Authorization": f"Bearer {token}"},
+            )
+        assert resp.status_code == 200
+
+        async with SessionLocal() as db:
+            admin = await db.get(User, admin_id)
+        assert admin is None
+
+    @pytest.mark.asyncio
+    async def test_superadmin_delete_account_blocked(self):
+        async with SessionLocal() as db:
+            superadmin = User(email="delete-superadmin@test.com", password_hash=hash_password("AdminPass123!"), role=Role.superadmin)
+            db.add(superadmin)
+            await db.commit()
+            await db.refresh(superadmin)
+            superadmin_id = superadmin.id
+
+        token = create_access_token(user_id=superadmin_id, role=Role.superadmin)
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.request(
+                "DELETE",
+                "/api/me",
+                json={"current_password": "AdminPass123!"},
+                headers={"Authorization": f"Bearer {token}"},
+            )
+        assert resp.status_code == 400
+
+        async with SessionLocal() as db:
+            superadmin = await db.get(User, superadmin_id)
+        assert superadmin is not None
+
+
+class TestCommunitySocialFlows:
+    @pytest.mark.asyncio
+    async def test_admin_can_create_list_and_delete_community_posts(self):
+        admin_id, org_id, admin_token = await _create_admin_with_org(
+            email="community-admin@test.com",
+            org_public_id="org_admin_feed",
+            org_name="Community Admin Org",
+        )
+        assert admin_id > 0
+        assert org_id > 0
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            create_resp = await ac.post(
+                "/api/admin/community/posts",
+                json={"body": "Admin community announcement"},
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+            assert create_resp.status_code == 201
+            post_public_id = create_resp.json()["public_id"]
+
+            list_resp = await ac.get(
+                "/api/admin/community/posts",
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+            assert list_resp.status_code == 200
+            assert any(item["public_id"] == post_public_id for item in list_resp.json())
+
+            delete_resp = await ac.delete(
+                f"/api/admin/community/posts/{post_public_id}",
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+            assert delete_resp.status_code == 200
+
+            list_after_delete = await ac.get(
+                "/api/admin/community/posts",
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+            assert list_after_delete.status_code == 200
+            assert all(item["public_id"] != post_public_id for item in list_after_delete.json())
+
+    @pytest.mark.asyncio
+    async def test_member_can_create_like_and_comment_on_premium_org_feed(self):
+        admin_id, org_id, admin_token = await _create_admin_with_org(
+            email="community-member-admin@test.com",
+            org_public_id="org_member_feed",
+            org_name="Community Member Org",
+        )
+        member_id, member_token = await _create_public_member(
+            email="community-member@test.com",
+            public_id="mem_community_member",
+            display_name="Community Member",
+        )
+        assert admin_id > 0
+        assert org_id > 0
+        assert member_id > 0
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            admin_post_resp = await ac.post(
+                "/api/admin/community/posts",
+                json={"body": "Admin seeded post"},
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+            assert admin_post_resp.status_code == 201
+            admin_post_public_id = admin_post_resp.json()["public_id"]
+
+            member_post_resp = await ac.post(
+                "/api/public/organizations/org_member_feed/feed",
+                json={"body": "Member generated post"},
+                headers={"Authorization": f"Bearer {member_token}"},
+            )
+            assert member_post_resp.status_code == 201
+            assert member_post_resp.json()["author_type"] == "member"
+
+            like_resp = await ac.post(
+                f"/api/public/posts/{admin_post_public_id}/like",
+                headers={"Authorization": f"Bearer {member_token}"},
+            )
+            assert like_resp.status_code == 200
+
+            comment_resp = await ac.post(
+                f"/api/public/posts/{admin_post_public_id}/comments",
+                json={"body": "Looks great"},
+                headers={"Authorization": f"Bearer {member_token}"},
+            )
+            assert comment_resp.status_code == 201
+            assert comment_resp.json()["member_public_id"] == "mem_community_member"
+
+            comments_resp = await ac.get(f"/api/public/posts/{admin_post_public_id}/comments")
+            assert comments_resp.status_code == 200
+            assert any(item["body"] == "Looks great" for item in comments_resp.json())
+
+            org_feed_resp = await ac.get(
+                "/api/public/organizations/org_member_feed/feed",
+                headers={"Authorization": f"Bearer {member_token}"},
+            )
+            assert org_feed_resp.status_code == 200
+            org_feed_payload = org_feed_resp.json()
+            assert any(item["author_type"] == "member" and item["body"] == "Member generated post" for item in org_feed_payload)
+            admin_feed_item = next(item for item in org_feed_payload if item["public_id"] == admin_post_public_id)
+            assert admin_feed_item["liked_by_me"] is True
+            assert admin_feed_item["comment_count"] >= 1
+
+            public_feed_resp = await ac.get(
+                "/api/public/feed",
+                headers={"Authorization": f"Bearer {member_token}"},
+            )
+            assert public_feed_resp.status_code == 200
+            assert any(item["public_id"] == admin_post_public_id for item in public_feed_resp.json())
+
+            unlike_resp = await ac.delete(
+                f"/api/public/posts/{admin_post_public_id}/like",
+                headers={"Authorization": f"Bearer {member_token}"},
+            )
+            assert unlike_resp.status_code == 200
