@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { listSessions, adminManualCheckin, apiFetch, getMySubscription, type SessionOut, type SubscriptionInfo } from "@/lib/api";
 import Link from "next/link";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
@@ -17,6 +17,7 @@ interface CheckinEntry {
 
 export default function AdminCheckinPage() {
   const params = useParams();
+  const router = useRouter();
   const eventId = Number(params?.id);
 
   const [eventName, setEventName] = useState("");
@@ -53,6 +54,12 @@ export default function AdminCheckinPage() {
   }
 
   useEffect(() => { if (eventId) load(); }, [eventId]);
+
+  useEffect(() => {
+    if (planOk === false) {
+      router.replace("/pricing?source=admin-premium");
+    }
+  }, [planOk, router]);
 
   // Refocus input after each check-in
   useEffect(() => {
