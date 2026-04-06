@@ -2990,12 +2990,6 @@ except Exception:
     # Import errors at startup shouldn't break the app; log and continue.
     logger.debug("domains_api not loaded at startup (will try on demand)")
 
-from . import community_api as _community_api
-app.include_router(_community_api.router)
-
-from . import social_api as _social_api
-app.include_router(_social_api.router)
-
 origins = [o.strip() for o in settings.cors_origins.split(",")] if settings.cors_origins else ["*"]
 # When wildcard, allow_credentials must be False (browser blocks credentials+wildcard per CORS spec).
 # JWT auth uses Authorization header Ã¢â‚¬â€ no cookies Ã¢â‚¬â€ so credentials=False is fine.
@@ -12543,4 +12537,11 @@ async def verify_unsubscribe_token(
         "valid": is_valid,
         "attendee_email": attendee.email if is_valid else None,
     }
+
+
+from . import community_api as _community_api
+app.include_router(_community_api.router)
+
+from . import social_api as _social_api
+app.include_router(_social_api.router)
 
