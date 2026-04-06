@@ -29,6 +29,7 @@ import pyotp
 from fastapi import FastAPI, Body, Depends, HTTPException, UploadFile, File, Query, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse, RedirectResponse, JSONResponse
+from .moderation import moderate_public_text
 try:
     from PIL import Image as PILImage
 except ImportError:
@@ -457,6 +458,18 @@ class Subscription(Base):
     __table_args__ = (Index("ix_sub_user", "user_id"),)
 
 
+class PublicMemberSubscription(Base):
+    __tablename__ = "public_member_subscriptions"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    public_member_id: Mapped[int] = mapped_column(Integer, ForeignKey("public_members.id", ondelete="CASCADE"))
+    plan_id: Mapped[str] = mapped_column(String(64))
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    __table_args__ = (Index("ix_public_member_sub_member", "public_member_id"),)
+
+
 # Ã¢â€â‚¬Ã¢â€â‚¬ Enterprise DB models (created by migration 003) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 class ApiKey(Base):
@@ -556,7 +569,7 @@ class CommunityPost(Base):
     __tablename__ = "community_posts"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     public_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
-    org_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    org_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=True)
     author_user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True)
     author_public_member_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("public_members.id", ondelete="SET NULL"), index=True, nullable=True)
     body: Mapped[str] = mapped_column(Text)
@@ -1267,8 +1280,8 @@ class CommunityPostCommentOut(BaseModel):
 
 class CommunityPostOut(BaseModel):
     public_id: str
-    organization_public_id: str
-    organization_name: str
+    organization_public_id: Optional[str] = None
+    organization_name: Optional[str] = None
     author_type: str
     author_public_id: Optional[str] = None
     author_name: str
@@ -7648,6 +7661,27 @@ async def public_me(
     )
 
 
+@app.get("/api/public/billing/subscription")
+async def get_public_member_subscription(
+    member: CurrentPublicMember = Depends(get_current_public_member),
+    db: AsyncSession = Depends(get_db),
+):
+    res = await db.execute(
+        select(PublicMemberSubscription)
+        .where(PublicMemberSubscription.public_member_id == member.id, PublicMemberSubscription.is_active == True)
+        .order_by(PublicMemberSubscription.expires_at.desc().nullslast())
+        .limit(1)
+    )
+    sub = res.scalar_one_or_none()
+    if not sub:
+        return {"active": False, "plan_id": None, "expires_at": None}
+    return {
+        "active": True,
+        "plan_id": sub.plan_id,
+        "expires_at": sub.expires_at.isoformat() if sub.expires_at else None,
+    }
+
+
 @app.patch("/api/public/me", response_model=PublicMemberMeOut)
 async def update_public_me(
     data: PublicMemberProfileUpdateIn,
@@ -10034,6 +10068,7 @@ async def system_health(db: AsyncSession = Depends(get_db)):
 # Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
 
 class GrantSubscriptionIn(BaseModel):
+    target_type: str = Field(default="admin", pattern="^(admin|member)$")
     user_email: str
     plan_id: str
     days: int = 365
@@ -10050,10 +10085,10 @@ async def list_all_subscriptions(db: AsyncSession = Depends(get_db)):
         .order_by(Subscription.started_at.desc())
         .limit(500)
     )
-    rows = res.all()
-    return [
+    rows = [
         {
             "id": sub.id,
+            "target_type": "admin",
             "user_id": sub.user_id,
             "user_email": email,
             "plan_id": sub.plan_id,
@@ -10062,8 +10097,30 @@ async def list_all_subscriptions(db: AsyncSession = Depends(get_db)):
             "expires_at": sub.expires_at.isoformat() if sub.expires_at else None,
             "is_active": sub.is_active,
         }
-        for sub, email in rows
+        for sub, email in res.all()
     ]
+    member_res = await db.execute(
+        select(PublicMemberSubscription, PublicMember.email)
+        .join(PublicMember, PublicMember.id == PublicMemberSubscription.public_member_id)
+        .order_by(PublicMemberSubscription.started_at.desc())
+        .limit(500)
+    )
+    rows.extend(
+        {
+            "id": sub.id,
+            "target_type": "member",
+            "user_id": sub.public_member_id,
+            "user_email": email,
+            "plan_id": sub.plan_id,
+            "order_id": None,
+            "started_at": sub.started_at.isoformat() if sub.started_at else None,
+            "expires_at": sub.expires_at.isoformat() if sub.expires_at else None,
+            "is_active": sub.is_active,
+        }
+        for sub, email in member_res.all()
+    )
+    rows.sort(key=lambda item: item.get("started_at") or "", reverse=True)
+    return rows[:500]
 
 
 @app.post(
@@ -10072,6 +10129,45 @@ async def list_all_subscriptions(db: AsyncSession = Depends(get_db)):
     status_code=201,
 )
 async def grant_subscription(payload: GrantSubscriptionIn, db: AsyncSession = Depends(get_db)):
+    if payload.target_type == "member":
+        valid_member_plans = ["member_plus", "member_pro"]
+        if payload.plan_id not in valid_member_plans:
+            raise HTTPException(status_code=400, detail=f"Gecersiz uye plani. Gecerli planlar: {', '.join(valid_member_plans)}")
+
+        member_res = await db.execute(select(PublicMember).where(PublicMember.email == payload.user_email))
+        member = member_res.scalar_one_or_none()
+        if not member:
+            raise HTTPException(status_code=404, detail="Uye bulunamadi.")
+
+        await db.execute(
+            update(PublicMemberSubscription)
+            .where(PublicMemberSubscription.public_member_id == member.id, PublicMemberSubscription.is_active == True)
+            .values(is_active=False)
+        )
+
+        now = datetime.now(timezone.utc)
+        new_member_sub = PublicMemberSubscription(
+            public_member_id=member.id,
+            plan_id=payload.plan_id,
+            started_at=now,
+            expires_at=now + timedelta(days=payload.days),
+            is_active=True,
+        )
+        db.add(new_member_sub)
+        await db.commit()
+        await db.refresh(new_member_sub)
+
+        return {
+            "id": new_member_sub.id,
+            "target_type": "member",
+            "user_id": new_member_sub.public_member_id,
+            "user_email": member.email,
+            "plan_id": new_member_sub.plan_id,
+            "started_at": new_member_sub.started_at.isoformat() if new_member_sub.started_at else None,
+            "expires_at": new_member_sub.expires_at.isoformat() if new_member_sub.expires_at else None,
+            "is_active": new_member_sub.is_active,
+        }
+
     # Find user by email
     user_res = await db.execute(select(User).where(User.email == payload.user_email))
     user = user_res.scalar_one_or_none()
@@ -10114,6 +10210,7 @@ async def grant_subscription(payload: GrantSubscriptionIn, db: AsyncSession = De
 
     return {
         "id": new_sub.id,
+        "target_type": "admin",
         "user_id": new_sub.user_id,
         "user_email": user.email,
         "plan_id": new_sub.plan_id,
@@ -10138,6 +10235,20 @@ async def revoke_subscription(sub_id: int, db: AsyncSession = Depends(get_db)):
 
 
 # Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+@app.delete(
+    "/api/superadmin/public-member-subscriptions/{sub_id}",
+    dependencies=[Depends(require_role(Role.superadmin))],
+)
+async def revoke_public_member_subscription(sub_id: int, db: AsyncSession = Depends(get_db)):
+    res = await db.execute(select(PublicMemberSubscription).where(PublicMemberSubscription.id == sub_id))
+    sub = res.scalar_one_or_none()
+    if not sub:
+        raise HTTPException(status_code=404, detail="Uye aboneligi bulunamadi.")
+    sub.is_active = False
+    await db.commit()
+    return {"detail": "Uye aboneligi iptal edildi."}
+
+
 # Magic Link Authentication
 # Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
 
@@ -10741,11 +10852,12 @@ async def create_public_event_comment(
     event = await _resolve_public_event(db, event_id)
     if not event or _get_event_visibility(event) == "private":
         raise HTTPException(status_code=404, detail="Event not found")
+    body = moderate_public_text(payload.body)
 
     comment = EventComment(
         event_id=event.id,
         public_member_id=member.id,
-        body=payload.body,
+        body=body,
         status="visible",
     )
     db.add(comment)

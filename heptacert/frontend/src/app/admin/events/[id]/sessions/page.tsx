@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   listSessions, createSession, updateSession, deleteSession,
   toggleSession, fetchSessionQr, apiFetch, getMySubscription,
@@ -49,6 +49,7 @@ function RegisterLinkBanner({ eventId }: { eventId: string }) {
 
 export default function AdminSessionsPage() {
   const params = useParams();
+  const router = useRouter();
   const eventId = Number(params?.id);
 
   const [sessions, setSessions] = useState<SessionOut[]>([]);
@@ -100,6 +101,12 @@ export default function AdminSessionsPage() {
   }
 
   useEffect(() => { if (eventId) load(); }, [eventId]);
+
+  useEffect(() => {
+    if (planOk === false) {
+      router.replace("/pricing?source=admin-premium");
+    }
+  }, [planOk, router]);
 
   function openCreate() {
     setEditingSession(null);

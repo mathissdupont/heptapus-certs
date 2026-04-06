@@ -17,6 +17,7 @@ from src.main import (
     Organization,
     OrganizationFollower,
     PublicMember,
+    PublicMemberSubscription,
     Role,
     SessionLocal,
     Subscription,
@@ -610,6 +611,53 @@ class TestSuperadminSubscriptions:
             resp = await ac.get("/api/superadmin/subscriptions")
         assert resp.status_code == 401
 
+    @pytest.mark.asyncio
+    async def test_superadmin_can_grant_member_subscription_and_member_can_read_it(self):
+        async with SessionLocal() as db:
+            superadmin = User(email="member-sub-superadmin@test.com", password_hash=hash_password("AdminPass123!"), role=Role.superadmin)
+            member = PublicMember(
+                public_id="mem_subscribed_member",
+                email="member-sub@test.com",
+                display_name="Subscribed Member",
+                password_hash=hash_password("MemberPass123!"),
+                is_verified=True,
+            )
+            db.add_all([superadmin, member])
+            await db.commit()
+            await db.refresh(superadmin)
+            await db.refresh(member)
+            superadmin_token = create_access_token(user_id=superadmin.id, role=Role.superadmin)
+            member_token = create_public_member_access_token(member_id=member.id)
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            grant_resp = await ac.post(
+                "/api/superadmin/subscriptions/grant",
+                json={
+                    "target_type": "member",
+                    "user_email": "member-sub@test.com",
+                    "plan_id": "member_plus",
+                    "days": 30,
+                },
+                headers={"Authorization": f"Bearer {superadmin_token}"},
+            )
+            assert grant_resp.status_code == 201
+            assert grant_resp.json()["target_type"] == "member"
+
+            billing_resp = await ac.get(
+                "/api/public/billing/subscription",
+                headers={"Authorization": f"Bearer {member_token}"},
+            )
+            assert billing_resp.status_code == 200
+            assert billing_resp.json()["active"] is True
+            assert billing_resp.json()["plan_id"] == "member_plus"
+
+        async with SessionLocal() as db:
+            sub_count = await db.scalar(
+                select(func.count(PublicMemberSubscription.id)).where(PublicMemberSubscription.plan_id == "member_plus")
+            )
+        assert sub_count == 1
+
 
 # ── Email config endpoints ──────────────────────────────────────────────────
 
@@ -978,3 +1026,91 @@ class TestCommunitySocialFlows:
                 headers={"Authorization": f"Bearer {member_token}"},
             )
             assert unlike_resp.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_member_can_create_global_feed_post(self):
+        member_id, member_token = await _create_public_member(
+            email="global-feed-member@test.com",
+            public_id="mem_global_feed_member",
+            display_name="Global Feed Member",
+        )
+        assert member_id > 0
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            create_resp = await ac.post(
+                "/api/public/feed",
+                json={"body": "Hello from the global feed"},
+                headers={"Authorization": f"Bearer {member_token}"},
+            )
+            assert create_resp.status_code == 201
+            payload = create_resp.json()
+            assert payload["author_type"] == "member"
+            assert payload["organization_public_id"] is None
+            assert payload["author_public_id"] == "mem_global_feed_member"
+
+            feed_resp = await ac.get(
+                "/api/public/feed",
+                headers={"Authorization": f"Bearer {member_token}"},
+            )
+            assert feed_resp.status_code == 200
+            feed_payload = feed_resp.json()
+            item = next(item for item in feed_payload if item["public_id"] == payload["public_id"])
+            assert item["body"] == "Hello from the global feed"
+            assert item["organization_name"] is None
+
+    @pytest.mark.asyncio
+    async def test_global_feed_rejects_profanity_and_link_spam(self):
+        _member_id, member_token = await _create_public_member(
+            email="global-feed-guard@test.com",
+            public_id="mem_global_feed_guard",
+            display_name="Guarded Member",
+        )
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            profanity_resp = await ac.post(
+                "/api/public/feed",
+                json={"body": "bu gercekten amk bir post"},
+                headers={"Authorization": f"Bearer {member_token}"},
+            )
+            assert profanity_resp.status_code == 422
+
+            spam_resp = await ac.post(
+                "/api/public/feed",
+                json={"body": "https://a.com https://b.com https://c.com buyuk kampanya"},
+                headers={"Authorization": f"Bearer {member_token}"},
+            )
+            assert spam_resp.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_public_event_comment_rejects_spammy_content(self):
+        member_id, member_token = await _create_public_member(
+            email="event-comment-guard@test.com",
+            public_id="mem_event_comment_guard",
+            display_name="Event Guard",
+        )
+        assert member_id > 0
+
+        async with SessionLocal() as db:
+            admin = User(email="event-guard-admin@test.com", password_hash=hash_password("AdminPass123!"), role=Role.admin)
+            db.add(admin)
+            await db.flush()
+            event = Event(
+                admin_id=admin.id,
+                public_id="evt_guard_comment",
+                name="Guarded Event",
+                template_image_url="placeholder",
+                config={"visibility": "public"},
+            )
+            db.add(event)
+            await db.commit()
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.post(
+                "/api/public/events/evt_guard_comment/comments",
+                json={"body": "aaaaaaaAAAAAAAAA!!!!!!!!!"},
+                headers={"Authorization": f"Bearer {member_token}"},
+            )
+        assert resp.status_code == 422

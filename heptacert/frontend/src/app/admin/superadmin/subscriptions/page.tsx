@@ -18,6 +18,7 @@ import { useI18n } from "@/lib/i18n";
 
 type SubscriptionRow = {
   id: number;
+  target_type?: "admin" | "member";
   user_id: number;
   user_email: string;
   plan_id: string;
@@ -27,12 +28,15 @@ type SubscriptionRow = {
   is_active: boolean;
 };
 
-const PLAN_OPTIONS = ["starter", "pro", "growth", "enterprise"] as const;
+const ADMIN_PLAN_OPTIONS = ["starter", "pro", "growth", "enterprise"] as const;
+const MEMBER_PLAN_OPTIONS = ["member_plus", "member_pro"] as const;
 const PLAN_TONES: Record<string, string> = {
   starter: "bg-surface-100 text-surface-700",
   pro: "bg-violet-100 text-violet-700",
   growth: "bg-rose-100 text-rose-700",
   enterprise: "bg-amber-100 text-amber-700",
+  member_plus: "bg-sky-100 text-sky-700",
+  member_pro: "bg-emerald-100 text-emerald-700",
 };
 
 export default function SuperadminSubscriptionsPage() {
@@ -44,8 +48,10 @@ export default function SuperadminSubscriptionsPage() {
   const [revoking, setRevoking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [revokeId, setRevokeId] = useState<number | null>(null);
+  const [revokeType, setRevokeType] = useState<"admin" | "member">("admin");
+  const [grantTargetType, setGrantTargetType] = useState<"admin" | "member">("admin");
   const [grantEmail, setGrantEmail] = useState("");
-  const [grantPlan, setGrantPlan] = useState<(typeof PLAN_OPTIONS)[number]>("starter");
+  const [grantPlan, setGrantPlan] = useState<string>("starter");
   const [grantDays, setGrantDays] = useState(30);
 
   const copy = lang === "tr"
@@ -62,6 +68,9 @@ export default function SuperadminSubscriptionsPage() {
         enterprise: "Kurumsal",
         endingSoon: "Yakında biten",
         grantTitle: "Manuel abonelik ver",
+        accountType: "Hesap tipi",
+        adminType: "Admin",
+        memberType: "Normal kullanici",
         email: "Kullanici e-postasi",
         plan: "Plan",
         days: "Gün",
@@ -90,6 +99,9 @@ export default function SuperadminSubscriptionsPage() {
         enterprise: "Enterprise",
         endingSoon: "Ending soon",
         grantTitle: "Grant manual subscription",
+        accountType: "Account type",
+        adminType: "Admin",
+        memberType: "Member",
         email: "User account email",
         plan: "Plan",
         days: "Days",
@@ -105,6 +117,10 @@ export default function SuperadminSubscriptionsPage() {
         deleteBody: "Are you sure you want to set this subscription to inactive?",
         locale: "en-US",
       };
+
+  useEffect(() => {
+    setGrantPlan(grantTargetType === "member" ? "member_plus" : "starter");
+  }, [grantTargetType]);
 
   const load = async () => {
     try {
@@ -144,11 +160,11 @@ export default function SuperadminSubscriptionsPage() {
       await apiFetch("/superadmin/subscriptions/grant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_email: grantEmail, plan_id: grantPlan, days: grantDays }),
+        body: JSON.stringify({ target_type: grantTargetType, user_email: grantEmail, plan_id: grantPlan, days: grantDays }),
       });
       toast.success(copy.grantSuccess);
       setGrantEmail("");
-      setGrantPlan("starter");
+      setGrantPlan(grantTargetType === "member" ? "member_plus" : "starter");
       setGrantDays(30);
       await load();
     } catch (e: any) {
@@ -164,7 +180,10 @@ export default function SuperadminSubscriptionsPage() {
     if (!revokeId) return;
     try {
       setRevoking(true);
-      await apiFetch(`/superadmin/subscriptions/${revokeId}`, { method: "DELETE" });
+      const path = revokeType === "member"
+        ? `/superadmin/public-member-subscriptions/${revokeId}`
+        : `/superadmin/subscriptions/${revokeId}`;
+      await apiFetch(path, { method: "DELETE" });
       toast.success(copy.revokeSuccess);
       setRevokeId(null);
       await load();
@@ -206,7 +225,7 @@ export default function SuperadminSubscriptionsPage() {
         ))}
       </div>
 
-      <form onSubmit={grantSubscription} className="card grid gap-4 p-5 lg:grid-cols-[minmax(0,1.4fr)_220px_150px_auto] lg:items-end">
+      <form onSubmit={grantSubscription} className="card grid gap-4 p-5 lg:grid-cols-[180px_minmax(0,1.4fr)_220px_150px_auto] lg:items-end">
         <div className="lg:col-span-4 flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
             <Gift className="h-5 w-5" />
@@ -218,14 +237,22 @@ export default function SuperadminSubscriptionsPage() {
         </div>
 
         <label className="space-y-2">
+          <span className="label">{copy.accountType}</span>
+          <select value={grantTargetType} onChange={(event) => setGrantTargetType(event.target.value as "admin" | "member")} className="input-field">
+            <option value="admin">{copy.adminType}</option>
+            <option value="member">{copy.memberType}</option>
+          </select>
+        </label>
+
+        <label className="space-y-2">
           <span className="label">{copy.email}</span>
           <input type="email" required value={grantEmail} onChange={(event) => setGrantEmail(event.target.value)} className="input-field" />
         </label>
 
         <label className="space-y-2">
           <span className="label">{copy.plan}</span>
-          <select value={grantPlan} onChange={(event) => setGrantPlan(event.target.value as (typeof PLAN_OPTIONS)[number])} className="input-field capitalize">
-            {PLAN_OPTIONS.map((plan) => (
+          <select value={grantPlan} onChange={(event) => setGrantPlan(event.target.value)} className="input-field capitalize">
+            {(grantTargetType === "member" ? MEMBER_PLAN_OPTIONS : ADMIN_PLAN_OPTIONS).map((plan) => (
               <option key={plan} value={plan}>{plan}</option>
             ))}
           </select>
@@ -251,7 +278,7 @@ export default function SuperadminSubscriptionsPage() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <h2 className="truncate text-base font-semibold text-surface-900">{row.user_email}</h2>
-                  <p className="mt-1 text-sm text-surface-500">User ID #{row.user_id}</p>
+                  <p className="mt-1 text-sm text-surface-500">{row.target_type === "member" ? "Member" : "User"} ID #{row.user_id}</p>
                 </div>
                 <span className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${PLAN_TONES[row.plan_id] || PLAN_TONES.starter}`}>
                   {row.plan_id}
@@ -275,7 +302,7 @@ export default function SuperadminSubscriptionsPage() {
 
               <div className="mt-4 flex items-center justify-between">
                 <p className="text-xs text-surface-400">{row.order_id ? `Order ${row.order_id}` : "Manual"}</p>
-                <button onClick={() => setRevokeId(row.id)} className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 transition hover:bg-rose-100">
+                <button onClick={() => { setRevokeId(row.id); setRevokeType((row.target_type || "admin") as "admin" | "member"); }} className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 transition hover:bg-rose-100">
                   <Trash2 className="h-4 w-4" />
                   {copy.deleteTitle}
                 </button>

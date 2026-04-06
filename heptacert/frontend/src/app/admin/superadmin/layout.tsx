@@ -1,7 +1,8 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   Users,
   CreditCard,
@@ -14,6 +15,7 @@ import {
   Crown,
 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
+import { apiFetch } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 const TABS = [
@@ -30,7 +32,34 @@ const TABS = [
 
 export default function SuperadminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { lang } = useI18n();
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    apiFetch("/me")
+      .then((res) => res.json())
+      .then((me) => {
+        if (!mounted) return;
+        if (me?.role !== "superadmin") {
+          router.replace("/admin/events");
+          return;
+        }
+        setChecking(false);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        router.replace("/admin/login");
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
+
+  if (checking) {
+    return <div className="p-10 text-sm text-surface-500">{lang === "tr" ? "Yetki kontrol ediliyor..." : "Checking access..."}</div>;
+  }
 
   return (
     <div className="space-y-0">

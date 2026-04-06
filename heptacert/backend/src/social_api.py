@@ -3,9 +3,10 @@ from typing import Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import false, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .moderation import moderate_public_text
 from .main import (
     CommunityPost,
     CommunityPostComment,
@@ -86,16 +87,19 @@ async def _generate_post_public_id(db: AsyncSession) -> str:
     raise RuntimeError("Unable to generate a unique community post id")
 
 
-async def _resolve_post(db: AsyncSession, post_public_id: str) -> tuple[CommunityPost, Organization]:
+async def _resolve_post(db: AsyncSession, post_public_id: str) -> tuple[CommunityPost, Optional[Organization]]:
     res = await db.execute(
-        select(CommunityPost, Organization)
-        .join(Organization, Organization.id == CommunityPost.org_id)
-        .where(CommunityPost.public_id == post_public_id, CommunityPost.status == "visible")
+        select(CommunityPost).where(CommunityPost.public_id == post_public_id, CommunityPost.status == "visible")
     )
-    row = res.first()
-    if not row:
+    post = res.scalar_one_or_none()
+    if not post:
         raise HTTPException(status_code=404, detail="Post not found.")
-    post, org = row
+    if post.org_id is None:
+        return post, None
+
+    org = await db.get(Organization, post.org_id)
+    if not org:
+        raise HTTPException(status_code=404, detail="Post not found.")
     enabled_user_ids = await _load_community_enabled_user_ids(db, [org.user_id])
     if org.user_id not in enabled_user_ids:
         raise HTTPException(status_code=404, detail="Post not found.")
@@ -144,20 +148,18 @@ async def _serialize_posts(
 
     items: list[CommunityPostOut] = []
     for post in posts:
-        org = orgs_by_id.get(post.org_id)
-        if not org:
-            continue
+        org = orgs_by_id.get(post.org_id) if post.org_id is not None else None
         author_member = members_by_id.get(post.author_public_member_id or -1)
         author_type = "organization" if post.author_user_id else "member"
-        author_public_id = org.public_id if author_type == "organization" else (author_member.public_id if author_member else None)
-        author_name = org.org_name if author_type == "organization" else (author_member.display_name if author_member else "Unknown Member")
-        author_avatar_url = org.brand_logo if author_type == "organization" else (author_member.avatar_url if author_member else None)
+        author_public_id = org.public_id if author_type == "organization" and org else (author_member.public_id if author_member else None)
+        author_name = org.org_name if author_type == "organization" and org else (author_member.display_name if author_member else "Unknown Member")
+        author_avatar_url = org.brand_logo if author_type == "organization" and org else (author_member.avatar_url if author_member else None)
 
         items.append(
             CommunityPostOut(
                 public_id=post.public_id,
-                organization_public_id=org.public_id,
-                organization_name=org.org_name,
+                organization_public_id=org.public_id if org else None,
+                organization_name=org.org_name if org else None,
                 author_type=author_type,
                 author_public_id=author_public_id,
                 author_name=author_name,
@@ -184,18 +186,44 @@ async def list_public_feed(
     organizations = orgs_res.scalars().all()
     enabled_user_ids = await _load_community_enabled_user_ids(db, [org.user_id for org in organizations])
     visible_orgs = {org.id: org for org in organizations if org.user_id in enabled_user_ids}
-    if not visible_orgs:
-        return []
 
     posts_res = await db.execute(
         select(CommunityPost)
-        .where(CommunityPost.org_id.in_(visible_orgs.keys()), CommunityPost.status == "visible")
+        .where(
+            CommunityPost.status == "visible",
+            or_(
+                CommunityPost.org_id.is_(None),
+                CommunityPost.org_id.in_(visible_orgs.keys()) if visible_orgs else false(),
+            ),
+        )
         .order_by(CommunityPost.created_at.desc())
         .offset(offset)
         .limit(limit)
     )
     posts = posts_res.scalars().all()
     return await _serialize_posts(db, posts, visible_orgs, member)
+
+
+@router.post("/api/public/feed", response_model=CommunityPostOut, status_code=201)
+@limiter.limit("5/minute")
+async def create_public_feed_post(
+    request: Request,
+    payload: CommunityPostCreateIn,
+    member: CurrentPublicMember = Depends(get_current_public_member),
+    db: AsyncSession = Depends(get_db),
+):
+    body = moderate_public_text(payload.body)
+    post = CommunityPost(
+        public_id=await _generate_post_public_id(db),
+        org_id=None,
+        author_public_member_id=member.id,
+        body=body,
+    )
+    db.add(post)
+    await db.commit()
+    await db.refresh(post)
+    items = await _serialize_posts(db, [post], {}, member)
+    return items[0]
 
 
 @router.get("/api/public/organizations/{org_public_id}/feed", response_model=list[CommunityPostOut])
@@ -228,11 +256,12 @@ async def create_member_feed_post(
     db: AsyncSession = Depends(get_db),
 ):
     org = await _ensure_enabled_org(db, org_public_id=org_public_id)
+    body = moderate_public_text(payload.body)
     post = CommunityPost(
         public_id=await _generate_post_public_id(db),
         org_id=org.id,
         author_public_member_id=member.id,
-        body=payload.body.strip(),
+        body=body,
     )
     db.add(post)
     await db.commit()
@@ -264,11 +293,12 @@ async def create_admin_community_post(
     me: CurrentUser = Depends(require_role(Role.admin, Role.superadmin)),
 ):
     org = await _ensure_enabled_org(db, user_id=me.id)
+    body = moderate_public_text(payload.body)
     post = CommunityPost(
         public_id=await _generate_post_public_id(db),
         org_id=org.id,
         author_user_id=me.id,
-        body=payload.body.strip(),
+        body=body,
     )
     db.add(post)
     await db.commit()
@@ -376,10 +406,11 @@ async def create_community_post_comment(
     db: AsyncSession = Depends(get_db),
 ):
     post, _org = await _resolve_post(db, post_public_id)
+    body = moderate_public_text(payload.body)
     comment = CommunityPostComment(
         post_id=post.id,
         public_member_id=member.id,
-        body=payload.body.strip(),
+        body=body,
     )
     db.add(comment)
     await db.commit()

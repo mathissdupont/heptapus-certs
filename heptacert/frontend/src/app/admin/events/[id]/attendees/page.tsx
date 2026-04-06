@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   listAttendees, importAttendees, deleteAttendee, getAdminAttendeeSurveyLink,
   getAttendanceMatrix, bulkCertifyQueue, getBulkGenerateJob,
@@ -22,6 +22,7 @@ type Tab = "list" | "matrix";
 
 export default function AdminAttendeesPage() {
   const params = useParams();
+  const router = useRouter();
   const eventId = Number(params?.id);
 
   const [tab, setTab] = useState<Tab>("list");
@@ -112,6 +113,12 @@ export default function AdminAttendeesPage() {
   useEffect(() => {
     if (tab === "matrix" && !matrix) loadMatrix();
   }, [tab]);
+
+  useEffect(() => {
+    if (planOk === false) {
+      router.replace("/pricing?source=admin-premium");
+    }
+  }, [planOk, router]);
 
   async function handleSearchSubmit(e: React.FormEvent) {
     e.preventDefault();

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Building2, Heart, Loader2, MessageCircle, Send } from "lucide-react";
 import {
+  createPublicFeedPost,
   createCommunityPostComment,
   getPublicMemberMe,
   getPublicMemberToken,
@@ -33,8 +34,10 @@ export default function PublicFeedPage() {
   const [viewer, setViewer] = useState<PublicMemberMe | null>(null);
   const [commentsByPost, setCommentsByPost] = useState<Record<string, CommunityPostComment[]>>({});
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [postBody, setPostBody] = useState("");
   const [loading, setLoading] = useState(true);
   const [busyPostId, setBusyPostId] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const copy = useMemo(() => lang === "tr" ? {
@@ -46,6 +49,8 @@ export default function PublicFeedPage() {
     login: "Yorum ve beğeni için giriş yap",
     comments: "Yorumları Gör",
     publish: "Gönder",
+    composerPlaceholder: "Topluluğa bir şey yaz...",
+    globalPost: "Üye Gönderisi",
   } : {
     eyebrow: "Community",
     title: "Community Feed",
@@ -55,6 +60,8 @@ export default function PublicFeedPage() {
     login: "Sign in to like and comment",
     comments: "View Comments",
     publish: "Post",
+    composerPlaceholder: "Share something with the community...",
+    globalPost: "Member Post",
   }, [lang]);
 
   useEffect(() => {
@@ -122,6 +129,25 @@ export default function PublicFeedPage() {
     }
   }
 
+  async function handleCreatePost() {
+    const body = postBody.trim();
+    if (!body) return;
+    if (!viewer) {
+      window.location.href = "/login?mode=member";
+      return;
+    }
+    setPublishing(true);
+    try {
+      const created = await createPublicFeedPost(body);
+      setPosts((current) => [created, ...current]);
+      setPostBody("");
+    } catch (err: any) {
+      setError(err?.message || copy.error);
+    } finally {
+      setPublishing(false);
+    }
+  }
+
   return (
     <div className="mx-auto min-h-screen max-w-5xl px-6 py-12 lg:px-8">
       <div className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold uppercase tracking-[0.22em] text-slate-500 inline-flex items-center gap-2">
@@ -133,6 +159,35 @@ export default function PublicFeedPage() {
 
       {error ? <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div> : null}
 
+      <div className="mt-8 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+        {viewer ? (
+          <div className="space-y-4">
+            <textarea
+              value={postBody}
+              onChange={(event) => setPostBody(event.target.value)}
+              placeholder={copy.composerPlaceholder}
+              maxLength={1500}
+              className="min-h-28 w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none"
+            />
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => void handleCreatePost()}
+                disabled={publishing || !postBody.trim()}
+                className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {copy.publish}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <Link href="/login?mode=member" className="text-sm font-semibold text-slate-600 hover:text-slate-900">
+            {copy.login}
+          </Link>
+        )}
+      </div>
+
       {loading ? (
         <div className="flex min-h-[40vh] items-center justify-center text-sm text-slate-500"><Loader2 className="mr-2 h-5 w-5 animate-spin" />{copy.title}</div>
       ) : posts.length === 0 ? (
@@ -143,9 +198,13 @@ export default function PublicFeedPage() {
             <article key={post.public_id} className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <Link href={`/organizations/${post.organization_public_id}`} className="text-sm font-bold text-slate-900 hover:text-slate-600">
-                    {post.organization_name}
-                  </Link>
+                  {post.organization_public_id && post.organization_name ? (
+                    <Link href={`/organizations/${post.organization_public_id}`} className="text-sm font-bold text-slate-900 hover:text-slate-600">
+                      {post.organization_name}
+                    </Link>
+                  ) : (
+                    <span className="text-sm font-bold text-slate-900">{copy.globalPost}</span>
+                  )}
                   <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{post.author_name}</p>
                 </div>
                 <span className="text-xs text-slate-400">{formatTimestamp(post.created_at, lang)}</span>

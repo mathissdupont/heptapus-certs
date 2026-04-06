@@ -172,6 +172,12 @@ export interface PublicMemberMe {
   created_at: string;
 }
 
+export interface PublicMemberSubscriptionInfo {
+  active: boolean;
+  plan_id: string | null;
+  expires_at?: string | null;
+}
+
 export interface PublicMemberProfile {
   public_id: string;
   display_name: string;
@@ -325,8 +331,8 @@ export interface CommunityPostComment {
 
 export interface CommunityPost {
   public_id: string;
-  organization_public_id: string;
-  organization_name: string;
+  organization_public_id?: string | null;
+  organization_name?: string | null;
   author_type: "organization" | "member" | string;
   author_public_id?: string | null;
   author_name: string;
@@ -779,6 +785,11 @@ export async function getPublicMemberMe(): Promise<PublicMemberMe> {
   return res.json();
 }
 
+export async function getPublicMemberSubscription(): Promise<PublicMemberSubscriptionInfo> {
+  const res = await memberApiFetch("/public/billing/subscription");
+  return res.json();
+}
+
 export async function updatePublicMemberProfile(data: {
   display_name: string;
   bio?: string | null;
@@ -904,6 +915,14 @@ export async function listPublicFeed(params: {
   const res = token
     ? await memberApiFetch(`/public/feed${query ? `?${query}` : ""}`)
     : await publicApiFetch(`/public/feed${query ? `?${query}` : ""}`);
+  return res.json();
+}
+
+export async function createPublicFeedPost(body: string): Promise<CommunityPost> {
+  const res = await memberApiFetch("/public/feed", {
+    method: "POST",
+    body: JSON.stringify({ body }),
+  });
   return res.json();
 }
 

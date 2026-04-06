@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 import PageHeader from "@/components/Admin/PageHeader";
@@ -95,6 +95,7 @@ function splitRaffleRounds(raffle: EventRaffleOut) {
 
 export default function EventRafflesPage() {
   const params = useParams();
+  const router = useRouter();
   const eventId = Number(params?.id);
   const toast = useToast();
 
@@ -147,6 +148,12 @@ export default function EventRafflesPage() {
   useEffect(() => {
     if (eventId) load();
   }, [eventId]);
+
+  useEffect(() => {
+    if (planOk === false) {
+      router.replace("/pricing?source=admin-premium");
+    }
+  }, [planOk, router]);
 
   function resetForm() {
     setEditingId(null);

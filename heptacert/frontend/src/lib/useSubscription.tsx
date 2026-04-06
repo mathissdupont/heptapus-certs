@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { apiFetch } from "./api";
 
 export interface SubscriptionInfo {
@@ -35,9 +36,10 @@ export function useSubscription() {
   return { loading, subscription, error, hasPlan } as const;
 }
 
-export function FeatureGate({ requiredPlans = ["growth", "enterprise"], children, message }:
-  { requiredPlans?: string[]; children: React.ReactNode; message?: React.ReactNode }) {
+export function FeatureGate({ requiredPlans = ["growth", "enterprise"], children, message, redirectTo = "/pricing" }:
+  { requiredPlans?: string[]; children: React.ReactNode; message?: React.ReactNode; redirectTo?: string | false }) {
   const { loading, hasPlan } = useSubscription();
+  const router = useRouter();
   const planLabels: Record<string, string> = {
     starter: "Starter",
     pro: "Pro",
@@ -45,9 +47,16 @@ export function FeatureGate({ requiredPlans = ["growth", "enterprise"], children
     enterprise: "Enterprise",
   };
   const requiredPlanLabel = requiredPlans.map((plan) => planLabels[plan] || plan).join(" / ");
+  const allowed = hasPlan(requiredPlans);
+
+  useEffect(() => {
+    if (!loading && !allowed && redirectTo) {
+      router.replace(redirectTo);
+    }
+  }, [allowed, loading, redirectTo, router]);
 
   if (loading) return <div className="p-8 text-center">Yükleniyor...</div>;
-  if (!hasPlan(requiredPlans)) {
+  if (!allowed) {
     return (
       <div className="rounded-xl border border-purple-200 bg-purple-50 p-8 text-center">
         <h3 className="text-lg font-semibold">{requiredPlanLabel} Plan Gerekiyor</h3>
