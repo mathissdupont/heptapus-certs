@@ -18,7 +18,7 @@ export default function PublicOrganizationsPage() {
   const copy = useMemo(() => lang === "tr" ? {
     eyebrow: "Topluluklar",
     title: "Kuruluşları Keşfet",
-    subtitle: "IEEE öğrenci kolları, topluluklar ve kurumlar için public sayfalar oluşturun; insanlar sizi takip edip etkinliklerinizi izlesin.",
+    subtitle: "Öğrenci kolları, topluluklar ve kurumlar için public sayfalar oluşturun; insanlar sizi takip edip etkinliklerinizi izlesin.",
     searchPlaceholder: "Kurum adı veya website ara...",
     empty: "Henüz public topluluk bulunamadı.",
     error: "Topluluklar yüklenemedi.",

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, MapPin, Search, Users, ArrowRight, ShieldCheck, Layers } from "lucide-react";
+import { CalendarDays, MapPin, Search, Users, ArrowRight, ShieldCheck, Layers, Building2, MessageSquareMore } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { listPublicEvents, type PublicEventListItem } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
@@ -41,6 +41,8 @@ export default function PublicEventsPage() {
     sessions: "Oturum",
     minSessions: "Sertifika Eşiği",
     details: "Detayları İncele",
+    communities: "Toplulukları Keşfet",
+    feed: "Community Feed",
   } : {
     eyebrow: "Discover",
     title: "Upcoming Events",
@@ -52,6 +54,8 @@ export default function PublicEventsPage() {
     sessions: "Sessions",
     minSessions: "Cert. Threshold",
     details: "View Details",
+    communities: "Explore Communities",
+    feed: "Community Feed",
   }, [lang]);
 
   useEffect(() => {
@@ -113,6 +117,16 @@ export default function PublicEventsPage() {
               </button>
             )}
           </div>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <Link href="/organizations" className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:text-slate-950">
+            <Building2 className="h-4 w-4" />
+            {copy.communities}
+          </Link>
+          <Link href="/feed" className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:text-slate-950">
+            <MessageSquareMore className="h-4 w-4" />
+            {copy.feed}
+          </Link>
         </motion.div>
       </section>
 
