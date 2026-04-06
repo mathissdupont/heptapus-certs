@@ -2734,6 +2734,8 @@ class CurrentPublicMember(BaseModel):
     id: int
     email: EmailStr
     display_name: str
+    public_id: str
+    avatar_url: Optional[str] = None
 
 
 from fastapi import Header
@@ -2812,7 +2814,13 @@ async def _resolve_public_member_from_authorization(
     member = res.scalar_one_or_none()
     if not member:
         raise HTTPException(status_code=401, detail="Member not found")
-    return CurrentPublicMember(id=member.id, email=member.email, display_name=member.display_name)
+    return CurrentPublicMember(
+        id=member.id,
+        email=member.email,
+        display_name=member.display_name,
+        public_id=member.public_id,
+        avatar_url=member.avatar_url,
+    )
 
 
 async def get_current_public_member(
