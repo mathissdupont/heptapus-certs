@@ -14,6 +14,7 @@ import {
   Ticket,
   ArrowLeft,
   Clock3,
+  IdCard,
 } from "lucide-react";
 import { getPublicParticipantStatus, type PublicParticipantStatus } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
@@ -50,10 +51,12 @@ export default function EventParticipantStatusPage() {
             sessions: "Oturum",
             minSessions: "Minimum {count} oturum",
             survey: "Anket",
+            surveyDisabled: "Kapalı",
             completed: "Tamam",
             pending: "Bekliyor",
             requiredForCert: "Sertifika için gerekli",
             optional: "Opsiyonel",
+            notEnabled: "Bu etkinlikte anket akışı kapalı",
             badges: "Rozetlerim",
             totalBadges: "Toplam kazanılan rozet",
             certificate: "Sertifika",
@@ -64,6 +67,7 @@ export default function EventParticipantStatusPage() {
             nextStep: "Sonraki önerilen adım",
             certReadyText: "Sertifikanız hazır. Doğrulama bağlantısından görüntüleyebilir veya indirebilirsiniz.",
             surveyStep: "Önce anketi tamamlayın. Sistem sertifika uygunluğunu otomatik güncelleyecek.",
+            noSurveyStep: "Bu etkinlikte anket adımı kapalı. Check-in, rozet ve sertifika güncellemelerini bu karttan takip edebilirsiniz.",
             moreSessions: "Sertifika için {count} oturum daha tamamlamanız gerekiyor.",
             waitingUpdates: "Katılım koşullarını tamamladınız. Sertifika veya yeni rozet güncellemeleri bu alana yansıyacak.",
             surveyPage: "Anket sayfasına git",
@@ -81,6 +85,10 @@ export default function EventParticipantStatusPage() {
             type: "Tür",
             certReadyBanner: "Sertifikanız hazır görünüyor",
             certReadyBannerBody: "Son koşullar tamamlanmış. Eğer görüntüleme bağlantısı mevcutsa yukarıdaki butondan doğrudan açabilirsiniz.",
+            cardEyebrow: "Dijital katılım kartı",
+            cardIssued: "Kart aktif",
+            cardHolder: "Katılımcı",
+            cardTrack: "Akış",
           }
         : {
             loadFailed: "Could not load participant status.",
@@ -97,10 +105,12 @@ export default function EventParticipantStatusPage() {
             sessions: "Sessions",
             minSessions: "Minimum {count} sessions",
             survey: "Survey",
+            surveyDisabled: "Disabled",
             completed: "Done",
             pending: "Pending",
             requiredForCert: "Required for certificate",
             optional: "Optional",
+            notEnabled: "Survey flow is disabled for this event",
             badges: "My badges",
             totalBadges: "Total badges earned",
             certificate: "Certificate",
@@ -111,6 +121,7 @@ export default function EventParticipantStatusPage() {
             nextStep: "Recommended next step",
             certReadyText: "Your certificate is ready. You can view or download it from the verification link.",
             surveyStep: "Complete the survey first. The system will automatically refresh your certificate eligibility.",
+            noSurveyStep: "Survey is disabled for this event. You can track check-in, badge, and certificate updates from this card.",
             moreSessions: "You need {count} more sessions for the certificate.",
             waitingUpdates: "You completed the participation requirements. Certificate or badge updates will appear here.",
             surveyPage: "Go to survey page",
@@ -128,6 +139,10 @@ export default function EventParticipantStatusPage() {
             type: "Type",
             certReadyBanner: "Your certificate looks ready",
             certReadyBannerBody: "All requirements appear complete. If a view link exists, you can open it directly from the button above.",
+            cardEyebrow: "Digital attendance card",
+            cardIssued: "Card active",
+            cardHolder: "Participant",
+            cardTrack: "Flow",
           },
     [lang]
   );
@@ -206,6 +221,17 @@ export default function EventParticipantStatusPage() {
     );
   }
 
+  const hasSurvey = status.survey_enabled;
+  const nextStepDescription = status.certificate_ready
+    ? copy.certReadyText
+    : hasSurvey && status.survey_required && !status.survey_completed
+      ? copy.surveyStep
+      : !hasSurvey
+        ? copy.noSurveyStep
+        : status.sessions_attended < status.sessions_required
+          ? copy.moreSessions.replace("{count}", String(status.sessions_required - status.sessions_attended))
+          : copy.waitingUpdates;
+
   return (
     <div className="min-h-screen px-4 py-8 md:px-8 md:py-10" style={pageBg}>
       <div className="mx-auto max-w-5xl space-y-6">
@@ -222,19 +248,49 @@ export default function EventParticipantStatusPage() {
           </div>
 
           <div className="space-y-6 px-6 py-6 md:px-8 md:py-8">
-            <div className="grid gap-3 md:grid-cols-4">
+            <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+              <div className="relative overflow-hidden rounded-[30px] border border-slate-200 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_55%,#312e81_100%)] p-6 text-white shadow-[0_24px_80px_rgba(15,23,42,0.22)]">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.22),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.42),transparent_28%)]" />
+                <div className="relative flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/70">{copy.cardEyebrow}</p>
+                    <h2 className="mt-4 text-3xl font-black tracking-tight">{status.attendee_name}</h2>
+                    <p className="mt-2 max-w-xl text-sm leading-6 text-white/75">{status.attendee_email}</p>
+                  </div>
+                  <div className="rounded-3xl border border-white/15 bg-white/10 p-3 text-white/90 backdrop-blur">
+                    <IdCard className="h-7 w-7" />
+                  </div>
+                </div>
+                <div className="relative mt-8 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60">{copy.cardHolder}</p>
+                    <p className="mt-2 text-sm font-semibold text-white">{copy.cardIssued}</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60">{copy.sessions}</p>
+                    <p className="mt-2 text-sm font-semibold text-white">{status.sessions_attended}/{Math.max(status.total_sessions, status.sessions_required)}</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60">{copy.cardTrack}</p>
+                    <p className="mt-2 text-sm font-semibold text-white">{hasSurvey ? (status.survey_completed ? copy.completed : copy.pending) : copy.surveyDisabled}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-1">
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{copy.sessions}</p><p className="mt-2 text-2xl font-black text-slate-900">{status.sessions_attended}/{Math.max(status.total_sessions, status.sessions_required)}</p><p className="mt-1 text-xs text-slate-500">{copy.minSessions.replace("{count}", String(status.sessions_required))}</p></div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{copy.survey}</p><p className="mt-2 text-2xl font-black text-slate-900">{status.survey_completed ? copy.completed : copy.pending}</p><p className="mt-1 text-xs text-slate-500">{status.survey_required ? copy.requiredForCert : copy.optional}</p></div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{copy.survey}</p><p className="mt-2 text-2xl font-black text-slate-900">{hasSurvey ? (status.survey_completed ? copy.completed : copy.pending) : copy.surveyDisabled}</p><p className="mt-1 text-xs text-slate-500">{hasSurvey ? (status.survey_required ? copy.requiredForCert : copy.optional) : copy.notEnabled}</p></div>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{copy.badges}</p><p className="mt-2 text-2xl font-black text-slate-900">{status.badge_count}</p><p className="mt-1 text-xs text-slate-500">{copy.totalBadges}</p></div>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{copy.certificate}</p><p className="mt-2 text-2xl font-black text-slate-900">{status.certificate_ready ? copy.ready : status.certificate_count > 0 ? copy.produced : copy.pending}</p><p className="mt-1 text-xs text-slate-500">{status.certificate_ready ? copy.visibleReady : copy.waits}</p></div>
+              </div>
             </div>
 
             <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
               <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
                 <p className="text-sm font-semibold text-slate-900">{copy.nextStep}</p>
-                <p className="mt-3 text-sm leading-6 text-slate-600">{status.certificate_ready ? copy.certReadyText : status.survey_required && !status.survey_completed ? copy.surveyStep : status.sessions_attended < status.sessions_required ? copy.moreSessions.replace("{count}", String(status.sessions_required - status.sessions_attended)) : copy.waitingUpdates}</p>
+                <p className="mt-3 text-sm leading-6 text-slate-600">{nextStepDescription}</p>
                 <div className="mt-4 flex flex-wrap gap-3">
-                  <Link href={surveyHref} className="inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-white transition" style={{ background: `linear-gradient(135deg, ${brandColor} 0%, ${brandColor}DD 100%)` }}>{copy.surveyPage}<ExternalLink className="h-4 w-4" /></Link>
+                  {hasSurvey ? <Link href={surveyHref} className="inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-white transition" style={{ background: `linear-gradient(135deg, ${brandColor} 0%, ${brandColor}DD 100%)` }}>{copy.surveyPage}<ExternalLink className="h-4 w-4" /></Link> : null}
                   {status.latest_certificate_verify_url ? <a href={status.latest_certificate_verify_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{copy.viewCertificate}<ExternalLink className="h-4 w-4" /></a> : null}
                 </div>
               </div>
@@ -243,7 +299,7 @@ export default function EventParticipantStatusPage() {
                 <div className="flex items-center gap-2 text-sm font-semibold text-slate-900"><Clock3 className="h-4 w-4" style={{ color: brandColor }} />{copy.eligibilitySummary}</div>
                 <div className="mt-4 space-y-3">
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">{copy.completedSessions}: <span className="font-semibold">{status.sessions_attended}</span></div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">{copy.surveyStatus}: <span className="font-semibold">{status.survey_completed ? copy.completed : copy.pending}</span></div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">{copy.surveyStatus}: <span className="font-semibold">{hasSurvey ? (status.survey_completed ? copy.completed : copy.pending) : copy.surveyDisabled}</span></div>
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">{copy.visibleBadges}: <span className="font-semibold">{status.badges.length}</span></div>
                 </div>
               </div>

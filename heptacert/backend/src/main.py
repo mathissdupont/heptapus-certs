@@ -317,6 +317,10 @@ class PublicMember(Base):
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
     display_name: Mapped[str] = mapped_column(String(120))
     bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    avatar_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    headline: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    location: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    website_url: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -964,6 +968,9 @@ class PublicMemberLoginIn(BaseModel):
 class PublicMemberProfileUpdateIn(BaseModel):
     display_name: str = Field(min_length=2, max_length=120)
     bio: Optional[str] = Field(default=None, max_length=1000)
+    headline: Optional[str] = Field(default=None, max_length=160)
+    location: Optional[str] = Field(default=None, max_length=160)
+    website_url: Optional[str] = Field(default=None, max_length=2000)
 
 
 class PublicMemberChangePasswordIn(BaseModel):
@@ -1073,6 +1080,24 @@ class PublicMemberMeOut(BaseModel):
     email: EmailStr
     display_name: str
     bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    headline: Optional[str] = None
+    location: Optional[str] = None
+    website_url: Optional[str] = None
+    created_at: datetime
+
+
+class PublicMemberProfileOut(BaseModel):
+    id: int
+    display_name: str
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    headline: Optional[str] = None
+    location: Optional[str] = None
+    website_url: Optional[str] = None
+    created_at: datetime
+    event_count: int = 0
+    comment_count: int = 0
 
 
 class PublicMemberTokenOut(TokenOut):
@@ -1128,6 +1153,7 @@ class PublicEventCommentOut(BaseModel):
     member_id: int
     member_name: str
     member_email: Optional[str] = None
+    member_avatar_url: Optional[str] = None
     body: str
     status: str
     report_count: int = 0
@@ -1373,7 +1399,7 @@ class SurveyQuestion(BaseModel):
 class EventSurveyIn(BaseModel):
     """Request to configure survey for an event"""
     is_required: bool = Field(default=True)
-    survey_type: str = Field(default="builtin")  # builtin, external, both
+    survey_type: str = Field(default="builtin")  # disabled, builtin, external, both
     builtin_questions: List[SurveyQuestion] = Field(default_factory=list)
     external_provider: Optional[str] = Field(default=None, max_length=100)  # typeform, qualtrics, etc.
     external_url: Optional[str] = Field(default=None, max_length=2000)
@@ -1548,6 +1574,7 @@ class PublicParticipantStatusOut(BaseModel):
     sessions_attended: int
     total_sessions: int
     sessions_required: int
+    survey_enabled: bool = False
     survey_required: bool
     survey_completed: bool
     can_download_cert: bool
@@ -1946,11 +1973,21 @@ def make_survey_access_token(*, attendee_id: int, event_id: int, email: str) -> 
     )
 
 
-def verify_survey_access_token(token: str, *, event_id: int, max_age: int = 60 * 60 * 24 * 365) -> dict:
+def verify_survey_access_token(
+    token: str,
+    *,
+    event_id: int | str,
+    event_public_id: Optional[str] = None,
+    max_age: int = 60 * 60 * 24 * 365,
+) -> dict:
     payload = verify_email_token(token, max_age=max_age)
     if payload.get("action") != "survey_access":
         raise BadSignature("invalid survey token action")
-    if int(payload.get("event_id") or 0) != event_id:
+    payload_event_id = str(payload.get("event_id") or "").strip()
+    allowed_event_ids = {str(event_id)}
+    if event_public_id:
+        allowed_event_ids.add(str(event_public_id))
+    if payload_event_id not in allowed_event_ids:
         raise BadSignature("survey token event mismatch")
     return payload
 
@@ -2099,6 +2136,10 @@ async def build_public_participant_status(
     event: Event,
     attendee: Attendee,
 ) -> PublicParticipantStatusOut:
+    survey_res = await db.execute(select(EventSurvey).where(EventSurvey.event_id == event.id))
+    event_survey = survey_res.scalar_one_or_none()
+    survey_enabled = bool(event_survey and event_survey.survey_type != "disabled")
+
     total_sessions_res = await db.execute(
         select(func.count()).select_from(EventSession).where(EventSession.event_id == event.id)
     )
@@ -2166,7 +2207,8 @@ async def build_public_participant_status(
         sessions_attended=sessions_attended,
         total_sessions=total_sessions,
         sessions_required=event.min_sessions_required,
-        survey_required=bool(attendee.survey_required),
+        survey_enabled=survey_enabled,
+        survey_required=bool(attendee.survey_required) if survey_enabled else False,
         survey_completed=attendee.survey_completed_at is not None,
         can_download_cert=bool(attendee.can_download_cert),
         certificate_ready=certificate_ready,
@@ -4235,7 +4277,11 @@ async def resolve_public_survey_access(
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     try:
-        payload = verify_survey_access_token(token, event_id=event.id)
+        payload = verify_survey_access_token(
+            token,
+            event_id=event.id,
+            event_public_id=_get_public_event_identifier(event),
+        )
     except SignatureExpired:
         raise HTTPException(status_code=410, detail="Survey access link expired")
     except BadSignature:
@@ -4270,7 +4316,11 @@ async def get_public_participant_status(
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     try:
-        payload = verify_survey_access_token(token, event_id=event.id)
+        payload = verify_survey_access_token(
+            token,
+            event_id=event.id,
+            event_public_id=_get_public_event_identifier(event),
+        )
     except SignatureExpired:
         raise HTTPException(status_code=410, detail="Survey access link expired")
     except BadSignature:
@@ -4607,10 +4657,11 @@ async def configure_event_survey(
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
         raise HTTPException(status_code=403, detail="Yetkisiz eri?im")
 
-    if survey_in.survey_type not in {"builtin", "external", "both"}:
+    if survey_in.survey_type not in {"disabled", "builtin", "external", "both"}:
         raise HTTPException(status_code=400, detail="Ge?ersiz anket t?r?")
 
-    builtin_questions = [q.model_dump() for q in survey_in.builtin_questions]
+    survey_disabled = survey_in.survey_type == "disabled"
+    builtin_questions = [] if survey_disabled else [q.model_dump() for q in survey_in.builtin_questions]
     if survey_in.survey_type in {"builtin", "both"} and not builtin_questions:
         raise HTTPException(status_code=400, detail="Yerle?ik anket i?in en az bir soru gerekli")
 
@@ -4620,7 +4671,7 @@ async def configure_event_survey(
     webhook_key = survey_in.external_webhook_key
     if survey_in.survey_type in {"external", "both"} and not webhook_key:
         webhook_key = secrets.token_urlsafe(24)
-    elif survey_in.survey_type == "builtin":
+    elif survey_in.survey_type in {"disabled", "builtin"}:
         webhook_key = None
 
     es_res = await db.execute(select(EventSurvey).where(EventSurvey.event_id == event_id))
@@ -4630,8 +4681,8 @@ async def configure_event_survey(
         event_survey.is_required = survey_in.is_required
         event_survey.survey_type = survey_in.survey_type
         event_survey.builtin_questions = builtin_questions
-        event_survey.external_provider = survey_in.external_provider
-        event_survey.external_url = survey_in.external_url
+        event_survey.external_provider = None if survey_disabled else survey_in.external_provider
+        event_survey.external_url = None if survey_disabled else survey_in.external_url
         event_survey.external_webhook_key = webhook_key
     else:
         event_survey = EventSurvey(
@@ -4639,8 +4690,8 @@ async def configure_event_survey(
             is_required=survey_in.is_required,
             survey_type=survey_in.survey_type,
             builtin_questions=builtin_questions,
-            external_provider=survey_in.external_provider,
-            external_url=survey_in.external_url,
+            external_provider=None if survey_disabled else survey_in.external_provider,
+            external_url=None if survey_disabled else survey_in.external_url,
             external_webhook_key=webhook_key,
         )
         db.add(event_survey)
@@ -4648,8 +4699,10 @@ async def configure_event_survey(
     att_res = await db.execute(select(Attendee).where(Attendee.event_id == event_id))
     attendees = att_res.scalars().all()
     for attendee in attendees:
-        attendee.survey_required = survey_in.is_required
-        if survey_in.is_required:
+        attendee.survey_required = survey_in.is_required if not survey_disabled else False
+        if survey_disabled:
+            attendee.can_download_cert = True
+        elif survey_in.is_required:
             attendee.can_download_cert = attendee.survey_completed_at is not None
         else:
             attendee.can_download_cert = True
@@ -4696,7 +4749,11 @@ async def submit_builtin_survey(
     token_email: Optional[str] = None
     if survey_resp_in.survey_token:
         try:
-            token_payload = verify_survey_access_token(survey_resp_in.survey_token, event_id=event_db_id)
+            token_payload = verify_survey_access_token(
+                survey_resp_in.survey_token,
+                event_id=event_db_id,
+                event_public_id=_get_public_event_identifier(event),
+            )
         except SignatureExpired:
             raise HTTPException(status_code=410, detail="Survey access link expired")
         except BadSignature:
@@ -5619,6 +5676,11 @@ async def public_member_login(request: Request, data: PublicMemberLoginIn, db: A
         email=member.email,
         display_name=member.display_name,
         bio=member.bio,
+        avatar_url=member.avatar_url,
+        headline=member.headline,
+        location=member.location,
+        website_url=member.website_url,
+        created_at=member.created_at,
     )
     return PublicMemberTokenOut(
         access_token=create_public_member_access_token(member_id=member.id),
@@ -7393,6 +7455,11 @@ async def public_me(
         email=db_member.email,
         display_name=db_member.display_name,
         bio=db_member.bio,
+        avatar_url=db_member.avatar_url,
+        headline=db_member.headline,
+        location=db_member.location,
+        website_url=db_member.website_url,
+        created_at=db_member.created_at,
     )
 
 
@@ -7412,8 +7479,14 @@ async def update_public_me(
         raise bad_request("Display name is required.")
 
     bio = (data.bio or "").strip()
+    headline = (data.headline or "").strip()
+    location = (data.location or "").strip()
+    website_url = (data.website_url or "").strip()
     db_member.display_name = display_name
     db_member.bio = bio or None
+    db_member.headline = headline or None
+    db_member.location = location or None
+    db_member.website_url = website_url or None
     await db.commit()
     await db.refresh(db_member)
     return PublicMemberMeOut(
@@ -7421,6 +7494,74 @@ async def update_public_me(
         email=db_member.email,
         display_name=db_member.display_name,
         bio=db_member.bio,
+        avatar_url=db_member.avatar_url,
+        headline=db_member.headline,
+        location=db_member.location,
+        website_url=db_member.website_url,
+        created_at=db_member.created_at,
+    )
+
+
+@app.post("/api/public/me/avatar", response_model=PublicMemberMeOut)
+async def upload_public_member_avatar(
+    file: UploadFile = File(...),
+    member: CurrentPublicMember = Depends(get_current_public_member),
+    db: AsyncSession = Depends(get_db),
+):
+    res = await db.execute(select(PublicMember).where(PublicMember.id == member.id))
+    db_member = res.scalar_one_or_none()
+    if not db_member:
+        raise HTTPException(status_code=404, detail="Member not found.")
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise bad_request("Only image uploads allowed")
+
+    ext = Path(file.filename or "avatar.jpg").suffix.lower() or ".jpg"
+    safe_name = f"member-avatars/member_{member.id}/avatar{ext}"
+    dest = Path(settings.local_storage_dir) / safe_name
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    data = await file.read()
+    dest.write_bytes(data)
+
+    db_member.avatar_url = f"{settings.public_base_url}/api/files/{safe_name}"
+    await db.commit()
+    await db.refresh(db_member)
+    return PublicMemberMeOut(
+        id=db_member.id,
+        email=db_member.email,
+        display_name=db_member.display_name,
+        bio=db_member.bio,
+        avatar_url=db_member.avatar_url,
+        headline=db_member.headline,
+        location=db_member.location,
+        website_url=db_member.website_url,
+        created_at=db_member.created_at,
+    )
+
+
+@app.get("/api/public/members/{member_id}", response_model=PublicMemberProfileOut)
+async def get_public_member_profile(member_id: int, db: AsyncSession = Depends(get_db)):
+    res = await db.execute(select(PublicMember).where(PublicMember.id == member_id))
+    db_member = res.scalar_one_or_none()
+    if not db_member:
+        raise HTTPException(status_code=404, detail="Member not found.")
+
+    event_count_res = await db.execute(
+        select(func.count(func.distinct(Attendee.event_id))).where(Attendee.public_member_id == member_id)
+    )
+    comment_count_res = await db.execute(
+        select(func.count(EventComment.id)).where(EventComment.public_member_id == member_id, EventComment.status == "visible")
+    )
+    return PublicMemberProfileOut(
+        id=db_member.id,
+        display_name=db_member.display_name,
+        bio=db_member.bio,
+        avatar_url=db_member.avatar_url,
+        headline=db_member.headline,
+        location=db_member.location,
+        website_url=db_member.website_url,
+        created_at=db_member.created_at,
+        event_count=int(event_count_res.scalar_one() or 0),
+        comment_count=int(comment_count_res.scalar_one() or 0),
     )
 
 
@@ -10155,7 +10296,7 @@ def _pick_raffle_winners(
 # Ã¢â€â‚¬Ã¢â€â‚¬ Public: event info & self-register Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 def _build_public_survey_info(survey: Optional["EventSurvey"]) -> Optional[Dict[str, Any]]:
-    if not survey:
+    if not survey or survey.survey_type == "disabled":
         return None
     builtin_questions = survey.builtin_questions or []
     return {
@@ -10205,6 +10346,7 @@ def _event_comment_to_out(comment: EventComment) -> PublicEventCommentOut:
         member_id=comment.public_member_id,
         member_name=comment.public_member.display_name,
         member_email=comment.public_member.email,
+        member_avatar_url=comment.public_member.avatar_url,
         body=comment.body,
         status=comment.status,
         report_count=comment.report_count,

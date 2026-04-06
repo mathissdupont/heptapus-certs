@@ -389,10 +389,15 @@ export default function PublicEventDetailClient() {
             comments.map((comment) => (
               <article key={comment.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <div className="text-sm font-semibold text-slate-900">{comment.member_name}</div>
+                  <div className="flex items-start gap-3">
+                    <Link href={`/members/${comment.member_id}`} className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                      {comment.member_avatar_url ? <img src={comment.member_avatar_url} alt={comment.member_name} className="h-full w-full object-cover" /> : <MessageSquare className="h-4 w-4 text-slate-300" />}
+                    </Link>
+                    <div>
+                    <Link href={`/members/${comment.member_id}`} className="text-sm font-semibold text-slate-900 transition hover:text-slate-600">{comment.member_name}</Link>
                     <div className="mt-1 text-xs text-slate-400">
                       {new Date(comment.created_at).toLocaleString(lang === "tr" ? "tr-TR" : "en-US")}
+                    </div>
                     </div>
                   </div>
                   {member && member.id !== comment.member_id ? (

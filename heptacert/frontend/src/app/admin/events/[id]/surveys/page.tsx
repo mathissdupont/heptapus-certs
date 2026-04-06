@@ -37,7 +37,7 @@ type EventSurvey = {
   id: number;
   event_id: number;
   is_required: boolean;
-  survey_type: "builtin" | "external" | "both";
+  survey_type: "disabled" | "builtin" | "external" | "both";
   builtin_questions: SurveyQuestion[];
   external_provider?: string | null;
   external_url?: string | null;
@@ -116,7 +116,7 @@ export default function SurveysPage() {
   const [responseTypeFilter, setResponseTypeFilter] = useState<"all" | "builtin" | "external">("all");
 
   const [isRequired, setIsRequired] = useState(true);
-  const [surveyType, setSurveyType] = useState<"builtin" | "external" | "both">("builtin");
+  const [surveyType, setSurveyType] = useState<"disabled" | "builtin" | "external" | "both">("builtin");
   const [builtinQuestions, setBuiltinQuestions] = useState<SurveyQuestion[]>([]);
   const [externalProvider, setExternalProvider] = useState("");
   const [externalUrl, setExternalUrl] = useState("");
@@ -150,7 +150,7 @@ export default function SurveysPage() {
       if (configData) {
         setConfig(configData);
         setIsRequired(Boolean(configData.is_required));
-        setSurveyType((configData.survey_type || "builtin") as "builtin" | "external" | "both");
+        setSurveyType((configData.survey_type || "builtin") as "disabled" | "builtin" | "external" | "both");
         setBuiltinQuestions(configData.builtin_questions || []);
         setExternalProvider(configData.external_provider || "");
         setExternalUrl(configData.external_url || "");
@@ -450,6 +450,7 @@ export default function SurveysPage() {
                       type="checkbox"
                       checked={isRequired}
                       onChange={(event) => setIsRequired(event.target.checked)}
+                      disabled={surveyType === "disabled"}
                       className="mt-1 h-4 w-4 rounded"
                     />
                     <div>
@@ -460,6 +461,31 @@ export default function SurveysPage() {
                       <p className="mt-1 text-sm text-gray-600">Açılırsa katılımcı sertifika indirmeden önce anketi tamamlamak zorunda olur. Kapatılırsa anket sadece geri bildirim aracı olarak kalır.</p>
                     </div>
                   </label>
+                </div>
+
+                <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">Anketi tamamen kapat</p>
+                      <p className="mt-1 text-sm text-slate-600">
+                        Bu mod aÃ§Ä±ksa katÄ±lÄ±mcÄ± kartÄ±nda ve kayÄ±t sonrasÄ± akÄ±ÅŸta anket adÄ±mÄ± hiÃ§ gÃ¶sterilmez.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSurveyType("disabled");
+                        setIsRequired(false);
+                      }}
+                      className={`inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+                        surveyType === "disabled"
+                          ? "bg-slate-900 text-white"
+                          : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      {surveyType === "disabled" ? "Anket kapalÄ±" : "Anketi kapat"}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mt-6 grid gap-3 md:grid-cols-3">
@@ -733,6 +759,12 @@ export default function SurveysPage() {
                   </div>
                 </div>
 
+                {surveyType === "disabled" ? (
+                  <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-600">
+                    Anket kapalÄ± olduÄŸu iÃ§in katÄ±lÄ±mcÄ±ya ayrÄ± bir anket baÄŸlantÄ±sÄ± gÃ¶sterilmez.
+                  </div>
+                ) : (
+                  <>
                 <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Genel giriş adresi</p>
                   <code className="mt-3 block break-all rounded-xl bg-white p-3 text-xs text-slate-700">
@@ -760,8 +792,9 @@ export default function SurveysPage() {
                 <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                   Kişiye özel anket bağlantısını katılımcılar ekranındaki ilgili kişi satırından kopyalayın.
                 </div>
+                  </>
+                )}
               </div>
-
               <div className="rounded-2xl border border-gray-200 bg-slate-950 p-6 text-white shadow-sm">
                 <div className="flex items-start justify-between gap-4">
                   <div>
