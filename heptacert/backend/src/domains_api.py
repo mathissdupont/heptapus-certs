@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import secrets
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from pydantic import BaseModel
 from typing import Optional
@@ -7,6 +8,7 @@ import dns.resolver
 import logging
 
 from sqlalchemy.future import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .main import (
     SessionLocal,
@@ -15,13 +17,21 @@ from .main import (
     require_role,
     Role,
     Organization,
-    _generate_organization_public_id,
 )
 from .domains import Domain
 
 logger = logging.getLogger("heptacert.domains")
 
 router = APIRouter()
+
+
+async def _generate_org_public_id(db: AsyncSession) -> str:
+    for _ in range(20):
+        candidate = f"org_{secrets.token_hex(8)}"
+        res = await db.execute(select(Organization.id).where(Organization.public_id == candidate))
+        if res.scalar_one_or_none() is None:
+            return candidate
+    raise RuntimeError("Unable to generate organization public id")
 
 
 async def _get_or_create_org(db: AsyncSession, user_id: int) -> Organization:
@@ -32,7 +42,7 @@ async def _get_or_create_org(db: AsyncSession, user_id: int) -> Organization:
 
     org = Organization(
         user_id=user_id,
-        public_id=await _generate_organization_public_id(db),
+        public_id=await _generate_org_public_id(db),
         org_name="",
         brand_color="#6366f1",
     )
