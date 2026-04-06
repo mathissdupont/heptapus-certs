@@ -8,7 +8,15 @@ import logging
 
 from sqlalchemy.future import select
 
-from .main import SessionLocal, get_current_user, CurrentUser, require_role, Role, Organization
+from .main import (
+    SessionLocal,
+    get_current_user,
+    CurrentUser,
+    require_role,
+    Role,
+    Organization,
+    _generate_organization_public_id,
+)
 from .domains import Domain
 
 logger = logging.getLogger("heptacert.domains")
@@ -22,7 +30,12 @@ async def _get_or_create_org(db: AsyncSession, user_id: int) -> Organization:
     if org:
         return org
 
-    org = Organization(user_id=user_id, org_name="", brand_color="#6366f1")
+    org = Organization(
+        user_id=user_id,
+        public_id=await _generate_organization_public_id(db),
+        org_name="",
+        brand_color="#6366f1",
+    )
     try:
         org.settings = {}
     except Exception:
