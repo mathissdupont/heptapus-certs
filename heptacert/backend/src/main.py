@@ -2990,17 +2990,11 @@ except Exception:
     # Import errors at startup shouldn't break the app; log and continue.
     logger.debug("domains_api not loaded at startup (will try on demand)")
 
-try:
-    from . import community_api as _community_api
-    app.include_router(_community_api.router)
-except Exception:
-    logger.debug("community_api not loaded at startup")
+from . import community_api as _community_api
+app.include_router(_community_api.router)
 
-try:
-    from . import social_api as _social_api
-    app.include_router(_social_api.router)
-except Exception:
-    logger.debug("social_api not loaded at startup")
+from . import social_api as _social_api
+app.include_router(_social_api.router)
 
 origins = [o.strip() for o in settings.cors_origins.split(",")] if settings.cors_origins else ["*"]
 # When wildcard, allow_credentials must be False (browser blocks credentials+wildcard per CORS spec).
