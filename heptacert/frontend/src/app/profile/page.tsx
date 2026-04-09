@@ -476,6 +476,7 @@ export default function ProfilePage() {
           </button>
         </form>
         </div>
+      </div>
       </SubscriptionGate>
     </div>
   );
