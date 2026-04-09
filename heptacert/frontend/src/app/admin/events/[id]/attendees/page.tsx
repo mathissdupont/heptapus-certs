@@ -726,11 +726,49 @@ export default function AdminAttendeesPage() {
                 <div className="mt-4 grid gap-3">
                   {registrationFields.map((field) => {
                     const value = selectedAttendee.registration_answers?.[field.id];
+                    const docsRaw = selectedAttendee.registration_answers?.["__documents"];
+                    const docsForField = Array.isArray(docsRaw)
+                      ? docsRaw
+                          .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
+                          .filter((item) => String(item.field_id || "") === field.id)
+                      : [];
                     const renderedValue = value == null ? "—" : String(value);
                     return (
                       <div key={field.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{field.label}</p>
-                        <p className="mt-2 text-sm font-semibold text-slate-900">{renderedValue}</p>
+                        {field.type === "file" ? (
+                          docsForField.length === 0 ? (
+                            <p className="mt-2 text-sm font-semibold text-slate-900">—</p>
+                          ) : (
+                            <div className="mt-2 space-y-1.5">
+                              {docsForField.map((doc, index) => {
+                                const docName = String(doc.name || `Dosya ${index + 1}`);
+                                const docPath = String(doc.path || "");
+                                if (!docPath) {
+                                  return (
+                                    <p key={`${field.id}-doc-${index}`} className="text-sm font-semibold text-slate-900">
+                                      {docName}
+                                    </p>
+                                  );
+                                }
+                                return (
+                                  <a
+                                    key={`${field.id}-doc-${index}`}
+                                    href={`/api/files/${encodeURI(docPath)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block truncate text-sm font-semibold text-indigo-700 underline-offset-2 hover:underline"
+                                    title={docName}
+                                  >
+                                    {docName}
+                                  </a>
+                                );
+                              })}
+                            </div>
+                          )
+                        ) : (
+                          <p className="mt-2 text-sm font-semibold text-slate-900">{renderedValue}</p>
+                        )}
                       </div>
                     );
                   })}

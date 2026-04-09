@@ -3911,11 +3911,31 @@ def _get_event_kvkk_consent_text(event: Event) -> str:
     if custom:
         return custom
     return (
-        "Kisisel verileriniz, 6698 sayili Kisisel Verilerin Korunmasi Kanunu (KVKK) kapsaminda "
-        "etkinlik kaydinizin alinmasi, katilim sureclerinin yurutulmesi, sertifika islemlerinin tamamlanmasi "
-        "ve ilgili yasal yukumluluklerin yerine getirilmesi amaclariyla islenmektedir. Verileriniz, "
-        "yalnizca bu amaclar icin gerekli olan sure boyunca saklanir ve uygun teknik/idari tedbirlerle korunur. "
-        "KVKK madde 11 kapsamindaki haklariniza iliskin taleplerinizi contact@heptapusgroup.com adresine iletebilirsiniz."
+        "KVKK AYDINLATMA METNI\n\n"
+        "1) Veri sorumlusu\n"
+        "Bu etkinlik kaydi kapsaminda paylastiginiz kisisel verileriniz, ilgili organizasyon ve Heptapus Group tarafindan "
+        "6698 sayili Kisisel Verilerin Korunmasi Kanunu (KVKK) hukumlerine uygun sekilde islenebilir.\n\n"
+        "2) Islenen veri kategorileri\n"
+        "Etkinlik kaydi sirasinda ad-soyad, e-posta adresi, kayit formunda girdiginiz ek bilgiler, "
+        "zorunlu/istege bagli yuklediginiz belgeler ve teknik kayitlar (IP, cihaz ve zaman bilgisi) islenebilir.\n\n"
+        "3) Isleme amaclari\n"
+        "Verileriniz; kaydinizin alinmasi, katilimci dogrulama sureclerinin yurutilmesi, yoklama/check-in islemleri, "
+        "sertifika surecleri, destek hizmetleri, guvenlik kontrolleri ve ilgili mevzuattan dogan yukumluluklerin yerine "
+        "getirilmesi amaclariyla kullanilir.\n\n"
+        "4) Hukuki sebep\n"
+        "Kisisel verileriniz KVKK madde 5 ve 6 kapsaminda; acik rizaniz, bir sozlesmenin kurulmasi/ifasi, "
+        "hukuki yukumluluklerin yerine getirilmesi ve mesru menfaat hukuki sebeplerine dayanilarak islenebilir.\n\n"
+        "5) Aktarim\n"
+        "Verileriniz, hizmetin sunulmasi icin gerekli oldugu olcude; altyapi, barindirma, e-posta veya teknik destek "
+        "saglayicilari gibi is ortagi/hizmet saglayicilarla, yalnizca amacla sinirli ve olculu sekilde paylasilabilir.\n\n"
+        "6) Saklama suresi ve guvenlik\n"
+        "Verileriniz ilgili isleme amaci ortadan kalkincaya kadar ve mevzuatta ongorulen saklama sureleri boyunca saklanir. "
+        "Bu sure sonunda veriler silinir, yok edilir veya anonim hale getirilir. Uygun teknik ve idari guvenlik onlemleri uygulanir.\n\n"
+        "7) Haklariniz\n"
+        "KVKK madde 11 kapsaminda; verinize erisim, duzeltme, silme, islemeyi sinirlama, itiraz ve zararin giderilmesini talep etme "
+        "haklarina sahipsiniz.\n\n"
+        "8) Basvuru ve iletisim\n"
+        "KVKK kapsamindaki taleplerinizi contact@heptapusgroup.com adresine iletebilirsiniz."
     )
 
 
