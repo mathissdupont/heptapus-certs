@@ -10,10 +10,12 @@ from sqlalchemy import func, select
 from src.main import (
     app,
     Attendee,
+    AttendanceRecord,
     CommunityPost,
     CommunityPostComment,
     CommunityPostLike,
     Event,
+    EventSession,
     Organization,
     OrganizationFollower,
     PublicMember,
@@ -1114,3 +1116,185 @@ class TestCommunitySocialFlows:
                 headers={"Authorization": f"Bearer {member_token}"},
             )
         assert resp.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_get_attendance_matrix_xlsx(self):
+        """Test attendance matrix export in XLSX format (default)"""
+        admin_token = create_access_token(user_id=1, role=Role.admin)
+        
+        async with SessionLocal() as db:
+            admin = User(email="attendance-admin@test.com", password_hash=hash_password("AdminPass123!"), role=Role.admin)
+            db.add(admin)
+            await db.flush()
+            
+            event = Event(
+                admin_id=admin.id,
+                public_id="evt_attendance_xlsx",
+                name="Attendance Test Event",
+                template_image_url="placeholder",
+                config={"visibility": "public", "registration_fields": []},
+            )
+            db.add(event)
+            await db.flush()
+            
+            session = EventSession(
+                event_id=event.id,
+                name="Session 1",
+                session_date=date.today(),
+                checkin_token="token_session_1",
+                is_active=True,
+            )
+            db.add(session)
+            await db.flush()
+            
+            attendee = Attendee(
+                event_id=event.id,
+                name="Test Attendee",
+                email="attendee@test.com",
+                source="import",
+            )
+            db.add(attendee)
+            await db.flush()
+            
+            record = AttendanceRecord(
+                attendee_id=attendee.id,
+                session_id=session.id,
+                checked_in_at=db.func.now(),
+            )
+            db.add(record)
+            await db.commit()
+        
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.get(
+                "/api/admin/events/1/attendance",
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+        
+        assert resp.status_code == 200
+        assert resp.headers["content-type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        assert "attendance_" in resp.headers["content-disposition"]
+
+    @pytest.mark.asyncio
+    async def test_get_attendance_matrix_csv(self):
+        """Test attendance matrix export in CSV format"""
+        admin_token = create_access_token(user_id=1, role=Role.admin)
+        
+        async with SessionLocal() as db:
+            admin = User(email="attendance-admin-csv@test.com", password_hash=hash_password("AdminPass123!"), role=Role.admin)
+            db.add(admin)
+            await db.flush()
+            
+            event = Event(
+                admin_id=admin.id,
+                public_id="evt_attendance_csv",
+                name="CSV Attendance Event",
+                template_image_url="placeholder",
+                config={"visibility": "public", "registration_fields": []},
+            )
+            db.add(event)
+            await db.commit()
+            event_id = event.id
+        
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.get(
+                f"/api/admin/events/{event_id}/attendance?fmt=csv",
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+        
+        assert resp.status_code == 200
+        assert resp.headers["content-type"] == "text/csv; charset=utf-8"
+
+    @pytest.mark.asyncio
+    async def test_get_attendance_matrix_with_registration_fields(self):
+        """Test that registration fields are included in attendance export"""
+        admin_token = create_access_token(user_id=1, role=Role.admin)
+        
+        async with SessionLocal() as db:
+            admin = User(email="attendance-admin-fields@test.com", password_hash=hash_password("AdminPass123!"), role=Role.admin)
+            db.add(admin)
+            await db.flush()
+            
+            event = Event(
+                admin_id=admin.id,
+                public_id="evt_attendance_fields",
+                name="Event with Fields",
+                template_image_url="placeholder",
+                config={
+                    "visibility": "public",
+                    "registration_fields": [
+                        {"id": "phone", "label": "Telefon", "type": "tel", "required": True}
+                    ]
+                },
+            )
+            db.add(event)
+            await db.flush()
+            
+            attendee = Attendee(
+                event_id=event.id,
+                name="Test Attendee",
+                email="attendee-fields@test.com",
+                source="import",
+                registration_answers={"phone": "+905551234567"},
+            )
+            db.add(attendee)
+            await db.commit()
+            event_id = event.id
+        
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.get(
+                f"/api/admin/events/{event_id}/attendance?fmt=csv",
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+        
+        assert resp.status_code == 200
+        assert "Telefon" in resp.text
+
+    @pytest.mark.asyncio
+    async def test_get_attendance_matrix_permission_denied(self):
+        """Test that non-admin users cannot access attendance matrix"""
+        member_id, member_token = await _create_public_member(
+            email="non-admin@test.com",
+            public_id="mem_non_admin",
+        )
+        
+        async with SessionLocal() as db:
+            admin = User(email="attendance-admin-perm@test.com", password_hash=hash_password("AdminPass123!"), role=Role.admin)
+            db.add(admin)
+            await db.flush()
+            
+            event = Event(
+                admin_id=admin.id,
+                public_id="evt_attendance_perm",
+                name="Permission Test Event",
+                template_image_url="placeholder",
+                config={"visibility": "public"},
+            )
+            db.add(event)
+            await db.commit()
+            event_id = event.id
+        
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.get(
+                f"/api/admin/events/{event_id}/attendance",
+                headers={"Authorization": f"Bearer {member_token}"},
+            )
+        
+        assert resp.status_code in [401, 403]
+
+    @pytest.mark.asyncio
+    async def test_get_attendance_matrix_missing_event(self):
+        """Test 404 when accessing attendance matrix for non-existent event"""
+        admin_token = create_access_token(user_id=1, role=Role.admin)
+        
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.get(
+                "/api/admin/events/99999/attendance",
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+        
+        assert resp.status_code == 404

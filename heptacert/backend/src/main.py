@@ -313,6 +313,29 @@ class User(Base):
 
 
 class PublicMember(Base):
+    """Public member profiles - SHARED between Events and Social systems.
+    
+    Used by:
+    - Social/Community Feed System: Member profiles, post authors, commenters, likers
+    - Events System: Event attendees with public profiles
+    
+    A public member can be:
+    1. An event attendee who also participates in social (comments, likes, posts to global feed)
+    2. A non-attendee who only participates in social (view, comment, like)
+    
+    Fields:
+    - public_id: Shareable profile identifier
+    - email: Unique email, used for both event and social authentication
+    - display_name: Public name shown in both systems
+    - bio, avatar_url, headline, location, website_url: Social profile data
+    - password_hash: Authentication for social platform
+    - attendees: Event registrations (one PublicMember -> many Attendees)
+    - comments: Event comments (comments on specific events)
+    
+    ** When a public member registers for an event, a new Attendee record is created
+       with a foreign key to public_member_id. This allows events to track member data
+       while social system tracks the same person's profile and activity.
+    """
     __tablename__ = "public_members"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     public_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
@@ -533,6 +556,31 @@ class WebhookDelivery(Base):
 
 
 class Organization(Base):
+    """Organization profiles - SHARED between Events and Social systems.
+    
+    Used by:
+    - Social/Community Feed System: Organization profiles, organization-specific feeds
+    - Events System: Admin's organization context (future - for org-specific event management)
+    
+    Fields:
+    - user_id: Foreign key to Users table (admin who owns this organization)
+    - public_id: Shareable identifier for public-facing URLs
+    - org_name: Organization display name
+    - custom_domain: Optional custom domain for branded experience
+    - brand_logo: Organization logo URL
+    - brand_color: Primary color (hex) for branding
+    - settings: JSON config for organization-specific settings
+    
+    Relationships:
+    - CommunityPost: Organization can have organization-specific feeds
+    - OrganizationFollower: Social followers on this organization
+    
+    Permissions:
+    - Admin (user_id) can create posts via /api/admin/community/posts if they have Growth/Enterprise subscription
+    - Public members can view organization feeds via GET /api/public/organizations/{org_id}/feed
+    - Public members can comment/like on organization posts
+    - Public members cannot create posts to organization feeds (use global feed instead)
+    """
     __tablename__ = "organizations"
     id:            Mapped[int]           = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id:       Mapped[int]           = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True)
@@ -830,6 +878,28 @@ class Attendee(Base):
 
 
 class EventComment(Base):
+    """Event-specific comments - SEPARATE from Social Community Feed system.
+    
+    This model is for comments on EVENT pages, NOT for community posts.
+    
+    Completely separate from:
+    - CommunityPost: Global feed posts by members and organizations
+    - CommunityPostComment: Comments on community feed posts
+    
+    Event comments are:
+    - Specific to a single event page
+    - Visible only on that event's detail page
+    - Free for all authenticated public members (no subscription restriction)
+    - NOT shared in global community feed
+    
+    Endpoints (Events system):
+    - GET /api/public/events/{event_id}/comments - List event page comments
+    - POST /api/public/events/{event_id}/comments - Add comment (free tier allowed)
+    
+    Endpoints (Social system for comparison):
+    - GET/POST /api/public/feed - Global community feed
+    - GET/POST /api/public/posts/{post_id}/comments - Comments on community posts
+    """
     __tablename__ = "event_comments"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     event_id: Mapped[int] = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
@@ -12212,6 +12282,7 @@ async def get_attendance_matrix(
     event_id: int,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    fmt: str = Query(default="xlsx", pattern="^(csv|xlsx)$"),
 ):
     ev = await _get_event_for_admin(event_id, me, db)
     sess_res = await db.execute(
@@ -12250,6 +12321,7 @@ async def get_attendance_matrix(
         row["Katilinan Oturum"] = sum(1 for s in sessions if (a.id, s.id) in rec_set)
         row["Esigi Geciyor"] = "Evet" if row["Katilinan Oturum"] >= ev.min_sessions_required else "Hayir"
         answers = a.registration_answers or {}
+        registration_fields = _get_event_registration_fields(ev)
         for field in registration_fields:
             row[field["label"]] = answers.get(field["id"], "")
         rows.append(row)
