@@ -7,7 +7,7 @@ Implements permission-based access control for profiles and activity.
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -124,6 +124,7 @@ class ConnectionStatsOut(BaseModel):
 @router.post("/api/public/members/{member_public_id}/follow")
 @limiter.limit("30/hour")
 async def follow_member(
+    request: Request,
     member_public_id: str,
     member: CurrentPublicMember = Depends(get_current_public_member),
     db: AsyncSession = Depends(get_db),
@@ -182,6 +183,7 @@ async def follow_member(
 @router.delete("/api/public/members/{member_public_id}/follow")
 @limiter.limit("30/hour")
 async def unfollow_member(
+    request: Request,
     member_public_id: str,
     member: CurrentPublicMember = Depends(get_current_public_member),
     db: AsyncSession = Depends(get_db),
@@ -214,6 +216,7 @@ async def unfollow_member(
 @router.get("/api/public/members/{member_public_id}/followers", response_model=list[ConnectionMemberOut])
 @limiter.limit("100/hour")
 async def get_member_followers(
+    request: Request,
     member_public_id: str,
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -249,6 +252,7 @@ async def get_member_followers(
 @router.get("/api/public/members/{member_public_id}/following", response_model=list[ConnectionMemberOut])
 @limiter.limit("100/hour")
 async def get_member_following(
+    request: Request,
     member_public_id: str,
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -284,6 +288,7 @@ async def get_member_following(
 @router.get("/api/public/members/{member_public_id}/connection-stats", response_model=ConnectionStatsOut)
 @limiter.limit("100/hour")
 async def get_connection_stats(
+    request: Request,
     member_public_id: str,
     member: Optional[CurrentPublicMember] = None,
     db: AsyncSession = Depends(get_db),
@@ -346,6 +351,7 @@ async def get_connection_stats(
 @router.post("/api/public/members/{member_public_id}/block")
 @limiter.limit("30/hour")
 async def block_member(
+    request: Request,
     member_public_id: str,
     data: dict = None,
     member: CurrentPublicMember = Depends(get_current_public_member),
@@ -399,6 +405,7 @@ async def block_member(
 @router.delete("/api/public/members/{member_public_id}/block")
 @limiter.limit("30/hour")
 async def unblock_member(
+    request: Request,
     member_public_id: str,
     member: CurrentPublicMember = Depends(get_current_public_member),
     db: AsyncSession = Depends(get_db),
