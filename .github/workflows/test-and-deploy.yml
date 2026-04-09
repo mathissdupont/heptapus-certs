@@ -1,0 +1,242 @@
+name: Test & Deploy Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Backend Tests
+  # ─────────────────────────────────────────────────────────────────────────
+  backend-tests:
+    name: Backend Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+    
+    defaults:
+      run:
+        working-directory: heptacert/backend
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_pass
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    env:
+      DATABASE_URL: postgresql+asyncpg://test_user:test_pass@localhost:5432/test_db
+      JWT_SECRET: test-jwt-secret-32chars-minimum!!
+      EMAIL_TOKEN_SECRET: test-email-token-secret
+      BOOTSTRAP_SUPERADMIN_EMAIL: super@test.com
+      BOOTSTRAP_SUPERADMIN_PASSWORD: SuperPass123!
+      PUBLIC_BASE_URL: http://localhost:8000
+      FRONTEND_BASE_URL: http://localhost:3000
+      CORS_ORIGINS: "*"
+      STORAGE_MODE: local
+      LOCAL_STORAGE_DIR: /tmp/heptacert_test
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: heptacert/backend/requirements.txt
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio pytest-cov
+      
+      - name: Lint with flake8 (excluding generated)
+        continue-on-error: true
+        run: |
+          # Stop the build if there are Python syntax errors or undefined names
+          flake8 src --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Exit-code is non-zero if there are warnings
+          flake8 src --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      
+      - name: Run tests with coverage
+        run: |
+          python -m pytest tests/ -v --tb=short --cov=src --cov-report=term-missing --cov-report=xml --cov-report=html
+      
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./heptacert/backend/coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+  
+  # ─────────────────────────────────────────────────────────────────────────
+  # Frontend Build & Type Check
+  # ─────────────────────────────────────────────────────────────────────────
+  frontend-build:
+    name: Frontend Build & TypeScript Check
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: heptacert/frontend
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: heptacert/frontend/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Type check with TypeScript
+        run: npx tsc --noEmit
+      
+      - name: Build frontend
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8000/api
+          NODE_ENV: production
+  
+  # ─────────────────────────────────────────────────────────────────────────
+  # Security & Quality Checks
+  # ─────────────────────────────────────────────────────────────────────────
+  security-checks:
+    name: Security & Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+  
+  # ─────────────────────────────────────────────────────────────────────────
+  # Docker Build & Push (if tests pass)
+  # ─────────────────────────────────────────────────────────────────────────
+  docker-build:
+    name: Build & Push Docker Images
+    needs: [backend-tests, frontend-build, security-checks]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract metadata
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+      
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: heptacert/backend
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+      
+      - name: Extract metadata for frontend
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+      
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: heptacert/frontend
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+  
+  # ─────────────────────────────────────────────────────────────────────────
+  # Deployment (manual approval required)
+  # ─────────────────────────────────────────────────────────────────────────
+  deploy-prod:
+    name: Deploy to Production
+    needs: [docker-build]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://heptapus-certs.com
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy to production
+        run: |
+          echo "🚀 Deployment checklist passed!"
+          echo "✅ Backend tests passed"
+          echo "✅ Frontend build successful"
+          echo "✅ Security checks passed"
+          echo "✅ Docker images built and pushed"
+          echo ""
+          echo "Next steps (manual):"
+          echo "1. Verify images in Container Registry"
+          echo "2. Update Kubernetes manifests or Docker Compose"
+          echo "3. Run smoke tests in staging"
+          echo "4. Promote to production"

@@ -48,9 +48,9 @@ export default function ProfilePage() {
             memberPlanCard: "Uyelik Plani",
             memberPlanNone: "Ucretsiz uye",
             memberPlanActive: "Aktif premium",
-            memberPlanExpires: "Bitis tarihi",
-            memberPlanCta: "Uyelik planlarini incele",
-            memberPlanBody: "Topluluk, profil ve sosyal ozellikler icin uye premium planlari kullanabilirsin.",
+            memberPlanExpires: "Bitiş tarihi",
+            memberPlanCta: "Üyelik planlarını incele",
+            memberPlanBody: "Topluluk, profil ve sosyal özellikler için üye premium planları kullanabilirsin.",
           }
         : {
             eyebrow: "Member Profile",

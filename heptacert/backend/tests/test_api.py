@@ -979,13 +979,13 @@ class TestCommunitySocialFlows:
             assert admin_post_resp.status_code == 201
             admin_post_public_id = admin_post_resp.json()["public_id"]
 
+            # Members cannot post to org feeds directly; only org admins can via /api/admin/community/posts
             member_post_resp = await ac.post(
                 "/api/public/organizations/org_member_feed/feed",
                 json={"body": "Member generated post"},
                 headers={"Authorization": f"Bearer {member_token}"},
             )
-            assert member_post_resp.status_code == 201
-            assert member_post_resp.json()["author_type"] == "member"
+            assert member_post_resp.status_code == 403
 
             like_resp = await ac.post(
                 f"/api/public/posts/{admin_post_public_id}/like",

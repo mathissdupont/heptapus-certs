@@ -148,7 +148,7 @@ export default function PricingPage() {
               title: "Member Plus",
               tone: "border-sky-200 bg-sky-50/70",
               features: lang === "tr"
-                ? ["Gelistirilmis profil gorunumu", "Topluluk ve feed tarafinda premium uye katmani", "Sosyal ozelliklerde premium hazirlik"]
+                ? ["Geliştirilmiş profil görünümü", "Topluluk ve feed tarafında premium üye katmanı", "Sosyal özeliklerde premium hazırlanmış"]
                 : ["Enhanced profile visibility", "Premium member tier across communities and feed", "Premium-ready tier for social features"],
             },
             {
@@ -156,7 +156,7 @@ export default function PricingPage() {
               title: "Member Pro",
               tone: "border-emerald-200 bg-emerald-50/70",
               features: lang === "tr"
-                ? ["Plus ozelliklerinin tamami", "Topluluklarda daha guclu gorunurluk", "Yeni sosyal ozellikler icin oncelikli premium katman"]
+                ? ["Plus özeliklerinin tamamı", "Topluluklarda daha güçlü görünürlük", "Yeni sosyal özellikler için öncelikli premium katman"]
                 : ["Everything in Plus", "Stronger visibility across communities", "Priority premium tier for upcoming social features"],
             },
           ].map((plan) => (
