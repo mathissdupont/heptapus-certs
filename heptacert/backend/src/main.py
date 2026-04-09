@@ -1314,6 +1314,8 @@ class PublicEventDetailOut(BaseModel):
     require_email_verification: bool = True
     registration_quota: Optional[int] = None
     registration_quota_enabled: bool = False
+    kvkk_consent_required: bool = True
+    kvkk_consent_text: Optional[str] = None
 
 
 class PublicMemberEventOut(BaseModel):
@@ -3876,6 +3878,28 @@ def _is_event_registration_quota_enabled(event: Event) -> bool:
         # Backward-compatible default: enabled only when quota is set.
         return _get_event_registration_quota(event) is not None
     return bool(raw_value)
+
+
+def _is_event_kvkk_consent_required(event: Event) -> bool:
+    config = event.config or {}
+    raw_value = config.get("kvkk_consent_required")
+    if raw_value is None:
+        # Backward compatibility: legacy events without this key are not forced.
+        return False
+    return bool(raw_value)
+
+
+def _get_event_kvkk_consent_text(event: Event) -> str:
+    config = event.config or {}
+    custom = str(config.get("kvkk_consent_text") or "").strip()
+    if custom:
+        return custom
+    return (
+        "Kisisel verileriniz 6698 sayili KVKK kapsaminda etkinlik kaydi, katilim yonetimi, "
+        "sertifika surecleri ve ilgili yasal yukumluluklerin yerine getirilmesi amaclariyla islenir. "
+        "Verileriniz sadece gerekli oldugu sure boyunca saklanir ve hukuka uygun teknik/idari tedbirlerle korunur. "
+        "KVKK md.11 kapsamindaki haklarinizi kvkk@heptapusgroup.com adresinden kullanabilirsiniz."
+    )
 
 
 def _is_event_registration_closed(event: Event) -> bool:
@@ -8095,6 +8119,8 @@ async def create_event(
 ):
     next_config = dict(payload.config or {})
     next_config["visibility"] = _normalize_event_visibility(next_config.get("visibility"))
+    # New events should require KVKK consent by default.
+    next_config.setdefault("kvkk_consent_required", True)
     public_id = await _generate_event_public_id(db)
     ev = Event(
         public_id=public_id,
@@ -10597,13 +10623,15 @@ class AttendeeOut(BaseModel):
     public_member_id: Optional[int] = None
     public_member_name: Optional[str] = None
     public_member_email: Optional[str] = None
-    registration_answers: Dict[str, str] = Field(default_factory=dict)
+    registration_answers: Dict[str, Any] = Field(default_factory=dict)
 
 
 class SelfRegisterIn(BaseModel):
     name: str = Field(min_length=2, max_length=200)
     email: EmailStr
     registration_answers: Dict[str, Any] = Field(default_factory=dict)
+    kvkk_accepted: bool = False
+    registration_documents: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class CheckinIn(BaseModel):
@@ -10853,6 +10881,8 @@ def _build_public_event_detail(
         require_email_verification=_get_event_email_verification_required(event),
         registration_quota=_get_event_registration_quota(event),
         registration_quota_enabled=_is_event_registration_quota_enabled(event),
+        kvkk_consent_required=_is_event_kvkk_consent_required(event),
+        kvkk_consent_text=_get_event_kvkk_consent_text(event),
         sessions=[
             {
                 "id": s.id,
@@ -11093,6 +11123,55 @@ async def public_event_info(event_id: str, db: AsyncSession = Depends(get_db)):
     return _build_public_event_detail(ev, sess_res.scalars().all(), survey_res.scalar_one_or_none()).model_dump()
 
 
+@app.post("/api/events/{event_id}/registration-document")
+@limiter.limit("10/minute")
+async def upload_public_registration_document(
+    request: Request,
+    event_id: str,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    ev = await _resolve_public_event(db, event_id)
+    if not ev:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if _is_event_registration_closed(ev):
+        raise HTTPException(status_code=403, detail="Registration is closed for this event.")
+
+    allowed_content_types = {
+        "application/pdf": ".pdf",
+        "image/jpeg": ".jpg",
+        "image/png": ".png",
+        "image/webp": ".webp",
+    }
+    ctype = str(file.content_type or "").lower().strip()
+    if ctype not in allowed_content_types:
+        raise bad_request("Only PDF, JPG, PNG or WEBP files are allowed")
+
+    raw = await file.read()
+    if not raw:
+        raise bad_request("Document file is empty")
+    max_size = 10 * 1024 * 1024
+    if len(raw) > max_size:
+        raise HTTPException(status_code=413, detail="Document exceeds 10 MB limit")
+
+    ext = Path(file.filename or "").suffix.lower().strip()
+    if not ext:
+        ext = allowed_content_types[ctype]
+
+    safe_name = f"registration_docs/event_{ev.id}/{secrets.token_hex(16)}{ext}"
+    dest = Path(settings.local_storage_dir) / safe_name
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(raw)
+
+    return {
+        "path": safe_name,
+        "name": Path(file.filename or f"document{ext}").name[:200],
+        "content_type": ctype,
+        "size_bytes": len(raw),
+        "sha256": hashlib.sha256(raw).hexdigest(),
+    }
+
+
 @app.post("/api/events/{event_id}/register", status_code=201)
 @limiter.limit("10/minute")
 async def public_event_register(
@@ -11107,6 +11186,8 @@ async def public_event_register(
         raise HTTPException(status_code=404, detail="Event not found")
     if _is_event_registration_closed(ev):
         raise HTTPException(status_code=403, detail="Registration is closed for this event.")
+    if _is_event_kvkk_consent_required(ev) and not payload.kvkk_accepted:
+        raise bad_request("KVKK consent is required for this event.")
     registration_quota = _get_event_registration_quota(ev)
     quota_enabled = _is_event_registration_quota_enabled(ev)
     if quota_enabled and registration_quota is not None:
@@ -11135,6 +11216,38 @@ async def public_event_register(
         registration_fields,
         payload.registration_answers,
     )
+    if payload.registration_documents:
+        sanitized_docs: List[Dict[str, Any]] = []
+        storage_root = Path(settings.local_storage_dir).resolve()
+        expected_prefix = f"registration_docs/event_{event_db_id}/"
+        for doc in payload.registration_documents[:5]:
+            rel_path = str((doc or {}).get("path") or "").strip().lstrip("/")
+            if not rel_path or not rel_path.startswith(expected_prefix):
+                raise bad_request("Invalid registration document path")
+            abs_path = (storage_root / rel_path).resolve()
+            if not str(abs_path).startswith(str(storage_root)) or not abs_path.exists() or not abs_path.is_file():
+                raise bad_request("Registration document not found")
+            stat_info = abs_path.stat()
+            if stat_info.st_size > 10 * 1024 * 1024:
+                raise bad_request("Registration document exceeds size limit")
+            sanitized_docs.append(
+                {
+                    "path": rel_path,
+                    "name": str((doc or {}).get("name") or Path(rel_path).name)[:200],
+                    "content_type": str((doc or {}).get("content_type") or "application/octet-stream")[:120],
+                    "size_bytes": int((doc or {}).get("size_bytes") or stat_info.st_size),
+                    "sha256": str((doc or {}).get("sha256") or "")[:128],
+                    "uploaded_at": datetime.now(timezone.utc).isoformat(),
+                }
+            )
+        if sanitized_docs:
+            registration_answers["__documents"] = sanitized_docs
+    registration_answers["__kvkk"] = {
+        "accepted": bool(payload.kvkk_accepted),
+        "accepted_at": datetime.now(timezone.utc).isoformat(),
+        "ip_address": client_ip,
+        "user_agent": user_agent,
+    }
 
     await _enforce_registration_risk_controls(
         db,

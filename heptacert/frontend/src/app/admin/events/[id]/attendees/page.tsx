@@ -247,15 +247,28 @@ export default function AdminAttendeesPage() {
   const totalPages = Math.ceil(total / limit);
   const eligibleCount = matrix ? matrix.rows.filter((r) => r.meets_threshold && !r.has_certificate).length : 0;
   const getRegistrationPreview = useCallback((attendee: AttendeeOut) => {
-    if (!registrationFields.length) return [];
-    return registrationFields
+    const fieldPreview = registrationFields
       .map((field) => {
         const value = attendee.registration_answers?.[field.id];
         if (!value) return null;
-        return { label: field.label, value };
+        return { label: field.label, value: String(value) };
       })
-      .filter((item): item is { label: string; value: string } => Boolean(item))
-      .slice(0, 2);
+      .filter((item): item is { label: string; value: string } => Boolean(item));
+
+    const extraPreview: Array<{ label: string; value: string }> = [];
+    const docsRaw = attendee.registration_answers?.["__documents"];
+    if (Array.isArray(docsRaw) && docsRaw.length > 0) {
+      extraPreview.push({ label: "Belge", value: `${docsRaw.length} dosya` });
+    }
+    const kvkkRaw = attendee.registration_answers?.["__kvkk"];
+    if (kvkkRaw && typeof kvkkRaw === "object") {
+      const accepted = (kvkkRaw as Record<string, unknown>).accepted;
+      if (accepted === true) {
+        extraPreview.push({ label: "KVKK", value: "Onaylandı" });
+      }
+    }
+
+    return [...fieldPreview, ...extraPreview].slice(0, 3);
   }, [registrationFields]);
 
   return (

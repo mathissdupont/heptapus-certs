@@ -257,6 +257,8 @@ export interface PublicEventInfo {
   }>;
   visibility: "private" | "unlisted" | "public";
   require_email_verification: boolean;
+  kvkk_consent_required?: boolean;
+  kvkk_consent_text?: string | null;
 }
 
 export interface PublicEventDetail {
@@ -282,6 +284,16 @@ export interface PublicEventDetail {
     session_location?: string | null;
   }>;
   visibility: "private" | "unlisted" | "public";
+  kvkk_consent_required?: boolean;
+  kvkk_consent_text?: string | null;
+}
+
+export interface RegistrationDocumentUploadOut {
+  path: string;
+  name: string;
+  content_type: string;
+  size_bytes: number;
+  sha256: string;
 }
 
 export interface PublicEventComment {
@@ -402,7 +414,7 @@ export interface AttendeeOut {
   public_member_id?: number | null;
   public_member_name?: string | null;
   public_member_email?: string | null;
-  registration_answers: Record<string, string>;
+  registration_answers: Record<string, unknown>;
 }
 
 export interface AttendanceMatrixRow {
@@ -1109,7 +1121,13 @@ export async function getPublicEventInfo(eventId: EventRouteId): Promise<PublicE
 
 export async function publicRegisterAttendee(
   eventId: EventRouteId,
-  data: { name: string; email: string; registration_answers?: Record<string, string> }
+  data: {
+    name: string;
+    email: string;
+    registration_answers?: Record<string, string>;
+    kvkk_accepted?: boolean;
+    registration_documents?: RegistrationDocumentUploadOut[];
+  }
 ): Promise<{
   ok: boolean;
   message: string;
@@ -1127,6 +1145,20 @@ export async function publicRegisterAttendee(
   const res = await fetcher(`/events/${toEventRouteId(eventId)}/register`, {
     method: "POST",
     body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function uploadPublicRegistrationDocument(
+  eventId: EventRouteId,
+  file: File,
+): Promise<RegistrationDocumentUploadOut> {
+  const form = new FormData();
+  form.append("file", file);
+  const fetcher = getPublicMemberToken() ? memberApiFetch : publicApiFetch;
+  const res = await fetcher(`/events/${toEventRouteId(eventId)}/registration-document`, {
+    method: "POST",
+    body: form,
   });
   return res.json();
 }
