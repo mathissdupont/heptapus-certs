@@ -706,7 +706,28 @@ export async function exportAttendanceFile(
   eventId: number,
   fmt: "xlsx" | "csv" = "xlsx",
 ): Promise<{ blob: Blob; filename: string }> {
-  const res = await apiFetch(`/admin/events/${eventId}/attendance/export?fmt=${fmt}`);
+  const token = getToken();
+  const headers = new Headers();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  const res = await fetch(`${API_BASE}/admin/events/${eventId}/attendance/export?fmt=${fmt}`, {
+    method: "GET",
+    headers,
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const detail = `Export failed (${res.status})`;
+    try {
+      const json = await res.json();
+      const errorMsg = json?.detail || JSON.stringify(json);
+      throw new ApiError(res.status, errorMsg);
+    } catch (e) {
+      if (e instanceof ApiError) throw e;
+      throw new ApiError(res.status, detail);
+    }
+  }
+
   const blob = await res.blob();
   const disposition = res.headers.get("content-disposition") || "";
   const filenameMatch = disposition.match(/filename=\"?([^"]+)\"?/i);
