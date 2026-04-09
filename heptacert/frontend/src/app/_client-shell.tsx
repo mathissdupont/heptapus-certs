@@ -149,126 +149,213 @@ function Navbar() {
 
   return (
     <motion.header
-      initial={{ y: -64, opacity: 0 }}
+      initial={{ y: -80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="sticky top-0 z-40 mb-6 mt-4 px-4"
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      className="sticky top-0 z-40 w-full"
     >
-      <div className="relative flex items-center justify-between rounded-xl border border-slate-200 bg-white/80 dark:bg-gray-900/80 shadow-sm backdrop-blur-lg overflow-hidden">
-        <div
-          className="absolute left-0 top-0 h-full w-1.5 rounded-l-xl hidden md:block"
-          style={{
-            background: brandColor ? `${brandColor}` : undefined,
-          }}
-        />
-        <Link href="/" className="flex items-center group pl-3 md:pl-4 pr-3 py-3">
-          {brandLogo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={brandLogo} alt="brand" className="h-12 w-auto group-hover:opacity-85 transition-opacity drop-shadow-sm" />
-          ) : isWhiteLabel && orgName ? (
-            <span className="text-lg font-bold text-slate-900 dark:text-gray-100 tracking-tight ml-2">{orgName}</span>
-          ) : (
-            <Image
-              src="/logo.png"
-              alt="HeptaCert"
-              width={220}
-              height={60}
-              unoptimized
-              priority
-              className="h-12 w-auto group-hover:opacity-85 transition-opacity drop-shadow-sm"
-            />
-          )}
-        </Link>
-        <nav className="hidden md:flex items-center gap-1 flex-1 px-4 justify-center">
-          {links.map((l) => (
-            <Link 
-              key={l.href} 
-              href={l.href} 
-              className="rounded-lg px-3.5 py-2 text-sm font-semibold text-slate-600 dark:text-gray-400 transition-all hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-gray-200"
-            >
-              {l.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="hidden md:flex items-center gap-3 pr-4 py-3">
-          <LanguageToggle />
-          {member ? (
-            <>
-              <div className="inline-flex items-center rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
-                {memberName}
-              </div>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900 hover:bg-slate-100"
-              >
-                {logoutLabel}
-              </button>
-            </>
-          ) : (
-            <Link href="/login" className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200 transition-colors">
-              {t("nav_login")}
-            </Link>
-          )}
+      {/* Background with gradient */}
+      <div className="absolute inset-0 bg-gradient-to-b from-white via-white/95 to-white/90 dark:from-gray-950 dark:via-gray-950/95 dark:to-gray-950/90 border-b border-slate-100/50 dark:border-gray-800/50"></div>
+      
+      {/* Animated gradient bar at top */}
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600"></div>
 
-          {!isWhiteLabel && !member && (
-            <Link
-              href="/register?mode=organizer"
-              className="inline-flex items-center gap-1.5 rounded-lg px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:shadow-md transition-all"
-              style={{
-                background: `linear-gradient(90deg, ${brandColor || "#3b82f6"}, ${brandColor || "#3b82f6"})`,
-              }}
-            >
-              {t("nav_start_free")}
+      <nav className="relative px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          
+          {/* Logo Section */}
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Link href="/" className="flex items-center group">
+              {brandLogo ? (
+                <div className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img 
+                    src={brandLogo} 
+                    alt="brand" 
+                    className="h-10 w-auto max-w-xs object-contain group-hover:opacity-80 transition-opacity duration-200" 
+                  />
+                </div>
+              ) : isWhiteLabel && orgName ? (
+                <span className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent tracking-tight">
+                  {orgName}
+                </span>
+              ) : (
+                <Image
+                  src="/logo.png"
+                  alt="HeptaCert"
+                  width={180}
+                  height={50}
+                  unoptimized
+                  priority
+                  className="h-10 w-auto object-contain group-hover:opacity-80 transition-opacity duration-200"
+                />
+              )}
             </Link>
-          )}
-        </div>
-        <button onClick={() => setOpen(!open)} className="md:hidden rounded-lg p-2.5 mr-2 text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800">
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
-      </div>
-      {open && (
-        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mt-2 rounded-xl border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm md:hidden">
-          <nav className="flex flex-col gap-1">
+          </motion.div>
+
+          {/* Desktop Navigation */}
+          <div className="hidden lg:flex items-center gap-0.5 flex-1 px-8 justify-center">
             {links.map((l) => (
-              <Link key={l.href} href={l.href} onClick={() => setOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800">{l.label}</Link>
+              <motion.div
+                key={l.href}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Link 
+                  href={l.href} 
+                  className="relative px-4 py-2 text-sm font-medium text-slate-700 dark:text-gray-300 transition-colors duration-200 hover:text-slate-900 dark:hover:text-white group"
+                >
+                  {l.label}
+                  <span className="absolute bottom-0 left-4 right-4 h-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></span>
+                </Link>
+              </motion.div>
             ))}
-            <hr className="my-2 border-slate-100 dark:border-gray-800" />
-            <div className="px-3 py-2 flex items-center gap-2">
-              <LanguageToggle />
-            </div>
+          </div>
+
+          {/* Right Actions */}
+          <div className="hidden lg:flex items-center gap-4">
+            <LanguageToggle />
+            
             {member ? (
               <>
-                <div className="rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700">
-                  {memberName}
+                <motion.div
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="flex items-center gap-3 pl-4 border-l border-slate-100 dark:border-gray-800"
+                >
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{memberName}</p>
+                    <p className="text-xs text-slate-500 dark:text-gray-400">Logged in</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="inline-flex items-center px-4 py-2 text-sm font-semibold text-slate-700 dark:text-gray-300 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800/50 transition-colors duration-200"
+                  >
+                    {logoutLabel}
+                  </button>
+                </motion.div>
+              </>
+            ) : (
+              <>
+                <Link 
+                  href="/login" 
+                  className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-gray-300 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800/50 transition-colors duration-200"
+                >
+                  {t("nav_login")}
+                </Link>
+
+                {!isWhiteLabel && (
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Link
+                      href="/register?mode=organizer"
+                      className="inline-flex items-center px-6 py-2.5 text-sm font-bold text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700"
+                    >
+                      {t("nav_start_free")}
+                    </Link>
+                  </motion.div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Mobile Menu Button */}
+          <motion.button 
+            onClick={() => setOpen(!open)} 
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            className="lg:hidden rounded-lg p-2.5 text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800/50 transition-colors duration-200"
+          >
+            {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </motion.button>
+        </div>
+      </nav>
+
+      {/* Mobile Menu */}
+      {open && (
+        <motion.div 
+          initial={{ opacity: 0, y: -16, height: 0 }} 
+          animate={{ opacity: 1, y: 0, height: "auto" }}
+          exit={{ opacity: 0, y: -16, height: 0 }}
+          transition={{ duration: 0.3 }}
+          className="relative border-t border-slate-100/50 dark:border-gray-800/50 bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm lg:hidden px-4 sm:px-6 py-4 overflow-hidden"
+        >
+          <div className="max-w-7xl mx-auto">
+            <nav className="flex flex-col gap-2 pb-4">
+              {links.map((l) => (
+                <motion.div
+                  key={l.href}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Link 
+                    href={l.href} 
+                    onClick={() => setOpen(false)} 
+                    className="block px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-gray-300 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800/50 transition-colors duration-200"
+                  >
+                    {l.label}
+                  </Link>
+                </motion.div>
+              ))}
+            </nav>
+
+            <div className="border-t border-slate-100 dark:border-gray-800 pt-4 flex items-center gap-3 justify-between mb-4">
+              <span className="text-xs font-semibold text-slate-500 dark:text-gray-400">LANGUAGE</span>
+              <LanguageToggle />
+            </div>
+
+            {member ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="space-y-2"
+              >
+                <div className="rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border border-blue-100 dark:border-blue-900/30 px-4 py-3">
+                  <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">{memberName}</p>
+                  <p className="text-xs text-blue-700 dark:text-blue-300">Logged in</p>
                 </div>
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                  className="w-full px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-gray-300 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800/50 transition-colors duration-200"
                 >
                   {logoutLabel}
                 </button>
-              </>
+              </motion.div>
             ) : (
-              <Link href="/login" onClick={() => setOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
-                {t("nav_login")}
-              </Link>
-            )}
-
-            {!isWhiteLabel && !member && (
-              <Link
-                href="/register?mode=organizer"
-                onClick={() => setOpen(false)}
-                className="mt-1 inline-flex w-full items-center justify-center rounded-xl py-3 text-sm font-bold text-white shadow-brand"
-                style={{
-                  background: `linear-gradient(90deg, ${brandColor || "#7c3aed"}, #7c3aed)`,
-                }}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="space-y-2"
               >
-                {t("nav_start_free")}
-              </Link>
+                <Link 
+                  href="/login" 
+                  onClick={() => setOpen(false)}
+                  className="block w-full px-4 py-2.5 text-center text-sm font-medium text-slate-700 dark:text-gray-300 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800/50 transition-colors duration-200"
+                >
+                  {t("nav_login")}
+                </Link>
+
+                {!isWhiteLabel && (
+                  <Link
+                    href="/register?mode=organizer"
+                    onClick={() => setOpen(false)}
+                    className="block w-full px-4 py-3 text-center text-sm font-bold text-white rounded-lg bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 shadow-lg transition-all duration-200"
+                  >
+                    {t("nav_start_free")}
+                  </Link>
+                )}
+              </motion.div>
             )}
-          </nav>
+          </div>
         </motion.div>
       )}
     </motion.header>
