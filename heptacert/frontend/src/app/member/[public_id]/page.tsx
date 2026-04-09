@@ -169,12 +169,12 @@ export default function PublicMemberProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Header */}
-      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-slate-200 px-6 py-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-50 to-slate-100 overflow-hidden">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/50 px-6 py-4">
         <Link
           href="/discover"
-          className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-700 font-semibold transition"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900 transition duration-200"
         >
           <ArrowLeft className="h-4 w-4" />
           {copy.back}
@@ -182,78 +182,92 @@ export default function PublicMemberProfilePage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-12">
-        {/* Profile Section */}
-        <div className="bg-white rounded-3xl shadow-lg overflow-hidden mb-12">
-          {/* Cover */}
-          <div className="h-40 bg-gradient-to-r from-purple-500 to-blue-500" />
+        {/* Main Profile Card */}
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden mb-12">
+          {/* Dynamic Gradient Cover */}
+          <div className="relative h-48 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 overflow-hidden">
+            {/* Animated gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/40 via-transparent to-pink-600/40 opacity-50" />
+            <div className="absolute inset-0 backdrop-blur-3xl" />
+          </div>
 
-          {/* Profile Info */}
+          {/* Profile Content */}
           <div className="px-8 pb-8">
-            <div className="flex flex-col sm:flex-row gap-6 -mt-20 mb-6">
-              {/* Avatar */}
-              {member.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={member.avatar_url}
-                  alt={member.display_name}
-                  className="h-40 w-40 rounded-2xl object-cover shadow-xl ring-4 ring-white"
-                />
-              ) : (
-                <div className="h-40 w-40 rounded-2xl bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center shadow-xl ring-4 ring-white">
-                  <span className="text-5xl font-bold text-white">
-                    {member.display_name.charAt(0).toUpperCase()}
-                  </span>
+            <div className="flex flex-col sm:flex-row gap-6 -mt-24 mb-8">
+              {/* Avatar - Large & Prominent */}
+              <div className="relative z-10 flex-shrink-0">
+                {member.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={member.avatar_url}
+                    alt={member.display_name}
+                    className="h-48 w-48 rounded-2xl object-cover shadow-2xl ring-4 ring-white hover:shadow-3xl transition duration-300"
+                  />
+                ) : (
+                  <div className="h-48 w-48 rounded-2xl bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center shadow-2xl ring-4 ring-white hover:shadow-3xl transition duration-300">
+                    <span className="text-6xl font-bold text-white">
+                      {member.display_name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                {/* Status indicator */}
+                <div className="absolute bottom-0 right-0 h-6 w-6 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 ring-4 ring-white shadow-lg" />
+              </div>
+
+              {/* Info Section */}
+              <div className="flex-1 pt-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h1 className="text-4xl font-black text-slate-900 mb-2">
+                      {member.display_name}
+                    </h1>
+
+                    {member.headline && (
+                      <p className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mb-3 flex items-center gap-2">
+                        <Briefcase className="h-5 w-5 text-blue-600" />
+                        {member.headline}
+                      </p>
+                    )}
+
+                    {member.location && (
+                      <p className="text-slate-600 mb-3 flex items-center gap-2 text-base">
+                        <MapPin className="h-5 w-5 text-slate-400" />
+                        {member.location}
+                      </p>
+                    )}
+
+                    {member.bio && (
+                      <p className="text-slate-700 mb-6 text-base leading-relaxed max-w-xl">
+                        {member.bio}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              )}
 
-              {/* Info */}
-              <div className="flex-1 pt-4">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                  {member.display_name}
-                </h1>
-
-                {member.headline && (
-                  <p className="text-lg text-gray-600 mb-4 flex items-center gap-2">
-                    <Briefcase className="h-4 w-4 text-purple-600" />
-                    {member.headline}
-                  </p>
-                )}
-
-                {member.location && (
-                  <p className="text-gray-600 mb-2 flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-gray-400" />
-                    {member.location}
-                  </p>
-                )}
-
-                {member.bio && (
-                  <p className="text-gray-700 mb-4">{member.bio}</p>
-                )}
-
-                {/* Stats */}
-                <div className="flex gap-6 mb-6">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">
+                {/* Stats Cards */}
+                <div className="grid grid-cols-2 gap-4 mb-8">
+                  <div className="rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 px-5 py-4 border border-blue-200/50 hover:shadow-lg transition duration-300">
+                    <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-700">
                       {member.event_count}
                     </div>
-                    <div className="text-sm text-gray-600">{copy.events}</div>
+                    <div className="text-sm font-semibold text-blue-700 mt-1">{copy.events} Katılımı</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">
+                  <div className="rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100 px-5 py-4 border border-purple-200/50 hover:shadow-lg transition duration-300">
+                    <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-purple-700">
                       {member.comment_count}
                     </div>
-                    <div className="text-sm text-gray-600">{copy.comments}</div>
+                    <div className="text-sm font-semibold text-purple-700 mt-1">{copy.comments} İçeriği</div>
                   </div>
                 </div>
 
-                {/* Actions */}
+                {/* Action Buttons */}
                 <div className="flex flex-wrap gap-3">
                   {member.website_url && (
                     <a
                       href={member.website_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition font-semibold text-sm border border-slate-200"
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-white text-slate-700 rounded-xl hover:bg-slate-50 transition font-semibold text-sm border-2 border-slate-300 hover:border-slate-400 shadow-md hover:shadow-lg"
                     >
                       <Globe className="h-4 w-4" />
                       {copy.visitWebsite}
@@ -263,7 +277,7 @@ export default function PublicMemberProfilePage() {
                     href={`https://heptapusgroup.com/contact?member=${member.display_name}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-semibold text-sm shadow-sm hover:shadow-md"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:shadow-xl transition font-semibold text-sm shadow-lg hover:shadow-2xl transform hover:scale-105"
                   >
                     <Mail className="h-4 w-4" />
                     {copy.contact}
@@ -274,26 +288,28 @@ export default function PublicMemberProfilePage() {
           </div>
         </div>
 
-        {/* Recommended Members */}
+        {/* Recommended Members Section */}
         {recommended.length > 0 && (
           <div className="mb-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            <h2 className="text-3xl font-black text-slate-900 mb-8 flex items-center gap-3">
+              <span className="text-3xl">👥</span>
               {copy.recommended}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {recommended.map((rec) => (
-                <div
+                <Link
                   key={rec.public_id}
-                  className="bg-white rounded-2xl shadow-md hover:shadow-lg transition overflow-hidden group"
+                  href={`/member/${rec.public_id}`}
+                  className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition duration-300 overflow-hidden transform hover:-translate-y-2"
                 >
-                  {/* Avatar */}
-                  <div className="relative h-40 bg-gradient-to-br from-purple-400 to-blue-400 overflow-hidden">
+                  {/* Image Header */}
+                  <div className="relative h-40 bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 overflow-hidden">
                     {rec.avatar_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={rec.avatar_url}
                         alt={rec.display_name}
-                        className="h-full w-full object-cover group-hover:scale-105 transition"
+                        className="h-full w-full object-cover group-hover:scale-110 transition duration-300"
                       />
                     ) : (
                       <div className="h-full w-full flex items-center justify-center">
@@ -302,39 +318,40 @@ export default function PublicMemberProfilePage() {
                         </span>
                       </div>
                     )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition duration-300" />
                   </div>
 
-                  {/* Info */}
-                  <div className="p-4">
-                    <h3 className="font-bold text-gray-900 mb-1">
+                  {/* Content */}
+                  <div className="p-5">
+                    <h3 className="font-bold text-lg text-slate-900 mb-1 line-clamp-1">
                       {rec.display_name}
                     </h3>
 
                     {rec.headline && (
-                      <p className="text-xs text-gray-600 mb-2">{rec.headline}</p>
+                      <p className="text-xs text-slate-600 mb-2 line-clamp-2">
+                        {rec.headline}
+                      </p>
                     )}
 
                     {rec.location && (
-                      <p className="text-xs text-gray-500 mb-3 flex items-center gap-1">
+                      <p className="text-xs text-slate-500 mb-3 flex items-center gap-1">
                         <MapPin className="h-3 w-3" /> {rec.location}
                       </p>
                     )}
 
-                    {/* Events */}
-                    <div className="flex items-center gap-1 text-xs text-gray-600 mb-4">
-                      <Users className="h-3 w-3" /> {rec.event_count}{" "}
-                      {copy.events}
+                    {/* Event Stats */}
+                    <div className="flex items-center gap-1 text-xs text-slate-600 mb-4 bg-blue-50 rounded-lg px-3 py-2">
+                      <Users className="h-3 w-3 text-blue-600" />
+                      <span className="font-semibold text-blue-600">{rec.event_count}</span>
+                      <span className="text-blue-700">{copy.events}</span>
                     </div>
 
                     {/* CTA */}
-                    <Link
-                      href={`/member/${rec.public_id}`}
-                      className="block w-full text-center px-3 py-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition font-semibold text-sm"
-                    >
+                    <div className="w-full px-3 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition font-semibold text-sm text-center">
                       {copy.viewProfile}
-                    </Link>
+                    </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>

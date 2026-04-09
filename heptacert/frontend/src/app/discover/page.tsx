@@ -377,74 +377,102 @@ export default function DiscoveryPage() {
           {filteredAndSortedPosts.map((post) => (
             <div
               key={post.public_id}
-              className="group rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md hover:border-slate-300"
+              className="group relative overflow-hidden rounded-2xl bg-white shadow-lg transition duration-300 hover:shadow-2xl hover:-translate-y-1 border border-slate-100"
             >
-              {/* Header */}
-              <div className="mb-3 flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold uppercase tracking-[0.15em] text-slate-500">
-                    {post.organization_name || "Üye"}
-                  </p>
-                  {post.author_public_id && post.author_type === "member" ? (
-                    <Link
-                      href={`/member/${post.author_public_id}`}
-                      className="text-sm font-semibold text-slate-900 truncate hover:text-blue-600 transition line-clamp-1"
-                    >
-                      {post.author_name}
-                    </Link>
-                  ) : (
-                    <p className="text-sm font-semibold text-slate-900 truncate">
-                      {post.author_name}
-                    </p>
-                  )}
-                </div>
-                <div className="shrink-0 text-right">
-                  <div className="text-2xl font-black text-blue-600">
-                    {formatNumber(post.score)}
-                  </div>
-                  <p className="text-xs text-slate-500">{copy.engagement}</p>
-                </div>
-              </div>
+              {/* Gradient Background Border */}
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-400/0 via-transparent to-purple-400/0 group-hover:from-blue-400/10 group-hover:to-purple-400/10 transition-colors duration-300 pointer-events-none" />
 
               {/* Content */}
-              <p className="mb-4 line-clamp-3 text-sm leading-6 text-slate-700">
-                {post.body}
-              </p>
-
-              {/* Engagement Stats */}
-              <div className="mb-4 flex flex-col gap-3 border-t border-slate-100 pt-3">
-                {/* Main Metrics Row */}
-                <div className="flex flex-wrap gap-3 text-xs">
-                  <div className="flex items-center gap-1 text-slate-600">
-                    <span className="font-semibold text-blue-600">👍 {formatNumber(post.like_count)}</span>
-                    <span>beğeni</span>
+              <div className="relative z-10 p-5">
+                {/* Header with Author */}
+                <div className="mb-4 flex items-start gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex-shrink-0 ring-2 ring-slate-100">
+                    {post.author_avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={post.author_avatar_url}
+                        alt={post.author_name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-sm font-bold text-white">
+                        {post.author_name.charAt(0).toUpperCase()}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1 text-slate-600">
-                    <span className="font-semibold text-emerald-600">💬 {formatNumber(post.comment_count)}</span>
-                    <span>yorum</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      {post.author_public_id && post.author_type === "member" ? (
+                        <Link
+                          href={`/member/${post.author_public_id}`}
+                          className="text-sm font-bold text-slate-900 hover:text-blue-600 transition truncate"
+                        >
+                          {post.author_name}
+                        </Link>
+                      ) : (
+                        <p className="text-sm font-bold text-slate-900 truncate">
+                          {post.author_name}
+                        </p>
+                      )}
+                      {post.score >= 100 && (
+                        <span className="inline-flex h-5 px-2 rounded-full bg-gradient-to-r from-yellow-200 to-orange-200 text-[10px] font-bold text-orange-900 whitespace-nowrap">
+                          🔥 Trending
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      {post.organization_name || "Topluluk Üyesi"}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <div className="inline-flex items-center justify-center rounded-lg bg-gradient-to-br from-blue-50 to-purple-50 px-3 py-2 border border-blue-200">
+                      <div className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+                        {formatNumber(post.score)}
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1 font-semibold">Skor</p>
                   </div>
                 </div>
 
-                {/* Algorithm Scores (subtle) */}
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="rounded bg-slate-50 px-2 py-1.5">
-                    <div className="font-bold text-slate-700">{Math.round(post.viralityScore)}</div>
-                    <div className="text-slate-500">Viral 🔥</div>
+                {/* Content */}
+                <p className="mb-4 line-clamp-3 text-sm leading-6 text-slate-700 group-hover:text-slate-900 transition">
+                  {post.body}
+                </p>
+
+                {/* Engagement Stats - Visual Bars */}
+                <div className="mb-4 space-y-3 border-t border-slate-100 pt-4">
+                  {/* Likes and Comments */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-xl bg-gradient-to-r from-blue-50 to-blue-100/50 px-3 py-2 border border-blue-200/50">
+                      <div className="text-sm font-bold text-blue-600">{formatNumber(post.like_count)}</div>
+                      <div className="text-xs text-blue-600/70">👍 Beğeni</div>
+                    </div>
+                    <div className="rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-100/50 px-3 py-2 border border-emerald-200/50">
+                      <div className="text-sm font-bold text-emerald-600">{formatNumber(post.comment_count)}</div>
+                      <div className="text-xs text-emerald-600/70">💬 Yorum</div>
+                    </div>
                   </div>
-                  <div className="rounded bg-slate-50 px-2 py-1.5">
-                    <div className="font-bold text-slate-700">{Math.round(post.qualityScore)}</div>
-                    <div className="text-slate-500">Kalite ✨</div>
-                  </div>
-                  <div className="rounded bg-slate-50 px-2 py-1.5">
-                    <div className="font-bold text-slate-700">{Math.round(post.velocityScore)}</div>
-                    <div className="text-slate-500">Hız ⚡</div>
-                  </div>
-                  <div className="rounded bg-slate-50 px-2 py-1.5">
-                    <div className="font-bold text-slate-700">{Math.round(post.freshnessScore)}</div>
-                    <div className="text-slate-500">Taze 🌟</div>
+
+                  {/* Algorithm Scores Grid */}
+                  <div className="grid grid-cols-4 gap-2 text-xs">
+                    <div className="rounded-lg bg-gradient-to-br from-yellow-100 to-orange-100 px-2 py-2 text-center border border-orange-200/50">
+                      <div className="font-bold text-orange-700">{Math.round(post.viralityScore)}</div>
+                      <div className="text-[10px] text-orange-600">🔥</div>
+                    </div>
+                    <div className="rounded-lg bg-gradient-to-br from-purple-100 to-pink-100 px-2 py-2 text-center border border-pink-200/50">
+                      <div className="font-bold text-purple-700">{Math.round(post.qualityScore)}</div>
+                      <div className="text-[10px] text-purple-600">✨</div>
+                    </div>
+                    <div className="rounded-lg bg-gradient-to-br from-cyan-100 to-blue-100 px-2 py-2 text-center border border-blue-200/50">
+                      <div className="font-bold text-cyan-700">{Math.round(post.velocityScore)}</div>
+                      <div className="text-[10px] text-cyan-600">⚡</div>
+                    </div>
+                    <div className="rounded-lg bg-gradient-to-br from-green-100 to-emerald-100 px-2 py-2 text-center border border-emerald-200/50">
+                      <div className="font-bold text-green-700">{Math.round(post.freshnessScore)}</div>
+                      <div className="text-[10px] text-green-600">🌟</div>
+                    </div>
                   </div>
                 </div>
-              </div>
 
               {/* CTA Button */}
               {viewer && (
