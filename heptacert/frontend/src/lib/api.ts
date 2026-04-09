@@ -811,6 +811,19 @@ export async function getPublicMemberSubscription(): Promise<PublicMemberSubscri
   return res.json();
 }
 
+export async function upgradePublicMemberTier(planId: string): Promise<{
+  status: string;
+  message: string;
+  plan_id: string;
+  expires_at?: string | null;
+}> {
+  const res = await memberApiFetch("/public/billing/upgrade", {
+    method: "POST",
+    body: JSON.stringify({ plan_id: planId }),
+  });
+  return res.json();
+}
+
 export async function updatePublicMemberProfile(data: {
   display_name: string;
   bio?: string | null;

@@ -11,8 +11,10 @@ import {
   PUBLIC_MEMBER_TOKEN_EVENT,
   clearPublicMemberToken,
   getPublicMemberMe,
+  getPublicMemberSubscription,
   getPublicMemberToken,
 } from "@/lib/api";
+import { Sparkles, Crown } from "lucide-react";
 
 const HEPTACERT_PRIMARY_HOSTS = new Set([
   "heptacert.com",
@@ -41,6 +43,7 @@ function Navbar() {
   const [settings, setSettings] = useState<{ hide_heptacert_home?: boolean } | null>(null);
   const [host, setHost] = useState<string>("");
   const [member, setMember] = useState<{ display_name: string; email: string } | null>(null);
+  const [subscription, setSubscription] = useState<{ plan_id: string | null; active: boolean } | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -74,15 +77,25 @@ function Navbar() {
     async function syncMember() {
       if (!getPublicMemberToken()) {
         if (mounted) setMember(null);
+        if (mounted) setSubscription(null);
         return;
       }
 
       try {
         const data = await getPublicMemberMe();
         if (mounted) setMember(data);
+        
+        // Also load subscription
+        try {
+          const sub = await getPublicMemberSubscription();
+          if (mounted) setSubscription(sub);
+        } catch {
+          if (mounted) setSubscription({ plan_id: "free", active: false });
+        }
       } catch {
         clearPublicMemberToken();
         if (mounted) setMember(null);
+        if (mounted) setSubscription(null);
       }
     }
 
@@ -215,6 +228,22 @@ function Navbar() {
                   <p className="text-sm font-semibold text-gray-900 dark:text-white leading-none">
                     {memberName}
                   </p>
+                  {subscription && subscription.plan_id && subscription.plan_id !== "free" && (
+                    <Link
+                      href="/community/settings/subscription"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                    >
+                      {subscription.plan_id === "pro" && <Sparkles className="h-3 w-3" />}
+                      {subscription.plan_id === "enterprise" && <Crown className="h-3 w-3" />}
+                      {lang === "tr"
+                        ? subscription.plan_id === "pro"
+                          ? "Pro"
+                          : "Enterprise"
+                        : subscription.plan_id === "pro"
+                          ? "Pro"
+                          : "Enterprise"}
+                    </Link>
+                  )}
                 </div>
                 <button
                   type="button"
@@ -285,10 +314,27 @@ function Navbar() {
 
               {member ? (
                 <div className="space-y-3">
-                  <div className="px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
+                  <Link
+                    href="/community/settings/subscription"
+                    className="block px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg"
+                  >
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{memberName}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Üye Hesabı</p>
-                  </div>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      {subscription && subscription.plan_id && subscription.plan_id !== "free" ? (
+                        <>
+                          {subscription.plan_id === "pro" && <Sparkles className="h-3 w-3 text-blue-600 dark:text-blue-400" />}
+                          {subscription.plan_id === "enterprise" && <Crown className="h-3 w-3 text-amber-600 dark:text-amber-400" />}
+                          <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                            {subscription.plan_id === "pro" ? "Pro" : "Enterprise"} {lang === "tr" ? "Üye" : "Member"}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {lang === "tr" ? "Ücretsiz Üye" : "Free Member"}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
                   <Link
                     href="/post/create"
                     onClick={() => setOpen(false)}

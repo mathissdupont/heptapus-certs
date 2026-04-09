@@ -7780,6 +7780,77 @@ async def get_public_member_subscription(
     }
 
 
+@app.post("/api/public/billing/upgrade")
+async def upgrade_public_member_tier(
+    data: dict,
+    member: CurrentPublicMember = Depends(get_current_public_member),
+    db: AsyncSession = Depends(get_db),
+):
+    """Upgrade public member to a new tier.
+    
+    In production, this would be called after successful payment processing.
+    For now, it directly assigns the tier.
+    
+    Accepted tier IDs: "free", "pro", "enterprise"
+    """
+    plan_id = data.get("plan_id", "").lower()
+    if plan_id not in ["free", "pro", "enterprise"]:
+        raise HTTPException(status_code=400, detail="Invalid plan ID.")
+    
+    # Check if already has active subscription for this tier
+    existing = await db.execute(
+        select(PublicMemberSubscription).where(
+            PublicMemberSubscription.public_member_id == member.id,
+            PublicMemberSubscription.plan_id == plan_id,
+            PublicMemberSubscription.is_active == True,
+        )
+    )
+    if existing.scalar_one_or_none():
+        return {
+            "status": "already_subscribed",
+            "message": f"You already have an active {plan_id} subscription.",
+            "plan_id": plan_id,
+        }
+    
+    # Deactivate previous subscriptions
+    await db.execute(
+        update(PublicMemberSubscription).where(
+            PublicMemberSubscription.public_member_id == member.id,
+            PublicMemberSubscription.is_active == True,
+        ).values(is_active=False)
+    )
+    
+    # Create new subscription
+    from datetime import datetime, timedelta
+    
+    expiry_date = None
+    if plan_id == "pro":
+        # Pro tier: 1 month from now
+        expiry_date = datetime.utcnow() + timedelta(days=30)
+    elif plan_id == "enterprise":
+        # Enterprise: 1 year from now
+        expiry_date = datetime.utcnow() + timedelta(days=365)
+    # Free tier: no expiry
+    
+    new_sub = PublicMemberSubscription(
+        public_member_id=member.id,
+        plan_id=plan_id,
+        started_at=datetime.utcnow(),
+        expires_at=expiry_date,
+        is_active=True,
+    )
+    db.add(new_sub)
+    await db.commit()
+    await db.refresh(new_sub)
+    
+    return {
+        "status": "upgraded",
+        "message": f"Successfully upgraded to {plan_id} plan",
+        "plan_id": plan_id,
+        "expires_at": new_sub.expires_at.isoformat() if new_sub.expires_at else None,
+    }
+
+
 @app.patch("/api/public/me", response_model=PublicMemberMeOut)
 async def update_public_me(
     data: PublicMemberProfileUpdateIn,
