@@ -12425,7 +12425,7 @@ async def get_attendance_matrix(
     sessions = sess_res.scalars().all()
     att_res = await db.execute(
         select(Attendee)
-        .options(selectinload(Attendee.public_member), selectinload(Attendee.certificates))
+        .options(selectinload(Attendee.public_member))
         .where(Attendee.event_id == event_id)
         .order_by(Attendee.name)
     )
@@ -12440,6 +12440,14 @@ async def get_attendance_matrix(
     records = rec_res.all()
     rec_set: dict[tuple, str] = {(r.attendee_id, r.session_id): r.checked_in_at.isoformat() for r in records}
 
+    # Build certificate lookup by student_name for this event
+    cert_res = await db.execute(
+        select(Certificate.student_name, Certificate.uuid)
+        .where(Certificate.event_id == event_id)
+    )
+    certs = cert_res.all()
+    cert_map: dict[str, str] = {c.student_name: c.uuid for c in certs}
+
     # Return JSON format if requested
     if fmt == "json":
         json_rows = []
@@ -12449,8 +12457,8 @@ async def get_attendance_matrix(
                 checkins[str(s.id)] = rec_set.get((a.id, s.id), None)
             
             sessions_attended = sum(1 for s in sessions if (a.id, s.id) in rec_set)
-            has_cert = len(a.certificates) > 0
-            cert_uuid = a.certificates[0].uuid if a.certificates else None
+            has_cert = a.name in cert_map
+            cert_uuid = cert_map.get(a.name)
             
             row = {
                 "attendee_id": a.id,
