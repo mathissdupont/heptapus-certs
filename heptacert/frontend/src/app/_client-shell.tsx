@@ -152,21 +152,21 @@ function Navbar() {
       initial={{ y: -64, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="sticky top-[3px] z-40 mb-8 mt-4"
+      className="sticky top-0 z-40 mb-6 mt-4 px-4"
     >
-      <div className="relative flex items-center justify-between rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-[0_4px_28px_rgba(0,0,0,0.09)] dark:shadow-[0_4px_28px_rgba(0,0,0,0.3)] backdrop-blur-md overflow-hidden">
+      <div className="relative flex items-center justify-between rounded-xl border border-slate-200 bg-white/80 dark:bg-gray-900/80 shadow-sm backdrop-blur-lg overflow-hidden">
         <div
-          className="absolute left-0 top-0 h-full w-1 rounded-l-2xl hidden md:block"
+          className="absolute left-0 top-0 h-full w-1.5 rounded-l-xl hidden md:block"
           style={{
             background: brandColor ? `${brandColor}` : undefined,
           }}
         />
-        <Link href="/" className="flex items-center group pl-4 md:pl-5 pr-3 py-3">
+        <Link href="/" className="flex items-center group pl-3 md:pl-4 pr-3 py-3">
           {brandLogo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={brandLogo} alt="brand" className="h-14 w-auto group-hover:opacity-85 transition-opacity drop-shadow-sm" />
+            <img src={brandLogo} alt="brand" className="h-12 w-auto group-hover:opacity-85 transition-opacity drop-shadow-sm" />
           ) : isWhiteLabel && orgName ? (
-            <span className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight ml-2">{orgName}</span>
+            <span className="text-lg font-bold text-slate-900 dark:text-gray-100 tracking-tight ml-2">{orgName}</span>
           ) : (
             <Image
               src="/logo.png"
@@ -175,37 +175,38 @@ function Navbar() {
               height={60}
               unoptimized
               priority
-              className="h-14 w-auto group-hover:opacity-85 transition-opacity drop-shadow-sm"
+              className="h-12 w-auto group-hover:opacity-85 transition-opacity drop-shadow-sm"
             />
           )}
-          {orgName && !isWhiteLabel && (
-            <span className="ml-3 hidden md:inline-block text-lg font-semibold text-gray-700 dark:text-gray-200 brand-text">{orgName}</span>
-          )}
         </Link>
-        <nav className="hidden md:flex items-center gap-0.5 flex-1 px-2 justify-end mr-4">
+        <nav className="hidden md:flex items-center gap-1 flex-1 px-4 justify-center">
           {links.map((l) => (
-            <Link key={l.href} href={l.href} className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200">
+            <Link 
+              key={l.href} 
+              href={l.href} 
+              className="rounded-lg px-3.5 py-2 text-sm font-semibold text-slate-600 dark:text-gray-400 transition-all hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-gray-200"
+            >
               {l.label}
             </Link>
           ))}
         </nav>
-        <div className="hidden md:flex items-center gap-2 pr-4 py-3">
+        <div className="hidden md:flex items-center gap-3 pr-4 py-3">
           <LanguageToggle />
           {member ? (
             <>
-              <div className="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+              <div className="inline-flex items-center rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
                 {memberName}
               </div>
               <button
                 type="button"
                 onClick={handleLogout}
-                className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 transition-colors hover:text-gray-900"
+                className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900 hover:bg-slate-100"
               >
                 {logoutLabel}
               </button>
             </>
           ) : (
-            <Link href="/login" className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors">
+            <Link href="/login" className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200 transition-colors">
               {t("nav_login")}
             </Link>
           )}
@@ -213,38 +214,38 @@ function Navbar() {
           {!isWhiteLabel && !member && (
             <Link
               href="/register?mode=organizer"
-              className="inline-flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-brand hover:opacity-90 transition-opacity"
+              className="inline-flex items-center gap-1.5 rounded-lg px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:shadow-md transition-all"
               style={{
-                background: `linear-gradient(90deg, ${brandColor || "#7c3aed"}, #7c3aed)`,
+                background: `linear-gradient(90deg, ${brandColor || "#3b82f6"}, ${brandColor || "#3b82f6"})`,
               }}
             >
               {t("nav_start_free")}
             </Link>
           )}
         </div>
-        <button onClick={() => setOpen(!open)} className="md:hidden rounded-lg p-2.5 mr-3 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+        <button onClick={() => setOpen(!open)} className="md:hidden rounded-lg p-2.5 mr-2 text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800">
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
       {open && (
-        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mt-2 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-lifted md:hidden">
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mt-2 rounded-xl border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm md:hidden">
           <nav className="flex flex-col gap-1">
             {links.map((l) => (
-              <Link key={l.href} href={l.href} onClick={() => setOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">{l.label}</Link>
+              <Link key={l.href} href={l.href} onClick={() => setOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800">{l.label}</Link>
             ))}
-            <hr className="my-2 border-gray-100 dark:border-gray-800" />
+            <hr className="my-2 border-slate-100 dark:border-gray-800" />
             <div className="px-3 py-2 flex items-center gap-2">
               <LanguageToggle />
             </div>
             {member ? (
               <>
-                <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">
+                <div className="rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700">
                   {memberName}
                 </div>
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                  className="rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:text-gray-300 dark:hover:bg-gray-800"
                 >
                   {logoutLabel}
                 </button>

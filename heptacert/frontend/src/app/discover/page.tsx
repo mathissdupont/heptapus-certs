@@ -350,8 +350,9 @@ export default function DiscoveryPage() {
 
       {/* Error */}
       {error && (
-        <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
-          {error}
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-6 py-4 text-sm text-red-700">
+          <p className="font-semibold mb-1">Oops! Gönderiler yüklenemedi</p>
+          <p className="text-red-600 text-xs">{copy.error}</p>
         </div>
       )}
 
