@@ -5,12 +5,9 @@ Revises:
 Create Date: 2026-03-01
 
 This migration is a no-op for existing databases.
-Tables are created by SQLAlchemy's create_all() on first startup.
-This revision simply marks the baseline so subsequent migrations have a parent.
+Tables will be created by initial database setup.
 """
 from __future__ import annotations
-from alembic import op
-import sqlalchemy as sa
 
 revision: str = "001baseline"
 down_revision = None
@@ -19,7 +16,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    """No-op — existing tables already exist via create_all()."""
+    """No-op migration - tables created during initialization."""
     pass
 
 

@@ -49,12 +49,7 @@ services:
       - ${HEPTACERT_STORAGE_DIR:-/mnt/HC_Volume_105029103/heptacert-data/storage}:/data
     ports:
       - "8765:8000"
-    command: >
-      sh -c "
-        cd /app &&
-        python -m alembic upgrade head &&
-        uvicorn src.main:app --host 0.0.0.0 --port 8000
-      "
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')\" || exit 1"]
       interval: 10s
