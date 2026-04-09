@@ -3,7 +3,19 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, ExternalLink, Github, Globe, Heart, Instagram, Loader2, MessageCircle, Send, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  ExternalLink,
+  Github,
+  Globe,
+  Heart,
+  Instagram,
+  Loader2,
+  MessageCircle,
+  Send,
+  Users,
+  Calendar,
+} from "lucide-react";
 import {
   createCommunityPostComment,
   createOrganizationFeedPost,
@@ -53,7 +65,7 @@ export default function PublicOrganizationDetailPage() {
   const copy = useMemo(() => lang === "tr" ? {
     back: "Topluluklara Dön",
     loading: "Topluluk yükleniyor...",
-    error: "Topluluk yüklenemedi.",
+    error: "Topluluk bulunamadı.",
     followers: "Takipçi",
     events: "Etkinlik",
     follow: "Takip Et",
@@ -61,11 +73,11 @@ export default function PublicOrganizationDetailPage() {
     loginToFollow: "Takip için giriş yap",
     feed: "Topluluk Akışı",
     noEvents: "Bu topluluk henüz etkinlik yayınlamadı.",
-    social: "İletişim Kanalları",
+    social: "İletişim",
   } : {
     back: "Back to Communities",
     loading: "Loading community...",
-    error: "Failed to load community.",
+    error: "Community not found.",
     followers: "Followers",
     events: "Events",
     follow: "Follow",
@@ -73,7 +85,7 @@ export default function PublicOrganizationDetailPage() {
     loginToFollow: "Sign in to follow",
     feed: "Community Feed",
     noEvents: "This organization has not published any events yet.",
-    social: "Social Links",
+    social: "Links",
   }, [lang]);
 
   useEffect(() => {
@@ -201,380 +213,333 @@ export default function PublicOrganizationDetailPage() {
   ].filter((item) => !!item.href) : [];
 
   if (loading) {
-    return <div className="flex min-h-[70vh] items-center justify-center text-sm text-slate-500"><Loader2 className="mr-2 h-5 w-5 animate-spin" />{copy.loading}</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center text-gray-500">
+          <Loader2 className="h-8 w-8 animate-spin mb-4" />
+          <p className="text-sm font-medium">{copy.loading}</p>
+        </div>
+      </div>
+    );
   }
 
-  if (error && !org) {
-    return <div className="mx-auto max-w-4xl px-6 py-14"><div className="error-banner">{error}</div></div>;
-  }
-
-  if (!org) {
-    return <div className="mx-auto max-w-4xl px-6 py-14"><div className="error-banner">{copy.error}</div></div>;
+  if (error || !org) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md px-6">
+          <h1 className="text-xl font-semibold text-gray-900 mb-2">{copy.error || error}</h1>
+          <Link
+            href="/organizations"
+            className="inline-flex items-center gap-2 px-4 py-2 mt-4 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium shadow-sm"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {copy.back}
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-10 lg:px-8">
-      <Link href="/organizations" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-900">
-        <ArrowLeft className="h-4 w-4" />
-        {copy.back}
-      </Link>
+    <div className="min-h-screen bg-[#F9FAFB] pb-12">
+      {/* Navbar / Header */}
+      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200 px-6 py-4">
+        <div className="max-w-5xl mx-auto flex items-center">
+          <Link
+            href="/organizations"
+            className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {copy.back}
+          </Link>
+        </div>
+      </div>
 
-      <section
-        className="mt-6 overflow-hidden rounded-[34px] border border-slate-200 bg-white shadow-[0_28px_90px_rgba(15,23,42,0.08)]"
-      >
-        {/* Header Background */}
-        <div
-          className="relative px-6 py-12 sm:px-8"
-          style={{
-            background: `linear-gradient(135deg, ${org.brand_color}40 0%, ${org.brand_color}20 50%, rgba(255,255,255,0.98) 100%)`,
-            borderBottom: `2px solid ${org.brand_color}20`,
-          }}
-        >
-          {/* Decorative elements */}
-          <div
-            className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-20 blur-3xl"
-            style={{ background: org.brand_color }}
-          />
-          <div
-            className="absolute bottom-0 left-0 w-72 h-72 rounded-full opacity-10 blur-3xl"
-            style={{ background: org.brand_color }}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-8">
+        {/* Main Organization Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-8">
+          {/* Subtle Cover Photo with Brand Color */}
+          <div 
+            className="h-32 w-full opacity-10" 
+            style={{ backgroundColor: org.brand_color || '#94a3b8' }} 
           />
 
-          <div className="relative z-10 flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
-            {/* Organization Info */}
-            <div className="flex items-start gap-6 flex-1">
+          <div className="px-6 sm:px-10 pb-8">
+            <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 -mt-16 mb-6">
               {/* Logo */}
-              <div
-                className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-2xl border-2 border-white/70 bg-white shadow-xl hover:shadow-2xl transition duration-300 flex-shrink-0"
-                style={{ borderColor: org.brand_color }}
-              >
-                {org.brand_logo ? (
-                  <img src={org.brand_logo} alt={org.org_name} className="h-full w-full object-cover" />
-                ) : (
-                  <span className="text-4xl font-black text-slate-700">{org.org_name.charAt(0).toUpperCase()}</span>
-                )}
+              <div className="relative flex-shrink-0">
+                <div className="h-32 w-32 rounded-xl bg-white border-4 border-white shadow-sm flex items-center justify-center overflow-hidden">
+                  {org.brand_logo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={org.brand_logo} alt={org.org_name} className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="text-4xl font-semibold text-slate-400">
+                      {org.org_name.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Details */}
-              <div className="min-w-0 flex-1">
-                <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-slate-950 mb-2">
-                  {org.org_name}
-                </h1>
-                <p className="mt-2 max-w-2xl text-base leading-8 text-slate-700 mb-6">
-                  {org.bio || org.org_name}
-                </p>
+              <div className="flex-1 pt-2 sm:pt-16 flex flex-col sm:flex-row justify-between items-start gap-6">
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
+                    {org.org_name}
+                  </h1>
+                  
+                  {org.bio && (
+                    <p className="text-gray-600 text-sm leading-relaxed max-w-2xl mb-6">
+                      {org.bio}
+                    </p>
+                  )}
 
-                {/* Stats */}
-                <div className="flex flex-wrap gap-3 mb-6">
-                  <div
-                    className="rounded-full border-2 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 shadow-md hover:shadow-lg transition duration-300"
-                    style={{ borderColor: org.brand_color, color: org.brand_color }}
-                  >
-                    👥 {org.follower_count.toLocaleString()} {copy.followers}
-                  </div>
-                  <div
-                    className="rounded-full border-2 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 shadow-md hover:shadow-lg transition duration-300"
-                    style={{ borderColor: org.brand_color, color: org.brand_color }}
-                  >
-                    📅 {org.event_count.toLocaleString()} {copy.events}
-                  </div>
-                </div>
-
-                {/* Social Links */}
-                {socialLinks.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {socialLinks.map((item) => {
-                      const Icon = item.icon;
-                      return (
-                        <a
-                          key={item.label}
-                          href={item.href || "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-white hover:shadow-md"
-                          style={{
-                            borderColor: org.brand_color,
-                            color: org.brand_color,
-                          }}
-                        >
-                          <Icon className="h-4 w-4" />
-                          {item.label}
-                        </a>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Follow Button */}
-            <button
-              type="button"
-              onClick={() => void handleFollowToggle()}
-              disabled={busy}
-              className="inline-flex items-center justify-center rounded-2xl px-8 py-4 text-base font-bold transition disabled:opacity-60 shrink-0 whitespace-nowrap shadow-lg hover:shadow-xl transform hover:scale-105 duration-300"
-              style={{
-                backgroundColor: getPublicMemberToken()
-                  ? org.is_following
-                    ? "#f0f0f0"
-                    : org.brand_color
-                  : org.brand_color,
-                color: getPublicMemberToken()
-                  ? org.is_following
-                    ? "#374151"
-                    : "#ffffff"
-                  : "#ffffff",
-                borderWidth: getPublicMemberToken() && org.is_following ? "2px" : "0",
-                borderColor: getPublicMemberToken() && org.is_following ? "#d1d5db" : "transparent",
-              }}
-            >
-              {busy ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-              {getPublicMemberToken()
-                ? org.is_following
-                  ? copy.unfollow
-                  : copy.follow
-                : copy.loginToFollow}
-            </button>
-          </div>
-        </div>
-
-        {/* Events Section */}
-        <div className="border-t border-slate-100 px-6 py-10 sm:px-8 bg-gradient-to-b from-slate-50/50 to-white">
-          <h2 className="text-3xl font-black text-slate-950 mb-8 flex items-center gap-2">
-            📅 {copy.feed}
-          </h2>
-          {org.events.length === 0 ? (
-            <div className="mt-5 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center text-sm text-slate-500">
-              <p className="text-base">{copy.noEvents}</p>
-            </div>
-          ) : (
-            <div className="
-            mt-5 grid gap-6 md:grid-cols-2">
-              {org.events.map((event) => (
-                <Link
-                  key={event.public_id}
-                  href={`/events/${event.public_id}`}
-                  className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg hover:shadow-2xl transition duration-300 transform hover:-translate-y-1"
-                >
-                  <div className="relative h-48 bg-gradient-to-br from-slate-300 to-slate-400 overflow-hidden">
-                    {event.event_banner_url ? (
-                      <img
-                        src={event.event_banner_url}
-                        alt={event.name}
-                        className="h-full w-full object-cover group-hover:scale-110 transition duration-300"
-                      />
-                    ) : (
-                      <div className="h-full w-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-                        <span className="text-5xl font-black text-white/30">📅</span>
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition line-clamp-1">
-                      {event.name}
-                    </h3>
-                    <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-600 border border-blue-200">
-                      <Users className="h-4 w-4" />
-                      {event.session_count} {copy.events}
+                  {/* Clean Stats */}
+                  <div className="flex gap-4 mb-6">
+                    <div className="flex flex-col justify-center rounded-xl bg-gray-50 px-5 py-3 border border-gray-100 min-w-[120px]">
+                      <span className="text-2xl font-bold text-slate-800">
+                        {org.follower_count.toLocaleString()}
+                      </span>
+                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-0.5">
+                        {copy.followers}
+                      </span>
+                    </div>
+                    <div className="flex flex-col justify-center rounded-xl bg-gray-50 px-5 py-3 border border-gray-100 min-w-[120px]">
+                      <span className="text-2xl font-bold text-slate-800">
+                        {org.event_count.toLocaleString()}
+                      </span>
+                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-0.5">
+                        {copy.events}
+                      </span>
                     </div>
                   </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
 
-        {/* Community Feed Section */}
-        <div className="border-t border-slate-100 px-6 py-10 sm:px-8">
-          <h2 className="text-3xl font-black text-slate-950 mb-8 flex items-center gap-2">
-            💬 {lang === "tr" ? "Topluluk Akışı" : "Community Feed"}
-          </h2>
-
-          {/* Post Input */}
-          <div className="mb-8 rounded-2xl border-2 border-slate-200 bg-gradient-to-br from-slate-50 to-white p-6 shadow-md hover:shadow-lg transition duration-300">
-            {viewer ? (
-              <div className="space-y-4">
-                <textarea
-                  className="min-h-[140px] w-full rounded-xl border-2 border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200 placeholder-slate-400 resize-none"
-                  value={postBody}
-                  onChange={(event) => setPostBody(event.target.value)}
-                  maxLength={1500}
-                  placeholder={lang === "tr"
-                    ? "Bu topluluğa bir güncelleme, soru veya duyuru bırak... 💡"
-                    : "Share an update, question, or note with this community... 💡"}
-                />
-                <div className="flex justify-between items-center">
-                  <p className="text-xs text-slate-500">
-                    {postBody.length}/1500
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => void handleCreatePost()}
-                    disabled={posting || !postBody.trim()}
-                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-2.5 text-sm font-bold text-white transition hover:shadow-lg disabled:opacity-60 hover:shadow-xl transform hover:scale-105 duration-300"
-                  >
-                    {posting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        {lang === "tr" ? "Paylaşılıyor..." : "Posting..."}
-                      </>
-                    ) : (
-                      <>
-                        <Send className="h-4 w-4" />
-                        {lang === "tr" ? "Paylaş" : "Post"}
-                      </>
-                    )}
-                  </button>
+                  {/* Social Links */}
+                  {socialLinks.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {socialLinks.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <a
+                            key={item.label}
+                            href={item.href || "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
+                          >
+                            <Icon className="h-4 w-4" />
+                            {item.label}
+                          </a>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ) : (
-              <div className="rounded-xl border-2 border-dashed border-slate-300 bg-white px-4 py-6 text-center text-sm text-slate-500">
-                <p className="mb-3">
-                  {lang === "tr"
-                    ? "Paylaşım yapmak için üye girişi yap"
-                    : "Sign in with a member account to post"}
-                </p>
+
+                {/* Follow Button */}
                 <button
-                  onClick={() => (window.location.href = "/login?mode=member")}
-                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition"
+                  type="button"
+                  onClick={() => void handleFollowToggle()}
+                  disabled={busy}
+                  className="inline-flex items-center justify-center rounded-lg px-6 py-2.5 text-sm font-medium transition disabled:opacity-60 shrink-0 whitespace-nowrap shadow-sm w-full sm:w-auto"
+                  style={{
+                    backgroundColor: getPublicMemberToken()
+                      ? org.is_following
+                        ? "#f3f4f6" // gray-100
+                        : org.brand_color || "#0f172a" // slate-900 fallback
+                      : org.brand_color || "#0f172a",
+                    color: getPublicMemberToken()
+                      ? org.is_following
+                        ? "#374151" // gray-700
+                        : "#ffffff"
+                      : "#ffffff",
+                    border: getPublicMemberToken() && org.is_following ? "1px solid #e5e7eb" : "1px solid transparent",
+                  }}
                 >
-                  {lang === "tr" ? "Üye Girişi" : "Sign In"}
+                  {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {getPublicMemberToken()
+                    ? org.is_following
+                      ? copy.unfollow
+                      : copy.follow
+                    : copy.loginToFollow}
                 </button>
               </div>
-            )}
+            </div>
           </div>
+        </div>
 
-          {/* Posts Feed */}
-          {loadingFeed ? (
-            <div className="flex items-center justify-center py-12 text-sm text-slate-500">
-              <Loader2 className="mr-3 h-5 w-5 animate-spin" />
-              {copy.loading}
-            </div>
-          ) : posts.length === 0 ? (
-            <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center text-sm text-slate-500">
-              <p className="text-base">
-                {lang === "tr"
-                  ? "Henüz paylaşım yok. İlk gönderiyi bu toplulukta sen başlat! 🚀"
-                  : "No posts yet. Be the first one to start the conversation! 🚀"}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-5">
-              {posts.map((post) => (
-                <article
-                  key={post.public_id}
-                  className="group relative overflow-hidden rounded-2xl border-2 border-slate-200 bg-white shadow-lg hover:shadow-xl transition duration-300 hover:border-slate-300"
-                >
-                  {/* Gradient Accent */}
-                  <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-500 to-purple-500 group-hover:w-2 transition-all duration-300" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Feed Column (Left / 2-cols wide) */}
+          <div className="lg:col-span-2 space-y-6">
+            <h2 className="text-lg font-bold text-gray-900 px-1">
+              {copy.feed}
+            </h2>
 
-                  <div className="px-6 py-5">
-                    {/* Header with Avatar */}
-                    <div className="flex items-start gap-4 mb-4">
-                      <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex-shrink-0 ring-2 ring-slate-100 shadow-md">
+            {/* Post Input */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+              {viewer ? (
+                <div className="space-y-4">
+                  <textarea
+                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-slate-400 focus:ring-1 focus:ring-slate-400 focus:bg-white placeholder-gray-400 resize-none min-h-[100px]"
+                    value={postBody}
+                    onChange={(event) => setPostBody(event.target.value)}
+                    maxLength={1500}
+                    placeholder={lang === "tr"
+                      ? "Bu toplulukta bir tartışma başlat..."
+                      : "Start a discussion in this community..."}
+                  />
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs text-gray-400">
+                      {postBody.length}/1500
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => void handleCreatePost()}
+                      disabled={posting || !postBody.trim()}
+                      className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-60 shadow-sm"
+                    >
+                      {posting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          {lang === "tr" ? "Paylaşılıyor..." : "Posting..."}
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4" />
+                          {lang === "tr" ? "Paylaş" : "Post"}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <p className="text-sm text-gray-500 mb-4">
+                    {lang === "tr"
+                      ? "Paylaşım yapmak veya yorum yazmak için giriş yapın."
+                      : "Sign in to create a post or leave a comment."}
+                  </p>
+                  <button
+                    onClick={() => (window.location.href = "/login?mode=member")}
+                    className="inline-flex items-center rounded-lg bg-white border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition shadow-sm"
+                  >
+                    {lang === "tr" ? "Üye Girişi" : "Sign In"}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Posts List */}
+            {loadingFeed ? (
+              <div className="flex items-center justify-center py-12 text-sm text-gray-500">
+                <Loader2 className="mr-3 h-5 w-5 animate-spin" />
+                {copy.loading}
+              </div>
+            ) : posts.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center text-sm text-gray-500">
+                <p>
+                  {lang === "tr"
+                    ? "Henüz paylaşım yok. İlk gönderiyi sen oluştur!"
+                    : "No posts yet. Be the first one to start a conversation!"}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {posts.map((post) => (
+                  <article
+                    key={post.public_id}
+                    className="bg-white rounded-xl shadow-sm border border-gray-200 p-5"
+                  >
+                    {/* Header */}
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="h-10 w-10 rounded-full bg-slate-100 border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
                         {post.author_avatar_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={post.author_avatar_url}
                             alt={post.author_name}
                             className="h-full w-full object-cover"
                           />
                         ) : (
-                          <span className="text-sm font-black text-white">
+                          <span className="text-sm font-semibold text-slate-500">
                             {post.author_name.charAt(0).toUpperCase()}
                           </span>
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-slate-900">
+                        <p className="text-sm font-semibold text-gray-900">
                           {post.author_name}
                         </p>
-                        <p className="text-xs text-slate-500 mt-0.5">
+                        <p className="text-xs text-gray-500 mt-0.5">
                           {formatTimestamp(post.created_at, lang)}
                         </p>
                       </div>
                     </div>
 
                     {/* Content */}
-                    <p className="text-sm leading-7 text-slate-700 mb-4 whitespace-pre-wrap group-hover:text-slate-900 transition">
+                    <p className="text-sm leading-relaxed text-gray-700 mb-4 whitespace-pre-wrap">
                       {post.body}
                     </p>
 
-                    {/* Engagement Bar */}
-                    <div className="border-t border-slate-100 pt-4">
-                      <div className="flex gap-3 flex-wrap">
-                        <button
-                          type="button"
-                          onClick={() => void handleToggleLike(post)}
-                          disabled={busyPostId === post.public_id}
-                          className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
-                            post.liked_by_me
-                              ? "bg-rose-100 text-rose-600 hover:bg-rose-200"
-                              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                          } disabled:opacity-60`}
-                        >
-                          {busyPostId === post.public_id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Heart
-                              className={`h-4 w-4 ${
-                                post.liked_by_me ? "fill-current" : ""
-                              }`}
-                            />
-                          )}
-                          <span>{post.like_count}</span>
-                          <span className="text-[12px]">
-                            {post.liked_by_me
-                              ? lang === "tr"
-                                ? "Beğendin"
-                                : "Liked"
-                              : lang === "tr"
-                              ? "Beğen"
-                              : "Like"}
-                          </span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void loadComments(post.public_id)}
-                          className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-200"
-                        >
-                          <MessageCircle className="h-4 w-4" />
-                          <span>{post.comment_count}</span>
-                          <span className="text-[12px]">
-                            {lang === "tr" ? "Yorum" : "Comments"}
-                          </span>
-                        </button>
-                      </div>
+                    {/* Engagement Actions */}
+                    <div className="flex items-center gap-4 pt-4 border-t border-gray-100">
+                      <button
+                        type="button"
+                        onClick={() => void handleToggleLike(post)}
+                        disabled={busyPostId === post.public_id}
+                        className={`flex items-center gap-1.5 text-sm font-medium transition-colors ${
+                          post.liked_by_me
+                            ? "text-rose-600"
+                            : "text-gray-500 hover:text-gray-700"
+                        } disabled:opacity-60`}
+                      >
+                        {busyPostId === post.public_id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Heart
+                            className={`h-4 w-4 ${post.liked_by_me ? "fill-current" : ""}`}
+                          />
+                        )}
+                        <span>{post.like_count}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void loadComments(post.public_id)}
+                        className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        <span>{post.comment_count}</span>
+                      </button>
                     </div>
 
                     {/* Comments Section */}
-                    {commentsByPost[post.public_id] ? (
-                      <div className="mt-5 space-y-3 border-t border-slate-100 pt-4">
-                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                          💬 {lang === "tr" ? "Yorumlar" : "Comments"}
-                        </p>
+                    {commentsByPost[post.public_id] && (
+                      <div className="mt-4 pt-4 border-t border-gray-100 space-y-4">
                         {(commentsByPost[post.public_id] || []).map((comment) => (
-                          <div
-                            key={comment.id}
-                            className="rounded-lg bg-slate-50 border border-slate-200 px-4 py-3 hover:bg-slate-100/50 transition"
-                          >
-                            <div className="flex items-center justify-between gap-3 mb-2">
-                              <p className="text-sm font-semibold text-slate-700">
-                                {comment.member_name}
-                              </p>
-                              <p className="text-[11px] text-slate-400">
-                                {formatTimestamp(comment.created_at, lang)}
+                          <div key={comment.id} className="flex gap-3">
+                            <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <span className="text-xs font-medium text-slate-500">
+                                {comment.member_name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="flex-1 bg-gray-50 rounded-xl px-4 py-3">
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <span className="text-sm font-medium text-gray-900">
+                                  {comment.member_name}
+                                </span>
+                                <span className="text-[11px] text-gray-500">
+                                  {formatTimestamp(comment.created_at, lang)}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-700">
+                                {comment.body}
                               </p>
                             </div>
-                            <p className="text-sm leading-5 text-slate-600">
-                              {comment.body}
-                            </p>
                           </div>
                         ))}
 
                         {/* Comment Input */}
                         {viewer && (
-                          <div className="mt-3 flex gap-2">
+                          <div className="flex gap-2 pt-2">
                             <input
                               value={commentInputs[post.public_id] || ""}
                               onChange={(event) =>
@@ -584,11 +549,9 @@ export default function PublicOrganizationDetailPage() {
                                 }))
                               }
                               placeholder={
-                                lang === "tr"
-                                  ? "Yorum yaz..."
-                                  : "Write a comment..."
+                                lang === "tr" ? "Yorum yaz..." : "Write a comment..."
                               }
-                              className="flex-1 rounded-lg border-2 border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                              className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-slate-400 focus:ring-1 focus:ring-slate-400"
                             />
                             <button
                               type="button"
@@ -597,21 +560,70 @@ export default function PublicOrganizationDetailPage() {
                                 busyPostId === post.public_id ||
                                 !(commentInputs[post.public_id] || "").trim()
                               }
-                              className="rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-sm font-semibold text-white transition hover:shadow-lg disabled:opacity-60 hover:shadow-md"
+                              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-60 shadow-sm"
                             >
-                              {lang === "tr" ? "Yorum Yap" : "Reply"}
+                              {lang === "tr" ? "Yanıtla" : "Reply"}
                             </button>
                           </div>
                         )}
                       </div>
-                    ) : null}
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
+                    )}
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Sidebar / Events Column */}
+          <div className="space-y-6">
+            <h2 className="text-lg font-bold text-gray-900 px-1">
+              {copy.events}
+            </h2>
+
+            {org.events.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-center text-sm text-gray-500">
+                {copy.noEvents}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {org.events.map((event) => (
+                  <Link
+                    key={event.public_id}
+                    href={`/events/${event.public_id}`}
+                    className="group bg-white rounded-xl shadow-sm border border-gray-200 hover:border-gray-300 transition-all overflow-hidden"
+                  >
+                    {/* Banner Image */}
+                    <div className="h-32 bg-slate-100 border-b border-gray-100 overflow-hidden relative">
+                      {event.event_banner_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={event.event_banner_url}
+                          alt={event.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center bg-gray-50">
+                          <Calendar className="h-8 w-8 text-gray-300" />
+                        </div>
+                      )}
+                    </div>
+                    {/* Content */}
+                    <div className="p-4">
+                      <h3 className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 mb-3">
+                        {event.name}
+                      </h3>
+                      <div className="inline-flex items-center gap-1.5 rounded-md bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 border border-slate-100">
+                        <Users className="h-3 w-3" />
+                        {event.session_count} {lang === "tr" ? "Oturum" : "Sessions"}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

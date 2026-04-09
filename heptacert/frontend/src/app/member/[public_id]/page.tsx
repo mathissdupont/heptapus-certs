@@ -37,7 +37,6 @@ function getRecommendedMembers(
   currentMemberId: string,
   viewerId: string | undefined
 ): RecommendedMember[] {
-  // Extract unique members from posts (excluding current member and viewer)
   const memberMap = new Map<string, RecommendedMember>();
 
   allPosts.forEach((post) => {
@@ -82,7 +81,7 @@ export default function PublicMemberProfilePage() {
         ? {
             back: "Geri Dön",
             loading: "Profil yükleniyor...",
-            error: "Profil yüklenemedi",
+            error: "Profil bulunamadı",
             recommended: "Önerilen Üyeler",
             noRecommendations: "Henüz kimse önerilmiyor",
             events: "Etkinlik",
@@ -91,12 +90,12 @@ export default function PublicMemberProfilePage() {
             location: "Konum",
             visitWebsite: "Web Sitesi",
             contact: "İletişim",
-            viewProfile: "Profili Gör",
+            viewProfile: "Profili İncele",
           }
         : {
             back: "Back",
             loading: "Loading profile...",
-            error: "Failed to load profile",
+            error: "Profile not found",
             recommended: "Recommended People",
             noRecommendations: "No recommendations yet",
             events: "Events",
@@ -141,10 +140,10 @@ export default function PublicMemberProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-purple-600 mx-auto mb-4" />
-          <p className="text-gray-600">{copy.loading}</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center text-gray-500">
+          <Loader2 className="h-8 w-8 animate-spin mb-4" />
+          <p className="text-sm font-medium">{copy.loading}</p>
         </div>
       </div>
     );
@@ -152,13 +151,13 @@ export default function PublicMemberProfilePage() {
 
   if (error || !member) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">{copy.error}</h1>
-          <p className="text-gray-600 mb-6">{error}</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md px-6">
+          <h1 className="text-xl font-semibold text-gray-900 mb-2">{copy.error}</h1>
+          <p className="text-gray-500 text-sm mb-6">{error}</p>
           <Link
             href="/discover"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium shadow-sm"
           >
             <ArrowLeft className="h-4 w-4" />
             {copy.back}
@@ -169,119 +168,116 @@ export default function PublicMemberProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-50 to-slate-100 overflow-hidden">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/50 px-6 py-4">
-        <Link
-          href="/discover"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900 transition duration-200"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {copy.back}
-        </Link>
+    <div className="min-h-screen bg-[#F9FAFB] pb-12">
+      {/* Navbar / Header */}
+      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200 px-6 py-4">
+        <div className="max-w-5xl mx-auto flex items-center">
+          <Link
+            href="/discover"
+            className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {copy.back}
+          </Link>
+        </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-12">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-8">
         {/* Main Profile Card */}
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden mb-12">
-          {/* Dynamic Gradient Cover */}
-          <div className="relative h-48 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 overflow-hidden">
-            {/* Animated gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/40 via-transparent to-pink-600/40 opacity-50" />
-            <div className="absolute inset-0 backdrop-blur-3xl" />
-          </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-12">
+          {/* Subtle Cover Photo Area */}
+          <div className="h-32 bg-slate-100/80 border-b border-gray-100 w-full" />
 
-          {/* Profile Content */}
-          <div className="px-8 pb-8">
-            <div className="flex flex-col sm:flex-row gap-6 -mt-24 mb-8">
-              {/* Avatar - Large & Prominent */}
-              <div className="relative z-10 flex-shrink-0">
+          <div className="px-6 sm:px-10 pb-8">
+            <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 -mt-16 mb-6">
+              {/* Avatar - Circular and Clean */}
+              <div className="relative flex-shrink-0">
                 {member.avatar_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={member.avatar_url}
                     alt={member.display_name}
-                    className="h-48 w-48 rounded-2xl object-cover shadow-2xl ring-4 ring-white hover:shadow-3xl transition duration-300"
+                    className="h-32 w-32 rounded-full object-cover shadow-sm border-4 border-white bg-white"
                   />
                 ) : (
-                  <div className="h-48 w-48 rounded-2xl bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center shadow-2xl ring-4 ring-white hover:shadow-3xl transition duration-300">
-                    <span className="text-6xl font-bold text-white">
+                  <div className="h-32 w-32 rounded-full bg-slate-100 border-4 border-white shadow-sm flex items-center justify-center">
+                    <span className="text-4xl font-semibold text-slate-400">
                       {member.display_name.charAt(0).toUpperCase()}
                     </span>
                   </div>
                 )}
-                {/* Status indicator */}
-                <div className="absolute bottom-0 right-0 h-6 w-6 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 ring-4 ring-white shadow-lg" />
+                {/* Subtle Status Indicator */}
+                <div className="absolute bottom-2 right-2 h-4 w-4 rounded-full bg-emerald-500 border-2 border-white" title="Active" />
               </div>
 
               {/* Info Section */}
-              <div className="flex-1 pt-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h1 className="text-4xl font-black text-slate-900 mb-2">
-                      {member.display_name}
-                    </h1>
+              <div className="flex-1 pt-2 sm:pt-16">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                  {member.display_name}
+                </h1>
 
-                    {member.headline && (
-                      <p className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mb-3 flex items-center gap-2">
-                        <Briefcase className="h-5 w-5 text-blue-600" />
-                        {member.headline}
-                      </p>
-                    )}
-
-                    {member.location && (
-                      <p className="text-slate-600 mb-3 flex items-center gap-2 text-base">
-                        <MapPin className="h-5 w-5 text-slate-400" />
-                        {member.location}
-                      </p>
-                    )}
-
-                    {member.bio && (
-                      <p className="text-slate-700 mb-6 text-base leading-relaxed max-w-xl">
-                        {member.bio}
-                      </p>
-                    )}
+                {member.headline && (
+                  <div className="flex items-center gap-2 text-gray-600 mb-2">
+                    <Briefcase className="h-4 w-4 text-gray-400" />
+                    <span className="text-base font-medium">{member.headline}</span>
                   </div>
-                </div>
+                )}
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-2 gap-4 mb-8">
-                  <div className="rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 px-5 py-4 border border-blue-200/50 hover:shadow-lg transition duration-300">
-                    <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-700">
+                {member.location && (
+                  <div className="flex items-center gap-2 text-gray-500 text-sm mb-4">
+                    <MapPin className="h-4 w-4" />
+                    <span>{member.location}</span>
+                  </div>
+                )}
+
+                {member.bio && (
+                  <p className="text-gray-600 text-sm leading-relaxed max-w-2xl mb-6">
+                    {member.bio}
+                  </p>
+                )}
+
+                {/* Clean Stats Cards */}
+                <div className="flex gap-4 mb-8">
+                  <div className="flex flex-col justify-center rounded-xl bg-gray-50 px-5 py-3 border border-gray-100 min-w-[120px]">
+                    <span className="text-2xl font-bold text-slate-800">
                       {member.event_count}
-                    </div>
-                    <div className="text-sm font-semibold text-blue-700 mt-1">{copy.events} Katılımı</div>
+                    </span>
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-0.5">
+                      {copy.events}
+                    </span>
                   </div>
-                  <div className="rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100 px-5 py-4 border border-purple-200/50 hover:shadow-lg transition duration-300">
-                    <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-purple-700">
+                  <div className="flex flex-col justify-center rounded-xl bg-gray-50 px-5 py-3 border border-gray-100 min-w-[120px]">
+                    <span className="text-2xl font-bold text-slate-800">
                       {member.comment_count}
-                    </div>
-                    <div className="text-sm font-semibold text-purple-700 mt-1">{copy.comments} İçeriği</div>
+                    </span>
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-0.5">
+                      {copy.comments}
+                    </span>
                   </div>
                 </div>
 
-                {/* Action Buttons */}
+                {/* Action Buttons - Minimalist */}
                 <div className="flex flex-wrap gap-3">
+                  <a
+                    href={`https://heptapusgroup.com/contact?member=${member.display_name}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition font-medium text-sm shadow-sm"
+                  >
+                    <Mail className="h-4 w-4" />
+                    {copy.contact}
+                  </a>
                   {member.website_url && (
                     <a
                       href={member.website_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-white text-slate-700 rounded-xl hover:bg-slate-50 transition font-semibold text-sm border-2 border-slate-300 hover:border-slate-400 shadow-md hover:shadow-lg"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium text-sm border border-gray-200 shadow-sm"
                     >
                       <Globe className="h-4 w-4" />
                       {copy.visitWebsite}
                     </a>
                   )}
-                  <a
-                    href={`https://heptapusgroup.com/contact?member=${member.display_name}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:shadow-xl transition font-semibold text-sm shadow-lg hover:shadow-2xl transform hover:scale-105"
-                  >
-                    <Mail className="h-4 w-4" />
-                    {copy.contact}
-                  </a>
                 </div>
               </div>
             </div>
@@ -290,65 +286,55 @@ export default function PublicMemberProfilePage() {
 
         {/* Recommended Members Section */}
         {recommended.length > 0 && (
-          <div className="mb-12">
-            <h2 className="text-3xl font-black text-slate-900 mb-8 flex items-center gap-3">
-              <span className="text-3xl">👥</span>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 mb-4 px-1">
               {copy.recommended}
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {recommended.map((rec) => (
                 <Link
                   key={rec.public_id}
                   href={`/member/${rec.public_id}`}
-                  className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition duration-300 overflow-hidden transform hover:-translate-y-2"
+                  className="group flex flex-col bg-white rounded-xl shadow-sm border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-200 overflow-hidden"
                 >
-                  {/* Image Header */}
-                  <div className="relative h-40 bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 overflow-hidden">
+                  <div className="p-5 flex items-start gap-4">
+                    {/* Small Circular Avatar */}
                     {rec.avatar_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={rec.avatar_url}
                         alt={rec.display_name}
-                        className="h-full w-full object-cover group-hover:scale-110 transition duration-300"
+                        className="h-14 w-14 rounded-full object-cover bg-gray-50 border border-gray-100 flex-shrink-0"
                       />
                     ) : (
-                      <div className="h-full w-full flex items-center justify-center">
-                        <span className="text-5xl font-bold text-white opacity-30">
+                      <div className="h-14 w-14 rounded-full bg-slate-100 border border-gray-100 flex items-center justify-center flex-shrink-0">
+                        <span className="text-lg font-semibold text-slate-500">
                           {rec.display_name.charAt(0).toUpperCase()}
                         </span>
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition duration-300" />
-                  </div>
 
-                  {/* Content */}
-                  <div className="p-5">
-                    <h3 className="font-bold text-lg text-slate-900 mb-1 line-clamp-1">
-                      {rec.display_name}
-                    </h3>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 text-base truncate group-hover:text-blue-600 transition-colors">
+                        {rec.display_name}
+                      </h3>
+                      
+                      {rec.headline ? (
+                        <p className="text-sm text-gray-500 truncate mt-0.5">
+                          {rec.headline}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-gray-500 truncate mt-0.5">
+                          Üye
+                        </p>
+                      )}
 
-                    {rec.headline && (
-                      <p className="text-xs text-slate-600 mb-2 line-clamp-2">
-                        {rec.headline}
-                      </p>
-                    )}
-
-                    {rec.location && (
-                      <p className="text-xs text-slate-500 mb-3 flex items-center gap-1">
-                        <MapPin className="h-3 w-3" /> {rec.location}
-                      </p>
-                    )}
-
-                    {/* Event Stats */}
-                    <div className="flex items-center gap-1 text-xs text-slate-600 mb-4 bg-blue-50 rounded-lg px-3 py-2">
-                      <Users className="h-3 w-3 text-blue-600" />
-                      <span className="font-semibold text-blue-600">{rec.event_count}</span>
-                      <span className="text-blue-700">{copy.events}</span>
-                    </div>
-
-                    {/* CTA */}
-                    <div className="w-full px-3 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition font-semibold text-sm text-center">
-                      {copy.viewProfile}
+                      <div className="flex items-center gap-3 mt-3">
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
+                          <Users className="h-3.5 w-3.5" />
+                          <span>{rec.event_count} Etkinlik</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </Link>

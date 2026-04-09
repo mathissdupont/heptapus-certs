@@ -14,6 +14,11 @@ import {
   Send,
   ShieldAlert,
   Users,
+  Lock,
+  ListChecks,
+  FileText,
+  LogIn,
+  CheckCircle2
 } from "lucide-react";
 import {
   createPublicEventComment,
@@ -58,60 +63,56 @@ export default function PublicEventDetailClient() {
     () =>
       lang === "tr"
         ? {
-            back: "Etkinlik listesine dön",
+            back: "Etkinliklere dön",
             loading: "Etkinlik detayları yükleniyor...",
             error: "Etkinlik detayları yüklenemedi.",
-            register: "Etkinliğe Kayıt Ol",
-            registrationClosed: "Kayıt Kapalı",
+            register: "Kayıt Ol",
+            registrationClosed: "Kayıtlar Kapandı",
             sessions: "Oturumlar",
-            customFields: "Kayıtta istenecek ek bilgiler",
-            minSessions: "Sertifika için minimum oturum",
-            unlisted: "Liste dışı paylaşım",
+            customFields: "Kayıt Bilgileri",
+            minSessions: "Sertifika için min. oturum",
+            unlisted: "Liste Dışı",
             noSessions: "Henüz oturum eklenmedi.",
-            defaultFields: "Bu etkinlikte şimdilik standart ad ve e-posta alanları kullanılıyor.",
-            defaultHelper: "Kayıt sırasında doldurulacak ek alan.",
+            defaultFields: "Bu etkinlikte sadece standart ad ve e-posta alanları kullanılıyor.",
             required: "Zorunlu",
             commentsTitle: "Yorumlar",
-            commentsSubtitle: "Topluluğun etkinlik hakkındaki görüşlerini inceleyin veya siz de yorum bırakın.",
-            noComments: "Henüz yorum yok. İlk yorumu sen bırak.",
-            commentPlaceholder: "Bu etkinlik hakkında ne düşünüyorsun?",
-            commentSubmit: "Yorum Gönder",
-            loginPrompt: "Yorum yazmak için üye hesabınla giriş yap.",
-            loginCta: "Üye Girişi",
+            commentsSubtitle: "Topluluğun etkinlik hakkındaki görüşlerini inceleyin.",
+            noComments: "Henüz yorum yok. İlk yorumu siz yapın.",
+            commentPlaceholder: "Bu etkinlik hakkında ne düşünüyorsunuz?",
+            commentSubmit: "Gönder",
+            loginPrompt: "Yorum yazmak için üye hesabınızla giriş yapın.",
+            loginCta: "Giriş Yap",
             report: "Bildir",
-            reportBusy: "Gönderiliyor",
+            reportBusy: "İşleniyor",
             writeError: "Yorum gönderilemedi.",
             sessionLabel: "Oturum",
-            fieldType: "Alan tipi",
-            postingAs: "olarak yorum yapıyorsunuz.",
+            viewStatus: "Durumu Görüntüle"
           }
         : {
             back: "Back to events",
             loading: "Loading event details...",
             error: "Failed to load event details.",
-            register: "Register for Event",
+            register: "Register",
             registrationClosed: "Registration Closed",
             sessions: "Sessions",
-            customFields: "Additional registration fields",
-            minSessions: "Minimum sessions for certificate",
-            unlisted: "Unlisted share",
+            customFields: "Registration Fields",
+            minSessions: "Min. sessions for certificate",
+            unlisted: "Unlisted",
             noSessions: "No session has been added yet.",
-            defaultFields: "This event currently uses the standard name and email fields only.",
-            defaultHelper: "Additional field collected during registration.",
+            defaultFields: "This event currently uses standard name and email fields only.",
             required: "Required",
             commentsTitle: "Comments",
-            commentsSubtitle: "Read what the community thinks about this event or leave your own note.",
+            commentsSubtitle: "Read what the community thinks about this event.",
             noComments: "There are no comments yet. Be the first to post.",
             commentPlaceholder: "What do you think about this event?",
-            commentSubmit: "Post Comment",
+            commentSubmit: "Post",
             loginPrompt: "Sign in with your member account to write a comment.",
-            loginCta: "Member Login",
+            loginCta: "Sign In",
             report: "Report",
-            reportBusy: "Sending",
+            reportBusy: "Processing",
             writeError: "Failed to submit comment.",
             sessionLabel: "Session",
-            fieldType: "Field type",
-            postingAs: "posting as.",
+            viewStatus: "View Status"
           },
     [lang],
   );
@@ -188,213 +189,217 @@ export default function PublicEventDetailClient() {
   }
 
   if (loading) {
-    return <div className="card p-10 text-center text-sm text-slate-500">{copy.loading}</div>;
-  }
-
-  if (error || !event) {
     return (
-      <div className="space-y-4">
-        <Link href="/events" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900">
-          <ArrowLeft className="h-4 w-4" />
-          {copy.back}
-        </Link>
-        <div className="error-banner">{error || copy.error}</div>
+      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
+        <div className="flex flex-col items-center text-gray-500">
+          <Loader2 className="h-8 w-8 animate-spin mb-4" />
+          <p className="text-sm font-medium">{copy.loading}</p>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-100">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/50 px-6 py-4">
+  if (error || !event) {
+    return (
+      <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center p-6 text-center">
+        <h1 className="text-xl font-semibold text-gray-900 mb-2">{copy.error}</h1>
+        <p className="text-gray-500 text-sm mb-6">{error}</p>
         <Link
           href="/events"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900 transition duration-200"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium shadow-sm"
         >
           <ArrowLeft className="h-4 w-4" />
           {copy.back}
         </Link>
       </div>
+    );
+  }
 
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        {/* Hero Card */}
-        <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl mb-12">
-          {/* Banner Section */}
-          <div className="relative h-56 sm:h-64 lg:h-72 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 overflow-hidden group">
+  return (
+    <div className="min-h-screen bg-[#F9FAFB] pb-16">
+      {/* Navbar / Header */}
+      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200 px-6 py-4">
+        <div className="max-w-5xl mx-auto flex items-center">
+          <Link
+            href="/events"
+            className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {copy.back}
+          </Link>
+        </div>
+      </div>
+
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-8">
+        {/* Hero Section */}
+        <section className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-8">
+          {/* Cover Image / Banner */}
+          <div className="relative h-48 sm:h-64 bg-slate-100 border-b border-gray-100 overflow-hidden">
             {event.event_banner_url ? (
-              <>
-                <img
-                  src={event.event_banner_url}
-                  alt={event.name}
-                  className="h-full w-full object-cover group-hover:scale-105 transition duration-300"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-              </>
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={event.event_banner_url}
+                alt={event.name}
+                className="h-full w-full object-cover"
+              />
             ) : (
-              <>
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 opacity-80" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-6xl font-black text-white/20">📅</span>
-                </div>
-              </>
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+                <CalendarDays className="h-16 w-16 text-gray-300" />
+              </div>
             )}
           </div>
 
-          {/* Content Section */}
-          <div className="relative px-6 py-8 sm:px-8">
+          <div className="p-6 sm:p-10">
             {/* Status Badges */}
-            <div className="flex flex-wrap gap-3 mb-6">
-              {event.visibility === "unlisted" ? (
-                <span className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-bold text-amber-700">
-                  🔒 {copy.unlisted}
+            <div className="flex flex-wrap items-center gap-3 mb-5">
+              {event.visibility === "unlisted" && (
+                <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                  <Lock className="h-3 w-3" />
+                  {copy.unlisted}
                 </span>
-              ) : null}
-              <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-bold text-emerald-700">
-                ✓ {copy.minSessions}: {event.min_sessions_required}
+              )}
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                <CheckCircle2 className="h-3 w-3" />
+                {copy.minSessions}: {event.min_sessions_required}
               </span>
             </div>
 
-            {/* Title and Description */}
+            {/* Title & Description */}
             <div className="mb-8">
-              <h1 className="text-4xl sm:text-5xl font-black text-slate-900 mb-4 leading-tight">
+              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4 tracking-tight">
                 {event.name}
               </h1>
 
-              {event.organization_public_id && event.organization_name ? (
+              {/* Organization Info */}
+              {event.organization_public_id && event.organization_name && (
                 <Link
                   href={`/organizations/${event.organization_public_id}`}
-                  className="inline-flex items-center gap-3 mb-6 rounded-full border-2 border-slate-200 bg-white px-4 py-2 hover:border-blue-300 hover:bg-blue-50 transition duration-300"
+                  className="inline-flex items-center gap-2.5 mb-6 group"
                 >
-                  {event.organization_logo ? (
-                    <img
-                      src={event.organization_logo}
-                      alt={event.organization_name}
-                      className="h-8 w-8 rounded-full object-cover"
-                    />
-                  ) : (
-                    <Users className="h-5 w-5 text-slate-600" />
-                  )}
-                  <span className="font-semibold text-slate-700">
+                  <div className="h-8 w-8 rounded-full bg-slate-100 border border-gray-200 overflow-hidden flex items-center justify-center">
+                    {event.organization_logo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={event.organization_logo}
+                        alt={event.organization_name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <Users className="h-4 w-4 text-gray-400" />
+                    )}
+                  </div>
+                  <span className="text-sm font-medium text-gray-600 group-hover:text-gray-900 transition-colors">
                     {event.organization_name}
                   </span>
                 </Link>
-              ) : null}
+              )}
 
-              {event.event_description ? (
+              {event.event_description && (
                 <div
-                  className="rich-text-content mt-6 max-w-3xl text-base text-slate-600 leading-relaxed"
+                  className="prose prose-sm sm:prose-base max-w-none text-gray-600 leading-relaxed"
                   dangerouslySetInnerHTML={{ __html: event.event_description }}
                 />
-              ) : null}
+              )}
             </div>
 
-            {/* Key Info Cards */}
-            <div className="grid gap-4 md:grid-cols-3 mb-8">
-              <div className="rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 px-5 py-4 hover:shadow-lg transition duration-300">
-                <div className="flex items-start gap-3">
-                  <CalendarDays className="h-5 w-5 text-blue-600 mt-1" />
-                  <div>
-                    <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">Tarih</p>
-                    <p className="text-base font-black text-slate-900 mt-1">
-                      {formatDate(event.event_date, lang)}
-                    </p>
-                  </div>
+            {/* Quick Info Bar */}
+            <div className="flex flex-col sm:flex-row gap-4 py-6 border-y border-gray-100 mb-8">
+              <div className="flex items-start gap-3 flex-1">
+                <CalendarDays className="h-5 w-5 text-gray-400 mt-0.5" />
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Tarih</p>
+                  <p className="text-sm font-semibold text-gray-900 mt-0.5">
+                    {formatDate(event.event_date, lang)}
+                  </p>
                 </div>
               </div>
-
-              <div className="rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 px-5 py-4 hover:shadow-lg transition duration-300">
-                <div className="flex items-start gap-3">
-                  <MapPin className="h-5 w-5 text-purple-600 mt-1" />
-                  <div>
-                    <p className="text-xs font-bold text-purple-600 uppercase tracking-wider">Konum</p>
-                    <p className="text-base font-black text-slate-900 mt-1">
-                      {event.event_location || "-"}
-                    </p>
-                  </div>
+              <div className="flex items-start gap-3 flex-1">
+                <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Konum</p>
+                  <p className="text-sm font-semibold text-gray-900 mt-0.5">
+                    {event.event_location || "-"}
+                  </p>
                 </div>
               </div>
-
-              <div className="rounded-2xl bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200 px-5 py-4 hover:shadow-lg transition duration-300">
-                <div className="flex items-start gap-3">
-                  <Users className="h-5 w-5 text-pink-600 mt-1" />
-                  <div>
-                    <p className="text-xs font-bold text-pink-600 uppercase tracking-wider">Oturumlar</p>
-                    <p className="text-base font-black text-slate-900 mt-1">
-                      {event.sessions.length} {copy.sessions.toLowerCase()}
-                    </p>
-                  </div>
+              <div className="flex items-start gap-3 flex-1">
+                <Users className="h-5 w-5 text-gray-400 mt-0.5" />
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Oturumlar</p>
+                  <p className="text-sm font-semibold text-gray-900 mt-0.5">
+                    {event.sessions.length} {copy.sessions.toLowerCase()}
+                  </p>
                 </div>
               </div>
             </div>
 
-            {/* CTA Button */}
-            <div className="flex gap-3">
+            {/* CTA Buttons */}
+            <div className="flex flex-wrap gap-3">
               {event.registration_closed ? (
-                <div className="inline-flex items-center px-6 py-3 rounded-2xl border-2 border-slate-300 bg-slate-100 text-slate-500 font-bold">
+                <div className="inline-flex items-center px-6 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 text-sm font-medium">
                   {copy.registrationClosed}
                 </div>
               ) : (
                 <Link
                   href={`/events/${event.public_id}/register`}
-                  className="inline-flex items-center gap-2 px-8 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold shadow-lg hover:shadow-xl transition duration-300 transform hover:scale-105"
+                  className="inline-flex items-center justify-center px-8 py-2.5 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition-colors shadow-sm"
                 >
-                  📋 {copy.register}
+                  {copy.register}
                 </Link>
               )}
               <Link
                 href={`/events/${event.public_id}/status`}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl border-2 border-blue-200 bg-blue-50 text-blue-600 font-bold hover:bg-blue-100 transition duration-300"
+                className="inline-flex items-center justify-center px-6 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
               >
-                ✓ View Status
+                {copy.viewStatus}
               </Link>
             </div>
           </div>
         </section>
 
-        {/* Sessions and Fields Grid */}
-        <div className="grid gap-8 lg:grid-cols-2 mb-12">
-          {/* Sessions Section */}
-          <section>
-            <h2 className="text-3xl font-black text-slate-900 mb-6 flex items-center gap-2">
-              <span className="text-3xl">📍</span>
-              {copy.sessions}
-            </h2>
+        {/* Two Column Grid for Details */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          
+          {/* Sessions Column */}
+          <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">
+            <div className="flex items-center gap-2 mb-6">
+              <ListChecks className="h-5 w-5 text-gray-400" />
+              <h2 className="text-lg font-bold text-gray-900">{copy.sessions}</h2>
+            </div>
+            
             <div className="space-y-4">
               {event.sessions.length === 0 ? (
-                <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center text-sm text-slate-500">
+                <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-center text-sm text-gray-500">
                   {copy.noSessions}
                 </div>
               ) : (
                 event.sessions.map((session, index) => (
                   <div
                     key={session.id}
-                    className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-md hover:shadow-lg hover:border-blue-300 transition duration-300 transform hover:-translate-y-1"
+                    className="rounded-xl border border-gray-200 bg-white p-5 hover:border-gray-300 transition-colors"
                   >
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <p className="text-xs font-bold text-blue-600 uppercase tracking-widest">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                         {copy.sessionLabel} {index + 1}
                       </p>
-                      <span className="inline-flex px-3 py-1 rounded-full bg-blue-100 text-xs font-bold text-blue-600">
-                        #{index + 1}
-                      </span>
                     </div>
-                    <h3 className="text-lg font-black text-slate-900 mb-4">
+                    <h3 className="text-base font-semibold text-gray-900 mb-3">
                       {session.name}
                     </h3>
-                    <div className="space-y-2 text-sm text-slate-600">
+                    <div className="space-y-2 text-sm text-gray-600">
                       <div className="flex items-center gap-2">
-                        <CalendarDays className="h-4 w-4 text-blue-500" />
+                        <CalendarDays className="h-4 w-4 text-gray-400" />
                         {formatDate(session.session_date, lang)}
                       </div>
                       {session.session_start && (
                         <div className="flex items-center gap-2">
-                          <Clock3 className="h-4 w-4 text-purple-500" />
+                          <Clock3 className="h-4 w-4 text-gray-400" />
                           {session.session_start}
                         </div>
                       )}
                       {session.session_location && (
                         <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-pink-500" />
+                          <MapPin className="h-4 w-4 text-gray-400" />
                           {session.session_location}
                         </div>
                       )}
@@ -405,182 +410,180 @@ export default function PublicEventDetailClient() {
             </div>
           </section>
 
-          {/* Registration Fields Section */}
-          <section>
-            <h2 className="text-3xl font-black text-slate-900 mb-6 flex items-center gap-2">
-              <span className="text-3xl">📝</span>
-              {copy.customFields}
-            </h2>
+          {/* Registration Fields Column */}
+          <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">
+            <div className="flex items-center gap-2 mb-6">
+              <FileText className="h-5 w-5 text-gray-400" />
+              <h2 className="text-lg font-bold text-gray-900">{copy.customFields}</h2>
+            </div>
+
             <div className="space-y-4">
               {event.registration_fields.length === 0 ? (
-                <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center text-sm text-slate-500">
+                <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-center text-sm text-gray-500">
                   {copy.defaultFields}
                 </div>
               ) : (
                 event.registration_fields.map((field) => (
                   <div
                     key={field.id}
-                    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md hover:shadow-lg transition duration-300"
+                    className="rounded-xl border border-gray-200 bg-white p-4"
                   >
-                    <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
-                      <h3 className="font-bold text-slate-900">{field.label}</h3>
-                      <div className="flex gap-2 flex-wrap">
-                        <span className="inline-flex rounded-full border border-slate-300 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                      <h3 className="text-sm font-semibold text-gray-900">{field.label}</h3>
+                      <div className="flex gap-2">
+                        <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600">
                           {field.type}
                         </span>
-                        {field.required ? (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-bold text-rose-600">
-                            ✱ {copy.required}
+                        {field.required && (
+                          <span className="inline-flex items-center rounded-md bg-rose-50 px-2 py-1 text-[11px] font-medium text-rose-600 border border-rose-100">
+                            {copy.required}
                           </span>
-                        ) : null}
+                        )}
                       </div>
                     </div>
                     {field.helper_text && (
-                      <p className="text-xs text-slate-500">{field.helper_text}</p>
+                      <p className="text-xs text-gray-500">{field.helper_text}</p>
                     )}
                   </div>
                 ))
               )}
             </div>
           </section>
+
         </div>
 
         {/* Comments Section */}
-        <section className="rounded-3xl border border-slate-200 bg-white shadow-xl overflow-hidden">
-          <div className="px-6 py-8 sm:px-8 border-b border-slate-100">
-            <h2 className="text-3xl font-black text-slate-900 mb-2 flex items-center gap-2">
-              <span className="text-3xl">💬</span>
+        <section className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="px-6 py-6 sm:px-8 border-b border-gray-100 bg-gray-50/50">
+            <h2 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-gray-400" />
               {copy.commentsTitle}
             </h2>
-            <p className="text-sm text-slate-500">{copy.commentsSubtitle}</p>
+            <p className="text-sm text-gray-500">{copy.commentsSubtitle}</p>
           </div>
 
-          <div className="px-6 py-8 sm:px-8 space-y-6">
-            {error ? (
-              <div className="rounded-2xl border-2 border-rose-200 bg-rose-50 px-5 py-4 flex items-start gap-3 text-sm text-rose-700">
+          <div className="p-6 sm:p-8 space-y-6">
+            {error && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex items-start gap-3 text-sm text-red-700">
                 <ShieldAlert className="h-5 w-5 flex-shrink-0 mt-0.5" />
                 <div>{error}</div>
               </div>
-            ) : null}
+            )}
 
             {/* Comment Form */}
             {member ? (
-              <form
-                className="rounded-2xl border-2 border-slate-300 bg-white p-5 shadow-md focus-within:border-blue-400 focus-within:shadow-lg transition duration-300"
-                onSubmit={handleCommentSubmit}
-              >
-                <textarea
-                  value={commentBody}
-                  onChange={(eventArg) => setCommentBody(eventArg.target.value)}
-                  rows={4}
-                  placeholder={copy.commentPlaceholder}
-                  className="w-full resize-none border-none bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
-                />
-                <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-4">
-                  <p className="text-xs font-semibold text-slate-500">
-                    💬 {member.display_name || member.email}
-                  </p>
-                  <button
-                    type="submit"
-                    disabled={commentBusy || !commentBody.trim()}
-                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-2.5 text-sm font-bold text-white transition hover:shadow-lg disabled:opacity-60"
-                  >
-                    {commentBusy ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Gönderiliyor...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="h-4 w-4" />
-                        {copy.commentSubmit}
-                      </>
-                    )}
-                  </button>
+              <form onSubmit={handleCommentSubmit} className="mb-8">
+                <div className="rounded-xl border border-gray-200 bg-white focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-400 transition-all overflow-hidden shadow-sm">
+                  <textarea
+                    value={commentBody}
+                    onChange={(e) => setCommentBody(e.target.value)}
+                    rows={3}
+                    placeholder={copy.commentPlaceholder}
+                    className="w-full resize-none border-none bg-transparent p-4 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-0"
+                  />
+                  <div className="flex items-center justify-between bg-gray-50 px-4 py-2 border-t border-gray-100">
+                    <p className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
+                      <div className="h-5 w-5 rounded-full bg-slate-200 flex items-center justify-center text-[10px] text-slate-600">
+                        {member.display_name?.charAt(0).toUpperCase() || member.email.charAt(0).toUpperCase()}
+                      </div>
+                      {member.display_name || member.email}
+                    </p>
+                    <button
+                      type="submit"
+                      disabled={commentBusy || !commentBody.trim()}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-1.5 text-xs font-medium text-white hover:bg-slate-800 transition-colors disabled:opacity-50"
+                    >
+                      {commentBusy ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          {copy.reportBusy}...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-3.5 w-3.5" />
+                          {copy.commentSubmit}
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </form>
             ) : (
-              <div className="rounded-2xl border-2 border-blue-200 bg-blue-50 px-6 py-8 text-center">
-                <MessageSquare className="h-8 w-8 text-blue-400 mx-auto mb-3" />
-                <p className="text-sm text-blue-900 mb-4">{copy.loginPrompt}</p>
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-center mb-8">
+                <LogIn className="h-6 w-6 text-gray-400 mx-auto mb-3" />
+                <p className="text-sm text-gray-600 mb-4">{copy.loginPrompt}</p>
                 <Link
                   href="/login?mode=member"
-                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-blue-700 transition"
+                  className="inline-flex items-center gap-2 rounded-lg bg-white border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors shadow-sm"
                 >
-                  🔑 {copy.loginCta}
+                  {copy.loginCta}
                 </Link>
               </div>
             )}
 
             {/* Comments List */}
             {comments.length === 0 ? (
-              <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
-                <MessageSquare className="h-8 w-8 text-slate-400 mx-auto mb-3" />
-                <p className="text-sm text-slate-500">{copy.noComments}</p>
+              <div className="text-center py-8">
+                <MessageSquare className="h-8 w-8 text-gray-300 mx-auto mb-3" />
+                <p className="text-sm text-gray-500">{copy.noComments}</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {comments.map((comment) => (
-                  <article
-                    key={comment.id}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 p-5 hover:bg-slate-100/50 transition duration-300 group"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
-                      <div className="flex items-start gap-3">
-                        <Link
-                          href={`/member/${comment.member_public_id}`}
-                          className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-400 to-purple-500 ring-2 ring-white shadow-md hover:shadow-lg transition duration-300"
-                        >
-                          {comment.member_avatar_url ? (
-                            <img
-                              src={comment.member_avatar_url}
-                              alt={comment.member_name}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <span className="text-xs font-bold text-white">
-                              {comment.member_name.charAt(0).toUpperCase()}
-                            </span>
-                          )}
-                        </Link>
-                        <div>
+                  <article key={comment.id} className="flex gap-4">
+                    <Link
+                      href={`/member/${comment.member_public_id}`}
+                      className="h-10 w-10 flex-shrink-0 rounded-full bg-slate-100 border border-gray-200 overflow-hidden flex items-center justify-center mt-1"
+                    >
+                      {comment.member_avatar_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={comment.member_avatar_url}
+                          alt={comment.member_name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-sm font-semibold text-gray-500">
+                          {comment.member_name.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </Link>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <div className="flex items-center gap-2">
                           <Link
                             href={`/member/${comment.member_public_id}`}
-                            className="text-sm font-bold text-slate-900 hover:text-blue-600 transition"
+                            className="text-sm font-semibold text-gray-900 hover:underline"
                           >
                             {comment.member_name}
                           </Link>
-                          <p className="text-xs text-slate-500 mt-0.5">
+                          <span className="text-xs text-gray-500">
                             {new Date(comment.created_at).toLocaleString(
-                              lang === "tr" ? "tr-TR" : "en-US"
+                              lang === "tr" ? "tr-TR" : "en-US",
+                              { dateStyle: 'medium', timeStyle: 'short' }
                             )}
-                          </p>
+                          </span>
                         </div>
-                      </div>
-                      {member && member.public_id !== comment.member_public_id ? (
-                        <button
-                          type="button"
-                          onClick={() => void handleReport(comment.id)}
-                          disabled={reportingId === comment.id}
-                          className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 disabled:opacity-60"
-                        >
-                          {reportingId === comment.id ? (
-                            <>
+                        {member && member.public_id !== comment.member_public_id && (
+                          <button
+                            type="button"
+                            onClick={() => void handleReport(comment.id)}
+                            disabled={reportingId === comment.id}
+                            className="text-gray-400 hover:text-red-600 transition-colors p-1 rounded-md hover:bg-red-50 disabled:opacity-50"
+                            title={copy.report}
+                          >
+                            {reportingId === comment.id ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              {copy.reportBusy}
-                            </>
-                          ) : (
-                            <>
+                            ) : (
                               <Flag className="h-3.5 w-3.5" />
-                              {copy.report}
-                            </>
-                          )}
-                        </button>
-                      ) : null}
+                            )}
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                        {comment.body}
+                      </p>
                     </div>
-                    <p className="text-sm leading-6 text-slate-700 whitespace-pre-wrap">
-                      {comment.body}
-                    </p>
                   </article>
                 ))}
               </div>
@@ -591,4 +594,3 @@ export default function PublicEventDetailClient() {
     </div>
   );
 }
-

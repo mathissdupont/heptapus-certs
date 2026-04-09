@@ -1,10 +1,10 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Plus } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { I18nProvider, LanguageToggle, useT, useI18n } from "@/lib/i18n";
 import {
@@ -107,7 +107,7 @@ function Navbar() {
   }, []);
 
   const isHeptaCertHost = useMemo(() => {
-    if (!host) return true; // Sayfa yüklenmeden layout shift olmaması için default true
+    if (!host) return true;
     return HEPTACERT_PRIMARY_HOSTS.has(host);
   }, [host]);
 
@@ -149,224 +149,193 @@ function Navbar() {
 
   return (
     <motion.header
-      initial={{ y: -80, opacity: 0 }}
+      initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-      className="sticky top-0 z-40 w-full"
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="sticky top-0 z-50 w-full bg-white/80 dark:bg-gray-950/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800"
     >
-      {/* Background with gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-white via-white/95 to-white/90 dark:from-gray-950 dark:via-gray-950/95 dark:to-gray-950/90 border-b border-slate-100/50 dark:border-gray-800/50"></div>
-      
-      {/* Animated gradient bar at top */}
-      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600"></div>
+      <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        {/* Logo Section */}
+        <Link href="/" className="flex items-center group shrink-0">
+          {brandLogo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img 
+              src={brandLogo} 
+              alt="brand" 
+              className="h-8 w-auto max-w-[160px] object-contain group-hover:opacity-80 transition-opacity" 
+            />
+          ) : isWhiteLabel && orgName ? (
+            <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+              {orgName}
+            </span>
+          ) : (
+            <Image
+              src="/logo.png"
+              alt="HeptaCert"
+              width={140}
+              height={40}
+              unoptimized
+              priority
+              className="h-8 w-auto object-contain group-hover:opacity-80 transition-opacity"
+            />
+          )}
+        </Link>
 
-      <nav className="relative px-4 sm:px-6 lg:px-8 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          
-          {/* Logo Section */}
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            transition={{ duration: 0.2 }}
-          >
-            <Link href="/" className="flex items-center group">
-              {brandLogo ? (
-                <div className="relative">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img 
-                    src={brandLogo} 
-                    alt="brand" 
-                    className="h-10 w-auto max-w-xs object-contain group-hover:opacity-80 transition-opacity duration-200" 
-                  />
-                </div>
-              ) : isWhiteLabel && orgName ? (
-                <span className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent tracking-tight">
-                  {orgName}
-                </span>
-              ) : (
-                <Image
-                  src="/logo.png"
-                  alt="HeptaCert"
-                  width={180}
-                  height={50}
-                  unoptimized
-                  priority
-                  className="h-10 w-auto object-contain group-hover:opacity-80 transition-opacity duration-200"
-                />
-              )}
+        {/* Desktop Navigation */}
+        <div className="hidden lg:flex items-center gap-1 flex-1 px-8 justify-center">
+          {links.map((l) => (
+            <Link 
+              key={l.href}
+              href={l.href} 
+              className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800/50 rounded-md transition-colors"
+            >
+              {l.label}
             </Link>
-          </motion.div>
-
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center gap-0.5 flex-1 px-8 justify-center">
-            {links.map((l) => (
-              <motion.div
-                key={l.href}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Link 
-                  href={l.href} 
-                  className="relative px-4 py-2 text-sm font-medium text-slate-700 dark:text-gray-300 transition-colors duration-200 hover:text-slate-900 dark:hover:text-white group"
-                >
-                  {l.label}
-                  <span className="absolute bottom-0 left-4 right-4 h-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></span>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Right Actions */}
-          <div className="hidden lg:flex items-center gap-4">
-            <LanguageToggle />
-            
-            {member ? (
-              <>
-                <motion.div
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="flex items-center gap-3 pl-4 border-l border-slate-100 dark:border-gray-800"
-                >
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{memberName}</p>
-                    <p className="text-xs text-slate-500 dark:text-gray-400">Logged in</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="inline-flex items-center px-4 py-2 text-sm font-semibold text-slate-700 dark:text-gray-300 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800/50 transition-colors duration-200"
-                  >
-                    {logoutLabel}
-                  </button>
-                </motion.div>
-              </>
-            ) : (
-              <>
-                <Link 
-                  href="/login" 
-                  className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-gray-300 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800/50 transition-colors duration-200"
-                >
-                  {t("nav_login")}
-                </Link>
-
-                {!isWhiteLabel && (
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Link
-                      href="/register?mode=organizer"
-                      className="inline-flex items-center px-6 py-2.5 text-sm font-bold text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700"
-                    >
-                      {t("nav_start_free")}
-                    </Link>
-                  </motion.div>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* Mobile Menu Button */}
-          <motion.button 
-            onClick={() => setOpen(!open)} 
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-            className="lg:hidden rounded-lg p-2.5 text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800/50 transition-colors duration-200"
-          >
-            {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </motion.button>
+          ))}
         </div>
-      </nav>
 
-      {/* Mobile Menu */}
-      {open && (
-        <motion.div 
-          initial={{ opacity: 0, y: -16, height: 0 }} 
-          animate={{ opacity: 1, y: 0, height: "auto" }}
-          exit={{ opacity: 0, y: -16, height: 0 }}
-          transition={{ duration: 0.3 }}
-          className="relative border-t border-slate-100/50 dark:border-gray-800/50 bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm lg:hidden px-4 sm:px-6 py-4 overflow-hidden"
-        >
-          <div className="max-w-7xl mx-auto">
-            <nav className="flex flex-col gap-2 pb-4">
-              {links.map((l) => (
-                <motion.div
-                  key={l.href}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Link 
-                    href={l.href} 
-                    onClick={() => setOpen(false)} 
-                    className="block px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-gray-300 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800/50 transition-colors duration-200"
-                  >
-                    {l.label}
-                  </Link>
-                </motion.div>
-              ))}
-            </nav>
+        {/* Right Actions */}
+        <div className="hidden lg:flex items-center gap-4 shrink-0">
+          <LanguageToggle />
+          
+          <div className="h-6 w-px bg-gray-200 dark:bg-gray-800 mx-1" />
 
-            <div className="border-t border-slate-100 dark:border-gray-800 pt-4 flex items-center gap-3 justify-between mb-4">
-              <span className="text-xs font-semibold text-slate-500 dark:text-gray-400">LANGUAGE</span>
-              <LanguageToggle />
-            </div>
-
-            {member ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="space-y-2"
+          {member ? (
+            <div className="flex items-center gap-4">
+              <Link
+                href="/post/create"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white rounded-lg bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-gray-100 transition-colors shadow-sm"
               >
-                <div className="rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border border-blue-100 dark:border-blue-900/30 px-4 py-3">
-                  <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">{memberName}</p>
-                  <p className="text-xs text-blue-700 dark:text-blue-300">Logged in</p>
+                <Plus className="h-4 w-4" />
+                {lang === "tr" ? "Gönderi" : "Post"}
+              </Link>
+              
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white leading-none">
+                    {memberName}
+                  </p>
                 </div>
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="w-full px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-gray-300 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800/50 transition-colors duration-200"
+                  className="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
                 >
                   {logoutLabel}
                 </button>
-              </motion.div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="space-y-2"
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <Link 
+                href="/login" 
+                className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
               >
-                <Link 
-                  href="/login" 
-                  onClick={() => setOpen(false)}
-                  className="block w-full px-4 py-2.5 text-center text-sm font-medium text-slate-700 dark:text-gray-300 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800/50 transition-colors duration-200"
-                >
-                  {t("nav_login")}
-                </Link>
+                {t("nav_login")}
+              </Link>
 
-                {!isWhiteLabel && (
+              {!isWhiteLabel && (
+                <Link
+                  href="/register?mode=organizer"
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-white rounded-lg bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-gray-100 transition-colors shadow-sm"
+                >
+                  {t("nav_start_free")}
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Menu Button */}
+        <button 
+          onClick={() => setOpen(!open)} 
+          className="lg:hidden p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+        >
+          {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        </button>
+      </nav>
+
+      {/* Mobile Menu Dropdown */}
+      <AnimatePresence>
+        {open && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }} 
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="lg:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 overflow-hidden"
+          >
+            <div className="px-4 py-4 space-y-1">
+              {links.map((l) => (
+                <Link 
+                  key={l.href}
+                  href={l.href} 
+                  onClick={() => setOpen(false)} 
+                  className="block px-3 py-2.5 text-base font-medium text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800/50 rounded-lg transition-colors"
+                >
+                  {l.label}
+                </Link>
+              ))}
+            </div>
+
+            <div className="px-4 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
+              <div className="flex items-center justify-between mb-4 px-3">
+                <span className="text-sm font-medium text-gray-500">Dil Seçimi</span>
+                <LanguageToggle />
+              </div>
+
+              {member ? (
+                <div className="space-y-3">
+                  <div className="px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{memberName}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Üye Hesabı</p>
+                  </div>
                   <Link
-                    href="/register?mode=organizer"
+                    href="/post/create"
                     onClick={() => setOpen(false)}
-                    className="block w-full px-4 py-3 text-center text-sm font-bold text-white rounded-lg bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 shadow-lg transition-all duration-200"
+                    className="flex w-full items-center justify-center px-4 py-2.5 text-sm font-medium text-white rounded-lg bg-slate-900 hover:bg-slate-800 transition-colors shadow-sm"
                   >
-                    {t("nav_start_free")}
+                    {lang === "tr" ? "Yeni Gönderi Oluştur" : "Create New Post"}
                   </Link>
-                )}
-              </motion.div>
-            )}
-          </div>
-        </motion.div>
-      )}
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="w-full px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    {logoutLabel}
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <Link 
+                    href="/login" 
+                    onClick={() => setOpen(false)}
+                    className="flex w-full justify-center px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    {t("nav_login")}
+                  </Link>
+
+                  {!isWhiteLabel && (
+                    <Link
+                      href="/register?mode=organizer"
+                      onClick={() => setOpen(false)}
+                      className="flex w-full justify-center px-4 py-2.5 text-sm font-medium text-white rounded-lg bg-slate-900 hover:bg-slate-800 transition-colors shadow-sm"
+                    >
+                      {t("nav_start_free")}
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.header>
   );
 }
 
 export function ClientShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-
   const isAdmin = pathname?.startsWith("/admin");
-
   const hideNavbar =
     pathname === "/verify" ||
     pathname?.startsWith("/verify/") ||
@@ -390,8 +359,8 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
         <motion.main
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-          className="min-h-screen w-full"
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="min-h-screen w-full bg-[#F9FAFB] dark:bg-gray-950"
         >
           {children}
         </motion.main>
@@ -402,12 +371,16 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
   return (
     <I18nProvider>
       <HtmlLangSync />
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 min-h-screen flex flex-col">
+      {/* DÜZELTME BURADA: Navbar artık max-w-7xl içine hapsedilmedi. 
+        Ana wrapper tam genişlik alıyor, içeriği flex-col ile diziyor.
+      */}
+      <div className="min-h-screen flex flex-col bg-[#F9FAFB] dark:bg-gray-950 font-sans text-slate-900">
         <Navbar />
+        
         <motion.main
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
           className="flex-grow w-full"
         >
           {children}
