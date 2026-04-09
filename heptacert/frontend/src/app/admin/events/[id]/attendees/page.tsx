@@ -726,10 +726,11 @@ export default function AdminAttendeesPage() {
                 <div className="mt-4 grid gap-3">
                   {registrationFields.map((field) => {
                     const value = selectedAttendee.registration_answers?.[field.id];
+                    const renderedValue = value == null ? "—" : String(value);
                     return (
                       <div key={field.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{field.label}</p>
-                        <p className="mt-2 text-sm font-semibold text-slate-900">{value || "—"}</p>
+                        <p className="mt-2 text-sm font-semibold text-slate-900">{renderedValue}</p>
                       </div>
                     );
                   })}

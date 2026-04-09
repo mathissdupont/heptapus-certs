@@ -219,6 +219,10 @@ def sanitize_event_description_html(value: Optional[str]) -> Optional[str]:
 
 class Settings(BaseSettings):
     database_url: str = Field(alias="DATABASE_URL")
+    db_pool_size: int = Field(default=20, alias="DB_POOL_SIZE")
+    db_pool_max_overflow: int = Field(default=20, alias="DB_POOL_MAX_OVERFLOW")
+    db_pool_timeout: int = Field(default=15, alias="DB_POOL_TIMEOUT")
+    db_pool_recycle: int = Field(default=1800, alias="DB_POOL_RECYCLE")
     jwt_secret: str = Field(alias="JWT_SECRET")
     jwt_expires_minutes: int = Field(default=1440, alias="JWT_EXPIRES_MINUTES")
 
@@ -257,12 +261,21 @@ class Settings(BaseSettings):
     stripe_webhook_secret: str = Field(default="", alias="STRIPE_WEBHOOK_SECRET")
     stripe_publishable_key: str = Field(default="", alias="STRIPE_PUBLISHABLE_KEY")
 
+    enable_scheduler: bool = Field(default=True, alias="ENABLE_SCHEDULER")
+
 
 settings = Settings()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 _startup_time: float = time.time()
 
-engine = create_async_engine(settings.database_url, pool_pre_ping=True)
+engine = create_async_engine(
+    settings.database_url,
+    pool_pre_ping=True,
+    pool_size=max(1, settings.db_pool_size),
+    max_overflow=max(0, settings.db_pool_max_overflow),
+    pool_timeout=max(1, settings.db_pool_timeout),
+    pool_recycle=max(60, settings.db_pool_recycle),
+)
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 bulk_cert_job_lock = asyncio.Lock()
 
@@ -3755,12 +3768,15 @@ async def startup():
                         db_bulk.add(job)
                         await db_bulk.commit()
 
-        scheduler.add_job(_notify_expiring_certs, "cron", hour=2, minute=0)
-        scheduler.add_job(_monthly_hc_renewal, "cron", hour=3, minute=30)
-        scheduler.add_job(_process_bulk_emails, "interval", minutes=5)  # Every 5 minutes
-        scheduler.add_job(_process_bulk_certificate_jobs, "interval", seconds=3)
-        scheduler.start()
-        logger.info("APScheduler started Ã¢â‚¬â€ cert notifications + monthly HC renewal + bulk email processing + bulk certificate queue")
+        if settings.enable_scheduler:
+            scheduler.add_job(_notify_expiring_certs, "cron", hour=2, minute=0)
+            scheduler.add_job(_monthly_hc_renewal, "cron", hour=3, minute=30)
+            scheduler.add_job(_process_bulk_emails, "interval", minutes=5)  # Every 5 minutes
+            scheduler.add_job(_process_bulk_certificate_jobs, "interval", seconds=3)
+            scheduler.start()
+            logger.info("APScheduler started Ã¢â‚¬â€ cert notifications + monthly HC renewal + bulk email processing + bulk certificate queue")
+        else:
+            logger.info("APScheduler skipped because ENABLE_SCHEDULER=false")
     except Exception as e:
         logger.warning("APScheduler init failed (non-fatal): %s", e)
 
