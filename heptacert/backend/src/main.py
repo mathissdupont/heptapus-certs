@@ -12416,7 +12416,7 @@ async def get_attendance_matrix(
     event_id: int,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-    fmt: str = Query(default="xlsx", pattern="^(csv|xlsx)$"),
+    fmt: str = Query(default="json", pattern="^(csv|xlsx|json)$"),
 ):
     ev = await _get_event_for_admin(event_id, me, db)
     sess_res = await db.execute(
@@ -12425,7 +12425,7 @@ async def get_attendance_matrix(
     sessions = sess_res.scalars().all()
     att_res = await db.execute(
         select(Attendee)
-        .options(selectinload(Attendee.public_member))
+        .options(selectinload(Attendee.public_member), selectinload(Attendee.certificates))
         .where(Attendee.event_id == event_id)
         .order_by(Attendee.name)
     )
@@ -12440,7 +12440,39 @@ async def get_attendance_matrix(
     records = rec_res.all()
     rec_set: dict[tuple, str] = {(r.attendee_id, r.session_id): r.checked_in_at.isoformat() for r in records}
 
-    session_ids = [s.id for s in sessions]
+    # Return JSON format if requested
+    if fmt == "json":
+        json_rows = []
+        for a in attendees:
+            checkins: dict[str, str | None] = {}
+            for s in sessions:
+                checkins[str(s.id)] = rec_set.get((a.id, s.id), None)
+            
+            sessions_attended = sum(1 for s in sessions if (a.id, s.id) in rec_set)
+            has_cert = len(a.certificates) > 0
+            cert_uuid = a.certificates[0].uuid if a.certificates else None
+            
+            row = {
+                "attendee_id": a.id,
+                "name": a.name,
+                "email": a.email,
+                "source": a.source,
+                "sessions_attended": sessions_attended,
+                "meets_threshold": sessions_attended >= ev.min_sessions_required,
+                "has_certificate": has_cert,
+                "certificate_uuid": cert_uuid,
+                "checkins": checkins,
+            }
+            json_rows.append(row)
+        
+        return {
+            "event_id": event_id,
+            "min_sessions_required": ev.min_sessions_required,
+            "sessions": [{"id": s.id, "name": s.name, "session_date": s.session_date.isoformat() if s.session_date else None} for s in sessions],
+            "rows": json_rows,
+        }
+
+    # Excel/CSV format
     rows = []
     for a in attendees:
         row = {
