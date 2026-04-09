@@ -674,7 +674,7 @@ class CommunityCommentVote(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
     __table_args__ = (
-        sa.UniqueConstraint('comment_id', 'member_id', name='uq_comment_member_vote'),
+        UniqueConstraint('comment_id', 'member_id', name='uq_comment_member_vote'),
     )
 
 
