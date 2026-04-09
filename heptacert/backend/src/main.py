@@ -11643,6 +11643,112 @@ async def list_attendees(
 
 
 @app.get(
+    "/api/admin/events/{event_id}/attendance/export",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+)
+async def export_attendance(
+    event_id: int,
+    fmt: str = Query(default="xlsx", pattern="^(csv|xlsx)$"),
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Export attendees list as CSV or XLSX file."""
+    ev = await _get_event_for_admin(event_id, me, db)
+    
+    # Fetch all attendees without pagination
+    res = await db.execute(
+        select(Attendee)
+        .options(selectinload(Attendee.public_member))
+        .where(Attendee.event_id == event_id)
+        .order_by(Attendee.registered_at.desc())
+    )
+    attendees = res.scalars().all()
+    
+    # Build data for export
+    data = []
+    for a in attendees:
+        # Get session count
+        cnt_res = await db.execute(
+            select(func.count()).where(AttendanceRecord.attendee_id == a.id)
+        )
+        sessions_attended = int(cnt_res.scalar_one() or 0)
+        
+        # Check if has certificate
+        cert_res = await db.execute(
+            select(Certificate).where(
+                Certificate.event_id == event_id,
+                Certificate.student_name == a.name,
+                Certificate.deleted_at.is_(None),
+            )
+        )
+        has_certificate = cert_res.scalar_one_or_none() is not None
+        
+        data.append({
+            "İsim": a.name,
+            "Email": a.email,
+            "Kayıt Tarihi": a.registered_at.isoformat() if a.registered_at else "",
+            "Katıldığı Oturumlar": sessions_attended,
+            "Sertifika": "Evet" if has_certificate else "Hayır",
+            "Kaynak": a.source or "",
+            "Kamu Üye": a.public_member.display_name if a.public_member else "",
+            "Kamu Email": a.public_member.email if a.public_member else "",
+        })
+    
+    if fmt == "xlsx":
+        try:
+            import openpyxl
+        except ImportError:
+            raise HTTPException(status_code=500, detail="openpyxl library not available")
+        
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Katılımcılar"
+        
+        columns = list(data[0].keys()) if data else ["İsim", "Email", "Kayıt Tarihi", "Katıldığı Oturumlar", "Sertifika", "Kaynak", "Kamu Üye", "Kamu Email"]
+        ws.append(columns)
+        
+        for row in data:
+            ws.append([row.get(col, "") for col in columns])
+        
+        # Auto-adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            ws.column_dimensions[column_letter].width = min(max_length + 2, 50)
+        
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        
+        return StreamingResponse(
+            iter([buf.getvalue()]),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename=katilimcilar-event-{event_id}.xlsx"},
+        )
+    else:
+        # CSV export
+        buf = io.StringIO()
+        columns = ["İsim", "Email", "Kayıt Tarihi", "Katıldığı Oturumlar", "Sertifika", "Kaynak", "Kamu Üye", "Kamu Email"]
+        writer = csv.DictWriter(buf, fieldnames=columns)
+        writer.writeheader()
+        
+        for row in data:
+            writer.writerow({col: row.get(col, "") for col in columns})
+        
+        return StreamingResponse(
+            iter([buf.getvalue()]),
+            media_type="text/csv; charset=utf-8",
+            headers={"Content-Disposition": f"attachment; filename=katilimcilar-event-{event_id}.csv"},
+        )
+
+
+@app.get(
     "/api/admin/events/{event_id}/attendees/{attendee_id}/survey-link",
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
 )
