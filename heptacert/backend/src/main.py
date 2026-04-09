@@ -639,15 +639,43 @@ class CommunityPostLike(Base):
 
 
 class CommunityPostComment(Base):
+    """Comment on a community post. Supports nested replies (max 2-3 levels deep).
+    
+    - parent_comment_id: If set, this comment is a reply to another comment
+    - upvote_count/downvote_count: Vote tracking
+    - status: 'visible' or 'hidden' for moderation
+    """
     __tablename__ = "community_post_comments"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     post_id: Mapped[int] = mapped_column(Integer, ForeignKey("community_posts.id", ondelete="CASCADE"), index=True)
     public_member_id: Mapped[int] = mapped_column(Integer, ForeignKey("public_members.id", ondelete="CASCADE"), index=True)
+    parent_comment_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("community_post_comments.id", ondelete="CASCADE"), nullable=True, index=True)
     body: Mapped[str] = mapped_column(Text)
+    upvote_count: Mapped[int] = mapped_column(Integer, default=0)
+    downvote_count: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(20), default="visible", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
+
+
+class CommunityCommentVote(Base):
+    """Vote tracking for community post comments (upvote/downvote).
+    
+    Stores which member voted on which comment and the vote type.
+    vote_type: 'upvote', 'downvote', or 'none' (to track undo)
+    """
+    __tablename__ = "community_comment_votes"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    comment_id: Mapped[int] = mapped_column(Integer, ForeignKey("community_post_comments.id", ondelete="CASCADE"), index=True)
+    member_id: Mapped[int] = mapped_column(Integer, ForeignKey("public_members.id", ondelete="CASCADE"), index=True)
+    vote_type: Mapped[str] = mapped_column(String(20))  # 'upvote', 'downvote', 'none'
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    __table_args__ = (
+        sa.UniqueConstraint('comment_id', 'member_id', name='uq_comment_member_vote'),
+    )
 
 
 class WaitlistEntry(Base):
