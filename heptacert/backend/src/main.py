@@ -1181,6 +1181,8 @@ class EventRenameIn(BaseModel):
     visibility: Optional[str] = Field(default=None, max_length=32)
     require_email_verification: Optional[bool] = Field(default=None)
     registration_closed: Optional[bool] = Field(default=None)
+    registration_quota: Optional[int] = Field(default=None, ge=1, le=1_000_000)
+    registration_quota_enabled: Optional[bool] = Field(default=None)
 
 
 class CreditCoinsIn(BaseModel):
@@ -1238,8 +1240,11 @@ class EventOut(BaseModel):
     event_banner_url: Optional[str] = None
     auto_email_on_cert: bool = False
     cert_email_template_id: Optional[int] = None
+    registration_closed: bool = False
     visibility: str = "private"
     require_email_verification: bool = True
+    registration_quota: Optional[int] = None
+    registration_quota_enabled: bool = False
 
 
 class PublicMemberMeOut(BaseModel):
@@ -1307,6 +1312,8 @@ class PublicEventDetailOut(BaseModel):
     sessions: List[Dict[str, Any]] = Field(default_factory=list)
     visibility: str = "private"
     require_email_verification: bool = True
+    registration_quota: Optional[int] = None
+    registration_quota_enabled: bool = False
 
 
 class PublicMemberEventOut(BaseModel):
@@ -3847,6 +3854,27 @@ def _get_event_email_verification_required(event: Event) -> bool:
     raw_value = config.get("require_email_verification")
     if raw_value is None:
         return True
+    return bool(raw_value)
+
+
+def _get_event_registration_quota(event: Event) -> Optional[int]:
+    config = event.config or {}
+    raw_value = config.get("registration_quota")
+    if raw_value is None or raw_value == "":
+        return None
+    try:
+        quota = int(raw_value)
+    except (TypeError, ValueError):
+        return None
+    return quota if quota > 0 else None
+
+
+def _is_event_registration_quota_enabled(event: Event) -> bool:
+    config = event.config or {}
+    raw_value = config.get("registration_quota_enabled")
+    if raw_value is None:
+        # Backward-compatible default: enabled only when quota is set.
+        return _get_event_registration_quota(event) is not None
     return bool(raw_value)
 
 
@@ -8096,8 +8124,11 @@ def _event_to_out(ev: Event) -> EventOut:
         event_banner_url=ev.event_banner_url,
         auto_email_on_cert=bool(ev.auto_email_on_cert),
         cert_email_template_id=ev.cert_email_template_id,
+        registration_closed=_is_event_registration_closed(ev),
         visibility=_get_event_visibility(ev),
         require_email_verification=_get_event_email_verification_required(ev),
+        registration_quota=_get_event_registration_quota(ev),
+        registration_quota_enabled=_is_event_registration_quota_enabled(ev),
     )
 
 
@@ -8147,8 +8178,26 @@ async def rename_event(
     if "registration_closed" in payload.model_fields_set:
         next_config["registration_closed"] = bool(payload.registration_closed)
         config_dirty = True
+    if "registration_quota" in payload.model_fields_set:
+        if payload.registration_quota is None:
+            next_config.pop("registration_quota", None)
+        else:
+            next_config["registration_quota"] = int(payload.registration_quota)
+        config_dirty = True
+    if "registration_quota_enabled" in payload.model_fields_set:
+        next_config["registration_quota_enabled"] = bool(payload.registration_quota_enabled)
+        config_dirty = True
     if config_dirty:
         ev.config = next_config
+    if payload.registration_quota is not None and bool(next_config.get("registration_quota_enabled")):
+        attendee_count_res = await db.execute(
+            select(func.count()).where(Attendee.event_id == ev.id)
+        )
+        attendee_count = int(attendee_count_res.scalar_one() or 0)
+        if attendee_count >= int(payload.registration_quota):
+            next_config = dict(ev.config or {})
+            next_config["registration_closed"] = True
+            ev.config = next_config
     if "auto_email_on_cert" in payload.model_fields_set:
         ev.auto_email_on_cert = bool(payload.auto_email_on_cert)
     if "cert_email_template_id" in payload.model_fields_set:
@@ -10802,6 +10851,8 @@ def _build_public_event_detail(
         survey=_build_public_survey_info(survey),
         visibility=_get_event_visibility(event),
         require_email_verification=_get_event_email_verification_required(event),
+        registration_quota=_get_event_registration_quota(event),
+        registration_quota_enabled=_is_event_registration_quota_enabled(event),
         sessions=[
             {
                 "id": s.id,
@@ -11056,6 +11107,19 @@ async def public_event_register(
         raise HTTPException(status_code=404, detail="Event not found")
     if _is_event_registration_closed(ev):
         raise HTTPException(status_code=403, detail="Registration is closed for this event.")
+    registration_quota = _get_event_registration_quota(ev)
+    quota_enabled = _is_event_registration_quota_enabled(ev)
+    if quota_enabled and registration_quota is not None:
+        attendee_count_res = await db.execute(
+            select(func.count()).where(Attendee.event_id == ev.id)
+        )
+        attendee_count = int(attendee_count_res.scalar_one() or 0)
+        if attendee_count >= registration_quota:
+            next_config = dict(ev.config or {})
+            next_config["registration_closed"] = True
+            ev.config = next_config
+            await db.commit()
+            raise HTTPException(status_code=403, detail="Registration quota reached for this event.")
     event_db_id = ev.id
     require_email_verification = _get_event_email_verification_required(ev)
 
@@ -11245,6 +11309,15 @@ async def public_event_register(
             "verification_required": require_email_verification,
         },
     )
+    if quota_enabled and registration_quota is not None:
+        attendee_count_res = await db.execute(
+            select(func.count()).where(Attendee.event_id == event_db_id)
+        )
+        attendee_count = int(attendee_count_res.scalar_one() or 0)
+        if attendee_count >= registration_quota:
+            next_config = dict(ev.config or {})
+            next_config["registration_closed"] = True
+            ev.config = next_config
     await db.commit()
     if require_email_verification:
         await send_attendee_verification_email(attendee=attendee, event=ev)

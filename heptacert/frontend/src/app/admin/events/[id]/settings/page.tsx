@@ -30,6 +30,9 @@ type EventOut = {
   name: string;
   config?: {
     registration_fields?: RegistrationField[];
+    registration_closed?: boolean;
+    registration_quota?: number;
+    registration_quota_enabled?: boolean;
     visibility?: "private" | "unlisted" | "public";
     [key: string]: unknown;
   };
@@ -42,6 +45,8 @@ type EventOut = {
   cert_email_template_id?: number | null;
   visibility?: "private" | "unlisted" | "public";
   require_email_verification?: boolean;
+  registration_quota?: number | null;
+  registration_quota_enabled?: boolean;
 };
 
 type EmailTemplate = {
@@ -63,6 +68,8 @@ type FormState = {
   visibility: "private" | "unlisted" | "public";
   registration_fields: RegistrationField[];
   require_email_verification: boolean;
+  registration_quota_enabled: boolean;
+  registration_quota: string;
   auto_email_on_cert: boolean;
   cert_email_template_id: number | null;
 };
@@ -131,6 +138,10 @@ export default function EventSettingsPage() {
         registrationStatusBody: "Etkinlik bittiğinde veya kapasite dolduğunda kayıt sayfasını sistem üzerinden kapatabilirsiniz.",
         registrationToggle: "Yeni kayıtları kapat",
         registrationHint: "Kapalıysa public kayıt endpoint'i yeni katılımcı kabul etmez.",
+        registrationQuotaLabel: "Kayıt kotası",
+        registrationQuotaToggle: "Kayıt kotasını aktif et",
+        registrationQuotaHint: "Boş bırakılırsa limitsiz olur. Kota dolduğunda kayıt otomatik kapanır.",
+        registrationQuotaPlaceholder: "Örn. 300",
         verificationToggle: "Kayıttan sonra e-posta doğrulaması zorunlu olsun",
         verificationHint: "Kapalıysa katılımcı kayıt olur olmaz aktif sayılır; check-in ve çekiliş akışı doğrulama beklemez.",
         addField: "Alan ekle",
@@ -203,6 +214,10 @@ export default function EventSettingsPage() {
         registrationStatusBody: "Close the registration flow from the system when the event is over or you no longer want new signups.",
         registrationToggle: "Close new registrations",
         registrationHint: "When enabled, the public registration endpoint rejects new attendees.",
+        registrationQuotaLabel: "Registration quota",
+        registrationQuotaToggle: "Enable registration quota",
+        registrationQuotaHint: "Leave empty for unlimited. Registration auto-closes when quota is reached.",
+        registrationQuotaPlaceholder: "e.g. 300",
         verificationToggle: "Require email verification after registration",
         verificationHint: "When off, attendees become active immediately and check-in or raffle flows do not wait for email confirmation.",
         addField: "Add field",
@@ -265,6 +280,8 @@ export default function EventSettingsPage() {
     visibility: "private",
     registration_fields: [],
     require_email_verification: true,
+    registration_quota_enabled: false,
+    registration_quota: "",
     auto_email_on_cert: false,
     cert_email_template_id: null,
   });
@@ -319,7 +336,16 @@ export default function EventSettingsPage() {
         event_description: eventData.event_description || "",
         event_location: eventData.event_location || "",
         event_banner_url: eventData.event_banner_url || "",
-        registration_closed: Boolean(eventData.registration_closed),
+        registration_closed: Boolean(eventData.registration_closed ?? eventData.config?.registration_closed),
+        registration_quota_enabled: Boolean(
+          eventData.registration_quota_enabled
+            ?? eventData.config?.registration_quota_enabled
+            ?? ((eventData.registration_quota ?? eventData.config?.registration_quota) != null)
+        ),
+        registration_quota:
+          (eventData.registration_quota ?? eventData.config?.registration_quota) != null
+            ? String(eventData.registration_quota ?? eventData.config?.registration_quota)
+            : "",
         visibility: eventData.visibility || (eventData.config?.visibility as FormState["visibility"]) || "private",
         registration_fields: Array.isArray(eventData.config?.registration_fields)
           ? eventData.config.registration_fields
@@ -395,6 +421,10 @@ export default function EventSettingsPage() {
             : [],
         })).filter((field) => field.label),
         require_email_verification: formData.require_email_verification,
+        registration_quota_enabled: formData.registration_quota_enabled,
+        registration_quota: formData.registration_quota_enabled && formData.registration_quota.trim()
+          ? Number(formData.registration_quota)
+          : null,
       };
 
       if (hasGrowthPlan) {
@@ -591,6 +621,46 @@ export default function EventSettingsPage() {
                   <p className="mt-1 text-xs text-surface-500">{copy.registrationHint}</p>
                 </div>
               </label>
+              <div>
+                <label className="mb-3 flex items-start gap-3 rounded-2xl border border-surface-200 bg-surface-50 px-4 py-4">
+                  <input
+                    type="checkbox"
+                    checked={formData.registration_quota_enabled}
+                    onChange={(event) =>
+                      setFormData((current) => ({
+                        ...current,
+                        registration_quota_enabled: event.target.checked,
+                      }))
+                    }
+                    className="mt-1 h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500"
+                  />
+                  <div>
+                    <p className="text-sm font-semibold text-surface-900">{copy.registrationQuotaToggle}</p>
+                    <p className="mt-1 text-xs text-surface-500">{copy.registrationQuotaHint}</p>
+                  </div>
+                </label>
+                <label className="label">{copy.registrationQuotaLabel}</label>
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={formData.registration_quota}
+                  disabled={!formData.registration_quota_enabled}
+                  onChange={(event) =>
+                    setFormData((current) => ({
+                      ...current,
+                      registration_quota: event.target.value,
+                    }))
+                  }
+                  className="input-field"
+                  placeholder={copy.registrationQuotaPlaceholder}
+                />
+                {!formData.registration_quota_enabled && (
+                  <p className="mt-1 text-xs text-surface-500">
+                    {lang === "tr" ? "Kota kapalıyken kayıt sınırsız devam eder." : "When quota is off, registration remains unlimited."}
+                  </p>
+                )}
+              </div>
             </div>
           </section>
 
