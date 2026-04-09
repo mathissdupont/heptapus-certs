@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { ArrowLeft, Send, Loader2 } from "lucide-react";
+import { ArrowLeft, Send, Loader2, Lightbulb, CheckCircle2, Eye } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { createPublicFeedPost } from "@/lib/api";
 
@@ -23,50 +23,50 @@ export default function CreatePostPage() {
       lang === "tr"
         ? {
             title: "Yeni Gönderi Oluştur",
-            subtitle: "Topluluğunuzla fikirlerinizi, güncellemeleri ve sorularınızı paylaşın",
-            placeholder: "Başlamak için yazın... Resimler, linkler ve emojiler desteklendi! 📸✨",
+            subtitle: "Topluluğunuzla fikirlerinizi, güncellemeleri ve sorularınızı paylaşın.",
+            placeholder: "Bugün ne paylaşmak istiyorsunuz? (Linkler otomatik olarak algılanır)",
             preview: "Ön İzleme",
-            noPreview: "Yazınız burada gösterilecek",
-            characterCount: "Karakter",
+            noPreview: "Yazınız burada ön izlenecek...",
             publish: "Yayınla",
             publishing: "Yayınlanıyor...",
             cancel: "İptal",
-            success: "Gönderi başarıyla yayınlandı! 🎉",
-            error: "Gönderi yayınlamada hata oluştu",
-            validationEmpty: "Lütfen bir gönderi yazın",
-            validationTooLong: (max: number) => `Gönderi ${max} karakteri aşamaz`,
-            tips: "💡 İpuçları",
-            tip1: "Kısa ve öz yazın - en iyi gönderiler bilgiye değerdir",
-            tip2: "Sorular sorun - topluluk katılımı artırır",
-            tip3: "Linkler ve kaynaklar paylaşın",
-            tip4: "Emojiler kullanın - renk ve eğlence katın! 🚀",
+            success: "Gönderi başarıyla yayınlandı! Yönlendiriliyorsunuz...",
+            error: "Gönderi yayınlamada hata oluştu.",
+            validationEmpty: "Lütfen boş bir gönderi yayınlamayın.",
+            validationTooLong: (max: number) => `Gönderi en fazla ${max} karakter olabilir.`,
+            tips: "Yayınlama İpuçları",
+            tip1: "Açık ve net olun; bilgi odaklı gönderiler daha çok etkileşim alır.",
+            tip2: "Soru sormaktan çekinmeyin, topluluk tartışmayı sever.",
+            tip3: "Faydalı bulduğunuz kaynakları ve bağlantıları ekleyin.",
+            tip4: "Paragraflar arasında boşluk bırakarak okunabilirliği artırın.",
           }
         : {
             title: "Create New Post",
-            subtitle: "Share your ideas, updates, and questions with the community",
-            placeholder: "Start typing... Images, links, and emojis supported! 📸✨",
+            subtitle: "Share your ideas, updates, and questions with the community.",
+            placeholder: "What do you want to share today? (Links are automatically parsed)",
             preview: "Preview",
-            noPreview: "Your post will appear here",
-            characterCount: "Characters",
+            noPreview: "Your post preview will appear here...",
             publish: "Publish",
             publishing: "Publishing...",
             cancel: "Cancel",
-            success: "Post published successfully! 🎉",
-            error: "Failed to publish post",
-            validationEmpty: "Please write a post",
-            validationTooLong: (max: number) => `Post cannot exceed ${max} characters`,
-            tips: "💡 Tips",
-            tip1: "Write concisely - the best posts are informative",
-            tip2: "Ask questions - community engagement thrives on Q&A",
-            tip3: "Share links and resources",
-            tip4: "Use emojis - add color and fun! 🚀",
+            success: "Post published successfully! Redirecting...",
+            error: "Failed to publish post.",
+            validationEmpty: "Please write a post before publishing.",
+            validationTooLong: (max: number) => `Post cannot exceed ${max} characters.`,
+            tips: "Posting Guidelines",
+            tip1: "Be concise and clear; informative posts get more engagement.",
+            tip2: "Don't hesitate to ask questions; communities love discussions.",
+            tip3: "Include resources and links that you find helpful.",
+            tip4: "Use line breaks to make your post easier to read.",
           },
     [lang]
   );
 
   const charCount = body.length;
-  const isValid = body.trim().length > 0 && charCount <= MAX_LENGTH;
-  const progressPercent = (charCount / MAX_LENGTH) * 100;
+  const isNearLimit = charCount > MAX_LENGTH * 0.9;
+  const isOverLimit = charCount > MAX_LENGTH;
+  const isValid = body.trim().length > 0 && !isOverLimit;
+  const progressPercent = Math.min((charCount / MAX_LENGTH) * 100, 100);
 
   async function handlePublish() {
     if (!body.trim()) {
@@ -91,183 +91,179 @@ export default function CreatePostPage() {
     } catch (err: any) {
       const msg = err?.message || copy.error;
       setError(msg);
-    } finally {
-      setSubmitting(false);
+      setSubmitting(false); // Sadece hata olursa butonu tekrar aktifleştir
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-gray-950 dark:to-gray-900">
-      <motion.div
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="sticky top-0 z-10 border-b border-slate-200/50 dark:border-gray-800/50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm"
-      >
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-3">
-          <Link
-            href="/discover"
-            className="inline-flex items-center justify-center rounded-lg p-2 text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800/50 transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">{copy.title}</h1>
-            <p className="text-sm text-slate-500 dark:text-gray-400">{copy.subtitle}</p>
+    <div className="min-h-screen bg-[#F9FAFB] dark:bg-gray-950 pb-12">
+      {/* Sticky Clean Header */}
+      <div className="sticky top-0 z-10 border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/80 backdrop-blur-md">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link
+              href="/discover"
+              className="inline-flex items-center justify-center rounded-lg p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <div>
+              <h1 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
+                {copy.title}
+              </h1>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {copy.subtitle}
+              </p>
+            </div>
+          </div>
+          
+          {/* Header Action (Optional Desktop Button) */}
+          <div className="hidden sm:block">
+            <button
+              type="button"
+              onClick={handlePublish}
+              disabled={!isValid || submitting || success}
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-medium shadow-sm hover:bg-slate-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50"
+            >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {submitting ? copy.publishing : copy.publish}
+            </button>
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8"
-      >
-        <div className="grid gap-8 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-4">
-            <div className="rounded-3xl border-2 border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6 mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Main Editor Area (Left 2 Columns) */}
+          <div className="lg:col-span-2 space-y-6">
+            
+            {/* Messages */}
+            {error && (
+              <div className="rounded-lg border border-red-200 bg-red-50 dark:border-red-900/30 dark:bg-red-900/10 px-4 py-3 text-sm text-red-700 dark:text-red-400 flex items-start gap-3">
+                <div className="mt-0.5 font-semibold">Uyarı:</div>
+                <div>{error}</div>
+              </div>
+            )}
+            {success && (
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 dark:border-emerald-900/30 dark:bg-emerald-900/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5" />
+                {copy.success}
+              </div>
+            )}
+
+            {/* Editor Box */}
+            <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-400 transition-all overflow-hidden flex flex-col">
               <textarea
                 value={body}
-                onChange={(e) => setBody(e.target.value.slice(0, MAX_LENGTH))}
+                onChange={(e) => setBody(e.target.value)}
                 placeholder={copy.placeholder}
-                disabled={submitting}
-                rows={12}
-                className="w-full px-6 py-5 text-base text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-500 resize-none border-none bg-transparent focus:outline-none disabled:opacity-50"
+                disabled={submitting || success}
+                rows={10}
+                className="w-full flex-1 px-5 py-4 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 resize-none border-none bg-transparent focus:outline-none disabled:opacity-50"
               />
 
-              <div className="border-t border-slate-100 dark:border-gray-800 bg-gradient-to-r from-slate-50 to-white dark:from-gray-900 dark:to-gray-800 px-6 py-3 flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="h-1.5 bg-slate-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <motion.div
-                      className={`h-full rounded-full transition-all ${
-                        charCount > MAX_LENGTH * 0.9
-                          ? "bg-gradient-to-r from-amber-500 to-orange-500"
-                          : "bg-gradient-to-r from-blue-500 to-purple-500"
+              {/* Toolbar & Character Count */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 px-5 py-3 flex items-center justify-between">
+                <div className="flex-1 max-w-xs">
+                  <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex">
+                    <div
+                      className={`h-full transition-all duration-300 ${
+                        isOverLimit
+                          ? "bg-red-500"
+                          : isNearLimit
+                          ? "bg-amber-500"
+                          : "bg-blue-600"
                       }`}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${Math.min(progressPercent, 100)}%` }}
+                      style={{ width: `${progressPercent}%` }}
                     />
                   </div>
                 </div>
-                <span
-                  className={`ml-4 text-sm font-semibold whitespace-nowrap ${
-                    charCount > MAX_LENGTH * 0.9
-                      ? "text-orange-600 dark:text-orange-400"
-                      : "text-slate-600 dark:text-gray-400"
+                <div
+                  className={`text-xs font-medium ml-4 ${
+                    isOverLimit
+                      ? "text-red-600 dark:text-red-400"
+                      : isNearLimit
+                      ? "text-amber-600 dark:text-amber-400"
+                      : "text-gray-500 dark:text-gray-400"
                   }`}
                 >
                   {charCount} / {MAX_LENGTH}
-                </span>
+                </div>
               </div>
             </div>
 
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="rounded-2xl border-2 border-red-200 dark:border-red-900/30 bg-red-50 dark:bg-red-950/20 px-4 py-3"
-              >
-                <p className="text-sm font-semibold text-red-700 dark:text-red-400">{error}</p>
-              </motion.div>
-            )}
-
-            {success && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="rounded-2xl border-2 border-green-200 dark:border-green-900/30 bg-green-50 dark:bg-green-950/20 px-4 py-3"
-              >
-                <p className="text-sm font-semibold text-green-700 dark:text-green-400">{copy.success}</p>
-              </motion.div>
-            )}
-
-            <div className="flex gap-3">
+            {/* Mobile Actions (Hidden on Desktop) */}
+            <div className="flex sm:hidden gap-3">
               <button
                 type="button"
                 onClick={() => router.push("/discover")}
-                disabled={submitting}
-                className="flex-1 px-6 py-3 rounded-xl border-2 border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-300 font-semibold transition-all hover:bg-slate-50 dark:hover:bg-gray-800/50 disabled:opacity-50"
+                disabled={submitting || success}
+                className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium transition-colors hover:bg-gray-50 disabled:opacity-50"
               >
                 {copy.cancel}
               </button>
               <button
                 type="button"
                 onClick={handlePublish}
-                disabled={!isValid || submitting}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 hover:scale-105 active:scale-95"
+                disabled={!isValid || submitting || success}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-medium shadow-sm hover:bg-slate-800 disabled:opacity-50"
               >
-                {submitting ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    {copy.publishing}
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-5 w-5" />
-                    {copy.publish}
-                  </>
-                )}
+                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {submitting ? copy.publishing : copy.publish}
               </button>
             </div>
           </div>
 
+          {/* Sidebar Area (Right 1 Column) */}
           <div className="space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="rounded-3xl border-2 border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm"
-            >
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4">{copy.preview}</h3>
-              {body.trim() ? (
-                <p className="text-slate-700 dark:text-gray-300 whitespace-pre-wrap break-words text-sm leading-relaxed">
-                  {body}
-                </p>
-              ) : (
-                <p className="text-slate-400 dark:text-gray-600 italic">{copy.noPreview}</p>
-              )}
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="rounded-3xl border-2 border-blue-200/50 dark:border-blue-900/30 bg-blue-50 dark:bg-blue-950/20 p-6"
-            >
-              <h4 className="text-sm font-bold text-blue-900 dark:text-blue-300 mb-3">{copy.tips}</h4>
-              <ul className="space-y-2 text-xs text-blue-800 dark:text-blue-300">
-                <li>• {copy.tip1}</li>
-                <li>• {copy.tip2}</li>
-                <li>• {copy.tip3}</li>
-                <li>• {copy.tip4}</li>
-              </ul>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="rounded-3xl bg-gradient-to-br from-slate-100 to-slate-50 dark:from-gray-800 dark:to-gray-900 p-6"
-            >
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-semibold text-slate-600 dark:text-gray-400">
-                    {copy.characterCount}
-                  </span>
-                  <span className="text-sm font-bold text-slate-900 dark:text-white">{charCount}</span>
-                </div>
-                <div className="h-2 bg-slate-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-full bg-gradient-to-r from-blue-500 to-purple-500"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.min(progressPercent, 100)}%` }}
-                  />
-                </div>
+            
+            {/* Guidelines Card */}
+            <div className="rounded-xl border border-blue-100 dark:border-blue-900/30 bg-blue-50/50 dark:bg-blue-900/10 p-5">
+              <div className="flex items-center gap-2 text-blue-800 dark:text-blue-400 font-semibold text-sm mb-4">
+                <Lightbulb className="h-4 w-4" />
+                {copy.tips}
               </div>
-            </motion.div>
+              <ul className="space-y-3 text-sm text-blue-900/80 dark:text-blue-300/80">
+                <li className="flex items-start gap-2">
+                  <div className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-400 flex-shrink-0" />
+                  <span>{copy.tip1}</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-400 flex-shrink-0" />
+                  <span>{copy.tip2}</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-400 flex-shrink-0" />
+                  <span>{copy.tip3}</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-400 flex-shrink-0" />
+                  <span>{copy.tip4}</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Live Preview Card */}
+            <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
+              <div className="flex items-center gap-2 text-gray-900 dark:text-white font-semibold text-sm mb-3 border-b border-gray-100 dark:border-gray-800 pb-3">
+                <Eye className="h-4 w-4 text-gray-400" />
+                {copy.preview}
+              </div>
+              <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words leading-relaxed min-h-[100px]">
+                {body.trim() ? (
+                  body
+                ) : (
+                  <span className="text-gray-400 dark:text-gray-600 italic">
+                    {copy.noPreview}
+                  </span>
+                )}
+              </div>
+            </div>
+
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

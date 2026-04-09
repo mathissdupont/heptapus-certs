@@ -159,11 +159,16 @@ export default function DiscoveryPage() {
 
   useEffect(() => {
     setLoading(true);
+    setError(null);
     Promise.all([
-      listPublicFeed({ limit: 100 }),
+      listPublicFeed({ limit: 100 }).catch((err: any) => {
+        console.error("Error fetching public feed:", err);
+        throw err;
+      }),
       getPublicMemberToken() ? getPublicMemberMe().catch(() => null) : Promise.resolve(null),
     ])
       .then(([items, viewerData]) => {
+        console.log("Feed data received:", { itemsCount: items?.length, items });
         const scored = (Array.isArray(items) ? items : []).map((post) => ({
           ...post,
           score: calculateFinalScore(post),
@@ -177,15 +182,29 @@ export default function DiscoveryPage() {
 
         setPosts(scored);
         setViewer(viewerData);
+        setError(null);
       })
       .catch((err: any) => {
+        console.error("Error in discover page:", err);
         let msg = copy.error;
-        if (typeof err === 'string') msg = err;
-        else if (err?.message && typeof err.message === 'string') msg = err.message;
+        if (typeof err === 'string') {
+          msg = err;
+        } else if (err?.message && typeof err.message === 'string') {
+          msg = err.message;
+        } else if (err?.status === 401) {
+          msg = lang === "tr" ? "Bu sayfaya erişim için giriş yapın" : "Sign in to view this page";
+        } else if (err?.status === 403) {
+          msg = lang === "tr" ? "Bu sayfaya erişim izniniz yok" : "You don't have permission to view this page";
+        } else if (err?.status === 404) {
+          msg = lang === "tr" ? "Sayfa bulunamadı" : "Page not found";
+        } else if (err?.status === 500) {
+          msg = lang === "tr" ? "Sunucu hatası oluştu" : "Server error occurred";
+        }
         setError(msg);
+        setPosts([]);
       })
       .finally(() => setLoading(false));
-  }, [copy.error]);
+  }, [copy.error, lang]);
 
   const filteredAndSortedPosts = useMemo(() => {
     let filtered = posts;
