@@ -3791,7 +3791,7 @@ def bad_request(msg: str) -> HTTPException:
     return HTTPException(status_code=400, detail=msg)
 
 
-REGISTRATION_FIELD_TYPES = {"text", "textarea", "number", "tel", "select", "date"}
+REGISTRATION_FIELD_TYPES = {"text", "textarea", "number", "tel", "select", "date", "file"}
 EVENT_VISIBILITY_VALUES = {"private", "unlisted", "public"}
 
 
@@ -3911,10 +3911,11 @@ def _get_event_kvkk_consent_text(event: Event) -> str:
     if custom:
         return custom
     return (
-        "Kisisel verileriniz 6698 sayili KVKK kapsaminda etkinlik kaydi, katilim yonetimi, "
-        "sertifika surecleri ve ilgili yasal yukumluluklerin yerine getirilmesi amaclariyla islenir. "
-        "Verileriniz sadece gerekli oldugu sure boyunca saklanir ve hukuka uygun teknik/idari tedbirlerle korunur. "
-        "KVKK md.11 kapsamindaki haklarinizi kvkk@heptapusgroup.com adresinden kullanabilirsiniz."
+        "Kisisel verileriniz, 6698 sayili Kisisel Verilerin Korunmasi Kanunu (KVKK) kapsaminda "
+        "etkinlik kaydinizin alinmasi, katilim sureclerinin yurutulmesi, sertifika islemlerinin tamamlanmasi "
+        "ve ilgili yasal yukumluluklerin yerine getirilmesi amaclariyla islenmektedir. Verileriniz, "
+        "yalnizca bu amaclar icin gerekli olan sure boyunca saklanir ve uygun teknik/idari tedbirlerle korunur. "
+        "KVKK madde 11 kapsamindaki haklariniza iliskin taleplerinizi contact@heptapusgroup.com adresine iletebilirsiniz."
     )
 
 
@@ -4011,6 +4012,9 @@ def _normalize_registration_answers(
 
     for field in registration_fields:
         field_id = field["id"]
+        if field.get("type") == "file":
+            # File fields are validated via registration_documents payload.
+            continue
         raw_value = raw_map.get(field_id, "")
         if raw_value is None:
             value = ""
@@ -11228,15 +11232,27 @@ async def public_event_register(
     user_agent = request.headers.get("User-Agent")
     device_id, should_set_device_cookie = _get_registration_device_id(request)
     registration_fields = _get_event_registration_fields(ev)
+    file_fields = [field for field in registration_fields if field.get("type") == "file"]
+    file_field_ids = {str(field.get("id")) for field in file_fields if field.get("id")}
+    required_file_field_ids = {
+        str(field.get("id"))
+        for field in file_fields
+        if field.get("id") and bool(field.get("required"))
+    }
     registration_answers = _normalize_registration_answers(
         registration_fields,
         payload.registration_answers,
     )
     if payload.registration_documents:
+        if not file_field_ids:
+            raise bad_request("Document upload is not enabled for this event")
         sanitized_docs: List[Dict[str, Any]] = []
         storage_root = Path(settings.local_storage_dir).resolve()
         expected_prefix = f"registration_docs/event_{event_db_id}/"
-        for doc in payload.registration_documents[:5]:
+        for doc in payload.registration_documents[:10]:
+            field_id = str((doc or {}).get("field_id") or "").strip()
+            if not field_id or field_id not in file_field_ids:
+                raise bad_request("Invalid registration document field")
             rel_path = str((doc or {}).get("path") or "").strip().lstrip("/")
             if not rel_path or not rel_path.startswith(expected_prefix):
                 raise bad_request("Invalid registration document path")
@@ -11248,6 +11264,7 @@ async def public_event_register(
                 raise bad_request("Registration document exceeds size limit")
             sanitized_docs.append(
                 {
+                    "field_id": field_id,
                     "path": rel_path,
                     "name": str((doc or {}).get("name") or Path(rel_path).name)[:200],
                     "content_type": str((doc or {}).get("content_type") or "application/octet-stream")[:120],
@@ -11257,7 +11274,17 @@ async def public_event_register(
                 }
             )
         if sanitized_docs:
+            uploaded_field_ids = {
+                str(doc.get("field_id"))
+                for doc in sanitized_docs
+                if str(doc.get("field_id") or "").strip()
+            }
+            missing_required_fields = required_file_field_ids - uploaded_field_ids
+            if missing_required_fields:
+                raise bad_request("Required document fields are missing")
             registration_answers["__documents"] = sanitized_docs
+    elif required_file_field_ids:
+        raise bad_request("Required document fields are missing")
     registration_answers["__kvkk"] = {
         "accepted": bool(payload.kvkk_accepted),
         "accepted_at": datetime.now(timezone.utc).isoformat(),

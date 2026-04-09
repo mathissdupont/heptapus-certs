@@ -108,6 +108,7 @@ export default function EventRegisterPage() {
             documentTitle: "Belge Yükleme (Opsiyonel)",
             documentHint: "PDF/JPG/PNG/WEBP formatında dekont veya benzeri belge yükleyebilirsiniz.",
             documentPick: "Belge Seç",
+            documentRequired: "Lütfen zorunlu belge alanları için en az bir dosya yükleyin.",
             documentUploading: "Belgeler yükleniyor...",
             submit: "Kayıt Ol",
             cardRuleLabel: "Min. {count} oturum",
@@ -157,6 +158,7 @@ export default function EventRegisterPage() {
             documentTitle: "Document Upload (Optional)",
             documentHint: "You can upload receipt or similar documents as PDF/JPG/PNG/WEBP.",
             documentPick: "Choose Document",
+            documentRequired: "Please upload at least one file for required document fields.",
             documentUploading: "Uploading documents...",
             submit: "Register",
             cardRuleLabel: "Min. {count} sessions",
@@ -172,7 +174,7 @@ export default function EventRegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [registrationAnswers, setRegistrationAnswers] = useState<Record<string, string>>({});
-  const [registrationFiles, setRegistrationFiles] = useState<File[]>([]);
+  const [registrationFilesByField, setRegistrationFilesByField] = useState<Record<string, File[]>>({});
   const [showKvkkModal, setShowKvkkModal] = useState(false);
   const [kvkkAccepted, setKvkkAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -223,6 +225,18 @@ export default function EventRegisterPage() {
   const brandColor = branding?.brand_color || "#7c73ff";
   const locale = lang === "tr" ? "tr-TR" : "en-US";
   const surveyEnabled = Boolean(event?.survey);
+  const fileFields = useMemo(
+    () => (event?.registration_fields || []).filter((field) => field.type === "file"),
+    [event?.registration_fields]
+  );
+  const nonFileFields = useMemo(
+    () => (event?.registration_fields || []).filter((field) => field.type !== "file"),
+    [event?.registration_fields]
+  );
+  const isDocumentRequirementMissing = useMemo(
+    () => fileFields.some((field) => field.required && !(registrationFilesByField[field.id]?.length)),
+    [fileFields, registrationFilesByField]
+  );
 
   const pageBg = useMemo(
     () => ({
@@ -268,16 +282,27 @@ export default function EventRegisterPage() {
       setSubmitError(copy.kvkkRequired);
       return;
     }
+    if (isDocumentRequirementMissing) {
+      setSubmitError(copy.documentRequired);
+      return;
+    }
     setSubmitError(null);
     setSubmitting(true);
 
     try {
-      const uploadedDocuments: RegistrationDocumentUploadOut[] = [];
-      if (registrationFiles.length > 0) {
+      const uploadedDocuments: Array<RegistrationDocumentUploadOut & { field_id: string }> = [];
+      const totalFilesToUpload = fileFields.reduce(
+        (sum, field) => sum + (registrationFilesByField[field.id]?.length || 0),
+        0
+      );
+      if (totalFilesToUpload > 0) {
         setUploadingDocs(true);
-        for (const file of registrationFiles) {
-          const uploaded = await uploadPublicRegistrationDocument(eventId, file);
-          uploadedDocuments.push(uploaded);
+        for (const field of fileFields) {
+          const fieldFiles = registrationFilesByField[field.id] || [];
+          for (const file of fieldFiles) {
+            const uploaded = await uploadPublicRegistrationDocument(eventId, file);
+            uploadedDocuments.push({ ...uploaded, field_id: field.id });
+          }
         }
       }
       const registered = await publicRegisterAttendee(eventId, {
@@ -601,10 +626,10 @@ export default function EventRegisterPage() {
                       )}
                     </div>
 
-                    {event?.registration_fields && event.registration_fields.length > 0 && (
+                    {nonFileFields.length > 0 && (
                       <div className="space-y-4 rounded-[24px] border border-gray-200 bg-gray-50/70 p-4">
                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{copy.customInfo}</p>
-                        {event.registration_fields.map((field) => (
+                        {nonFileFields.map((field) => (
                           <div key={field.id}>
                             <label className="mb-2 block text-sm font-semibold text-gray-700">
                               {field.label}
@@ -653,42 +678,66 @@ export default function EventRegisterPage() {
                       </div>
                     )}
 
-                    <div className="space-y-4 rounded-[24px] border border-gray-200 bg-gray-50/70 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{copy.documentTitle}</p>
-                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100">
-                        {copy.documentPick}
-                        <input
-                          type="file"
-                          multiple
-                          accept="application/pdf,image/jpeg,image/png,image/webp"
-                          className="hidden"
-                          onChange={(eventArg) => {
-                            const files = Array.from(eventArg.target.files || []);
-                            if (!files.length) return;
-                            setRegistrationFiles((current) => [...current, ...files].slice(0, 5));
-                            eventArg.currentTarget.value = "";
-                          }}
-                        />
-                      </label>
-                      <p className="text-xs text-gray-500">{copy.documentHint}</p>
-                      {registrationFiles.length > 0 && (
-                        <div className="space-y-2">
-                          {registrationFiles.map((file, index) => (
-                            <div key={`${file.name}-${index}`} className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700">
-                              <span className="truncate pr-3">{file.name}</span>
-                              <button
-                                type="button"
-                                onClick={() => setRegistrationFiles((current) => current.filter((_, idx) => idx !== index))}
-                                className="rounded p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
-                                aria-label="remove file"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          ))}
+                    {fileFields.length > 0 && (
+                      <div className="space-y-4 rounded-[24px] border border-gray-200 bg-gray-50/70 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{copy.documentTitle}</p>
+                        <p className="text-xs text-gray-500">{copy.documentHint}</p>
+                        <div className="space-y-3">
+                          {fileFields.map((field) => {
+                            const fieldFiles = registrationFilesByField[field.id] || [];
+                            return (
+                              <div key={field.id} className="rounded-2xl border border-gray-200 bg-white p-3">
+                                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                                  {field.label}
+                                  {field.required ? <span className="ml-1 text-red-500">*</span> : null}
+                                </label>
+                                {field.helper_text && <p className="mb-2 text-xs text-gray-500">{field.helper_text}</p>}
+                                <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100">
+                                  {copy.documentPick}
+                                  <input
+                                    type="file"
+                                    multiple
+                                    accept="application/pdf,image/jpeg,image/png,image/webp"
+                                    className="hidden"
+                                    onChange={(eventArg) => {
+                                      const files = Array.from(eventArg.target.files || []);
+                                      if (!files.length) return;
+                                      setRegistrationFilesByField((current) => ({
+                                        ...current,
+                                        [field.id]: [...(current[field.id] || []), ...files].slice(0, 5),
+                                      }));
+                                      eventArg.currentTarget.value = "";
+                                    }}
+                                  />
+                                </label>
+                                {fieldFiles.length > 0 && (
+                                  <div className="mt-2 space-y-2">
+                                    {fieldFiles.map((file, index) => (
+                                      <div key={`${field.id}-${file.name}-${index}`} className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700">
+                                        <span className="truncate pr-3">{file.name}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            setRegistrationFilesByField((current) => ({
+                                              ...current,
+                                              [field.id]: (current[field.id] || []).filter((_, idx) => idx !== index),
+                                            }))
+                                          }
+                                          className="rounded p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+                                          aria-label="remove file"
+                                        >
+                                          <X className="h-3.5 w-3.5" />
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
 
                     <div className="space-y-3 rounded-[24px] border border-gray-200 bg-gray-50/70 p-4">
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{copy.kvkkTitle}</p>
@@ -720,7 +769,7 @@ export default function EventRegisterPage() {
 
                     <button
                       type="submit"
-                      disabled={submitting || uploadingDocs || !name.trim() || !email.trim() || Boolean(event.registration_closed) || ((event.kvkk_consent_required ?? false) && !kvkkAccepted)}
+                      disabled={submitting || uploadingDocs || !name.trim() || !email.trim() || Boolean(event.registration_closed) || ((event.kvkk_consent_required ?? false) && !kvkkAccepted) || isDocumentRequirementMissing}
                       className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-bold text-white transition-all disabled:cursor-not-allowed disabled:opacity-50"
                       style={primaryBtnStyle}
                     >

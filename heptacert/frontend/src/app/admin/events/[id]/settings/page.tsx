@@ -81,6 +81,7 @@ const FIELD_TYPE_OPTIONS: Array<{ value: RegistrationField["type"]; tr: string; 
   { value: "number", tr: "Sayı", en: "Number" },
   { value: "date", tr: "Tarih", en: "Date" },
   { value: "select", tr: "Seçim listesi", en: "Select list" },
+  { value: "file", tr: "Dosya yükleme", en: "File upload" },
 ];
 
 const VISIBILITY_OPTIONS = [

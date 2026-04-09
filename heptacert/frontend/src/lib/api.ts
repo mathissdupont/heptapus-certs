@@ -289,6 +289,7 @@ export interface PublicEventDetail {
 }
 
 export interface RegistrationDocumentUploadOut {
+  field_id?: string;
   path: string;
   name: string;
   content_type: string;
@@ -377,7 +378,7 @@ function toEventRouteId(eventId: EventRouteId) {
   return encodeURIComponent(String(eventId));
 }
 
-export type RegistrationFieldType = "text" | "textarea" | "number" | "tel" | "select" | "date";
+export type RegistrationFieldType = "text" | "textarea" | "number" | "tel" | "select" | "date" | "file";
 
 export interface RegistrationField {
   id: string;
@@ -1126,7 +1127,7 @@ export async function publicRegisterAttendee(
     email: string;
     registration_answers?: Record<string, string>;
     kvkk_accepted?: boolean;
-    registration_documents?: RegistrationDocumentUploadOut[];
+    registration_documents?: Array<RegistrationDocumentUploadOut & { field_id?: string }>;
   }
 ): Promise<{
   ok: boolean;
