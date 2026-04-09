@@ -85,9 +85,9 @@ export default function PricingPage() {
     faqTitle: "Sıkça Sorulan Sorular",
     enterpriseContact: "Satış Ekibiyle Görüşün",
     startFree: "Ücretsiz Başla",
-    memberTitle: "Uyelik Premium",
-    memberSubtitle: "Normal kullanicilar icin tasarlanmis sosyal ve profil odakli premium paketler.",
-    memberCta: "Uyelik hesabimdan incele"
+    memberTitle: "Üyelik Premium",
+    memberSubtitle: "Normal kullanıcılar için tasarlanmış sosyal ve profil odaklı premium paketler.",
+    memberCta: "Üyelik hesabımdan incele"
   } : {
     badge: paymentEnabled ? "Checkout is Live" : "Paid Plans Coming Soon",
     title: "Simple, transparent pricing",
