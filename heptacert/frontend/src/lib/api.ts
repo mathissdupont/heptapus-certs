@@ -1336,6 +1336,84 @@ export async function updateSuperAdminRole(adminId: number, role: string): Promi
   return res.json();
 }
 
+// Connection/Networking API Functions
+
+export interface ConnectionMemberInfo {
+  id: number;
+  public_id: string;
+  display_name: string;
+  avatar_url?: string;
+  headline?: string;
+}
+
+export interface ConnectionStats {
+  follower_count: number;
+  following_count: number;
+  is_following: boolean;
+  is_blocked: boolean;
+}
+
+export async function followMember(memberId: string): Promise<{ status: string }> {
+  const res = await apiFetch(`/public/members/${memberId}/follow`, {
+    method: "POST",
+  });
+  return res.json();
+}
+
+export async function unfollowMember(memberId: string): Promise<{ status: string }> {
+  const res = await apiFetch(`/public/members/${memberId}/follow`, {
+    method: "DELETE",
+  });
+  return res.json();
+}
+
+export async function getMemberFollowers(
+  memberId: string,
+  limit: number = 20,
+  offset: number = 0
+): Promise<ConnectionMemberInfo[]> {
+  const res = await apiFetch(
+    `/public/members/${memberId}/followers?limit=${limit}&offset=${offset}`
+  );
+  return res.json();
+}
+
+export async function getMemberFollowing(
+  memberId: string,
+  limit: number = 20,
+  offset: number = 0
+): Promise<ConnectionMemberInfo[]> {
+  const res = await apiFetch(
+    `/public/members/${memberId}/following?limit=${limit}&offset=${offset}`
+  );
+  return res.json();
+}
+
+export async function getConnectionStats(
+  memberId: string
+): Promise<ConnectionStats> {
+  const res = await apiFetch(`/public/members/${memberId}/connection-stats`);
+  return res.json();
+}
+
+export async function blockMember(
+  memberId: string,
+  reason?: string
+): Promise<{ status: string }> {
+  const res = await apiFetch(`/public/members/${memberId}/block`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
+  return res.json();
+}
+
+export async function unblockMember(memberId: string): Promise<{ status: string }> {
+  const res = await apiFetch(`/public/members/${memberId}/block`, {
+    method: "DELETE",
+  });
+  return res.json();
+}
+
 export async function creditSuperAdminCoins(data: { admin_user_id: number; amount: number }): Promise<{ admin_user_id: number; new_balance: number }> {
   const res = await apiFetch(`/superadmin/coins/credit`, {
     method: "POST",

@@ -12982,3 +12982,6 @@ app.include_router(_community_api.router)
 from . import social_api as _social_api
 app.include_router(_social_api.router)
 
+from . import connections_api as _connections_api
+app.include_router(_connections_api.router)
+
