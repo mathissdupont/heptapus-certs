@@ -300,12 +300,12 @@ export default function PostDetailPage() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={viewer.avatar_url}
-                    alt={viewer.name}
+                    alt={viewer.display_name}
                     className="h-full w-full object-cover"
                   />
                 ) : (
                   <span className="text-sm font-semibold text-slate-500">
-                    {viewer.name.charAt(0).toUpperCase()}
+                    {viewer.display_name.charAt(0).toUpperCase()}
                   </span>
                 )}
               </div>
