@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { AlertTriangle, ArrowRight, Camera, Globe, KeyRound, Loader2, MapPin, Save, UserCircle2 } from "lucide-react";
 import { PUBLIC_MEMBER_TOKEN_EVENT, changePublicMemberPassword, clearPublicMemberToken, deletePublicMemberAccount, getPublicMemberMe, getPublicMemberSubscription, updatePublicMemberProfile, uploadPublicMemberAvatar, type PublicMemberSubscriptionInfo } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import SubscriptionGate from "@/components/SubscriptionGate";
 
 export default function ProfilePage() {
   const { lang } = useI18n();
@@ -298,7 +299,8 @@ export default function ProfilePage() {
       {profileMessage ? <div className="success-banner">{profileMessage}</div> : null}
       {passwordMessage ? <div className="success-banner">{passwordMessage}</div> : null}
 
-      <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+      <SubscriptionGate requiredPlan="member_plus">
+        <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
         <form onSubmit={handleProfileSubmit} className="card space-y-5 p-8">
           <div>
             <h2 className="text-xl font-bold text-slate-900">{copy.profileCard}</h2>
@@ -474,7 +476,7 @@ export default function ProfilePage() {
           </button>
         </form>
         </div>
-      </div>
+      </SubscriptionGate>
     </div>
   );
 }
