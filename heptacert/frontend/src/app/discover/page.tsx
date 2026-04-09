@@ -178,7 +178,7 @@ export default function DiscoveryPage() {
     ])
       .then(([items, viewerData]) => {
         // Score posts with advanced algorithm
-        const scored = items.map((post) => ({
+        const scored = (Array.isArray(items) ? items : []).map((post) => ({
           ...post,
           score: calculateFinalScore(post),
           engagement: calculateEngagementScore(post),
@@ -192,7 +192,10 @@ export default function DiscoveryPage() {
         setPosts(scored);
         setViewer(viewerData);
       })
-      .catch((err: any) => setError(err?.message || copy.error))
+      .catch((err: any) => {
+        const msg = typeof err === 'string' ? err : (err?.message || String(err) || copy.error);
+        setError(msg);
+      })
       .finally(() => setLoading(false));
   }, [copy.error]);
 
