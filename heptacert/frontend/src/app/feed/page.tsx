@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Building2, Heart, Loader2, MessageCircle, Send } from "lucide-react";
+import { Building2, Loader2 } from "lucide-react";
 import {
   createPublicFeedPost,
   createCommunityPostComment,
@@ -17,6 +17,10 @@ import {
   type PublicMemberMe,
 } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import CreatePostForm from "@/components/CommunityFeed/CreatePostForm";
+import PostCard from "@/components/CommunityFeed/PostCard";
+import CommentTree from "@/components/CommunityFeed/CommentTree";
+import ReplyForm from "@/components/CommunityFeed/ReplyForm";
 
 function formatTimestamp(value: string, lang: "tr" | "en") {
   return new Intl.DateTimeFormat(lang === "tr" ? "tr-TR" : "en-US", {
@@ -33,8 +37,6 @@ export default function PublicFeedPage() {
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [viewer, setViewer] = useState<PublicMemberMe | null>(null);
   const [commentsByPost, setCommentsByPost] = useState<Record<string, CommunityPostComment[]>>({});
-  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
-  const [postBody, setPostBody] = useState("");
   const [loading, setLoading] = useState(true);
   const [busyPostId, setBusyPostId] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
@@ -109,9 +111,8 @@ export default function PublicFeedPage() {
     }
   }
 
-  async function handleComment(postPublicId: string) {
-    const body = (commentInputs[postPublicId] || "").trim();
-    if (!body) return;
+  async function handleComment(postPublicId: string, body: string) {
+    if (!body.trim()) return;
     if (!viewer) {
       window.location.href = "/login?mode=member";
       return;
@@ -120,7 +121,6 @@ export default function PublicFeedPage() {
     try {
       const created = await createCommunityPostComment(postPublicId, body);
       setCommentsByPost((current) => ({ ...current, [postPublicId]: [...(current[postPublicId] || []), created] }));
-      setCommentInputs((current) => ({ ...current, [postPublicId]: "" }));
       setPosts((current) => current.map((item) => item.public_id === postPublicId ? { ...item, comment_count: item.comment_count + 1 } : item));
     } catch (err: any) {
       setError(err?.message || copy.error);
@@ -129,9 +129,8 @@ export default function PublicFeedPage() {
     }
   }
 
-  async function handleCreatePost() {
-    const body = postBody.trim();
-    if (!body) return;
+  async function handleCreatePost(body: string) {
+    if (!body.trim()) return;
     if (!viewer) {
       window.location.href = "/login?mode=member";
       return;
@@ -140,7 +139,6 @@ export default function PublicFeedPage() {
     try {
       const created = await createPublicFeedPost(body);
       setPosts((current) => [created, ...current]);
-      setPostBody("");
     } catch (err: any) {
       setError(err?.message || copy.error);
     } finally {
@@ -159,32 +157,21 @@ export default function PublicFeedPage() {
 
       {error ? <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div> : null}
 
-      <div className="mt-8 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mt-8">
         {viewer ? (
-          <div className="space-y-4">
-            <textarea
-              value={postBody}
-              onChange={(event) => setPostBody(event.target.value)}
-              placeholder={copy.composerPlaceholder}
-              maxLength={1500}
-              className="min-h-28 w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none"
-            />
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={() => void handleCreatePost()}
-                disabled={publishing || !postBody.trim()}
-                className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                {copy.publish}
-              </button>
-            </div>
-          </div>
+          <CreatePostForm
+            userAvatar={viewer.avatar_url}
+            placeholder={copy.composerPlaceholder}
+            isSubmitting={publishing}
+            onSubmit={handleCreatePost}
+            maxLength={1500}
+          />
         ) : (
-          <Link href="/login?mode=member" className="text-sm font-semibold text-slate-600 hover:text-slate-900">
-            {copy.login}
-          </Link>
+          <div className="rounded-lg border border-slate-200 bg-white p-4 text-center">
+            <Link href="/login?mode=member" className="text-sm font-semibold text-blue-600 hover:underline">
+              {copy.login}
+            </Link>
+          </div>
         )}
       </div>
 
@@ -193,82 +180,58 @@ export default function PublicFeedPage() {
       ) : posts.length === 0 ? (
         <div className="mt-10 rounded-[28px] border border-dashed border-slate-300 bg-slate-50 px-6 py-14 text-center text-sm text-slate-500">{copy.empty}</div>
       ) : (
-        <div className="mt-10 space-y-5">
+        <div className="mt-10 space-y-6">
           {posts.map((post) => (
-            <article key={post.public_id} className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  {post.organization_public_id && post.organization_name ? (
-                    <Link href={`/organizations/${post.organization_public_id}`} className="text-sm font-bold text-slate-900 hover:text-slate-600">
-                      {post.organization_name}
-                    </Link>
-                  ) : (
-                    <span className="text-sm font-bold text-slate-900">{copy.globalPost}</span>
-                  )}
-                  <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{post.author_name}</p>
+            <div key={post.public_id} className="space-y-4">
+              {/* Post Card */}
+              <PostCard
+                postId={post.public_id}
+                authorName={post.author_name}
+                timestamp={formatTimestamp(post.created_at, lang)}
+                body={post.body}
+                commentCount={post.comment_count}
+                upvoteCount={post.like_count}
+                downvoteCount={0}
+                userVote={post.liked_by_me ? "up" : undefined}
+                onUpvote={() => void handleToggleLike(post)}
+                onDownvote={() => {}}
+                onCommentClick={() => void loadComments(post.public_id)}
+                onReply={() => void loadComments(post.public_id)}
+              />
+
+              {/* Organization badge if applicable */}
+              {post.organization_public_id && post.organization_name && (
+                <div className="ml-4 text-xs text-slate-500">
+                  <Link href={`/organizations/${post.organization_public_id}`} className="font-semibold text-slate-900 hover:underline">
+                    {post.organization_name}
+                  </Link>
                 </div>
-                <span className="text-xs text-slate-400">{formatTimestamp(post.created_at, lang)}</span>
-              </div>
+              )}
 
-              <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-700">{post.body}</p>
-
-              <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4">
-                <button
-                  type="button"
-                  onClick={() => void handleToggleLike(post)}
-                  disabled={busyPostId === post.public_id}
-                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold transition ${post.liked_by_me ? "border-rose-200 bg-rose-50 text-rose-600" : "border-slate-200 text-slate-600 hover:text-slate-900"}`}
-                >
-                  <Heart className="h-4 w-4" />
-                  {post.like_count}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void loadComments(post.public_id)}
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:text-slate-900"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  {post.comment_count} {copy.comments}
-                </button>
-              </div>
-
-              <div className="mt-4 space-y-3">
-                {(commentsByPost[post.public_id] || []).map((comment) => (
-                  <div key={comment.id} className="rounded-2xl bg-slate-50 px-4 py-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-semibold text-slate-900">{comment.member_name}</span>
-                      <span className="text-xs text-slate-400">{formatTimestamp(comment.created_at, lang)}</span>
-                    </div>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">{comment.body}</p>
-                  </div>
-                ))}
-
-                <div className="rounded-2xl border border-slate-200 p-3">
-                  {viewer ? (
-                    <div className="flex items-center gap-3">
-                      <input
-                        value={commentInputs[post.public_id] || ""}
-                        onChange={(event) => setCommentInputs((current) => ({ ...current, [post.public_id]: event.target.value }))}
-                        placeholder={copy.login}
-                        className="flex-1 border-none bg-transparent text-sm text-slate-900 outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => void handleComment(post.public_id)}
-                        disabled={busyPostId === post.public_id}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-white"
-                      >
-                        <Send className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <Link href="/login?mode=member" className="text-sm font-semibold text-slate-600 hover:text-slate-900">
-                      {copy.login}
-                    </Link>
-                  )}
+              {/* Comments Section */}
+              {commentsByPost[post.public_id]?.length > 0 && (
+                <div className="ml-4 space-y-3">
+                  <CommentTree
+                    comments={commentsByPost[post.public_id] || []}
+                    maxDepth={3}
+                    onUpvote={() => {}}
+                    onDownvote={() => {}}
+                    onReply={() => void loadComments(post.public_id)}
+                  />
                 </div>
-              </div>
-            </article>
+              )}
+
+              {/* Reply Form */}
+              {viewer && (
+                <div className="ml-4">
+                  <ReplyForm
+                    onSubmit={(body) => handleComment(post.public_id, body)}
+                    isSubmitting={busyPostId === post.public_id}
+                    placeholder="Yanıt ekle..."
+                  />
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}
