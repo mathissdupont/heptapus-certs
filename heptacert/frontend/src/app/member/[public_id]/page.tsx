@@ -30,6 +30,7 @@ import {
   type ConnectionMemberInfo,
 } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import { normalizeExternalUrl } from "@/lib/url";
 import { FollowButton } from "@/components/FollowButton";
 
 interface RecommendedMember {
@@ -88,6 +89,7 @@ export default function PublicMemberProfilePage() {
   const [followingLoaded, setFollowingLoaded] = useState(false);
   const [hideFollowersList, setHideFollowersList] = useState(false);
   const [hideFollowingList, setHideFollowingList] = useState(false);
+  const websiteHref = normalizeExternalUrl(member?.website_url || null);
   const [connectionsModal, setConnectionsModal] = useState<"followers" | "following" | null>(null);
   const [loadingConnections, setLoadingConnections] = useState(false);
   const [connectionsError, setConnectionsError] = useState<string | null>(null);
@@ -318,9 +320,9 @@ export default function PublicMemberProfilePage() {
                   </a>
                 )}
 
-                {member.website_url && (
+                {websiteHref && (
                   <a
-                    href={member.website_url}
+                    href={websiteHref}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium text-sm border border-gray-200 shadow-sm"

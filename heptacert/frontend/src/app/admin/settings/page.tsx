@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { apiFetch, clearToken, deleteAdminAccount } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
 import { useToast } from "@/hooks/useToast";
+import { normalizeExternalUrl } from "@/lib/url";
 
 const TABS = [
   { id: "account", label: "Hesap", description: "Sifre ve email", icon: Lock },
@@ -811,11 +813,11 @@ function BrandingTab() {
         certificate_footer: settingsState.certificate_footer || "",
         hide_heptacert_home: !!settingsState.hide_heptacert_home,
         public_bio: settingsState.public_bio || "",
-        public_website_url: settingsState.public_website_url || "",
-        public_linkedin_url: settingsState.public_linkedin_url || "",
-        public_github_url: settingsState.public_github_url || "",
-        public_x_url: settingsState.public_x_url || "",
-        public_instagram_url: settingsState.public_instagram_url || "",
+        public_website_url: normalizeExternalUrl(settingsState.public_website_url) || "",
+        public_linkedin_url: normalizeExternalUrl(settingsState.public_linkedin_url) || "",
+        public_github_url: normalizeExternalUrl(settingsState.public_github_url) || "",
+        public_x_url: normalizeExternalUrl(settingsState.public_x_url) || "",
+        public_instagram_url: normalizeExternalUrl(settingsState.public_instagram_url) || "",
       };
 
       const resp = await apiFetch("/admin/organization/settings", {
@@ -879,21 +881,37 @@ function BrandingTab() {
     ? `${typeof window !== "undefined" ? window.location.origin : ""}/organizations/${publicId}`
     : "";
 
+  const scrollToSection = (sectionId: string) => {
+    const target = document.getElementById(sectionId);
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_380px]">
       <div className="card border border-slate-200/80 p-6">
         <div className="flex items-center gap-3 mb-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-600"><Settings className="h-5 w-5" /></div>
-          <div>
+          <div className="flex-1">
             <h2 className="font-semibold text-gray-900">Kurumsal Gorunum</h2>
             <p className="text-xs text-gray-400 mt-0.5">Logo, renk ve diger marka ayarlarini yonetebilirsiniz.</p>
           </div>
+          <Link href="/admin/organization-social" className="btn-ghost inline-flex items-center gap-2 text-xs">
+            <Building2 className="h-4 w-4" />
+            Sosyal Profili Ac
+          </Link>
         </div>
 
         {err && <div className="error-banner">{err}</div>}
 
+        <div className="mb-5 grid gap-2 md:grid-cols-4">
+          <button type="button" data-tour-id="branding-identity-shortcut" onClick={() => scrollToSection("branding-identity")} className="btn-ghost text-xs">Marka Kimligi</button>
+          <button type="button" data-tour-id="branding-social-shortcut" onClick={() => scrollToSection("branding-social")} className="btn-ghost text-xs">Sosyal Profiller</button>
+          <button type="button" data-tour-id="branding-verification-shortcut" onClick={() => scrollToSection("branding-verification")} className="btn-ghost text-xs">Dogrulama ve Footer</button>
+          <button type="button" data-tour-id="branding-community-shortcut" onClick={() => scrollToSection("branding-community")} className="btn-ghost text-xs">Topluluk Akisi</button>
+        </div>
+
         <form onSubmit={saveSettings} className="space-y-4">
-          <div>
+          <div id="branding-identity" className="scroll-mt-24">
             <label className="label">Logo</label>
             <div className="flex items-center gap-4">
               <div className="w-28 h-16 rounded border border-gray-100 bg-white flex items-center justify-center overflow-hidden">
@@ -932,7 +950,7 @@ function BrandingTab() {
             <input className="input-field" value={orgName} onChange={e => setOrgName(e.target.value)} placeholder="Sirket / organizasyon adi" />
           </div>
 
-          <div>
+          <div id="branding-social" className="scroll-mt-24">
             <label className="label">Topluluk Biyografisi</label>
             <textarea
               className="input-field min-h-28"
@@ -984,7 +1002,7 @@ function BrandingTab() {
             </div>
           </div>
 
-          <div>
+          <div id="branding-verification" className="scroll-mt-24">
             <label className="label">Dogrulama Yolu (verification_path)</label>
             <input className="input-field" value={settingsState.verification_path || ''} onChange={e => setSettingsState(s => ({ ...s, verification_path: e.target.value }))} placeholder="/verify" />
             <p className="text-xs text-gray-400 mt-1">Bos birakilirsa varsayilan dogrulama yolu kullanilir.</p>
@@ -1001,12 +1019,12 @@ function BrandingTab() {
           </div>
 
           <div className="flex gap-2">
-            <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Kaydediliyor...' : 'Ayarlari Kaydet'}</button>
+            <button type="submit" data-tour-id="branding-save" disabled={saving} className="btn-primary">{saving ? 'Kaydediliyor...' : 'Ayarlari Kaydet'}</button>
             <button type="button" onClick={() => { setSettingsState({}); setBrandColor('#6366f1'); setOrgName(''); }} className="btn-ghost">Sifirla</button>
           </div>
         </form>
 
-        <div className="mt-8 rounded-[24px] border border-slate-200 bg-slate-50 p-5">
+        <div id="branding-community" className="mt-8 scroll-mt-24 rounded-[24px] border border-slate-200 bg-slate-50 p-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-sm">
               <Sparkles className="h-5 w-5" />
@@ -1149,6 +1167,26 @@ export default function AdminSettingsPage() {
     apiFetch("/me", { method: "GET" }).then(r => r.json()).then(d => setMe(d)).catch(() => router.push("/admin/login"));
   }, [router]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const syncTabFromLocation = () => {
+      const tabFromQuery = new URLSearchParams(window.location.search).get("tab")?.trim() || "";
+      const isValidTab = TABS.some((tab) => tab.id === tabFromQuery);
+      if (!isValidTab) return;
+      setActiveTab((prev) => (prev === tabFromQuery ? prev : tabFromQuery));
+    };
+
+    syncTabFromLocation();
+    window.addEventListener("popstate", syncTabFromLocation);
+    return () => window.removeEventListener("popstate", syncTabFromLocation);
+  }, []);
+
+  function handleTabChange(nextTab: string) {
+    setActiveTab(nextTab);
+    router.replace(`/admin/settings?tab=${nextTab}`);
+  }
+
   return (
     <div className="space-y-6 pb-20">
       <PageHeader
@@ -1164,7 +1202,7 @@ export default function AdminSettingsPage() {
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
               className={`card flex items-start gap-3 p-4 text-left transition ${
                 isActive
                   ? "border-brand-200 bg-brand-50 shadow-soft"

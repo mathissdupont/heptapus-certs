@@ -151,17 +151,17 @@ export default function EventAdminNav({
           onWheel={handleWheel}
           className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          <div className="flex min-w-max items-center gap-2 lg:min-w-0 lg:flex-wrap">
+          <div className="flex min-w-max items-center gap-1.5 rounded-2xl border border-surface-200 bg-surface-50 p-1.5 lg:min-w-0 lg:flex-wrap">
             {NAV_ITEMS.map(({ tab, label, icon: Icon, href }) => {
               const isAct = resolvedActive === tab;
               return (
                 <Link
                   key={tab}
                   href={href(eventId)}
-                  className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                  className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-sm font-semibold transition ${
                     isAct
-                      ? "border-brand-200 bg-brand-50 text-surface-900 shadow-soft"
-                      : "border-surface-200 bg-white text-surface-500 hover:border-surface-300 hover:text-surface-900"
+                      ? "border-brand-300 bg-white text-brand-700 shadow-soft"
+                      : "border-transparent bg-transparent text-surface-600 hover:border-surface-200 hover:bg-white hover:text-surface-900"
                   }`}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
@@ -187,17 +187,17 @@ export default function EventAdminNav({
         onWheel={handleWheel}
         className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        <div className="flex min-w-max items-center gap-0.5 border-b border-surface-200 lg:min-w-0 lg:flex-wrap lg:gap-1 lg:border-b-0">
+        <div className="flex min-w-max items-center gap-1.5 rounded-2xl border border-surface-200 bg-surface-50 p-1.5 lg:min-w-0 lg:flex-wrap">
           {NAV_ITEMS.map(({ tab, label, icon: Icon, href }) => {
             const isAct = resolvedActive === tab;
             return (
               <Link
                 key={tab}
                 href={href(eventId)}
-                className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-medium transition-colors lg:mb-0 lg:rounded-full lg:border lg:px-4 ${
+                className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-semibold transition-colors lg:px-4 ${
                   isAct
-                    ? "border-brand-600 text-brand-700 lg:border-brand-200 lg:bg-brand-50"
-                    : "border-transparent text-surface-500 hover:border-surface-300 hover:text-surface-800 lg:border-surface-200 lg:bg-white"
+                    ? "border-brand-300 bg-white text-brand-700"
+                    : "border-transparent bg-transparent text-surface-600 hover:border-surface-200 hover:bg-white hover:text-surface-900"
                 }`}
               >
                 <Icon className="h-3.5 w-3.5" />

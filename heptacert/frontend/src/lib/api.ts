@@ -617,6 +617,17 @@ export async function importAttendees(eventId: number, file: File) {
   return res.json() as Promise<{ added: number; skipped: number }>;
 }
 
+export async function createManualAttendee(
+  eventId: number,
+  data: { email: string; first_name: string; last_name: string }
+): Promise<AttendeeOut> {
+  const res = await apiFetch(`/admin/events/${eventId}/attendees`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
 export async function deleteAttendee(eventId: number, attendeeId: number) {
   await apiFetch(`/admin/events/${eventId}/attendees/${attendeeId}`, { method: "DELETE" });
 }

@@ -28,11 +28,16 @@ import { useI18n } from "@/lib/i18n";
 
 type EventStat = {
   event_id: number;
-  event_name: string;
-  active: number;
-  revoked: number;
-  expired: number;
-  total: number;
+  event_name?: string;
+  name?: string;
+  active?: number;
+  revoked?: number;
+  expired?: number;
+  total?: number;
+  active_count?: number;
+  revoked_count?: number;
+  expired_count?: number;
+  cert_count?: number;
 };
 
 type DashboardStats = {
@@ -164,6 +169,14 @@ export default function DashboardPage() {
   }
 
   const activePercent = stats.total_certs > 0 ? Math.round((stats.active_certs / stats.total_certs) * 100) : 0;
+  const normalizedEvents = (stats.events_with_stats || []).map((ev) => ({
+    event_id: ev.event_id,
+    event_name: ev.event_name || ev.name || copy.eventFallback(ev.event_id),
+    total: Number(ev.total ?? ev.cert_count ?? 0),
+    active: Number(ev.active ?? ev.active_count ?? 0),
+    revoked: Number(ev.revoked ?? ev.revoked_count ?? 0),
+    expired: Number(ev.expired ?? ev.expired_count ?? 0),
+  }));
   const quickActions = [
     {
       title: copy.quickCreate,
@@ -336,18 +349,18 @@ export default function DashboardPage() {
               <h2 className="text-2xl font-black tracking-tight text-surface-900">{copy.recentEvents}</h2>
             </div>
           </div>
-          {stats.events_with_stats.length > 0 && (
+          {normalizedEvents.length > 0 && (
             <Link href="/admin/events" className="btn-secondary">
               {copy.eventsViewAll}
             </Link>
           )}
         </div>
 
-        {stats.events_with_stats.length === 0 ? (
+        {normalizedEvents.length === 0 ? (
           <div className="card p-12 text-center text-sm text-surface-400">{copy.noEvents}</div>
         ) : (
           <div className="grid gap-4 xl:grid-cols-2">
-            {stats.events_with_stats.slice(0, 6).map((ev, i) => {
+            {normalizedEvents.slice(0, 6).map((ev, i) => {
               const evActive = ev.total > 0 ? Math.round((ev.active / ev.total) * 100) : 0;
               return (
                 <motion.div

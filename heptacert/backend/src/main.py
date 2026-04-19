@@ -1,4 +1,5 @@
 import csv
+import base64
 import hashlib
 import hmac
 import io
@@ -14,6 +15,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.header import Header
 from email.utils import formataddr
 from enum import Enum
 from html import escape
@@ -24,6 +26,7 @@ from pydantic import field_validator
 import uuid as _uuid_module
 import aiosmtplib
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+from cryptography.fernet import Fernet, InvalidToken
 import pandas as pd
 import pyotp
 from fastapi import FastAPI, Body, Depends, HTTPException, UploadFile, File, Query, Request, BackgroundTasks
@@ -1983,6 +1986,19 @@ class EmailConfigTestResponse(BaseModel):
     verified_at: Optional[datetime] = None
 
 
+class SavedSMTPAccountOut(BaseModel):
+    id: int
+    smtp_enabled: bool
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = None
+    smtp_use_tls: bool = True
+    smtp_user: Optional[str] = None
+    from_email: Optional[str] = None
+    from_name: Optional[str] = None
+    updated_at: datetime
+    has_password: bool = False
+
+
 class WebhookSubscriptionOut(BaseModel):
     id: int
     user_id: int
@@ -2276,6 +2292,12 @@ async def _ensure_user_email_config(db: AsyncSession, user_id: int) -> "UserEmai
     res = await db.execute(select(UserEmailConfig).where(UserEmailConfig.user_id == user_id))
     config = res.scalar_one_or_none()
     if config:
+        # Lazy migration: convert legacy plaintext SMTP passwords to encrypted value.
+        if config.smtp_password and not str(config.smtp_password).startswith("enc:v1:"):
+            config.smtp_password = _encrypt_smtp_password(config.smtp_password)
+            db.add(config)
+            await db.commit()
+            await db.refresh(config)
         return config
 
     config = UserEmailConfig(user_id=user_id, smtp_enabled=False, smtp_use_tls=True)
@@ -2283,6 +2305,35 @@ async def _ensure_user_email_config(db: AsyncSession, user_id: int) -> "UserEmai
     await db.commit()
     await db.refresh(config)
     return config
+
+
+def _smtp_password_cipher() -> Fernet:
+    key_material = hashlib.sha256(settings.email_token_secret.encode("utf-8")).digest()
+    fernet_key = base64.urlsafe_b64encode(key_material)
+    return Fernet(fernet_key)
+
+
+def _encrypt_smtp_password(plaintext: str) -> str:
+    raw = (plaintext or "").strip()
+    if not raw:
+        return ""
+    token = _smtp_password_cipher().encrypt(raw.encode("utf-8")).decode("utf-8")
+    return f"enc:v1:{token}"
+
+
+def _decrypt_smtp_password(stored: Optional[str]) -> Optional[str]:
+    if not stored:
+        return None
+    value = str(stored)
+    if not value.startswith("enc:v1:"):
+        # Backward compatibility for legacy plaintext rows.
+        return value
+    token = value[len("enc:v1:"):]
+    try:
+        return _smtp_password_cipher().decrypt(token.encode("utf-8")).decode("utf-8")
+    except InvalidToken:
+        logger.error("SMTP password decryption failed due to invalid token")
+        return None
 
 
 async def send_attendee_verification_email(*, attendee: "Attendee", event: "Event") -> None:
@@ -2524,7 +2575,7 @@ async def send_email_async(
                 smtp_host = user_config.smtp_host
                 smtp_port = int(user_config.smtp_port)
                 smtp_user = user_config.smtp_user or None
-                smtp_password = user_config.smtp_password or None
+                smtp_password = _decrypt_smtp_password(user_config.smtp_password)
                 smtp_from_email = user_config.from_email or user_config.smtp_user or settings.smtp_from
                 smtp_from_name = (user_config.from_name or "").strip()
                 smtp_reply_to = (user_config.reply_to or "").strip() or None
@@ -2533,7 +2584,7 @@ async def send_email_async(
 
     if not smtp_host:
         logger.warning(
-            "[EMAIL Ã¢â‚¬â€ no SMTP configured] To: %s | Subject: %s\nBody: %s",
+            "[EMAIL - no SMTP configured] To: %s | Subject: %s\nBody: %s",
             to, subject, html_body
         )
         if raise_on_error:
@@ -2552,8 +2603,12 @@ async def send_email_async(
             return
     
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = formataddr((smtp_from_name, smtp_from_email)) if smtp_from_name else smtp_from_email
+    msg["Subject"] = str(Header(subject, "utf-8"))
+    msg["From"] = (
+        formataddr((str(Header(smtp_from_name, "utf-8")), smtp_from_email))
+        if smtp_from_name
+        else smtp_from_email
+    )
     msg["To"] = to
     if smtp_reply_to:
         msg["Reply-To"] = smtp_reply_to
@@ -2562,7 +2617,7 @@ async def send_email_async(
     # Add unsubscribe header (RFC 2369)
     msg["List-Unsubscribe"] = f"<mailto:{smtp_reply_to or smtp_from_email}?subject=unsubscribe>"
     
-    msg.attach(MIMEText(html_body, "html"))
+    msg.attach(MIMEText(html_body, "html", "utf-8"))
     
     # Attach files if provided
     if attachments:
@@ -2573,7 +2628,7 @@ async def send_email_async(
         for filename, file_bytes, mimetype in attachments:
             maintype, subtype = mimetype.split("/", 1)
             if maintype == "text":
-                attachment = MIMEText(file_bytes.decode(), _subtype=subtype)
+                attachment = MIMEText(file_bytes.decode("utf-8", errors="replace"), _subtype=subtype, _charset="utf-8")
             elif maintype == "image":
                 from email.mime.image import MIMEImage
                 attachment = MIMEImage(file_bytes, _subtype=subtype)
@@ -5992,7 +6047,7 @@ async def login(request: Request, data: LoginIn, db: AsyncSession = Depends(get_
 async def register(request: Request, data: RegisterIn, db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(User).where(User.email == str(data.email)))
     if res.scalar_one_or_none():
-        raise bad_request("Bu e-posta adresi zaten kayÃ„Â±tlÃ„Â±.")
+        raise bad_request("Bu e-posta adresi zaten kayıtlı.")
 
     token = make_email_token({"email": str(data.email), "action": "verify"})
     user = User(
@@ -6009,15 +6064,15 @@ async def register(request: Request, data: RegisterIn, db: AsyncSession = Depend
     verify_link = f"{settings.frontend_base_url}/verify-email?token={token}"
     await send_email_async(
         to=str(data.email),
-        subject="HeptaCert Ã¢â‚¬â€ E-posta Adresinizi DoÃ„Å¸rulayÃ„Â±n",
+        subject="HeptaCert - E-posta Adresinizi Doğrulayın",
         html_body=f"""
         <p>Merhaba,</p>
-        <p>HeptaCert'e hoÃ…Å¸ geldiniz! HesabÃ„Â±nÃ„Â±zÃ„Â± aktif etmek iÃƒÂ§in aÃ…Å¸aÃ„Å¸Ã„Â±daki baÃ„Å¸lantÃ„Â±ya tÃ„Â±klayÃ„Â±n:</p>
+        <p>HeptaCert'e hoş geldiniz! Hesabınızı aktif etmek için aşağıdaki bağlantıya tıklayın:</p>
         <p><a href="{verify_link}">{verify_link}</a></p>
-        <p>Bu baÃ„Å¸lantÃ„Â± 24 saat geÃƒÂ§erlidir.</p>
+        <p>Bu bağlantı 24 saat geçerlidir.</p>
         """,
     )
-    return {"detail": "KayÃ„Â±t baÃ…Å¸arÃ„Â±lÃ„Â±. Aktivasyon e-postasÃ„Â± gÃƒÂ¶nderildi."}
+    return {"detail": "Kayıt başarılı. Aktivasyon e-postası gönderildi."}
 
 
 @app.get("/api/auth/verify-email")
@@ -6025,25 +6080,25 @@ async def verify_email_endpoint(token: str = Query(...), db: AsyncSession = Depe
     try:
         payload = verify_email_token(token, max_age=86400)
     except SignatureExpired:
-        raise bad_request("DoÃ„Å¸rulama baÃ„Å¸lantÃ„Â±sÃ„Â±nÃ„Â±n sÃƒÂ¼resi dolmuÃ…Å¸. LÃƒÂ¼tfen yeniden kayÃ„Â±t olun.")
+        raise bad_request("Doğrulama bağlantısının süresi dolmuş. Lütfen yeniden kayıt olun.")
     except (BadSignature, Exception):
-        raise bad_request("GeÃƒÂ§ersiz doÃ„Å¸rulama baÃ„Å¸lantÃ„Â±sÃ„Â±.")
+        raise bad_request("Geçersiz doğrulama bağlantısı.")
 
     if payload.get("action") != "verify":
-        raise bad_request("GeÃƒÂ§ersiz token tÃƒÂ¼rÃƒÂ¼.")
+        raise bad_request("Geçersiz token türü.")
 
     email = payload.get("email")
     res = await db.execute(select(User).where(User.email == email))
     user = res.scalar_one_or_none()
     if not user:
-        raise HTTPException(status_code=404, detail="KullanÃ„Â±cÃ„Â± bulunamadÃ„Â±.")
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
     if user.is_verified:
-        return {"detail": "HesabÃ„Â±nÃ„Â±z zaten doÃ„Å¸rulanmÃ„Â±Ã…Å¸."}
+        return {"detail": "Hesabınız zaten doğrulanmış."}
 
     user.is_verified = True
     user.verification_token = None
     await db.commit()
-    return {"detail": "E-posta baÃ…Å¸arÃ„Â±yla doÃ„Å¸rulandÃ„Â±. GiriÃ…Å¸ yapabilirsiniz."}
+    return {"detail": "E-posta başarıyla doğrulandı. Giriş yapabilirsiniz."}
 
 
 @app.post("/api/public/auth/register", status_code=201)
@@ -6207,14 +6262,14 @@ async def forgot_password(request: Request, data: ForgotPasswordIn, db: AsyncSes
         reset_link = f"{settings.frontend_base_url}/reset-password?token={token}"
         await send_email_async(
             to=str(data.email),
-            subject="HeptaCert Ã¢â‚¬â€ Ã…Âifre SÃ„Â±fÃ„Â±rlama",
+            subject="HeptaCert - Şifre Sıfırlama",
             html_body=f"""
-            <p>Ã…Âifrenizi sÃ„Â±fÃ„Â±rlamak iÃƒÂ§in aÃ…Å¸aÃ„Å¸Ã„Â±daki baÃ„Å¸lantÃ„Â±ya tÃ„Â±klayÃ„Â±n:</p>
+            <p>Şifrenizi sıfırlamak için aşağıdaki bağlantıya tıklayın:</p>
             <p><a href="{reset_link}">{reset_link}</a></p>
-            <p>Bu baÃ„Å¸lantÃ„Â± 1 saat geÃƒÂ§erlidir.</p>
+            <p>Bu bağlantı 1 saat geçerlidir.</p>
             """,
         )
-    return {"detail": "Ã…Âifre sÃ„Â±fÃ„Â±rlama talimatlarÃ„Â± e-posta adresinize gÃƒÂ¶nderildi."}
+    return {"detail": "Şifre sıfırlama talimatları e-posta adresinize gönderildi."}
 
 
 @app.post("/api/auth/reset-password")
@@ -6223,27 +6278,27 @@ async def reset_password(request: Request, data: ResetPasswordIn, db: AsyncSessi
     try:
         payload = verify_email_token(data.token, max_age=3600)
     except SignatureExpired:
-        raise bad_request("Ã…Âifre sÃ„Â±fÃ„Â±rlama baÃ„Å¸lantÃ„Â±sÃ„Â±nÃ„Â±n sÃƒÂ¼resi dolmuÃ…Å¸.")
+        raise bad_request("Şifre sıfırlama bağlantısının süresi dolmuş.")
     except (BadSignature, Exception):
-        raise bad_request("GeÃƒÂ§ersiz sÃ„Â±fÃ„Â±rlama baÃ„Å¸lantÃ„Â±sÃ„Â±.")
+        raise bad_request("Geçersiz sıfırlama bağlantısı.")
 
     if payload.get("action") != "reset":
-        raise bad_request("GeÃƒÂ§ersiz token tÃƒÂ¼rÃƒÂ¼.")
+        raise bad_request("Geçersiz token türü.")
 
     email = payload.get("email")
     res = await db.execute(select(User).where(User.email == email))
     user = res.scalar_one_or_none()
     if not user:
-        raise HTTPException(status_code=404, detail="KullanÃ„Â±cÃ„Â± bulunamadÃ„Â±.")
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
 
     # Validate that the token matches the one stored in DB (prevents replay attacks)
     if not user.password_reset_token or user.password_reset_token != data.token:
-        raise bad_request("Bu sÃ„Â±fÃ„Â±rlama baÃ„Å¸lantÃ„Â±sÃ„Â± zaten kullanÃ„Â±lmÃ„Â±Ã…Å¸.")
+        raise bad_request("Bu sıfırlama bağlantısı zaten kullanılmış.")
 
     user.password_hash = hash_password(data.new_password)
     user.password_reset_token = None
     await db.commit()
-    return {"detail": "Ã…Âifreniz baÃ…Å¸arÃ„Â±yla gÃƒÂ¼ncellendi."}
+    return {"detail": "Şifreniz başarıyla güncellendi."}
 
 
 class AdminListItem(BaseModel):
@@ -6586,7 +6641,7 @@ async def update_email_config(
     if payload.smtp_user is not None:
         config.smtp_user = payload.smtp_user.strip() or None
     if payload.smtp_password:
-        config.smtp_password = payload.smtp_password
+        config.smtp_password = _encrypt_smtp_password(payload.smtp_password)
     if payload.from_name is not None:
         config.from_name = payload.from_name.strip() or None
     if payload.reply_to is not None:
@@ -6599,6 +6654,34 @@ async def update_email_config(
     await db.commit()
     await db.refresh(config)
     return config
+
+
+@app.get(
+    "/api/admin/email-config/saved-accounts",
+    response_model=list[SavedSMTPAccountOut],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def list_saved_smtp_accounts(
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    config = await _ensure_user_email_config(db, me.id)
+    if not (config.smtp_host or config.smtp_user or config.from_email):
+        return []
+    return [
+        SavedSMTPAccountOut(
+            id=config.id,
+            smtp_enabled=bool(config.smtp_enabled),
+            smtp_host=config.smtp_host,
+            smtp_port=config.smtp_port,
+            smtp_use_tls=bool(config.smtp_use_tls),
+            smtp_user=config.smtp_user,
+            from_email=config.from_email,
+            from_name=config.from_name,
+            updated_at=config.updated_at,
+            has_password=bool(config.smtp_password),
+        )
+    ]
 
 
 @app.post(
@@ -10261,8 +10344,13 @@ async def dashboard_stats(
     events_with_stats = [
         {
             "event_id": ev_id,
+            "event_name": event_name_map.get(ev_id, ""),
             "name": event_name_map.get(ev_id, ""),
-            "cert_count": stats["total"],
+            "total": int(stats["total"] or 0),
+            "active": int(stats["active"] or 0),
+            "revoked": int(stats["revoked"] or 0),
+            "expired": int(stats["expired"] or 0),
+            "cert_count": int(stats["total"] or 0),
             "active_count": int(stats["active"] or 0),
             "revoked_count": int(stats["revoked"] or 0),
             "expired_count": int(stats["expired"] or 0),
@@ -10562,16 +10650,16 @@ async def request_magic_link(
         verify_link = f"{settings.frontend_base_url}/admin/magic-verify?token={token}"
         await send_email_async(
             to=str(data.email),
-            subject="HeptaCert Ã¢â‚¬â€ GiriÃ…Å¸ BaÃ„Å¸lantÃ„Â±sÃ„Â±",
+            subject="HeptaCert - Giriş Bağlantısı",
             html_body=f"""
             <p>Merhaba,</p>
-            <p>HeptaCert'e giriÃ…Å¸ yapmak iÃƒÂ§in aÃ…Å¸aÃ„Å¸Ã„Â±daki baÃ„Å¸lantÃ„Â±ya tÃ„Â±klayÃ„Â±n:</p>
-            <p><a href="{verify_link}" style="background:#6366f1;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;display:inline-block">GiriÃ…Å¸ Yap Ã¢â€ â€™</a></p>
-            <p>Bu baÃ„Å¸lantÃ„Â± 15 dakika geÃƒÂ§erlidir.</p>
-            <p>EÃ„Å¸er bu isteÃ„Å¸i siz yapmadÃ„Â±ysanÃ„Â±z, bu e-postayÃ„Â± gÃƒÂ¶rmezden gelebilirsiniz.</p>
+            <p>HeptaCert'e giriş yapmak için aşağıdaki bağlantıya tıklayın:</p>
+            <p><a href="{verify_link}" style="background:#6366f1;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;display:inline-block">Giriş Yap</a></p>
+            <p>Bu bağlantı 15 dakika geçerlidir.</p>
+            <p>Eğer bu isteği siz yapmadıysanız, bu e-postayı görmezden gelebilirsiniz.</p>
             """,
         )
-    return {"detail": "GiriÃ…Å¸ baÃ„Å¸lantÃ„Â±sÃ„Â± e-posta adresinize gÃƒÂ¶nderildi."}
+    return {"detail": "Giriş bağlantısı e-posta adresinize gönderildi."}
 
 
 @app.get("/api/auth/magic-link/verify")
@@ -10582,20 +10670,20 @@ async def verify_magic_link(
     try:
         payload = verify_email_token(token, max_age=900)  # 15 minutes
     except SignatureExpired:
-        raise bad_request("GiriÃ…Å¸ baÃ„Å¸lantÃ„Â±sÃ„Â±nÃ„Â±n sÃƒÂ¼resi dolmuÃ…Å¸. LÃƒÂ¼tfen yeni bir baÃ„Å¸lantÃ„Â± isteyin.")
+        raise bad_request("Giriş bağlantısının süresi dolmuş. Lütfen yeni bir bağlantı isteyin.")
     except (BadSignature, Exception):
-        raise bad_request("GeÃƒÂ§ersiz giriÃ…Å¸ baÃ„Å¸lantÃ„Â±sÃ„Â±.")
+        raise bad_request("Geçersiz giriş bağlantısı.")
 
     if payload.get("action") != "magic_link":
-        raise bad_request("GeÃƒÂ§ersiz token tÃƒÂ¼rÃƒÂ¼.")
+        raise bad_request("Geçersiz token türü.")
 
     email = payload.get("email")
     res = await db.execute(select(User).where(User.email == email))
     user = res.scalar_one_or_none()
     if not user:
-        raise HTTPException(status_code=404, detail="KullanÃ„Â±cÃ„Â± bulunamadÃ„Â±.")
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
     if not user.is_verified:
-        raise bad_request("HesabÃ„Â±nÃ„Â±z henÃƒÂ¼z doÃ„Å¸rulanmamÃ„Â±Ã…Å¸.")
+        raise bad_request("Hesabınız henüz doğrulanmamış.")
 
     # Invalidate token after use
     user.magic_link_token = None
@@ -10710,6 +10798,12 @@ class SessionOut(BaseModel):
 
 class AttendeeImportRow(BaseModel):
     name: str
+    email: EmailStr
+
+
+class ManualAttendeeCreateIn(BaseModel):
+    first_name: str = Field(min_length=1, max_length=100)
+    last_name: str = Field(min_length=1, max_length=100)
     email: EmailStr
 
 
@@ -12291,6 +12385,86 @@ async def import_attendees(
 
     await db.commit()
     return {"added": added, "skipped": skipped}
+
+
+@app.post(
+    "/api/admin/events/{event_id}/attendees",
+    response_model=AttendeeOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+)
+async def create_manual_attendee(
+    event_id: int,
+    payload: ManualAttendeeCreateIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_event_for_admin(event_id, me, db)
+
+    normalized_email = str(payload.email).strip().lower()
+    first_name = " ".join(payload.first_name.strip().split())
+    last_name = " ".join(payload.last_name.strip().split())
+    full_name = f"{first_name} {last_name}".strip()
+
+    if not full_name:
+        raise bad_request("Ad ve soyad gerekli")
+
+    existing_attendee_res = await db.execute(
+        select(Attendee).where(
+            Attendee.event_id == event_id,
+            func.lower(Attendee.email) == normalized_email,
+        )
+    )
+    if existing_attendee_res.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="Bu e-posta ile katılımcı zaten kayıtlı")
+
+    public_member_res = await db.execute(
+        select(PublicMember).where(func.lower(PublicMember.email) == normalized_email)
+    )
+    public_member = public_member_res.scalar_one_or_none()
+
+    attendee = Attendee(
+        event_id=event_id,
+        name=full_name,
+        email=normalized_email,
+        source="import",
+        email_verified=True,
+        email_verified_at=datetime.now(timezone.utc),
+        public_member_id=public_member.id if public_member else None,
+        registration_answers={},
+    )
+    db.add(attendee)
+    await db.flush()
+
+    await write_audit_log(
+        db,
+        user_id=me.id,
+        action="attendee.manual_add",
+        resource_type="attendee",
+        resource_id=str(attendee.id),
+        extra={
+            "event_id": event_id,
+            "attendee_email": attendee.email,
+            "source": "admin_manual",
+        },
+    )
+
+    await db.commit()
+    await db.refresh(attendee)
+
+    return AttendeeOut(
+        id=attendee.id,
+        event_id=attendee.event_id,
+        name=attendee.name,
+        email=attendee.email,
+        source=attendee.source,
+        registered_at=attendee.registered_at,
+        sessions_attended=0,
+        has_certificate=False,
+        public_member_id=attendee.public_member_id,
+        public_member_name=public_member.display_name if public_member else None,
+        public_member_email=public_member.email if public_member else None,
+        registration_answers=attendee.registration_answers or {},
+    )
 
 
 @app.delete(

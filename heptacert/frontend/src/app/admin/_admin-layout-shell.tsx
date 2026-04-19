@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { clearToken, getRoleFromToken } from "@/lib/api";
 import { LanguageToggle, useI18n } from "@/lib/i18n";
+import InAppTourGuide from "@/components/Admin/InAppTourGuide";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarCheck2,
@@ -15,6 +16,7 @@ import {
   KeyRound,
   Mail,
   Settings,
+  Building2,
   Shield,
   Webhook,
   LogOut,
@@ -59,6 +61,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/admin/webhooks", label: { tr: "Webhooks", en: "Webhooks" }, icon: Webhook },
       { href: "/admin/api-keys", label: { tr: "API Anahtarları", en: "API Keys" }, icon: KeyRound },
       { href: "/admin/settings", label: { tr: "Ayarlar", en: "Settings" }, icon: Settings },
+      { href: "/admin/organization-social", label: { tr: "Kurumsal Sosyal", en: "Org Social" }, icon: Building2 },
       { href: "/admin/superadmin", label: { tr: "Super Admin", en: "Super Admin" }, icon: Shield, superadminOnly: true },
     ],
   },
@@ -91,6 +94,19 @@ function getCurrentSection(pathname: string): string {
     .replace(/\[|\]/g, "")
     .replace(/-/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function getTourIdByHref(href: string): string {
+  const map: Record<string, string> = {
+    "/admin/dashboard": "nav-dashboard",
+    "/admin/events": "nav-events",
+    "/admin/email-dashboard": "nav-email-dashboard",
+    "/admin/email-analytics": "nav-email-analytics",
+    "/admin/webhooks": "nav-webhooks",
+    "/admin/settings": "nav-settings",
+    "/admin/superadmin": "nav-superadmin",
+  };
+  return map[href] || "";
 }
 
 function SidebarContent({
@@ -147,6 +163,7 @@ function SidebarContent({
                       <Link
                         key={item.href}
                         href={item.href}
+                        data-tour-id={getTourIdByHref(item.href) || undefined}
                         onClick={onClose}
                         title={label}
                         className={`flex items-center justify-center rounded-lg p-2.5 transition-all ${
@@ -160,7 +177,13 @@ function SidebarContent({
                     );
                   }
                   return (
-                    <Link key={item.href} href={item.href} onClick={onClose} className={active ? "sidebar-item-active" : "sidebar-item"}>
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      data-tour-id={getTourIdByHref(item.href) || undefined}
+                      onClick={onClose}
+                      className={active ? "sidebar-item-active" : "sidebar-item"}
+                    >
                       <Icon className="h-4 w-4 shrink-0" />
                       {label}
                     </Link>
@@ -294,6 +317,8 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
           </AnimatePresence>
         </main>
 
+        <InAppTourGuide />
+
         <nav className="mobile-bottom-nav" aria-label={lang === "tr" ? "Hızlı gezinti" : "Quick navigation"}>
           <div className="flex items-stretch gap-1">
             {mobileNavItems.map((item) => {
@@ -303,6 +328,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  data-tour-id={getTourIdByHref(item.href) || undefined}
                   className={active ? "mobile-bottom-nav-item-active" : "mobile-bottom-nav-item"}
                 >
                   <Icon className="h-4 w-4 shrink-0" />

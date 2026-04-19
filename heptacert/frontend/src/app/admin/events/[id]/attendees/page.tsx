@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  listAttendees, importAttendees, deleteAttendee, getAdminAttendeeSurveyLink,
+  listAttendees, importAttendees, createManualAttendee, deleteAttendee, getAdminAttendeeSurveyLink,
   getAttendanceMatrix, bulkCertifyQueue, getBulkGenerateJob,
   exportAttendanceFile, apiFetch, getMySubscription,
   type AttendeeOut, type AttendanceMatrix, type RegistrationField, type SubscriptionInfo
@@ -14,7 +14,7 @@ import ConfirmModal from "@/components/Admin/ConfirmModal";
 import {
   Users, Upload, Search, Trash2, Loader2, ChevronLeft, Download,
   Award, BarChart3, CheckSquare, XSquare, RefreshCw, AlertCircle,
-  UserCheck, UserX, CheckCircle2, QrCode, LockKeyhole, Hash,
+  UserCheck, UserX, CheckCircle2, QrCode, LockKeyhole, Hash, UserPlus,
   ShieldAlert, Sparkles, Copy, Link2
 } from "lucide-react";
 
@@ -40,8 +40,13 @@ export default function AdminAttendeesPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
+  const [addingManual, setAddingManual] = useState(false);
+  const [manualEmail, setManualEmail] = useState("");
+  const [manualFirstName, setManualFirstName] = useState("");
+  const [manualLastName, setManualLastName] = useState("");
   const [exporting, setExporting] = useState(false);
   const [importResult, setImportResult] = useState<{ added: number; skipped: number } | null>(null);
+  const [manualResult, setManualResult] = useState<string | null>(null);
   const [copyingSurveyId, setCopyingSurveyId] = useState<number | null>(null);
   const [copiedSurveyId, setCopiedSurveyId] = useState<number | null>(null);
   const [selectedAttendee, setSelectedAttendee] = useState<AttendeeOut | null>(null);
@@ -157,6 +162,39 @@ export default function AdminAttendeesPage() {
       setListError(e.message);
     } finally {
       setImporting(false);
+    }
+  }
+
+  async function handleManualAdd(e: React.FormEvent) {
+    e.preventDefault();
+    setListError(null);
+    setManualResult(null);
+
+    const email = manualEmail.trim();
+    const firstName = manualFirstName.trim();
+    const lastName = manualLastName.trim();
+
+    if (!email || !firstName || !lastName) {
+      setListError("E-posta, ad ve soyad alanlari zorunlu.");
+      return;
+    }
+
+    setAddingManual(true);
+    try {
+      await createManualAttendee(eventId, {
+        email,
+        first_name: firstName,
+        last_name: lastName,
+      });
+      setManualEmail("");
+      setManualFirstName("");
+      setManualLastName("");
+      setManualResult("Katilimci basariyla eklendi.");
+      await loadAttendees(1, "");
+    } catch (e: any) {
+      setListError(e.message || "Manuel katilimci eklenemedi.");
+    } finally {
+      setAddingManual(false);
     }
   }
 
@@ -348,6 +386,44 @@ export default function AdminAttendeesPage() {
 
         {tab === "list" && (
           <>
+            <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-5 shadow-sm">
+              <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <UserPlus className="w-4 h-4 text-emerald-500" /> Manuel Katilimci Ekle
+              </h2>
+              <form onSubmit={handleManualAdd} className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_1fr_1fr_auto]">
+                <input
+                  type="email"
+                  value={manualEmail}
+                  onChange={(e) => setManualEmail(e.target.value)}
+                  placeholder="ornek@mail.com"
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <input
+                  type="text"
+                  value={manualFirstName}
+                  onChange={(e) => setManualFirstName(e.target.value)}
+                  placeholder="Ad"
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <input
+                  type="text"
+                  value={manualLastName}
+                  onChange={(e) => setManualLastName(e.target.value)}
+                  placeholder="Soyad"
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <button
+                  type="submit"
+                  disabled={addingManual}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {addingManual ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                  Ekle
+                </button>
+              </form>
+              {manualResult && <p className="mt-2 text-xs text-emerald-700">✅ {manualResult}</p>}
+            </div>
+
             {/* Import */}
             <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-5 shadow-sm">
               <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">

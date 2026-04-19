@@ -108,6 +108,8 @@ export default function EventRafflesPage() {
   const [planOk, setPlanOk] = useState<boolean | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [selectedRaffleId, setSelectedRaffleId] = useState<number | null>(null);
+  const [expandedEligibleByRaffle, setExpandedEligibleByRaffle] = useState<Record<number, boolean>>({});
+  const [expandedRoundsByRaffle, setExpandedRoundsByRaffle] = useState<Record<number, boolean>>({});
 
   const [title, setTitle] = useState("");
   const [prizeName, setPrizeName] = useState("");
@@ -183,6 +185,15 @@ export default function EventRafflesPage() {
     );
   }
 
+  function upsertAndSelectRaffle(nextRaffle: EventRaffleOut) {
+    setRaffles((current) => {
+      const exists = current.some((item) => item.id === nextRaffle.id);
+      if (!exists) return [nextRaffle, ...current];
+      return current.map((item) => (item.id === nextRaffle.id ? nextRaffle : item));
+    });
+    setSelectedRaffleId(nextRaffle.id);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -243,8 +254,7 @@ export default function EventRafflesPage() {
     setBusyId(raffle.id);
     try {
       const drawn = await drawEventRaffle(eventId, raffle.id);
-      replaceRaffle(drawn);
-      await load();
+      upsertAndSelectRaffle(drawn);
       toast.success("Kazananlar çekildi.");
     } catch (e: any) {
       setError(e.message || "Çekiliş başlatılamadı.");
@@ -259,8 +269,7 @@ export default function EventRafflesPage() {
     setBusyId(raffle.id);
     try {
       const reset = await resetEventRaffle(eventId, raffle.id);
-      replaceRaffle(reset);
-      await load();
+      upsertAndSelectRaffle(reset);
       toast.success("Çekiliş sıfırlandı.");
     } catch (e: any) {
       setError(e.message || "Sıfırlama başarısız.");
@@ -275,8 +284,7 @@ export default function EventRafflesPage() {
     setBusyId(raffle.id);
     try {
       const redrawn = await redrawEventRaffle(eventId, raffle.id);
-      replaceRaffle(redrawn);
-      await load();
+      upsertAndSelectRaffle(redrawn);
       toast.success("Yeni kazanan turu eklendi.");
     } catch (e: any) {
       setError(e.message || "Tekrar çekiliş başlatılamadı.");
@@ -328,7 +336,7 @@ export default function EventRafflesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(79,70,229,0.08),_transparent_24%),radial-gradient(circle_at_top_right,_rgba(249,115,22,0.08),_transparent_28%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] p-4 md:p-8">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(79,70,229,0.08),_transparent_24%),radial-gradient(circle_at_top_right,_rgba(249,115,22,0.08),_transparent_28%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] p-3 sm:p-4 md:p-6">
       <div className="mx-auto max-w-7xl">
         <EventAdminNav eventId={eventId} eventName={eventName} active="raffles" className="mb-6 flex flex-col gap-2" />
         <PageHeader
@@ -367,7 +375,7 @@ export default function EventRafflesPage() {
         )}
 
         {planOk !== false && (
-          <div className="grid gap-6 xl:grid-cols-[440px_minmax(0,1fr)]">
+          <div className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
             <div className="space-y-6 xl:sticky xl:top-6 xl:self-start">
               <div className="overflow-hidden rounded-[30px] border border-slate-200 bg-white/95 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
                 <div className="border-b border-slate-100 bg-[radial-gradient(circle_at_top_left,_rgba(249,115,22,0.18),_transparent_42%),linear-gradient(135deg,_#ffffff_22%,_#fff7ed_100%)] px-6 py-6">
@@ -394,7 +402,7 @@ export default function EventRafflesPage() {
                         {formReady ? "Hazır" : "Taslak"}
                       </span>
                     </div>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-3">
                       <div className="rounded-2xl bg-white px-3 py-3 shadow-sm">
                         <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Asil</p>
                         <p className="mt-1 text-2xl font-black text-slate-900">{winnerCount}</p>
@@ -561,7 +569,7 @@ export default function EventRafflesPage() {
             </div>
 
             <div className="space-y-6">
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
                 <div className="rounded-[28px] border border-slate-200 bg-white/95 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
                   <div className="flex items-center gap-3">
                     <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600">
@@ -661,6 +669,12 @@ export default function EventRafflesPage() {
                       const meta = statusMeta(raffle.status);
                       const busy = busyId === raffle.id;
                       const rounds = splitRaffleRounds(raffle);
+                      const showAllEligible = Boolean(expandedEligibleByRaffle[raffle.id]);
+                      const showAllRounds = Boolean(expandedRoundsByRaffle[raffle.id]);
+                      const visibleEligible = showAllEligible ? raffle.eligible_attendees : raffle.eligible_attendees.slice(0, 40);
+                      const visibleRounds = showAllRounds ? rounds : rounds.slice(0, 3);
+                      const hiddenEligibleCount = Math.max(0, raffle.eligible_attendees.length - visibleEligible.length);
+                      const hiddenRoundsCount = Math.max(0, rounds.length - visibleRounds.length);
                       const drawPlan = formatWinnerPlan(raffle.winner_count, raffle.reserve_winner_count);
                       const roundCapacity = raffle.winner_count + raffle.reserve_winner_count;
                       return (
@@ -683,7 +697,7 @@ export default function EventRafflesPage() {
                             </div>
                           </div>
 
-                          <div className="grid gap-5 p-5 2xl:grid-cols-[minmax(0,1fr)_340px]">
+                          <div className="grid gap-5 p-4 sm:p-5 2xl:grid-cols-[minmax(0,1fr)_340px]">
                             <div className="space-y-4">
                               <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -721,8 +735,8 @@ export default function EventRafflesPage() {
                                     Bu çekiliş için henüz uygun katılımcı yok.
                                   </div>
                                 ) : (
-                                  <div className="mt-4 max-h-64 space-y-2 overflow-y-auto pr-1">
-                                    {raffle.eligible_attendees.map((attendee, index) => (
+                                  <div className="mt-4 max-h-72 space-y-2 overflow-y-auto pr-1">
+                                    {visibleEligible.map((attendee, index) => (
                                       <div
                                         key={`${raffle.id}-eligible-${attendee.attendee_id}`}
                                         className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3"
@@ -733,11 +747,25 @@ export default function EventRafflesPage() {
                                           </p>
                                           <p className="truncate text-xs text-slate-500">{attendee.attendee_email}</p>
                                         </div>
-                                        <span className="shrink-0 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold text-indigo-700">
+                                        <span className="shrink-0 rounded-full border border-indigo-200 bg-indigo-50 px-2 py-1 text-[11px] font-semibold text-indigo-700">
                                           {attendee.sessions_attended} oturum
                                         </span>
                                       </div>
                                     ))}
+                                    {hiddenEligibleCount > 0 && (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setExpandedEligibleByRaffle((prev) => ({
+                                            ...prev,
+                                            [raffle.id]: true,
+                                          }))
+                                        }
+                                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                                      >
+                                        +{hiddenEligibleCount} katilimci daha goster
+                                      </button>
+                                    )}
                                   </div>
                                 )}
                               </div>
@@ -761,7 +789,7 @@ export default function EventRafflesPage() {
                                   </div>
                                 ) : (
                                   <div className="mt-4 space-y-4">
-                                    {rounds.map((roundData) => {
+                                    {visibleRounds.map((roundData) => {
                                       const roundDrawnAt =
                                         roundData.primary[0]?.drawn_at ?? roundData.reserve[0]?.drawn_at ?? raffle.drawn_at;
 
@@ -853,6 +881,20 @@ export default function EventRafflesPage() {
                                         </div>
                                       );
                                     })}
+                                    {hiddenRoundsCount > 0 && (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setExpandedRoundsByRaffle((prev) => ({
+                                            ...prev,
+                                            [raffle.id]: true,
+                                          }))
+                                        }
+                                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                                      >
+                                        +{hiddenRoundsCount} tur daha goster
+                                      </button>
+                                    )}
                                   </div>
                                 )}
                               </div>

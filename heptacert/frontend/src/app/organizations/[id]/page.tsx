@@ -34,6 +34,7 @@ import {
   type PublicOrganizationDetail,
 } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import { normalizeExternalUrl } from "@/lib/url";
 
 function formatTimestamp(value: string, lang: "tr" | "en") {
   return new Intl.DateTimeFormat(lang === "tr" ? "tr-TR" : "en-US", {
@@ -205,11 +206,11 @@ export default function PublicOrganizationDetailPage() {
   }
 
   const socialLinks = org ? [
-    { href: org.website_url, label: "Website", icon: Globe },
-    { href: org.linkedin_url, label: "LinkedIn", icon: ExternalLink },
-    { href: org.github_url, label: "GitHub", icon: Github },
-    { href: org.x_url, label: "X", icon: ExternalLink },
-    { href: org.instagram_url, label: "Instagram", icon: Instagram },
+    { href: normalizeExternalUrl(org.website_url), label: "Website", icon: Globe },
+    { href: normalizeExternalUrl(org.linkedin_url), label: "LinkedIn", icon: ExternalLink },
+    { href: normalizeExternalUrl(org.github_url), label: "GitHub", icon: Github },
+    { href: normalizeExternalUrl(org.x_url), label: "X", icon: ExternalLink },
+    { href: normalizeExternalUrl(org.instagram_url), label: "Instagram", icon: Instagram },
   ].filter((item) => !!item.href) : [];
 
   if (loading) {

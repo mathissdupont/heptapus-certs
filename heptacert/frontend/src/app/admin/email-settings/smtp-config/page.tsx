@@ -32,6 +32,19 @@ type SMTPConfig = {
   enable_tracking_pixel: boolean;
 };
 
+type SavedSMTPAccount = {
+  id: number;
+  smtp_enabled: boolean;
+  smtp_host?: string | null;
+  smtp_port?: number | null;
+  smtp_use_tls: boolean;
+  smtp_user?: string | null;
+  from_email?: string | null;
+  from_name?: string | null;
+  updated_at: string;
+  has_password: boolean;
+};
+
 const DEFAULT_CONFIG: SMTPConfig = {
   smtp_enabled: false,
   smtp_host: "",
@@ -48,6 +61,7 @@ const DEFAULT_CONFIG: SMTPConfig = {
 
 export default function SMTPConfigurationPage() {
   const [config, setConfig] = useState<SMTPConfig>(DEFAULT_CONFIG);
+  const [savedAccounts, setSavedAccounts] = useState<SavedSMTPAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -66,8 +80,12 @@ export default function SMTPConfigurationPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiFetch("/admin/email-config");
-      const data = await response.json();
+      const [configResponse, savedAccountsResponse] = await Promise.all([
+        apiFetch("/admin/email-config"),
+        apiFetch("/admin/email-config/saved-accounts"),
+      ]);
+      const data = await configResponse.json();
+      const savedList = await savedAccountsResponse.json();
       setConfig({
         smtp_enabled: Boolean(data.smtp_enabled),
         smtp_host: data.smtp_host || "",
@@ -81,6 +99,7 @@ export default function SMTPConfigurationPage() {
         auto_cc: data.auto_cc || "",
         enable_tracking_pixel: Boolean(data.enable_tracking_pixel),
       });
+      setSavedAccounts(Array.isArray(savedList) ? savedList : []);
     } catch (err: any) {
       setError(err?.message || "SMTP ayarları yüklenemedi.");
     } finally {
@@ -112,6 +131,7 @@ export default function SMTPConfigurationPage() {
 
       setSuccess("SMTP yapılandırması başarıyla kaydedildi.");
       setConfig((prev) => ({ ...prev, smtp_password: "" }));
+      await loadConfig();
     } catch (err: any) {
       setError(err?.message || "SMTP yapılandırması kaydedilemedi.");
     } finally {
@@ -168,7 +188,8 @@ export default function SMTPConfigurationPage() {
 
   return (
     <FeatureGate requiredPlans={["growth", "enterprise"]}>
-      <div className="max-w-2xl space-y-6">
+      <div className="grid max-w-6xl gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="space-y-6">
         <PageHeader
           title="SMTP Yapılandırması"
           subtitle="Doğrulama, sertifika ve kampanya e-postalarını kendi gönderici hesabınız üzerinden yollayın."
@@ -367,6 +388,41 @@ export default function SMTPConfigurationPage() {
             )}
           </button>
         </div>
+        </div>
+
+        <aside className="card h-fit space-y-4 p-5">
+          <h2 className="text-sm font-bold text-surface-800">Kaydedilen SMTP Hesaplari</h2>
+          {savedAccounts.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-surface-200 bg-surface-50 p-4 text-sm text-surface-500">
+              Henuz kayitli SMTP hesabi yok.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {savedAccounts.map((account) => (
+                <div key={account.id} className="rounded-2xl border border-surface-200 bg-white p-4">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-semibold text-surface-800">{account.from_name || account.from_email || "SMTP Hesabi"}</p>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                        account.smtp_enabled ? "bg-emerald-50 text-emerald-700" : "bg-surface-100 text-surface-500"
+                      }`}
+                    >
+                      {account.smtp_enabled ? "Aktif" : "Pasif"}
+                    </span>
+                  </div>
+                  <div className="space-y-1 text-xs text-surface-600">
+                    <p>Host: {account.smtp_host || "-"}</p>
+                    <p>Port/TLS: {account.smtp_port || "-"} / {account.smtp_use_tls ? "On" : "Off"}</p>
+                    <p>Kullanici: {account.smtp_user || "-"}</p>
+                    <p>Gonderici: {account.from_email || "-"}</p>
+                    <p>Sifre: {account.has_password ? "Kayitli (sifreli)" : "Kayitli degil"}</p>
+                    <p>Guncellendi: {new Date(account.updated_at).toLocaleString()}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </aside>
       </div>
     </FeatureGate>
   );

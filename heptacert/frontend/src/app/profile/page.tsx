@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { AlertTriangle, ArrowRight, Camera, Globe, KeyRound, Loader2, MapPin, Save, UserCircle2, ShieldAlert, CheckCircle2, Crown, Lock } from "lucide-react";
 import { PUBLIC_MEMBER_TOKEN_EVENT, changePublicMemberPassword, clearPublicMemberToken, deletePublicMemberAccount, getMyConnectionPrivacy, getPublicMemberMe, getPublicMemberSubscription, updateMyConnectionPrivacy, updatePublicMemberProfile, uploadPublicMemberAvatar, type PublicMemberSubscriptionInfo } from "@/lib/api";
+import { normalizeExternalUrl } from "@/lib/url";
 import { useI18n } from "@/lib/i18n";
 import SubscriptionGate from "@/components/SubscriptionGate";
 
@@ -235,7 +236,7 @@ export default function ProfilePage() {
         bio,
         headline,
         location,
-        website_url: websiteUrl,
+        website_url: normalizeExternalUrl(websiteUrl),
         contact_email: contactEmail.trim() || null,
       });
       setDisplayName(member.display_name || "");
