@@ -300,8 +300,6 @@ export default function InAppTourGuide() {
   const [dismissed, setDismissed] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
-  const [completedCount, setCompletedCount] = useState(0);
-  const [lastCompletedAt, setLastCompletedAt] = useState<string | null>(null);
   const [targetVisible, setTargetVisible] = useState(true);
   const [targetBubble, setTargetBubble] = useState<TargetBubble | null>(null);
 
@@ -317,12 +315,8 @@ export default function InAppTourGuide() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const storedDismissed = window.localStorage.getItem(TOUR_DISMISSED_KEY) === "1";
-    const storedCount = Number(window.localStorage.getItem(TOUR_COMPLETED_COUNT_KEY) || "0");
-    const storedLast = window.localStorage.getItem(TOUR_LAST_COMPLETED_KEY);
 
     setDismissed(storedDismissed);
-    setCompletedCount(Number.isFinite(storedCount) ? storedCount : 0);
-    setLastCompletedAt(storedLast || null);
     if (!storedDismissed) setOpen(true);
   }, []);
 
@@ -387,14 +381,6 @@ export default function InAppTourGuide() {
   }
 
   function completeGuide() {
-    const now = new Date().toISOString();
-    const nextCount = completedCount + 1;
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(TOUR_COMPLETED_COUNT_KEY, String(nextCount));
-      window.localStorage.setItem(TOUR_LAST_COMPLETED_KEY, now);
-    }
-    setCompletedCount(nextCount);
-    setLastCompletedAt(now);
     closeGuide();
   }
 
@@ -442,9 +428,6 @@ export default function InAppTourGuide() {
         >
           <HelpCircle className="h-4 w-4" />
           {copy.launcher}
-          {completedCount > 0 ? (
-            <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-bold text-sky-700">{completedCount}</span>
-          ) : null}
         </button>
       </div>
 
@@ -462,37 +445,37 @@ export default function InAppTourGuide() {
             </div>
           ) : null}
 
-          <div className="w-full max-h-[90vh] max-w-full overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-2xl sm:rounded-3xl sm:max-w-4xl">
-            <div className="border-b border-slate-100 bg-gradient-to-r from-sky-50 to-cyan-50 px-4 py-4 sm:px-6 sm:py-5">
-              <div className="flex items-start justify-between gap-3 sm:gap-4">
+          <div className="w-full max-h-[75vh] max-w-2xl overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-2xl sm:max-w-3xl md:max-w-4xl lg:max-w-5xl sm:rounded-3xl">
+            <div className="border-b border-slate-100 bg-gradient-to-r from-sky-50 to-cyan-50 px-3 py-3 sm:px-4 sm:py-4 md:px-5 md:py-5">
+              <div className="flex items-start justify-between gap-2 sm:gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-600">HeptaCert Guide</p>
-                  <h2 className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl">{copy.title}</h2>
-                  <p className="mt-1 text-xs text-slate-600 sm:text-sm">{copy.subtitle}</p>
-                  <p className="mt-1 text-xs text-slate-500 sm:text-sm">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-600 sm:text-xs">HeptaCert Guide</p>
+                  <h2 className="mt-1 text-lg font-bold text-slate-900 sm:text-xl md:text-2xl">{copy.title}</h2>
+                  <p className="mt-0.5 text-xs text-slate-600">{copy.subtitle}</p>
+                  <p className="mt-0.5 text-xs text-slate-500">
                     {copy.stepPrefix} {steps.length === 0 ? 0 : stepIndex + 1} / {steps.length}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={closeGuide}
-                  className="rounded-lg p-2 text-slate-500 hover:bg-white flex-shrink-0"
+                  className="rounded-lg p-1.5 text-slate-500 hover:bg-white flex-shrink-0"
                   aria-label={copy.close}
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
               </div>
 
-              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-200">
+              <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
                 <div className="h-full rounded-full bg-sky-500 transition-all" style={{ width: `${progress}%` }} />
               </div>
             </div>
 
-            <div className="overflow-y-auto" style={{ maxHeight: "calc(90vh - 140px)" }}>
-              <div className="grid gap-4 p-4 sm:gap-6 sm:p-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-[280px_minmax(0,1fr)_220px]">
-                <aside className="rounded-2xl border border-slate-200 bg-slate-50 p-3 lg:col-span-1">
-                  <p className="mb-3 px-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{copy.stepsLabel}</p>
-                  <div className="max-h-[300px] sm:max-h-[420px] space-y-1 overflow-y-auto pr-1">
+            <div className="overflow-y-auto" style={{ maxHeight: "calc(75vh - 160px)" }}>
+              <div className="grid gap-3 p-3 sm:gap-4 sm:p-4 md:p-5 grid-cols-1 sm:grid-cols-[140px_minmax(0,1fr)] lg:grid-cols-[180px_minmax(0,1fr)]">
+                <aside className="rounded-2xl border border-slate-200 bg-slate-50 p-2 sm:p-3 lg:col-span-1">
+                  <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500 sm:text-xs">{copy.stepsLabel}</p>
+                  <div className="max-h-[240px] sm:max-h-[360px] space-y-0.5 overflow-y-auto pr-1">
                     {steps.map((step, idx) => {
                       const active = idx === stepIndex;
                       return (
@@ -500,43 +483,43 @@ export default function InAppTourGuide() {
                           key={`${step.title}-${idx}`}
                           type="button"
                           onClick={() => setStepIndex(idx)}
-                          className={`w-full rounded-xl px-3 py-2 text-left text-sm transition ${
+                          className={`w-full rounded-lg px-2 py-1.5 text-left text-xs sm:text-sm transition ${
                             active
                               ? "bg-white text-slate-900 shadow-sm ring-1 ring-sky-200"
                               : "text-slate-600 hover:bg-white"
                           }`}
                         >
-                          <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[11px] font-semibold text-slate-700">
+                          <span className="mr-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-700">
                             {idx + 1}
                           </span>
-                          {step.title}
+                          <span className="truncate text-xs sm:text-sm">{step.title}</span>
                         </button>
                       );
                     })}
                   </div>
                 </aside>
 
-                <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 sm:col-span-1 lg:col-span-1">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-600">
+                <section className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 md:p-5 lg:col-span-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-600 sm:text-xs">
                     {copy.stepPrefix} {stepIndex + 1}
                   </p>
-                  <h3 className="mt-2 text-xl font-bold text-slate-900 sm:text-2xl">{currentStep.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-slate-700 sm:text-base sm:leading-7">{currentStep.description}</p>
+                  <h3 className="mt-1.5 text-base font-bold text-slate-900 sm:text-lg md:text-xl">{currentStep.title}</h3>
+                  <p className="mt-2 text-xs leading-5 text-slate-700 sm:text-sm sm:leading-6">{currentStep.description}</p>
 
                   {currentStep.route ? (
-                    <div className="mt-4 sm:mt-5">
+                    <div className="mt-2.5 sm:mt-3">
                       <Link
                         href={currentStep.route}
-                        className="inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-700 hover:bg-sky-100 sm:px-4 sm:py-2 sm:text-sm"
+                        className="inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-100"
                       >
-                        <CheckCircle2 className="h-4 w-4" />
+                        <CheckCircle2 className="h-3.5 w-3.5" />
                         {currentStep.actionLabel || copy.actionFallback}
                       </Link>
                     </div>
                   ) : null}
 
                   {currentStep.targetSelector ? (
-                    <div className="mt-3">
+                    <div className="mt-2">
                       <button
                         type="button"
                         onClick={() => {
@@ -544,81 +527,57 @@ export default function InAppTourGuide() {
                           highlightTarget(currentStep.targetSelector || "");
                           setTargetVisible(highlightTarget(currentStep.targetSelector || ""));
                         }}
-                        className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-100 sm:px-4 sm:py-2 sm:text-sm"
+                        className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100"
                       >
                         {copy.clickTarget}
                       </button>
-                      {!targetVisible ? <p className="mt-2 text-xs text-rose-600">{copy.targetNotFound}</p> : null}
+                      {!targetVisible ? <p className="mt-1.5 text-xs text-rose-600">{copy.targetNotFound}</p> : null}
                     </div>
                   ) : null}
 
-                  <div className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-wrap sm:flex-row sm:items-center sm:justify-between">
-                    <label className="inline-flex items-center gap-2 text-xs text-slate-600 sm:text-sm">
+                  <div className="mt-4 flex flex-col gap-2 sm:gap-3">
+                    <label className="inline-flex items-center gap-2 text-xs text-slate-600">
                       <input
                         type="checkbox"
                         checked={dontShowAgain}
                         onChange={(event) => setDontShowAgain(event.target.checked)}
-                        className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                        className="h-3.5 w-3.5 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
                       />
                       {copy.dontShowAgain}
                     </label>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 justify-between">
                       <button
                         type="button"
                         onClick={prevStep}
                         disabled={stepIndex === 0}
-                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-2 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3 sm:text-sm"
+                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        <ChevronLeft className="h-4 w-4" />
+                        <ChevronLeft className="h-3.5 w-3.5" />
                         <span className="hidden sm:inline">{copy.back}</span>
                       </button>
                       {stepIndex < steps.length - 1 ? (
                         <button
                           type="button"
                           onClick={nextStep}
-                          className="inline-flex items-center gap-1 rounded-lg bg-sky-600 px-2 py-2 text-xs font-semibold text-white hover:bg-sky-700 sm:px-3 sm:text-sm"
+                          className="inline-flex items-center gap-1 rounded-lg bg-sky-600 px-2 py-1.5 text-xs font-semibold text-white hover:bg-sky-700"
                         >
                           <span className="hidden sm:inline">{copy.next}</span>
-                          <ChevronRight className="h-4 w-4" />
+                          <ChevronRight className="h-3.5 w-3.5" />
                         </button>
                       ) : (
                         <button
                           type="button"
                           onClick={completeGuide}
-                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2 py-2 text-xs font-semibold text-white hover:bg-emerald-700 sm:px-3 sm:text-sm"
+                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
                         >
                           <span className="hidden sm:inline">{copy.finish}</span>
-                          <CheckCircle2 className="h-4 w-4" />
+                          <CheckCircle2 className="h-3.5 w-3.5" />
                         </button>
                       )}
                     </div>
                   </div>
                 </section>
-
-                <aside className="rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4 sm:col-span-2 lg:col-span-1">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{copy.historyTitle}</p>
-                  <div className="mt-3 space-y-3">
-                    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                      <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-500">{copy.completedCount}</p>
-                      <p className="mt-1 text-lg font-bold text-slate-900">{completedCount}</p>
-                    </div>
-                    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                      <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-500">{copy.lastCompleted}</p>
-                      <p className="mt-1 text-xs sm:text-sm font-semibold text-slate-900 line-clamp-2">
-                        {lastCompletedAt ? new Date(lastCompletedAt).toLocaleString(lang === "en" ? "en-US" : "tr-TR") : copy.never}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={restartTour}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 sm:text-sm"
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                      {copy.restartTour}
-                    </button>
-                  </div>
-                </aside>
               </div>
             </div>
           </div>

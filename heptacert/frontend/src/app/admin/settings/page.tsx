@@ -887,8 +887,8 @@ function BrandingTab() {
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_320px]">
-      <div className="card border border-slate-200/80 p-4 sm:p-6">
+    <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_320px]">
+      <div className="card border border-slate-200/80 p-3 sm:p-5">
         <div className="flex flex-col gap-3 mb-5 sm:flex-row sm:items-center">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-600 flex-shrink-0"><Settings className="h-5 w-5" /></div>
           <div className="flex-1 min-w-0">
@@ -911,7 +911,7 @@ function BrandingTab() {
           <button type="button" data-tour-id="branding-community-shortcut" onClick={() => scrollToSection("branding-community")} className="btn-ghost text-xs whitespace-nowrap overflow-hidden text-ellipsis">Topluluk</button>
         </div>
 
-        <form onSubmit={saveSettings} className="space-y-4">
+        <form onSubmit={saveSettings} className="space-y-3 sm:space-y-4">
           <div id="branding-identity" className="scroll-mt-24">
             <label className="label">Logo</label>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
