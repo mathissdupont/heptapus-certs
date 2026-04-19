@@ -9,77 +9,44 @@ import {
   Lock, Mail, CheckCircle2, Eye, EyeOff,
   ShieldCheck, Loader2, Check,
   History, TrendingUp, TrendingDown, Globe, Settings,
-  Building2, Palette, Sparkles, RefreshCcw, Trash2,
-  ImagePlus, BadgeCheck, Shield, Link2
+  Building2, Sparkles, RefreshCcw, Trash2,
+  BadgeCheck, Link2, UploadCloud, MonitorSmartphone
 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
 import { useToast } from "@/hooks/useToast";
 import { normalizeExternalUrl } from "@/lib/url";
 
 const TABS = [
-  { id: "account", label: "Hesap", description: "Sifre ve email", icon: Lock },
-  { id: "2fa", label: "2FA Guvenlik", description: "Kimlik korumasi", icon: ShieldCheck },
-  { id: "transactions", label: "Coin Gecmisi", description: "Harcama ve yukleme", icon: History },
-  { id: "domain", label: "Ozel Domain", description: "DNS ve dogrulama", icon: Globe },
-  { id: "branding", label: "Kurumsal", description: "Marka ve gorunum", icon: Settings },
+  { id: "account", label: "Hesap", description: "Şifre ve e-posta", icon: Lock },
+  { id: "2fa", label: "2FA Güvenlik", description: "Kimlik koruması", icon: ShieldCheck },
+  { id: "transactions", label: "Bakiye", description: "Harcama geçmişi", icon: History },
+  { id: "domain", label: "Özel Domain", description: "DNS ayarları", icon: Globe },
+  { id: "branding", label: "Kurumsal", description: "Marka kimliği", icon: Sparkles },
 ];
 
 function fmtDate(s: string | null) {
   if (!s) return "-";
-  return new Date(s).toLocaleDateString("tr-TR", { year: "numeric", month: "short", day: "numeric" });
+  return new Date(s).toLocaleDateString("tr-TR", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
+
 function titleCaseStatus(raw: string) {
   return raw
     .replace(/[_-]/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function withAlpha(hex: string, alpha: number) {
-  const value = hex.replace("#", "");
-  if (!/^[0-9a-fA-F]{6}$/.test(value)) return `rgba(99, 102, 241, ${alpha})`;
-  const numeric = Number.parseInt(value, 16);
-  const r = (numeric >> 16) & 255;
-  const g = (numeric >> 8) & 255;
-  const b = numeric & 255;
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
 function getDomainStatusMeta(status: string | null) {
   const raw = (status || "").toLowerCase();
-
   if (!raw) {
-    return {
-      label: "Taslak",
-      chipClass: "border-slate-200 bg-slate-100 text-slate-700",
-      panelClass: "border-slate-200 bg-slate-50",
-      description: "Alan adinizi kaydedin, ardindan DNS kaydi ekleyip dogrulamayi baslatin.",
-    };
+    return { label: "Taslak", chipClass: "border-zinc-200 bg-zinc-100 text-zinc-700", description: "Alan adınızı kaydedin, ardından DNS kaydı ekleyip doğrulamayı başlatın." };
   }
-
   if (raw.includes("verified") || raw.includes("active") || raw === "ok") {
-    return {
-      label: "Dogrulandi",
-      chipClass: "border-emerald-200 bg-emerald-50 text-emerald-700",
-      panelClass: "border-emerald-200 bg-emerald-50/70",
-      description: "Alan adiniz dogrulanmis gorunuyor. Sertifika baglantilariniz kurumsal sekilde yayinlanabilir.",
-    };
+    return { label: "Doğrulandı", chipClass: "border-emerald-200 bg-emerald-50 text-emerald-700", description: "Alan adınız doğrulanmış görünüyor. Sertifika bağlantılarınız kurumsal şekilde yayınlanabilir." };
   }
-
   if (raw.includes("fail") || raw.includes("error") || raw.includes("invalid")) {
-    return {
-      label: "Sorun Var",
-      chipClass: "border-rose-200 bg-rose-50 text-rose-700",
-      panelClass: "border-rose-200 bg-rose-50/70",
-      description: "DNS kaydi beklenen degerle eslesmiyor olabilir. Kaydi ve token degerini yeniden kontrol edin.",
-    };
+    return { label: "Sorun Var", chipClass: "border-rose-200 bg-rose-50 text-rose-700", description: "DNS kaydı beklenen değerle eşleşmiyor olabilir. Kaydı ve token değerini yeniden kontrol edin." };
   }
-
-  return {
-    label: titleCaseStatus(status || "Bekleniyor"),
-    chipClass: "border-amber-200 bg-amber-50 text-amber-700",
-    panelClass: "border-amber-200 bg-amber-50/70",
-    description: "Kaydiniz alindi. DNS yayilimi tamamlandiginda dogrulama tekrar kontrol edilmelidir.",
-  };
+  return { label: titleCaseStatus(status || "Bekleniyor"), chipClass: "border-amber-200 bg-amber-50 text-amber-700", description: "Kaydınız alındı. DNS yayılımı tamamlandığında doğrulama tekrar kontrol edilmelidir." };
 }
 
 function normalizeVerificationPath(path: string) {
@@ -93,33 +60,36 @@ function CopyBtn({ text }: { text: string }) {
     <button
       type="button"
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
-      className="text-gray-400 hover:text-indigo-600 transition"
+      className="text-zinc-400 hover:text-zinc-900 transition-colors"
       title="Kopyala"
     >
-      {copied ? <Check className="h-4 w-4 text-green-500" /> : <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>}
+      {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>}
     </button>
   );
 }
-// â”€â”€â”€ Account Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+// ─── Account Tab ─────────────────────────────────────────────────────────────
 function AccountTab({ me }: { me: { email: string; role?: string } | null }) {
   const [curPw, setCurPw] = useState(""); const [newPw, setNewPw] = useState(""); const [confPw, setConfPw] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [pwErr, setPwErr] = useState<string | null>(null); const [pwOk, setPwOk] = useState(false); const [pwLoading, setPwLoading] = useState(false);
+  
   const [newEmail, setNewEmail] = useState(""); const [emailPw, setEmailPw] = useState("");
   const [emailErr, setEmailErr] = useState<string | null>(null); const [emailOk, setEmailOk] = useState(false); const [emailLoading, setEmailLoading] = useState(false);
+  
   const [deletePw, setDeletePw] = useState("");
   const [deleteErr, setDeleteErr] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   async function changePassword(e: React.FormEvent) {
     e.preventDefault(); setPwErr(null); setPwOk(false);
-    if (newPw.length < 8) { setPwErr("Yeni sifre en az 8 karakter olmalidir."); return; }
-    if (newPw !== confPw) { setPwErr("Sifreler eslesmiyor."); return; }
+    if (newPw.length < 8) { setPwErr("Yeni şifre en az 8 karakter olmalıdır."); return; }
+    if (newPw !== confPw) { setPwErr("Şifreler eşleşmiyor."); return; }
     setPwLoading(true);
     try {
       await apiFetch("/me/password", { method: "PATCH", body: JSON.stringify({ current_password: curPw, new_password: newPw }) });
       setPwOk(true); setCurPw(""); setNewPw(""); setConfPw("");
-    } catch (e: any) { setPwErr(e?.message || "Sifre guncellenemedi."); } finally { setPwLoading(false); }
+    } catch (e: any) { setPwErr(e?.message || "Şifre güncellenemedi."); } finally { setPwLoading(false); }
   }
 
   async function changeEmail(e: React.FormEvent) {
@@ -127,7 +97,7 @@ function AccountTab({ me }: { me: { email: string; role?: string } | null }) {
     try {
       await apiFetch("/me/email", { method: "PATCH", body: JSON.stringify({ current_password: emailPw, new_email: newEmail }) });
       setEmailOk(true); setNewEmail(""); setEmailPw("");
-    } catch (e: any) { setEmailErr(e?.message || "E-posta guncellenemedi."); } finally { setEmailLoading(false); }
+    } catch (e: any) { setEmailErr(e?.message || "E-posta güncellenemedi."); } finally { setEmailLoading(false); }
   }
 
   async function removeAccount(e: React.FormEvent) {
@@ -140,63 +110,64 @@ function AccountTab({ me }: { me: { email: string; role?: string } | null }) {
   }
 
   return (
-    <div className="space-y-8">
-      {me && <p className="text-sm text-gray-500">Mevcut e-posta: <strong className="text-gray-700">{me.email}</strong></p>}
-      {/* Password */}
-      <div className="card p-6">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><Lock className="h-5 w-5" /></div>
-          <div><h2 className="font-semibold text-gray-900">Sifre Degistir</h2><p className="text-xs text-gray-400 mt-0.5">Guvenlik icin duzenli olarak sifrenizi guncelleyin</p></div>
-        </div>
-        <form onSubmit={changePassword} className="space-y-4">
-          <div>
-            <label className="label">Mevcut Sifre</label>
-            <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input className="input-field pl-10 pr-10" type={showPw ? "text" : "password"} value={curPw} onChange={e => setCurPw(e.target.value)} required />
-              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
+    <div className="space-y-6">
+      {me && <p className="text-sm text-zinc-500 px-2">Mevcut e-posta: <strong className="text-zinc-900">{me.email}</strong></p>}
+      
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="mb-6 flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-900"><Lock className="h-5 w-5" /></div>
+            <div><h2 className="text-lg font-semibold text-zinc-900">Şifre Değiştir</h2><p className="text-sm text-zinc-500">Güvenlik için düzenli güncelleyin</p></div>
           </div>
-          <div><label className="label">Yeni Sifre</label><input className="input-field" type={showPw ? "text" : "password"} value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="En az 8 karakter" required /></div>
-          <div><label className="label">Yeni Sifre Tekrar</label><input className="input-field" type={showPw ? "text" : "password"} value={confPw} onChange={e => setConfPw(e.target.value)} required /></div>
-          <AnimatePresence>
-            {pwErr && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden"><div className="error-banner">{pwErr}</div></motion.div>}
-            {pwOk && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden"><div className="success-banner"><CheckCircle2 className="h-4 w-4 shrink-0" /> Sifre basariyla guncellendi.</div></motion.div>}
-          </AnimatePresence>
-          <button type="submit" disabled={pwLoading} className="btn-primary">{pwLoading ? "Kaydediliyor..." : "Sifreyi Guncelle"}</button>
-        </form>
-      </div>
-      {/* Email */}
-      <div className="card p-6">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600"><Mail className="h-5 w-5" /></div>
-          <div><h2 className="font-semibold text-gray-900">E-posta Degistir</h2><p className="text-xs text-gray-400 mt-0.5">Dogrulama icin mevcut sifrenizi girmeniz gerekmektedir</p></div>
+          <form onSubmit={changePassword} className="space-y-4">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-zinc-700">Mevcut Şifre</label>
+              <div className="relative">
+                <input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:border-zinc-900 focus:bg-white" type={showPw ? "text" : "password"} value={curPw} onChange={e => setCurPw(e.target.value)} required />
+                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600">
+                  {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">Yeni Şifre</label><input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:border-zinc-900 focus:bg-white" type={showPw ? "text" : "password"} value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="En az 8 karakter" required /></div>
+            <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">Yeni Şifre Tekrar</label><input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:border-zinc-900 focus:bg-white" type={showPw ? "text" : "password"} value={confPw} onChange={e => setConfPw(e.target.value)} required /></div>
+            <AnimatePresence>
+              {pwErr && <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-sm text-rose-600">{pwErr}</motion.p>}
+              {pwOk && <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-sm text-emerald-600 flex items-center gap-1"><CheckCircle2 className="h-4 w-4" /> Şifre güncellendi.</motion.p>}
+            </AnimatePresence>
+            <button type="submit" disabled={pwLoading} className="w-full rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-50 mt-2">{pwLoading ? "Kaydediliyor..." : "Şifreyi Güncelle"}</button>
+          </form>
         </div>
-        <form onSubmit={changeEmail} className="space-y-4">
-          <div><label className="label">Yeni E-posta Adresi</label><div className="relative"><Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" /><input className="input-field pl-10" type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="yeni@sirket.com" required autoComplete="email" /></div></div>
-          <div><label className="label">Mevcut Sifre (Dogrulama)</label><div className="relative"><Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" /><input className="input-field pl-10" type="password" value={emailPw} onChange={e => setEmailPw(e.target.value)} required /></div></div>
-          <AnimatePresence>
-            {emailErr && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden"><div className="error-banner">{emailErr}</div></motion.div>}
-            {emailOk && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden"><div className="success-banner"><CheckCircle2 className="h-4 w-4 shrink-0" /> E-posta basariyla guncellendi.</div></motion.div>}
-          </AnimatePresence>
-          <button type="submit" disabled={emailLoading} className="btn-primary">{emailLoading ? "Kaydediliyor..." : "E-postayi Guncelle"}</button>
-        </form>
+
+        <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="mb-6 flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-900"><Mail className="h-5 w-5" /></div>
+            <div><h2 className="text-lg font-semibold text-zinc-900">E-posta Değiştir</h2><p className="text-sm text-zinc-500">Mevcut şifrenizle onaylayın</p></div>
+          </div>
+          <form onSubmit={changeEmail} className="space-y-4">
+            <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">Yeni E-posta</label><input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:border-zinc-900 focus:bg-white" type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="yeni@sirket.com" required /></div>
+            <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">Mevcut Şifre (Doğrulama)</label><input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:border-zinc-900 focus:bg-white" type="password" value={emailPw} onChange={e => setEmailPw(e.target.value)} required /></div>
+            <AnimatePresence>
+              {emailErr && <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-sm text-rose-600">{emailErr}</motion.p>}
+              {emailOk && <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-sm text-emerald-600 flex items-center gap-1"><CheckCircle2 className="h-4 w-4" /> E-posta güncellendi.</motion.p>}
+            </AnimatePresence>
+            <button type="submit" disabled={emailLoading} className="w-full rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-50 mt-2">{emailLoading ? "Kaydediliyor..." : "E-postayı Güncelle"}</button>
+          </form>
+        </div>
       </div>
 
       {me?.role !== "superadmin" ? (
-        <div className="card border border-rose-200 bg-rose-50/70 p-6">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100 text-rose-600"><Trash2 className="h-5 w-5" /></div>
-            <div><h2 className="font-semibold text-rose-900">Hesabi ve Verileri Sil</h2><p className="text-xs text-rose-700 mt-0.5">Bu islem geri alinamaz. Etkinlikleriniz ve iliskili verileriniz kalici olarak silinir.</p></div>
+        <div className="rounded-3xl border border-rose-200 bg-rose-50 p-6 shadow-sm sm:p-8 lg:w-1/2">
+          <div className="mb-6 flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100 text-rose-600"><Trash2 className="h-5 w-5" /></div>
+            <div><h2 className="text-lg font-semibold text-rose-900">Hesabı ve Verileri Sil</h2><p className="text-sm text-rose-700">Bu işlem geri alınamaz.</p></div>
           </div>
           <form onSubmit={removeAccount} className="space-y-4">
-            <div><label className="label text-rose-900">Mevcut Sifre ile Onay</label><input className="input-field border-rose-200 bg-white" type="password" value={deletePw} onChange={e => setDeletePw(e.target.value)} required /></div>
+            <div><label className="mb-1.5 block text-sm font-medium text-rose-900">Mevcut Şifre ile Onay</label><input className="w-full rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-rose-500" type="password" value={deletePw} onChange={e => setDeletePw(e.target.value)} required /></div>
             <AnimatePresence>
-              {deleteErr && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden"><div className="error-banner">{deleteErr}</div></motion.div>}
+              {deleteErr && <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-sm text-rose-600">{deleteErr}</motion.p>}
             </AnimatePresence>
-            <button type="submit" disabled={deleteLoading} className="btn-danger">{deleteLoading ? "Siliniyor..." : "Hesabi ve Verileri Sil"}</button>
+            <button type="submit" disabled={deleteLoading} className="w-full rounded-xl bg-rose-600 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:opacity-50 mt-2">{deleteLoading ? "Siliniyor..." : "Hesabı ve Verileri Sil"}</button>
           </form>
         </div>
       ) : null}
@@ -204,7 +175,7 @@ function AccountTab({ me }: { me: { email: string; role?: string } | null }) {
   );
 }
 
-// â”€â”€â”€ 2FA Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── 2FA Tab ─────────────────────────────────────────────────────────────────
 function TwoFATab() {
   const [status, setStatus] = useState<"loading" | "disabled" | "setup" | "enabled">("loading");
   const [otpauthUrl, setOtpauthUrl] = useState("");
@@ -227,7 +198,7 @@ function TwoFATab() {
       const r = await apiFetch("/auth/2fa/setup", { method: "POST" });
       const data = await r.json();
       setOtpauthUrl(data.otpauth_url); setSecret(data.secret); setStatus("setup");
-    } catch (e: any) { setErr(e?.message || "Kurulum baslatilamadi."); } finally { setLoading(false); }
+    } catch (e: any) { setErr(e?.message || "Kurulum başlatılamadı."); } finally { setLoading(false); }
   }
 
   async function confirmSetup(e: React.FormEvent) {
@@ -235,7 +206,7 @@ function TwoFATab() {
     try {
       await apiFetch("/auth/2fa/confirm", { method: "POST", body: JSON.stringify({ code }) });
       setStatus("enabled"); setCode("");
-    } catch (e: any) { setErr(e?.message || "Gecersiz kod."); } finally { setLoading(false); }
+    } catch (e: any) { setErr(e?.message || "Geçersiz kod."); } finally { setLoading(false); }
   }
 
   async function disable2FA(e: React.FormEvent) {
@@ -243,94 +214,69 @@ function TwoFATab() {
     try {
       await apiFetch("/auth/2fa/disable", { method: "PATCH", body: JSON.stringify({ code }) });
       setStatus("disabled"); setCode("");
-    } catch (e: any) { setErr(e?.message || "Devre disi birakilamadi."); } finally { setLoading(false); }
+    } catch (e: any) { setErr(e?.message || "Devre dışı bırakılamadı."); } finally { setLoading(false); }
   }
 
   const qrUrl = otpauthUrl ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(otpauthUrl)}` : "";
 
-  if (status === "loading") return <div className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto text-gray-400" /></div>;
+  if (status === "loading") return <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-zinc-400" /></div>;
 
   return (
-    <div className="max-w-md space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900">Iki Faktorlu Dogrulama (TOTP)</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Giris yaparken Google Authenticator veya Authy ile ek guvenlik katmani ekleyin.</p>
+    <div className="mx-auto max-w-lg rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+      <div className="mb-6 text-center">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100"><ShieldCheck className="h-8 w-8 text-zinc-900" /></div>
+        <h2 className="text-xl font-bold text-zinc-900">İki Faktörlü Doğrulama</h2>
+        <p className="mt-2 text-sm text-zinc-500">Hesabınızı korumak için Authenticator uygulaması kullanın.</p>
       </div>
 
       {status === "disabled" && (
-        <div className="card p-6 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100"><ShieldCheck className="h-5 w-5 text-gray-400" /></div>
-            <div><p className="font-medium text-gray-900">2FA Devre Disi</p><p className="text-sm text-gray-500">Hesabiniz yalnizca sifre ile korunuyor.</p></div>
-          </div>
-          {err && <div className="error-banner">{err}</div>}
-          <button onClick={startSetup} disabled={loading} className="btn-primary gap-2">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} 2FA'yi Etkinlestir
+        <div className="text-center">
+          <button onClick={startSetup} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800 w-full sm:w-auto">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} 2FA'yı Etkinleştir
           </button>
         </div>
       )}
 
       {status === "setup" && (
-        <div className="card p-6 space-y-5">
-          <p className="font-medium text-gray-900">Kimlik Dogrulayiciyi Yapilandir</p>
-          <ol className="text-sm text-gray-600 space-y-1.5 list-decimal list-inside">
-            <li>Telefonunuzda Google Authenticator veya Authy'yi acin.</li>
-            <li>Asagidaki QR kodu veya gizli anahtari kullanarak ekleyin.</li>
-            <li>6 haneli kodu girin ve onaylayin.</li>
-          </ol>
-          {qrUrl && <div className="flex justify-center"><img src={qrUrl} alt="2FA QR" className="rounded-xl border border-gray-200 p-2" /></div>}
-          <div>
-            <label className="label">El ile Giris</label>
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-              <code className="text-xs font-mono text-gray-700 flex-1 break-all">{showSecret ? secret : "*".repeat(Math.min(secret.length, 32))}</code>
-              <button type="button" onClick={() => setShowSecret(!showSecret)} className="text-gray-400 hover:text-gray-700">
-                {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-              <CopyBtn text={secret} />
-            </div>
+        <div className="space-y-6">
+          <div className="rounded-2xl bg-zinc-50 p-4 text-sm text-zinc-600 leading-relaxed">
+            1. Telefonunuzda Google Authenticator veya Authy'yi açın.<br/>
+            2. Aşağıdaki QR kodu okutun veya gizli anahtarı girin.<br/>
+            3. Üretilen 6 haneli kodu aşağıya yazın.
           </div>
-          <form onSubmit={confirmSetup} className="space-y-3">
-            <div>
-              <label className="label">Dogrulama Kodu</label>
-              <input className="input-field text-center text-xl tracking-[0.4em] font-mono" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" inputMode="numeric" required maxLength={6} />
-            </div>
-            {err && <div className="error-banner">{err}</div>}
-            <button type="submit" disabled={loading || code.length !== 6} className="btn-primary w-full justify-center gap-2">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Onayla &amp; Etkinlestir
+          {qrUrl && <div className="flex justify-center"><img src={qrUrl} alt="2FA QR" className="rounded-2xl border border-zinc-200 p-3 bg-white shadow-sm" /></div>}
+          <div className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+            <code className="flex-1 font-mono text-sm text-zinc-800 break-all">{showSecret ? secret : "••••••••••••••••••••••••••••"}</code>
+            <button type="button" onClick={() => setShowSecret(!showSecret)} className="text-zinc-400 hover:text-zinc-700">{showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
+            <CopyBtn text={secret} />
+          </div>
+          <form onSubmit={confirmSetup} className="space-y-4">
+            <input className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-center font-mono text-2xl tracking-[0.3em] outline-none transition focus:border-zinc-900" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" inputMode="numeric" required maxLength={6} />
+            {err && <p className="text-sm text-rose-600 text-center">{err}</p>}
+            <button type="submit" disabled={loading || code.length !== 6} className="w-full rounded-xl bg-zinc-900 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-50 inline-flex justify-center items-center gap-2">
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Onayla ve Etkinleştir
             </button>
-            <button type="button" onClick={() => setStatus("disabled")} className="w-full text-center text-sm text-gray-400 hover:text-gray-600">Iptal</button>
+            <button type="button" onClick={() => setStatus("disabled")} className="w-full text-center text-sm font-medium text-zinc-500 hover:text-zinc-800 transition-colors">İptal</button>
           </form>
         </div>
       )}
 
       {status === "enabled" && (
-        <div className="card p-6 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-100"><ShieldCheck className="h-5 w-5 text-green-600" /></div>
-            <div><p className="font-medium text-gray-900">2FA Etkin </p><p className="text-sm text-gray-500">Hesabiniz iki faktorlu kimlik dogrulama ile korunuyor.</p></div>
-          </div>
-          <form onSubmit={disable2FA} className="space-y-3 pt-2 border-t border-gray-100">
-            <p className="text-sm text-gray-500">Devre disi birakmak icin mevcut kodunuzu girin:</p>
-            <input className="input-field text-center text-xl tracking-[0.4em] font-mono" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" inputMode="numeric" required maxLength={6} />
-            {err && <div className="error-banner">{err}</div>}
-            <button type="submit" disabled={loading || code.length !== 6} className="w-full btn-danger justify-center gap-2">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} 2FA'yi Devre Disi Birak
-            </button>
-          </form>
-        </div>
+        <form onSubmit={disable2FA} className="space-y-5 rounded-2xl border border-zinc-100 bg-zinc-50 p-6">
+          <p className="text-center text-sm text-zinc-600">Devre dışı bırakmak için mevcut Authenticator kodunuzu girin.</p>
+          <input className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-center font-mono text-2xl tracking-[0.3em] outline-none transition focus:border-zinc-900" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" inputMode="numeric" required maxLength={6} />
+          {err && <p className="text-sm text-rose-600 text-center">{err}</p>}
+          <button type="submit" disabled={loading || code.length !== 6} className="w-full rounded-xl border border-rose-200 bg-rose-50 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-100 disabled:opacity-50 inline-flex justify-center items-center gap-2">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} 2FA'yı Devre Dışı Bırak
+          </button>
+        </form>
       )}
     </div>
   );
 }
 
-// â”€â”€â”€ Transactions Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-type Transaction = {
-  id: number;
-  type: "credit" | "spend";
-  amount: number;
-  description: string;
-  created_at: string;
-};
+// ─── Transactions Tab ────────────────────────────────────────────────────────
+type Transaction = { id: number; type: "credit" | "spend"; amount: number; description: string; created_at: string; };
 
 function TransactionsTab() {
   const [items, setItems] = useState<Transaction[]>([]);
@@ -345,60 +291,58 @@ function TransactionsTab() {
     apiFetch(`/admin/transactions/list?page=${page}&limit=${limit}`)
       .then((r) => r.json())
       .then((d) => { setItems(d.items || []); setTotal(d.total || 0); })
-      .catch((e) => setErr(e?.message || "Gecmis yuklenemedi."))
+      .catch((e) => setErr(e?.message || "Geçmiş yüklenemedi."))
       .finally(() => setLoading(false));
   }, [page]);
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
   return (
-    <div className="space-y-4">
-      <div className="card overflow-hidden">
-        <div className="bg-gray-50 border-b border-gray-100 px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3 font-bold text-gray-700">
-            <History className="h-4 w-4 text-gray-400" /> Coin Islem Gecmisi
-          </div>
-          <span className="text-xs font-bold text-gray-400">Toplam: {total}</span>
-        </div>
-        {loading ? (
-          <div className="flex justify-center p-16"><Loader2 className="h-8 w-8 animate-spin text-brand-500" /></div>
-        ) : err ? (
-          <div className="p-8 text-rose-600 text-sm">{err}</div>
-        ) : items.length === 0 ? (
-          <div className="p-12 text-center text-sm text-gray-400">Henuz islem yok.</div>
-        ) : (
-          <div className="divide-y divide-gray-100">
-            {items.map((tx) => (
-              <div key={tx.id} className="px-6 py-4 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-xl ${tx.type === "credit" ? "bg-emerald-50" : "bg-rose-50"}`}>
-                    {tx.type === "credit" ? <TrendingUp className="h-4 w-4 text-emerald-600" /> : <TrendingDown className="h-4 w-4 text-rose-600" />}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-800">{tx.description}</p>
-                    <p className="text-xs text-gray-400">{fmtDate(tx.created_at)}</p>
-                  </div>
-                </div>
-                <span className={`text-sm font-extrabold ${tx.type === "credit" ? "text-emerald-600" : "text-rose-600"}`}>
-                  {tx.type === "credit" ? "+" : "-"}{tx.amount} HC
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-        {totalPages > 1 && (
-          <div className="bg-gray-50 border-t border-gray-100 px-4 py-3 flex items-center justify-between">
-            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="btn-ghost text-xs disabled:opacity-30">{"<-"} Onceki</button>
-            <span className="text-xs font-bold text-gray-400">{page}/{totalPages}</span>
-            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="btn-ghost text-xs disabled:opacity-30">Sonraki {"->"}</button>
-          </div>
-        )}
+    <div className="rounded-3xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50/80 px-6 py-5">
+        <h3 className="font-semibold text-zinc-900 flex items-center gap-2"><History className="h-5 w-5 text-zinc-400" /> İşlem Geçmişi</h3>
+        <span className="rounded-full bg-zinc-200/50 px-3 py-1 text-xs font-semibold text-zinc-700">Toplam İşlem: {total}</span>
       </div>
+      
+      {loading ? (
+        <div className="p-16 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-zinc-400" /></div>
+      ) : err ? (
+        <div className="p-8 text-center text-sm font-medium text-rose-600">{err}</div>
+      ) : items.length === 0 ? (
+        <div className="p-16 text-center text-sm text-zinc-500">Henüz işlem bulunmuyor.</div>
+      ) : (
+        <div className="divide-y divide-zinc-100">
+          {items.map((tx) => (
+            <div key={tx.id} className="flex items-center justify-between px-6 py-4 hover:bg-zinc-50/50 transition-colors">
+              <div className="flex items-center gap-4">
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${tx.type === "credit" ? "bg-emerald-50 text-emerald-600" : "bg-zinc-100 text-zinc-600"}`}>
+                  {tx.type === "credit" ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-zinc-900">{tx.description}</p>
+                  <p className="text-xs text-zinc-500 mt-0.5">{fmtDate(tx.created_at)}</p>
+                </div>
+              </div>
+              <span className={`text-sm font-bold tracking-tight ${tx.type === "credit" ? "text-emerald-600" : "text-zinc-900"}`}>
+                {tx.type === "credit" ? "+" : "-"}{tx.amount} HC
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between border-t border-zinc-100 bg-zinc-50/80 px-6 py-4">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-200 disabled:opacity-30 transition">Önceki</button>
+          <span className="text-xs font-medium text-zinc-500">Sayfa {page} / {totalPages}</span>
+          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-200 disabled:opacity-30 transition">Sonraki</button>
+        </div>
+      )}
     </div>
   );
 }
 
-// â”€â”€â”€ Custom Domain Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Custom Domain Tab ───────────────────────────────────────────────────────
 function CustomDomainTab() {
   const toast = useToast();
   const [domain, setDomain] = useState("");
@@ -425,7 +369,6 @@ function CustomDomainTab() {
   }
 
   useEffect(() => {
-    // Attempt to read existing organization domain if endpoint exists; fallback to empty.
     Promise.all([
       apiFetch("/admin/organization/domain").then(r => r.json()).catch(() => ({ custom_domain: "" })),
       refreshDomains(),
@@ -446,7 +389,6 @@ function CustomDomainTab() {
       .finally(() => setLoading(false));
   }, []);
 
-  // When domain text changes, if token/status unknown try to fetch domain details
   useEffect(() => {
     const dom = domain.trim();
     if (!dom) return;
@@ -466,301 +408,225 @@ function CustomDomainTab() {
     try {
       const dom = (domain.trim() || existingDomain || "").trim();
       if (!dom) {
-        if (existingDomain) {
-          await apiFetch(`/domains/${encodeURIComponent(existingDomain)}`, { method: "DELETE" });
-        } else {
-          await apiFetch("/admin/organization/domain", {
-            method: "PUT",
-            body: JSON.stringify({ custom_domain: null }),
-          });
-        }
-        setDomain("");
-        setExistingDomain(null);
-        setToken(null); setStatus(null); setCreatedAt(null); setOk(true); setTimeout(() => setOk(false), 3000);
+        if (existingDomain) { await apiFetch(`/domains/${encodeURIComponent(existingDomain)}`, { method: "DELETE" }); } 
+        else { await apiFetch("/admin/organization/domain", { method: "PUT", body: JSON.stringify({ custom_domain: null }) }); }
+        setDomain(""); setExistingDomain(null); setToken(null); setStatus(null); setCreatedAt(null); setOk(true); setTimeout(() => setOk(false), 3000);
         await refreshDomains();
-        toast.success("Ozel domain kaldirildi.", "Kurumsal Alan Adi");
+        toast.success("Özel domain kaldırıldı.", "Kurumsal Alan Adı");
         return;
       }
 
-      // Create domain via new API
-      const resp = await apiFetch("/domains", {
-        method: "POST",
-        body: JSON.stringify({ domain: dom, owner: undefined }),
-      });
+      const resp = await apiFetch("/domains", { method: "POST", body: JSON.stringify({ domain: dom, owner: undefined }) });
       const data = await resp.json();
-      setToken(data.token || null);
-      setStatus(data.status || null);
-      setCreatedAt(data.created_at || null);
-      setExistingDomain(data.domain || dom);
-      setOk(true);
-      await refreshDomains();
-      setTimeout(() => setOk(false), 3000);
-      toast.success("Ozel domain kaydedildi.", "Kurumsal Alan Adi");
-    } catch (e: any) {
-      setErr(e?.message || "Kaydedilemedi.");
-    } finally {
-      setSaving(false);
-    }
+      setToken(data.token || null); setStatus(data.status || null); setCreatedAt(data.created_at || null); setExistingDomain(data.domain || dom);
+      setOk(true); await refreshDomains(); setTimeout(() => setOk(false), 3000);
+      toast.success("Özel domain kaydedildi.", "Kurumsal Alan Adı");
+    } catch (e: any) { setErr(e?.message || "Kaydedilemedi."); } finally { setSaving(false); }
   }
 
   async function checkDNS() {
     setErr(null); setChecking(true);
     try {
       const dom = domain.trim();
-      if (!dom) throw new Error("Alan adi bos.");
+      if (!dom) throw new Error("Alan adı boş.");
       const r = await apiFetch(`/domains/${encodeURIComponent(dom)}/check`);
       const j = await r.json();
       setStatus(j.status || null);
       const nextStatus = getDomainStatusMeta(j.status || null);
       toast.info(nextStatus.description, nextStatus.label);
-    } catch (e: any) {
-      setErr(e?.message || "Dogrulama basarisiz.");
-    } finally { setChecking(false); }
+    } catch (e: any) { setErr(e?.message || "Doğrulama başarısız."); } finally { setChecking(false); }
   }
 
   async function regenerate(targetDomain?: string) {
     setErr(null);
     try {
       const dom = (targetDomain || domain.trim() || existingDomain || "").trim();
-      if (!dom) throw new Error("Alan adi bos.");
+      if (!dom) throw new Error("Alan adı boş.");
       const r = await apiFetch(`/domains/${encodeURIComponent(dom)}/regenerate`, { method: "POST" });
       const j = await r.json();
-      if ((domain.trim() || existingDomain || "").trim() === dom) {
-        setToken(j.token || null);
-        setDomain(dom);
-        setExistingDomain(dom);
-      }
+      if ((domain.trim() || existingDomain || "").trim() === dom) { setToken(j.token || null); setDomain(dom); setExistingDomain(dom); }
       await refreshDomains();
-      toast.success("Dogrulama tokeni yenilendi.", dom);
+      toast.success("Doğrulama tokeni yenilendi.", dom);
     } catch (e: any) { setErr(e?.message || "Token yenilenemedi."); }
   }
 
   async function removeDomain() {
-    if (!confirm("Bu alan adini silmek istediginize emin misiniz?")) return;
+    if (!confirm("Bu alan adını silmek istediğinize emin misiniz?")) return;
     setErr(null);
     try {
       const targetDomain = (domain.trim() || existingDomain || "").trim();
-      if (!targetDomain) throw new Error("Alan adi bos.");
+      if (!targetDomain) throw new Error("Alan adı boş.");
       await apiFetch(`/domains/${encodeURIComponent(targetDomain)}`, { method: "DELETE" });
       setDomain(""); setExistingDomain(null); setToken(null); setStatus(null); setCreatedAt(null);
       await refreshDomains();
-      toast.success("Alan adi silindi.", "Kurumsal Alan Adi");
+      toast.success("Alan adı silindi.", "Kurumsal Alan Adı");
     } catch (e: any) { setErr(e?.message || "Silinemedi."); }
   }
 
-  if (loading) return <div className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto text-gray-400" /></div>;
+  if (loading) return <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-zinc-400" /></div>;
 
   const activeDomain = (domain.trim() || existingDomain || "").trim();
   const statusMeta = getDomainStatusMeta(status);
   const dnsHost = activeDomain ? `_heptacert-verify.${activeDomain}` : "_heptacert-verify.your-domain.tld";
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_380px]">
+    <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
       <div className="space-y-6">
-      {myDomains.length > 0 && (
-        <div className="hidden">
-          <h3 className="text-sm font-semibold mb-2">Kayitli Alan Adlariniz</h3>
-          <ul className="space-y-2 text-sm">
-            {myDomains.map(d => (
-              <li key={d.domain} className="flex items-center justify-between">
-                <div>{d.domain} <span className="text-xs text-gray-400">{d.status}</span></div>
-                <div className="flex gap-2">
-                  <button className="btn-ghost" onClick={async () => { setDomain(d.domain); setExistingDomain(d.domain); setToken(d.token || null); setStatus(d.status || null); setCreatedAt(d.created_at || null); }}>{/* select */}Sec</button>
-                  <button className="btn-ghost" onClick={async () => { await apiFetch(`/domains/${encodeURIComponent(d.domain)}/regenerate`, { method: 'POST' }); const list = await (await apiFetch('/admin/organization/domains')).json(); setMyDomains(list || []); }}>Token Yenile</button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      <div className="card border border-slate-200/80 p-6">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600"><Globe className="h-5 w-5" /></div>
-          <div>
-            <h2 className="font-semibold text-gray-900">Ozel Alan Adi</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Sertifika dogrulama sayfalari kendi alan adinizda gorunsun</p>
+        <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="mb-6 flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-900"><Globe className="h-5 w-5" /></div>
+            <div><h2 className="text-lg font-semibold text-zinc-900">Özel Alan Adı</h2><p className="text-sm text-zinc-500">Sertifikaları kendi domaininizde sunun</p></div>
           </div>
-        </div>
-        <div className="rounded-xl border border-amber-100 bg-amber-50/60 p-3 mb-5">
-          <p className="text-xs text-amber-700 font-medium">Growth ve Enterprise planlarina ozeldir. Dogrulama icin DNS'inize bir <code className="font-mono bg-amber-100 px-1 rounded">TXT</code> kaydi eklemeniz gerekir (asagida gosteriliyor).</p>
-        </div>
-        <form onSubmit={save} className="space-y-4">
-          <div>
-            <label className="label">Alan Adi</label>
-            <div className="relative">
-              <Globe className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input
-                className="input-field pl-10"
-                type="text"
-                value={domain}
-                onChange={e => setDomain(e.target.value)}
-                placeholder="certs.sirketiniz.com"
-                autoComplete="off"
-              />
-            </div>
-            <p className="text-xs text-gray-400 mt-1.5">Bos birakirsaniz ozel alan adi kaldirilir.</p>
+          
+          <div className="mb-6 rounded-xl border border-amber-100 bg-amber-50/60 p-4">
+            <p className="text-sm text-amber-800 font-medium leading-relaxed">
+              Bu özellik Growth ve Enterprise planlarına özeldir. Doğrulama için DNS sağlayıcınıza bir <code className="font-mono bg-amber-200/50 px-1.5 py-0.5 rounded text-amber-900">TXT</code> kaydı eklemeniz gerekir (detaylar sağ tarafta).
+            </p>
           </div>
-          {err && <div className="error-banner">{err}</div>}
-          {ok && <div className="success-banner"><CheckCircle2 className="h-4 w-4 shrink-0" /> Alan adi kaydedildi.</div>}
-          <button type="submit" disabled={saving} className="btn-primary gap-2">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            Kaydet
-          </button>
-        </form>
-      </div>
-      <div className="card border border-slate-200/80 p-5 space-y-4">
-        <h3 className="text-sm font-semibold text-gray-800">DNS Yapilandirmasi</h3>
-        <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 text-xs font-mono space-y-2">
-          <p className="text-gray-500"># DNS saglayiciniza su TXT kaydini ekleyin:</p>
-          <p className="text-gray-800">Ad: <span className="font-mono">{dnsHost}</span></p>
-          <p className="text-gray-800">Deger: <span className="font-mono">{token || '<kaydetmeden sonra token gorunur>'}</span> <CopyBtn text={token || ''} /></p>
-          {createdAt && <p className="text-gray-500">Olusturulma: <span className="font-mono">{new Date(createdAt).toLocaleString()}</span></p>}
-          <div className="flex gap-2">
-            <button onClick={checkDNS} disabled={checking || !domain} className="btn-ghost">{checking ? 'Kontrol ediliyor...' : 'DNS Kontrolu Yap'}</button>
-            <button onClick={() => regenerate()} disabled={!domain} className="btn-ghost">Token Yenile</button>
-            <button onClick={removeDomain} disabled={!domain} className="btn-danger">Alan Adini Sil</button>
-          </div>
-          {status && <p className="text-sm">Durum: <strong>{status}</strong></p>}
-        </div>
-        <p className="text-xs text-gray-400">DNS degisikliklerinin yayilmasi: genelde birkac dakika, maksimum 24 saat.</p>
-      </div>
-      </div>
-      <div className="space-y-6">
-        <div className="card border border-slate-200/80 p-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-sm">
-              <Globe className="h-5 w-5" />
-            </div>
+
+          <form onSubmit={save} className="space-y-4">
             <div>
-              <p className="text-sm font-semibold text-slate-900">Canli gorunum</p>
-              <p className="text-xs text-slate-500">Ziyaretciler ozel alan adinizi bu hissiyatla gorur.</p>
-            </div>
-          </div>
-
-          <div
-            className="mt-5 overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_60px_-32px_rgba(15,23,42,0.32)]"
-            style={{ boxShadow: `0 24px 60px -32px ${withAlpha("#0f172a", 0.35)}` }}
-          >
-            <div
-              className="px-5 py-5"
-              style={{ background: `linear-gradient(135deg, ${withAlpha("#ffffff", 0.96)} 0%, ${withAlpha("#ffffff", 0.84)} 32%, ${withAlpha("#f8fafc", 1)} 100%), radial-gradient(circle at top right, ${withAlpha("#6366f1", 0.15)} 0%, transparent 45%)` }}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-white/70 bg-white shadow-sm">
-                    <span className="text-lg font-semibold text-slate-700">{(activeDomain || "C").charAt(0).toUpperCase()}</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">{activeDomain || "certs.sirketiniz.com"}</p>
-                    <p className="text-xs text-slate-500">Kurumsal dogrulama sayfasi</p>
-                  </div>
-                </div>
-                <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${statusMeta.chipClass}`}>
-                  {statusMeta.label}
-                </span>
+              <label className="mb-1.5 block text-sm font-medium text-zinc-700">Domain Adresi</label>
+              <div className="relative">
+                <Globe className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
+                <input
+                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 py-3 pl-12 pr-4 text-sm outline-none transition focus:border-zinc-900 focus:bg-white"
+                  type="text"
+                  value={domain}
+                  onChange={e => setDomain(e.target.value)}
+                  placeholder="certs.sirketiniz.com"
+                  autoComplete="off"
+                />
               </div>
+              <p className="text-xs text-zinc-500 mt-2">Kaldırmak için alanı boş bırakıp kaydedin.</p>
             </div>
-            <div className="space-y-4 p-5">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">One Cikan Alan Adi</p>
-                <p className="mt-2 text-lg font-semibold text-slate-900">{activeDomain || "Alan adi henuz secilmedi"}</p>
-                <p className="mt-1 text-sm text-slate-500">{statusMeta.description}</p>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">TXT Hazir</p>
-                  <p className="mt-2 text-sm font-semibold text-slate-900">{token ? "Token uretildi" : "Henuz uretim yok"}</p>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Son Guncelleme</p>
-                  <p className="mt-2 text-sm font-semibold text-slate-900">{fmtDate(createdAt)}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+            
+            <AnimatePresence>
+              {err && <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-sm text-rose-600">{err}</motion.p>}
+              {ok && <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-sm text-emerald-600 flex items-center gap-1"><CheckCircle2 className="h-4 w-4" /> İşlem başarılı.</motion.p>}
+            </AnimatePresence>
+            
+            <button type="submit" disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-50">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Kaydet
+            </button>
+          </form>
         </div>
 
-        <div className="card border border-slate-200/80 p-5">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-              <BadgeCheck className="h-5 w-5" />
+        {myDomains.length > 0 && (
+          <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+             <div className="mb-6 flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-900"><BadgeCheck className="h-5 w-5" /></div>
+              <div><h2 className="text-lg font-semibold text-zinc-900">Kayıtlı Domainler</h2><p className="text-sm text-zinc-500">Önceki kayıtlarınız arasında geçiş yapın.</p></div>
             </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Kayitli alan adlari</p>
-              <p className="text-xs text-slate-500">Farkli domain kayitlari arasinda hizli gecis yapabilirsiniz.</p>
-            </div>
-          </div>
-
-          {myDomains.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center">
-              <p className="text-sm font-semibold text-slate-800">Henuz kayitli alan adi yok</p>
-              <p className="mt-2 text-sm text-slate-500">Ilk domaininizi eklediginizde dogrulama gecmisi ve token yonetimi burada listelenecek.</p>
-            </div>
-          ) : (
             <div className="space-y-3">
               {myDomains.map((d) => {
                 const itemStatus = getDomainStatusMeta(d.status || null);
                 return (
-                  <div key={d.domain} className="rounded-2xl border border-slate-200 bg-white p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-slate-900">{d.domain}</p>
-                        <p className="mt-1 text-xs text-slate-500">Olusturulma: {fmtDate(d.created_at || null)}</p>
+                  <div key={d.domain} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-zinc-100 bg-zinc-50/50 p-4 hover:bg-zinc-50 transition">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate font-semibold text-zinc-900">{d.domain}</p>
+                        <span className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${itemStatus.chipClass}`}>{itemStatus.label}</span>
                       </div>
-                      <span className={`inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${itemStatus.chipClass}`}>
-                        {itemStatus.label}
-                      </span>
+                      <p className="mt-1 text-xs text-zinc-500">Eklenme: {fmtDate(d.created_at || null)}</p>
                     </div>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        className="btn-ghost gap-2"
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button type="button" className="rounded-lg bg-white border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 transition shadow-sm inline-flex items-center gap-1.5"
                         onClick={() => {
-                          setDomain(d.domain);
-                          setExistingDomain(d.domain);
-                          setToken(d.token || null);
-                          setStatus(d.status || null);
-                          setCreatedAt(d.created_at || null);
+                          setDomain(d.domain); setExistingDomain(d.domain); setToken(d.token || null); setStatus(d.status || null); setCreatedAt(d.created_at || null);
                         }}
                       >
-                        <Link2 className="h-4 w-4" />
-                        Sec
+                        <Link2 className="h-3.5 w-3.5" /> Seç
                       </button>
-                      <button
-                        type="button"
-                        className="btn-ghost gap-2"
+                      <button type="button" className="rounded-lg bg-white border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 transition shadow-sm inline-flex items-center gap-1.5"
                         onClick={() => regenerate(d.domain)}
                       >
-                        <RefreshCcw className="h-4 w-4" />
-                        Token Yenile
+                        <RefreshCcw className="h-3.5 w-3.5" /> Yenile
                       </button>
                     </div>
                   </div>
                 );
               })}
             </div>
-          )}
-        </div>
+          </div>
+        )}
+      </div>
+
+      <div>
+         <div className="rounded-3xl border border-zinc-200 bg-white shadow-sm overflow-hidden sticky top-24">
+           <div className="bg-zinc-50 border-b border-zinc-100 px-6 py-5">
+              <h3 className="font-semibold text-zinc-900">DNS Yapılandırması</h3>
+              <p className="text-xs text-zinc-500 mt-1">Domain yöneticinizden bu kaydı ekleyin.</p>
+           </div>
+           <div className="p-6 space-y-6">
+             <div className="rounded-2xl bg-zinc-900 p-5 font-mono text-xs text-zinc-300 shadow-inner">
+                <p className="text-zinc-500 mb-3"># DNS'inize aşağıdaki TXT kaydını ekleyin:</p>
+                <div className="space-y-3">
+                  <div>
+                    <span className="text-zinc-500 block mb-1">Kayıt Türü:</span>
+                    <span className="text-amber-400 font-bold">TXT</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 block mb-1">Ad / Host:</span>
+                    <span className="text-white break-all">{dnsHost}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 block mb-1">Değer (Value):</span>
+                    <div className="flex items-center justify-between gap-2 bg-zinc-800 rounded-lg p-2 mt-1">
+                      <span className="text-emerald-400 break-all">{token || '<token_bekleniyor>'}</span>
+                      <CopyBtn text={token || ''} />
+                    </div>
+                  </div>
+                </div>
+             </div>
+             
+             {status && (
+               <div className={`rounded-xl border px-4 py-3 ${statusMeta.chipClass}`}>
+                 <div className="flex items-start gap-3">
+                    <div className="mt-0.5"><Globe className={`h-4 w-4 ${statusMeta.chipClass.split(' ')[2]}`} /></div>
+                    <div>
+                      <p className={`text-sm font-semibold ${statusMeta.chipClass.split(' ')[2]}`}>{statusMeta.label}</p>
+                      <p className="text-xs mt-1 leading-relaxed opacity-90">{statusMeta.description}</p>
+                    </div>
+                 </div>
+               </div>
+             )}
+
+             <div className="flex flex-col gap-2 pt-2 border-t border-zinc-100">
+                <button onClick={checkDNS} disabled={checking || !domain} className="w-full rounded-xl bg-zinc-100 px-4 py-2.5 text-sm font-semibold text-zinc-900 transition hover:bg-zinc-200 disabled:opacity-50">
+                  {checking ? 'Kontrol ediliyor...' : 'Şimdi Doğrula'}
+                </button>
+                <button onClick={() => regenerate()} disabled={!domain} className="w-full rounded-xl bg-white border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-50">
+                  Token Yenile
+                </button>
+                <button onClick={removeDomain} disabled={!domain} className="w-full rounded-xl bg-white border border-rose-200 px-4 py-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-50 mt-4">
+                  Domain'i Sistemden Sil
+                </button>
+             </div>
+           </div>
+         </div>
       </div>
     </div>
   );
 }
 
-// â”€â”€â”€ Branding Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Branding Tab ────────────────────────────────────────────────────────────
 function BrandingTab() {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
+  
   const [postLoading, setPostLoading] = useState(false);
   const [postSaving, setPostSaving] = useState(false);
+  const [communityPosts, setCommunityPosts] = useState<Array<{ public_id: string; author_name: string; body: string; created_at: string }>>([]);
+  const [postBody, setPostBody] = useState("");
+  
   const [publicId, setPublicId] = useState("");
-  const [brandColor, setBrandColor] = useState("#6366f1");
+  const [brandColor, setBrandColor] = useState("#000000"); 
   const [brandLogo, setBrandLogo] = useState<string | null>(null);
   const [orgName, setOrgName] = useState("");
   const [settingsState, setSettingsState] = useState<Record<string, any>>({});
-  const [communityPosts, setCommunityPosts] = useState<Array<{ public_id: string; author_name: string; body: string; created_at: string }>>([]);
-  const [postBody, setPostBody] = useState("");
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
@@ -770,11 +636,11 @@ function BrandingTab() {
       .then((d) => {
         setPublicId(d.public_id || "");
         setBrandLogo(d.brand_logo || null);
-        setBrandColor(d.brand_color || "#6366f1");
+        setBrandColor(d.brand_color || "#000000");
         setOrgName(d.org_name || "");
         setSettingsState(d.settings || {});
       })
-      .catch((e) => setErr(e?.message || "Yuklenemedi"))
+      .catch((e) => setErr(e?.message || "Yüklenemedi"))
       .finally(() => setLoading(false));
 
     setPostLoading(true);
@@ -789,26 +655,19 @@ function BrandingTab() {
     if (!file) return;
     setErr(null); setLogoUploading(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
+      const fd = new FormData(); fd.append("file", file);
       const r = await apiFetch("/admin/organization/logo", { method: "POST", body: fd });
       const j = await r.json();
       setBrandLogo(j.brand_logo || null);
-      toast.success("Logo guncellendi.", "Kurumsal Gorunum");
-    } catch (e: any) {
-      setErr(e?.message || "Yukleme basarisiz");
-    } finally { setLogoUploading(false); }
+      toast.success("Logo güncellendi.", "Marka");
+    } catch (e: any) { setErr(e?.message || "Yükleme başarısız"); } finally { setLogoUploading(false); }
   }
 
   async function saveSettings(e: React.FormEvent) {
-    e.preventDefault();
-    setErr(null);
-    setSaving(true);
-
+    e.preventDefault(); setErr(null); setSaving(true);
     try {
       const payload = {
-        org_name: orgName,
-        brand_color: brandColor,
+        org_name: orgName, brand_color: brandColor,
         verification_path: settingsState.verification_path || "",
         certificate_footer: settingsState.certificate_footer || "",
         hide_heptacert_home: !!settingsState.hide_heptacert_home,
@@ -819,43 +678,23 @@ function BrandingTab() {
         public_x_url: normalizeExternalUrl(settingsState.public_x_url) || "",
         public_instagram_url: normalizeExternalUrl(settingsState.public_instagram_url) || "",
       };
-
-      const resp = await apiFetch("/admin/organization/settings", {
-        method: "PATCH",
-        body: JSON.stringify(payload),
-      });
-
+      const resp = await apiFetch("/admin/organization/settings", { method: "PATCH", body: JSON.stringify(payload) });
       const data = await resp.json();
-      setSettingsState(data.settings || {});
-      setPublicId(data.public_id || "");
-      setBrandColor(data.brand_color || "#6366f1");
-      setOrgName(data.org_name || "");
-      toast.success("Kurumsal ayarlar kaydedildi.", "Marka Kimligi");
-    } catch (e: any) {
-      setErr(e?.message || "Kaydedilemedi.");
-    } finally {
-      setSaving(false);
-    }
+      setSettingsState(data.settings || {}); setPublicId(data.public_id || ""); setBrandColor(data.brand_color || "#000000"); setOrgName(data.org_name || "");
+      toast.success("Ayarlar kaydedildi.", "Marka Kimliği");
+    } catch (e: any) { setErr(e?.message || "Kaydedilemedi."); } finally { setSaving(false); }
   }
 
   async function createCommunityPost() {
     if (!postBody.trim()) return;
-    setPostSaving(true);
-    setErr(null);
+    setPostSaving(true); setErr(null);
     try {
-      const resp = await apiFetch("/admin/community/posts", {
-        method: "POST",
-        body: JSON.stringify({ body: postBody.trim() }),
-      });
+      const resp = await apiFetch("/admin/community/posts", { method: "POST", body: JSON.stringify({ body: postBody.trim() }) });
       const data = await resp.json();
       setCommunityPosts((current) => [data, ...current]);
       setPostBody("");
-      toast.success("Topluluk gonderisi yayinlandi.", "Community");
-    } catch (e: any) {
-      setErr(e?.message || "Gonderi yayinlanamadi.");
-    } finally {
-      setPostSaving(false);
-    }
+      toast.success("Duyuru paylaşıldı.", "Topluluk");
+    } catch (e: any) { setErr(e?.message || "Gönderi yayınlanamadı."); } finally { setPostSaving(false); }
   }
 
   async function removeCommunityPost(postPublicId: string) {
@@ -863,293 +702,206 @@ function BrandingTab() {
     try {
       await apiFetch(`/admin/community/posts/${postPublicId}`, { method: "DELETE" });
       setCommunityPosts((current) => current.filter((item) => item.public_id !== postPublicId));
-      toast.success("Topluluk gonderisi silindi.", "Community");
-    } catch (e: any) {
-      setErr(e?.message || "Gonderi silinemedi.");
-    }
+      toast.success("Duyuru silindi.", "Topluluk");
+    } catch (e: any) { setErr(e?.message || "Gönderi silinemedi."); }
   }
 
-  if (loading) return <div className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto text-gray-400" /></div>;
+  if (loading) return <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-zinc-400" /></div>;
 
-  const previewName = orgName.trim() || "Kurumunuz";
-  const previewPath = normalizeVerificationPath(settingsState.verification_path || "");
-  const previewFooter = settingsState.certificate_footer || "Sertifika dogrulama sayfaniza guven veren kisa bir alt bilgi ekleyin.";
-  const previewLogoLetter = previewName.charAt(0).toUpperCase() || "K";
-  const heroGlow = withAlpha(brandColor, 0.2);
-  const heroSoft = withAlpha(brandColor, 0.12);
-  const publicPageUrl = publicId
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/organizations/${publicId}`
-    : "";
-
-  const scrollToSection = (sectionId: string) => {
-    const target = document.getElementById(sectionId);
-    target?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+  const previewName = orgName.trim() || "Heptapus Group";
+  const previewLogoLetter = previewName.charAt(0).toUpperCase();
 
   return (
-    <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_320px]">
-      <div className="card border border-slate-200/80 p-3 sm:p-5">
-        <div className="flex flex-col gap-3 mb-5 sm:flex-row sm:items-center">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-600 flex-shrink-0"><Settings className="h-5 w-5" /></div>
-          <div className="flex-1 min-w-0">
-            <h2 className="font-semibold text-gray-900">Kurumsal Görünüm</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Logo, renk ve diğer marka ayarlarını yönetebilirsiniz.</p>
-          </div>
-          <Link href="/admin/organization-social" className="btn-ghost inline-flex items-center gap-2 text-xs flex-shrink-0">
-            <Building2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Sosyal Profili Aç</span>
-            <span className="sm:hidden">Sosyal</span>
-          </Link>
-        </div>
+    <div className="flex flex-col xl:flex-row items-start gap-8">
+      {/* SOL: Form Alanı */}
+      <div className="w-full flex-1 space-y-6">
+        {err && <div className="rounded-xl bg-rose-50 p-4 text-sm text-rose-600">{err}</div>}
 
-        {err && <div className="error-banner">{err}</div>}
-
-        <div className="mb-5 grid gap-2 grid-cols-2 sm:grid-cols-4">
-          <button type="button" data-tour-id="branding-identity-shortcut" onClick={() => scrollToSection("branding-identity")} className="btn-ghost text-xs whitespace-nowrap overflow-hidden text-ellipsis">Marka Kimliği</button>
-          <button type="button" data-tour-id="branding-social-shortcut" onClick={() => scrollToSection("branding-social")} className="btn-ghost text-xs whitespace-nowrap overflow-hidden text-ellipsis">Sosyal</button>
-          <button type="button" data-tour-id="branding-verification-shortcut" onClick={() => scrollToSection("branding-verification")} className="btn-ghost text-xs whitespace-nowrap overflow-hidden text-ellipsis">Doğrulama</button>
-          <button type="button" data-tour-id="branding-community-shortcut" onClick={() => scrollToSection("branding-community")} className="btn-ghost text-xs whitespace-nowrap overflow-hidden text-ellipsis">Topluluk</button>
-        </div>
-
-        <form onSubmit={saveSettings} className="space-y-3 sm:space-y-4">
-          <div id="branding-identity" className="scroll-mt-24">
-            <label className="label">Logo</label>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-              <div className="w-28 h-16 rounded border border-gray-100 bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
-                {brandLogo ? <img src={brandLogo} alt="brand" className="max-w-full max-h-full" /> : <div className="text-xs text-gray-400 text-center px-2">Logo yok</div>}
-              </div>
-              <div className="flex flex-col gap-2 flex-1">
-                <label className="btn-ghost cursor-pointer text-sm">
-                  {logoUploading ? 'Yükleniyor...' : 'Logo Yükle'}
-                  <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={e => uploadLogo(e.target.files ? e.target.files[0] : null)} />
-                </label>
-                <button
-                  type="button"
-                  className="btn-ghost text-sm"
-                  onClick={async () => {
-                    setErr(null);
-                    try {
-                      const resp = await apiFetch("/admin/organization/settings", {
-                        method: "PATCH",
-                        body: JSON.stringify({ brand_logo: null }),
-                      });
-                      const data = await resp.json();
-                      setBrandLogo(data.brand_logo || null);
-                    } catch (e: any) {
-                      setErr(e?.message || "Logo kaldırılamadı.");
-                    }
-                  }}
+        <form onSubmit={saveSettings} className="space-y-6">
+          
+          <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+            <h3 className="text-lg font-semibold text-zinc-900 mb-6">Temel Kimlik</h3>
+            <div className="flex flex-col sm:flex-row gap-6 items-start">
+              <div className="shrink-0">
+                <label className="mb-2 block text-sm font-medium text-zinc-700">Logo</label>
+                <div 
+                  className="group relative flex h-24 w-24 cursor-pointer items-center justify-center overflow-hidden border-2 border-dashed border-zinc-300 bg-zinc-50 transition hover:border-zinc-400 hover:bg-zinc-100"
+                  style={{ clipPath: "polygon(50% 0%, 90% 20%, 100% 60%, 75% 100%, 25% 100%, 0% 60%, 10% 20%)" }}
                 >
-                  Logoyu Kaldır
-                </button>
+                  {brandLogo ? (
+                    <img src={brandLogo} alt="Logo" className="h-full w-full object-cover" />
+                  ) : (
+                    <UploadCloud className="h-6 w-6 text-zinc-400" />
+                  )}
+                  <input type="file" accept="image/*" className="absolute inset-0 cursor-pointer opacity-0" onChange={e => uploadLogo(e.target.files ? e.target.files[0] : null)} />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                    <span className="text-[10px] font-semibold text-white uppercase tracking-wider">Değiştir</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex-1 space-y-4 w-full">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-zinc-700">Kurum Adı</label>
+                  <input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:border-zinc-900 focus:bg-white" value={orgName} onChange={e => setOrgName(e.target.value)} placeholder="Örn: Heptapus Group" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-zinc-700">Vurgu Rengi</label>
+                  <div className="flex items-center gap-3">
+                    <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-zinc-200 shadow-sm">
+                      <input type="color" className="absolute -inset-2 h-14 w-14 cursor-pointer" value={brandColor} onChange={e => setBrandColor(e.target.value)} />
+                    </div>
+                    <input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm font-mono outline-none transition focus:border-zinc-900 focus:bg-white uppercase" value={brandColor} onChange={e => setBrandColor(e.target.value)} maxLength={7} />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div>
-            <label className="label">Kurum Adı</label>
-            <input className="input-field" value={orgName} onChange={e => setOrgName(e.target.value)} placeholder="Şirket / organizasyon adı" />
-          </div>
-
-          <div id="branding-social" className="scroll-mt-24">
-            <label className="label">Topluluk Biyografisi</label>
-            <textarea
-              className="input-field min-h-24 sm:min-h-28"
-              value={settingsState.public_bio || ""}
-              onChange={e => setSettingsState(s => ({ ...s, public_bio: e.target.value }))}
-              placeholder="Kulübünüzün veya kurumunuzun ne yaptığını, kimlere hitap ettiğini anlatın."
-            />
-          </div>
-
-          <div>
-            <label className="label">Public Website</label>
-            <input className="input-field" value={settingsState.public_website_url || ""} onChange={e => setSettingsState(s => ({ ...s, public_website_url: e.target.value }))} placeholder="https://..." />
-          </div>
-
-          <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
-            <div>
-              <label className="label">LinkedIn</label>
-              <input className="input-field text-sm" value={settingsState.public_linkedin_url || ""} onChange={e => setSettingsState(s => ({ ...s, public_linkedin_url: e.target.value }))} placeholder="https://linkedin.com/..." />
-            </div>
-            <div>
-              <label className="label">GitHub</label>
-              <input className="input-field text-sm" value={settingsState.public_github_url || ""} onChange={e => setSettingsState(s => ({ ...s, public_github_url: e.target.value }))} placeholder="https://github.com/..." />
-            </div>
-            <div>
-              <label className="label">X</label>
-              <input className="input-field text-sm" value={settingsState.public_x_url || ""} onChange={e => setSettingsState(s => ({ ...s, public_x_url: e.target.value }))} placeholder="https://x.com/..." />
-            </div>
-            <div>
-              <label className="label">Instagram</label>
-              <input className="input-field text-sm" value={settingsState.public_instagram_url || ""} onChange={e => setSettingsState(s => ({ ...s, public_instagram_url: e.target.value }))} placeholder="https://instagram.com/..." />
-            </div>
-          </div>
-
-          {publicId ? (
-            <div>
-              <label className="label">Topluluk Sayfası</label>
-              <div className="input-field flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <span className="truncate text-sm text-gray-700">{publicPageUrl}</span>
-                <CopyBtn text={publicPageUrl} />
+          <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+            <h3 className="text-lg font-semibold text-zinc-900 mb-6">Sosyal & İletişim</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-zinc-700">Kısa Biyografi</label>
+                <textarea className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm outline-none transition focus:border-zinc-900 focus:bg-white min-h-[100px] resize-y" value={settingsState.public_bio || ""} onChange={e => setSettingsState(s => ({ ...s, public_bio: e.target.value }))} placeholder="Kurumunuzu kısaca tanıtın..." />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">Website</label><input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none focus:border-zinc-900 focus:bg-white" value={settingsState.public_website_url || ""} onChange={e => setSettingsState(s => ({ ...s, public_website_url: e.target.value }))} placeholder="https://" /></div>
+                <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">LinkedIn</label><input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none focus:border-zinc-900 focus:bg-white" value={settingsState.public_linkedin_url || ""} onChange={e => setSettingsState(s => ({ ...s, public_linkedin_url: e.target.value }))} placeholder="linkedin.com/company/..." /></div>
+                <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">X (Twitter)</label><input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none focus:border-zinc-900 focus:bg-white" value={settingsState.public_x_url || ""} onChange={e => setSettingsState(s => ({ ...s, public_x_url: e.target.value }))} placeholder="x.com/..." /></div>
+                <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">Instagram</label><input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none focus:border-zinc-900 focus:bg-white" value={settingsState.public_instagram_url || ""} onChange={e => setSettingsState(s => ({ ...s, public_instagram_url: e.target.value }))} placeholder="instagram.com/..." /></div>
               </div>
             </div>
-          ) : null}
+          </div>
 
-          <div>
-            <label className="label">Marka Rengi</label>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <input type="color" value={brandColor} onChange={e => setBrandColor(e.target.value)} className="w-16 h-10 sm:w-12 sm:h-8 p-0 border rounded" />
-              <input className="input-field text-sm" value={brandColor} onChange={e => setBrandColor(e.target.value)} />
+          <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+            <h3 className="text-lg font-semibold text-zinc-900 mb-6">Sertifika & Doğrulama Sayfası</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-zinc-700">Alt Bilgi (Footer)</label>
+                <input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:border-zinc-900 focus:bg-white" value={settingsState.certificate_footer || ""} onChange={e => setSettingsState(s => ({ ...s, certificate_footer: e.target.value }))} placeholder="© 2026 Kurum Adı. Tüm hakları saklıdır." />
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-zinc-900">HeptaCert Markasını Gizle</p>
+                  <p className="text-xs text-zinc-500">Doğrulama sayfasında tamamen sizin markanız öne çıkar.</p>
+                </div>
+                <label className="relative inline-flex cursor-pointer items-center">
+                  <input type="checkbox" className="peer sr-only" checked={!!settingsState.hide_heptacert_home} onChange={e => setSettingsState(s => ({ ...s, hide_heptacert_home: e.target.checked }))} />
+                  <div className="h-6 w-11 rounded-full bg-zinc-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-zinc-900 peer-checked:after:translate-x-full peer-focus:outline-none"></div>
+                </label>
+              </div>
             </div>
           </div>
 
-          <div id="branding-verification" className="scroll-mt-24">
-            <label className="label">Doğrulama Yolu (verification_path)</label>
-            <input className="input-field" value={settingsState.verification_path || ''} onChange={e => setSettingsState(s => ({ ...s, verification_path: e.target.value }))} placeholder="/verify" />
-            <p className="text-xs text-gray-400 mt-1">Boş bırakılırsa varsayılan doğrulama yolu kullanılır.</p>
-          </div>
-
-          <div>
-            <label className="label">Sertifika Altbilgisi (certificate_footer)</label>
-            <input className="input-field" value={settingsState.certificate_footer || ''} onChange={e => setSettingsState(s => ({ ...s, certificate_footer: e.target.value }))} placeholder="(c) Şirketiniz 2026" />
-          </div>
-
-          <div className="flex items-center gap-3">
-            <input id="hide" type="checkbox" checked={!!settingsState.hide_heptacert_home} onChange={e => setSettingsState(s => ({ ...s, hide_heptacert_home: e.target.checked }))} />
-            <label htmlFor="hide" className="text-sm text-gray-700">HeptaCert ana sayfasını gizle (`hide_heptacert_home`)</label>
-          </div>
-
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <button type="submit" data-tour-id="branding-save" disabled={saving} className="btn-primary flex-1 sm:flex-none">{saving ? 'Kaydediliyor...' : 'Ayarları Kaydet'}</button>
-            <button type="button" onClick={() => { setSettingsState({}); setBrandColor('#6366f1'); setOrgName(''); }} className="btn-ghost flex-1 sm:flex-none">Sıfırla</button>
+          <div className="flex justify-end pt-2">
+            <button type="submit" disabled={saving} className="rounded-xl bg-zinc-900 px-8 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-zinc-800 hover:shadow-md disabled:opacity-50">
+              {saving ? "Kaydediliyor..." : "Tüm Ayarları Kaydet"}
+            </button>
           </div>
         </form>
 
-        <div id="branding-community" className="mt-8 scroll-mt-24 rounded-[24px] border border-slate-200 bg-slate-50 p-4 sm:p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-sm flex-shrink-0">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-semibold text-slate-900">Topluluk Akışı</h3>
-              <p className="text-xs text-slate-500">Kurum adına resmi güncelleme ve duyurular paylaşın.</p>
-            </div>
+        {/* Topluluk Gönderileri Akışı */}
+        <div className="mt-8 rounded-3xl border border-zinc-200 bg-zinc-50/50 p-6 shadow-sm sm:p-8">
+          <div className="mb-6 flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-zinc-900 border border-zinc-200 shadow-sm"><Sparkles className="h-5 w-5" /></div>
+            <div><h2 className="text-lg font-semibold text-zinc-900">Topluluk Akışı</h2><p className="text-sm text-zinc-500">Kurumunuz adına resmi güncellemeler paylaşın.</p></div>
           </div>
 
-          <div className="mt-4 space-y-3">
+          <div className="space-y-4">
             <textarea
-              className="input-field min-h-24 sm:min-h-28"
+              className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-zinc-900 shadow-sm min-h-[100px] resize-y"
               value={postBody}
               onChange={(e) => setPostBody(e.target.value)}
               maxLength={1500}
-              placeholder="Topluluğunuz için bir duyuru veya güncelleme yazın."
+              placeholder="Yeni bir duyuru yazın..."
             />
             <div className="flex justify-end">
-              <button type="button" onClick={() => void createCommunityPost()} disabled={postSaving || !postBody.trim()} className="btn-primary text-sm">
-                {postSaving ? "Paylaşılıyor..." : "Gönderi Paylaş"}
+              <button type="button" onClick={() => void createCommunityPost()} disabled={postSaving || !postBody.trim()} className="rounded-xl bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-zinc-800 disabled:opacity-50 shadow-sm">
+                {postSaving ? "Paylaşılıyor..." : "Duyuru Paylaş"}
               </button>
             </div>
           </div>
 
-          <div className="mt-4 space-y-3">
+          <div className="mt-8 space-y-4">
+            <h3 className="text-sm font-semibold text-zinc-900 mb-2">Önceki Paylaşımlar</h3>
             {postLoading ? (
-              <div className="flex items-center text-sm text-slate-500"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Yükleniyor...</div>
+              <div className="flex items-center text-sm text-zinc-500 py-4"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Yükleniyor...</div>
             ) : communityPosts.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-3 py-4 sm:px-4 sm:py-5 text-sm text-slate-500 text-center">
-                Henüz kurum gönderi yok.
+              <div className="rounded-2xl border border-dashed border-zinc-300 bg-white px-4 py-8 text-sm text-zinc-500 text-center">
+                Henüz paylaşılmış bir kurum gönderisi yok.
               </div>
             ) : (
-              communityPosts.map((post) => (
-                <div key={post.public_id} className="rounded-2xl border border-slate-200 bg-white px-3 py-3 sm:px-4 sm:py-4">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-900 truncate">{post.author_name}</p>
-                      <p className="mt-1 text-xs text-slate-400">{new Date(post.created_at).toLocaleString("tr-TR")}</p>
+              <div className="space-y-4">
+                {communityPosts.map((post) => (
+                  <div key={post.public_id} className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm hover:shadow-md transition">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-semibold text-zinc-900">{post.author_name}</p>
+                        <p className="mt-0.5 text-xs text-zinc-400">{fmtDate(post.created_at)}</p>
+                      </div>
+                      <button type="button" onClick={() => void removeCommunityPost(post.public_id)} className="rounded-lg bg-rose-50 p-2 text-rose-600 transition hover:bg-rose-100" title="Sil">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
-                    <button type="button" onClick={() => void removeCommunityPost(post.public_id)} className="rounded-xl border border-rose-200 bg-rose-50 p-2 text-rose-600 transition hover:bg-rose-100 flex-shrink-0">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-700 break-words">{post.body}</p>
                   </div>
-                  <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700 break-words">{post.body}</p>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
         </div>
       </div>
-      <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4 sm:p-5 lg:sticky lg:top-24 lg:h-fit">
-        <div className="rounded-[20px] border border-white/80 bg-white p-3 sm:p-4 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.28)]">
-          <div
-            className="overflow-hidden rounded-[18px] border border-slate-200"
-            style={{
-              background: `linear-gradient(160deg, ${heroGlow} 0%, ${heroSoft} 42%, rgba(255,255,255,0.96) 100%)`,
-            }}
-          >
-            <div className="border-b border-white/70 px-4 py-4 sm:px-5 sm:py-5">
-              <div className="flex flex-col gap-3 sm:gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center overflow-hidden rounded-2xl border border-white/70 bg-white shadow-sm flex-shrink-0">
-                    {brandLogo ? (
-                      <img src={brandLogo} alt="Brand preview" className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="text-lg sm:text-xl font-semibold text-slate-700">{previewLogoLetter}</span>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Canlı Önizleme</p>
-                    <h3 className="mt-1 text-base sm:text-lg font-semibold text-slate-900 truncate">{previewName}</h3>
-                    <p className="mt-0.5 text-xs sm:text-sm text-slate-600 truncate">{previewPath}</p>
-                  </div>
-                </div>
-                <div className="rounded-full border border-white/80 bg-white/80 px-3 py-1 text-xs font-semibold text-slate-700 w-fit">
-                  Kurumsal Kimlik
-                </div>
-              </div>
-            </div>
 
-            <div className="space-y-3 sm:space-y-4 px-4 py-4 sm:px-5 sm:py-5">
-              <div className="rounded-2xl border border-white/70 bg-white/90 p-3 sm:p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Doğrulama Kartı</p>
-                <div className="mt-3 flex items-start gap-3">
-                  <div className="flex-1">
-                    <p className="text-xs sm:text-sm font-semibold text-slate-900">Belge doğrulandı</p>
-                    <p className="mt-1 text-xs sm:text-sm text-slate-500 leading-5">Ziyaretçiler marka renginizle hizalanmış güven ekranını görür.</p>
-                  </div>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl text-white shadow-sm flex-shrink-0" style={{ backgroundColor: brandColor }}>
-                    <BadgeCheck className="h-5 w-5" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid gap-3">
-                <div className="rounded-2xl border border-white/70 bg-white/90 p-3 sm:p-4">
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Alt Bilgi</p>
-                  <p className="mt-2 text-xs sm:text-sm leading-5 sm:leading-6 text-slate-700">{previewFooter}</p>
-                </div>
-                <div className="rounded-2xl border border-white/70 bg-white/90 p-3 sm:p-4">
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Görünürlük</p>
-                  <p className="mt-2 text-xs sm:text-sm leading-5 sm:leading-6 text-slate-700">
-                    {settingsState.hide_heptacert_home
-                      ? "Ana sayfa gizli, kullanıcılar doğrudan kurum deneyimine yönlendirilir."
-                      : "HeptaCert ana sayfası görünür, kurum deneyimiyle birlikte genel giriş noktası korunur."}
-                  </p>
-                </div>
-              </div>
+      {/* SAĞ: Apple-Style Tarayıcı Önizlemesi (Sticky) */}
+      <div className="w-full shrink-0 xl:w-[380px] xl:sticky xl:top-24">
+        <div className="mb-3 flex items-center gap-2 px-1">
+          <MonitorSmartphone className="h-4 w-4 text-zinc-400" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Canlı Önizleme</span>
+        </div>
+        
+        <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)]">
+          <div className="flex items-center gap-1.5 border-b border-zinc-100 bg-zinc-50/80 px-4 py-3">
+            <div className="h-2.5 w-2.5 rounded-full bg-zinc-300"></div>
+            <div className="h-2.5 w-2.5 rounded-full bg-zinc-300"></div>
+            <div className="h-2.5 w-2.5 rounded-full bg-zinc-300"></div>
+            <div className="ml-4 flex-1 rounded-md bg-white px-3 py-1 text-center text-[10px] font-medium text-zinc-400 shadow-sm">
+              certs.{orgName.toLowerCase().replace(/\s+/g, '') || 'sirket'}.com
             </div>
           </div>
 
-          <div className="mt-3 sm:mt-4 grid gap-3">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 sm:px-4 sm:py-3">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Marka Rengi</p>
-              <div className="mt-2 flex items-center gap-3">
-                <span className="h-4 w-4 rounded-full border border-white shadow-sm" style={{ backgroundColor: brandColor }} />
-                <p className="text-xs sm:text-sm font-semibold text-slate-900 font-mono">{brandColor}</p>
-              </div>
+          <div className="relative p-6 text-center">
+            <div className="absolute inset-x-0 top-0 h-32 opacity-10" style={{ background: `linear-gradient(to bottom, ${brandColor}, transparent)` }}></div>
+            
+            <div 
+              className="relative mx-auto flex h-20 w-20 items-center justify-center overflow-hidden border border-zinc-100 bg-white shadow-md"
+              style={{ clipPath: "polygon(50% 0%, 90% 20%, 100% 60%, 75% 100%, 25% 100%, 0% 60%, 10% 20%)" }}
+            >
+              {brandLogo ? (
+                <img src={brandLogo} alt="Logo" className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-2xl font-bold text-zinc-300">{previewLogoLetter}</span>
+              )}
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 sm:px-4 sm:py-3">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Deneyim Notu</p>
-              <p className="mt-2 text-xs sm:text-sm leading-5 sm:leading-6 text-slate-700">Bu panel, yaptığınız değişikliklerin ziyaretçi tarafından nasıl bir his yaratacağını kaydetmeden önce görmenizi sağlar.</p>
+
+            <h4 className="mt-4 text-lg font-bold text-zinc-900">{previewName}</h4>
+            
+            <div className="mt-2 flex justify-center">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-100 bg-white px-3 py-1 text-xs font-medium shadow-sm" style={{ color: brandColor }}>
+                <BadgeCheck className="h-4 w-4" /> Resmi Doğrulama
+              </span>
             </div>
+
+            <div className="mt-6 space-y-3">
+              <div className="h-12 w-full rounded-xl bg-zinc-50 border border-zinc-100"></div>
+              <div className="h-24 w-full rounded-xl bg-zinc-50 border border-zinc-100"></div>
+              <button className="w-full rounded-xl py-3 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90" style={{ backgroundColor: brandColor }}>
+                Sertifikayı Doğrula
+              </button>
+            </div>
+
+            <p className="mt-6 text-[10px] text-zinc-400">
+              {settingsState.certificate_footer || `© ${new Date().getFullYear()} Kurum Adı. Tüm hakları saklıdır.`}
+            </p>
           </div>
         </div>
       </div>
@@ -1157,12 +909,11 @@ function BrandingTab() {
   );
 }
 
-// â”€â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main Page ───────────────────────────────────────────────────────────────
 export default function AdminSettingsPage() {
   const router = useRouter();
   const [me, setMe] = useState<{ email: string; role?: string } | null>(null);
   const [activeTab, setActiveTab] = useState("account");
-  const activeTabMeta = TABS.find((tab) => tab.id === activeTab) || TABS[0];
 
   useEffect(() => {
     apiFetch("/me", { method: "GET" }).then(r => r.json()).then(d => setMe(d)).catch(() => router.push("/admin/login"));
@@ -1170,14 +921,12 @@ export default function AdminSettingsPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-
     const syncTabFromLocation = () => {
       const tabFromQuery = new URLSearchParams(window.location.search).get("tab")?.trim() || "";
       const isValidTab = TABS.some((tab) => tab.id === tabFromQuery);
       if (!isValidTab) return;
       setActiveTab((prev) => (prev === tabFromQuery ? prev : tabFromQuery));
     };
-
     syncTabFromLocation();
     window.addEventListener("popstate", syncTabFromLocation);
     return () => window.removeEventListener("popstate", syncTabFromLocation);
@@ -1189,14 +938,16 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <div className="space-y-6 pb-20">
-      <PageHeader
-        title="Ayarlar"
-        subtitle="Hesap, guvenlik ve kurumsal ayarlari daha rahat yonetebilmeniz icin tek bir operasyon alani."
-        icon={<Settings className="h-5 w-5" />}
-      />
+    <div className="mx-auto max-w-7xl space-y-8 pb-24 px-4 sm:px-6 lg:px-8 mt-8">
+      {/* Orijinal PageHeader componenti duruyor, dilersen kullanabilirsin diye ama yeni hali çok daha Apple-vari oldu. */}
+      {/* <PageHeader title="Ayarlar" subtitle="..." icon={<Settings />} /> */}
+      
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Ayarlar</h1>
+        <p className="text-base text-zinc-500">Hesap, güvenlik, faturalandırma ve kurumsal kimlik yönetimi.</p>
+      </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="flex flex-wrap gap-2 rounded-2xl bg-zinc-50 p-2 border border-zinc-100">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -1204,50 +955,30 @@ export default function AdminSettingsPage() {
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id)}
-              className={`card flex items-start gap-3 p-4 text-left transition ${
+              className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
                 isActive
-                  ? "border-brand-200 bg-brand-50 shadow-soft"
-                  : "hover:border-surface-300 hover:bg-surface-50"
+                  ? "bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200/50"
+                  : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100/50"
               }`}
             >
-              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${isActive ? "bg-white text-brand-600" : "bg-surface-100 text-surface-500"}`}>
-                <Icon className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <p className={`text-sm font-semibold ${isActive ? "text-surface-900" : "text-surface-700"}`}>{tab.label}</p>
-                <p className="mt-1 text-xs leading-5 text-surface-500">{tab.description}</p>
-              </div>
+              <Icon className="h-4 w-4" />
+              {tab.label}
             </button>
           );
         })}
       </div>
 
-      <div className="card p-4 sm:p-5">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-surface-400">Aktif Bolum</p>
-            <h2 className="mt-2 text-2xl font-black tracking-tight text-surface-900">{activeTabMeta.label}</h2>
-            <p className="mt-2 text-sm leading-6 text-surface-500">{activeTabMeta.description}</p>
-          </div>
-          {me && (
-            <div className="rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3 text-right">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-400">Admin</p>
-              <p className="mt-1 text-sm font-semibold text-surface-900">{me.email}</p>
-            </div>
-          )}
-        </div>
+      <div className="pt-2">
+        <AnimatePresence mode="wait">
+          <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
+            {activeTab === "account" && <AccountTab me={me} />}
+            {activeTab === "2fa" && <TwoFATab />}
+            {activeTab === "transactions" && <TransactionsTab />}
+            {activeTab === "domain" && <CustomDomainTab />}
+            {activeTab === "branding" && <BrandingTab />}
+          </motion.div>
+        </AnimatePresence>
       </div>
-
-      <AnimatePresence mode="wait">
-        <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
-          {activeTab === "account" && <AccountTab me={me} />}
-          {activeTab === "2fa" && <TwoFATab />}
-          {activeTab === "transactions" && <TransactionsTab />}
-          {activeTab === "domain" && <CustomDomainTab />}
-          {activeTab === "branding" && <BrandingTab />}
-        </motion.div>
-      </AnimatePresence>
     </div>
   );
 }
-

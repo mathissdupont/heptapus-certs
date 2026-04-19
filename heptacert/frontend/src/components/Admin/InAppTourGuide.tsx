@@ -232,7 +232,6 @@ const EN_COPY: TourCopy = {
 
 function getStepsForRole(copy: TourCopy, role: string | null) {
   const base = [...copy.steps];
-  // İsteğe bağlı olarak superadmin step eklenebilir, son kararınıza göre kapattım
   return base;
 }
 
@@ -409,10 +408,10 @@ export default function InAppTourGuide() {
 
   const progress = steps.length > 0 ? Math.round(((stepIndex + 1) / steps.length) * 100) : 0;
 
-  // Kapalıysa ve Dismiss edildiyse Sol Altta ufak Launcher
+  // Kapalıysa ve Dismiss edildiyse Sağ Altta ufak Launcher
   if (dismissed && !open) {
     return (
-      <div className="fixed bottom-6 left-6 z-40">
+      <div className="fixed bottom-6 right-6 z-40">
         <button
           type="button"
           onClick={restartTour}
@@ -439,8 +438,8 @@ export default function InAppTourGuide() {
         }
       `}} />
 
-      {/* Launcher (Sol Alt) */}
-      <div className="fixed bottom-6 left-6 z-40">
+      {/* Launcher (Sağ Alt) */}
+      <div className="fixed bottom-6 right-6 z-40">
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -476,8 +475,8 @@ export default function InAppTourGuide() {
             </div>
           )}
 
-          {/* Minimalist In-App Tour Card (Sol Alt) */}
-          <div className="fixed bottom-20 left-6 z-50 w-full max-w-[340px] overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.1)]">
+          {/* Minimalist In-App Tour Card (Sağ Alt) */}
+          <div className="fixed bottom-20 right-6 z-50 w-full max-w-[340px] overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.1)]">
             
             {/* Üst İlerleme Çubuğu */}
             <div className="h-1 w-full bg-slate-100">
@@ -502,7 +501,7 @@ export default function InAppTourGuide() {
               <h3 className="mt-2 text-lg font-semibold text-slate-900">{currentStep.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">{currentStep.description}</p>
 
-              {/* Aksiyon Butonları (Eğer Route varsa) */}
+              {/* Aksiyon Butonları */}
               {(currentStep.route || currentStep.targetSelector) && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {currentStep.route && (
