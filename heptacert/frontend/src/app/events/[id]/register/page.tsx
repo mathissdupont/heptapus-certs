@@ -239,13 +239,21 @@ export default function EventRegisterPage() {
   const brandColor = branding?.brand_color || "#7c73ff";
   const locale = lang === "tr" ? "tr-TR" : "en-US";
   const surveyEnabled = Boolean(event?.survey);
+  
+  // Helper to check if field should be visible based on condition
+  const isFieldVisible = (field: RegistrationField): boolean => {
+    const hasCondition = !!(field.required_when_field_id?.trim());
+    if (!hasCondition) return true; // No condition = always visible
+    return isFieldConditionMet(field, registrationAnswers);
+  };
+  
   const fileFields = useMemo(
-    () => (event?.registration_fields || []).filter((field) => field.type === "file"),
-    [event?.registration_fields]
+    () => (event?.registration_fields || []).filter((field) => field.type === "file" && isFieldVisible(field)),
+    [event?.registration_fields, registrationAnswers]
   );
   const nonFileFields = useMemo(
-    () => (event?.registration_fields || []).filter((field) => field.type !== "file"),
-    [event?.registration_fields]
+    () => (event?.registration_fields || []).filter((field) => field.type !== "file" && isFieldVisible(field)),
+    [event?.registration_fields, registrationAnswers]
   );
   const isDocumentRequirementMissing = useMemo(
     () =>
