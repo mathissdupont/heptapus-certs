@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import {
   AlertCircle,
   CheckCircle2,
+  ClipboardList,
   FileText,
   Image as ImageIcon,
   Loader2,
@@ -101,6 +102,13 @@ const VISIBILITY_OPTIONS = [
   { value: "private", tr: "Özel", en: "Private" },
   { value: "unlisted", tr: "Liste dışı", en: "Unlisted" },
   { value: "public", tr: "Herkese açık", en: "Public" },
+] as const;
+
+const SETTINGS_TABS = [
+  { id: "general", label_tr: "Genel", label_en: "General", icon: FileText },
+  { id: "registration", label_tr: "Kayıt Forması", label_en: "Registration Form", icon: ClipboardList },
+  { id: "banner", label_tr: "Banner", label_en: "Banner", icon: ImageIcon },
+  { id: "email", label_tr: "E-posta", label_en: "Email", icon: Mail },
 ] as const;
 
 function createRegistrationField(): RegistrationField {
@@ -316,6 +324,7 @@ export default function EventSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"general" | "registration" | "banner" | "email">("general");
 
   const hasGrowthPlan = subscription?.role === "superadmin" || (subscription?.active && ["growth", "enterprise"].includes(subscription?.plan_id || ""));
   const fieldTypeOptions = FIELD_TYPE_OPTIONS.map((option) => ({
@@ -544,238 +553,236 @@ export default function EventSettingsPage() {
         </div>
       )}
 
+      {/* Sticky Tab Bar */}
+      <div className="sticky top-0 z-20 -mx-4 bg-white border-b border-surface-200 px-4">
+        <div className="flex gap-0 sm:gap-1 overflow-x-auto">
+          {SETTINGS_TABS.map((tab) => {
+            const Icon = tab.icon;
+            const label = lang === "tr" ? tab.label_tr : tab.label_en;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition whitespace-nowrap ${
+                  isActive
+                    ? "border-brand-600 text-brand-600"
+                    : "border-transparent text-surface-600 hover:text-surface-900"
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                <span className="hidden sm:inline">{label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Content Sections */}
       <div className="space-y-6">
-          <section className="card p-6 sm:p-7">
-            <div className="flex items-start gap-3">
-              <div className="rounded-2xl bg-brand-50 p-3 text-brand-600">
-                <FileText className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-surface-900">{copy.basicTitle}</h2>
-                <p className="mt-1 text-sm text-surface-500">{copy.basicBody}</p>
-              </div>
-            </div>
-
-            <div className="mt-6 grid gap-4">
-              <div>
-                <label className="label">{copy.name}</label>
-                <input
-                  value={formData.name}
-                  onChange={(event) => setFormData((current) => ({ ...current, name: event.target.value }))}
-                  className="input-field"
-                  placeholder={copy.namePlaceholder}
-                />
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
+        {/* ===== GENERAL TAB ===== */}
+        {activeTab === "general" && (
+          <>
+            {/* Temel Bilgiler */}
+            <section className="card p-6 sm:p-7">
+              <div className="flex items-start gap-3">
+                <div className="rounded-2xl bg-brand-50 p-3 text-brand-600">
+                  <FileText className="h-5 w-5" />
+                </div>
                 <div>
-                  <label className="label">{copy.date}</label>
+                  <h2 className="text-xl font-bold text-surface-900">{copy.basicTitle}</h2>
+                  <p className="mt-1 text-sm text-surface-500">{copy.basicBody}</p>
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-4">
+                <div>
+                  <label className="label">{copy.name}</label>
                   <input
-                    type="date"
-                    value={formData.event_date}
-                    onChange={(event) => setFormData((current) => ({ ...current, event_date: event.target.value }))}
+                    value={formData.name}
+                    onChange={(event) => setFormData((current) => ({ ...current, name: event.target.value }))}
                     className="input-field"
-                    placeholder={copy.datePlaceholder}
+                    placeholder={copy.namePlaceholder}
                   />
                 </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="label">{copy.date}</label>
+                    <input
+                      type="date"
+                      value={formData.event_date}
+                      onChange={(event) => setFormData((current) => ({ ...current, event_date: event.target.value }))}
+                      className="input-field"
+                      placeholder={copy.datePlaceholder}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">{copy.location}</label>
+                    <input
+                      value={formData.event_location}
+                      onChange={(event) => setFormData((current) => ({ ...current, event_location: event.target.value }))}
+                      className="input-field"
+                      placeholder={copy.locationPlaceholder}
+                    />
+                  </div>
+                </div>
                 <div>
-                  <label className="label">{copy.location}</label>
-                  <input
-                    value={formData.event_location}
-                    onChange={(event) => setFormData((current) => ({ ...current, event_location: event.target.value }))}
-                    className="input-field"
-                    placeholder={copy.locationPlaceholder}
+                  <label className="label">{copy.description}</label>
+                  <RichTextEditor
+                    value={formData.event_description}
+                    onChange={(value) => setFormData((current) => ({ ...current, event_description: value }))}
+                    placeholder={copy.descriptionPlaceholder}
                   />
                 </div>
               </div>
-              <div>
-                <label className="label">{copy.description}</label>
-                <RichTextEditor
-                  value={formData.event_description}
-                  onChange={(value) => setFormData((current) => ({ ...current, event_description: value }))}
-                  placeholder={copy.descriptionPlaceholder}
-                />
-              </div>
-            </div>
-          </section>
+            </section>
 
-          <section className="card p-6 sm:p-7">
-            <div className="flex items-start gap-3">
-              <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-surface-900">{copy.visibilityTitle}</h2>
-                <p className="mt-1 text-sm text-surface-500">{copy.visibilityBody}</p>
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-4">
-              <div>
-                <label className="label">{copy.visibilityLabel}</label>
-                <select
-                  value={formData.visibility}
-                  onChange={(event) =>
-                    setFormData((current) => ({
-                      ...current,
-                      visibility: event.target.value as FormState["visibility"],
-                    }))
-                  }
-                  className="input-field"
-                >
-                  {visibilityOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <p className="text-xs text-surface-400">{copy.visibilityHint}</p>
-            </div>
-          </section>
-
-          <section className="card p-6 sm:p-7">
-            <div className="flex items-start gap-3">
-              <div className="rounded-2xl bg-rose-50 p-3 text-rose-600">
-                <AlertCircle className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-surface-900">{copy.registrationStatusTitle}</h2>
-                <p className="mt-1 text-sm text-surface-500">{copy.registrationStatusBody}</p>
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-4">
-              <label className="flex items-start gap-3 rounded-2xl border border-surface-200 bg-surface-50 px-4 py-4">
-                <input
-                  type="checkbox"
-                  checked={formData.registration_closed}
-                  onChange={(event) =>
-                    setFormData((current) => ({
-                      ...current,
-                      registration_closed: event.target.checked,
-                    }))
-                  }
-                  className="mt-1 h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500"
-                />
-                <div>
-                  <p className="text-sm font-semibold text-surface-900">{copy.registrationToggle}</p>
-                  <p className="mt-1 text-xs text-surface-500">{copy.registrationHint}</p>
+            {/* Visibility */}
+            <section className="card p-6 sm:p-7">
+              <div className="flex items-start gap-3">
+                <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600">
+                  <Sparkles className="h-5 w-5" />
                 </div>
-              </label>
-              <div>
-                <label className="mb-3 flex items-start gap-3 rounded-2xl border border-surface-200 bg-surface-50 px-4 py-4">
-                  <input
-                    type="checkbox"
-                    checked={formData.registration_quota_enabled}
+                <div>
+                  <h2 className="text-xl font-bold text-surface-900">{copy.visibilityTitle}</h2>
+                  <p className="mt-1 text-sm text-surface-500">{copy.visibilityBody}</p>
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-4">
+                <div>
+                  <label className="label">{copy.visibilityLabel}</label>
+                  <select
+                    value={formData.visibility}
                     onChange={(event) =>
                       setFormData((current) => ({
                         ...current,
-                        registration_quota_enabled: event.target.checked,
+                        visibility: event.target.value as FormState["visibility"],
+                      }))
+                    }
+                    className="input-field"
+                  >
+                    {visibilityOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <p className="text-xs text-surface-400">{copy.visibilityHint}</p>
+              </div>
+            </section>
+
+            {/* Registration Status */}
+            <section className="card p-6 sm:p-7">
+              <div className="flex items-start gap-3">
+                <div className="rounded-2xl bg-rose-50 p-3 text-rose-600">
+                  <AlertCircle className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-surface-900">{copy.registrationStatusTitle}</h2>
+                  <p className="mt-1 text-sm text-surface-500">{copy.registrationStatusBody}</p>
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-4">
+                <label className="flex items-start gap-3 rounded-2xl border border-surface-200 bg-surface-50 px-4 py-4">
+                  <input
+                    type="checkbox"
+                    checked={formData.registration_closed}
+                    onChange={(event) =>
+                      setFormData((current) => ({
+                        ...current,
+                        registration_closed: event.target.checked,
                       }))
                     }
                     className="mt-1 h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500"
                   />
                   <div>
-                    <p className="text-sm font-semibold text-surface-900">{copy.registrationQuotaToggle}</p>
-                    <p className="mt-1 text-xs text-surface-500">{copy.registrationQuotaHint}</p>
+                    <p className="text-sm font-semibold text-surface-900">{copy.registrationToggle}</p>
+                    <p className="mt-1 text-xs text-surface-500">{copy.registrationHint}</p>
                   </div>
                 </label>
-                <label className="label">{copy.registrationQuotaLabel}</label>
-                <input
-                  type="number"
-                  min={1}
-                  step={1}
-                  value={formData.registration_quota}
-                  disabled={!formData.registration_quota_enabled}
-                  onChange={(event) =>
-                    setFormData((current) => ({
-                      ...current,
-                      registration_quota: event.target.value,
-                    }))
-                  }
-                  className="input-field"
-                  placeholder={copy.registrationQuotaPlaceholder}
-                />
-                {!formData.registration_quota_enabled && (
-                  <p className="mt-1 text-xs text-surface-500">
-                    {lang === "tr" ? "Kota kapalıyken kayıt sınırsız devam eder." : "When quota is off, registration remains unlimited."}
-                  </p>
-                )}
-              </div>
-            </div>
-          </section>
-
-          <section className="card p-6 sm:p-7">
-            <div className="flex items-start gap-3">
-              <div className="rounded-2xl bg-amber-50 p-3 text-amber-600">
-                <Mail className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-surface-900">{copy.verificationTitle}</h2>
-                <p className="mt-1 text-sm text-surface-500">{copy.verificationBody}</p>
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-4">
-              <label className="flex items-start gap-3 rounded-2xl border border-surface-200 bg-surface-50 px-4 py-4">
-                <input
-                  type="checkbox"
-                  checked={formData.require_email_verification}
-                  onChange={(event) =>
-                    setFormData((current) => ({
-                      ...current,
-                      require_email_verification: event.target.checked,
-                    }))
-                  }
-                  className="mt-1 h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500"
-                />
                 <div>
-                  <p className="text-sm font-semibold text-surface-900">{copy.verificationToggle}</p>
-                  <p className="mt-1 text-xs text-surface-500">{copy.verificationHint}</p>
-                </div>
-              </label>
-            </div>
-          </section>
-
-          <section className="card p-6 sm:p-7">
-            <div className="flex items-start gap-3">
-              <div className="rounded-2xl bg-sky-50 p-3 text-sky-600">
-                <ImageIcon className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-surface-900">{copy.bannerTitle}</h2>
-                <p className="mt-1 text-sm text-surface-500">{copy.bannerBody}</p>
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-4">
-              <div className="overflow-hidden rounded-3xl border border-surface-200 bg-surface-50">
-                {bannerPreview || formData.event_banner_url ? (
-                  <img
-                    src={bannerPreview || formData.event_banner_url}
-                    alt={copy.bannerTitle}
-                    className="h-52 w-full object-cover"
+                  <label className="mb-3 flex items-start gap-3 rounded-2xl border border-surface-200 bg-surface-50 px-4 py-4">
+                    <input
+                      type="checkbox"
+                      checked={formData.registration_quota_enabled}
+                      onChange={(event) =>
+                        setFormData((current) => ({
+                          ...current,
+                          registration_quota_enabled: event.target.checked,
+                        }))
+                      }
+                      className="mt-1 h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500"
+                    />
+                    <div>
+                      <p className="text-sm font-semibold text-surface-900">{copy.registrationQuotaToggle}</p>
+                      <p className="mt-1 text-xs text-surface-500">{copy.registrationQuotaHint}</p>
+                    </div>
+                  </label>
+                  <label className="label">{copy.registrationQuotaLabel}</label>
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={formData.registration_quota}
+                    disabled={!formData.registration_quota_enabled}
+                    onChange={(event) =>
+                      setFormData((current) => ({
+                        ...current,
+                        registration_quota: event.target.value,
+                      }))
+                    }
+                    className="input-field"
+                    placeholder={copy.registrationQuotaPlaceholder}
                   />
-                ) : (
-                  <div className="flex h-52 items-center justify-center text-sm text-surface-400">{copy.noBanner}</div>
-                )}
+                  {!formData.registration_quota_enabled && (
+                    <p className="mt-1 text-xs text-surface-500">
+                      {lang === "tr" ? "Kota kapalıyken kayıt sınırsız devam eder." : "When quota is off, registration remains unlimited."}
+                    </p>
+                  )}
+                </div>
               </div>
-              <label className="btn-secondary inline-flex cursor-pointer items-center gap-2 w-fit">
-                <Upload className="h-4 w-4" />
-                {copy.uploadBanner}
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(event) => {
-                    if (event.target.files?.[0]) handleBannerSelect(event.target.files[0]);
-                  }}
-                />
-              </label>
-              <p className="text-xs text-surface-400">{copy.bannerHint}</p>
-            </div>
-          </section>
+            </section>
 
+            {/* Email Verification */}
+            <section className="card p-6 sm:p-7">
+              <div className="flex items-start gap-3">
+                <div className="rounded-2xl bg-amber-50 p-3 text-amber-600">
+                  <Mail className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-surface-900">{copy.verificationTitle}</h2>
+                  <p className="mt-1 text-sm text-surface-500">{copy.verificationBody}</p>
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-4">
+                <label className="flex items-start gap-3 rounded-2xl border border-surface-200 bg-surface-50 px-4 py-4">
+                  <input
+                    type="checkbox"
+                    checked={formData.require_email_verification}
+                    onChange={(event) =>
+                      setFormData((current) => ({
+                        ...current,
+                        require_email_verification: event.target.checked,
+                      }))
+                    }
+                    className="mt-1 h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500"
+                  />
+                  <div>
+                    <p className="text-sm font-semibold text-surface-900">{copy.verificationToggle}</p>
+                    <p className="mt-1 text-xs text-surface-500">{copy.verificationHint}</p>
+                  </div>
+                </label>
+              </div>
+            </section>
+          </>
+        )}
+
+        {/* ===== REGISTRATION TAB ===== */}
+        {activeTab === "registration" && (
           <section className="card p-6 sm:p-7">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3">
@@ -1096,7 +1103,52 @@ export default function EventSettingsPage() {
               )}
             </div>
           </section>
+        )}
 
+        {/* ===== BANNER TAB ===== */}
+        {activeTab === "banner" && (
+          <section className="card p-6 sm:p-7">
+            <div className="flex items-start gap-3">
+              <div className="rounded-2xl bg-sky-50 p-3 text-sky-600">
+                <ImageIcon className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-surface-900">{copy.bannerTitle}</h2>
+                <p className="mt-1 text-sm text-surface-500">{copy.bannerBody}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              <div className="overflow-hidden rounded-3xl border border-surface-200 bg-surface-50">
+                {bannerPreview || formData.event_banner_url ? (
+                  <img
+                    src={bannerPreview || formData.event_banner_url}
+                    alt={copy.bannerTitle}
+                    className="h-52 w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-52 items-center justify-center text-sm text-surface-400">{copy.noBanner}</div>
+                )}
+              </div>
+              <label className="btn-secondary inline-flex cursor-pointer items-center gap-2 w-fit">
+                <Upload className="h-4 w-4" />
+                {copy.uploadBanner}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(event) => {
+                    if (event.target.files?.[0]) handleBannerSelect(event.target.files[0]);
+                  }}
+                />
+              </label>
+              <p className="text-xs text-surface-400">{copy.bannerHint}</p>
+            </div>
+          </section>
+        )}
+
+        {/* ===== EMAIL TAB ===== */}
+        {activeTab === "email" && (
           <section className="card p-6 sm:p-7">
             <div className="flex items-start gap-3">
               <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600">
@@ -1205,6 +1257,7 @@ export default function EventSettingsPage() {
               </div>
             )}
           </section>
+        )}
       </div>
     </div>
   );

@@ -177,31 +177,32 @@ export default function EventAdminNav({
 
   return (
     <div className={className || "mb-6"}>
-      <Link href="/admin/events" className="mb-2 flex w-fit items-center gap-1 text-xs font-medium text-surface-400 transition-colors hover:text-surface-600">
+      <Link href="/admin/events" className="mb-3 flex w-fit items-center gap-1.5 text-xs font-semibold text-surface-500 uppercase tracking-wider transition-colors hover:text-brand-600">
         <ChevronLeft className="h-3.5 w-3.5" />
         {copy.allEvents}
       </Link>
-      {eventName && <p className="mb-2 text-xs font-semibold text-surface-700">{eventName}</p>}
+      {eventName && <p className="mb-3 text-sm font-bold text-surface-900">{eventName}</p>}
       <div
         ref={scrollerRef}
         onWheel={handleWheel}
-        className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        <div className="flex min-w-max items-center gap-1.5 rounded-2xl border border-surface-200 bg-surface-50 p-1.5 lg:min-w-0 lg:flex-wrap">
+        <div className="flex min-w-max gap-0.5 border-b border-surface-200 lg:min-w-0 lg:flex-wrap lg:border-b-0 lg:gap-1 lg:rounded-2xl lg:border lg:bg-surface-50 lg:p-1.5">
           {NAV_ITEMS.map(({ tab, label, icon: Icon, href }) => {
             const isAct = resolvedActive === tab;
             return (
               <Link
                 key={tab}
                 href={href(eventId)}
-                className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-semibold transition-colors lg:px-4 ${
+                className={`group flex items-center gap-2 rounded-lg px-3 py-2.5 text-xs font-semibold transition-all lg:rounded-xl lg:px-3.5 relative ${
                   isAct
-                    ? "border-brand-300 bg-white text-brand-700"
-                    : "border-transparent bg-transparent text-surface-600 hover:border-surface-200 hover:bg-white hover:text-surface-900"
+                    ? "text-brand-700 bg-brand-50 lg:bg-white lg:border lg:border-brand-200"
+                    : "text-surface-600 hover:text-surface-900 hover:bg-surface-100 lg:hover:bg-white lg:hover:border lg:hover:border-surface-200"
                 }`}
               >
-                <Icon className="h-3.5 w-3.5" />
-                {label[lang]}
+                <Icon className="h-4 w-4 shrink-0 transition-transform group-hover:scale-110" />
+                <span className="hidden sm:inline">{label[lang]}</span>
+                {isAct && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-600 rounded-t-full lg:hidden" />}
               </Link>
             );
           })}
