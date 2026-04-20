@@ -1098,8 +1098,7 @@ export default function EventSettingsPage() {
                           </label>
                         </div>
 
-                        {field.type !== "file" && (
-                          <details className="rounded-lg border border-surface-200 bg-surface-50 group">
+                        <details className="rounded-lg border border-surface-200 bg-surface-50 group">
                             <summary className="flex cursor-pointer items-center justify-between px-4 py-3 font-semibold text-surface-900 text-sm">
                               <span className="flex items-center gap-2">
                                 <Settings className="h-4 w-4 text-surface-600" />
@@ -1155,8 +1154,7 @@ export default function EventSettingsPage() {
                                 </div>
                               </div>
                             </div>
-                          </details>
-                        )}
+                        </details>
                       </div>
                     </div>
                   );
