@@ -85,7 +85,7 @@ export default function EventParticipantStatusPage() {
             type: "Tür",
             certReadyBanner: "Sertifikanız hazır görünüyor",
             certReadyBannerBody: "Son koşullar tamamlanmış. Eğer görüntüleme bağlantısı mevcutsa yukarıdaki butondan doğrudan açabilirsiniz.",
-            cardEyebrow: "Dijital katılım kartı",
+            cardEyebrow: "Dijital Katılım Kartı",
             cardIssued: "Kart aktif",
             cardHolder: "Katılımcı",
             cardTrack: "Akış",
@@ -189,31 +189,40 @@ export default function EventParticipantStatusPage() {
   const locale = lang === "tr" ? "tr-TR" : "en-US";
   const badgeDateFormatter = useMemo(() => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Istanbul" }), [locale]);
 
-  const pageBg = useMemo(
-    () => ({
-      background: `radial-gradient(circle at top left, ${brandColor}16 0%, transparent 28%), radial-gradient(circle at top right, rgba(249,115,22,0.12) 0%, transparent 24%), linear-gradient(180deg, #f8fbff 0%, #eef2ff 52%, #f8fafc 100%)`,
-    }),
-    [brandColor]
-  );
+  // Çok hafif, modern bir arka plan
+  const pageBg = { background: "#fafafa" };
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center px-4" style={pageBg}><div className="rounded-[32px] border border-white/80 bg-white/90 px-8 py-10 text-center shadow-[0_30px_100px_rgba(15,23,42,0.12)]"><Loader2 className="mx-auto h-10 w-10 animate-spin" style={{ color: brandColor }} /><p className="mt-4 text-sm font-medium text-slate-500">{copy.loading}</p></div></div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center px-4" style={pageBg}>
+        <div className="rounded-[32px] border border-zinc-200/60 bg-white px-8 py-12 text-center shadow-sm">
+          <Loader2 className="mx-auto h-8 w-8 animate-spin" style={{ color: brandColor }} />
+          <p className="mt-4 text-sm font-medium text-zinc-500">{copy.loading}</p>
+        </div>
+      </div>
+    );
   }
 
   if (!token || !status) {
     return (
       <div className="min-h-screen px-4 py-10" style={pageBg}>
         <div className="mx-auto max-w-3xl space-y-6">
-          <Link href={`/events/${eventId}/register`} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"><ArrowLeft className="h-4 w-4" />{copy.back}</Link>
-          <div className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
-            <div className="border-b border-slate-100 bg-[radial-gradient(circle_at_top_left,_rgba(79,70,229,0.14),_transparent_38%),linear-gradient(135deg,_#ffffff_15%,_#eef2ff_100%)] px-6 py-7 md:px-8">
-              <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700"><ShieldCheck className="h-3.5 w-3.5" />{copy.personalArea}</div>
-              <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-900">{copy.notFoundTitle}</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{copy.notFoundBody}</p>
+          <Link href={`/events/${eventId}/register`} className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-600 shadow-sm transition hover:border-zinc-300 hover:text-zinc-900">
+            <ArrowLeft className="h-4 w-4" />{copy.back}
+          </Link>
+          <div className="overflow-hidden rounded-3xl border border-zinc-200/80 bg-white shadow-sm">
+            <div className="border-b border-zinc-100 bg-zinc-50/50 px-6 py-8 md:px-10">
+              <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700">
+                <ShieldCheck className="h-3.5 w-3.5" />{copy.personalArea}
+              </div>
+              <h1 className="mt-5 text-2xl font-bold tracking-tight text-zinc-900 md:text-3xl">{copy.notFoundTitle}</h1>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-600">{copy.notFoundBody}</p>
             </div>
-            <div className="space-y-5 px-6 py-6 md:px-8 md:py-8">
-              {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
-              <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center text-sm text-slate-500">{copy.notFoundHint}</div>
+            <div className="space-y-5 px-6 py-8 md:px-10">
+              {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">{error}</div> : null}
+              <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-6 py-8 text-center text-sm leading-relaxed text-zinc-500">
+                {copy.notFoundHint}
+              </div>
             </div>
           </div>
         </div>
@@ -233,86 +242,215 @@ export default function EventParticipantStatusPage() {
           : copy.waitingUpdates;
 
   return (
-    <div className="min-h-screen px-4 py-8 md:px-8 md:py-10" style={pageBg}>
-      <div className="mx-auto max-w-5xl space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link href={`/events/${eventId}/register`} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"><ArrowLeft className="h-4 w-4" />{copy.back}</Link>
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm"><Sparkles className="h-4 w-4" style={{ color: brandColor }} />{brandName} {copy.panelBadge}</div>
+    <div className="min-h-screen px-4 py-8 md:px-8 md:py-12" style={pageBg}>
+      <div className="mx-auto max-w-5xl space-y-8">
+        
+        {/* Üst Navigasyon */}
+        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <Link href={`/events/${eventId}/register`} className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-5 py-2.5 text-sm font-semibold text-zinc-600 shadow-sm transition hover:border-zinc-300 hover:text-zinc-900">
+            <ArrowLeft className="h-4 w-4" />{copy.back}
+          </Link>
+          <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-5 py-2.5 text-sm font-semibold text-zinc-600 shadow-sm">
+            <Sparkles className="h-4 w-4" style={{ color: brandColor }} />
+            {brandName} {copy.panelBadge}
+          </div>
         </div>
 
-        <div className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
-          <div className="border-b border-slate-100 bg-[radial-gradient(circle_at_top_left,_rgba(79,70,229,0.14),_transparent_38%),linear-gradient(135deg,_#ffffff_15%,_#eef2ff_100%)] px-6 py-7 md:px-8">
-            <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700"><BadgeCheck className="h-3.5 w-3.5" />{copy.allStatus}</div>
-            <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-900">{copy.title}</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{copy.subtitle}</p>
+        {/* Ana İçerik Konteyneri */}
+        <div className="overflow-hidden rounded-3xl border border-zinc-200/80 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+          
+          {/* Header Kısmı */}
+          <div className="border-b border-zinc-100 bg-zinc-50/50 px-6 py-8 md:px-10">
+            <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 shadow-sm">
+              <BadgeCheck className="h-3.5 w-3.5" style={{ color: brandColor }} />
+              {copy.allStatus}
+            </div>
+            <h1 className="mt-5 text-2xl font-bold tracking-tight text-zinc-900 md:text-3xl">{copy.title}</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-500">{copy.subtitle}</p>
           </div>
 
-          <div className="space-y-6 px-6 py-6 md:px-8 md:py-8">
-            <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-              <div className="relative overflow-hidden rounded-[30px] border border-slate-200 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_55%,#312e81_100%)] p-6 text-white shadow-[0_24px_80px_rgba(15,23,42,0.22)]">
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.22),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.42),transparent_28%)]" />
-                <div className="relative flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-8 px-6 py-8 md:px-10 md:py-10">
+            
+            {/* Minimalist Dijital Kimlik Kartı */}
+            <div className="relative overflow-hidden rounded-3xl border border-zinc-200/60 bg-white p-6 shadow-sm sm:p-8">
+              {/* Marka Rengi Hafif Glow Efekti */}
+              <div 
+                className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full opacity-[0.08] blur-3xl" 
+                style={{ backgroundColor: brandColor }} 
+              />
+              
+              <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-5">
+                  {/* Katılımcı Baş Harfi (Yedigen / Heptagon Formunda) */}
+                  <div 
+                    className="flex h-20 w-20 shrink-0 items-center justify-center bg-zinc-100 text-3xl font-bold text-zinc-700 shadow-inner"
+                    style={{ clipPath: "polygon(50% 0%, 90% 20%, 100% 60%, 75% 100%, 25% 100%, 0% 60%, 10% 20%)" }}
+                  >
+                    {status.attendee_name.charAt(0).toUpperCase()}
+                  </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/70">{copy.cardEyebrow}</p>
-                    <h2 className="mt-4 text-3xl font-black tracking-tight">{status.attendee_name}</h2>
-                    <p className="mt-2 max-w-xl text-sm leading-6 text-white/75">{status.attendee_email}</p>
-                  </div>
-                  <div className="rounded-3xl border border-white/15 bg-white/10 p-3 text-white/90 backdrop-blur">
-                    <IdCard className="h-7 w-7" />
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400">{copy.cardHolder}</p>
+                    <h2 className="mt-1 text-2xl font-bold text-zinc-900">{status.attendee_name}</h2>
+                    <p className="text-sm text-zinc-500">{status.attendee_email}</p>
                   </div>
                 </div>
-                <div className="relative mt-8 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60">{copy.cardHolder}</p>
-                    <p className="mt-2 text-sm font-semibold text-white">{copy.cardIssued}</p>
+                
+                {/* Hızlı Bilgi Etiketleri */}
+                <div className="flex flex-wrap gap-2 sm:flex-col sm:items-end">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-semibold text-zinc-700">
+                    <IdCard className="h-4 w-4 text-zinc-400" /> {copy.cardIssued}
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60">{copy.sessions}</p>
-                    <p className="mt-2 text-sm font-semibold text-white">{status.sessions_attended}/{Math.max(status.total_sessions, status.sessions_required)}</p>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-semibold text-zinc-700">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    {status.sessions_attended}/{Math.max(status.total_sessions, status.sessions_required)} {copy.sessions}
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60">{copy.cardTrack}</p>
-                    <p className="mt-2 text-sm font-semibold text-white">{hasSurvey ? (status.survey_completed ? copy.completed : copy.pending) : copy.surveyDisabled}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-1">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{copy.sessions}</p><p className="mt-2 text-2xl font-black text-slate-900">{status.sessions_attended}/{Math.max(status.total_sessions, status.sessions_required)}</p><p className="mt-1 text-xs text-slate-500">{copy.minSessions.replace("{count}", String(status.sessions_required))}</p></div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{copy.survey}</p><p className="mt-2 text-2xl font-black text-slate-900">{hasSurvey ? (status.survey_completed ? copy.completed : copy.pending) : copy.surveyDisabled}</p><p className="mt-1 text-xs text-slate-500">{hasSurvey ? (status.survey_required ? copy.requiredForCert : copy.optional) : copy.notEnabled}</p></div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{copy.badges}</p><p className="mt-2 text-2xl font-black text-slate-900">{status.badge_count}</p><p className="mt-1 text-xs text-slate-500">{copy.totalBadges}</p></div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{copy.certificate}</p><p className="mt-2 text-2xl font-black text-slate-900">{status.certificate_ready ? copy.ready : status.certificate_count > 0 ? copy.produced : copy.pending}</p><p className="mt-1 text-xs text-slate-500">{status.certificate_ready ? copy.visibleReady : copy.waits}</p></div>
-              </div>
-            </div>
-
-            <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                <p className="text-sm font-semibold text-slate-900">{copy.nextStep}</p>
-                <p className="mt-3 text-sm leading-6 text-slate-600">{nextStepDescription}</p>
-                <div className="mt-4 flex flex-wrap gap-3">
-                  {hasSurvey ? <Link href={surveyHref} className="inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-white transition" style={{ background: `linear-gradient(135deg, ${brandColor} 0%, ${brandColor}DD 100%)` }}>{copy.surveyPage}<ExternalLink className="h-4 w-4" /></Link> : null}
-                  {status.latest_certificate_verify_url ? <a href={status.latest_certificate_verify_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{copy.viewCertificate}<ExternalLink className="h-4 w-4" /></a> : null}
-                </div>
-              </div>
-
-              <div className="rounded-3xl border border-slate-200 bg-white p-5">
-                <div className="flex items-center gap-2 text-sm font-semibold text-slate-900"><Clock3 className="h-4 w-4" style={{ color: brandColor }} />{copy.eligibilitySummary}</div>
-                <div className="mt-4 space-y-3">
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">{copy.completedSessions}: <span className="font-semibold">{status.sessions_attended}</span></div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">{copy.surveyStatus}: <span className="font-semibold">{hasSurvey ? (status.survey_completed ? copy.completed : copy.pending) : copy.surveyDisabled}</span></div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">{copy.visibleBadges}: <span className="font-semibold">{status.badges.length}</span></div>
                 </div>
               </div>
             </div>
 
-            {status.eligible_raffles.length > 0 ? <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5"><div className="flex items-center gap-2 text-sm font-semibold text-amber-900"><Ticket className="h-4 w-4" />{copy.eligibleRaffles}</div><div className="mt-3 flex flex-wrap gap-2">{status.eligible_raffles.map((raffle) => <span key={raffle.id} className="rounded-full border border-amber-200 bg-white px-3 py-1 text-xs font-semibold text-amber-800">{raffle.title} • {raffle.prize_name}</span>)}</div></div> : null}
-
-            <div className="rounded-3xl border border-slate-200 bg-white p-5 md:p-6">
-              <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between"><div><h2 className="text-xl font-black text-slate-900">{copy.badgesTitle}</h2><p className="mt-1 text-sm text-slate-500">{copy.badgesSubtitle}</p></div></div>
-              {status.badges.length === 0 ? <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center text-sm text-slate-500">{copy.noBadges}</div> : <div className="grid gap-3 md:grid-cols-2">{status.badges.map((badge) => { const color = badge.badge_color_hex || brandColor; return <div key={badge.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-lg font-black text-slate-900">{badge.badge_name || badge.badge_type}</p>{badge.badge_description ? <p className="mt-1 text-sm leading-6 text-slate-600">{badge.badge_description}</p> : null}</div><div className="inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold" style={{ color, borderColor: `${color}50`, backgroundColor: `${color}12` }}><Award className="h-3.5 w-3.5" />{badge.is_automatic ? copy.automatic : copy.manual}</div></div><div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500"><span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">{copy.type}: {badge.badge_type}</span><span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">{badgeDateFormatter.format(new Date(badge.awarded_at))}</span></div></div>; })}</div>}
+            {/* İstatistikler Grid */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-5 transition hover:bg-white hover:shadow-sm">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{copy.sessions}</p>
+                <p className="mt-3 text-3xl font-bold text-zinc-900">{status.sessions_attended}<span className="text-xl text-zinc-400">/{Math.max(status.total_sessions, status.sessions_required)}</span></p>
+                <p className="mt-2 text-xs text-zinc-500">{copy.minSessions.replace("{count}", String(status.sessions_required))}</p>
+              </div>
+              <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-5 transition hover:bg-white hover:shadow-sm">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{copy.survey}</p>
+                <p className="mt-3 text-xl font-bold text-zinc-900">{hasSurvey ? (status.survey_completed ? copy.completed : copy.pending) : copy.surveyDisabled}</p>
+                <p className="mt-2 text-xs text-zinc-500">{hasSurvey ? (status.survey_required ? copy.requiredForCert : copy.optional) : copy.notEnabled}</p>
+              </div>
+              <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-5 transition hover:bg-white hover:shadow-sm">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{copy.badges}</p>
+                <p className="mt-3 text-3xl font-bold text-zinc-900">{status.badge_count}</p>
+                <p className="mt-2 text-xs text-zinc-500">{copy.totalBadges}</p>
+              </div>
+              <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-5 transition hover:bg-white hover:shadow-sm">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{copy.certificate}</p>
+                <p className="mt-3 text-xl font-bold text-zinc-900">{status.certificate_ready ? copy.ready : status.certificate_count > 0 ? copy.produced : copy.pending}</p>
+                <p className="mt-2 text-xs text-zinc-500">{status.certificate_ready ? copy.visibleReady : copy.waits}</p>
+              </div>
             </div>
 
-            {status.certificate_ready ? <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-5 text-emerald-900"><div className="flex items-center gap-2 text-base font-semibold"><CheckCircle2 className="h-5 w-5" />{copy.certReadyBanner}</div><p className="mt-2 text-sm leading-6 text-emerald-800">{copy.certReadyBannerBody}</p></div> : null}
+            {/* Adım & Özet Alanı */}
+            <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+              <div className="rounded-3xl border border-zinc-200/80 bg-zinc-50/30 p-6 sm:p-8">
+                <h3 className="text-base font-semibold text-zinc-900">{copy.nextStep}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-zinc-600">{nextStepDescription}</p>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  {hasSurvey ? (
+                    <Link 
+                      href={surveyHref} 
+                      className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90" 
+                      style={{ backgroundColor: brandColor }}
+                    >
+                      {copy.surveyPage} <ExternalLink className="h-4 w-4" />
+                    </Link>
+                  ) : null}
+                  {status.latest_certificate_verify_url ? (
+                    <a 
+                      href={status.latest_certificate_verify_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-5 py-2.5 text-sm font-semibold text-zinc-700 shadow-sm transition hover:bg-zinc-50"
+                    >
+                      {copy.viewCertificate} <ExternalLink className="h-4 w-4" />
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-zinc-200/80 bg-white p-6 sm:p-8">
+                <div className="flex items-center gap-2 text-sm font-semibold text-zinc-900">
+                  <Clock3 className="h-4 w-4" style={{ color: brandColor }} />
+                  {copy.eligibilitySummary}
+                </div>
+                <div className="mt-5 space-y-4">
+                  <div className="flex items-center justify-between border-b border-zinc-100 pb-3 text-sm">
+                    <span className="text-zinc-500">{copy.completedSessions}</span>
+                    <span className="font-semibold text-zinc-900">{status.sessions_attended}</span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-zinc-100 pb-3 text-sm">
+                    <span className="text-zinc-500">{copy.surveyStatus}</span>
+                    <span className="font-semibold text-zinc-900">{hasSurvey ? (status.survey_completed ? copy.completed : copy.pending) : copy.surveyDisabled}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-zinc-500">{copy.visibleBadges}</span>
+                    <span className="font-semibold text-zinc-900">{status.badges.length}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Çekilişler */}
+            {status.eligible_raffles.length > 0 ? (
+              <div className="rounded-2xl border border-amber-200/60 bg-amber-50/50 p-6">
+                <div className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+                  <Ticket className="h-4 w-4" />{copy.eligibleRaffles}
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {status.eligible_raffles.map((raffle) => (
+                    <span key={raffle.id} className="rounded-full border border-amber-200 bg-white px-4 py-1.5 text-xs font-semibold text-amber-800 shadow-sm">
+                      {raffle.title} • {raffle.prize_name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {/* Hazır Sertifika Uyarı Bannerı */}
+            {status.certificate_ready ? (
+              <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/50 px-6 py-5 text-emerald-900">
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600" />{copy.certReadyBanner}
+                </div>
+                <p className="mt-2 text-sm leading-relaxed text-emerald-800/80">{copy.certReadyBannerBody}</p>
+              </div>
+            ) : null}
+
+            {/* Rozetler Alanı */}
+            <div className="pt-4 border-t border-zinc-100">
+              <div className="mb-6">
+                <h2 className="text-xl font-bold text-zinc-900">{copy.badgesTitle}</h2>
+                <p className="mt-1 text-sm text-zinc-500">{copy.badgesSubtitle}</p>
+              </div>
+              
+              {status.badges.length === 0 ? (
+                <div className="rounded-3xl border border-dashed border-zinc-300 bg-zinc-50 px-6 py-10 text-center text-sm text-zinc-500">
+                  {copy.noBadges}
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {status.badges.map((badge) => {
+                    const color = badge.badge_color_hex || brandColor;
+                    return (
+                      <div key={badge.id} className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm transition hover:shadow-md">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0">
+                            <p className="text-base font-bold text-zinc-900">{badge.badge_name || badge.badge_type}</p>
+                            {badge.badge_description ? (
+                              <p className="mt-2 text-sm leading-relaxed text-zinc-500">{badge.badge_description}</p>
+                            ) : null}
+                          </div>
+                          <div 
+                            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold" 
+                            style={{ color, borderColor: `${color}40`, backgroundColor: `${color}10` }}
+                          >
+                            <Award className="h-3.5 w-3.5" />
+                            {badge.is_automatic ? copy.automatic : copy.manual}
+                          </div>
+                        </div>
+                        <div className="mt-5 flex flex-wrap gap-2 text-[11px] font-medium text-zinc-500">
+                          <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1">{copy.type}: {badge.badge_type}</span>
+                          <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1">{badgeDateFormatter.format(new Date(badge.awarded_at))}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
       </div>
