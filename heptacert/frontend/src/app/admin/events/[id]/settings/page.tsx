@@ -12,6 +12,7 @@ import {
   Loader2,
   Lock,
   Mail,
+  MessageSquare,
   Save,
   Sparkles,
   Upload,
@@ -31,8 +32,9 @@ import {
   Info,
   Lightbulb,
   Settings,
+  ShieldAlert,
 } from "lucide-react";
-import { apiFetch, getMySubscription, type RegistrationField, type SubscriptionInfo } from "@/lib/api";
+import { apiFetch, getMySubscription, listAdminEventComments, updateAdminEventComment, type RegistrationField, type SubscriptionInfo, type PublicEventComment } from "@/lib/api";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 import PageHeader from "@/components/Admin/PageHeader";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -109,6 +111,7 @@ const SETTINGS_TABS = [
   { id: "registration", label_tr: "Kayıt Forması", label_en: "Registration Form", icon: ClipboardList },
   { id: "banner", label_tr: "Banner", label_en: "Banner", icon: ImageIcon },
   { id: "email", label_tr: "E-posta", label_en: "Email", icon: Mail },
+  { id: "comments", label_tr: "Yorumlar", label_en: "Comments", icon: MessageSquare },
 ] as const;
 
 function createRegistrationField(): RegistrationField {
@@ -216,6 +219,15 @@ export default function EventSettingsPage() {
         active: "Aktif",
         enterprise: "Enterprise",
         growth: "Growth",
+        commentsTitle: "Yorum Moderasyonu",
+        commentsSubtitle: "Açık etkinlik sayfasındaki yorumları tek yerden görün, raporlananları inceleyin ve görünürlüğü yönetin.",
+        commentsEmpty: "Bu etkinlik için henüz yorum yok.",
+        commentsReported: "Rapor",
+        commentsHide: "Gizle",
+        commentsPublish: "Yayına Al",
+        commentsMember: "Üye",
+        commentsUpdated: "Güncellendi",
+        commentsFallback: "Yorumlar yüklenemedi.",
       }
     : {
         title: "Event Settings",
@@ -297,6 +309,15 @@ export default function EventSettingsPage() {
         active: "Active",
         enterprise: "Enterprise",
         growth: "Growth",
+        commentsTitle: "Comment Moderation",
+        commentsSubtitle: "Review public event comments, inspect reports, and control visibility from one place.",
+        commentsEmpty: "There are no comments for this event yet.",
+        commentsReported: "Reports",
+        commentsHide: "Hide",
+        commentsPublish: "Publish",
+        commentsMember: "Member",
+        commentsUpdated: "Updated",
+        commentsFallback: "Failed to load comments.",
       };
 
   const [event, setEvent] = useState<EventOut | null>(null);
@@ -324,7 +345,10 @@ export default function EventSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"general" | "registration" | "banner" | "email">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "registration" | "banner" | "email" | "comments">("general");
+  const [comments, setComments] = useState<PublicEventComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentsSavingId, setCommentsSavingId] = useState<number | null>(null);
 
   const hasGrowthPlan = subscription?.role === "superadmin" || (subscription?.active && ["growth", "enterprise"].includes(subscription?.plan_id || ""));
   const fieldTypeOptions = FIELD_TYPE_OPTIONS.map((option) => ({
@@ -395,11 +419,49 @@ export default function EventSettingsPage() {
     }
   }
 
+  useEffect(() => {
+    if (activeTab !== "comments") return;
+
+    let active = true;
+    setCommentsLoading(true);
+    setError(null);
+
+    listAdminEventComments(Number(eventId))
+      .then((commentData) => {
+        if (!active) return;
+        setComments(commentData);
+      })
+      .catch((err: any) => {
+        if (!active) return;
+        setError(err?.message || copy.commentsFallback);
+      })
+      .finally(() => {
+        if (active) setCommentsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [activeTab, eventId, copy.commentsFallback]);
+
   function handleBannerSelect(file: File) {
     setBannerFile(file);
     const reader = new FileReader();
     reader.onload = (event) => setBannerPreview(event.target?.result as string);
     reader.readAsDataURL(file);
+  }
+
+  async function handleCommentStatusChange(commentId: number, status: "visible" | "hidden" | "reported") {
+    setCommentsSavingId(commentId);
+    setError(null);
+    try {
+      const updated = await updateAdminEventComment(Number(eventId), commentId, status);
+      setComments((current) => current.map((comment) => (comment.id === commentId ? updated : comment)));
+    } catch (err: any) {
+      setError(err?.message || copy.commentsFallback);
+    } finally {
+      setCommentsSavingId(null);
+    }
   }
 
   function addRegistrationField() {
@@ -1254,6 +1316,92 @@ export default function EventSettingsPage() {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* ===== COMMENTS TAB ===== */}
+        {activeTab === "comments" && (
+          <section className="card p-6 sm:p-7">
+            <div className="flex items-start gap-3">
+              <div className="rounded-2xl bg-blue-50 p-3 text-blue-600">
+                <MessageSquare className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-surface-900">{copy.commentsTitle}</h2>
+                <p className="mt-1 text-sm text-surface-500">{copy.commentsSubtitle}</p>
+              </div>
+            </div>
+
+            {error && (
+              <div className="mt-6 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
+                <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 flex-none text-rose-600" />
+                <p>{error}</p>
+              </div>
+            )}
+
+            {commentsLoading ? (
+              <div className="mt-10 flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
+              </div>
+            ) : comments.length === 0 ? (
+              <div className="mt-6 rounded-2xl border border-surface-200 bg-surface-50 py-12 text-center text-sm text-surface-500">
+                {copy.commentsEmpty}
+              </div>
+            ) : (
+              <div className="mt-6 space-y-4">
+                {comments.map((comment) => {
+                  const statusStyle =
+                    comment.status === "visible"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                      : comment.status === "reported"
+                        ? "border-amber-200 bg-amber-50 text-amber-700"
+                        : "border-slate-200 bg-slate-100 text-slate-700";
+
+                  return (
+                    <article key={comment.id} className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6">
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-semibold text-surface-900">{comment.member_name}</span>
+                            <span className="text-xs text-surface-400">{comment.member_email}</span>
+                            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${statusStyle}`}>
+                              {comment.status}
+                            </span>
+                          </div>
+                          <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-surface-700">{comment.body}</p>
+                          <div className="mt-4 flex flex-wrap gap-4 text-xs text-surface-400">
+                            <span>{copy.commentsMember}: {comment.member_public_id}</span>
+                            <span>{copy.commentsReported}: {comment.report_count}</span>
+                            <span>{copy.commentsUpdated}: {new Date(comment.updated_at).toLocaleString(lang === "tr" ? "tr-TR" : "en-US")}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex shrink-0 flex-wrap gap-2 lg:flex-col">
+                          <button
+                            type="button"
+                            onClick={() => void handleCommentStatusChange(comment.id, "visible")}
+                            disabled={commentsSavingId === comment.id || comment.status === "visible"}
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-50 lg:w-full"
+                          >
+                            {commentsSavingId === comment.id && <Loader2 className="h-4 w-4 animate-spin" />}
+                            {copy.commentsPublish}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleCommentStatusChange(comment.id, "hidden")}
+                            disabled={commentsSavingId === comment.id || comment.status === "hidden"}
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-50 lg:w-full"
+                          >
+                            {commentsSavingId === comment.id && <Loader2 className="h-4 w-4 animate-spin" />}
+                            {copy.commentsHide}
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             )}
           </section>
