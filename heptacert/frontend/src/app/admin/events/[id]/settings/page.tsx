@@ -17,6 +17,19 @@ import {
   Wand2,
   Plus,
   Trash2,
+  ChevronUp,
+  ChevronDown,
+  Type,
+  AlignLeft,
+  Phone,
+  Hash,
+  Calendar,
+  List,
+  FileUp,
+  Eye,
+  Info,
+  Lightbulb,
+  Settings,
 } from "lucide-react";
 import { apiFetch, getMySubscription, type RegistrationField, type SubscriptionInfo } from "@/lib/api";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
@@ -74,14 +87,14 @@ type FormState = {
   cert_email_template_id: number | null;
 };
 
-const FIELD_TYPE_OPTIONS: Array<{ value: RegistrationField["type"]; tr: string; en: string }> = [
-  { value: "text", tr: "Kısa metin", en: "Short text" },
-  { value: "textarea", tr: "Uzun metin", en: "Long text" },
-  { value: "tel", tr: "Telefon", en: "Phone" },
-  { value: "number", tr: "Sayı", en: "Number" },
-  { value: "date", tr: "Tarih", en: "Date" },
-  { value: "select", tr: "Seçim listesi", en: "Select list" },
-  { value: "file", tr: "Dosya yükleme", en: "File upload" },
+const FIELD_TYPE_OPTIONS: Array<{ value: RegistrationField["type"]; tr: string; en: string; desc_tr?: string; desc_en?: string; icon?: any }> = [
+  { value: "text", tr: "Kısa metin", en: "Short text", desc_tr: "Tek satır metin (isim, e-posta vb.)", desc_en: "Single line text (name, email, etc.)", icon: Type },
+  { value: "textarea", tr: "Uzun metin", en: "Long text", desc_tr: "Çok satırlı metin alanı", desc_en: "Multi-line text area", icon: AlignLeft },
+  { value: "tel", tr: "Telefon", en: "Phone", desc_tr: "Telefon numarası (otomatik format)", desc_en: "Phone number (auto-formatted)", icon: Phone },
+  { value: "number", tr: "Sayı", en: "Number", desc_tr: "Sayısal değer", desc_en: "Numeric value", icon: Hash },
+  { value: "date", tr: "Tarih", en: "Date", desc_tr: "Tarih seçici", desc_en: "Date picker", icon: Calendar },
+  { value: "select", tr: "Seçim listesi", en: "Select list", desc_tr: "Açılır menü (birden fazla seçenek)", desc_en: "Dropdown menu (multiple options)", icon: List },
+  { value: "file", tr: "Dosya yükleme", en: "File upload", desc_tr: "Katılımcılar dosya yükleyebilir", desc_en: "Participants can upload files", icon: FileUp },
 ];
 
 const VISIBILITY_OPTIONS = [
@@ -400,6 +413,20 @@ export default function EventSettingsPage() {
       ...current,
       registration_fields: current.registration_fields.filter((field) => field.id !== fieldId),
     }));
+  }
+
+  function moveRegistrationField(fieldId: string, direction: "up" | "down") {
+    setFormData((current) => {
+      const fields = [...current.registration_fields];
+      const index = fields.findIndex((f) => f.id === fieldId);
+      if (index === -1) return current;
+      if (direction === "up" && index > 0) {
+        [fields[index], fields[index - 1]] = [fields[index - 1], fields[index]];
+      } else if (direction === "down" && index < fields.length - 1) {
+        [fields[index], fields[index + 1]] = [fields[index + 1], fields[index]];
+      }
+      return { ...current, registration_fields: fields };
+    });
   }
 
   async function handleSave() {
@@ -765,6 +792,18 @@ export default function EventSettingsPage() {
               </button>
             </div>
 
+            <div className="mt-6 rounded-2xl bg-blue-50 border border-blue-200 p-4 flex gap-3">
+              <Lightbulb className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-blue-900">
+                <p className="font-semibold mb-1">{lang === "tr" ? "Form oluşturma ipuçları:" : "Form building tips:"}</p>
+                <ul className="text-xs space-y-1 text-blue-800">
+                  <li>• {lang === "tr" ? "Alanları sürükleyerek sırasını değiştirebilirsiniz" : "Reorder fields using the up/down buttons"}</li>
+                  <li>• {lang === "tr" ? "Koşullu zorunlu alanlar ekleyebilirsiniz" : "Add conditional requirements for smart forms"}</li>
+                  <li>• {lang === "tr" ? "Her alan için yardımcı metin ekleyebilirsiniz" : "Add helper text to guide users"}</li>
+                </ul>
+              </div>
+            </div>
+
             <div className="mt-6 space-y-4">
               {formData.registration_fields.length === 0 ? (
                 <div className="rounded-3xl border border-dashed border-surface-300 bg-surface-50 px-5 py-6 text-sm text-surface-500">
@@ -784,148 +823,192 @@ export default function EventSettingsPage() {
                     .filter(Boolean);
 
                   return (
-                    <div key={field.id} className="rounded-3xl border border-surface-200 bg-surface-50 p-5">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <p className="text-sm font-semibold text-surface-900">
-                          #{index + 1} {field.label || copy.fieldLabel}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => removeRegistrationField(field.id)}
-                          className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          {copy.removeField}
-                        </button>
+                    <div key={field.id} className="rounded-2xl border border-surface-200 bg-white p-5 hover:shadow-md transition">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4 pb-4 border-b border-surface-100">
+                        <div className="flex items-start gap-3">
+                          <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-brand-100 text-sm font-bold text-brand-700 flex-shrink-0">
+                            {index + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-surface-900 truncate">
+                              {field.label || `[${copy.fieldLabel}]`}
+                            </p>
+                            <p className="mt-1 text-xs text-surface-500">
+                              {fieldTypeOptions.find(o => o.value === field.type)?.label}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => moveRegistrationField(field.id, "up")}
+                            disabled={index === 0}
+                            className="rounded-lg border border-surface-200 bg-white p-2 text-surface-600 hover:bg-surface-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                            title={lang === "tr" ? "Yukarı taşı" : "Move up"}
+                          >
+                            <ChevronUp className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveRegistrationField(field.id, "down")}
+                            disabled={index === formData.registration_fields.length - 1}
+                            className="rounded-lg border border-surface-200 bg-white p-2 text-surface-600 hover:bg-surface-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                            title={lang === "tr" ? "Aşağı taşı" : "Move down"}
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeRegistrationField(field.id)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            {copy.removeField}
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="mt-4 grid gap-4 md:grid-cols-2">
-                        <div>
-                          <label className="label">{copy.fieldLabel}</label>
-                          <input
-                            value={field.label}
-                            onChange={(event) => updateRegistrationField(field.id, { label: event.target.value })}
-                            className="input-field"
-                            placeholder={copy.labelPlaceholder}
-                          />
+                      <div className="space-y-4">
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                          <div>
+                            <label className="label text-xs font-semibold text-surface-700">{copy.fieldLabel}</label>
+                            <input
+                              value={field.label}
+                              onChange={(event) => updateRegistrationField(field.id, { label: event.target.value })}
+                              className="input-field text-sm"
+                              placeholder={copy.labelPlaceholder}
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="label text-xs font-semibold text-surface-700">{copy.fieldType}</label>
+                            <select
+                              value={field.type}
+                              onChange={(event) =>
+                                updateRegistrationField(field.id, {
+                                  type: event.target.value as RegistrationField["type"],
+                                  options: event.target.value === "select" ? (field.options || [""]) : [],
+                                })
+                              }
+                              className="input-field text-sm"
+                            >
+                              {fieldTypeOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="sm:col-span-2 lg:col-span-2">
+                            <label className="label text-xs font-semibold text-surface-700">{copy.fieldPlaceholder}</label>
+                            <input
+                              value={field.placeholder || ""}
+                              onChange={(event) => updateRegistrationField(field.id, { placeholder: event.target.value })}
+                              className="input-field text-sm"
+                              placeholder={copy.fieldPlaceholder}
+                            />
+                          </div>
                         </div>
+
                         <div>
-                          <label className="label">{copy.fieldType}</label>
-                          <select
-                            value={field.type}
-                            onChange={(event) =>
-                              updateRegistrationField(field.id, {
-                                type: event.target.value as RegistrationField["type"],
-                                options: event.target.value === "select" ? (field.options || [""]) : [],
-                              })
-                            }
-                            className="input-field"
-                          >
-                            {fieldTypeOptions.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="label">{copy.fieldPlaceholder}</label>
-                          <input
-                            value={field.placeholder || ""}
-                            onChange={(event) => updateRegistrationField(field.id, { placeholder: event.target.value })}
-                            className="input-field"
-                            placeholder={copy.fieldPlaceholder}
-                          />
-                        </div>
-                        <div>
-                          <label className="label">{copy.fieldHelper}</label>
+                          <label className="label text-xs font-semibold text-surface-700">{copy.fieldHelper}</label>
                           <input
                             value={field.helper_text || ""}
                             onChange={(event) => updateRegistrationField(field.id, { helper_text: event.target.value })}
-                            className="input-field"
+                            className="input-field text-sm"
                             placeholder={copy.helperPlaceholder}
                           />
                         </div>
-                      </div>
 
-                      {field.type === "select" && (
-                        <div className="mt-4">
-                          <label className="label">{copy.fieldOptions}</label>
-                          <textarea
-                            value={(field.options || []).join("\n")}
-                            onChange={(event) =>
-                              updateRegistrationField(field.id, {
-                                options: event.target.value.split("\n"),
-                              })
-                            }
-                            className="input-field min-h-28"
-                            placeholder={copy.fieldOptionsHint}
-                          />
-                          <p className="mt-2 text-xs text-surface-400">{copy.fieldOptionsHint}</p>
-                        </div>
-                      )}
-
-                      {field.type === "file" && (
-                        <div className="mt-4 rounded-2xl border border-surface-200 bg-white p-4">
-                          <p className="text-sm font-semibold text-surface-800">{copy.conditionalRequirement}</p>
-                          <p className="mt-1 text-xs text-surface-500">{copy.conditionalHint}</p>
-                          <div className="mt-3 grid gap-4 md:grid-cols-2">
-                            <div>
-                              <label className="label">{copy.conditionalDependsOn}</label>
-                              <select
-                                value={field.required_when_field_id || ""}
-                                onChange={(event) => {
-                                  const nextFieldId = event.target.value;
-                                  updateRegistrationField(field.id, {
-                                    required_when_field_id: nextFieldId || undefined,
-                                    required_when_equals: nextFieldId
-                                      ? (field.required_when_equals || "")
-                                      : undefined,
-                                  });
-                                }}
-                                className="input-field"
-                              >
-                                <option value="">{lang === "tr" ? "Yok" : "None"}</option>
-                                {conditionalSourceFields.map((candidate) => (
-                                  <option key={candidate.id} value={candidate.id}>
-                                    {candidate.label || candidate.id}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <div>
-                              <label className="label">{copy.conditionalValue}</label>
-                              <select
-                                value={field.required_when_equals || ""}
-                                onChange={(event) =>
-                                  updateRegistrationField(field.id, {
-                                    required_when_equals: event.target.value,
-                                  })
-                                }
-                                disabled={!field.required_when_field_id || !conditionalValueOptions.length}
-                                className="input-field"
-                              >
-                                <option value="">{copy.conditionalValuePlaceholder}</option>
-                                {conditionalValueOptions.map((option) => (
-                                  <option key={option} value={option}>
-                                    {option}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
+                        {field.type === "select" && (
+                          <div>
+                            <label className="label">{copy.fieldOptions}</label>
+                            <textarea
+                              value={(field.options || []).join("\n")}
+                              onChange={(event) =>
+                                updateRegistrationField(field.id, {
+                                  options: event.target.value.split("\n"),
+                                })
+                              }
+                              className="input-field min-h-20"
+                              placeholder={copy.fieldOptionsHint}
+                            />
+                            <p className="mt-2 text-xs text-surface-400">{copy.fieldOptionsHint}</p>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      <label className="mt-4 inline-flex items-center gap-3 rounded-2xl border border-surface-200 bg-white px-4 py-3 text-sm font-medium text-surface-700">
-                        <input
-                          type="checkbox"
-                          checked={field.required}
-                          onChange={(event) => updateRegistrationField(field.id, { required: event.target.checked })}
-                          className="h-4 w-4 accent-brand-600"
-                        />
-                        {copy.requiredField}
-                      </label>
+                        <div className="flex items-center gap-4 pt-2">
+                          <label className="inline-flex items-center gap-3 rounded-2xl border border-surface-200 bg-white px-4 py-2.5 text-sm font-medium text-surface-700 cursor-pointer hover:bg-surface-50 transition">
+                            <input
+                              type="checkbox"
+                              checked={field.required}
+                              onChange={(event) => updateRegistrationField(field.id, { required: event.target.checked })}
+                              className="h-4 w-4 accent-brand-600 cursor-pointer"
+                            />
+                            {copy.requiredField}
+                          </label>
+                        </div>
+
+                        {field.type !== "file" && (
+                          <details className="rounded-lg border border-surface-200 bg-surface-50 group">
+                            <summary className="flex cursor-pointer items-center justify-between px-4 py-3 font-semibold text-surface-900 text-sm">
+                              <span className="flex items-center gap-2">
+                                <Settings className="h-4 w-4 text-surface-600" />
+                                {copy.conditionalRequirement}
+                              </span>
+                              <span className="text-xs text-surface-500 group-open:hidden">{lang === "tr" ? "İsteğe bağlı" : "Optional"}</span>
+                            </summary>
+                            <div className="border-t border-surface-200 px-4 py-3 space-y-3 text-sm">
+                              <p className="text-xs text-surface-500">{copy.conditionalHint}</p>
+                              <div className="grid gap-3 md:grid-cols-2">
+                                <div>
+                                  <label className="label text-xs font-semibold text-surface-700">{copy.conditionalDependsOn}</label>
+                                  <select
+                                    value={field.required_when_field_id || ""}
+                                    onChange={(event) => {
+                                      const nextFieldId = event.target.value;
+                                      updateRegistrationField(field.id, {
+                                        required_when_field_id: nextFieldId || undefined,
+                                        required_when_equals: nextFieldId
+                                          ? (field.required_when_equals || "")
+                                          : undefined,
+                                      });
+                                    }}
+                                    className="input-field text-sm"
+                                  >
+                                    <option value="">{lang === "tr" ? "Yok" : "None"}</option>
+                                    {conditionalSourceFields.map((candidate) => (
+                                      <option key={candidate.id} value={candidate.id}>
+                                        {candidate.label || candidate.id}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="label text-xs font-semibold text-surface-700">{copy.conditionalValue}</label>
+                                  <select
+                                    value={field.required_when_equals || ""}
+                                    onChange={(event) =>
+                                      updateRegistrationField(field.id, {
+                                        required_when_equals: event.target.value,
+                                      })
+                                    }
+                                    disabled={!field.required_when_field_id || !conditionalValueOptions.length}
+                                    className="input-field text-sm"
+                                  >
+                                    <option value="">{copy.conditionalValuePlaceholder}</option>
+                                    {conditionalValueOptions.map((option) => (
+                                      <option key={option} value={option}>
+                                        {option}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                            </div>
+                          </details>
+                        )}
+                      </div>
                     </div>
                   );
                 })
