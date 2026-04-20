@@ -191,12 +191,27 @@ export default function AIAssistant() {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
+      // Try multiple token storage locations
+      let token = localStorage.getItem("token");
+      if (!token) token = sessionStorage.getItem("token");
+      if (!token) token = localStorage.getItem("auth_token");
+      
+      if (!token) {
+        const assistantMsg: Message = {
+          role: "assistant",
+          message: lang === "tr" ? "❌ Oturum hatası. Lütfen sayfayı yenileyin ve tekrar deneyin." : "❌ Session error. Please refresh and try again.",
+          timestamp: new Date().toISOString()
+        };
+        setMessages(prev => [...prev, assistantMsg]);
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch("/api/admin/support-tickets", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          ...(token && { "Authorization": `Bearer ${token}` })
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
           subject: supportSubject,
@@ -208,7 +223,7 @@ export default function AIAssistant() {
         // Success
         const assistantMsg: Message = {
           role: "assistant",
-          message: lang === "tr" ? "✅ Destek talebiniz başarıyla oluşturuldu! Destek Ekibimiz en kısa sürede yanıtlayacak." : "✅ Your support ticket has been created successfully! Our support team will respond soon.",
+          message: lang === "tr" ? "✅ Destek talebiniz başarıyla oluşturuldu! Destek Ekibimiz en kısa sürede size ulaşacak. Email adresinizdeki güncellemeleri takip edin." : "✅ Your support ticket created! Our team will reach out soon. Check your email for updates.",
           timestamp: new Date().toISOString()
         };
         setMessages(prev => [...prev, assistantMsg]);
@@ -292,12 +307,12 @@ export default function AIAssistant() {
           {/* Support Form */}
           {showSupportForm && (
             <div className="border-t border-surface-200 p-4 space-y-3 bg-amber-50">
-              <div className="flex items-start gap-2 p-3 bg-amber-100 rounded-lg text-sm text-amber-900">
-                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                <p>
+              <div className="flex items-start gap-3 p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl text-sm text-amber-900">
+                <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0 text-amber-600" />
+                <p className="font-medium">
                   {lang === "tr"
-                    ? "Sorununuzu detaylı açıklayın. Destek Ekibimiz yanıtlayacak."
-                    : "Describe your issue in detail. Our support team will respond."}
+                    ? "Sorununuzu detaylı açıklayın. Destek Ekibimiz kısa sürede yanıtlayacak."
+                    : "Describe your issue in detail. Our support team will respond shortly."}
                 </p>
               </div>
               
@@ -322,17 +337,22 @@ export default function AIAssistant() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowSupportForm(false)}
-                  className="flex-1 px-3 py-2 border border-surface-300 rounded-lg text-sm font-medium text-surface-700 hover:bg-surface-100 transition disabled:opacity-50"
+                  className="flex-1 px-3 py-2.5 border border-surface-300 rounded-lg text-sm font-semibold text-surface-700 bg-white hover:bg-surface-50 transition disabled:opacity-50"
                   disabled={loading}
                 >
                   {lang === "tr" ? "İptal" : "Cancel"}
                 </button>
                 <button
                   onClick={handleCreateSupport}
-                  className="flex-1 px-3 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition disabled:opacity-50"
+                  className="flex-1 px-3 py-2.5 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-lg text-sm font-semibold hover:from-brand-700 hover:to-brand-800 transition disabled:opacity-50 shadow-md"
                   disabled={loading || !supportSubject.trim() || !supportMessage.trim()}
                 >
-                  {loading ? (lang === "tr" ? "Gönderiliyor..." : "Sending...") : (lang === "tr" ? "Gönder" : "Send")}
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="h-3 w-3 rounded-full bg-white animate-pulse" />
+                      {lang === "tr" ? "Gönderiliyor..." : "Sending..."}
+                    </span>
+                  ) : (lang === "tr" ? "Talep Oluştur" : "Create Ticket")}
                 </button>
               </div>
             </div>
@@ -361,9 +381,12 @@ export default function AIAssistant() {
                 </div>
                 <button
                   onClick={() => setShowSupportForm(true)}
-                  className="w-full px-3 py-2 border border-amber-300 bg-amber-50 text-amber-900 rounded-lg text-sm font-medium hover:bg-amber-100 transition"
+                  className="w-full px-4 py-2.5 border border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 text-amber-900 rounded-lg text-sm font-semibold hover:from-amber-100 hover:to-orange-100 transition shadow-sm"
                 >
-                  {lang === "tr" ? "❌ Çözümü bulamadım - Destek Talebi Aç" : "❌ Can't find solution - Create Support Ticket"}
+                  <span className="flex items-center justify-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    {lang === "tr" ? "Destek Talebi Oluştur" : "Create Support Ticket"}
+                  </span>
                 </button>
               </>
             ) : null}
