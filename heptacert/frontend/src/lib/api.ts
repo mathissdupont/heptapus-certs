@@ -1431,21 +1431,22 @@ export interface SuperadminAudienceResponse {
   total: number;
   limit: number;
   offset: number;
-  source: "all" | "public_members" | "attendees";
+  source: "all" | "public_members" | "attendees" | "organizers";
   unique_public_member_emails: number;
   unique_attendee_emails: number;
+  unique_organizer_emails: number;
 }
 
 export interface SuperadminBulkEmailRequest {
   subject: string;
   body_html: string;
-  source: "all" | "public_members" | "attendees";
+  source: "all" | "public_members" | "attendees" | "organizers";
   dry_run?: boolean;
 }
 
 export interface SuperadminBulkEmailResponse {
   dry_run: boolean;
-  source: "all" | "public_members" | "attendees";
+  source: "all" | "public_members" | "attendees" | "organizers";
   targeted: number;
   sent: number;
   failed: number;
@@ -1455,7 +1456,7 @@ export interface SuperadminBulkEmailResponse {
 export interface SuperadminBulkEmailJob {
   id: number;
   created_by: number;
-  source: "all" | "public_members" | "attendees";
+  source: "all" | "public_members" | "attendees" | "organizers";
   subject: string;
   total_targets: number;
   sent_count: number;
@@ -1500,7 +1501,7 @@ export async function listSuperAdmins(): Promise<AdminOut[]> {
 }
 
 export async function getSuperadminEmailAudience(params?: {
-  source?: "all" | "public_members" | "attendees";
+  source?: "all" | "public_members" | "attendees" | "organizers";
   search?: string;
   limit?: number;
   offset?: number;
@@ -1528,7 +1529,7 @@ export async function sendSuperadminBulkEmail(
 export async function createSuperadminBulkEmailJob(payload: {
   subject: string;
   body_html: string;
-  source: "all" | "public_members" | "attendees";
+  source: "all" | "public_members" | "attendees" | "organizers";
 }): Promise<SuperadminBulkEmailJob> {
   const res = await apiFetch(`/superadmin/bulk-email/jobs`, {
     method: "POST",

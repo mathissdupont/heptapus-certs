@@ -6485,12 +6485,13 @@ class SuperadminAudienceOut(BaseModel):
     source: str
     unique_public_member_emails: int
     unique_attendee_emails: int
+    unique_organizer_emails: int
 
 
 class SuperadminBulkEmailIn(BaseModel):
     subject: str = Field(min_length=3, max_length=240)
     body_html: str = Field(min_length=10, max_length=100_000)
-    source: str = Field(default="all", pattern="^(all|public_members|attendees)$")
+    source: str = Field(default="all", pattern="^(all|public_members|attendees|organizers)$")
     dry_run: bool = False
 
 
@@ -6506,7 +6507,7 @@ class SuperadminBulkEmailOut(BaseModel):
 class SuperadminBulkEmailJobIn(BaseModel):
     subject: str = Field(min_length=3, max_length=240)
     body_html: str = Field(min_length=10, max_length=100_000)
-    source: str = Field(default="all", pattern="^(all|public_members|attendees)$")
+    source: str = Field(default="all", pattern="^(all|public_members|attendees|organizers)$")
 
 
 class SuperadminBulkEmailJobOut(BaseModel):
@@ -6561,24 +6562,36 @@ def _non_empty_normalized_email(column_expr: Any) -> Any:
 def _superadmin_audience_union_stmt(source: str):
     pm_email, pm_non_empty = _non_empty_normalized_email(PublicMember.email)
     attendee_email, attendee_non_empty = _non_empty_normalized_email(Attendee.email)
+    organizer_email, organizer_non_empty = _non_empty_normalized_email(User.email)
 
     public_members_stmt = select(
         pm_email.label("email"),
         literal(1).label("public_member_count"),
         literal(0).label("attendee_count"),
+        literal(0).label("organizer_count"),
     ).where(PublicMember.email.is_not(None), pm_non_empty)
 
     attendees_stmt = select(
         attendee_email.label("email"),
         literal(0).label("public_member_count"),
         literal(1).label("attendee_count"),
+        literal(0).label("organizer_count"),
     ).where(Attendee.email.is_not(None), attendee_non_empty)
+
+    organizers_stmt = select(
+        organizer_email.label("email"),
+        literal(0).label("public_member_count"),
+        literal(0).label("attendee_count"),
+        literal(1).label("organizer_count"),
+    ).where(User.email.is_not(None), organizer_non_empty, User.role == Role.admin)
 
     if source == "public_members":
         return public_members_stmt
     if source == "attendees":
         return attendees_stmt
-    return union_all(public_members_stmt, attendees_stmt)
+    if source == "organizers":
+        return organizers_stmt
+    return union_all(public_members_stmt, attendees_stmt, organizers_stmt)
 
 
 async def _resolve_superadmin_recipient_emails(db: AsyncSession, source: str) -> List[str]:
@@ -7766,7 +7779,7 @@ async def list_admins(db: AsyncSession = Depends(get_db)):
     dependencies=[Depends(require_role(Role.superadmin))],
 )
 async def get_superadmin_email_audience(
-    source: str = Query(default="all", pattern="^(all|public_members|attendees)$"),
+    source: str = Query(default="all", pattern="^(all|public_members|attendees|organizers)$"),
     search: Optional[str] = Query(default=None, max_length=320),
     limit: int = Query(default=200, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
@@ -7778,6 +7791,7 @@ async def get_superadmin_email_audience(
         audience_union.c.email,
         func.sum(audience_union.c.public_member_count).label("public_member_count"),
         func.sum(audience_union.c.attendee_count).label("attendee_count"),
+        func.sum(audience_union.c.organizer_count).label("organizer_count"),
     ).group_by(audience_union.c.email)
 
     if search and search.strip():
@@ -7805,6 +7819,15 @@ async def get_superadmin_email_audience(
     )
     unique_attendee_emails = int(unique_attendee_res.scalar_one() or 0)
 
+    unique_organizer_res = await db.execute(
+        select(func.count(distinct(func.lower(func.trim(User.email))))).where(
+            User.email.is_not(None),
+            func.trim(User.email) != "",
+            User.role == Role.admin,
+        )
+    )
+    unique_organizer_emails = int(unique_organizer_res.scalar_one() or 0)
+
     rows_res = await db.execute(
         select(grouped_subquery)
         .order_by(grouped_subquery.c.email.asc())
@@ -7830,6 +7853,7 @@ async def get_superadmin_email_audience(
         source=source,
         unique_public_member_emails=unique_public_member_emails,
         unique_attendee_emails=unique_attendee_emails,
+        unique_organizer_emails=unique_organizer_emails,
     )
 
 

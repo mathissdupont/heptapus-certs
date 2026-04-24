@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, Loader2, Mail, Search, Send, Users, RotateCcw, Square } from "lucide-react";
+import { AlertCircle, Loader2, Mail, Search, Send, Users, RotateCcw, Square, Building2, UserRound, ListFilter } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
 import {
   cancelSuperadminBulkEmailJob,
@@ -15,7 +15,7 @@ import {
 } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
-type SourceFilter = "all" | "public_members" | "attendees";
+type SourceFilter = "all" | "public_members" | "attendees" | "organizers";
 
 export default function SuperadminMembersPage() {
   const { lang } = useI18n();
@@ -29,11 +29,13 @@ export default function SuperadminMembersPage() {
             all: "Tum alicilar",
             members: "Public uyeler",
             attendees: "Kayitli katilimcilar",
+            organizers: "Organizatör hesaplar",
             search: "Email ara...",
             refresh: "Yenile",
             uniqueAudience: "Benzersiz alici",
             publicMembers: "Public uye email",
             attendeeEmails: "Katilimci email",
+            organizerEmails: "Organizatör email",
             matchedRows: "Filtrelenen satir",
             mailSubject: "Mail konusu",
             mailBody: "Mail icerigi (HTML destekli)",
@@ -60,6 +62,13 @@ export default function SuperadminMembersPage() {
             emptyCampaigns: "Henuz kampanya yok",
             badgeMember: "Public uye",
             badgeAttendee: "Katilimci",
+            badgeOrganizer: "Organizatör",
+            composerTitle: "Toplu Mail Gonder",
+            composerHint: "Konu ve HTML içerik girin, ardından dry-run ile hedef sayısını kontrol edin veya kampanyayı başlatın.",
+            audienceSummary: "Kitle özeti",
+            filterTitle: "Hedef filtresi",
+            notePublicOnly: "Yalnızca public üyeler",
+            noteOrganizersOnly: "Yalnızca organizatör hesaplar",
             status_pending: "Sirada",
             status_sending: "Gonderiliyor",
             status_completed: "Tamamlandi",
@@ -73,11 +82,13 @@ export default function SuperadminMembersPage() {
             all: "All recipients",
             members: "Public members",
             attendees: "Registered attendees",
+            organizers: "Organizer accounts",
             search: "Search email...",
             refresh: "Refresh",
             uniqueAudience: "Unique recipients",
             publicMembers: "Public member emails",
             attendeeEmails: "Attendee emails",
+            organizerEmails: "Organizer emails",
             matchedRows: "Filtered rows",
             mailSubject: "Email subject",
             mailBody: "Email content (HTML supported)",
@@ -104,6 +115,13 @@ export default function SuperadminMembersPage() {
             emptyCampaigns: "No campaigns yet",
             badgeMember: "Public member",
             badgeAttendee: "Attendee",
+            badgeOrganizer: "Organizer",
+            composerTitle: "Send Bulk Email",
+            composerHint: "Enter subject and HTML content, then dry-run to preview targets or launch the campaign.",
+            audienceSummary: "Audience summary",
+            filterTitle: "Target filter",
+            notePublicOnly: "Public members only",
+            noteOrganizersOnly: "Organizer accounts only",
             status_pending: "Pending",
             status_sending: "Sending",
             status_completed: "Completed",
@@ -120,6 +138,7 @@ export default function SuperadminMembersPage() {
   const [uniqueAudience, setUniqueAudience] = useState(0);
   const [uniquePublicMembers, setUniquePublicMembers] = useState(0);
   const [uniqueAttendees, setUniqueAttendees] = useState(0);
+  const [uniqueOrganizers, setUniqueOrganizers] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -145,6 +164,7 @@ export default function SuperadminMembersPage() {
       setUniqueAudience(res.total || 0);
       setUniquePublicMembers(res.unique_public_member_emails || 0);
       setUniqueAttendees(res.unique_attendee_emails || 0);
+      setUniqueOrganizers(res.unique_organizer_emails || 0);
     } catch (e: any) {
       setError(e?.message || copy.loadError);
     } finally {
@@ -245,23 +265,48 @@ export default function SuperadminMembersPage() {
     return "bg-amber-100 text-amber-700";
   }
 
+  const filterOptions: Array<{ value: SourceFilter; label: string; note: string; icon: JSX.Element }> = [
+    { value: "all", label: copy.all, note: copy.audienceSummary, icon: <ListFilter className="h-4 w-4" /> },
+    { value: "public_members", label: copy.members, note: copy.notePublicOnly, icon: <UserRound className="h-4 w-4" /> },
+    { value: "attendees", label: copy.attendees, note: copy.attendeeEmails, icon: <Mail className="h-4 w-4" /> },
+    { value: "organizers", label: copy.organizers, note: copy.noteOrganizersOnly, icon: <Building2 className="h-4 w-4" /> },
+  ];
+
   return (
     <div className="space-y-6 pb-16">
       <PageHeader title={copy.title} subtitle={copy.subtitle} icon={<Users className="h-5 w-5" />} />
 
-      <div className="card grid gap-3 p-4 md:grid-cols-[220px_minmax(0,1fr)_auto] md:items-end">
-        <label className="space-y-1">
-          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-surface-500">{copy.source}</span>
-          <select
-            className="input"
-            value={source}
-            onChange={(e) => setSource(e.target.value as SourceFilter)}
-          >
-            <option value="all">{copy.all}</option>
-            <option value="public_members">{copy.members}</option>
-            <option value="attendees">{copy.attendees}</option>
-          </select>
-        </label>
+      <div className="card space-y-5 p-5 md:p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.filterTitle}</p>
+            <h2 className="mt-1 text-lg font-black text-surface-900">{copy.audienceSummary}</h2>
+          </div>
+          <button className="btn-secondary self-start" onClick={() => void loadAudience()}>
+            {copy.refresh}
+          </button>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-4">
+          {filterOptions.map((option) => {
+            const active = source === option.value;
+            return (
+              <button
+                key={option.value}
+                onClick={() => setSource(option.value)}
+                className={`rounded-2xl border p-4 text-left transition-all ${active ? "border-brand-500 bg-brand-50 shadow-sm" : "border-surface-200 bg-white hover:border-surface-300"}`}
+              >
+                <div className="flex items-center gap-2 text-sm font-semibold text-surface-900">
+                  <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${active ? "bg-brand-600 text-white" : "bg-surface-100 text-surface-600"}`}>
+                    {option.icon}
+                  </span>
+                  {option.label}
+                </div>
+                <p className="mt-2 text-xs leading-5 text-surface-500">{option.note}</p>
+              </button>
+            );
+          })}
+        </div>
 
         <label className="space-y-1">
           <span className="text-xs font-semibold uppercase tracking-[0.12em] text-surface-500">{copy.email}</span>
@@ -278,13 +323,9 @@ export default function SuperadminMembersPage() {
             />
           </div>
         </label>
-
-        <button className="btn-secondary" onClick={() => void loadAudience()}>
-          {copy.refresh}
-        </button>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <div className="card p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.uniqueAudience}</p>
           <p className="mt-2 text-3xl font-black text-surface-900">{uniqueAudience}</p>
@@ -296,6 +337,10 @@ export default function SuperadminMembersPage() {
         <div className="card p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.attendeeEmails}</p>
           <p className="mt-2 text-3xl font-black text-blue-700">{uniqueAttendees}</p>
+        </div>
+        <div className="card p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.organizerEmails}</p>
+          <p className="mt-2 text-3xl font-black text-violet-700">{uniqueOrganizers}</p>
         </div>
         <div className="card p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.matchedRows}</p>
@@ -317,12 +362,14 @@ export default function SuperadminMembersPage() {
         </div>
       )}
 
-      <div className="card space-y-4 p-4">
+      <div className="card space-y-4 p-5 md:p-6">
         <div className="flex items-center gap-2">
           <Mail className="h-4 w-4 text-brand-600" />
-          <p className="text-sm font-semibold text-surface-900">{copy.send}</p>
+          <p className="text-sm font-semibold text-surface-900">{copy.composerTitle}</p>
         </div>
+        <p className="text-sm text-surface-500">{copy.composerHint}</p>
 
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
         <label className="space-y-1">
           <span className="text-xs font-semibold uppercase tracking-[0.12em] text-surface-500">{copy.mailSubject}</span>
           <input className="input" value={subject} onChange={(e) => setSubject(e.target.value)} />
@@ -330,22 +377,21 @@ export default function SuperadminMembersPage() {
 
         <label className="space-y-1">
           <span className="text-xs font-semibold uppercase tracking-[0.12em] text-surface-500">{copy.mailBody}</span>
-          <textarea
-            className="input min-h-[180px]"
-            value={bodyHtml}
-            onChange={(e) => setBodyHtml(e.target.value)}
-          />
+          <textarea className="input min-h-[260px] resize-y" value={bodyHtml} onChange={(e) => setBodyHtml(e.target.value)} />
         </label>
+        </div>
 
-        <label className="inline-flex items-center gap-2 text-sm text-surface-700">
-          <input type="checkbox" checked={dryRun} onChange={(e) => setDryRun(e.target.checked)} />
-          {copy.dryRun}
-        </label>
+        <div className="flex flex-col gap-3 rounded-2xl border border-surface-200 bg-surface-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <label className="inline-flex items-center gap-2 text-sm text-surface-700">
+            <input type="checkbox" checked={dryRun} onChange={(e) => setDryRun(e.target.checked)} />
+            {copy.dryRun}
+          </label>
 
-        <button className="btn-primary" onClick={() => void onSubmit()} disabled={submitting}>
-          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          {submitting ? copy.sending : dryRun ? copy.send : copy.launchCampaign}
-        </button>
+          <button className="btn-primary" onClick={() => void onSubmit()} disabled={submitting}>
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {submitting ? copy.sending : dryRun ? copy.send : copy.launchCampaign}
+          </button>
+        </div>
       </div>
 
       <div className="card overflow-hidden">
@@ -440,6 +486,11 @@ export default function SuperadminMembersPage() {
                         {item.attendee_count > 0 && (
                           <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
                             {copy.badgeAttendee}
+                          </span>
+                        )}
+                        {source === "organizers" && (
+                          <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-700">
+                            {copy.badgeOrganizer}
                           </span>
                         )}
                       </div>
