@@ -137,9 +137,33 @@ class TestAuthEndpoints:
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
             resp = await ac.post("/api/auth/register", json={
                 "email": "test@test.com",
+                "terms_accepted": True,
                 "password": "123"  # too short
             })
         assert resp.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_register_terms_required(self):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.post("/api/auth/register", json={
+                "email": "terms-required-admin@test.com",
+                "password": "ValidPass123!",
+                "terms_accepted": False,
+            })
+        assert resp.status_code == 400
+
+    @pytest.mark.asyncio
+    async def test_public_member_register_terms_required(self):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.post("/api/public/auth/register", json={
+                "display_name": "Terms Member",
+                "email": "terms-required-member@test.com",
+                "password": "ValidPass123!",
+                "terms_accepted": False,
+            })
+        assert resp.status_code == 400
 
     @pytest.mark.asyncio
     async def test_forgot_password_always_200(self):

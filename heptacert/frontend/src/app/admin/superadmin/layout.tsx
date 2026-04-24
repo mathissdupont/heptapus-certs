@@ -13,6 +13,7 @@ import {
   Activity,
   ClipboardList,
   Crown,
+  Mail,
 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
 import { apiFetch } from "@/lib/api";
@@ -20,6 +21,8 @@ import { useI18n } from "@/lib/i18n";
 
 const TABS = [
   { href: "/admin/superadmin/admins", label: { tr: "Adminler", en: "Admins" }, icon: Users },
+  { href: "/admin/superadmin/members", label: { tr: "Uyeler & Mail", en: "Members & Mail" }, icon: Mail },
+  { href: "/admin/superadmin/mail-logs", label: { tr: "Mail Loglari", en: "Mail Logs" }, icon: ScrollText },
   { href: "/admin/superadmin/subscriptions", label: { tr: "Abonelikler", en: "Subscriptions" }, icon: CreditCard },
   { href: "/admin/superadmin/pricing", label: { tr: "Fiyatlandırma", en: "Pricing" }, icon: Tag },
   { href: "/admin/superadmin/stats", label: { tr: "İstatistikler", en: "Stats" }, icon: BarChart3 },

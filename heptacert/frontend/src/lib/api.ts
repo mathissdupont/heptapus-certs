@@ -851,6 +851,7 @@ export async function registerPublicMember(data: {
   display_name: string;
   email: string;
   password: string;
+  terms_accepted: boolean;
 }) {
   const res = await publicApiFetch("/public/auth/register", {
     method: "POST",
@@ -1419,8 +1420,166 @@ export interface SuperAdminLandingStatsConfig {
   availability?: string;
   use_real_counts?: boolean;
 }
+export interface SuperadminAudienceItem {
+  email: string;
+  public_member_count: number;
+  attendee_count: number;
+}
+
+export interface SuperadminAudienceResponse {
+  items: SuperadminAudienceItem[];
+  total: number;
+  limit: number;
+  offset: number;
+  source: "all" | "public_members" | "attendees";
+  unique_public_member_emails: number;
+  unique_attendee_emails: number;
+}
+
+export interface SuperadminBulkEmailRequest {
+  subject: string;
+  body_html: string;
+  source: "all" | "public_members" | "attendees";
+  dry_run?: boolean;
+}
+
+export interface SuperadminBulkEmailResponse {
+  dry_run: boolean;
+  source: "all" | "public_members" | "attendees";
+  targeted: number;
+  sent: number;
+  failed: number;
+  message: string;
+}
+
+export interface SuperadminBulkEmailJob {
+  id: number;
+  created_by: number;
+  source: "all" | "public_members" | "attendees";
+  subject: string;
+  total_targets: number;
+  sent_count: number;
+  failed_count: number;
+  status: "pending" | "sending" | "completed" | "failed" | "cancelled";
+  cancel_requested: boolean;
+  error_message?: string | null;
+  created_at: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+}
+
+export interface SuperadminEmailActivityItem {
+  channel: "event_bulk" | "superadmin_bulk";
+  job_id: number;
+  sender_user_id: number;
+  sender_email: string;
+  event_id?: number | null;
+  event_name?: string | null;
+  recipient_group: string;
+  subject: string;
+  status: string;
+  total_targets: number;
+  sent_count: number;
+  failed_count: number;
+  created_at: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  error_message?: string | null;
+}
+
+export interface SuperadminEmailActivityResponse {
+  items: SuperadminEmailActivityItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export async function listSuperAdmins(): Promise<AdminOut[]> {
   const res = await apiFetch(`/superadmin/admins`);
+  return res.json();
+}
+
+export async function getSuperadminEmailAudience(params?: {
+  source?: "all" | "public_members" | "attendees";
+  search?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<SuperadminAudienceResponse> {
+  const qs = new URLSearchParams();
+  if (params?.source) qs.set("source", params.source);
+  if (params?.search) qs.set("search", params.search);
+  if (typeof params?.limit === "number") qs.set("limit", String(params.limit));
+  if (typeof params?.offset === "number") qs.set("offset", String(params.offset));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await apiFetch(`/superadmin/email-audience${suffix}`);
+  return res.json();
+}
+
+export async function sendSuperadminBulkEmail(
+  payload: SuperadminBulkEmailRequest
+): Promise<SuperadminBulkEmailResponse> {
+  const res = await apiFetch(`/superadmin/bulk-email`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function createSuperadminBulkEmailJob(payload: {
+  subject: string;
+  body_html: string;
+  source: "all" | "public_members" | "attendees";
+}): Promise<SuperadminBulkEmailJob> {
+  const res = await apiFetch(`/superadmin/bulk-email/jobs`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function listSuperadminBulkEmailJobs(params?: {
+  limit?: number;
+  offset?: number;
+}): Promise<SuperadminBulkEmailJob[]> {
+  const qs = new URLSearchParams();
+  if (typeof params?.limit === "number") qs.set("limit", String(params.limit));
+  if (typeof params?.offset === "number") qs.set("offset", String(params.offset));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await apiFetch(`/superadmin/bulk-email/jobs${suffix}`);
+  return res.json();
+}
+
+export async function cancelSuperadminBulkEmailJob(jobId: number): Promise<SuperadminBulkEmailJob> {
+  const res = await apiFetch(`/superadmin/bulk-email/jobs/${jobId}/cancel`, {
+    method: "POST",
+  });
+  return res.json();
+}
+
+export async function retrySuperadminBulkEmailJob(jobId: number): Promise<SuperadminBulkEmailJob> {
+  const res = await apiFetch(`/superadmin/bulk-email/jobs/${jobId}/retry`, {
+    method: "POST",
+  });
+  return res.json();
+}
+
+export async function listSuperadminEmailActivity(params?: {
+  channel?: "all" | "event_bulk" | "superadmin_bulk";
+  status?: string;
+  sender_user_id?: number;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<SuperadminEmailActivityResponse> {
+  const qs = new URLSearchParams();
+  if (params?.channel) qs.set("channel", params.channel);
+  if (params?.status) qs.set("status", params.status);
+  if (typeof params?.sender_user_id === "number") qs.set("sender_user_id", String(params.sender_user_id));
+  if (params?.search) qs.set("search", params.search);
+  if (typeof params?.limit === "number") qs.set("limit", String(params.limit));
+  if (typeof params?.offset === "number") qs.set("offset", String(params.offset));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await apiFetch(`/superadmin/email-activity${suffix}`);
   return res.json();
 }
 

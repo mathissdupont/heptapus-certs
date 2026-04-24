@@ -54,7 +54,8 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
 from sqlalchemy import (
     Boolean, String, Integer, BigInteger, DateTime, ForeignKey, Text,
-    Enum as SAEnum, UniqueConstraint, Index, select, func, distinct, update, delete, or_, Date as sa_Date, Time as sa_Time
+    Enum as SAEnum, UniqueConstraint, Index, select, func, distinct, update, delete, or_,
+    Date as sa_Date, Time as sa_Time, literal, union_all
 )
 from sqlalchemy import JSON as _JSON
 from sqlalchemy.dialects.postgresql import JSONB as _PgJSONB, INET as _PgINET, insert as _pg_insert
@@ -281,6 +282,8 @@ engine = create_async_engine(
 )
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 bulk_cert_job_lock = asyncio.Lock()
+superadmin_bulk_email_tasks_lock = asyncio.Lock()
+superadmin_bulk_email_tasks: Dict[int, asyncio.Task] = {}
 
 # Lightweight in-process caches for high-traffic QR check-in reads
 CHECKIN_CONTEXT_TTL_SECONDS = 20
@@ -818,6 +821,26 @@ class BulkEmailJob(Base):
     email_template: Mapped[Optional["EmailTemplate"]] = relationship()
 
 
+class SuperadminBulkEmailJob(Base):
+    __tablename__ = "superadmin_bulk_email_jobs"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    source: Mapped[str] = mapped_column(String(32), default="all", index=True)
+    subject: Mapped[str] = mapped_column(String(240))
+    body_html: Mapped[str] = mapped_column(Text)
+    total_targets: Mapped[int] = mapped_column(Integer, default=0)
+    sent_count: Mapped[int] = mapped_column(Integer, default=0)
+    failed_count: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
+    cancel_requested: Mapped[bool] = mapped_column(Boolean, default=False)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    creator: Mapped["User"] = relationship(foreign_keys=[created_by])
+
+
 class BulkCertificateJob(Base):
     __tablename__ = "bulk_certificate_jobs"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -1148,12 +1171,14 @@ class LoginIn(BaseModel):
 class RegisterIn(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
+    terms_accepted: bool = False
 
 
 class PublicMemberRegisterIn(BaseModel):
     display_name: str = Field(min_length=2, max_length=120)
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
+    terms_accepted: bool = False
 
 
 class PublicMemberLoginIn(BaseModel):
@@ -6157,6 +6182,9 @@ async def login(request: Request, data: LoginIn, db: AsyncSession = Depends(get_
 @app.post("/api/auth/register", status_code=201)
 @limiter.limit("3/minute")
 async def register(request: Request, data: RegisterIn, db: AsyncSession = Depends(get_db)):
+    if not data.terms_accepted:
+        raise bad_request("Kayıt için kullanım koşullarını kabul etmelisiniz.")
+
     res = await db.execute(select(User).where(User.email == str(data.email)))
     if res.scalar_one_or_none():
         raise bad_request("Bu e-posta adresi zaten kayıtlı.")
@@ -6216,6 +6244,9 @@ async def verify_email_endpoint(token: str = Query(...), db: AsyncSession = Depe
 @app.post("/api/public/auth/register", status_code=201)
 @limiter.limit("3/minute")
 async def public_member_register(request: Request, data: PublicMemberRegisterIn, db: AsyncSession = Depends(get_db)):
+    if not data.terms_accepted:
+        raise bad_request("You must accept the terms of use to register.")
+
     email = str(data.email).strip().lower()
     display_name = data.display_name.strip()
     if not display_name:
@@ -6438,6 +6469,238 @@ class AdminRowOut(BaseModel):
     email: EmailStr
     role: Role
     heptacoin_balance: int
+
+
+class SuperadminAudienceItemOut(BaseModel):
+    email: EmailStr
+    public_member_count: int
+    attendee_count: int
+
+
+class SuperadminAudienceOut(BaseModel):
+    items: List[SuperadminAudienceItemOut]
+    total: int
+    limit: int
+    offset: int
+    source: str
+    unique_public_member_emails: int
+    unique_attendee_emails: int
+
+
+class SuperadminBulkEmailIn(BaseModel):
+    subject: str = Field(min_length=3, max_length=240)
+    body_html: str = Field(min_length=10, max_length=100_000)
+    source: str = Field(default="all", pattern="^(all|public_members|attendees)$")
+    dry_run: bool = False
+
+
+class SuperadminBulkEmailOut(BaseModel):
+    dry_run: bool
+    source: str
+    targeted: int
+    sent: int
+    failed: int
+    message: str
+
+
+class SuperadminBulkEmailJobIn(BaseModel):
+    subject: str = Field(min_length=3, max_length=240)
+    body_html: str = Field(min_length=10, max_length=100_000)
+    source: str = Field(default="all", pattern="^(all|public_members|attendees)$")
+
+
+class SuperadminBulkEmailJobOut(BaseModel):
+    id: int
+    created_by: int
+    source: str
+    subject: str
+    total_targets: int
+    sent_count: int
+    failed_count: int
+    status: str
+    cancel_requested: bool
+    error_message: Optional[str]
+    created_at: datetime
+    started_at: Optional[datetime]
+    completed_at: Optional[datetime]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SuperadminEmailActivityItemOut(BaseModel):
+    channel: str
+    job_id: int
+    sender_user_id: int
+    sender_email: EmailStr
+    event_id: Optional[int] = None
+    event_name: Optional[str] = None
+    recipient_group: str
+    subject: str
+    status: str
+    total_targets: int
+    sent_count: int
+    failed_count: int
+    created_at: datetime
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    error_message: Optional[str] = None
+
+
+class SuperadminEmailActivityOut(BaseModel):
+    items: List[SuperadminEmailActivityItemOut]
+    total: int
+    limit: int
+    offset: int
+
+
+def _non_empty_normalized_email(column_expr: Any) -> Any:
+    normalized = func.lower(func.trim(column_expr))
+    return normalized, func.trim(column_expr) != ""
+
+
+def _superadmin_audience_union_stmt(source: str):
+    pm_email, pm_non_empty = _non_empty_normalized_email(PublicMember.email)
+    attendee_email, attendee_non_empty = _non_empty_normalized_email(Attendee.email)
+
+    public_members_stmt = select(
+        pm_email.label("email"),
+        literal(1).label("public_member_count"),
+        literal(0).label("attendee_count"),
+    ).where(PublicMember.email.is_not(None), pm_non_empty)
+
+    attendees_stmt = select(
+        attendee_email.label("email"),
+        literal(0).label("public_member_count"),
+        literal(1).label("attendee_count"),
+    ).where(Attendee.email.is_not(None), attendee_non_empty)
+
+    if source == "public_members":
+        return public_members_stmt
+    if source == "attendees":
+        return attendees_stmt
+    return union_all(public_members_stmt, attendees_stmt)
+
+
+async def _resolve_superadmin_recipient_emails(db: AsyncSession, source: str) -> List[str]:
+    audience_union = _superadmin_audience_union_stmt(source).subquery("audience_send")
+    email_rows_res = await db.execute(
+        select(distinct(audience_union.c.email)).order_by(audience_union.c.email.asc())
+    )
+    return [email for email in email_rows_res.scalars().all() if email]
+
+
+async def _run_superadmin_bulk_email_job(job_id: int) -> None:
+    try:
+        async with SessionLocal() as db_job:
+            res = await db_job.execute(
+                select(SuperadminBulkEmailJob).where(SuperadminBulkEmailJob.id == job_id)
+            )
+            job = res.scalar_one_or_none()
+            if not job or job.status != "pending":
+                return
+
+            if job.cancel_requested:
+                job.status = "cancelled"
+                job.completed_at = datetime.now(timezone.utc)
+                db_job.add(job)
+                await db_job.commit()
+                return
+
+            job.status = "sending"
+            job.started_at = datetime.now(timezone.utc)
+            job.error_message = None
+            db_job.add(job)
+            await db_job.commit()
+
+            recipients = await _resolve_superadmin_recipient_emails(db_job, job.source)
+            job.total_targets = len(recipients)
+            db_job.add(job)
+            await db_job.commit()
+
+            if not recipients:
+                job.status = "failed"
+                job.error_message = "Hedef alici bulunamadi."
+                job.completed_at = datetime.now(timezone.utc)
+                db_job.add(job)
+                await db_job.commit()
+                return
+
+            sent_count = 0
+            failed_count = 0
+
+            for idx, recipient in enumerate(recipients):
+                check_res = await db_job.execute(
+                    select(SuperadminBulkEmailJob).where(SuperadminBulkEmailJob.id == job_id)
+                )
+                fresh_job = check_res.scalar_one_or_none()
+                if not fresh_job:
+                    return
+                if fresh_job.cancel_requested:
+                    fresh_job.sent_count = sent_count
+                    fresh_job.failed_count = failed_count
+                    fresh_job.status = "cancelled"
+                    fresh_job.completed_at = datetime.now(timezone.utc)
+                    db_job.add(fresh_job)
+                    await db_job.commit()
+                    return
+
+                try:
+                    await send_email_async(
+                        to=recipient,
+                        subject=fresh_job.subject,
+                        html_body=fresh_job.body_html,
+                        raise_on_error=True,
+                        sender_user_id=fresh_job.created_by,
+                    )
+                    sent_count += 1
+                except Exception:
+                    failed_count += 1
+
+                if idx % 10 == 0 or idx == len(recipients) - 1:
+                    fresh_job.sent_count = sent_count
+                    fresh_job.failed_count = failed_count
+                    db_job.add(fresh_job)
+                    await db_job.commit()
+
+            finish_res = await db_job.execute(
+                select(SuperadminBulkEmailJob).where(SuperadminBulkEmailJob.id == job_id)
+            )
+            finish_job = finish_res.scalar_one_or_none()
+            if not finish_job:
+                return
+            finish_job.sent_count = sent_count
+            finish_job.failed_count = failed_count
+            finish_job.status = "completed"
+            finish_job.completed_at = datetime.now(timezone.utc)
+            db_job.add(finish_job)
+            await db_job.commit()
+
+    except Exception as exc:
+        async with SessionLocal() as db_err:
+            res = await db_err.execute(
+                select(SuperadminBulkEmailJob).where(SuperadminBulkEmailJob.id == job_id)
+            )
+            job = res.scalar_one_or_none()
+            if job:
+                job.status = "failed"
+                job.error_message = str(exc)[:2000]
+                job.completed_at = datetime.now(timezone.utc)
+                db_err.add(job)
+                await db_err.commit()
+
+
+async def _enqueue_superadmin_bulk_email_job(job_id: int) -> None:
+    async with superadmin_bulk_email_tasks_lock:
+        current_task = superadmin_bulk_email_tasks.get(job_id)
+        if current_task and not current_task.done():
+            return
+        task = asyncio.create_task(_run_superadmin_bulk_email_job(job_id))
+        superadmin_bulk_email_tasks[job_id] = task
+
+        def _cleanup(_: asyncio.Task) -> None:
+            superadmin_bulk_email_tasks.pop(job_id, None)
+
+        task.add_done_callback(_cleanup)
 
 
 # Ã¢â€â‚¬Ã¢â€â‚¬ Admin: Email Templates Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
@@ -7495,6 +7758,372 @@ async def list_admins(db: AsyncSession = Depends(get_db)):
         )
         for u in users
     ]
+
+
+@app.get(
+    "/api/superadmin/email-audience",
+    response_model=SuperadminAudienceOut,
+    dependencies=[Depends(require_role(Role.superadmin))],
+)
+async def get_superadmin_email_audience(
+    source: str = Query(default="all", pattern="^(all|public_members|attendees)$"),
+    search: Optional[str] = Query(default=None, max_length=320),
+    limit: int = Query(default=200, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
+    db: AsyncSession = Depends(get_db),
+):
+    audience_union = _superadmin_audience_union_stmt(source).subquery("audience_union")
+
+    grouped = select(
+        audience_union.c.email,
+        func.sum(audience_union.c.public_member_count).label("public_member_count"),
+        func.sum(audience_union.c.attendee_count).label("attendee_count"),
+    ).group_by(audience_union.c.email)
+
+    if search and search.strip():
+        search_like = f"%{search.strip().lower()}%"
+        grouped = grouped.where(audience_union.c.email.ilike(search_like))
+
+    grouped_subquery = grouped.subquery("audience_grouped")
+
+    total_res = await db.execute(select(func.count()).select_from(grouped_subquery))
+    total = int(total_res.scalar_one() or 0)
+
+    unique_public_res = await db.execute(
+        select(func.count(distinct(func.lower(func.trim(PublicMember.email))))).where(
+            PublicMember.email.is_not(None),
+            func.trim(PublicMember.email) != "",
+        )
+    )
+    unique_public_member_emails = int(unique_public_res.scalar_one() or 0)
+
+    unique_attendee_res = await db.execute(
+        select(func.count(distinct(func.lower(func.trim(Attendee.email))))).where(
+            Attendee.email.is_not(None),
+            func.trim(Attendee.email) != "",
+        )
+    )
+    unique_attendee_emails = int(unique_attendee_res.scalar_one() or 0)
+
+    rows_res = await db.execute(
+        select(grouped_subquery)
+        .order_by(grouped_subquery.c.email.asc())
+        .offset(offset)
+        .limit(limit)
+    )
+    rows = rows_res.all()
+
+    items = [
+        SuperadminAudienceItemOut(
+            email=row.email,
+            public_member_count=int(row.public_member_count or 0),
+            attendee_count=int(row.attendee_count or 0),
+        )
+        for row in rows
+    ]
+
+    return SuperadminAudienceOut(
+        items=items,
+        total=total,
+        limit=limit,
+        offset=offset,
+        source=source,
+        unique_public_member_emails=unique_public_member_emails,
+        unique_attendee_emails=unique_attendee_emails,
+    )
+
+
+@app.post(
+    "/api/superadmin/bulk-email",
+    response_model=SuperadminBulkEmailOut,
+    dependencies=[Depends(require_role(Role.superadmin))],
+)
+async def send_superadmin_bulk_email(
+    payload: SuperadminBulkEmailIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    recipient_emails = await _resolve_superadmin_recipient_emails(db, payload.source)
+
+    if not recipient_emails:
+        return SuperadminBulkEmailOut(
+            dry_run=payload.dry_run,
+            source=payload.source,
+            targeted=0,
+            sent=0,
+            failed=0,
+            message="Hedef alici bulunamadi.",
+        )
+
+    if payload.dry_run:
+        return SuperadminBulkEmailOut(
+            dry_run=True,
+            source=payload.source,
+            targeted=len(recipient_emails),
+            sent=0,
+            failed=0,
+            message="Dry-run tamamlandi. E-posta gonderimi yapilmadi.",
+        )
+
+    sem = asyncio.Semaphore(10)
+    sent_count = 0
+    failed_count = 0
+
+    async def _send_single(to_email: str) -> None:
+        nonlocal sent_count, failed_count
+        async with sem:
+            try:
+                await send_email_async(
+                    to=to_email,
+                    subject=payload.subject,
+                    html_body=payload.body_html,
+                    raise_on_error=True,
+                    sender_user_id=me.id,
+                )
+                sent_count += 1
+            except Exception:
+                failed_count += 1
+
+    await asyncio.gather(*[_send_single(email) for email in recipient_emails])
+
+    return SuperadminBulkEmailOut(
+        dry_run=False,
+        source=payload.source,
+        targeted=len(recipient_emails),
+        sent=sent_count,
+        failed=failed_count,
+        message="Toplu e-posta islemi tamamlandi.",
+    )
+
+
+@app.post(
+    "/api/superadmin/bulk-email/jobs",
+    response_model=SuperadminBulkEmailJobOut,
+    status_code=201,
+    dependencies=[Depends(require_role(Role.superadmin))],
+)
+async def create_superadmin_bulk_email_job(
+    payload: SuperadminBulkEmailJobIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    recipient_emails = await _resolve_superadmin_recipient_emails(db, payload.source)
+    if not recipient_emails:
+        raise HTTPException(status_code=400, detail="Hedef alici bulunamadi.")
+
+    job = SuperadminBulkEmailJob(
+        created_by=me.id,
+        source=payload.source,
+        subject=payload.subject,
+        body_html=payload.body_html,
+        total_targets=len(recipient_emails),
+        status="pending",
+        cancel_requested=False,
+    )
+    db.add(job)
+    await db.commit()
+    await db.refresh(job)
+
+    await _enqueue_superadmin_bulk_email_job(job.id)
+    return job
+
+
+@app.get(
+    "/api/superadmin/bulk-email/jobs",
+    response_model=list[SuperadminBulkEmailJobOut],
+    dependencies=[Depends(require_role(Role.superadmin))],
+)
+async def list_superadmin_bulk_email_jobs(
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    db: AsyncSession = Depends(get_db),
+):
+    res = await db.execute(
+        select(SuperadminBulkEmailJob)
+        .order_by(SuperadminBulkEmailJob.created_at.desc(), SuperadminBulkEmailJob.id.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    return res.scalars().all()
+
+
+@app.get(
+    "/api/superadmin/email-activity",
+    response_model=SuperadminEmailActivityOut,
+    dependencies=[Depends(require_role(Role.superadmin))],
+)
+async def list_superadmin_email_activity(
+    channel: str = Query(default="all", pattern="^(all|event_bulk|superadmin_bulk)$"),
+    status: Optional[str] = Query(default=None, max_length=32),
+    sender_user_id: Optional[int] = Query(default=None, ge=1),
+    search: Optional[str] = Query(default=None, max_length=320),
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    db: AsyncSession = Depends(get_db),
+):
+    event_bulk_stmt = select(
+        literal("event_bulk").label("channel"),
+        BulkEmailJob.id.label("job_id"),
+        BulkEmailJob.created_by.label("sender_user_id"),
+        User.email.label("sender_email"),
+        BulkEmailJob.event_id.label("event_id"),
+        Event.name.label("event_name"),
+        BulkEmailJob.recipient_type.label("recipient_group"),
+        func.coalesce(EmailTemplate.subject_tr, EmailTemplate.subject_en, "(template)").label("subject"),
+        BulkEmailJob.status.label("status"),
+        func.coalesce(BulkEmailJob.recipients_count, 0).label("total_targets"),
+        func.coalesce(BulkEmailJob.sent_count, 0).label("sent_count"),
+        func.coalesce(BulkEmailJob.failed_count, 0).label("failed_count"),
+        BulkEmailJob.created_at.label("created_at"),
+        BulkEmailJob.started_at.label("started_at"),
+        BulkEmailJob.completed_at.label("completed_at"),
+        BulkEmailJob.error_message.label("error_message"),
+    ).join(User, User.id == BulkEmailJob.created_by).outerjoin(Event, Event.id == BulkEmailJob.event_id).outerjoin(
+        EmailTemplate, EmailTemplate.id == BulkEmailJob.email_template_id
+    )
+
+    superadmin_bulk_stmt = select(
+        literal("superadmin_bulk").label("channel"),
+        SuperadminBulkEmailJob.id.label("job_id"),
+        SuperadminBulkEmailJob.created_by.label("sender_user_id"),
+        User.email.label("sender_email"),
+        literal(None).label("event_id"),
+        literal(None).label("event_name"),
+        SuperadminBulkEmailJob.source.label("recipient_group"),
+        SuperadminBulkEmailJob.subject.label("subject"),
+        SuperadminBulkEmailJob.status.label("status"),
+        func.coalesce(SuperadminBulkEmailJob.total_targets, 0).label("total_targets"),
+        func.coalesce(SuperadminBulkEmailJob.sent_count, 0).label("sent_count"),
+        func.coalesce(SuperadminBulkEmailJob.failed_count, 0).label("failed_count"),
+        SuperadminBulkEmailJob.created_at.label("created_at"),
+        SuperadminBulkEmailJob.started_at.label("started_at"),
+        SuperadminBulkEmailJob.completed_at.label("completed_at"),
+        SuperadminBulkEmailJob.error_message.label("error_message"),
+    ).join(User, User.id == SuperadminBulkEmailJob.created_by)
+
+    if channel == "event_bulk":
+        activity_query = event_bulk_stmt
+    elif channel == "superadmin_bulk":
+        activity_query = superadmin_bulk_stmt
+    else:
+        activity_query = union_all(event_bulk_stmt, superadmin_bulk_stmt)
+
+    activity_sub = activity_query.subquery("email_activity")
+    filtered = select(activity_sub)
+
+    if status:
+        filtered = filtered.where(activity_sub.c.status == status)
+    if sender_user_id:
+        filtered = filtered.where(activity_sub.c.sender_user_id == sender_user_id)
+    if search and search.strip():
+        search_like = f"%{search.strip().lower()}%"
+        filtered = filtered.where(
+            or_(
+                activity_sub.c.sender_email.ilike(search_like),
+                activity_sub.c.subject.ilike(search_like),
+                activity_sub.c.event_name.ilike(search_like),
+            )
+        )
+
+    filtered_sub = filtered.subquery("email_activity_filtered")
+    total_res = await db.execute(select(func.count()).select_from(filtered_sub))
+    total = int(total_res.scalar_one() or 0)
+
+    rows_res = await db.execute(
+        select(filtered_sub)
+        .order_by(filtered_sub.c.created_at.desc(), filtered_sub.c.job_id.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    rows = rows_res.all()
+
+    items = [
+        SuperadminEmailActivityItemOut(
+            channel=row.channel,
+            job_id=row.job_id,
+            sender_user_id=row.sender_user_id,
+            sender_email=row.sender_email,
+            event_id=row.event_id,
+            event_name=row.event_name,
+            recipient_group=row.recipient_group,
+            subject=row.subject,
+            status=row.status,
+            total_targets=int(row.total_targets or 0),
+            sent_count=int(row.sent_count or 0),
+            failed_count=int(row.failed_count or 0),
+            created_at=row.created_at,
+            started_at=row.started_at,
+            completed_at=row.completed_at,
+            error_message=row.error_message,
+        )
+        for row in rows
+    ]
+
+    return SuperadminEmailActivityOut(items=items, total=total, limit=limit, offset=offset)
+
+
+@app.post(
+    "/api/superadmin/bulk-email/jobs/{job_id}/cancel",
+    response_model=SuperadminBulkEmailJobOut,
+    dependencies=[Depends(require_role(Role.superadmin))],
+)
+async def cancel_superadmin_bulk_email_job(
+    job_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    res = await db.execute(select(SuperadminBulkEmailJob).where(SuperadminBulkEmailJob.id == job_id))
+    job = res.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job bulunamadi")
+
+    if job.status in {"completed", "failed", "cancelled"}:
+        return job
+
+    job.cancel_requested = True
+    if job.status == "pending":
+        job.status = "cancelled"
+        job.completed_at = datetime.now(timezone.utc)
+    db.add(job)
+    await db.commit()
+    await db.refresh(job)
+    return job
+
+
+@app.post(
+    "/api/superadmin/bulk-email/jobs/{job_id}/retry",
+    response_model=SuperadminBulkEmailJobOut,
+    dependencies=[Depends(require_role(Role.superadmin))],
+)
+async def retry_superadmin_bulk_email_job(
+    job_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    res = await db.execute(select(SuperadminBulkEmailJob).where(SuperadminBulkEmailJob.id == job_id))
+    job = res.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job bulunamadi")
+
+    if job.status in {"pending", "sending"}:
+        return job
+
+    recipient_emails = await _resolve_superadmin_recipient_emails(db, job.source)
+    if not recipient_emails:
+        raise HTTPException(status_code=400, detail="Hedef alici bulunamadi.")
+
+    job.total_targets = len(recipient_emails)
+    job.sent_count = 0
+    job.failed_count = 0
+    job.status = "pending"
+    job.cancel_requested = False
+    job.error_message = None
+    job.started_at = None
+    job.completed_at = None
+    db.add(job)
+    await db.commit()
+    await db.refresh(job)
+
+    await _enqueue_superadmin_bulk_email_job(job.id)
+    return job
 
 
 @app.get("/api/superadmin/transactions", response_model=TxListOut, dependencies=[Depends(require_role(Role.superadmin))])

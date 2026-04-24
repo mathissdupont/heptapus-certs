@@ -8,20 +8,28 @@ export default function GizlilikPage() {
   const isTr = lang === "tr";
   const sections = isTr
     ? [
-        ["1. Giriş", "Heptapus Group, HeptaCert platformunu kullanırken kişisel verilerinizin nasıl toplandığını, kullanıldığını ve korunduğunu açıklar."],
-        ["2. Toplanan Bilgiler", "Hesap bilgileri, platform kullanım verileri ve güvenlik için gerekli teknik loglar işlenir."],
-        ["3. Çerezler", "Platform yalnızca zorunlu ve güvenlik amaçlı çerezler kullanır."],
-        ["4. Veri Paylaşımı", "Veriler pazarlama amacıyla paylaşılmaz; yalnızca hizmet sağlayıcılar ve yasal kurumlarla sınırlı olarak paylaşılır."],
-        ["5. Saklama Süresi", "Veriler aktif hizmet süresi ve yasal yükümlülükler boyunca saklanır; gerekli olmayan veriler silinir veya anonimleştirilir."],
-        ["6. Güvenlik", "HTTPS/TLS, bcrypt, JWT, 2FA ve oran sınırlama gibi modern güvenlik önlemleri uygulanır."],
+        ["1. Politikanın Kapsamı", "Bu politika, HeptaCert platformu kapsamında Heptapus Group tarafından yürütülen kişisel veri işleme faaliyetlerini açıklar. Etkinlik düzenleyicilerinin kendi veri işleme faaliyetleri ayrıca kendi sorumluluklarındadır."],
+        ["2. Rol Ayrımı", "Platformun hesap yönetimi ve teknik işletimi bakımından Heptapus Group, işleme bağlamına göre veri sorumlusu veya veri işleyen olarak hareket edebilir. Etkinlik kayıt formlarında toplanan etkinliğe özgü veriler bakımından etkinlik düzenleyicisi bağımsız veri sorumlusu olabilir."],
+        ["3. Toplanan Bilgiler", "Hesap bilgileri, oturum/cihaz verileri, platform kullanım kayıtları, güvenlik logları, ödeme referansları ve kullanıcıların etkinlik bazında girdiği ek bilgiler işlenebilir."],
+        ["4. Kullanım Amaçları", "Veriler hizmetin sunulması, kimlik doğrulama, sertifika üretimi, etkinlik operasyonları, destek, güvenlik, kötüye kullanımın önlenmesi ve yasal yükümlülüklerin yerine getirilmesi için kullanılır."],
+        ["5. Kullanıcı ve Organizatör Sorumluluğu", "Kullanıcılar ve etkinlik düzenleyicileri platforma yükledikleri verilerin hukuka uygunluğundan, gerekli aydınlatma/rıza süreçlerinden ve üçüncü kişi haklarına uyumdan sorumludur. Etkinliğe özel metin ve onayların hazırlanması/delillendirilmesi düzenleyicinin sorumluluğundadır."],
+        ["6. Çerezler ve Benzer Teknolojiler", "Platform temel olarak zorunlu ve güvenlik amaçlı çerezler kullanır. Performans veya analiz amaçlı araçlar kullanılması halinde gerekli hukuki gereklilikler ayrıca uygulanır."],
+        ["7. Veri Paylaşımı", "Veriler pazarlama amacıyla satılmaz. Yalnızca hizmetin çalışması için gerekli tedarikçilerle, ödeme altyapılarıyla ve hukuken yetkili kurumlarla paylaşılabilir."],
+        ["8. Saklama ve Silme", "Veriler hizmet ilişkisi ve yasal saklama süreleri boyunca tutulur; ihtiyaç sona erdiğinde silinir, yok edilir veya anonim hale getirilir."],
+        ["9. Güvenlik", "HTTPS/TLS, erişim kontrolü, parola hashleme, kayıt izleme, oran sınırlama ve benzeri teknik/idari tedbirler uygulanır. Buna rağmen hiçbir sistem için mutlak güvenlik garantisi verilemez."],
+        ["10. Haklar ve Başvurular", "Mevzuat kapsamındaki haklarınızı kullanabilirsiniz. Talebin niteliğine göre başvuru Heptapus Group'a veya ilgili etkinlik düzenleyicisine yöneltilmelidir; yanlış muhataba yapılan başvurular makul ölçüde doğru kanala yönlendirilir."],
       ]
     : [
-        ["1. Introduction", "Heptapus Group explains how your personal data is collected, used, and protected while using the HeptaCert platform."],
-        ["2. Information We Collect", "We process account details, platform usage data, and technical logs required for security and service delivery."],
-        ["3. Cookies", "The platform only uses essential and security-related cookies."],
-        ["4. Data Sharing", "Data is never shared for marketing purposes and is only shared with service providers or legally authorized institutions when necessary."],
-        ["5. Retention", "Data is retained during the active service period and for legal obligations, then deleted or anonymized when no longer needed."],
-        ["6. Security", "Modern safeguards such as HTTPS/TLS, bcrypt, JWT, 2FA, and rate limiting are applied."],
+        ["1. Scope", "This policy explains personal data processing activities carried out by Heptapus Group within HeptaCert. Event organizers may carry out additional processing under their own responsibility."],
+        ["2. Role Allocation", "For account management and technical platform operations, Heptapus Group may act as a data controller or data processor depending on context. For event-specific registration data, the event organizer may act as an independent data controller."],
+        ["3. Information We Collect", "We may process account details, session/device metadata, platform usage records, security logs, payment references, and additional event-level information entered by users."],
+        ["4. Purposes of Use", "Data is used for service delivery, authentication, certificate generation, event operations, support, security, abuse prevention, and legal compliance."],
+        ["5. User and Organizer Responsibility", "Users and event organizers are responsible for legal compliance of uploaded data, required notices/consents, and third-party rights compliance. Preparing and evidencing event-specific notices/consents is primarily the organizer's responsibility."],
+        ["6. Cookies and Similar Technologies", "The platform primarily uses essential and security-related cookies. Where analytics/performance tools are used, applicable legal requirements are followed."],
+        ["7. Data Sharing", "Data is not sold for marketing. It may be shared only with required service providers, payment infrastructure partners, and legally authorized authorities."],
+        ["8. Retention and Deletion", "Data is retained for the service relationship and legal retention periods, then deleted, destroyed, or anonymized."],
+        ["9. Security", "Technical and organizational safeguards such as HTTPS/TLS, access control, password hashing, logging, and abuse prevention are used. Absolute security cannot be guaranteed."],
+        ["10. Rights and Requests", "You may exercise your legal rights. Depending on request scope, you may need to contact Heptapus Group and/or the relevant event organizer; misdirected requests may be reasonably redirected to the proper channel."],
       ];
 
   return (
@@ -36,7 +44,7 @@ export default function GizlilikPage() {
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-brand-600">{isTr ? "Hukuki Bilgilendirme" : "Legal Notice"}</p>
           <h1 className="text-3xl font-extrabold text-gray-900">{isTr ? "Gizlilik Politikası" : "Privacy Policy"}</h1>
-          <p className="mt-2 text-sm text-gray-500">{isTr ? "Son güncelleme: 1 Mart 2026" : "Last updated: March 1, 2026"}</p>
+          <p className="mt-2 text-sm text-gray-500">{isTr ? "Son güncelleme: 23 Nisan 2026" : "Last updated: April 23, 2026"}</p>
         </div>
 
         {sections.map(([title, body]) => (
@@ -53,6 +61,7 @@ export default function GizlilikPage() {
           </div>
           <div className="flex gap-3">
             <Link href="/kvkk" className="text-sm text-gray-500 transition-colors hover:text-brand-600">{isTr ? "KVKK" : "Privacy Notice"}</Link>
+            <Link href="/kullanim-kosullari" className="text-sm text-gray-500 transition-colors hover:text-brand-600">{isTr ? "Kullanım Koşulları" : "Terms of Use"}</Link>
             <Link href="/iletisim" className="text-sm text-gray-500 transition-colors hover:text-brand-600">{isTr ? "İletişim" : "Contact"}</Link>
           </div>
         </div>

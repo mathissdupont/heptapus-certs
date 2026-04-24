@@ -18,6 +18,7 @@ export default function RegisterHub() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -49,6 +50,7 @@ export default function RegisterHub() {
             },
             passwordMin: "Şifre en az 8 karakter olmalı.",
             passwordMismatch: "Şifreler eşleşmiyor.",
+            termsRequired: "Devam etmek için Kullanım Koşulları'nı kabul etmelisiniz.",
             registerFailed: "Kayıt işlemi başarısız oldu.",
             verifyHint: "E-posta gelmediyse spam klasörünü de kontrol edin.",
             createAccount: "Hesap Oluştur",
@@ -67,6 +69,11 @@ export default function RegisterHub() {
             signInOrganizer: "Yönetici girişi",
             signInMember: "Üye girişi",
             switchHint: "İstersen diğer hesap tipine de hemen geçebilirsin.",
+            termsPrefix: "Devam ederek",
+            termsLink: "Kullanım Koşulları",
+            termsMiddle: "ve",
+            privacyLink: "Gizlilik Politikası",
+            termsSuffix: "metinlerini okuduğunu ve kabul ettiğini beyan edersin.",
           }
         : {
             organizer: {
@@ -91,6 +98,7 @@ export default function RegisterHub() {
             },
             passwordMin: "Password must be at least 8 characters.",
             passwordMismatch: "Passwords do not match.",
+            termsRequired: "You must accept the Terms of Use to continue.",
             registerFailed: "Registration failed.",
             verifyHint: "If you do not see the email, check your spam folder too.",
             createAccount: "Create Account",
@@ -109,6 +117,11 @@ export default function RegisterHub() {
             signInOrganizer: "Admin login",
             signInMember: "Member login",
             switchHint: "You can switch to the other account type anytime.",
+            termsPrefix: "By continuing, you agree to the",
+            termsLink: "Terms of Use",
+            termsMiddle: "and",
+            privacyLink: "Privacy Policy",
+            termsSuffix: ".",
           },
     [lang],
   );
@@ -134,18 +147,24 @@ export default function RegisterHub() {
       return;
     }
 
+    if (!termsAccepted) {
+      setErr(copy.termsRequired);
+      return;
+    }
+
     setLoading(true);
     try {
       if (mode === "organizer") {
         await apiFetch("/auth/register", {
           method: "POST",
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email, password, terms_accepted: termsAccepted }),
         });
       } else {
         await registerPublicMember({
           display_name: displayName,
           email,
           password,
+          terms_accepted: termsAccepted,
         });
       }
       setSuccess(true);
@@ -289,6 +308,27 @@ export default function RegisterHub() {
               />
             </div>
           </div>
+
+          <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600"
+              checked={termsAccepted}
+              onChange={(event) => setTermsAccepted(event.target.checked)}
+              required
+            />
+            <span>
+              {copy.termsPrefix}{" "}
+              <Link href="/kullanim-kosullari" className="font-semibold text-brand-600 hover:text-brand-700">
+                {copy.termsLink}
+              </Link>{" "}
+              {copy.termsMiddle}{" "}
+              <Link href="/gizlilik" className="font-semibold text-brand-600 hover:text-brand-700">
+                {copy.privacyLink}
+              </Link>{" "}
+              {copy.termsSuffix}
+            </span>
+          </label>
 
           <AnimatePresence mode="wait">
             {err ? (

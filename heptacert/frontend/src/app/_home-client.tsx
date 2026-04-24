@@ -287,6 +287,7 @@ export default function LandingPage() {
           <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm font-medium text-gray-500 dark:text-gray-400">
             <Link href="/verify" className="hover:text-gray-900 dark:hover:text-white transition-colors">{copy.footerVerify}</Link>
             <Link href="/iletisim" className="hover:text-gray-900 dark:hover:text-white transition-colors">{copy.footerContact}</Link>
+            <Link href="/kullanim-kosullari" className="hover:text-gray-900 dark:hover:text-white transition-colors">{copy.footerTerms}</Link>
             <Link href="/gizlilik" className="hover:text-gray-900 dark:hover:text-white transition-colors">{copy.footerPrivacy}</Link>
           </div>
         </div>

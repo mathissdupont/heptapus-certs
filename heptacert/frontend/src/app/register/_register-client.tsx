@@ -15,6 +15,7 @@ export default function RegisterPage() {
         ? {
             passwordMin: "Şifre en az 8 karakter olmalıdır.",
             passwordMismatch: "Şifreler eşleşmiyor.",
+          termsRequired: "Devam etmek için Kullanım Koşulları'nı kabul etmelisiniz.",
             registerFailed: "Kayıt işlemi başarısız oldu.",
             verifyTitle: "E-postanızı Doğrulayın",
             verifyBody: "adresine bir doğrulama bağlantısı gönderdik. Gelen kutunuzu kontrol edin ve hesabınızı aktif edin.",
@@ -32,10 +33,16 @@ export default function RegisterPage() {
             submit: "Hesap Oluştur",
             hasAccount: "Zaten hesabınız var mı?",
             signIn: "Giriş Yapın",
+            termsPrefix: "Devam ederek",
+            termsLink: "Kullanım Koşulları",
+            termsMiddle: "ve",
+            privacyLink: "Gizlilik Politikası",
+            termsSuffix: "metinlerini okuduğunuzu ve kabul ettiğinizi beyan edersiniz.",
           }
         : {
             passwordMin: "Password must be at least 8 characters.",
             passwordMismatch: "Passwords do not match.",
+            termsRequired: "You must accept the Terms of Use to continue.",
             registerFailed: "Registration failed.",
             verifyTitle: "Verify your email",
             verifyBody: "We sent a verification link to this address. Check your inbox and activate your account.",
@@ -53,6 +60,11 @@ export default function RegisterPage() {
             submit: "Create Account",
             hasAccount: "Already have an account?",
             signIn: "Sign In",
+            termsPrefix: "By continuing, you agree to the",
+            termsLink: "Terms of Use",
+            termsMiddle: "and",
+            privacyLink: "Privacy Policy",
+            termsSuffix: ".",
           },
     [lang]
   );
@@ -60,6 +72,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -78,11 +91,16 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!termsAccepted) {
+      setErr(copy.termsRequired);
+      return;
+    }
+
     setLoading(true);
     try {
       await apiFetch("/auth/register", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, terms_accepted: termsAccepted }),
       });
       setSuccess(true);
     } catch (e: any) {
@@ -179,6 +197,27 @@ export default function RegisterPage() {
               />
             </div>
           </div>
+
+          <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600"
+              checked={termsAccepted}
+              onChange={(e) => setTermsAccepted(e.target.checked)}
+              required
+            />
+            <span>
+              {copy.termsPrefix}{" "}
+              <Link href="/kullanim-kosullari" className="font-semibold text-brand-600 hover:text-brand-700">
+                {copy.termsLink}
+              </Link>{" "}
+              {copy.termsMiddle}{" "}
+              <Link href="/gizlilik" className="font-semibold text-brand-600 hover:text-brand-700">
+                {copy.privacyLink}
+              </Link>
+              {" "}{copy.termsSuffix}
+            </span>
+          </label>
 
           <AnimatePresence mode="wait">
             {err && (

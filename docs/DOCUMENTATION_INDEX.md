@@ -92,6 +92,19 @@ This document serves as a master index for all documentation files related to th
 
 ---
 
+### 6. **USE_CASE_SUNUM_METNI.md**
+**Purpose:** Presentation-ready system use-case narrative in Turkish  
+**Contents:**
+- End-to-end system use-cases (events, attendance, certificate issuance, verification)
+- Certificate security architecture (JWT/RBAC, PDF signing, watermark verification)
+- Algorithms used in certificate pipeline (UUIDv4, RSA-2048, SHA-256, LSB watermark)
+- Discovery ranking model summary (Virality, Quality, Velocity, Freshness)
+- NFR and stakeholder-facing presentation messages
+
+**Best for:** Product demos, stakeholder presentations, architecture walkthroughs
+
+---
+
 ## 📂 Code Files Created/Modified
 
 ### Backend Files
