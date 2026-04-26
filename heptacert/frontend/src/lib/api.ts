@@ -1177,7 +1177,7 @@ export async function publicRegisterAttendee(
   data: {
     name: string;
     email: string;
-    registration_answers?: Record<string, string>;
+    registration_answers?: Record<string, string | string[]>;
     kvkk_accepted?: boolean;
     registration_documents?: Array<RegistrationDocumentUploadOut & { field_id?: string }>;
   }

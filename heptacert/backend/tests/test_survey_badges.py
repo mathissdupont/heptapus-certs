@@ -237,6 +237,14 @@ async def test_public_register_persists_custom_registration_answers():
                                 "required": False,
                                 "options": ["Yazılım", "Pazarlama"],
                             },
+                            {
+                                "id": "interests",
+                                "label": "Ilgi Alanlari",
+                                "type": "select",
+                                "required": True,
+                                "selection_mode": "multiple",
+                                "options": ["AI", "Cloud", "Security"],
+                            },
                         ]
                     },
                 )
@@ -247,14 +255,28 @@ async def test_public_register_persists_custom_registration_answers():
         info = await ac.get(f"/api/events/{event_id}/info")
         assert info.status_code == 200
         info_payload = info.json()
-        assert len(info_payload["registration_fields"]) == 2
+        assert len(info_payload["registration_fields"]) == 3
         assert info_payload["registration_fields"][0]["id"] == "tc_identity"
+        assert info_payload["registration_fields"][2]["selection_mode"] == "multiple"
 
         invalid = await ac.post(
             f"/api/events/{event_id}/register",
             json={"name": "Missing Field", "email": "missing@example.com", "registration_answers": {}},
         )
         assert invalid.status_code == 400
+
+        invalid_multi = await ac.post(
+            f"/api/events/{event_id}/register",
+            json={
+                "name": "Bad Multi",
+                "email": "bad-multi@example.com",
+                "registration_answers": {
+                    "tc_identity": "12345678901",
+                    "interests": ["Unknown"],
+                },
+            },
+        )
+        assert invalid_multi.status_code == 400
 
         registered = await ac.post(
             f"/api/events/{event_id}/register",
@@ -264,6 +286,7 @@ async def test_public_register_persists_custom_registration_answers():
                 "registration_answers": {
                     "tc_identity": "12345678901",
                     "department": "Pazarlama",
+                    "interests": ["AI", "Security"],
                 },
             },
         )
@@ -278,6 +301,7 @@ async def test_public_register_persists_custom_registration_answers():
         assert attendee.registration_answers == {
             "tc_identity": "12345678901",
             "department": "Pazarlama",
+            "interests": ["AI", "Security"],
         }
 
 

@@ -406,7 +406,13 @@ export default function EventSettingsPage() {
             : "",
         visibility: eventData.visibility || (eventData.config?.visibility as FormState["visibility"]) || "private",
         registration_fields: Array.isArray(eventData.config?.registration_fields)
-          ? eventData.config.registration_fields
+          ? eventData.config.registration_fields.map((field) => ({
+              ...field,
+              selection_mode:
+                field.type === "select"
+                  ? (field.selection_mode === "multiple" ? "multiple" : "single")
+                  : undefined,
+            }))
           : [],
         require_email_verification: eventData.require_email_verification ?? true,
         auto_email_on_cert: Boolean(eventData.auto_email_on_cert),
@@ -528,6 +534,10 @@ export default function EventSettingsPage() {
           required_when_equals: field.required_when_equals?.trim() || null,
           placeholder: field.placeholder?.trim() || null,
           helper_text: field.helper_text?.trim() || null,
+          selection_mode:
+            field.type === "select"
+              ? (field.selection_mode === "multiple" ? "multiple" : "single")
+              : null,
           options: field.type === "select"
             ? (field.options || []).map((option) => option.trim()).filter(Boolean)
             : [],

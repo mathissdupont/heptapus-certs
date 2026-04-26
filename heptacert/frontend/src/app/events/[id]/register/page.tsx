@@ -57,14 +57,30 @@ type BrandingData = {
 
 const REGISTRATION_DOCUMENT_MAX_SIZE_BYTES = 2 * 1024 * 1024;
 
-function isFieldConditionMet(field: RegistrationField, answers: Record<string, string>): boolean {
+type RegistrationAnswerValue = string | string[];
+
+function isFieldConditionMet(field: RegistrationField, answers: Record<string, RegistrationAnswerValue>): boolean {
   const conditionFieldId = (field.required_when_field_id || "").trim();
   const conditionValue = (field.required_when_equals || "").trim();
   if (!conditionFieldId || !conditionValue) {
     return false;
   }
-  const currentValue = (answers[conditionFieldId] || "").trim();
-  return currentValue.toLocaleLowerCase() === conditionValue.toLocaleLowerCase();
+  const currentValue = answers[conditionFieldId];
+  if (Array.isArray(currentValue)) {
+    return currentValue.some((value) => value.trim().toLocaleLowerCase() === conditionValue.toLocaleLowerCase());
+  }
+  return (currentValue || "").trim().toLocaleLowerCase() === conditionValue.toLocaleLowerCase();
+}
+
+function getRegistrationAnswerTextValue(
+  answers: Record<string, RegistrationAnswerValue>,
+  fieldId: string,
+): string {
+  const raw = answers[fieldId];
+  if (Array.isArray(raw)) {
+    return raw[0] || "";
+  }
+  return raw || "";
 }
 
 export default function EventRegisterPage() {
@@ -187,7 +203,7 @@ export default function EventRegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [registrationAnswers, setRegistrationAnswers] = useState<Record<string, string>>({});
+  const [registrationAnswers, setRegistrationAnswers] = useState<Record<string, RegistrationAnswerValue>>({});
   const [registrationFilesByField, setRegistrationFilesByField] = useState<Record<string, File[]>>({});
   const [showKvkkModal, setShowKvkkModal] = useState(false);
   const [kvkkAccepted, setKvkkAccepted] = useState(false);
@@ -371,11 +387,24 @@ export default function EventRegisterPage() {
     }
   }
 
-  function handleRegistrationAnswerChange(fieldId: string, value: string) {
+  function handleRegistrationAnswerChange(fieldId: string, value: RegistrationAnswerValue) {
     setRegistrationAnswers((current) => ({
       ...current,
       [fieldId]: value,
     }));
+  }
+
+  function toggleMultiSelectAnswer(fieldId: string, option: string, checked: boolean) {
+    setRegistrationAnswers((current) => {
+      const currentValues = Array.isArray(current[fieldId]) ? current[fieldId] : [];
+      const nextValues = checked
+        ? Array.from(new Set([...currentValues, option]))
+        : currentValues.filter((value) => value !== option);
+      return {
+        ...current,
+        [fieldId]: nextValues,
+      };
+    });
   }
 
   if (loading) {
@@ -670,7 +699,7 @@ export default function EventRegisterPage() {
                             )}
                             {field.type === "textarea" ? (
                               <textarea
-                                value={registrationAnswers[field.id] || ""}
+                                value={getRegistrationAnswerTextValue(registrationAnswers, field.id)}
                                 onChange={(e) => handleRegistrationAnswerChange(field.id, e.target.value)}
                                 placeholder={field.placeholder || ""}
                                 required={field.required}
@@ -678,24 +707,46 @@ export default function EventRegisterPage() {
                                 style={inputFocusStyle}
                               />
                             ) : field.type === "select" ? (
-                              <select
-                                value={registrationAnswers[field.id] || ""}
-                                onChange={(e) => handleRegistrationAnswerChange(field.id, e.target.value)}
-                                required={field.required}
-                                className="w-full rounded-2xl border bg-white px-4 py-3.5 text-sm text-gray-900 transition-all focus:outline-none focus:ring-2"
-                                style={inputFocusStyle}
-                              >
-                                <option value="">{field.placeholder || field.label}</option>
-                                {(field.options || []).map((option) => (
-                                  <option key={option} value={option}>
-                                    {option}
-                                  </option>
-                                ))}
-                              </select>
+                              field.selection_mode === "multiple" ? (
+                                <div className="space-y-2 rounded-2xl border border-gray-200 bg-white px-4 py-3">
+                                  {(field.options || []).map((option) => {
+                                    const selectedValues = Array.isArray(registrationAnswers[field.id])
+                                      ? registrationAnswers[field.id]
+                                      : [];
+                                    const checked = selectedValues.includes(option);
+                                    return (
+                                      <label key={option} className="flex items-center gap-2 text-sm text-gray-800">
+                                        <input
+                                          type="checkbox"
+                                          checked={checked}
+                                          onChange={(eventArg) => toggleMultiSelectAnswer(field.id, option, eventArg.target.checked)}
+                                          className="h-4 w-4 rounded border-gray-300 text-brand-600"
+                                        />
+                                        <span>{option}</span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <select
+                                  value={getRegistrationAnswerTextValue(registrationAnswers, field.id)}
+                                  onChange={(e) => handleRegistrationAnswerChange(field.id, e.target.value)}
+                                  required={field.required}
+                                  className="w-full rounded-2xl border bg-white px-4 py-3.5 text-sm text-gray-900 transition-all focus:outline-none focus:ring-2"
+                                  style={inputFocusStyle}
+                                >
+                                  <option value="">{field.placeholder || field.label}</option>
+                                  {(field.options || []).map((option) => (
+                                    <option key={option} value={option}>
+                                      {option}
+                                    </option>
+                                  ))}
+                                </select>
+                              )
                             ) : (
                               <input
                                 type={field.type === "tel" || field.type === "number" || field.type === "date" ? field.type : "text"}
-                                value={registrationAnswers[field.id] || ""}
+                                value={getRegistrationAnswerTextValue(registrationAnswers, field.id)}
                                 onChange={(e) => handleRegistrationAnswerChange(field.id, e.target.value)}
                                 placeholder={field.placeholder || ""}
                                 required={field.required}

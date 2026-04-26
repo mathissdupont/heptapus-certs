@@ -4004,6 +4004,7 @@ def _normalize_registration_fields(raw_fields: Any) -> List[Dict[str, Any]]:
         required_when_equals = str(item.get("required_when_equals") or "").strip()[:120]
 
         options: List[str] = []
+        selection_mode = "single"
         raw_options = item.get("options")
         if isinstance(raw_options, list):
             options = [str(option).strip()[:120] for option in raw_options if str(option).strip()]
@@ -4011,6 +4012,9 @@ def _normalize_registration_fields(raw_fields: Any) -> List[Dict[str, Any]]:
             options = list(dict.fromkeys(options))[:30]
             if not options:
                 field_type = "text"
+            else:
+                raw_selection_mode = str(item.get("selection_mode") or "single").strip().lower()
+                selection_mode = "multiple" if raw_selection_mode == "multiple" else "single"
 
         normalized_item: Dict[str, Any] = {
             "id": field_id,
@@ -4022,6 +4026,7 @@ def _normalize_registration_fields(raw_fields: Any) -> List[Dict[str, Any]]:
         }
         if field_type == "select":
             normalized_item["options"] = options
+            normalized_item["selection_mode"] = selection_mode
         if required_when_field_id and required_when_equals:
             normalized_item["required_when_field_id"] = required_when_field_id
             normalized_item["required_when_equals"] = required_when_equals
@@ -4216,15 +4221,67 @@ def _build_public_org_summary(
 def _normalize_registration_answers(
     registration_fields: List[Dict[str, Any]],
     raw_answers: Any,
-) -> Dict[str, str]:
+) -> Dict[str, Any]:
     raw_map = raw_answers if isinstance(raw_answers, dict) else {}
-    normalized: Dict[str, str] = {}
+    normalized: Dict[str, Any] = {}
 
     for field in registration_fields:
         field_id = field["id"]
         if field.get("type") == "file":
             # File fields are validated via registration_documents payload.
             continue
+
+        if field.get("type") == "select":
+            options = field.get("options") or []
+            selection_mode = "multiple" if str(field.get("selection_mode") or "").strip().lower() == "multiple" else "single"
+            raw_value = raw_map.get(field_id)
+
+            if selection_mode == "multiple":
+                if raw_value is None:
+                    values: List[str] = []
+                elif isinstance(raw_value, str):
+                    stripped = raw_value.strip()
+                    values = [stripped] if stripped else []
+                elif isinstance(raw_value, (list, tuple, set)):
+                    values = [str(item).strip()[:120] for item in raw_value if str(item).strip()]
+                else:
+                    raise bad_request(f'"{field["label"]}" alanı için geçerli bir değer girin.')
+
+                values = list(dict.fromkeys(values))[:30]
+                invalid_values = [value for value in values if value not in options]
+                if invalid_values:
+                    raise bad_request(f'"{field["label"]}" alanı için geçerli seçimler yapın.')
+
+                is_required = bool(field.get("required")) or _is_registration_field_condition_met(field, raw_map)
+                if is_required and not values:
+                    raise bad_request(f'"{field["label"]}" alanı zorunludur.')
+
+                if values:
+                    normalized[field_id] = values
+                continue
+
+            if raw_value is None:
+                value = ""
+            elif isinstance(raw_value, str):
+                value = raw_value.strip()
+            elif isinstance(raw_value, (int, float, bool)):
+                value = str(raw_value).strip()
+            else:
+                raise bad_request(f'"{field["label"]}" alanı için geçerli bir değer girin.')
+
+            is_required = bool(field.get("required")) or _is_registration_field_condition_met(field, raw_map)
+            if is_required and not value:
+                raise bad_request(f'"{field["label"]}" alanı zorunludur.')
+
+            if not value:
+                continue
+
+            if value not in options:
+                raise bad_request(f'"{field["label"]}" alanı için geçerli bir seçim yapın.')
+
+            normalized[field_id] = value[:1000]
+            continue
+
         raw_value = raw_map.get(field_id, "")
         if raw_value is None:
             value = ""
@@ -4241,11 +4298,6 @@ def _normalize_registration_answers(
 
         if not value:
             continue
-
-        if field.get("type") == "select":
-            options = field.get("options") or []
-            if value not in options:
-                raise bad_request(f'"{field["label"]}" alanı için geçerli bir seçim yapın.')
 
         normalized[field_id] = value[:1000]
 
@@ -4266,6 +4318,9 @@ def _is_registration_field_condition_met(field: Dict[str, Any], answers: Dict[st
         actual_value = raw_value.strip()
     elif isinstance(raw_value, (int, float, bool)):
         actual_value = str(raw_value).strip()
+    elif isinstance(raw_value, (list, tuple, set)):
+        normalized_values = [str(item).strip() for item in raw_value if str(item).strip()]
+        return any(value.casefold() == condition_value.casefold() for value in normalized_values)
     else:
         return False
 
