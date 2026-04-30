@@ -391,7 +391,7 @@ export interface RegistrationField {
   required_when_equals?: string;
   placeholder?: string | null;
   helper_text?: string | null;
-  options?: string[];
+  options?: Array<string | { label: string; capacity?: number | null }>;
   selection_mode?: "single" | "multiple";  // For "select" type: single choice or multiple choices
 }
 
@@ -1169,6 +1169,11 @@ export async function updateAdminEventComment(
 
 export async function getPublicEventInfo(eventId: EventRouteId): Promise<PublicEventInfo> {
   const res = await publicApiFetch(`/events/${toEventRouteId(eventId)}/info`);
+  return res.json();
+}
+
+export async function getEventCapacities(eventId: EventRouteId): Promise<Record<string, Array<{ label: string; capacity?: number | null; remaining?: number | null }>>> {
+  const res = await publicApiFetch(`/events/${toEventRouteId(eventId)}/capacities`);
   return res.json();
 }
 

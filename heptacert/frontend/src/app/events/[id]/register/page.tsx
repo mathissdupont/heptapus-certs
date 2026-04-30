@@ -205,6 +205,7 @@ export default function EventRegisterPage() {
   const [email, setEmail] = useState("");
   const [registrationAnswers, setRegistrationAnswers] = useState<Record<string, RegistrationAnswerValue>>({});
   const [registrationFilesByField, setRegistrationFilesByField] = useState<Record<string, File[]>>({});
+  const [capacitiesByField, setCapacitiesByField] = useState<Record<string, Array<{ label: string; capacity?: number | null; remaining?: number | null }>>>({});
   const [showKvkkModal, setShowKvkkModal] = useState(false);
   const [kvkkAccepted, setKvkkAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -236,6 +237,10 @@ export default function EventRegisterPage() {
       .then(setEvent)
       .catch(() => setError(copy.eventNotFound))
       .finally(() => setLoading(false));
+    // fetch capacities
+    getEventCapacities(eventId)
+      .then((data) => setCapacitiesByField(data || {}))
+      .catch(() => {});
   }, [eventId, copy.eventNotFound]);
 
   useEffect(() => {
@@ -710,19 +715,27 @@ export default function EventRegisterPage() {
                               field.selection_mode === "multiple" ? (
                                 <div className="space-y-2 rounded-2xl border border-gray-200 bg-white px-4 py-3">
                                   {(field.options || []).map((option) => {
+                                    const label = typeof option === "string" ? option : option.label;
                                     const selectedValues = Array.isArray(registrationAnswers[field.id])
                                       ? registrationAnswers[field.id]
                                       : [];
-                                    const checked = selectedValues.includes(option);
+                                    const checked = selectedValues.includes(label);
+                                    const remaining = capacitiesByField[field.id]?.find((c) => c.label === label)?.remaining;
+                                    const disabled = typeof remaining === "number" && remaining <= 0;
                                     return (
-                                      <label key={option} className="flex items-center gap-2 text-sm text-gray-800">
+                                      <label key={label} className="flex items-center gap-2 text-sm text-gray-800">
                                         <input
                                           type="checkbox"
                                           checked={checked}
-                                          onChange={(eventArg) => toggleMultiSelectAnswer(field.id, option, eventArg.target.checked)}
+                                          disabled={disabled}
+                                          onChange={(eventArg) => toggleMultiSelectAnswer(field.id, label, eventArg.target.checked)}
                                           className="h-4 w-4 rounded border-gray-300 text-brand-600"
                                         />
-                                        <span>{option}</span>
+                                        <span>
+                                          {label}
+                                          {typeof option === "object" && option.capacity != null ? ` · ${option.capacity}` : null}
+                                          {typeof remaining === "number" ? ` · kalan ${remaining}` : null}
+                                        </span>
                                       </label>
                                     );
                                   })}
@@ -736,11 +749,16 @@ export default function EventRegisterPage() {
                                   style={inputFocusStyle}
                                 >
                                   <option value="">{field.placeholder || field.label}</option>
-                                  {(field.options || []).map((option) => (
-                                    <option key={option} value={option}>
-                                      {option}
-                                    </option>
-                                  ))}
+                                  {(field.options || []).map((option) => {
+                                    const label = typeof option === "string" ? option : option.label;
+                                    const remaining = capacitiesByField[field.id]?.find((c) => c.label === label)?.remaining;
+                                    const disabled = typeof remaining === "number" && remaining <= 0;
+                                    return (
+                                      <option key={label} value={label} disabled={disabled}>
+                                        {label}{typeof option === "object" && option.capacity != null ? ` · ${option.capacity}` : null}{typeof remaining === "number" ? ` · kalan ${remaining}` : null}
+                                      </option>
+                                    );
+                                  })}
                                 </select>
                               )
                             ) : (

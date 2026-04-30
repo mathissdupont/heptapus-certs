@@ -21,7 +21,7 @@ from enum import Enum
 from html import escape
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, Optional, List, Tuple
 from pydantic import field_validator
 import uuid as _uuid_module
 import aiosmtplib
@@ -57,6 +57,7 @@ from sqlalchemy import (
     Enum as SAEnum, UniqueConstraint, Index, select, func, distinct, update, delete, or_,
     Date as sa_Date, Time as sa_Time, literal, union_all
 )
+from sqlalchemy import cast
 from sqlalchemy import JSON as _JSON
 from sqlalchemy.dialects.postgresql import JSONB as _PgJSONB, INET as _PgINET, insert as _pg_insert
 
@@ -457,6 +458,114 @@ class Transaction(Base):
 class SystemConfig(Base):
     __tablename__ = "system_configs"
     key: Mapped[str] = mapped_column(String(128), primary_key=True)
+
+
+class RegistrationOptionCapacity(Base):
+    __tablename__ = "registration_option_capacities"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    event_id: Mapped[int] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    field_id: Mapped[str] = mapped_column(String(64), index=True)
+    option_label: Mapped[str] = mapped_column(String(200))
+    capacity: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    reserved_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (UniqueConstraint("event_id", "field_id", "option_label", name="uq_regopt_event_field_option"),)
+
+
+async def _ensure_capacity_row(db: AsyncSession, event_id: int, field_id: str, option_label: str, capacity: Optional[int]):
+    # Insert row if not exists with provided capacity (only when capacity is not None)
+    try:
+        if capacity is None:
+            return
+        insert_stmt = _pg_insert(RegistrationOptionCapacity.__table__).values(
+            event_id=event_id,
+            field_id=field_id,
+            option_label=option_label,
+            capacity=capacity,
+            reserved_count=0,
+        ).on_conflict_do_nothing(index_elements=["event_id", "field_id", "option_label"])
+        await db.execute(insert_stmt)
+    except Exception:
+        # Best-effort: ignore failures here
+        return
+
+
+async def _reserve_option_capacity(db: AsyncSession, event_id: int, field_id: str, option_label: str, capacity: Optional[int]) -> bool:
+    """Attempt an atomic reservation for a single option. Returns True on success, False if no capacity left.
+
+    If capacity is None (unlimited), returns True immediately.
+    """
+    if capacity is None:
+        return True
+
+    # Ensure a capacity row exists (best-effort)
+    await _ensure_capacity_row(db, event_id, field_id, option_label, capacity)
+
+    # Try atomic increment where reserved_count < capacity
+    upd = (
+        update(RegistrationOptionCapacity)
+        .where(
+            RegistrationOptionCapacity.event_id == event_id,
+            RegistrationOptionCapacity.field_id == field_id,
+            RegistrationOptionCapacity.option_label == option_label,
+            RegistrationOptionCapacity.reserved_count < RegistrationOptionCapacity.capacity,
+        )
+        .values(reserved_count=(RegistrationOptionCapacity.reserved_count + 1))
+        .returning(RegistrationOptionCapacity.reserved_count)
+    )
+    try:
+        res = await db.execute(upd)
+        row = res.scalar_one_or_none()
+        if row is None:
+            return False
+        return True
+    except Exception:
+        return False
+
+
+async def _get_event_capacities(event_id: int, db: AsyncSession) -> Dict[str, List[Dict[str, Any]]]:
+    """Return capacities for event as mapping field_id -> list of {label, capacity, remaining}.
+    If DB row not present for an option, derive from event.config if present.
+    """
+    out: Dict[str, List[Dict[str, Any]]] = {}
+    # Load DB rows
+    res = await db.execute(select(RegistrationOptionCapacity).where(RegistrationOptionCapacity.event_id == event_id))
+    rows = res.scalars().all()
+    by_field: Dict[str, List[RegistrationOptionCapacity]] = {}
+    for r in rows:
+        by_field.setdefault(r.field_id, []).append(r)
+
+    # Also load event config options as fallback
+    ev_res = await db.execute(select(Event).where(Event.id == event_id))
+    ev = ev_res.scalar_one_or_none()
+    registration_fields = _get_event_registration_fields(ev) if ev else []
+
+    for field in registration_fields:
+        if field.get("type") != "select":
+            continue
+        fid = str(field.get("id") or "").strip()
+        opts = []
+        db_rows = {r.option_label: r for r in by_field.get(fid, [])}
+        for o in field.get("options") or []:
+            if isinstance(o, dict):
+                label = str(o.get("label") or "").strip()
+                cap = o.get("capacity")
+            else:
+                label = str(o or "").strip()
+                cap = None
+            if label == "":
+                continue
+            row = db_rows.get(label)
+            if row:
+                remaining = None if row.capacity is None else max(0, int(row.capacity) - int(row.reserved_count or 0))
+                opts.append({"label": label, "capacity": row.capacity, "remaining": remaining})
+            else:
+                remaining = None if cap is None else int(cap)
+                opts.append({"label": label, "capacity": cap, "remaining": remaining})
+        if opts:
+            out[fid] = opts
+    return out
     value: Mapped[dict] = mapped_column(JSONB, default=dict)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -3433,6 +3542,15 @@ async def organization_middleware(request: Request, call_next):
     return response
 
 
+@app.get("/api/events/{event_id}/capacities")
+async def public_event_capacities(event_id: str, db: AsyncSession = Depends(get_db)):
+    ev = await _resolve_public_event(db, event_id)
+    if not ev:
+        raise HTTPException(status_code=404, detail="Event not found")
+    caps = await _get_event_capacities(ev.id, db)
+    return caps
+
+
 @app.on_event("startup")
 async def startup():
     ensure_dirs()
@@ -4003,13 +4121,35 @@ def _normalize_registration_fields(raw_fields: Any) -> List[Dict[str, Any]]:
         required_when_field_id = str(item.get("required_when_field_id") or "").strip()[:64]
         required_when_equals = str(item.get("required_when_equals") or "").strip()[:120]
 
-        options: List[str] = []
+        options: List[Dict[str, Any]] = []
         selection_mode = "single"
         raw_options = item.get("options")
         if isinstance(raw_options, list):
-            options = [str(option).strip()[:120] for option in raw_options if str(option).strip()]
+            for opt in raw_options:
+                if isinstance(opt, dict):
+                    lbl = str(opt.get("label") or "").strip()[:120]
+                    if not lbl:
+                        continue
+                    cap = opt.get("capacity")
+                    try:
+                        cap_val = int(cap) if cap is not None and str(cap).strip() != "" else None
+                    except Exception:
+                        cap_val = None
+                    options.append({"label": lbl, "capacity": cap_val})
+                else:
+                    s = str(opt or "").strip()[:120]
+                    if s:
+                        options.append({"label": s, "capacity": None})
         if field_type == "select":
-            options = list(dict.fromkeys(options))[:30]
+            # dedupe by label keeping first occurrence
+            seen = set()
+            deduped: List[Dict[str, Any]] = []
+            for o in options:
+                if o["label"] in seen:
+                    continue
+                seen.add(o["label"])
+                deduped.append(o)
+            options = deduped[:30]
             if not options:
                 field_type = "text"
             else:
@@ -4233,6 +4373,13 @@ def _normalize_registration_answers(
 
         if field.get("type") == "select":
             options = field.get("options") or []
+            # options may be list of dicts {label, capacity} or strings; normalize labels
+            option_labels: List[str] = []
+            for o in options:
+                if isinstance(o, dict):
+                    option_labels.append(str(o.get("label") or "").strip())
+                else:
+                    option_labels.append(str(o or "").strip())
             selection_mode = "multiple" if str(field.get("selection_mode") or "").strip().lower() == "multiple" else "single"
             raw_value = raw_map.get(field_id)
 
@@ -4248,7 +4395,7 @@ def _normalize_registration_answers(
                     raise bad_request(f'"{field["label"]}" alanı için geçerli bir değer girin.')
 
                 values = list(dict.fromkeys(values))[:30]
-                invalid_values = [value for value in values if value not in options]
+                invalid_values = [value for value in values if value not in option_labels]
                 if invalid_values:
                     raise bad_request(f'"{field["label"]}" alanı için geçerli seçimler yapın.')
 
@@ -4276,7 +4423,7 @@ def _normalize_registration_answers(
             if not value:
                 continue
 
-            if value not in options:
+            if value not in option_labels:
                 raise bad_request(f'"{field["label"]}" alanı için geçerli bir seçim yapın.')
 
             normalized[field_id] = value[:1000]
@@ -12234,6 +12381,45 @@ async def public_event_register(
         registration_fields,
         payload.registration_answers,
     )
+    # Enforce per-option capacities using DB-backed atomic reservations.
+    # We attempt to reserve capacity for each selected option before creating the attendee.
+    reservations_to_attempt: List[Tuple[int, str, str, Optional[int]]] = []
+    for field in registration_fields:
+        if field.get("type") != "select":
+            continue
+        field_id = str(field.get("id") or "").strip()
+        options = field.get("options") or []
+        selected = registration_answers.get(field_id)
+        if not selected:
+            continue
+        selected_values = selected if isinstance(selected, (list, tuple)) else [selected]
+        for sel in selected_values:
+            sel_label = str(sel or "").strip()
+            if not sel_label:
+                continue
+            # find option object to read capacity
+            opt_obj = None
+            for o in options:
+                if isinstance(o, dict) and str(o.get("label") or "").strip() == sel_label:
+                    opt_obj = o
+                    break
+                if isinstance(o, str) and o == sel_label:
+                    opt_obj = {"label": o, "capacity": None}
+                    break
+            if not opt_obj:
+                continue
+            cap = opt_obj.get("capacity")
+            try:
+                cap_int = int(cap) if cap is not None and str(cap).strip() != "" else None
+            except Exception:
+                cap_int = None
+            reservations_to_attempt.append((event_db_id, field_id, sel_label, cap_int))
+
+    # Attempt reservations; if any reservation fails, raise error (transaction will roll back)
+    for (ev_id, fid, label, cap) in reservations_to_attempt:
+        ok = await _reserve_option_capacity(db, ev_id, fid, label, cap)
+        if not ok:
+            raise bad_request(f'"{fid}" alanındaki "{label}" seçeneği için kontenjan doldu.')
     required_file_field_ids = {
         str(field.get("id"))
         for field in file_fields

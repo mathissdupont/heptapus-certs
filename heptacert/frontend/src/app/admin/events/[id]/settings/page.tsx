@@ -412,6 +412,11 @@ export default function EventSettingsPage() {
                 field.type === "select"
                   ? (field.selection_mode === "multiple" ? "multiple" : "single")
                   : undefined,
+              options: Array.isArray(field.options)
+                ? field.options.map((opt: any) =>
+                    typeof opt === "string" ? { label: opt, capacity: null } : { label: opt.label || String(opt), capacity: opt.capacity ?? null }
+                  )
+                : [],
             }))
           : [],
         require_email_verification: eventData.require_email_verification ?? true,
@@ -539,7 +544,9 @@ export default function EventSettingsPage() {
               ? (field.selection_mode === "multiple" ? "multiple" : "single")
               : null,
           options: field.type === "select"
-            ? (field.options || []).map((option) => option.trim()).filter(Boolean)
+            ? (field.options || []).map((option: any) =>
+                typeof option === "string" ? { label: option.trim() } : { label: (option.label || "").trim(), capacity: option.capacity ?? null }
+              ).filter((o: any) => o.label)
             : [],
         })).filter((field) => field.label),
         require_email_verification: formData.require_email_verification,
@@ -899,7 +906,8 @@ export default function EventSettingsPage() {
                     (candidate) => candidate.id === field.required_when_field_id,
                   );
                   const conditionalValueOptions = (selectedConditionalSource?.options || [])
-                    .map((option) => option.trim())
+                    .map((option: any) => (typeof option === "string" ? option : option.label || String(option)))
+                    .map((s: string) => s.trim())
                     .filter(Boolean);
 
                   return (
@@ -1032,12 +1040,10 @@ export default function EventSettingsPage() {
                               <div className="space-y-2">
                                 {(field.options || []).length > 0 && (
                                   <div className="flex flex-wrap gap-2 rounded-lg bg-surface-50 p-3">
-                                    {(field.options || []).map((option, idx) => (
-                                      <div
-                                        key={idx}
-                                        className="inline-flex items-center gap-2 rounded-full bg-white border border-surface-300 px-3 py-1.5 text-sm font-medium text-surface-700"
-                                      >
-                                        {option}
+                                    {(field.options || []).map((option: any, idx) => (
+                                      <div key={idx} className="inline-flex items-center gap-2 rounded-full bg-white border border-surface-300 px-3 py-1.5 text-sm font-medium text-surface-700">
+                                        <span>{typeof option === "string" ? option : option.label}</span>
+                                        <span className="text-xs text-surface-400">{typeof option === "object" && option.capacity != null ? `· ${option.capacity} kişi` : ""}</span>
                                         <button
                                           onClick={() =>
                                             updateRegistrationField(field.id, {
@@ -1048,6 +1054,24 @@ export default function EventSettingsPage() {
                                         >
                                           ×
                                         </button>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          step={1}
+                                          placeholder="Kota"
+                                          value={typeof option === "object" && option.capacity != null ? String(option.capacity) : ""}
+                                          onChange={(e) => {
+                                            const val = e.target.value.trim();
+                                            updateRegistrationField(field.id, {
+                                              options: (field.options || []).map((o: any, i: number) =>
+                                                i === idx
+                                                  ? { label: typeof o === "string" ? o : o.label, capacity: val ? Number(val) : null }
+                                                  : o,
+                                              ),
+                                            });
+                                          }}
+                                          className="ml-2 w-20 input-field text-xs"
+                                        />
                                       </div>
                                     ))}
                                   </div>
@@ -1059,28 +1083,30 @@ export default function EventSettingsPage() {
                                     id={`option-input-${field.id}`}
                                     placeholder={lang === "tr" ? "Yeni seçenek..." : "New option..."}
                                     className="input-field flex-1 text-sm"
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") {
-                                        e.preventDefault();
-                                        const input = e.currentTarget;
-                                        const value = input.value.trim();
-                                        if (value && !(field.options || []).includes(value)) {
-                                          updateRegistrationField(field.id, {
-                                            options: [...(field.options || []), value],
-                                          });
-                                          input.value = "";
-                                        }
-                                      }
-                                    }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            const input = e.currentTarget;
+                                            const value = input.value.trim();
+                                            const exists = (field.options || []).some((o: any) => (typeof o === "string" ? o === value : o.label === value));
+                                            if (value && !exists) {
+                                              updateRegistrationField(field.id, {
+                                                options: [...(field.options || []), { label: value, capacity: null }],
+                                              });
+                                              input.value = "";
+                                            }
+                                          }
+                                        }}
                                   />
                                   <button
                                     onClick={() => {
                                       const input = document.getElementById(`option-input-${field.id}`) as HTMLInputElement;
                                       if (input) {
                                         const value = input.value.trim();
-                                        if (value && !(field.options || []).includes(value)) {
+                                        const exists = (field.options || []).some((o: any) => (typeof o === "string" ? o === value : o.label === value));
+                                        if (value && !exists) {
                                           updateRegistrationField(field.id, {
-                                            options: [...(field.options || []), value],
+                                            options: [...(field.options || []), { label: value, capacity: null }],
                                           });
                                           input.value = "";
                                         }
