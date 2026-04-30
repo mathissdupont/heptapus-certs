@@ -1,6 +1,6 @@
-"""Add registration_option_capacities table.
+"""Add registration option capacities table.
 
-Revision ID: 037_registration_option_capacities
+Revision ID: 037_reg_option_capacities
 Revises: 036_superadmin_bulk_email_jobs
 Create Date: 2026-04-30
 """
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "037_registration_option_capacities"
+revision = "037_reg_option_capacities"
 down_revision = "036_superadmin_bulk_email_jobs"
 branch_labels = None
 depends_on = None
