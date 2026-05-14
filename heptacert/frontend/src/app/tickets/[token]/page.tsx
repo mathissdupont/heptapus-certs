@@ -4,11 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { API_BASE, getPublicTicket, type PublicTicketInfo } from "@/lib/api";
 import {
-  CalendarDays,
   CheckCircle2,
   Copy,
-  Download,
+  FileText,
   Home,
+  ImageIcon,
   Loader2,
   Mail,
   QrCode,
@@ -213,61 +213,76 @@ export default function PublicTicketPage() {
             </div>
           </div>
 
-          <div className="mt-8 rounded-2xl border border-dashed border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-500">
-            <div className="flex items-center gap-2 font-semibold text-zinc-700">
-              <WalletCards className="h-4 w-4" />
+          {/* Kurumsal Apple Wallet Açıklaması */}
+          <div className="mt-8 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-2 font-semibold text-zinc-800">
+              <WalletCards className="h-4.5 w-4.5 text-zinc-900" />
               Apple Wallet
             </div>
-            <p className="mt-1 text-xs leading-5">
-              Apple Developer sertifikasi gerektirdigi icin bu ozellik simdilik insa halinde.
+            <p className="mt-1.5 text-[13px] leading-relaxed text-zinc-500">
+              Cüzdan entegrasyonu için altyapı çalışmalarımız devam etmektedir. Bu özellik planlanan gelecek güncellemelerle birlikte aktif edilecektir.
             </p>
           </div>
 
-          {!cancelled && (
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <a href={pdfUrl} download className="flex items-center justify-center gap-2 rounded-2xl bg-zinc-950 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-zinc-800 active:scale-[0.98]">
-                <Download className="h-4 w-4" />
-                PDF
-              </a>
-              <a href={pngUrl} download className="flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-zinc-900 ring-1 ring-zinc-200 transition-all hover:bg-zinc-50 active:scale-[0.98]">
-                <Download className="h-4 w-4" />
-                PNG
-              </a>
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={addToHomeScreen}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3.5 text-[15px] font-semibold text-zinc-900 ring-1 ring-zinc-200 transition-all hover:bg-zinc-50 active:scale-[0.98]"
-          >
-            <Home className="h-5 w-5" />
-            Ana Ekrana Ekle
-          </button>
-          {homeHint && (
-            <p className="mt-2 rounded-2xl bg-blue-50 px-4 py-3 text-xs leading-5 text-blue-700">
-              iPhone Safari: Paylas dugmesi &gt; Ana Ekrana Ekle. Android Chrome: menu &gt; Ana ekrana ekle.
-            </p>
-          )}
-
-          {/* Buton (iOS Stili) */}
-          <button
-            type="button"
-            onClick={copyTicketLink}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3.5 text-[15px] font-semibold text-white transition-all hover:bg-blue-700 active:scale-[0.98] active:bg-blue-800 disabled:opacity-50"
-          >
-            {copied ? (
-              <>
-                <CheckCircle2 className="h-5 w-5" />
-                Kopyalandı
-              </>
-            ) : (
-              <>
-                <Copy className="h-5 w-5" />
-                Bilet Linkini Kopyala
-              </>
+          {/* Aksiyon Butonları Grubu */}
+          <div className="mt-6 flex flex-col gap-3">
+            
+            {/* İndirme Seçenekleri (Segmented Control Stili) */}
+            {!cancelled && (
+              <div className="flex w-full items-center rounded-2xl bg-zinc-200/50 p-1 ring-1 ring-inset ring-zinc-200/50">
+                <a
+                  href={pdfUrl}
+                  download
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-transparent py-2.5 text-[14px] font-semibold text-zinc-600 transition-all hover:bg-white hover:text-zinc-900 hover:shadow-sm active:scale-[0.98]"
+                >
+                  <FileText className="h-4 w-4" />
+                  PDF İndir
+                </a>
+                <div className="mx-1 h-5 w-[1px] bg-zinc-300"></div>
+                <a
+                  href={pngUrl}
+                  download
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-transparent py-2.5 text-[14px] font-semibold text-zinc-600 transition-all hover:bg-white hover:text-zinc-900 hover:shadow-sm active:scale-[0.98]"
+                >
+                  <ImageIcon className="h-4 w-4" />
+                  PNG İndir
+                </a>
+              </div>
             )}
-          </button>
+
+            <button
+              type="button"
+              onClick={addToHomeScreen}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3.5 text-[15px] font-semibold text-zinc-900 shadow-sm ring-1 ring-inset ring-zinc-200 transition-all hover:bg-zinc-50 active:scale-[0.98]"
+            >
+              <Home className="h-5 w-5" />
+              Ana Ekrana Ekle
+            </button>
+            
+            {homeHint && (
+              <p className="rounded-2xl bg-blue-50 px-4 py-3 text-[13px] leading-5 text-blue-700">
+                iPhone Safari: <strong>Paylaş</strong> simgesi &gt; <strong>Ana Ekrana Ekle</strong>. <br/> Android Chrome: <strong>Menü (⋮)</strong> &gt; <strong>Ana Ekrana Ekle</strong>.
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={copyTicketLink}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3.5 text-[15px] font-semibold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-[0.98] active:bg-blue-800 disabled:opacity-50"
+            >
+              {copied ? (
+                <>
+                  <CheckCircle2 className="h-5 w-5" />
+                  Kopyalandı
+                </>
+              ) : (
+                <>
+                  <Copy className="h-5 w-5" />
+                  Bilet Linkini Kopyala
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </section>
     </main>

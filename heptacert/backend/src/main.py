@@ -13941,7 +13941,6 @@ def _make_pass_icon(size: int) -> bytes:
     img.save(buf, format="PNG")
     return buf.getvalue()
 
-
 def _wrap_text(draw: Any, text: str, font: Any, max_width: int) -> List[str]:
     words = str(text or "").split()
     if not words:
@@ -13960,75 +13959,165 @@ def _wrap_text(draw: Any, text: str, font: Any, max_width: int) -> List[str]:
     return lines
 
 
-def _ticket_status_label(status: str) -> str:
+def _ticket_status_theme(status: str) -> tuple[str, str, str]:
+    # (Metin, Yazı Rengi, Arkaplan Rengi)
     if status in {"cancelled", "revoked"}:
-        return "Iptal edildi"
+        return "İptal Edildi", "#dc2626", "#fef2f2"  # Red
     if status == "used":
-        return "Kullanildi"
-    return "Girise hazir"
+        return "Kullanıldı", "#71717a", "#f4f4f5"    # Zinc
+    return "Girişe Hazır", "#2563eb", "#eff6ff"      # Blue
 
 
-def _make_ticket_image(ticket: EventTicket) -> bytes:
+def _ticket_font(size: int, bold: bool = False) -> Any:
+    from PIL import ImageFont
+
+    candidates = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "arialbd.ttf" if bold else "arial.ttf",
+        "Arial Bold.ttf" if bold else "Arial.ttf",
+    ]
+    for candidate in candidates:
+        try:
+            return ImageFont.truetype(candidate, size)
+        except Exception:
+            continue
+    return ImageFont.load_default()
+
+
+def _fit_text(text: str, max_chars: int) -> str:
+    clean = " ".join(str(text or "").split())
+    if len(clean) <= max_chars:
+        return clean
+    return clean[: max(1, max_chars - 1)].rstrip() + "..."
+
+
+def _draw_dashed_line(draw: Any, xy: tuple[int, int, int, int], fill: str, width: int = 2, dash: int = 14, gap: int = 12) -> None:
+    x1, y1, x2, y2 = xy
+    if x1 == x2:
+        y = y1
+        while y < y2:
+            draw.line((x1, y, x2, min(y + dash, y2)), fill=fill, width=width)
+            y += dash + gap
+        return
+    x = x1
+    while x < x2:
+        draw.line((x, y1, min(x + dash, x2), y2), fill=fill, width=width)
+        x += dash + gap
+
+
+def _make_ticket_image(ticket: 'EventTicket') -> bytes:
     if PILImage is None or qrcode is None:
         raise HTTPException(status_code=503, detail="Ticket image generation is not available")
-    from PIL import ImageDraw, ImageFont
+    from PIL import ImageDraw
 
-    width, height = 900, 1320
+    width, height = 900, 1420
+    # iOS Arka plan rengi
     image = PILImage.new("RGB", (width, height), "#f5f5f7")
     draw = ImageDraw.Draw(image)
 
-    try:
-        title_font = ImageFont.truetype("arial.ttf", 48)
-        body_font = ImageFont.truetype("arial.ttf", 30)
-        small_font = ImageFont.truetype("arial.ttf", 24)
-        label_font = ImageFont.truetype("arial.ttf", 20)
-    except Exception:
-        title_font = body_font = small_font = label_font = ImageFont.load_default()
+    # Yeni font sistemiyle boyutları premium tasarıma göre ayarlıyoruz
+    title_font = _ticket_font(52, bold=True)
+    body_font = _ticket_font(36, bold=True)
+    small_font = _ticket_font(28)
+    label_font = _ticket_font(22, bold=True)
 
-    card = (70, 70, width - 70, height - 70)
-    draw.rounded_rectangle(card, radius=56, fill="#ffffff", outline="#e5e7eb", width=2)
+    # 1. Ana Bilet Kartı (Geniş köşeli, saf temiz görünüm)
+    card_margin = 60
+    draw.rounded_rectangle(
+        (card_margin, 60, width - card_margin, height - 60), 
+        radius=64, 
+        fill="#ffffff"
+    )
 
-    draw.rounded_rectangle((385, 130, 515, 260), radius=65, fill="#eff6ff")
-    draw.text((width // 2, 178), "HC", fill="#2563eb", font=title_font, anchor="mm")
-    draw.text((width // 2, 315), "Dijital Bilet", fill="#71717a", font=small_font, anchor="mm")
+    # 2. Üst Kısım: İkon ve Etkinlik Başlığı
+    # İkon Yuvarlağı
+    draw.ellipse((width // 2 - 45, 120, width // 2 + 45, 210), fill="#f4f4f5")
+    draw.text((width // 2, 165), "HC", fill="#18181b", font=body_font, anchor="mm")
+    
+    # Dijital Bilet Etiketi
+    draw.text((width // 2, 260), "DİJİTAL BİLET", fill="#a1a1aa", font=label_font, anchor="mm")
 
-    y = 365
-    for line in _wrap_text(draw, ticket.event.name, title_font, 680)[:3]:
+    # Başlık (Sarma)
+    y = 320
+    # Satır yüksekliği dinamik hesaplanır
+    bbox_test = draw.textbbox((0, 0), "Test", font=title_font)
+    line_height = (bbox_test[3] - bbox_test[1]) + 20
+
+    for line in _wrap_text(draw, ticket.event.name, title_font, 700)[:3]:
         draw.text((width // 2, y), line, fill="#18181b", font=title_font, anchor="mm")
-        y += 56
+        y += line_height
 
+    # 3. Orta Kısım: QR Kod
+    qr_y = y + 40
     qr = qrcode.QRCode(
         version=2,
-        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        error_correction=qrcode.constants.ERROR_CORRECT_H,
         box_size=12,
-        border=3,
+        border=2,
     )
     qr.add_data(ticket.qr_payload)
     qr.make(fit=True)
-    qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB").resize((430, 430))
-    qr_x = (width - 430) // 2
-    qr_y = 560
-    draw.rounded_rectangle((qr_x - 28, qr_y - 28, qr_x + 458, qr_y + 458), radius=42, fill="#ffffff", outline="#f1f5f9", width=3)
+    
+    # QR kodunu koyu gri (Zinc 900) bir tonla çiziyoruz
+    qr_img = qr.make_image(fill_color="#18181b", back_color="white").convert("RGB").resize((420, 420))
+    qr_x = (width - 420) // 2
+    
+    # QR Çerçevesi (Hafif gri border)
+    draw.rounded_rectangle((qr_x - 24, qr_y - 24, qr_x + 444, qr_y + 444), radius=36, fill="#ffffff", outline="#e4e4e7", width=2)
     image.paste(qr_img, (qr_x, qr_y))
 
-    status = _ticket_status_label(ticket.status)
-    draw.rounded_rectangle((310, 1040, 590, 1098), radius=29, fill="#eff6ff")
-    draw.text((width // 2, 1069), status, fill="#2563eb", font=small_font, anchor="mm")
+    # 4. Durum Rozeti (Pill)
+    pill_y = qr_y + 490
+    status_text, text_color, bg_color = _ticket_status_theme(ticket.status)
+    
+    # Rozet genişliğini metne göre dinamik ayarlıyoruz
+    bbox_status = draw.textbbox((0, 0), status_text, font=small_font)
+    text_w = bbox_status[2] - bbox_status[0]
+    pill_w = text_w + 80  # Sağ/sol padding
+    
+    draw.rounded_rectangle(((width - pill_w) // 2, pill_y, (width + pill_w) // 2, pill_y + 64), radius=32, fill=bg_color)
+    draw.text((width // 2, pill_y + 32), status_text, fill=text_color, font=small_font, anchor="mm")
 
-    details_y = 1145
-    draw.text((120, details_y), "Katilimci", fill="#71717a", font=label_font)
-    draw.text((120, details_y + 30), ticket.attendee.name, fill="#18181b", font=body_font)
-    draw.text((120, details_y + 78), ticket.attendee.email, fill="#52525b", font=small_font)
+    # 5. Bilet Kesik Ayırıcısı (Apple Wallet Stili)
+    divider_y = pill_y + 120
+    cutout_radius = 40
+    
+    # Sol ve Sağ Cüzdan Kesikleri
+    draw.ellipse((card_margin - cutout_radius, divider_y - cutout_radius, card_margin + cutout_radius, divider_y + cutout_radius), fill="#f5f5f7")
+    draw.ellipse((width - card_margin - cutout_radius, divider_y - cutout_radius, width - card_margin + cutout_radius, divider_y + cutout_radius), fill="#f5f5f7")
+    
+    # Kesik (Dashed) Çizgi - Senin fonksiyonunla çiziliyor
+    start_x = card_margin + cutout_radius + 15
+    end_x = width - card_margin - cutout_radius - 15
+    _draw_dashed_line(draw, (start_x, divider_y, end_x, divider_y), fill="#e4e4e7", width=3, dash=16, gap=16)
+
+    # 6. Alt Kısım: Detaylar
+    details_y = divider_y + 60
+    
+    # Katılımcı Bölümü
+    draw.text((130, details_y), "Katılımcı", fill="#a1a1aa", font=label_font)
+    draw.text((130, details_y + 40), _fit_text(ticket.attendee.name, 24), fill="#18181b", font=body_font)
+    draw.text((130, details_y + 95), _fit_text(ticket.attendee.email, 30), fill="#71717a", font=small_font)
+    
+    # Tarih Bölümü
     if ticket.event.event_date:
-        draw.text((560, details_y), "Tarih", fill="#71717a", font=label_font)
-        draw.text((560, details_y + 34), ticket.event.event_date.isoformat(), fill="#18181b", font=small_font)
+        draw.text((540, details_y), "Tarih", fill="#a1a1aa", font=label_font)
+        
+        date_obj = ticket.event.event_date
+        date_str = date_obj.strftime("%d.%m.%Y") if hasattr(date_obj, 'strftime') else str(date_obj)[:10]
+        time_str = date_obj.strftime("%H:%M") if hasattr(date_obj, 'strftime') else str(date_obj)[11:16]
+        
+        draw.text((540, details_y + 40), date_str, fill="#18181b", font=body_font)
+        if time_str:
+            draw.text((540, details_y + 95), time_str, fill="#71717a", font=small_font)
 
     buf = io.BytesIO()
     image.save(buf, format="PNG")
     return buf.getvalue()
 
 
-def _ticket_download_filename(ticket: EventTicket, ext: str) -> str:
+def _ticket_download_filename(ticket: 'EventTicket', ext: str) -> str:
     event_slug = re.sub(r"[^A-Za-z0-9_-]+", "-", ticket.event.name).strip("-") or "event"
     return f"{event_slug}-{ticket.id}.{ext}"
 
@@ -14044,6 +14133,7 @@ async def get_public_ticket_png(token: str, db: AsyncSession = Depends(get_db)):
     ticket = res.scalar_one_or_none()
     if not ticket or not is_ticketing_enabled(ticket.event):
         raise HTTPException(status_code=404, detail="Ticket not found")
+    
     png_bytes = _make_ticket_image(ticket)
     return Response(
         content=png_bytes,
@@ -14066,10 +14156,13 @@ async def get_public_ticket_pdf(token: str, db: AsyncSession = Depends(get_db)):
     ticket = res.scalar_one_or_none()
     if not ticket or not is_ticketing_enabled(ticket.event):
         raise HTTPException(status_code=404, detail="Ticket not found")
+    
     png_bytes = _make_ticket_image(ticket)
     image = PILImage.open(io.BytesIO(png_bytes)).convert("RGB")
     buf = io.BytesIO()
-    image.save(buf, format="PDF", resolution=144.0)
+    # Yüksek kalite PDF çıkışı için resolution 150 olarak ayarlandı
+    image.save(buf, format="PDF", resolution=150.0)
+    
     return Response(
         content=buf.getvalue(),
         media_type="application/pdf",
@@ -14078,7 +14171,6 @@ async def get_public_ticket_pdf(token: str, db: AsyncSession = Depends(get_db)):
             "Cache-Control": "no-store",
         },
     )
-
 
 def _make_apple_wallet_pass(ticket: EventTicket) -> bytes:
     if not _apple_wallet_configured():
