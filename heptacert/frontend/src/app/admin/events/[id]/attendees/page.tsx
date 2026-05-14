@@ -335,6 +335,7 @@ export default function AdminAttendeesPage() {
       const params = new URLSearchParams({
         next: `/admin/events/${eventId}/attendees`,
         frontend_origin: frontendOrigin,
+        event_id: String(eventId),
       });
       const res = await apiFetch(`/admin/google/sheets/start?${params.toString()}`);
       const data = await res.json();
@@ -584,6 +585,11 @@ export default function AdminAttendeesPage() {
                   {sheetsStatus?.last_synced_at && (
                     <span>Son senkron: {new Date(sheetsStatus.last_synced_at).toLocaleString("tr-TR")}</span>
                   )}
+                  {Boolean(sheetsStatus?.missing_scopes?.length) && (
+                    <span className="rounded-full bg-amber-50 px-2.5 py-1 font-semibold text-amber-700">
+                      Sheets izni eksik
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -601,7 +607,7 @@ export default function AdminAttendeesPage() {
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
                 >
                   {sheetsAction === "auth" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
-                  Google izni ver
+                  {sheetsStatus?.google_email ? "Sheets iznini tamamla" : "Google izni ver"}
                 </button>
               ) : sheetsStatus.enabled && sheetsStatus.spreadsheet_url ? (
                 <>

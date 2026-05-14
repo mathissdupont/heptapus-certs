@@ -361,7 +361,6 @@ export default function DashboardPage() {
         ) : (
           <div className="grid gap-4 xl:grid-cols-2">
             {normalizedEvents.slice(0, 6).map((ev, i) => {
-              const evActive = ev.total > 0 ? Math.round((ev.active / ev.total) * 100) : 0;
               return (
                 <motion.div
                   key={ev.event_id}
@@ -373,37 +372,16 @@ export default function DashboardPage() {
                   <div className="flex flex-col gap-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <Link href={`/admin/events/${ev.event_id}/certificates`} className="block truncate text-base font-bold text-surface-900 transition-colors hover:text-brand-600">
+                        <Link href={`/admin/events/${ev.event_id}`} className="block truncate text-base font-bold text-surface-900 transition-colors hover:text-brand-600">
                           {ev.event_name || (ev as any).name || copy.eventFallback(ev.event_id)}
                         </Link>
-                        <p className="mt-1 text-sm text-surface-500">{copy.total}: {ev.total}</p>
+                        <p className="mt-1 text-sm text-surface-500">{copy.recentEvents}</p>
                       </div>
-                      <span className="rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-xs font-semibold text-surface-500">
-                        {evActive}% {copy.active.toLowerCase()}
-                      </span>
+                      <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-surface-300" />
                     </div>
 
-                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-surface-100">
-                      <motion.div initial={{ width: 0 }} animate={{ width: `${evActive}%` }} transition={{ delay: 0.42 + i * 0.04, duration: 0.6 }} className="h-2.5 rounded-full bg-emerald-500" />
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2 text-xs font-semibold">
-                      <div className="rounded-2xl bg-emerald-50 px-3 py-3 text-center text-emerald-700">
-                        <div>{ev.active}</div>
-                        <div className="mt-1 text-[11px]">{copy.active}</div>
-                      </div>
-                      <div className="rounded-2xl bg-rose-50 px-3 py-3 text-center text-rose-700">
-                        <div>{ev.revoked}</div>
-                        <div className="mt-1 text-[11px]">{copy.revoked}</div>
-                      </div>
-                      <div className="rounded-2xl bg-amber-50 px-3 py-3 text-center text-amber-700">
-                        <div>{ev.expired}</div>
-                        <div className="mt-1 text-[11px]">{copy.expired}</div>
-                      </div>
-                    </div>
-
-                    <Link href={`/admin/events/${ev.event_id}/certificates`} className="btn-secondary justify-center">
-                      {copy.reviewCertificates}
+                    <Link href={`/admin/events/${ev.event_id}`} className="btn-secondary justify-center">
+                      {lang === "tr" ? "Etkinlik Detayları" : "Event Details"}
                     </Link>
                   </div>
                 </motion.div>

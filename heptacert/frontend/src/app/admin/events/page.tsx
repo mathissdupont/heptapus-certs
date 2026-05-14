@@ -146,7 +146,6 @@ export default function AdminEvents() {
       template: "Şablon",
       uploaded: "Yüklendi",
       missing: "Eksik",
-      certificatesCount: (count: number) => `${count} sertifika`,
       rename: "Yeniden Adlandır",
       eventDetails: "Etkinlik Detayları",
       editor: "Editör",
@@ -207,7 +206,6 @@ export default function AdminEvents() {
       template: "Template",
       uploaded: "Uploaded",
       missing: "Missing",
-      certificatesCount: (count: number) => `${count} certificates`,
       rename: "Rename",
       eventDetails: "Event Details",
       editor: "Editor",
@@ -593,12 +591,6 @@ export default function AdminEvents() {
                                   <span className="text-rose-500">{copy.missing}</span>
                                 )}
                               </span>
-                              {certStats[ev.id] && (
-                                <>
-                                  <span>·</span>
-                                  <span className="text-surface-500">{copy.certificatesCount(certStats[ev.id].total)}</span>
-                                </>
-                              )}
                             </div>
                           </div>
                         )}
@@ -617,11 +609,6 @@ export default function AdminEvents() {
                           </button>
                           <Link href={`/admin/events/${ev.id}`} className="inline-flex items-center gap-1.5 rounded-lg border border-brand-100 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-100">
                             <FolderKanban className="h-3.5 w-3.5" /> {copy.eventDetails}
-                            {certStats[ev.id] && (
-                              <span className="ml-0.5 rounded-full bg-brand-100 px-1.5 py-0.5 text-[10px] font-bold text-brand-800">
-                                {certStats[ev.id].total}
-                              </span>
-                            )}
                           </Link>
                           {hasPaidPlan && (
                             <button onClick={() => copyRegisterLink(ev.id, ev.public_id)} className="inline-flex items-center gap-1.5 rounded-lg border border-sky-100 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-100">

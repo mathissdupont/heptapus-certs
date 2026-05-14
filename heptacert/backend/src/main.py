@@ -7470,6 +7470,7 @@ async def google_sheets_status(
 async def google_sheets_auth_start(
     next: Optional[str] = Query(default="/admin/events"),
     frontend_origin: Optional[str] = Query(default=None),
+    event_id: Optional[int] = Query(default=None),
     me: CurrentUser = Depends(get_current_user),
 ):
     if not settings.google_oauth_client_id or not settings.google_oauth_client_secret:
@@ -7479,6 +7480,7 @@ async def google_sheets_auth_start(
         "user_id": me.id,
         "next": _normalize_oauth_next(next, "/admin/events"),
         "frontend_origin": _normalize_oauth_frontend_origin(frontend_origin),
+        "event_id": event_id,
     })
     params = {
         "client_id": settings.google_oauth_client_id,
@@ -7536,12 +7538,24 @@ async def google_sheets_auth_callback(
 
     next_url = _normalize_oauth_next(str(state_payload.get("next") or ""), "/admin/events")
     frontend_origin = _normalize_oauth_frontend_origin(str(state_payload.get("frontend_origin") or ""))
+    sheet_status = "connected"
+    event_id = int(state_payload.get("event_id") or 0)
+    if event_id > 0:
+        event_res = await db.execute(select(Event).where(Event.id == event_id, Event.admin_id == user_id))
+        event = event_res.scalar_one_or_none()
+        if event:
+            try:
+                await _write_event_attendees_to_google_sheet(db, event, create_if_missing=True)
+                sheet_status = "created"
+            except Exception:
+                logger.exception("Google Sheets OAuth connected but automatic sheet creation failed for event_id=%s", event_id)
+                sheet_status = "connected"
     user_res = await db.execute(select(User).where(User.id == user_id))
     user = user_res.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="Google Sheets OAuth user not found.")
     bridge_params = urlencode({
-        "google_sheets": "connected",
+        "google_sheets": sheet_status,
         "admin_token": create_access_token(user_id=user.id, role=user.role),
     })
     separator = "&" if "?" in next_url else "?"

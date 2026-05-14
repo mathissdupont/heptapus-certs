@@ -606,6 +606,7 @@ export default function EventSettingsPage() {
       const params = new URLSearchParams({
         next: `/admin/events/${eventId}/settings`,
         frontend_origin: frontendOrigin,
+        event_id: String(eventId),
       });
       const res = await apiFetch(`/admin/google/sheets/start?${params.toString()}`);
       const data = await res.json();
@@ -1405,6 +1406,11 @@ export default function EventSettingsPage() {
                           {new Date(sheetsStatus.last_synced_at).toLocaleString(lang === "tr" ? "tr-TR" : "en-US")}
                         </span>
                       )}
+                      {Boolean(sheetsStatus?.missing_scopes?.length) && (
+                        <span className="rounded-full bg-amber-50 px-2.5 py-1 font-semibold text-amber-700">
+                          {lang === "tr" ? "Sheets izni eksik" : "Sheets permission missing"}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1424,7 +1430,9 @@ export default function EventSettingsPage() {
                       className="btn-primary inline-flex items-center gap-2 disabled:opacity-60"
                     >
                       {sheetsAction === "auth" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
-                      {lang === "tr" ? "Google izni ver" : "Connect Google"}
+                      {sheetsStatus?.google_email
+                        ? (lang === "tr" ? "Sheets iznini tamamla" : "Complete Sheets permission")
+                        : (lang === "tr" ? "Google izni ver" : "Connect Google")}
                     </button>
                   ) : sheetsStatus.enabled && sheetsStatus.spreadsheet_url ? (
                     <>
