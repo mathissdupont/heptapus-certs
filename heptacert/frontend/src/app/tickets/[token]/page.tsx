@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { API_BASE, getPublicTicket, type PublicTicketInfo } from "@/lib/api";
 import {
-  CalendarCheck,
+  CalendarDays,
   CheckCircle2,
   Copy,
   Loader2,
@@ -49,15 +49,17 @@ export default function PublicTicketPage() {
   async function copyTicketLink() {
     await navigator.clipboard.writeText(window.location.href);
     setCopied(true);
-    window.setTimeout(() => setCopied(false), 1600);
+    window.setTimeout(() => setCopied(false), 2000);
   }
 
+  // Yükleniyor veya Hata durumları için minimalist Apple stili
   if (error) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-surface-50 px-4">
-        <div className="w-full max-w-md rounded-2xl border border-red-100 bg-white p-6 text-center shadow-sm">
-          <XCircle className="mx-auto h-10 w-10 text-red-500" />
-          <p className="mt-4 text-sm font-semibold text-surface-800">{error}</p>
+      <main className="flex min-h-screen items-center justify-center bg-[#F5F5F7] px-4">
+        <div className="w-full max-w-sm rounded-[2rem] bg-white p-8 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+          <XCircle className="mx-auto h-12 w-12 text-red-500" strokeWidth={1.5} />
+          <h2 className="mt-4 text-lg font-semibold text-zinc-900">Hata</h2>
+          <p className="mt-2 text-sm text-zinc-500">{error}</p>
         </div>
       </main>
     );
@@ -65,10 +67,10 @@ export default function PublicTicketPage() {
 
   if (!ticket || !token) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-surface-50 px-4">
-        <div className="inline-flex items-center gap-2 text-sm text-surface-500">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Bilet yükleniyor...
+      <main className="flex min-h-screen items-center justify-center bg-[#F5F5F7] px-4">
+        <div className="flex flex-col items-center gap-4 text-zinc-400">
+          <Loader2 className="h-8 w-8 animate-spin" strokeWidth={1.5} />
+          <span className="text-sm font-medium">Biletiniz hazırlanıyor...</span>
         </div>
       </main>
     );
@@ -78,79 +80,115 @@ export default function PublicTicketPage() {
   const cancelled = ticket.status === "cancelled" || ticket.status === "revoked";
 
   return (
-    <main className="min-h-screen bg-surface-50 px-4 py-8 text-surface-900">
-      <section className="mx-auto max-w-xl overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-sm">
-        <div className="border-b border-surface-100 px-5 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="inline-flex items-center gap-2 rounded-full border border-brand-100 bg-brand-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-700">
-                <Ticket className="h-3.5 w-3.5" />
-                Dijital Bilet
-              </p>
-              <h1 className="mt-3 truncate text-2xl font-black text-surface-900">{ticket.event_name}</h1>
-            </div>
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface-50 text-surface-600">
-              <QrCode className="h-5 w-5" />
-            </div>
+    <main className="flex min-h-screen items-center justify-center bg-[#F5F5F7] px-4 py-12 font-sans selection:bg-blue-100 selection:text-blue-900">
+      <section className="w-full max-w-sm overflow-hidden rounded-[2.5rem] bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-black/[0.03]">
+        
+        {/* Üst Kısım: Etkinlik Başlığı */}
+        <div className="px-8 pt-10 pb-6 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-50 text-zinc-900 ring-1 ring-black/[0.05]">
+            <Ticket className="h-6 w-6" strokeWidth={1.5} />
           </div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            Dijital Bilet
+          </p>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-zinc-900">
+            {ticket.event_name}
+          </h1>
         </div>
 
-        <div className="px-5 py-6">
-          <div className="rounded-2xl border border-surface-200 bg-white p-4 shadow-sm">
+        {/* Orta Kısım: QR Kod */}
+        <div className="flex flex-col items-center px-8 pb-8">
+          <div className="rounded-3xl bg-white p-5 shadow-[0_0_24px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.02]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={qrUrl} alt="Bilet QR kodu" className="mx-auto h-64 w-64 max-w-full object-contain" />
+            <img
+              src={qrUrl}
+              alt="Bilet QR kodu"
+              className="h-48 w-48 object-contain"
+              draggable={false}
+            />
           </div>
 
           <div
-            className={`mt-4 flex items-center justify-between gap-3 rounded-xl border px-4 py-3 ${
+            className={`mt-6 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium ${
               cancelled
-                ? "border-red-200 bg-red-50 text-red-700"
+                ? "bg-red-50 text-red-600"
                 : used
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                  : "border-sky-200 bg-sky-50 text-sky-700"
+                ? "bg-zinc-100 text-zinc-500"
+                : "bg-blue-50 text-blue-600"
             }`}
           >
-            <div className="flex items-center gap-2 text-sm font-semibold">
-              {cancelled ? <XCircle className="h-4 w-4" /> : used ? <CheckCircle2 className="h-4 w-4" /> : <QrCode className="h-4 w-4" />}
-              {cancelled ? "Bilet iptal edildi" : used ? "Giriş yapıldı" : "Giriş için hazır"}
-            </div>
-            <span className="text-xs font-semibold uppercase tracking-[0.14em] opacity-75">{ticket.status}</span>
+            {cancelled ? (
+              <XCircle className="h-4 w-4" />
+            ) : used ? (
+              <CheckCircle2 className="h-4 w-4" />
+            ) : (
+              <QrCode className="h-4 w-4" />
+            )}
+            {cancelled ? "İptal Edildi" : used ? "Kullanıldı" : "Girişe Hazır"}
           </div>
+        </div>
 
-          <div className="mt-5 grid gap-3">
-            <div className="rounded-xl border border-surface-200 bg-surface-50 p-4">
-              <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-surface-400">
-                <User className="h-3.5 w-3.5" />
+        {/* Bilet Ayırıcı Çizgi (Apple Wallet Stili) */}
+        <div className="relative flex w-full items-center">
+          <div className="absolute -left-4 h-8 w-8 rounded-full bg-[#F5F5F7] ring-1 ring-inset ring-black/[0.03]"></div>
+          <div className="w-full border-t-2 border-dashed border-zinc-200"></div>
+          <div className="absolute -right-4 h-8 w-8 rounded-full bg-[#F5F5F7] ring-1 ring-inset ring-black/[0.03]"></div>
+        </div>
+
+        {/* Alt Kısım: Bilet Detayları */}
+        <div className="bg-zinc-50/50 px-8 py-8">
+          <div className="space-y-5">
+            {/* Katılımcı */}
+            <div>
+              <p className="flex items-center gap-2 text-[13px] font-medium text-zinc-400">
+                <User className="h-4 w-4" strokeWidth={2} />
                 Katılımcı
               </p>
-              <p className="mt-2 font-semibold text-surface-900">{ticket.attendee_name}</p>
-              <p className="mt-1 flex items-center gap-2 text-sm text-surface-500">
+              <p className="mt-1 text-base font-semibold text-zinc-900">
+                {ticket.attendee_name}
+              </p>
+              <p className="flex items-center gap-1.5 text-sm text-zinc-500">
                 <Mail className="h-3.5 w-3.5" />
                 {ticket.attendee_email}
               </p>
             </div>
 
-            <div className="rounded-xl border border-surface-200 bg-surface-50 p-4">
-              <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-surface-400">
-                <CalendarCheck className="h-3.5 w-3.5" />
-                Bilet Bilgisi
-              </p>
-              <div className="mt-3 grid gap-2 text-sm text-surface-600 sm:grid-cols-2">
-                <div>
-                  <p className="text-xs text-surface-400">Oluşturma</p>
-                  <p className="font-medium text-surface-800">{formatDate(ticket.issued_at)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-surface-400">Giriş</p>
-                  <p className="font-medium text-surface-800">{formatDate(ticket.checked_in_at)}</p>
-                </div>
+            <hr className="border-zinc-200" />
+
+            {/* Tarihler */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-[13px] font-medium text-zinc-400">Oluşturma</p>
+                <p className="mt-1 text-sm font-medium text-zinc-900">
+                  {formatDate(ticket.issued_at)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[13px] font-medium text-zinc-400">Giriş Zamanı</p>
+                <p className="mt-1 text-sm font-medium text-zinc-900">
+                  {formatDate(ticket.checked_in_at)}
+                </p>
               </div>
             </div>
           </div>
 
-          <button type="button" onClick={copyTicketLink} className="btn-primary mt-5 w-full justify-center">
-            <Copy className="h-4 w-4" />
-            {copied ? "Kopyalandı" : "Bilet Linkini Kopyala"}
+          {/* Buton (iOS Stili) */}
+          <button
+            type="button"
+            onClick={copyTicketLink}
+            className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3.5 text-[15px] font-semibold text-white transition-all hover:bg-blue-700 active:scale-[0.98] active:bg-blue-800 disabled:opacity-50"
+          >
+            {copied ? (
+              <>
+                <CheckCircle2 className="h-5 w-5" />
+                Kopyalandı
+              </>
+            ) : (
+              <>
+                <Copy className="h-5 w-5" />
+                Bilet Linkini Kopyala
+              </>
+            )}
           </button>
         </div>
       </section>

@@ -98,6 +98,17 @@ type EventSheetsStatus = {
   missing_scopes?: string[];
 };
 
+type EventMicrosoftExcelStatus = {
+  ms365_configured: boolean;
+  ms365_connected: boolean;
+  microsoft_email?: string | null;
+  workbook_url?: string | null;
+  workbook_name?: string | null;
+  enabled: boolean;
+  last_synced_at?: string | null;
+  missing_scopes?: string[];
+};
+
 type FormState = {
   name: string;
   event_date: string;
@@ -470,6 +481,9 @@ export default function EventSettingsPage() {
   const [sheetsStatus, setSheetsStatus] = useState<EventSheetsStatus | null>(null);
   const [sheetsLoading, setSheetsLoading] = useState(false);
   const [sheetsAction, setSheetsAction] = useState<"auth" | "connect" | "sync" | "disconnect" | null>(null);
+  const [excelStatus, setExcelStatus] = useState<EventMicrosoftExcelStatus | null>(null);
+  const [excelLoading, setExcelLoading] = useState(false);
+  const [excelAction, setExcelAction] = useState<"auth" | "connect" | "sync" | "disconnect" | null>(null);
   const [authBridgeReady, setAuthBridgeReady] = useState(false);
 
   const hasGrowthPlan = subscription?.role === "superadmin" || (subscription?.active && ["growth", "enterprise"].includes(subscription?.plan_id || ""));
@@ -598,6 +612,19 @@ export default function EventSettingsPage() {
     }
   }
 
+  async function loadMicrosoftExcelStatus() {
+    if (!eventId) return;
+    setExcelLoading(true);
+    try {
+      const res = await apiFetch(`/admin/events/${eventId}/microsoft-excel`);
+      setExcelStatus(await res.json());
+    } catch {
+      setExcelStatus(null);
+    } finally {
+      setExcelLoading(false);
+    }
+  }
+
   async function handleConnectGoogleSheetsAuth() {
     setSheetsAction("auth");
     setError(null);
@@ -669,6 +696,80 @@ export default function EventSettingsPage() {
       toast.error(message);
     } finally {
       setSheetsAction(null);
+    }
+  }
+
+  async function handleConnectMicrosoftExcelAuth() {
+    setExcelAction("auth");
+    setError(null);
+    try {
+      const frontendOrigin = typeof window !== "undefined" ? window.location.origin : "";
+      const params = new URLSearchParams({
+        next: `/admin/events/${eventId}/settings`,
+        frontend_origin: frontendOrigin,
+        event_id: String(eventId),
+      });
+      const res = await apiFetch(`/admin/microsoft/excel/start?${params.toString()}`);
+      const data = await res.json();
+      if (data?.authorization_url) {
+        window.location.href = data.authorization_url;
+      } else {
+        throw new Error(lang === "tr" ? "Microsoft yetkilendirme adresi alınamadı." : "Could not get Microsoft authorization URL.");
+      }
+    } catch (err: any) {
+      const message = err?.message || (lang === "tr" ? "Microsoft Excel bağlantısı başlatılamadı." : "Microsoft Excel connection could not be started.");
+      setError(message);
+      toast.error(message);
+    } finally {
+      setExcelAction(null);
+    }
+  }
+
+  async function handleCreateMicrosoftExcel() {
+    setExcelAction("connect");
+    setError(null);
+    try {
+      const res = await apiFetch(`/admin/events/${eventId}/microsoft-excel/connect`, { method: "POST" });
+      setExcelStatus(await res.json());
+      toast.success(lang === "tr" ? "Microsoft Excel dosyası oluşturuldu ve kayıtlar aktarıldı." : "Microsoft Excel workbook created and registrations synced.");
+    } catch (err: any) {
+      const message = err?.message || (lang === "tr" ? "Microsoft Excel dosyası oluşturulamadı." : "Microsoft Excel workbook could not be created.");
+      setError(message);
+      toast.error(message);
+    } finally {
+      setExcelAction(null);
+    }
+  }
+
+  async function handleSyncMicrosoftExcel() {
+    setExcelAction("sync");
+    setError(null);
+    try {
+      const res = await apiFetch(`/admin/events/${eventId}/microsoft-excel/sync`, { method: "POST" });
+      setExcelStatus(await res.json());
+      toast.success(lang === "tr" ? "Microsoft Excel dosyası güncellendi." : "Microsoft Excel workbook synced.");
+    } catch (err: any) {
+      const message = err?.message || (lang === "tr" ? "Microsoft Excel dosyası güncellenemedi." : "Microsoft Excel workbook could not be synced.");
+      setError(message);
+      toast.error(message);
+    } finally {
+      setExcelAction(null);
+    }
+  }
+
+  async function handleDisconnectMicrosoftExcel() {
+    setExcelAction("disconnect");
+    setError(null);
+    try {
+      const res = await apiFetch(`/admin/events/${eventId}/microsoft-excel`, { method: "DELETE" });
+      setExcelStatus(await res.json());
+      toast.success(lang === "tr" ? "Microsoft Excel bağlantısı kapatıldı." : "Microsoft Excel connection disabled.");
+    } catch (err: any) {
+      const message = err?.message || (lang === "tr" ? "Bağlantı kapatılamadı." : "Connection could not be disabled.");
+      setError(message);
+      toast.error(message);
+    } finally {
+      setExcelAction(null);
     }
   }
 
@@ -1475,6 +1576,43 @@ export default function EventSettingsPage() {
                       {lang === "tr" ? "Sheet oluştur ve bağla" : "Create and connect Sheet"}
                     </button>
                   )}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-lg border border-sky-200 bg-white p-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-lg bg-sky-50 p-3 text-sky-600">
+                    <FileSpreadsheet className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-surface-900">
+                      {lang === "tr" ? "Microsoft 365 Excel otomasyonu" : "Microsoft 365 Excel automation"}
+                    </h3>
+                    <p className="mt-1 max-w-2xl text-sm leading-6 text-surface-600">
+                      {lang === "tr"
+                        ? "Azure tarafı ücretli tenant gerektirdiği için bu entegrasyonu şimdilik inşa halinde tutuyoruz. Hazır olduğunda kayıtları OneDrive üzerindeki Excel dosyasına senkronlayacak."
+                        : "This integration is temporarily under construction because Azure requires a paid tenant. Once enabled, registrations will sync into an Excel workbook on OneDrive."}
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-surface-500">
+                      <span className="rounded-full bg-sky-50 px-2.5 py-1 font-semibold text-sky-700">
+                        {lang === "tr" ? "İnşa halinde" : "Under construction"}
+                      </span>
+                      <span>{lang === "tr" ? "Microsoft bağlantısı şu an kapalı" : "Microsoft connection is currently disabled"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 lg:justify-end">
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-700 opacity-70"
+                  >
+                    <FileSpreadsheet className="h-4 w-4" />
+                    {lang === "tr" ? "Yakında" : "Coming soon"}
+                  </button>
                 </div>
               </div>
             </div>

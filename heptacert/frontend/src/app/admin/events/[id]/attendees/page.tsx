@@ -33,6 +33,19 @@ type EventSheetsStatus = {
   missing_scopes?: string[];
 };
 
+type EventMicrosoftExcelStatus = {
+  ms365_configured: boolean;
+  ms365_connected: boolean;
+  microsoft_email?: string | null;
+  workbook_id?: string | null;
+  workbook_url?: string | null;
+  workbook_name?: string | null;
+  sheet_name?: string | null;
+  enabled: boolean;
+  last_synced_at?: string | null;
+  missing_scopes?: string[];
+};
+
 export default function AdminAttendeesPage() {
   const params = useParams();
   const router = useRouter();
@@ -88,6 +101,9 @@ export default function AdminAttendeesPage() {
   const [sheetsStatus, setSheetsStatus] = useState<EventSheetsStatus | null>(null);
   const [sheetsLoading, setSheetsLoading] = useState(false);
   const [sheetsAction, setSheetsAction] = useState<"auth" | "connect" | "sync" | "disconnect" | null>(null);
+  const [excelStatus, setExcelStatus] = useState<EventMicrosoftExcelStatus | null>(null);
+  const [excelLoading, setExcelLoading] = useState(false);
+  const [excelAction, setExcelAction] = useState<"auth" | "connect" | "sync" | "disconnect" | null>(null);
 
   // Confirm modals
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
@@ -119,6 +135,19 @@ export default function AdminAttendeesPage() {
       setSheetsStatus(null);
     } finally {
       setSheetsLoading(false);
+    }
+  }
+
+  async function loadMicrosoftExcelStatus() {
+    if (!eventId) return;
+    setExcelLoading(true);
+    try {
+      const res = await apiFetch(`/admin/events/${eventId}/microsoft-excel`);
+      setExcelStatus(await res.json());
+    } catch {
+      setExcelStatus(null);
+    } finally {
+      setExcelLoading(false);
     }
   }
 
@@ -387,6 +416,66 @@ export default function AdminAttendeesPage() {
     }
   }
 
+  async function handleConnectMicrosoftExcelAuth() {
+    setExcelAction("auth");
+    setListError(null);
+    try {
+      const frontendOrigin = typeof window !== "undefined" ? window.location.origin : "";
+      const params = new URLSearchParams({
+        next: `/admin/events/${eventId}/attendees`,
+        frontend_origin: frontendOrigin,
+        event_id: String(eventId),
+      });
+      const res = await apiFetch(`/admin/microsoft/excel/start?${params.toString()}`);
+      const data = await res.json();
+      if (!data?.authorization_url) throw new Error("Microsoft yetkilendirme adresi alınamadı.");
+      window.location.href = data.authorization_url;
+    } catch (e: any) {
+      setListError(e?.message || "Microsoft Excel bağlantısı başlatılamadı.");
+    } finally {
+      setExcelAction(null);
+    }
+  }
+
+  async function handleCreateMicrosoftExcel() {
+    setExcelAction("connect");
+    setListError(null);
+    try {
+      const res = await apiFetch(`/admin/events/${eventId}/microsoft-excel/connect`, { method: "POST" });
+      setExcelStatus(await res.json());
+    } catch (e: any) {
+      setListError(e?.message || "Microsoft Excel dosyası oluşturulamadı.");
+    } finally {
+      setExcelAction(null);
+    }
+  }
+
+  async function handleSyncMicrosoftExcel() {
+    setExcelAction("sync");
+    setListError(null);
+    try {
+      const res = await apiFetch(`/admin/events/${eventId}/microsoft-excel/sync`, { method: "POST" });
+      setExcelStatus(await res.json());
+    } catch (e: any) {
+      setListError(e?.message || "Microsoft Excel dosyası güncellenemedi.");
+    } finally {
+      setExcelAction(null);
+    }
+  }
+
+  async function handleDisconnectMicrosoftExcel() {
+    setExcelAction("disconnect");
+    setListError(null);
+    try {
+      const res = await apiFetch(`/admin/events/${eventId}/microsoft-excel`, { method: "DELETE" });
+      setExcelStatus(await res.json());
+    } catch (e: any) {
+      setListError(e?.message || "Microsoft Excel bağlantısı kapatılamadı.");
+    } finally {
+      setExcelAction(null);
+    }
+  }
+
   function handleBulkCertify() {
     setShowCertifyConfirm(true);
   }
@@ -649,6 +738,38 @@ export default function AdminAttendeesPage() {
                   Sheet oluştur ve bağla
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-sky-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="rounded-xl bg-sky-50 p-3 text-sky-600">
+                <FileSpreadsheet className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-gray-900">Microsoft 365 Excel otomasyonu</h2>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">
+                  Azure tarafı ücretli tenant gerektirdiği için bu entegrasyonu şimdilik inşa halinde tutuyoruz.
+                  Hazır olduğunda kayıtları OneDrive üzerindeki Excel dosyasına senkronlayacak.
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                  <span className="rounded-full bg-sky-50 px-2.5 py-1 font-semibold text-sky-700">İnşa halinde</span>
+                  <span>Microsoft bağlantısı şu an kapalı</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 lg:justify-end">
+              <button
+                type="button"
+                disabled
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-700 opacity-70"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                Yakında
+              </button>
             </div>
           </div>
         </div>

@@ -252,6 +252,8 @@ class Settings(BaseSettings):
     cors_origins: str = Field(default="*", alias="CORS_ORIGINS")
     google_oauth_client_id: str = Field(default="", alias="GOOGLE_OAUTH_CLIENT_ID")
     google_oauth_client_secret: str = Field(default="", alias="GOOGLE_OAUTH_CLIENT_SECRET")
+    ms365_oauth_client_id: str = Field(default="", alias="MS365_OAUTH_CLIENT_ID")
+    ms365_oauth_client_secret: str = Field(default="", alias="MS365_OAUTH_CLIENT_SECRET")
 
     storage_mode: str = Field(default="local", alias="STORAGE_MODE")
     local_storage_dir: str = Field(default="/data", alias="LOCAL_STORAGE_DIR")
@@ -346,6 +348,7 @@ class User(Base):
     transactions: Mapped[List["Transaction"]] = relationship(back_populates="user")
     email_config: Mapped[Optional["UserEmailConfig"]] = relationship(back_populates="user", uselist=False)
     google_integration: Mapped[Optional["UserGoogleIntegration"]] = relationship(back_populates="user", uselist=False)
+    ms365_integration: Mapped[Optional["UserMicrosoftIntegration"]] = relationship(back_populates="user", uselist=False)
 
 
 class PublicMember(Base):
@@ -1043,6 +1046,21 @@ class UserGoogleIntegration(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     user: Mapped["User"] = relationship(back_populates="google_integration")
+
+
+class UserMicrosoftIntegration(Base):
+    __tablename__ = "user_microsoft_integrations"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True)
+    microsoft_email: Mapped[Optional[str]] = mapped_column(String(320), nullable=True)
+    access_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    refresh_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    token_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    scopes: Mapped[list] = mapped_column(JSONB, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    user: Mapped["User"] = relationship(back_populates="ms365_integration")
 
 
 class CertificateTemplate(Base):
@@ -2476,6 +2494,31 @@ class EventSheetsStatusOut(BaseModel):
     missing_scopes: List[str] = Field(default_factory=list)
 
 
+class MicrosoftExcelStatusOut(BaseModel):
+    configured: bool
+    connected: bool
+    microsoft_email: Optional[str] = None
+    scopes: List[str] = Field(default_factory=list)
+    missing_scopes: List[str] = Field(default_factory=list)
+
+
+class MicrosoftExcelAuthStartOut(BaseModel):
+    authorization_url: str
+
+
+class EventMicrosoftExcelStatusOut(BaseModel):
+    ms365_configured: bool
+    ms365_connected: bool
+    microsoft_email: Optional[str] = None
+    workbook_id: Optional[str] = None
+    workbook_url: Optional[str] = None
+    workbook_name: Optional[str] = None
+    sheet_name: Optional[str] = None
+    enabled: bool = False
+    last_synced_at: Optional[str] = None
+    missing_scopes: List[str] = Field(default_factory=list)
+
+
 class WebhookSubscriptionOut(BaseModel):
     id: int
     user_id: int
@@ -3137,6 +3180,204 @@ async def _sync_google_sheet_if_enabled(db: AsyncSession, event: "Event") -> Non
         await _write_event_attendees_to_google_sheet(db, event)
     except Exception as exc:
         logger.warning("Google Sheets event sync failed for event_id=%s: %s", event.id, exc)
+
+
+MS365_EXCEL_SCOPES = ["openid", "profile", "email", "offline_access", "User.Read", "Files.ReadWrite"]
+MS365_EXCEL_REQUIRED_SCOPES = ["Files.ReadWrite"]
+
+
+def _ms365_excel_redirect_uri() -> str:
+    return f"{settings.public_base_url.rstrip('/')}/api/admin/microsoft/excel/callback"
+
+
+def _normalize_ms365_scopes(raw_scopes: Any) -> List[str]:
+    if isinstance(raw_scopes, str):
+        return [scope for scope in raw_scopes.split() if scope]
+    if isinstance(raw_scopes, list):
+        return [str(scope) for scope in raw_scopes if str(scope).strip()]
+    return []
+
+
+def _ms365_excel_missing_scopes(scopes: Any) -> List[str]:
+    present = {scope.lower() for scope in _normalize_ms365_scopes(scopes)}
+    return [scope for scope in MS365_EXCEL_REQUIRED_SCOPES if scope.lower() not in present]
+
+
+def _get_event_ms365_excel_config(event: "Event") -> Dict[str, Any]:
+    config = dict(event.config or {})
+    excel_config = config.get("ms365_excel")
+    return dict(excel_config) if isinstance(excel_config, dict) else {}
+
+
+def _set_event_ms365_excel_config(event: "Event", excel_config: Optional[Dict[str, Any]]) -> None:
+    next_config = dict(event.config or {})
+    if excel_config:
+        next_config["ms365_excel"] = excel_config
+    else:
+        next_config.pop("ms365_excel", None)
+    event.config = next_config
+
+
+async def _get_user_ms365_integration(db: AsyncSession, user_id: int) -> Optional["UserMicrosoftIntegration"]:
+    res = await db.execute(select(UserMicrosoftIntegration).where(UserMicrosoftIntegration.user_id == user_id))
+    return res.scalar_one_or_none()
+
+
+async def _ms365_exchange_code_for_tokens(code: str, redirect_uri: str) -> Dict[str, Any]:
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        token_res = await client.post(
+            "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+            data={
+                "code": code,
+                "client_id": settings.ms365_oauth_client_id,
+                "client_secret": settings.ms365_oauth_client_secret,
+                "redirect_uri": redirect_uri,
+                "grant_type": "authorization_code",
+            },
+        )
+    if token_res.status_code >= 400:
+        raise HTTPException(status_code=400, detail="Microsoft token exchange failed.")
+    return token_res.json()
+
+
+async def _ms365_get_profile(access_token: str) -> Dict[str, Any]:
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        profile_res = await client.get(
+            "https://graph.microsoft.com/v1.0/me",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+    if profile_res.status_code >= 400:
+        raise HTTPException(status_code=400, detail="Microsoft profile could not be read.")
+    return profile_res.json()
+
+
+async def _get_ms365_access_token_for_excel(db: AsyncSession, user_id: int) -> str:
+    integration = await _get_user_ms365_integration(db, user_id)
+    if not integration or not integration.refresh_token:
+        raise HTTPException(status_code=409, detail="Microsoft Excel connection is not ready.")
+    now = datetime.now(timezone.utc)
+    expires_at = ensure_utc(integration.token_expires_at)
+    current_access_token = _decrypt_secret(integration.access_token)
+    if current_access_token and expires_at and expires_at > now + timedelta(seconds=60):
+        return current_access_token
+    refresh_token = _decrypt_secret(integration.refresh_token)
+    if not refresh_token:
+        raise HTTPException(status_code=409, detail="Microsoft refresh token could not be read.")
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        token_res = await client.post(
+            "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+            data={
+                "client_id": settings.ms365_oauth_client_id,
+                "client_secret": settings.ms365_oauth_client_secret,
+                "refresh_token": refresh_token,
+                "grant_type": "refresh_token",
+                "scope": " ".join(MS365_EXCEL_SCOPES),
+            },
+        )
+    if token_res.status_code >= 400:
+        raise HTTPException(status_code=409, detail="Microsoft Excel authorization has expired. Please connect again.")
+    token_data = token_res.json()
+    access_token = str(token_data.get("access_token") or "")
+    if not access_token:
+        raise HTTPException(status_code=409, detail="Microsoft access token missing.")
+    integration.access_token = _encrypt_secret(access_token)
+    if token_data.get("refresh_token"):
+        integration.refresh_token = _encrypt_secret(str(token_data.get("refresh_token")))
+    integration.token_expires_at = now + timedelta(seconds=int(token_data.get("expires_in") or 3600))
+    if token_data.get("scope"):
+        integration.scopes = _normalize_ms365_scopes(token_data.get("scope"))
+    db.add(integration)
+    await db.commit()
+    return access_token
+
+
+async def _ms365_upload_workbook(access_token: str, workbook_bytes: bytes, *, workbook_id: str = "", filename: str = "") -> Dict[str, Any]:
+    if workbook_id:
+        url = f"https://graph.microsoft.com/v1.0/me/drive/items/{workbook_id}/content"
+    else:
+        safe_filename = quote(filename or "HeptaCert Registrations.xlsx", safe="")
+        url = f"https://graph.microsoft.com/v1.0/me/drive/root:/{safe_filename}:/content"
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        res = await client.put(
+            url,
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            },
+            content=workbook_bytes,
+        )
+    if res.status_code >= 400:
+        detail = "Microsoft Excel request failed."
+        try:
+            detail = res.json().get("error", {}).get("message") or detail
+        except Exception:
+            pass
+        raise HTTPException(status_code=502, detail=detail)
+    return res.json()
+
+
+def _safe_ms365_filename(value: str) -> str:
+    cleaned = re.sub(r'[<>:"/\\|?*\x00-\x1F]', "-", value).strip().strip(".")
+    return cleaned[:180] or "HeptaCert Registrations.xlsx"
+
+
+def _event_attendees_xlsx_bytes(event: "Event", attendees: List["Attendee"]) -> bytes:
+    import openpyxl
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Registrations"
+    ws.append(_google_sheets_header_for_event(event))
+    for attendee in attendees:
+        ws.append(_google_sheets_row_for_attendee(event, attendee))
+    for column_cells in ws.columns:
+        max_length = max((len(str(cell.value or "")) for cell in column_cells), default=10)
+        ws.column_dimensions[column_cells[0].column_letter].width = min(max(max_length + 2, 12), 48)
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    return buffer.getvalue()
+
+
+async def _write_event_attendees_to_ms365_excel(db: AsyncSession, event: "Event", *, create_if_missing: bool = False) -> Dict[str, Any]:
+    excel_config = _get_event_ms365_excel_config(event)
+    if not excel_config.get("enabled") and not create_if_missing:
+        return excel_config
+    access_token = await _get_ms365_access_token_for_excel(db, event.admin_id)
+    attendees_res = await db.execute(select(Attendee).where(Attendee.event_id == event.id).order_by(Attendee.id.asc()))
+    attendees = attendees_res.scalars().all()
+    workbook_bytes = _event_attendees_xlsx_bytes(event, attendees)
+    workbook_id = str(excel_config.get("workbook_id") or "")
+    filename = _safe_ms365_filename(str(excel_config.get("workbook_name") or f"HeptaCert - {event.name} - Registrations.xlsx"))
+    if not workbook_id and not create_if_missing:
+        raise HTTPException(status_code=409, detail="No Microsoft Excel workbook is connected for this event.")
+    item = await _ms365_upload_workbook(access_token, workbook_bytes, workbook_id=workbook_id, filename=filename)
+    workbook_id = str(item.get("id") or workbook_id)
+    workbook_url = str(item.get("webUrl") or excel_config.get("workbook_url") or "")
+    workbook_name = str(item.get("name") or filename)
+    if not workbook_id:
+        raise HTTPException(status_code=502, detail="Microsoft Excel workbook could not be created.")
+    next_excel_config = {
+        "enabled": True,
+        "workbook_id": workbook_id,
+        "workbook_url": workbook_url,
+        "workbook_name": workbook_name,
+        "sheet_name": "Registrations",
+        "header": _google_sheets_header_for_event(event),
+        "last_synced_at": datetime.now(timezone.utc).isoformat(),
+    }
+    _set_event_ms365_excel_config(event, next_excel_config)
+    db.add(event)
+    await db.commit()
+    await db.refresh(event)
+    return next_excel_config
+
+
+async def _sync_ms365_excel_if_enabled(db: AsyncSession, event: "Event") -> None:
+    if not _get_event_ms365_excel_config(event).get("enabled"):
+        return
+    try:
+        await _write_event_attendees_to_ms365_excel(db, event)
+    except Exception as exc:
+        logger.warning("Microsoft Excel sync failed for event_id=%s: %s", event.id, exc)
 
 
 async def send_attendee_verification_email(*, attendee: "Attendee", event: "Event") -> None:
@@ -7605,6 +7846,134 @@ async def google_sheets_auth_callback(
     return RedirectResponse(redirect_target)
 
 
+@app.get(
+    "/api/admin/microsoft/excel/status",
+    response_model=MicrosoftExcelStatusOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def microsoft_excel_status(
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    configured = bool(settings.ms365_oauth_client_id and settings.ms365_oauth_client_secret)
+    integration = await _get_user_ms365_integration(db, me.id)
+    scopes = _normalize_ms365_scopes(integration.scopes if integration else [])
+    missing_scopes = _ms365_excel_missing_scopes(scopes) if integration else MS365_EXCEL_REQUIRED_SCOPES
+    return MicrosoftExcelStatusOut(
+        configured=configured,
+        connected=bool(configured and integration and integration.refresh_token and not missing_scopes),
+        microsoft_email=integration.microsoft_email if integration else None,
+        scopes=scopes,
+        missing_scopes=missing_scopes,
+    )
+
+
+@app.get(
+    "/api/admin/microsoft/excel/start",
+    response_model=MicrosoftExcelAuthStartOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def microsoft_excel_auth_start(
+    next: Optional[str] = Query(default="/admin/events"),
+    frontend_origin: Optional[str] = Query(default=None),
+    event_id: Optional[int] = Query(default=None),
+    me: CurrentUser = Depends(get_current_user),
+):
+    if not settings.ms365_oauth_client_id or not settings.ms365_oauth_client_secret:
+        raise HTTPException(status_code=503, detail="Microsoft OAuth is not configured.")
+    state = make_email_token({
+        "action": "ms365_excel_oauth",
+        "user_id": me.id,
+        "next": _normalize_oauth_next(next, "/admin/events"),
+        "frontend_origin": _normalize_oauth_frontend_origin(frontend_origin),
+        "event_id": event_id,
+    })
+    params = {
+        "client_id": settings.ms365_oauth_client_id,
+        "redirect_uri": _ms365_excel_redirect_uri(),
+        "response_type": "code",
+        "scope": " ".join(MS365_EXCEL_SCOPES),
+        "state": state,
+        "response_mode": "query",
+        "prompt": "select_account",
+    }
+    return MicrosoftExcelAuthStartOut(
+        authorization_url=f"https://login.microsoftonline.com/common/oauth2/v2.0/authorize?{urlencode(params)}"
+    )
+
+
+@app.get("/api/admin/microsoft/excel/callback")
+async def microsoft_excel_auth_callback(
+    code: str = Query(...),
+    state: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+):
+    if not settings.ms365_oauth_client_id or not settings.ms365_oauth_client_secret:
+        raise HTTPException(status_code=503, detail="Microsoft OAuth is not configured.")
+    try:
+        state_payload = verify_email_token(state, max_age=600)
+    except Exception:
+        raise bad_request("Microsoft Excel OAuth state is invalid or expired.")
+    if state_payload.get("action") != "ms365_excel_oauth":
+        raise bad_request("Invalid Microsoft Excel OAuth state.")
+
+    user_id = int(state_payload.get("user_id") or 0)
+    if user_id <= 0:
+        raise bad_request("Invalid Microsoft Excel OAuth user.")
+
+    token_data = await _ms365_exchange_code_for_tokens(code, _ms365_excel_redirect_uri())
+    access_token = str(token_data.get("access_token") or "")
+    if not access_token:
+        raise HTTPException(status_code=400, detail="Microsoft access token missing.")
+    profile = await _ms365_get_profile(access_token)
+    email = str(profile.get("mail") or profile.get("userPrincipalName") or "").strip().lower() or None
+
+    integration = await _get_user_ms365_integration(db, user_id)
+    if not integration:
+        integration = UserMicrosoftIntegration(user_id=user_id)
+        db.add(integration)
+    integration.microsoft_email = email
+    integration.access_token = _encrypt_secret(access_token)
+    if token_data.get("refresh_token"):
+        integration.refresh_token = _encrypt_secret(str(token_data.get("refresh_token")))
+    integration.token_expires_at = datetime.now(timezone.utc) + timedelta(seconds=int(token_data.get("expires_in") or 3600))
+    integration.scopes = _normalize_ms365_scopes(token_data.get("scope"))
+    db.add(integration)
+    await db.commit()
+
+    next_url = _normalize_oauth_next(str(state_payload.get("next") or ""), "/admin/events")
+    frontend_origin = _normalize_oauth_frontend_origin(str(state_payload.get("frontend_origin") or ""))
+    excel_status = "connected"
+    event_id = int(state_payload.get("event_id") or 0)
+    if event_id > 0:
+        event_res = await db.execute(select(Event).where(Event.id == event_id, Event.admin_id == user_id))
+        event = event_res.scalar_one_or_none()
+        if event:
+            try:
+                await _write_event_attendees_to_ms365_excel(db, event, create_if_missing=True)
+                excel_status = "created"
+            except Exception:
+                logger.exception("Microsoft Excel OAuth connected but automatic workbook creation failed for event_id=%s", event_id)
+                excel_status = "connected"
+    user_res = await db.execute(select(User).where(User.id == user_id))
+    user = user_res.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Microsoft Excel OAuth user not found.")
+    bridge_params = urlencode({
+        "ms365_excel": excel_status,
+        "admin_token": create_access_token(user_id=user.id, role=user.role),
+    })
+    separator = "&" if "?" in next_url else "?"
+    redirect_target = f"{frontend_origin}{next_url}{separator}{bridge_params}"
+    logger.info(
+        "Microsoft Excel OAuth connected for user_id=%s; redirecting to frontend_origin=%s next=%s",
+        user_id,
+        frontend_origin,
+        next_url,
+    )
+    return RedirectResponse(redirect_target)
+
+
 @app.post("/api/public/auth/register", status_code=201)
 @limiter.limit("3/minute")
 async def public_member_register(request: Request, data: PublicMemberRegisterIn, db: AsyncSession = Depends(get_db)):
@@ -10580,6 +10949,90 @@ async def disconnect_event_google_sheet(
     await db.commit()
     await db.refresh(event)
     return await _event_sheets_status_payload(db, event)
+
+
+async def _event_ms365_excel_status_payload(db: AsyncSession, event: Event) -> EventMicrosoftExcelStatusOut:
+    integration = await _get_user_ms365_integration(db, event.admin_id)
+    scopes = _normalize_ms365_scopes(integration.scopes if integration else [])
+    missing_scopes = _ms365_excel_missing_scopes(scopes) if integration else MS365_EXCEL_REQUIRED_SCOPES
+    excel_config = _get_event_ms365_excel_config(event)
+    return EventMicrosoftExcelStatusOut(
+        ms365_configured=bool(settings.ms365_oauth_client_id and settings.ms365_oauth_client_secret),
+        ms365_connected=bool(integration and integration.refresh_token and not missing_scopes),
+        microsoft_email=integration.microsoft_email if integration else None,
+        workbook_id=excel_config.get("workbook_id"),
+        workbook_url=excel_config.get("workbook_url"),
+        workbook_name=excel_config.get("workbook_name"),
+        sheet_name=excel_config.get("sheet_name"),
+        enabled=bool(excel_config.get("enabled")),
+        last_synced_at=excel_config.get("last_synced_at"),
+        missing_scopes=missing_scopes,
+    )
+
+
+@app.get(
+    "/api/admin/events/{event_id}/microsoft-excel",
+    response_model=EventMicrosoftExcelStatusOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def get_event_ms365_excel_status(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    event = await _get_event_for_admin(event_id, me, db)
+    return await _event_ms365_excel_status_payload(db, event)
+
+
+@app.post(
+    "/api/admin/events/{event_id}/microsoft-excel/connect",
+    response_model=EventMicrosoftExcelStatusOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def connect_event_ms365_excel(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    event = await _get_event_for_admin(event_id, me, db)
+    await _write_event_attendees_to_ms365_excel(db, event, create_if_missing=True)
+    return await _event_ms365_excel_status_payload(db, event)
+
+
+@app.post(
+    "/api/admin/events/{event_id}/microsoft-excel/sync",
+    response_model=EventMicrosoftExcelStatusOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def sync_event_ms365_excel(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    event = await _get_event_for_admin(event_id, me, db)
+    excel_config = _get_event_ms365_excel_config(event)
+    if not excel_config.get("enabled") or not excel_config.get("workbook_id"):
+        raise HTTPException(status_code=409, detail="No Microsoft Excel workbook is connected for this event.")
+    await _write_event_attendees_to_ms365_excel(db, event)
+    return await _event_ms365_excel_status_payload(db, event)
+
+
+@app.delete(
+    "/api/admin/events/{event_id}/microsoft-excel",
+    response_model=EventMicrosoftExcelStatusOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def disconnect_event_ms365_excel(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    event = await _get_event_for_admin(event_id, me, db)
+    _set_event_ms365_excel_config(event, None)
+    db.add(event)
+    await db.commit()
+    await db.refresh(event)
+    return await _event_ms365_excel_status_payload(db, event)
 
 
 @app.patch("/api/admin/events/{event_id}", response_model=EventOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
@@ -14052,6 +14505,7 @@ async def public_event_register(
                 _build_attendee_register_webhook_payload(ev, existing_attendee, result="existing_unverified"),
             )
             await _sync_google_sheet_if_enabled(db, ev)
+            await _sync_ms365_excel_if_enabled(db, ev)
             await send_attendee_verification_email(attendee=existing_attendee, event=ev)
             response = JSONResponse(
                 status_code=200,
@@ -14115,6 +14569,7 @@ async def public_event_register(
             ),
         )
         await _sync_google_sheet_if_enabled(db, ev)
+        await _sync_ms365_excel_if_enabled(db, ev)
         response = JSONResponse(
             status_code=200,
             content={
@@ -14211,6 +14666,7 @@ async def public_event_register(
         ),
     )
     await _append_attendee_to_google_sheet_if_enabled(db, ev, attendee)
+    await _sync_ms365_excel_if_enabled(db, ev)
     ticket_res = await db.execute(
         select(EventTicket).where(EventTicket.event_id == event_db_id, EventTicket.attendee_id == attendee.id)
     )
@@ -14332,6 +14788,7 @@ async def verify_attendee_email(event_id: str, token: str = Query(...), db: Asyn
     await _issue_event_ticket_if_needed(db, event, attendee)
     await db.commit()
     await _sync_google_sheet_if_enabled(db, event)
+    await _sync_ms365_excel_if_enabled(db, event)
 
     return {
         "detail": "E-posta dogrulandi.",
