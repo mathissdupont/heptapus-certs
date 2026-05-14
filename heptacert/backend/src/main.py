@@ -13997,7 +13997,7 @@ async def public_event_register(
             )
             await db.commit()
             await trigger_webhooks(
-                ev.user_id,
+                ev.admin_id,
                 "attendee.register",
                 _build_attendee_register_webhook_payload(ev, existing_attendee, result="existing_unverified"),
             )
@@ -14056,7 +14056,7 @@ async def public_event_register(
         )
         await db.commit()
         await trigger_webhooks(
-            ev.user_id,
+            ev.admin_id,
             "attendee.register",
             _build_attendee_register_webhook_payload(
                 ev,
@@ -14152,7 +14152,7 @@ async def public_event_register(
             ev.config = next_config
     await db.commit()
     await trigger_webhooks(
-        ev.user_id,
+        ev.admin_id,
         "attendee.register",
         _build_attendee_register_webhook_payload(
             ev,
