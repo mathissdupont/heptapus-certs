@@ -78,6 +78,7 @@ export default function EventTicketsPage() {
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [scannerStarting, setScannerStarting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<number | null>(null);
@@ -152,20 +153,18 @@ export default function EventTicketsPage() {
     let cancelled = false;
 
     async function initScanner() {
+      setScannerStarting(true);
       try {
-        const { Html5QrcodeScanner } = await import("html5-qrcode");
+        const { Html5Qrcode } = await import("html5-qrcode");
         if (cancelled) return;
-        const scanner = new Html5QrcodeScanner(
-          "qr-reader",
+        const scanner = new Html5Qrcode("qr-reader", false);
+        scannerRef.current = scanner;
+        await scanner.start(
+          { facingMode: "environment" },
           {
             fps: 10,
             qrbox: { width: 260, height: 260 },
-            rememberLastUsedCamera: true,
           },
-          false,
-        );
-        scannerRef.current = scanner;
-        scanner.render(
           (decodedText: string) => {
             stageScannedTicket(decodedText);
           },
@@ -173,6 +172,8 @@ export default function EventTicketsPage() {
         );
       } catch (err: any) {
         setError(err?.message || "QR okuyucu başlatılamadı.");
+      } finally {
+        if (!cancelled) setScannerStarting(false);
       }
     }
 
@@ -181,8 +182,9 @@ export default function EventTicketsPage() {
     return () => {
       cancelled = true;
       if (scannerRef.current) {
-        scannerRef.current.clear().catch?.(() => {});
+        const scanner = scannerRef.current;
         scannerRef.current = null;
+        scanner.stop?.().catch?.(() => {}).finally?.(() => scanner.clear?.().catch?.(() => {}));
       }
     };
   }, [showScanner]);
@@ -346,8 +348,12 @@ export default function EventTicketsPage() {
                 </button>
               </div>
               <div className="relative overflow-hidden rounded-2xl border border-surface-200 bg-surface-950 p-3 shadow-inner">
-                <div id="qr-reader" className="overflow-hidden rounded-xl bg-white" />
+                <div id="qr-reader" className="min-h-[320px] overflow-hidden rounded-xl bg-black [&_video]:h-full [&_video]:min-h-[320px] [&_video]:w-full [&_video]:object-cover" />
                 <div className="pointer-events-none absolute inset-3 rounded-xl ring-1 ring-white/10" />
+                <div className="pointer-events-none absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-3xl border-2 border-white/80 shadow-[0_0_0_999px_rgba(2,6,23,0.45)]" />
+                <div className="pointer-events-none absolute inset-x-6 bottom-6 rounded-xl border border-white/10 bg-black/45 px-4 py-3 text-center text-xs font-semibold text-white backdrop-blur">
+                  {scannerStarting ? "Kamera hazırlanıyor..." : "QR kodu çerçevenin içine alın"}
+                </div>
               </div>
               <div id="qr-file-reader" className="hidden" />
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />

@@ -48,7 +48,13 @@ export default function EventParticipantStatusPage() {
             allStatus: "Tek bakışta tüm durumunuz",
             title: "Katılımcı durumunuz",
             subtitle: "Check-in, anket, rozetler ve sertifika uygunluğu aynı ekranda. Buradaki bilgiler size özel bağlantı üzerinden yüklenir.",
+            ticketTitle: "Bilet ve giriş durumunuz",
+            ticketSubtitle: "Dijital bilet, giriş durumu, anket ve varsa rozet/çekiliş bilgileri bu kişisel ekranda toplanır.",
             sessions: "Oturum",
+            checkin: "Giriş",
+            ticket: "Bilet",
+            ticketReady: "Aktif",
+            ticketFlow: "Biletli giriş",
             minSessions: "Minimum {count} oturum",
             survey: "Anket",
             surveyDisabled: "Kapalı",
@@ -68,6 +74,8 @@ export default function EventParticipantStatusPage() {
             certReadyText: "Sertifikanız hazır. Doğrulama bağlantısından görüntüleyebilir veya indirebilirsiniz.",
             surveyStep: "Önce anketi tamamlayın. Sistem sertifika uygunluğunu otomatik güncelleyecek.",
             noSurveyStep: "Bu etkinlikte anket adımı kapalı. Check-in, rozet ve sertifika güncellemelerini bu karttan takip edebilirsiniz.",
+            noSurveyTicketStep: "Biletiniz aktif. Etkinlik alanında QR kodunuzu göstererek giriş yapabilirsiniz.",
+            moreCheckins: "Giriş için {count} oturum daha tamamlanması bekleniyor.",
             moreSessions: "Sertifika için {count} oturum daha tamamlamanız gerekiyor.",
             waitingUpdates: "Katılım koşullarını tamamladınız. Sertifika veya yeni rozet güncellemeleri bu alana yansıyacak.",
             surveyPage: "Anket sayfasına git",
@@ -102,7 +110,13 @@ export default function EventParticipantStatusPage() {
             allStatus: "Everything at a glance",
             title: "Your participant status",
             subtitle: "Check-in, survey, badges, and certificate eligibility are shown on the same screen. This data is loaded through your personal link.",
+            ticketTitle: "Your ticket and entry status",
+            ticketSubtitle: "Your digital ticket, entry status, survey, and any badge or raffle updates are collected on this private page.",
             sessions: "Sessions",
+            checkin: "Entry",
+            ticket: "Ticket",
+            ticketReady: "Active",
+            ticketFlow: "Ticketed entry",
             minSessions: "Minimum {count} sessions",
             survey: "Survey",
             surveyDisabled: "Disabled",
@@ -122,6 +136,8 @@ export default function EventParticipantStatusPage() {
             certReadyText: "Your certificate is ready. You can view or download it from the verification link.",
             surveyStep: "Complete the survey first. The system will automatically refresh your certificate eligibility.",
             noSurveyStep: "Survey is disabled for this event. You can track check-in, badge, and certificate updates from this card.",
+            noSurveyTicketStep: "Your ticket is active. Show your QR code at the venue to enter.",
+            moreCheckins: "{count} more session check-ins are expected for entry.",
             moreSessions: "You need {count} more sessions for the certificate.",
             waitingUpdates: "You completed the participation requirements. Certificate or badge updates will appear here.",
             surveyPage: "Go to survey page",
@@ -231,7 +247,18 @@ export default function EventParticipantStatusPage() {
   }
 
   const hasSurvey = status.survey_enabled;
-  const nextStepDescription = status.certificate_ready
+  const isTicketedEvent = status.ticketing_enabled === true;
+  const isCertificateEvent = status.certificate_enabled !== false && !isTicketedEvent;
+  const showBadges = status.gamification_enabled !== false || status.badges.length > 0;
+  const pageTitle = isTicketedEvent ? copy.ticketTitle : copy.title;
+  const pageSubtitle = isTicketedEvent ? copy.ticketSubtitle : copy.subtitle;
+  const nextStepDescription = !isCertificateEvent
+    ? hasSurvey && status.survey_required && !status.survey_completed
+      ? copy.surveyStep
+      : status.sessions_attended < status.sessions_required
+        ? copy.moreCheckins.replace("{count}", String(status.sessions_required - status.sessions_attended))
+        : copy.noSurveyTicketStep
+    : status.certificate_ready
     ? copy.certReadyText
     : hasSurvey && status.survey_required && !status.survey_completed
       ? copy.surveyStep
@@ -265,8 +292,8 @@ export default function EventParticipantStatusPage() {
               <BadgeCheck className="h-3.5 w-3.5" style={{ color: brandColor }} />
               {copy.allStatus}
             </div>
-            <h1 className="mt-5 text-2xl font-bold tracking-tight text-zinc-900 md:text-3xl">{copy.title}</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-500">{copy.subtitle}</p>
+            <h1 className="mt-5 text-2xl font-bold tracking-tight text-zinc-900 md:text-3xl">{pageTitle}</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-500">{pageSubtitle}</p>
           </div>
 
           <div className="space-y-8 px-6 py-8 md:px-10 md:py-10">
@@ -301,35 +328,35 @@ export default function EventParticipantStatusPage() {
                     <IdCard className="h-4 w-4 text-zinc-400" /> {copy.cardIssued}
                   </div>
                   <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-semibold text-zinc-700">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    {status.sessions_attended}/{Math.max(status.total_sessions, status.sessions_required)} {copy.sessions}
+                    {isTicketedEvent ? <Ticket className="h-4 w-4 text-sky-500" /> : <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+                    {isTicketedEvent ? copy.ticketFlow : `${status.sessions_attended}/${Math.max(status.total_sessions, status.sessions_required)} ${copy.sessions}`}
                   </div>
                 </div>
               </div>
             </div>
 
             {/* İstatistikler Grid */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${isCertificateEvent ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
               <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-5 transition hover:bg-white hover:shadow-sm">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{copy.sessions}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{isTicketedEvent ? copy.checkin : copy.sessions}</p>
                 <p className="mt-3 text-3xl font-bold text-zinc-900">{status.sessions_attended}<span className="text-xl text-zinc-400">/{Math.max(status.total_sessions, status.sessions_required)}</span></p>
-                <p className="mt-2 text-xs text-zinc-500">{copy.minSessions.replace("{count}", String(status.sessions_required))}</p>
+                <p className="mt-2 text-xs text-zinc-500">{isTicketedEvent ? copy.ticketFlow : copy.minSessions.replace("{count}", String(status.sessions_required))}</p>
               </div>
               <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-5 transition hover:bg-white hover:shadow-sm">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{copy.survey}</p>
                 <p className="mt-3 text-xl font-bold text-zinc-900">{hasSurvey ? (status.survey_completed ? copy.completed : copy.pending) : copy.surveyDisabled}</p>
-                <p className="mt-2 text-xs text-zinc-500">{hasSurvey ? (status.survey_required ? copy.requiredForCert : copy.optional) : copy.notEnabled}</p>
+                <p className="mt-2 text-xs text-zinc-500">{hasSurvey ? (status.survey_required ? (isCertificateEvent ? copy.requiredForCert : copy.ticketFlow) : copy.optional) : copy.notEnabled}</p>
               </div>
               <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-5 transition hover:bg-white hover:shadow-sm">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{copy.badges}</p>
-                <p className="mt-3 text-3xl font-bold text-zinc-900">{status.badge_count}</p>
-                <p className="mt-2 text-xs text-zinc-500">{copy.totalBadges}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{isTicketedEvent ? copy.ticket : copy.badges}</p>
+                <p className="mt-3 text-xl font-bold text-zinc-900">{isTicketedEvent ? copy.ticketReady : status.badge_count}</p>
+                <p className="mt-2 text-xs text-zinc-500">{isTicketedEvent ? copy.ticketFlow : copy.totalBadges}</p>
               </div>
-              <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-5 transition hover:bg-white hover:shadow-sm">
+              {isCertificateEvent ? <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-5 transition hover:bg-white hover:shadow-sm">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{copy.certificate}</p>
                 <p className="mt-3 text-xl font-bold text-zinc-900">{status.certificate_ready ? copy.ready : status.certificate_count > 0 ? copy.produced : copy.pending}</p>
                 <p className="mt-2 text-xs text-zinc-500">{status.certificate_ready ? copy.visibleReady : copy.waits}</p>
-              </div>
+              </div> : null}
             </div>
 
             {/* Adım & Özet Alanı */}
@@ -347,7 +374,7 @@ export default function EventParticipantStatusPage() {
                       {copy.surveyPage} <ExternalLink className="h-4 w-4" />
                     </Link>
                   ) : null}
-                  {status.latest_certificate_verify_url ? (
+                  {isCertificateEvent && status.latest_certificate_verify_url ? (
                     <a 
                       href={status.latest_certificate_verify_url} 
                       target="_blank" 
@@ -367,7 +394,7 @@ export default function EventParticipantStatusPage() {
                 </div>
                 <div className="mt-5 space-y-4">
                   <div className="flex items-center justify-between border-b border-zinc-100 pb-3 text-sm">
-                    <span className="text-zinc-500">{copy.completedSessions}</span>
+                    <span className="text-zinc-500">{isTicketedEvent ? copy.checkin : copy.completedSessions}</span>
                     <span className="font-semibold text-zinc-900">{status.sessions_attended}</span>
                   </div>
                   <div className="flex items-center justify-between border-b border-zinc-100 pb-3 text-sm">
@@ -399,7 +426,7 @@ export default function EventParticipantStatusPage() {
             ) : null}
 
             {/* Hazır Sertifika Uyarı Bannerı */}
-            {status.certificate_ready ? (
+            {isCertificateEvent && status.certificate_ready ? (
               <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/50 px-6 py-5 text-emerald-900">
                 <div className="flex items-center gap-2 text-sm font-semibold">
                   <CheckCircle2 className="h-5 w-5 text-emerald-600" />{copy.certReadyBanner}
@@ -409,7 +436,7 @@ export default function EventParticipantStatusPage() {
             ) : null}
 
             {/* Rozetler Alanı */}
-            <div className="pt-4 border-t border-zinc-100">
+            {showBadges ? <div className="pt-4 border-t border-zinc-100">
               <div className="mb-6">
                 <h2 className="text-xl font-bold text-zinc-900">{copy.badgesTitle}</h2>
                 <p className="mt-1 text-sm text-zinc-500">{copy.badgesSubtitle}</p>
@@ -449,7 +476,7 @@ export default function EventParticipantStatusPage() {
                   })}
                 </div>
               )}
-            </div>
+            </div> : null}
 
           </div>
         </div>

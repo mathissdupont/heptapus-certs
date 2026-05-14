@@ -1407,6 +1407,12 @@ export type PublicParticipantStatus = {
   attendee_email: string;
   event_id: number;
   event_name: string;
+  event_type?: string;
+  certificate_enabled?: boolean;
+  checkin_enabled?: boolean;
+  ticketing_enabled?: boolean;
+  raffles_enabled?: boolean;
+  gamification_enabled?: boolean;
   sessions_attended: number;
   total_sessions: number;
   sessions_required: number;

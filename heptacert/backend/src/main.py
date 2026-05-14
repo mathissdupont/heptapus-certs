@@ -2303,6 +2303,12 @@ class PublicParticipantStatusOut(BaseModel):
     email_verified: bool = False
     event_id: int
     event_name: str
+    event_type: str = "certificate_event"
+    certificate_enabled: bool = True
+    checkin_enabled: bool = True
+    ticketing_enabled: bool = False
+    raffles_enabled: bool = False
+    gamification_enabled: bool = False
     sessions_attended: int
     total_sessions: int
     sessions_required: int
@@ -3492,6 +3498,10 @@ async def build_public_participant_status(
     survey_res = await db.execute(select(EventSurvey).where(EventSurvey.event_id == event.id))
     event_survey = survey_res.scalar_one_or_none()
     survey_enabled = bool(event_survey and event_survey.survey_type != "disabled")
+    certificate_enabled = is_certificate_enabled(event)
+    checkin_enabled = is_checkin_enabled(event)
+    ticketing_enabled = is_ticketing_enabled(event)
+    gamification_enabled = normalize_feature_bool(getattr(event, "gamification_enabled", None), default=FEATURE_DEFAULTS["gamification_enabled"])
 
     total_sessions_res = await db.execute(
         select(func.count()).select_from(EventSession).where(EventSession.event_id == event.id)
@@ -3504,7 +3514,7 @@ async def build_public_participant_status(
     sessions_attended = int(sessions_attended_res.scalar_one() or 0)
 
     badge_items: List[ParticipantBadgeOut] = []
-    if normalize_feature_bool(getattr(event, "gamification_enabled", None), default=FEATURE_DEFAULTS["gamification_enabled"]):
+    if gamification_enabled:
         badge_res = await db.execute(
             select(ParticipantBadge)
             .where(
@@ -3561,6 +3571,12 @@ async def build_public_participant_status(
         email_verified=bool(attendee.email_verified),
         event_id=event.id,
         event_name=event.name,
+        event_type=event.event_type,
+        certificate_enabled=certificate_enabled,
+        checkin_enabled=checkin_enabled,
+        ticketing_enabled=ticketing_enabled,
+        raffles_enabled=is_raffles_enabled(event),
+        gamification_enabled=gamification_enabled,
         sessions_attended=sessions_attended,
         total_sessions=total_sessions,
         sessions_required=event.min_sessions_required,
