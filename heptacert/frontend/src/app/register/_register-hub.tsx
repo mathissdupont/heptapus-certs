@@ -105,7 +105,7 @@ export default function RegisterHub() {
             createAccount: "Create Account",
             googleRegister: "Continue with Google",
             name: "Full Name",
-            namePlaceholder: "e.g. Ayse Yilmaz",
+            namePlaceholder: "e.g. Ayşe Yılmaz",
             email: "Email Address",
             password: "Password",
             confirmPassword: "Confirm Password",

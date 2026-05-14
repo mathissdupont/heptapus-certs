@@ -391,17 +391,17 @@ export default function SMTPConfigurationPage() {
         </div>
 
         <aside className="card h-fit space-y-4 p-5">
-          <h2 className="text-sm font-bold text-surface-800">Kaydedilen SMTP Hesaplari</h2>
+          <h2 className="text-sm font-bold text-surface-800">Kaydedilen SMTP Hesapları</h2>
           {savedAccounts.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-surface-200 bg-surface-50 p-4 text-sm text-surface-500">
-              Henuz kayitli SMTP hesabi yok.
+              Henüz kayıtlı SMTP hesabı yok.
             </p>
           ) : (
             <div className="space-y-3">
               {savedAccounts.map((account) => (
                 <div key={account.id} className="rounded-2xl border border-surface-200 bg-white p-4">
                   <div className="mb-2 flex items-center justify-between gap-2">
-                    <p className="truncate text-sm font-semibold text-surface-800">{account.from_name || account.from_email || "SMTP Hesabi"}</p>
+                    <p className="truncate text-sm font-semibold text-surface-800">{account.from_name || account.from_email || "SMTP Hesabı"}</p>
                     <span
                       className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                         account.smtp_enabled ? "bg-emerald-50 text-emerald-700" : "bg-surface-100 text-surface-500"
@@ -413,10 +413,10 @@ export default function SMTPConfigurationPage() {
                   <div className="space-y-1 text-xs text-surface-600">
                     <p>Host: {account.smtp_host || "-"}</p>
                     <p>Port/TLS: {account.smtp_port || "-"} / {account.smtp_use_tls ? "On" : "Off"}</p>
-                    <p>Kullanici: {account.smtp_user || "-"}</p>
-                    <p>Gonderici: {account.from_email || "-"}</p>
-                    <p>Sifre: {account.has_password ? "Kayitli (sifreli)" : "Kayitli degil"}</p>
-                    <p>Guncellendi: {new Date(account.updated_at).toLocaleString()}</p>
+                    <p>Kullanıcı: {account.smtp_user || "-"}</p>
+                    <p>Gönderici: {account.from_email || "-"}</p>
+                    <p>Şifre: {account.has_password ? "Kayıtlı (şifreli)" : "Kayıtlı değil"}</p>
+                    <p>Güncellendi: {new Date(account.updated_at).toLocaleString()}</p>
                   </div>
                 </div>
               ))}

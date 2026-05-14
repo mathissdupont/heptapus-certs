@@ -329,7 +329,7 @@ export default function DashboardPage() {
                 <div>
                   <h3 className="font-bold text-emerald-900">{copy.activeRate}</h3>
                   <p className="mt-1 text-sm leading-6 text-emerald-800">
-                    {lang === "tr" ? "Sertifika sagligi simdilik temiz gorunuyor." : "Certificate health looks clean for now."}
+                    {lang === "tr" ? "Sertifika sağlığı şimdilik temiz görünüyor." : "Certificate health looks clean for now."}
                   </p>
                 </div>
               </div>

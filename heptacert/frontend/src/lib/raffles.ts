@@ -7,7 +7,7 @@ export type RaffleRound = {
 };
 
 export function formatRaffleDate(value?: string | null) {
-  if (!value) return "Henuz cekilmedi";
+  if (!value) return "Henüz çekilmedi";
   return new Date(value).toLocaleString("tr-TR", {
     year: "numeric",
     month: "short",
@@ -20,7 +20,7 @@ export function formatRaffleDate(value?: string | null) {
 export function getRaffleStatusMeta(status: string) {
   if (status === "drawn") {
     return {
-      label: "Kazananlar cekildi",
+      label: "Kazananlar çekildi",
       className: "border-emerald-200 bg-emerald-50 text-emerald-700",
     };
   }

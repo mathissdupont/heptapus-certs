@@ -57,7 +57,7 @@ export default function SuperadminSubscriptionsPage() {
   const copy = lang === "tr"
     ? {
         title: "Abonelikler",
-        subtitle: "Admin veya normal platform kullanicilarina manuel premium plan tanimlayin, sureleri takip edin ve aktif abonelikleri denetleyin",
+        subtitle: "Admin veya normal platform kullanıcılarına manuel premium plan tanımlayın, süreleri takip edin ve aktif abonelikleri denetleyin",
         loadFailed: "Abonelikler yüklenemedi",
         grantFailed: "Abonelik verilemedi",
         grantSuccess: "Abonelik verildi",
@@ -70,8 +70,8 @@ export default function SuperadminSubscriptionsPage() {
         grantTitle: "Manuel abonelik ver",
         accountType: "Hesap tipi",
         adminType: "Admin",
-        memberType: "Normal kullanici",
-        email: "Kullanici e-postasi",
+        memberType: "Normal kullanıcı",
+        email: "Kullanıcı e-postası",
         plan: "Plan",
         days: "Gün",
         grant: "Ver",

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
   AlertCircle,
   CheckCircle2,
@@ -237,7 +237,6 @@ function createRegistrationField(): RegistrationField {
 
 export default function EventSettingsPage() {
   const params = useParams();
-  const searchParams = useSearchParams();
   const eventId = params.id as string;
   const toast = useToast();
   const { lang } = useI18n();
@@ -273,7 +272,7 @@ export default function EventSettingsPage() {
         registrationQuotaHint: "Belirli sayıda kişi kaydolduktan sonra otomatik kayıt sayfası kapatılır. Örn: 500 kişi dolduktan sonra kapatsın.",
         registrationQuotaPlaceholder: "Örn. 300",
         verificationToggle: "Katılımcılar kayıt olduktan sonra e-posta doğrulaması zorunlu olsun",
-        verificationHint: "Kapalıysa: Katılımcı kayıt olur olmaz direkt aktif sayılır, QR check-in'de kullanabilir. Açık ise: E-posta doğrulama yapmadan QR scanbiliriz ama check-in veya sertifika almadan önce e-postasını onaylanması gerekir.",
+        verificationHint: "Kapalıysa: Katılımcı kayıt olur olmaz direkt aktif sayılır ve QR check-in akışında kullanılabilir. Açık ise: Check-in veya sertifika almadan önce e-postasını doğrulaması gerekir.",
         addField: "Alan ekle",
         emptyFields: "Henüz özel kayıt alanı eklenmedi.",
         fieldLabel: "Alan etiketi",
@@ -489,7 +488,10 @@ export default function EventSettingsPage() {
   );
 
   useEffect(() => {
-    const bridgeToken = searchParams.get("admin_token");
+    const bridgeToken =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("admin_token")
+        : null;
     if (bridgeToken) {
       setToken(bridgeToken);
       if (typeof window !== "undefined") {
@@ -499,7 +501,7 @@ export default function EventSettingsPage() {
       }
     }
     setAuthBridgeReady(true);
-  }, [searchParams]);
+  }, []);
 
   useEffect(() => {
     if (!authBridgeReady) return;
@@ -610,10 +612,10 @@ export default function EventSettingsPage() {
       if (data?.authorization_url) {
         window.location.href = data.authorization_url;
       } else {
-        throw new Error(lang === "tr" ? "Google yetkilendirme adresi alinamadi." : "Could not get Google authorization URL.");
+        throw new Error(lang === "tr" ? "Google yetkilendirme adresi alınamadı." : "Could not get Google authorization URL.");
       }
     } catch (err: any) {
-      const message = err?.message || (lang === "tr" ? "Google Sheets baglantisi baslatilamadi." : "Google Sheets connection could not be started.");
+      const message = err?.message || (lang === "tr" ? "Google Sheets bağlantısı başlatılamadı." : "Google Sheets connection could not be started.");
       setError(message);
       toast.error(message);
     } finally {
@@ -627,9 +629,9 @@ export default function EventSettingsPage() {
     try {
       const res = await apiFetch(`/admin/events/${eventId}/sheets/connect`, { method: "POST" });
       setSheetsStatus(await res.json());
-      toast.success(lang === "tr" ? "Google Sheet olusturuldu ve kayitlar aktarildi." : "Google Sheet created and registrations synced.");
+      toast.success(lang === "tr" ? "Google Sheet oluşturuldu ve kayıtlar aktarıldı." : "Google Sheet created and registrations synced.");
     } catch (err: any) {
-      const message = err?.message || (lang === "tr" ? "Google Sheet olusturulamadi." : "Google Sheet could not be created.");
+      const message = err?.message || (lang === "tr" ? "Google Sheet oluşturulamadı." : "Google Sheet could not be created.");
       setError(message);
       toast.error(message);
     } finally {
@@ -643,9 +645,9 @@ export default function EventSettingsPage() {
     try {
       const res = await apiFetch(`/admin/events/${eventId}/sheets/sync`, { method: "POST" });
       setSheetsStatus(await res.json());
-      toast.success(lang === "tr" ? "Google Sheet guncellendi." : "Google Sheet synced.");
+      toast.success(lang === "tr" ? "Google Sheet güncellendi." : "Google Sheet synced.");
     } catch (err: any) {
-      const message = err?.message || (lang === "tr" ? "Google Sheet guncellenemedi." : "Google Sheet could not be synced.");
+      const message = err?.message || (lang === "tr" ? "Google Sheet güncellenemedi." : "Google Sheet could not be synced.");
       setError(message);
       toast.error(message);
     } finally {
@@ -659,9 +661,9 @@ export default function EventSettingsPage() {
     try {
       const res = await apiFetch(`/admin/events/${eventId}/sheets`, { method: "DELETE" });
       setSheetsStatus(await res.json());
-      toast.success(lang === "tr" ? "Google Sheet baglantisi kapatildi." : "Google Sheet connection disabled.");
+      toast.success(lang === "tr" ? "Google Sheet bağlantısı kapatıldı." : "Google Sheet connection disabled.");
     } catch (err: any) {
-      const message = err?.message || (lang === "tr" ? "Baglanti kapatilamadi." : "Connection could not be disabled.");
+      const message = err?.message || (lang === "tr" ? "Bağlantı kapatılamadı." : "Connection could not be disabled.");
       setError(message);
       toast.error(message);
     } finally {
@@ -1381,7 +1383,7 @@ export default function EventSettingsPage() {
                     </h3>
                     <p className="mt-1 max-w-2xl text-sm leading-6 text-surface-600">
                       {lang === "tr"
-                        ? "Bu etkinlikteki kayitlar Google E-Tablolar'a otomatik akar. Mevcut kayitlari tek seferde senkronlayabilir, yeni kayitlari da tabloya anlik ekletebilirsiniz."
+                        ? "Bu etkinlikteki kayıtlar Google E-Tablolar'a otomatik akar. Mevcut kayıtları tek seferde senkronlayabilir, yeni kayıtları da tabloya anlık ekletebilirsiniz."
                         : "Registrations for this event can flow into Google Sheets automatically. Existing attendees can be synced once, and new registrations are appended as they arrive."}
                     </p>
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-surface-500">
@@ -1395,7 +1397,7 @@ export default function EventSettingsPage() {
                           {sheetsStatus.google_email}
                         </span>
                       ) : (
-                        <span>{lang === "tr" ? "Google hesabi bagli degil" : "No Google account connected"}</span>
+                        <span>{lang === "tr" ? "Google hesabı bağlı değil" : "No Google account connected"}</span>
                       )}
                       {sheetsStatus?.last_synced_at && (
                         <span>
@@ -1411,7 +1413,7 @@ export default function EventSettingsPage() {
                   {!sheetsStatus?.google_configured ? (
                     <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
                       {lang === "tr"
-                        ? "Google OAuth ayarlari .env icinde eksik."
+                        ? "Google OAuth ayarları .env içinde eksik."
                         : "Google OAuth settings are missing in .env."}
                     </div>
                   ) : !sheetsStatus?.google_connected ? (
@@ -1433,7 +1435,7 @@ export default function EventSettingsPage() {
                         className="btn-secondary inline-flex items-center gap-2"
                       >
                         <ExternalLink className="h-4 w-4" />
-                        {lang === "tr" ? "Sheet'i ac" : "Open Sheet"}
+                        {lang === "tr" ? "Sheet'i aç" : "Open Sheet"}
                       </a>
                       <button
                         type="button"
@@ -1462,7 +1464,7 @@ export default function EventSettingsPage() {
                       className="btn-primary inline-flex items-center gap-2 disabled:opacity-60"
                     >
                       {sheetsAction === "connect" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
-                      {lang === "tr" ? "Sheet olustur ve bagla" : "Create and connect Sheet"}
+                      {lang === "tr" ? "Sheet oluştur ve bağla" : "Create and connect Sheet"}
                     </button>
                   )}
                 </div>

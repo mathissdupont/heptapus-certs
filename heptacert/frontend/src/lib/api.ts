@@ -129,7 +129,7 @@ async function requestApi(
   }
 
   if (!res.ok) {
-    let detail = `Istek basarisiz (${res.status})`;
+    let detail = `İstek başarısız (${res.status})`;
     try {
       const j = await res.json();
       detail = formatApiDetail(j?.detail) || formatApiDetail(j) || detail;
@@ -1382,7 +1382,7 @@ export async function submitBuiltinSurvey(
 
   if (!res.ok) {
     const j = await res.json().catch(() => ({}));
-    throw new Error(j?.detail || "Anket baglantisi dogrulanamadi");
+    throw new Error(j?.detail || "Anket bağlantısı doğrulanamadı");
   }
   return res.json();
 }
@@ -1424,7 +1424,7 @@ export async function getPublicParticipantStatus(
     { cache: "no-store" },
   );
   if (!res.ok) {
-    let detail = `Istek basarisiz (${res.status})`;
+    let detail = `İstek başarısız (${res.status})`;
     try {
       const j = await res.json();
       detail = j?.detail || JSON.stringify(j);

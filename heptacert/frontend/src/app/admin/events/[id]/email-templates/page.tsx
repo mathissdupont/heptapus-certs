@@ -66,45 +66,45 @@ export default function EmailTemplatesPage() {
 
   const copy = lang === "tr"
     ? {
-        pageTitle: "Email Sablonlari",
-        pageSubtitle: "Sertifika, bilgilendirme ve kampanya akislarinda kullanilan sablonlari tek yerde yonetin.",
-        createTemplate: "Yeni sablon",
+        pageTitle: "Email Şablonları",
+        pageSubtitle: "Sertifika, bilgilendirme ve kampanya akışlarında kullanılan şablonları tek yerde yönetin.",
+        createTemplate: "Yeni şablon",
         settings: "Ayarlar",
         campaigns: "Kampanyalar",
-        customTab: "Ozel sablonlar",
-        systemTab: "Sistem sablonlari",
-        templatesCount: "Sablon",
-        subjectTr: "Turkce konu",
+        customTab: "Özel şablonlar",
+        systemTab: "Sistem şablonları",
+        templatesCount: "Şablon",
+        subjectTr: "Türkçe konu",
         subjectEn: "English subject",
-        preview: "Onizle",
-        edit: "Duzenle",
+        preview: "Önizle",
+        edit: "Düzenle",
         delete: "Sil",
         system: "Sistem",
-        emptyCustomTitle: "Henuz ozel sablon yok",
-        emptyCustomBody: "Ilk sablonunuzu olusturup kampanya ve bildirim akislarini standartlastirin.",
-        firstTemplate: "Ilk sablonu olustur",
-        emptySystemTitle: "Sistem sablonu bulunamadi",
-        emptySystemBody: "Varsayilan sablonlar yuklenemedi ya da henuz tanimli degil.",
-        editorTitleCreate: "Yeni sablon olustur",
-        editorTitleEdit: "Sablonu duzenle",
-        templateName: "Sablon adi",
-        templateNamePlaceholder: "Orn. Sertifika teslim",
-        bodyTitle: "Email icerigi (HTML)",
-        htmlHint: "Desteklenen degiskenler",
-        cancel: "Iptal",
+        emptyCustomTitle: "Henüz özel şablon yok",
+        emptyCustomBody: "İlk şablonunuzu oluşturup kampanya ve bildirim akışlarını standartlaştırın.",
+        firstTemplate: "İlk şablonu oluştur",
+        emptySystemTitle: "Sistem şablonu bulunamadı",
+        emptySystemBody: "Varsayılan şablonlar yüklenemedi ya da henüz tanımlı değil.",
+        editorTitleCreate: "Yeni şablon oluştur",
+        editorTitleEdit: "Şablonu düzenle",
+        templateName: "Şablon adı",
+        templateNamePlaceholder: "Örn. Sertifika teslim",
+        bodyTitle: "Email içeriği (HTML)",
+        htmlHint: "Desteklenen değişkenler",
+        cancel: "İptal",
         save: "Kaydet",
-        previewTitle: "Onizleme",
+        previewTitle: "Önizleme",
         subject: "Konu",
-        confirmDeleteTitle: "Sablonu sil",
-        confirmDeleteBody: "Bu sablonu silmek istediginize emin misiniz? Bu islem geri alinamaz.",
-        loadError: "Sablonlar yuklenemedi.",
-        requiredError: "Tum alanlar zorunludur.",
-        saveError: "Islem basarisiz oldu.",
-        deleteError: "Silme islemi basarisiz oldu.",
-        deleteSuccess: "Sablon silindi.",
-        saveSuccessCreate: "Sablon olusturuldu.",
-        saveSuccessEdit: "Sablon guncellendi.",
-        sampleName: "Ayse Yilmaz",
+        confirmDeleteTitle: "Şablonu sil",
+        confirmDeleteBody: "Bu şablonu silmek istediğinize emin misiniz? Bu işlem geri alınamaz.",
+        loadError: "Şablonlar yüklenemedi.",
+        requiredError: "Tüm alanlar zorunludur.",
+        saveError: "İşlem başarısız oldu.",
+        deleteError: "Silme işlemi başarısız oldu.",
+        deleteSuccess: "Şablon silindi.",
+        saveSuccessCreate: "Şablon oluşturuldu.",
+        saveSuccessEdit: "Şablon güncellendi.",
+        sampleName: "Ayşe Yılmaz",
         sampleEvent: "Hepta Summit 2026",
         sampleDate: "15 Nisan 2026",
       }
@@ -466,7 +466,7 @@ export default function EmailTemplatesPage() {
                         type="text"
                         value={form.subject_tr}
                         onChange={(e) => setForm({ ...form, subject_tr: e.target.value })}
-                        placeholder={lang === "tr" ? "Orn. Sertifikaniz hazir" : "e.g. Your certificate is ready"}
+                        placeholder={lang === "tr" ? "Örn. Sertifikanız hazır" : "e.g. Your certificate is ready"}
                         className="input-field"
                       />
                     </div>
@@ -540,7 +540,7 @@ export default function EmailTemplatesPage() {
                       onClick={() => setPreviewLang("tr")}
                       className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${previewLang === "tr" ? "bg-brand-600 text-white" : "bg-surface-100 text-surface-600 hover:bg-surface-200"}`}
                     >
-                      Turkce
+                      Türkçe
                     </button>
                     <button
                       onClick={() => setPreviewLang("en")}

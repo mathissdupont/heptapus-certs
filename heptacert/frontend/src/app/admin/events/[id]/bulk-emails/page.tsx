@@ -61,40 +61,40 @@ export default function BulkEmailsPage() {
   const copy = lang === "tr"
     ? {
         pageTitle: "Toplu E-posta Kampanyaları",
-        pageSubtitle: "Kampanya baslatma, ilerleme takibi ve hedef secimi artik daha net bir akista.",
+        pageSubtitle: "Kampanya başlatma, ilerleme takibi ve hedef seçimi artık daha net bir akışta.",
         newCampaign: "Yeni kampanya",
-        loadError: "Veri yukleme basarisiz.",
-        selectTemplate: "Lutfen bir email sablonu secin.",
-        createError: "Kampanya olusturma basarisiz.",
+        loadError: "Veri yükleme başarısız.",
+        selectTemplate: "Lütfen bir e-posta şablonu seçin.",
+        createError: "Kampanya oluşturma başarısız.",
         totalCampaigns: "Toplam kampanya",
         completed: "Tamamlanan",
-        sending: "Gonderiliyor",
+        sending: "Gönderiliyor",
         failed: "Sorunlu",
-        emptyTitle: "Henuz kampanya yok",
-        emptyBody: "Hazir sablonlardan birini secip katilimcilara toplu iletisim akislarini baslatabilirsiniz.",
-        firstCampaign: "Ilk kampanyayi olustur",
-        templateLabel: "Sablon",
+        emptyTitle: "Henüz kampanya yok",
+        emptyBody: "Hazır şablonlardan birini seçip katılımcılara toplu iletişim akışlarını başlatabilirsiniz.",
+        firstCampaign: "İlk kampanyayı oluştur",
+        templateLabel: "Şablon",
         subjectLabel: "Konu",
         recipientLabel: "Hedef grup",
-        successLabel: "Basarili",
-        failedLabel: "Basarisiz",
+        successLabel: "Başarılı",
+        failedLabel: "Başarısız",
         targetLabel: "Hedef",
-        createdAt: "Olusturulma",
-        startCampaign: "Kampanyayi baslat",
-        creating: "Olusturuluyor...",
+        createdAt: "Oluşturulma",
+        startCampaign: "Kampanyayı başlat",
+        creating: "Oluşturuluyor...",
         infoTitle: "Bilgi",
-        infoBody: "Kampanya olusturulduktan sonra arka planda islenir. Gonderim durumu otomatik olarak guncellenir.",
-        attendeesTitle: "Tum katilimcilar",
-        attendeesBody: "Etkinlige kayitli ve uygun tum kisiler",
-        certifiedTitle: "Sertifikalandirilanlar",
-        certifiedBody: "Yalnizca sertifikasi hazir olan kisiler",
-        chooseTemplate: "Sablon secin",
+        infoBody: "Kampanya oluşturulduktan sonra arka planda işlenir. Gönderim durumu otomatik olarak güncellenir.",
+        attendeesTitle: "Tüm katılımcılar",
+        attendeesBody: "Etkinliğe kayıtlı ve uygun tüm kişiler",
+        certifiedTitle: "Sertifikalandırılanlar",
+        certifiedBody: "Yalnızca sertifikası hazır olan kişiler",
+        chooseTemplate: "Şablon seçin",
         preview: "Detay",
-        progressSent: "gonderildi",
-        pending: "Sirada",
-        statusSending: "Gonderiliyor",
-        statusCompleted: "Tamamlandi",
-        statusFailed: "Basarisiz",
+        progressSent: "gönderildi",
+        pending: "Sırada",
+        statusSending: "Gönderiliyor",
+        statusCompleted: "Tamamlandı",
+        statusFailed: "Başarısız",
       }
     : {
         pageTitle: "Bulk Email Campaigns",
@@ -412,7 +412,7 @@ export default function BulkEmailsPage() {
                 </div>
               ) : (
                 <div className="mt-5 rounded-2xl border border-dashed border-surface-300 bg-surface-50 px-5 py-10 text-center text-sm text-surface-500">
-                  {lang === "tr" ? "Detaylari gormek icin bir kampanya secin." : "Pick a campaign to see its details."}
+                  {lang === "tr" ? "Detayları görmek için bir kampanya seçin." : "Pick a campaign to see its details."}
                 </div>
               )}
             </div>
@@ -498,7 +498,7 @@ export default function BulkEmailsPage() {
                 <div className="border-t border-surface-100 px-5 py-4 sm:px-6">
                   <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
                     <button onClick={() => setShowModal(false)} className="btn-secondary justify-center">
-                      {lang === "tr" ? "Iptal" : "Cancel"}
+                      {lang === "tr" ? "İptal" : "Cancel"}
                     </button>
                     <button
                       onClick={handleCreateCampaign}

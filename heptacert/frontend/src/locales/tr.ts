@@ -395,10 +395,10 @@
   profile_member_plan_features: "Özelikler",
   
   // ── Language Switcher ───────────────────────────────────────────────────────
-  lang_switch_to_english: "Switch to English",
+  lang_switch_to_english: "İngilizce'ye geç",
   lang_switch_to_turkish: "Türkçe'ye geç",
-  lang_aria_switch_to_english: "Switch to English",
-  lang_aria_switch_to_turkish: "Switch to Turkish",
+  lang_aria_switch_to_english: "İngilizce'ye geç",
+  lang_aria_switch_to_turkish: "Türkçe'ye geç",
   lang_current_english: "English",
   lang_current_turkish: "Türkçe",
   

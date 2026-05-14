@@ -112,38 +112,38 @@ export default function CertificatesPage({ params }: { params: { id: string } })
   const copy = lang === "tr"
     ? {
         pageTitle: "Sertifikalar",
-        pageSubtitle: "Basim, filtreleme, durum guncelleme ve disa aktarim artik tek akista.",
+        pageSubtitle: "Basım, filtreleme, durum güncelleme ve dışa aktarım artık tek akışta.",
         exportCsv: "CSV indir",
         exportExcel: "Excel indir",
-        visibleResults: "Gorunen sonuc",
-        selected: "Secili",
+        visibleResults: "Görünen sonuç",
+        selected: "Seçili",
         currentPage: "Sayfa",
-        issueTitle: "Hizli manuel basim",
-        issueBody: "Tek bir isimle hizlica sertifika uretin; telefon ekraninda bile kolayca tamamlanir.",
-        recipientPlaceholder: "Orn. Ayse Yilmaz",
-        issueAction: "Sertifika olustur",
+        issueTitle: "Hızlı manuel basım",
+        issueBody: "Tek bir isimle hızlıca sertifika üretin; telefon ekranında bile kolayca tamamlanır.",
+        recipientPlaceholder: "Örn. Ayşe Yılmaz",
+        issueAction: "Sertifika oluştur",
         filterTitle: "Ara ve filtrele",
-        filterBody: "Listeyi isim veya durum ile daraltin, sonra toplu islem uygulayin.",
+        filterBody: "Listeyi isim veya durum ile daraltın, sonra toplu işlem uygulayın.",
         refresh: "Yenile",
-        selectionTitle: "Toplu islem hazir",
+        selectionTitle: "Toplu işlem hazır",
         clearSelection: "Temizle",
-        selectedCount: (count: number) => `${count} sertifika secildi`,
+        selectedCount: (count: number) => `${count} sertifika seçildi`,
         locked: "PDF yok",
-        currentView: "Mevcut gorunum",
-        verifyAction: "Dogrula",
-        downloadAction: "Indir",
+        currentView: "Mevcut görünüm",
+        verifyAction: "Doğrula",
+        downloadAction: "İndir",
         activeAction: "Aktif",
-        revokeAction: "Iptal",
-        expireAction: "Sure Bitir",
+        revokeAction: "İptal",
+        expireAction: "Süre Bitir",
         deleteAction: "Sil",
-        deleteSingleTitle: "Sertifikayi sil",
-        deleteSingleBody: "Bu sertifikayi sistemden kalici olarak silmek istediginize emin misiniz?",
+        deleteSingleTitle: "Sertifikayı sil",
+        deleteSingleBody: "Bu sertifikayı sistemden kalıcı olarak silmek istediğinize emin misiniz?",
         bulkDeleteTitle: "Toplu sil",
         bulkRevokeTitle: "Toplu iptal",
-        bulkExpireTitle: "Toplu sure bitir",
-        bulkDeleteBody: (count: number) => `Secili ${count} sertifikayi kalici olarak silmek istediginize emin misiniz?`,
-        bulkRevokeBody: (count: number) => `Secili ${count} sertifikayi iptal etmek istediginize emin misiniz?`,
-        bulkExpireBody: (count: number) => `Secili ${count} sertifikayi suresi dolmus olarak isaretlemek istediginize emin misiniz?`,
+        bulkExpireTitle: "Toplu süre bitir",
+        bulkDeleteBody: (count: number) => `Seçili ${count} sertifikayı kalıcı olarak silmek istediğinize emin misiniz?`,
+        bulkRevokeBody: (count: number) => `Seçili ${count} sertifikayı iptal etmek istediğinize emin misiniz?`,
+        bulkExpireBody: (count: number) => `Seçili ${count} sertifikayı süresi dolmuş olarak işaretlemek istediğinize emin misiniz?`,
       }
     : {
         pageTitle: "Certificates",
@@ -207,7 +207,7 @@ export default function CertificatesPage({ params }: { params: { id: string } })
         if (ev?.name) setEventName(ev.name);
       }
     } catch (e: any) {
-      setErr(e?.message || "Sertifika listesi cekilemedi.");
+      setErr(e?.message || "Sertifika listesi çekilemedi.");
     } finally {
       setLoading(false);
     }
@@ -229,7 +229,7 @@ export default function CertificatesPage({ params }: { params: { id: string } })
       await load();
     } catch (e: any) {
       toast.error(e?.message || "Durum güncellenemedi.");
-      setErr(e?.message || "Durum guncellenemedi.");
+      setErr(e?.message || "Durum güncellenemedi.");
     }
   }
 
@@ -244,7 +244,7 @@ export default function CertificatesPage({ params }: { params: { id: string } })
       await load();
     } catch (e: any) {
       toast.error(e?.message || "Silme işlemi başarısız.");
-      setErr(e?.message || "Silme islemi basarisiz.");
+      setErr(e?.message || "Silme işlemi başarısız.");
     } finally {
       setDeleteLoading(false);
     }
@@ -265,7 +265,7 @@ export default function CertificatesPage({ params }: { params: { id: string } })
       await load();
     } catch (e: any) {
       toast.error(e?.message || "Sertifika basım işlemi başarısız.");
-      setErr(e?.message || "Sertifika basim islemi basarisiz.");
+      setErr(e?.message || "Sertifika basım işlemi başarısız.");
     } finally {
       setIssuing(false);
     }

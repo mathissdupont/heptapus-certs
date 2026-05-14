@@ -763,7 +763,7 @@ export default function EventRafflesPage() {
                                         }
                                         className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                                       >
-                                        +{hiddenEligibleCount} katilimci daha goster
+                                        +{hiddenEligibleCount} katılımcı daha göster
                                       </button>
                                     )}
                                   </div>

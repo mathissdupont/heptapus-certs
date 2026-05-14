@@ -403,7 +403,7 @@ export const en: Record<TranslationKey, string> = {
   lang_aria_switch_to_english: "Switch to English",
   lang_aria_switch_to_turkish: "Switch to Turkish",
   lang_current_english: "English",
-  lang_current_turkish: "Turkish",
+  lang_current_turkish: "Türkçe",
 
   // ── Home Page ───────────────────────────────────────────────────────────────
   home_badge_whitelabel: "Enterprise Certificate Infrastructure",
