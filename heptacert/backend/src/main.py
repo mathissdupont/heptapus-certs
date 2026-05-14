@@ -4030,6 +4030,7 @@ _AUDIT_SKIP_PREFIXES = (
     "/api/auth/", "/api/billing/webhook/", "/api/files/",
     "/api/verify/", "/api/pricing/", "/api/stats", "/api/billing/status",
     "/api/waitlist",
+    "/api/admin/google/sheets/callback",
     "/docs", "/openapi", "/redoc",
 )
 @app.middleware("http")
@@ -7545,7 +7546,12 @@ async def google_sheets_auth_callback(
     })
     separator = "&" if "?" in next_url else "?"
     redirect_target = f"{frontend_origin}{next_url}{separator}{bridge_params}"
-    logger.info("Google Sheets OAuth connected for user_id=%s; redirecting to %s", user_id, redirect_target)
+    logger.info(
+        "Google Sheets OAuth connected for user_id=%s; redirecting to frontend_origin=%s next=%s",
+        user_id,
+        frontend_origin,
+        next_url,
+    )
     return RedirectResponse(redirect_target)
 
 
