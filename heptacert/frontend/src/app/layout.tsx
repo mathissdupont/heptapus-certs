@@ -6,7 +6,7 @@ import { ThemeInitializer } from "./_theme-initializer";
 
 export const metadata: Metadata = {
   title: {
-    default: "HeptaCert | Digital Certificate Platform",
+    default: "HeptaCert",
     template: "%s | HeptaCert",
   },
   description: "Create, manage, and verify digital certificates for your events with Turkish and English support.",
