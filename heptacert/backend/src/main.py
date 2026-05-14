@@ -7292,7 +7292,12 @@ def _normalize_oauth_frontend_origin(origin: Optional[str]) -> str:
     value = (origin or "").strip().rstrip("/")
     parsed = urlparse(value)
     configured_origin = settings.frontend_base_url.rstrip("/")
-    allowed = {configured_origin}
+    public_origin = f"{urlparse(settings.public_base_url).scheme}://{urlparse(settings.public_base_url).netloc}".rstrip("/")
+    allowed = {configured_origin, public_origin}
+    for raw_origin in (settings.cors_origins or "").split(","):
+        cleaned = raw_origin.strip().rstrip("/")
+        if cleaned and cleaned != "*":
+            allowed.add(cleaned)
     for host in ("localhost", "127.0.0.1"):
         for port in ("3000", "3030"):
             allowed.add(f"http://{host}:{port}")
