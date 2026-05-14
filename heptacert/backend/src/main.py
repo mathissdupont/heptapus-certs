@@ -22,9 +22,11 @@ from html import escape
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Dict, Optional, List, Tuple
+from urllib.parse import urlencode, quote
 from pydantic import field_validator
 import uuid as _uuid_module
 import aiosmtplib
+import httpx
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from cryptography.fernet import Fernet, InvalidToken
 import pandas as pd
@@ -68,6 +70,17 @@ BIGINT_PK = BigInteger().with_variant(Integer, "sqlite")
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, selectinload
 
+from .event_features import (
+    FEATURE_DEFAULTS,
+    is_certificate_enabled,
+    is_checkin_enabled,
+    is_gamification_enabled,
+    is_public_registration_enabled,
+    is_raffles_enabled,
+    is_ticketing_enabled,
+    normalize_event_type,
+    normalize_feature_bool,
+)
 from .generator import TemplateConfig, render_certificate_pdf, render_certificate_png_watermarked, new_certificate_uuid
 
 logger = logging.getLogger("heptacert")
@@ -237,6 +250,8 @@ class Settings(BaseSettings):
     public_base_url: str = Field(default="http://localhost:8000", alias="PUBLIC_BASE_URL")
     frontend_base_url: str = Field(default="http://localhost:3000", alias="FRONTEND_BASE_URL")
     cors_origins: str = Field(default="*", alias="CORS_ORIGINS")
+    google_oauth_client_id: str = Field(default="", alias="GOOGLE_OAUTH_CLIENT_ID")
+    google_oauth_client_secret: str = Field(default="", alias="GOOGLE_OAUTH_CLIENT_SECRET")
 
     storage_mode: str = Field(default="local", alias="STORAGE_MODE")
     local_storage_dir: str = Field(default="/data", alias="LOCAL_STORAGE_DIR")
@@ -330,6 +345,7 @@ class User(Base):
     events: Mapped[List["Event"]] = relationship(back_populates="admin")
     transactions: Mapped[List["Transaction"]] = relationship(back_populates="user")
     email_config: Mapped[Optional["UserEmailConfig"]] = relationship(back_populates="user", uselist=False)
+    google_integration: Mapped[Optional["UserGoogleIntegration"]] = relationship(back_populates="user", uselist=False)
 
 
 class PublicMember(Base):
@@ -397,11 +413,21 @@ class Event(Base):
     # Email settings (migration 008)
     auto_email_on_cert: Mapped[bool] = mapped_column(Boolean, default=False)
     cert_email_template_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    # Generalized event feature flags (migration 038)
+    event_type: Mapped[str] = mapped_column(String(64), default="certificate_event")
+    certificate_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    checkin_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    ticketing_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    registration_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    raffles_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    gamification_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    requires_approval: Mapped[bool] = mapped_column(Boolean, default=False)
 
     admin: Mapped["User"] = relationship(back_populates="events")
     certificates: Mapped[List["Certificate"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
     sessions: Mapped[List["EventSession"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
     attendees: Mapped[List["Attendee"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
+    tickets: Mapped[List["EventTicket"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
     comments: Mapped[List["EventComment"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
     raffles: Mapped[List["EventRaffle"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
     template_snapshots: Mapped[List["EventTemplateSnapshot"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
@@ -458,6 +484,7 @@ class Transaction(Base):
 class SystemConfig(Base):
     __tablename__ = "system_configs"
     key: Mapped[str] = mapped_column(String(128), primary_key=True)
+    value: Mapped[dict] = mapped_column(JSONB, default=dict)
 
 
 class RegistrationOptionCapacity(Base):
@@ -1003,6 +1030,21 @@ class UserEmailConfig(Base):
     user: Mapped["User"] = relationship(back_populates="email_config")
 
 
+class UserGoogleIntegration(Base):
+    __tablename__ = "user_google_integrations"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True)
+    google_email: Mapped[Optional[str]] = mapped_column(String(320), nullable=True)
+    access_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    refresh_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    token_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    scopes: Mapped[list] = mapped_column(JSONB, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    user: Mapped["User"] = relationship(back_populates="google_integration")
+
+
 class CertificateTemplate(Base):
     __tablename__ = "certificate_templates"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -1188,9 +1230,33 @@ class Attendee(Base):
     event: Mapped["Event"] = relationship(back_populates="attendees")
     public_member: Mapped[Optional["PublicMember"]] = relationship(back_populates="attendees")
     attendance_records: Mapped[List["AttendanceRecord"]] = relationship(back_populates="attendee", cascade="all, delete-orphan")
+    tickets: Mapped[List["EventTicket"]] = relationship(back_populates="attendee", cascade="all, delete-orphan")
 
     __table_args__ = (
         UniqueConstraint("event_id", "email", name="uq_attendee_event_email"),
+    )
+
+
+class EventTicket(Base):
+    __tablename__ = "event_tickets"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id: Mapped[int] = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    attendee_id: Mapped[int] = mapped_column(Integer, ForeignKey("attendees.id", ondelete="CASCADE"), index=True)
+    token: Mapped[str] = mapped_column(String(96), unique=True, index=True)
+    qr_payload: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(24), default="issued", index=True)
+    issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    checked_in_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    event: Mapped["Event"] = relationship(back_populates="tickets")
+    attendee: Mapped["Attendee"] = relationship(back_populates="tickets")
+
+    __table_args__ = (
+        UniqueConstraint("event_id", "attendee_id", name="uq_event_ticket_event_attendee"),
+        Index("ix_event_tickets_event_status", "event_id", "status"),
     )
 
 
@@ -1475,6 +1541,21 @@ class EventRenameIn(BaseModel):
     registration_closed: Optional[bool] = Field(default=None)
     registration_quota: Optional[int] = Field(default=None, ge=1, le=1_000_000)
     registration_quota_enabled: Optional[bool] = Field(default=None)
+    event_type: Optional[str] = Field(default=None, max_length=64)
+    certificate_enabled: Optional[bool] = Field(default=None)
+    checkin_enabled: Optional[bool] = Field(default=None)
+    ticketing_enabled: Optional[bool] = Field(default=None)
+    registration_enabled: Optional[bool] = Field(default=None)
+    raffles_enabled: Optional[bool] = Field(default=None)
+    gamification_enabled: Optional[bool] = Field(default=None)
+    requires_approval: Optional[bool] = Field(default=None)
+    organizer_privacy_notice_enabled: Optional[bool] = Field(default=None)
+    organizer_privacy_notice_text: Optional[str] = Field(default=None, max_length=20000)
+    show_cross_border_transfer_notice: Optional[bool] = Field(default=None)
+    require_cross_border_transfer_consent: Optional[bool] = Field(default=None)
+    data_controller_name: Optional[str] = Field(default=None, max_length=255)
+    data_controller_contact_email: Optional[EmailStr] = Field(default=None)
+    data_retention_note: Optional[str] = Field(default=None, max_length=4000)
 
 
 class CreditCoinsIn(BaseModel):
@@ -1486,6 +1567,14 @@ class EventCreateIn(BaseModel):
     name: str = Field(min_length=2, max_length=200)
     template_image_url: str = Field(min_length=1, max_length=2000)
     config: Dict[str, Any] = Field(default_factory=dict)
+    event_type: Optional[str] = Field(default=None, max_length=64)
+    certificate_enabled: Optional[bool] = Field(default=None)
+    checkin_enabled: Optional[bool] = Field(default=None)
+    ticketing_enabled: Optional[bool] = Field(default=None)
+    registration_enabled: Optional[bool] = Field(default=None)
+    raffles_enabled: Optional[bool] = Field(default=None)
+    gamification_enabled: Optional[bool] = Field(default=None)
+    requires_approval: Optional[bool] = Field(default=None)
 
 
 class EventConfigIn(BaseModel):
@@ -1537,6 +1626,14 @@ class EventOut(BaseModel):
     require_email_verification: bool = True
     registration_quota: Optional[int] = None
     registration_quota_enabled: bool = False
+    event_type: str = "certificate_event"
+    certificate_enabled: bool = True
+    checkin_enabled: bool = True
+    ticketing_enabled: bool = False
+    registration_enabled: bool = True
+    raffles_enabled: bool = False
+    gamification_enabled: bool = False
+    requires_approval: bool = False
 
 
 class PublicMemberMeOut(BaseModel):
@@ -1608,8 +1705,51 @@ class PublicEventDetailOut(BaseModel):
     require_email_verification: bool = True
     registration_quota: Optional[int] = None
     registration_quota_enabled: bool = False
+    event_type: str = "certificate_event"
+    certificate_enabled: bool = True
+    checkin_enabled: bool = True
+    ticketing_enabled: bool = False
+    registration_enabled: bool = True
+    raffles_enabled: bool = False
+    gamification_enabled: bool = False
+    requires_approval: bool = False
     kvkk_consent_required: bool = True
     kvkk_consent_text: Optional[str] = None
+    organizer_privacy_notice_enabled: bool = False
+    organizer_privacy_notice_text: Optional[str] = None
+    show_cross_border_transfer_notice: bool = False
+    require_cross_border_transfer_consent: bool = False
+    data_controller_name: Optional[str] = None
+    data_controller_contact_email: Optional[str] = None
+    data_retention_note: Optional[str] = None
+
+
+class EventTicketOut(BaseModel):
+    id: int
+    event_id: int
+    attendee_id: int
+    attendee_name: str
+    attendee_email: str
+    token: str
+    qr_payload: str
+    status: str
+    issued_at: datetime
+    checked_in_at: Optional[datetime] = None
+
+
+class TicketCheckInIn(BaseModel):
+    token: str = Field(min_length=12, max_length=512)
+
+
+class PublicTicketOut(BaseModel):
+    event_id: int
+    event_public_id: str
+    event_name: str
+    attendee_name: str
+    attendee_email: str
+    status: str
+    issued_at: datetime
+    checked_in_at: Optional[datetime] = None
 
 
 class PublicMemberEventOut(BaseModel):
@@ -1799,6 +1939,9 @@ class VerifyOut(BaseModel):
     student_name: str
     event_name: str
     event_date: Optional[str] = None
+    organizer_name: Optional[str] = None
+    organizer_logo: Optional[str] = None
+    organizer_public_id: Optional[str] = None
     status: CertStatus
     pdf_url: Optional[str] = None
     png_url: Optional[str] = None
@@ -2305,6 +2448,30 @@ class SavedSMTPAccountOut(BaseModel):
     has_password: bool = False
 
 
+class GoogleSheetsStatusOut(BaseModel):
+    configured: bool
+    connected: bool
+    google_email: Optional[str] = None
+    scopes: List[str] = Field(default_factory=list)
+    missing_scopes: List[str] = Field(default_factory=list)
+
+
+class GoogleSheetsAuthStartOut(BaseModel):
+    authorization_url: str
+
+
+class EventSheetsStatusOut(BaseModel):
+    google_configured: bool
+    google_connected: bool
+    google_email: Optional[str] = None
+    spreadsheet_id: Optional[str] = None
+    spreadsheet_url: Optional[str] = None
+    sheet_name: Optional[str] = None
+    enabled: bool = False
+    last_synced_at: Optional[str] = None
+    missing_scopes: List[str] = Field(default_factory=list)
+
+
 class WebhookSubscriptionOut(BaseModel):
     id: int
     user_id: int
@@ -2606,10 +2773,15 @@ async def _ensure_user_email_config(db: AsyncSession, user_id: int) -> "UserEmai
             await db.refresh(config)
         return config
 
-    config = UserEmailConfig(user_id=user_id, smtp_enabled=False, smtp_use_tls=True)
-    db.add(config)
+    stmt = (
+        _pg_insert(UserEmailConfig)
+        .values(user_id=user_id, smtp_enabled=False, smtp_use_tls=True)
+        .on_conflict_do_nothing(index_elements=["user_id"])
+    )
+    await db.execute(stmt)
     await db.commit()
-    await db.refresh(config)
+    res = await db.execute(select(UserEmailConfig).where(UserEmailConfig.user_id == user_id))
+    config = res.scalar_one()
     return config
 
 
@@ -2640,6 +2812,295 @@ def _decrypt_smtp_password(stored: Optional[str]) -> Optional[str]:
     except InvalidToken:
         logger.error("SMTP password decryption failed due to invalid token")
         return None
+
+
+def _encrypt_secret(plaintext: Optional[str]) -> Optional[str]:
+    raw = (plaintext or "").strip()
+    if not raw:
+        return None
+    return _encrypt_smtp_password(raw)
+
+
+def _decrypt_secret(stored: Optional[str]) -> Optional[str]:
+    return _decrypt_smtp_password(stored)
+
+
+GOOGLE_SHEETS_SCOPES = [
+    "openid",
+    "email",
+    "profile",
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive.file",
+]
+
+
+def _google_sheets_redirect_uri() -> str:
+    return f"{settings.public_base_url.rstrip('/')}/api/admin/google/sheets/callback"
+
+
+def _normalize_google_scopes(raw_scopes: Any) -> List[str]:
+    if isinstance(raw_scopes, str):
+        return [scope for scope in raw_scopes.split() if scope]
+    if isinstance(raw_scopes, list):
+        return [str(scope) for scope in raw_scopes if str(scope).strip()]
+    return []
+
+
+def _google_sheets_missing_scopes(scopes: Any) -> List[str]:
+    present = set(_normalize_google_scopes(scopes))
+    required = set(GOOGLE_SHEETS_SCOPES)
+    return [scope for scope in GOOGLE_SHEETS_SCOPES if scope in required and scope not in present]
+
+
+def _get_event_google_sheets_config(event: "Event") -> Dict[str, Any]:
+    config = dict(event.config or {})
+    sheets_config = config.get("google_sheets")
+    return dict(sheets_config) if isinstance(sheets_config, dict) else {}
+
+
+def _set_event_google_sheets_config(event: "Event", sheets_config: Optional[Dict[str, Any]]) -> None:
+    next_config = dict(event.config or {})
+    if sheets_config:
+        next_config["google_sheets"] = sheets_config
+    else:
+        next_config.pop("google_sheets", None)
+    event.config = next_config
+
+
+async def _get_user_google_integration(db: AsyncSession, user_id: int) -> Optional["UserGoogleIntegration"]:
+    res = await db.execute(select(UserGoogleIntegration).where(UserGoogleIntegration.user_id == user_id))
+    return res.scalar_one_or_none()
+
+
+async def _google_exchange_code_for_tokens(code: str, redirect_uri: str) -> Dict[str, Any]:
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        token_res = await client.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "code": code,
+                "client_id": settings.google_oauth_client_id,
+                "client_secret": settings.google_oauth_client_secret,
+                "redirect_uri": redirect_uri,
+                "grant_type": "authorization_code",
+            },
+        )
+    if token_res.status_code >= 400:
+        raise HTTPException(status_code=400, detail="Google token exchange failed.")
+    return token_res.json()
+
+
+async def _google_get_profile(access_token: str) -> Dict[str, Any]:
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        userinfo_res = await client.get(
+            "https://openidconnect.googleapis.com/v1/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+    if userinfo_res.status_code >= 400:
+        raise HTTPException(status_code=400, detail="Google profile could not be read.")
+    return userinfo_res.json()
+
+
+async def _get_google_access_token_for_sheets(db: AsyncSession, user_id: int) -> str:
+    integration = await _get_user_google_integration(db, user_id)
+    if not integration or not integration.refresh_token:
+        raise HTTPException(status_code=409, detail="Google Sheets connection is not ready.")
+
+    now = datetime.now(timezone.utc)
+    expires_at = ensure_utc(integration.token_expires_at)
+    current_access_token = _decrypt_secret(integration.access_token)
+    if current_access_token and expires_at and expires_at > now + timedelta(seconds=60):
+        return current_access_token
+
+    refresh_token = _decrypt_secret(integration.refresh_token)
+    if not refresh_token:
+        raise HTTPException(status_code=409, detail="Google refresh token could not be read.")
+
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        token_res = await client.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "client_id": settings.google_oauth_client_id,
+                "client_secret": settings.google_oauth_client_secret,
+                "refresh_token": refresh_token,
+                "grant_type": "refresh_token",
+            },
+        )
+    if token_res.status_code >= 400:
+        raise HTTPException(status_code=409, detail="Google Sheets authorization has expired. Please connect again.")
+
+    token_data = token_res.json()
+    access_token = str(token_data.get("access_token") or "")
+    if not access_token:
+        raise HTTPException(status_code=409, detail="Google access token missing.")
+    integration.access_token = _encrypt_secret(access_token)
+    integration.token_expires_at = now + timedelta(seconds=int(token_data.get("expires_in") or 3600))
+    if token_data.get("scope"):
+        integration.scopes = _normalize_google_scopes(token_data.get("scope"))
+    db.add(integration)
+    await db.commit()
+    return access_token
+
+
+async def _google_json_request(
+    access_token: str,
+    method: str,
+    url: str,
+    *,
+    json_body: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        res = await client.request(
+            method,
+            url,
+            headers={"Authorization": f"Bearer {access_token}"},
+            json=json_body,
+        )
+    if res.status_code >= 400:
+        detail = "Google Sheets request failed."
+        try:
+            detail = res.json().get("error", {}).get("message") or detail
+        except Exception:
+            pass
+        raise HTTPException(status_code=502, detail=detail)
+    if not res.content:
+        return {}
+    return res.json()
+
+
+def _sheet_safe_value(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, (str, int, float, bool)):
+        return str(value)
+    if isinstance(value, list):
+        return ", ".join(_sheet_safe_value(item) for item in value)
+    return json.dumps(value, ensure_ascii=False)
+
+
+def _google_sheets_header_for_event(event: "Event") -> List[str]:
+    header = [
+        "registered_at",
+        "event_name",
+        "attendee_id",
+        "name",
+        "email",
+        "source",
+        "email_verified",
+    ]
+    for field in _get_event_registration_fields(event):
+        label = str(field.get("label") or field.get("id") or "").strip()
+        if label:
+            header.append(label)
+    return header
+
+
+def _google_sheets_row_for_attendee(event: "Event", attendee: "Attendee") -> List[str]:
+    answers = attendee.registration_answers or {}
+    row = [
+        attendee.registered_at.isoformat() if attendee.registered_at else "",
+        event.name,
+        str(attendee.id),
+        attendee.name,
+        attendee.email,
+        attendee.source,
+        "yes" if attendee.email_verified else "no",
+    ]
+    for field in _get_event_registration_fields(event):
+        field_id = str(field.get("id") or "")
+        row.append(_sheet_safe_value(answers.get(field_id)))
+    return row
+
+
+async def _write_event_attendees_to_google_sheet(
+    db: AsyncSession,
+    event: "Event",
+    *,
+    create_if_missing: bool = False,
+) -> Dict[str, Any]:
+    sheets_config = _get_event_google_sheets_config(event)
+    if not sheets_config.get("enabled") and not create_if_missing:
+        return sheets_config
+
+    access_token = await _get_google_access_token_for_sheets(db, event.admin_id)
+    sheet_name = str(sheets_config.get("sheet_name") or "Registrations")
+    spreadsheet_id = str(sheets_config.get("spreadsheet_id") or "")
+    spreadsheet_url = str(sheets_config.get("spreadsheet_url") or "")
+
+    if create_if_missing or not spreadsheet_id:
+        created = await _google_json_request(
+            access_token,
+            "POST",
+            "https://sheets.googleapis.com/v4/spreadsheets",
+            json_body={"properties": {"title": f"HeptaCert - {event.name} - Registrations"}},
+        )
+        spreadsheet_id = str(created.get("spreadsheetId") or "")
+        spreadsheet_url = str(created.get("spreadsheetUrl") or f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}")
+        sheet_name = "Sheet1"
+        if not spreadsheet_id:
+            raise HTTPException(status_code=502, detail="Google Sheet could not be created.")
+
+    attendees_res = await db.execute(
+        select(Attendee).where(Attendee.event_id == event.id).order_by(Attendee.id.asc())
+    )
+    attendees = attendees_res.scalars().all()
+    values = [_google_sheets_header_for_event(event)]
+    values.extend(_google_sheets_row_for_attendee(event, attendee) for attendee in attendees)
+
+    encoded_range = quote(f"{sheet_name}!A1", safe="")
+    await _google_json_request(
+        access_token,
+        "POST",
+        f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/{encoded_range}:clear",
+        json_body={},
+    )
+    await _google_json_request(
+        access_token,
+        "PUT",
+        f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/{encoded_range}?valueInputOption=USER_ENTERED",
+        json_body={"majorDimension": "ROWS", "values": values},
+    )
+
+    next_sheets_config = {
+        "enabled": True,
+        "spreadsheet_id": spreadsheet_id,
+        "spreadsheet_url": spreadsheet_url,
+        "sheet_name": sheet_name,
+        "header": values[0],
+        "last_synced_at": datetime.now(timezone.utc).isoformat(),
+    }
+    _set_event_google_sheets_config(event, next_sheets_config)
+    db.add(event)
+    await db.commit()
+    await db.refresh(event)
+    return next_sheets_config
+
+
+async def _append_attendee_to_google_sheet_if_enabled(db: AsyncSession, event: "Event", attendee: "Attendee") -> None:
+    sheets_config = _get_event_google_sheets_config(event)
+    if not sheets_config.get("enabled") or not sheets_config.get("spreadsheet_id"):
+        return
+    try:
+        access_token = await _get_google_access_token_for_sheets(db, event.admin_id)
+        sheet_name = str(sheets_config.get("sheet_name") or "Registrations")
+        spreadsheet_id = str(sheets_config.get("spreadsheet_id"))
+        encoded_range = quote(f"{sheet_name}!A1", safe="")
+        await _google_json_request(
+            access_token,
+            "POST",
+            f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/{encoded_range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",
+            json_body={"majorDimension": "ROWS", "values": [_google_sheets_row_for_attendee(event, attendee)]},
+        )
+    except Exception as exc:
+        logger.warning("Google Sheets attendee append failed for event_id=%s attendee_id=%s: %s", event.id, attendee.id, exc)
+
+
+async def _sync_google_sheet_if_enabled(db: AsyncSession, event: "Event") -> None:
+    if not _get_event_google_sheets_config(event).get("enabled"):
+        return
+    try:
+        await _write_event_attendees_to_google_sheet(db, event)
+    except Exception as exc:
+        logger.warning("Google Sheets event sync failed for event_id=%s: %s", event.id, exc)
 
 
 async def send_attendee_verification_email(*, attendee: "Attendee", event: "Event") -> None:
@@ -2765,16 +3226,18 @@ async def build_public_participant_status(
     )
     sessions_attended = int(sessions_attended_res.scalar_one() or 0)
 
-    badge_res = await db.execute(
-        select(ParticipantBadge)
-        .where(
-            ParticipantBadge.event_id == event.id,
-            ParticipantBadge.attendee_id == attendee.id,
+    badge_items: List[ParticipantBadgeOut] = []
+    if normalize_feature_bool(getattr(event, "gamification_enabled", None), default=FEATURE_DEFAULTS["gamification_enabled"]):
+        badge_res = await db.execute(
+            select(ParticipantBadge)
+            .where(
+                ParticipantBadge.event_id == event.id,
+                ParticipantBadge.attendee_id == attendee.id,
+            )
+            .order_by(ParticipantBadge.awarded_at.desc())
         )
-        .order_by(ParticipantBadge.awarded_at.desc())
-    )
-    badges = badge_res.scalars().all()
-    badge_items = await _build_participant_badge_items(db, event.id, badges)
+        badges = badge_res.scalars().all()
+        badge_items = await _build_participant_badge_items(db, event.id, badges)
 
     certs_res = await db.execute(
         select(Certificate)
@@ -2788,23 +3251,25 @@ async def build_public_participant_status(
     certificates = certs_res.scalars().all()
     latest_certificate = certificates[0] if certificates else None
 
-    raffle_res = await db.execute(
-        select(EventRaffle)
-        .where(EventRaffle.event_id == event.id)
-        .order_by(EventRaffle.created_at.desc())
-    )
-    raffles = raffle_res.scalars().all()
-    eligible_raffles = [
-        {
-            "id": raffle.id,
-            "title": raffle.title,
-            "prize_name": raffle.prize_name,
-            "status": raffle.status,
-            "min_sessions_required": raffle.min_sessions_required,
-        }
-        for raffle in raffles
-        if attendee.email_verified and sessions_attended >= raffle.min_sessions_required
-    ]
+    eligible_raffles: List[Dict[str, Any]] = []
+    if is_raffles_enabled(event):
+        raffle_res = await db.execute(
+            select(EventRaffle)
+            .where(EventRaffle.event_id == event.id)
+            .order_by(EventRaffle.created_at.desc())
+        )
+        raffles = raffle_res.scalars().all()
+        eligible_raffles = [
+            {
+                "id": raffle.id,
+                "title": raffle.title,
+                "prize_name": raffle.prize_name,
+                "status": raffle.status,
+                "min_sessions_required": raffle.min_sessions_required,
+            }
+            for raffle in raffles
+            if attendee.email_verified and sessions_attended >= raffle.min_sessions_required
+        ]
 
     certificate_ready = bool(
         attendee.can_download_cert
@@ -3123,7 +3588,7 @@ async def trigger_webhooks(
     """
     import hmac
     import hashlib
-    import aiohttp
+    import httpx
     
     # Get webhooks from database
     from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -3142,7 +3607,7 @@ async def trigger_webhooks(
         return
     
     # Send to each webhook
-    async with aiohttp.ClientSession() as session:
+    async with httpx.AsyncClient(timeout=10.0) as client:
         for webhook in webhooks:
             try:
                 # Create HMAC signature
@@ -3167,33 +3632,32 @@ async def trigger_webhooks(
                 if signature:
                     headers["X-Webhook-Signature"] = f"sha256={signature}"
                 
-                async with session.post(
+                resp = await client.post(
                     webhook.url,
                     json=payload,
                     headers=headers,
-                    timeout=aiohttp.ClientTimeout(total=10),
-                ) as resp:
-                    response_body = await resp.text() if resp.status < 300 else None
+                )
+                response_body = resp.text if resp.status_code < 300 else None
                     
-                    # Log the delivery
-                    await log_webhook_delivery(
-                        webhook_id=webhook.id,
-                        event_type=event_type,
-                        payload=payload,
-                        http_status=resp.status,
-                        error_message=response_body if resp.status >= 400 else None,
+                # Log the delivery
+                await log_webhook_delivery(
+                    webhook_id=webhook.id,
+                    event_type=event_type,
+                    payload=payload,
+                    http_status=resp.status_code,
+                    error_message=response_body if resp.status_code >= 400 else None,
+                )
+                    
+                if resp.status_code >= 400:
+                    logger.warning(
+                        "Webhook delivery failed for webhook %d: HTTP %d",
+                        webhook.id, resp.status_code
                     )
-                    
-                    if resp.status >= 400:
-                        logger.warning(
-                            "Webhook delivery failed for webhook %d: HTTP %d",
-                            webhook.id, resp.status
-                        )
-                    else:
-                        logger.info(
-                            "Webhook delivered successfully for webhook %d",
-                            webhook.id
-                        )
+                else:
+                    logger.info(
+                        "Webhook delivered successfully for webhook %d",
+                        webhook.id
+                    )
             
             except asyncio.TimeoutError:
                 await log_webhook_delivery(
@@ -4574,6 +5038,60 @@ def _get_event_kvkk_consent_text(event: Event) -> str:
     )
 
 
+def _is_event_organizer_privacy_notice_enabled(event: Event) -> bool:
+    config = event.config or {}
+    return bool(config.get("organizer_privacy_notice_enabled"))
+
+
+def _get_event_organizer_privacy_notice_text(event: Event) -> str:
+    config = event.config or {}
+    custom = str(config.get("organizer_privacy_notice_text") or "").strip()
+    if custom:
+        return custom
+    return (
+        "ORGANIZATOR AYDINLATMA METNI\n\n"
+        "Bu etkinlik kaydi kapsaminda paylastiginiz ad-soyad, iletisim bilgileri, TC kimlik no, pasaport no, "
+        "ogrenci no, dogum tarihi, adres ve benzeri etkinlige ozel veriler organizator tarafindan kayit, katilim "
+        "takibi, sertifika ve etkinlik yonetimi amaclariyla islenebilir. Bu alanlarin hangi hukuki sebebe dayandigi, "
+        "saklama suresi ve paylasim kapsamı organizatorun sorumlulugundadir."
+    )
+
+
+def _is_event_cross_border_transfer_notice_enabled(event: Event) -> bool:
+    return True
+
+
+def _is_event_cross_border_transfer_consent_required(event: Event) -> bool:
+    return True
+
+
+def _get_event_cross_border_transfer_notice_text(event: Event) -> str:
+    return (
+        "YURT DISI AKTARIM BILGILENDIRMESI\n\n"
+        "HeptaCert altyapisinda kullanilan bazi hizmetler yurt disinda bulunan sunucular uzerinden saglanabilir. "
+        "Bu nedenle kisisel verileriniz hizmetin sunulmasi, guvenlik, yedekleme ve sistem surekliligi amaclariyla "
+        "yurt disindaki altyapi saglayicilarinda islenebilir. Bu ifade taslaktir ve hukukcu kontrolu gerektirir."
+    )
+
+
+def _get_event_data_controller_name(event: Event) -> Optional[str]:
+    config = event.config or {}
+    value = str(config.get("data_controller_name") or "").strip()
+    return value or None
+
+
+def _get_event_data_controller_contact_email(event: Event) -> Optional[str]:
+    config = event.config or {}
+    value = str(config.get("data_controller_contact_email") or "").strip()
+    return value or None
+
+
+def _get_event_data_retention_note(event: Event) -> Optional[str]:
+    config = event.config or {}
+    value = str(config.get("data_retention_note") or "").strip()
+    return value or None
+
+
 def _is_event_registration_closed(event: Event) -> bool:
     config = event.config or {}
     if bool(config.get("registration_closed")):
@@ -4793,6 +5311,7 @@ async def _get_checkin_context_by_token(checkin_token: str, db: AsyncSession) ->
             Event.name.label("event_name"),
             Event.event_date,
             Event.min_sessions_required,
+            Event.checkin_enabled,
         )
         .join(Event, Event.id == EventSession.event_id)
         .where(EventSession.checkin_token == checkin_token)
@@ -4814,6 +5333,7 @@ async def _get_checkin_context_by_token(checkin_token: str, db: AsyncSession) ->
         "event_name": row.event_name,
         "event_date": row.event_date,
         "min_sessions_required": int(row.min_sessions_required or 0),
+        "checkin_enabled": is_checkin_enabled(row),
     }
     _checkin_context_cache[checkin_token] = (now_ts + CHECKIN_CONTEXT_TTL_SECONDS, ctx)
     return ctx
@@ -5148,6 +5668,9 @@ async def create_or_update_badge_rules(
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
         raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
 
+    if not is_gamification_enabled(event):
+        raise HTTPException(status_code=403, detail="Oyunlaştırma bu etkinlikte kapalı")
+
     # Check if rules already exist
     br_res = await db.execute(
         select(BadgeRule).where(BadgeRule.event_id == event_id)
@@ -5188,6 +5711,9 @@ async def get_badge_rules(
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
         raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
 
+    if not is_gamification_enabled(event):
+        raise HTTPException(status_code=403, detail="Oyunlaştırma bu etkinlikte kapalı")
+
     br_res = await db.execute(
         select(BadgeRule).where(BadgeRule.event_id == event_id)
     )
@@ -5211,6 +5737,9 @@ async def award_badge_manually(
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
         raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+
+    if not is_gamification_enabled(event):
+        raise HTTPException(status_code=403, detail="Oyunlaştırma bu etkinlikte kapalı")
 
     # Check attendee exists
     att_res = await db.execute(
@@ -5315,6 +5844,9 @@ async def list_badges(
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
         raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
 
+    if not is_gamification_enabled(event):
+        raise HTTPException(status_code=403, detail="Oyunlaştırma bu etkinlikte kapalı")
+
     pb_res = await db.execute(
         select(ParticipantBadge)
         .where(ParticipantBadge.event_id == event_id)
@@ -5355,6 +5887,9 @@ async def list_public_attendee_badges(
     event = await _resolve_public_event(db, event_id)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
+
+    if not is_gamification_enabled(event):
+        raise HTTPException(status_code=403, detail="Oyunlaştırma bu etkinlikte kapalı")
 
     attendee_res = await db.execute(
         select(Attendee).where(
@@ -5471,6 +6006,9 @@ async def trigger_automatic_badge_calculation(
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
         raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+
+    if not is_gamification_enabled(event):
+        raise HTTPException(status_code=403, detail="Oyunlaştırma bu etkinlikte kapalı")
 
     # Get badge rules
     br_res = await db.execute(
@@ -6741,6 +7279,243 @@ async def verify_email_endpoint(token: str = Query(...), db: AsyncSession = Depe
     user.verification_token = None
     await db.commit()
     return {"detail": "E-posta başarıyla doğrulandı. Giriş yapabilirsiniz."}
+
+
+def _normalize_oauth_next(next_url: Optional[str], fallback: str) -> str:
+    value = (next_url or "").strip()
+    if value.startswith("/") and not value.startswith("//"):
+        return value
+    return fallback
+
+
+def _google_oauth_redirect_uri() -> str:
+    return f"{settings.public_base_url.rstrip('/')}/api/auth/google/callback"
+
+
+@app.get("/api/auth/google/start")
+async def google_oauth_start(
+    mode: str = Query(default="member", pattern="^(member|admin)$"),
+    next: Optional[str] = Query(default=None),
+):
+    if not settings.google_oauth_client_id or not settings.google_oauth_client_secret:
+        raise HTTPException(status_code=503, detail="Google OAuth is not configured.")
+
+    fallback_next = "/admin/events" if mode == "admin" else "/events"
+    state = make_email_token({
+        "action": "google_oauth",
+        "mode": mode,
+        "next": _normalize_oauth_next(next, fallback_next),
+    })
+    params = {
+        "client_id": settings.google_oauth_client_id,
+        "redirect_uri": _google_oauth_redirect_uri(),
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state,
+        "access_type": "online",
+        "prompt": "select_account",
+    }
+    return RedirectResponse(f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}")
+
+
+@app.get("/api/auth/google/callback")
+async def google_oauth_callback(
+    code: str = Query(...),
+    state: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+):
+    if not settings.google_oauth_client_id or not settings.google_oauth_client_secret:
+        raise HTTPException(status_code=503, detail="Google OAuth is not configured.")
+    try:
+        state_payload = verify_email_token(state, max_age=600)
+    except Exception:
+        raise bad_request("Google OAuth state is invalid or expired.")
+    if state_payload.get("action") != "google_oauth":
+        raise bad_request("Invalid Google OAuth state.")
+
+    mode = "admin" if state_payload.get("mode") == "admin" else "member"
+    fallback_next = "/admin/events" if mode == "admin" else "/events"
+    next_url = _normalize_oauth_next(str(state_payload.get("next") or ""), fallback_next)
+
+    import httpx
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        token_res = await client.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "code": code,
+                "client_id": settings.google_oauth_client_id,
+                "client_secret": settings.google_oauth_client_secret,
+                "redirect_uri": _google_oauth_redirect_uri(),
+                "grant_type": "authorization_code",
+            },
+        )
+        if token_res.status_code >= 400:
+            raise HTTPException(status_code=400, detail="Google token exchange failed.")
+        access_token = token_res.json().get("access_token")
+        if not access_token:
+            raise HTTPException(status_code=400, detail="Google access token missing.")
+        userinfo_res = await client.get(
+            "https://openidconnect.googleapis.com/v1/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        if userinfo_res.status_code >= 400:
+            raise HTTPException(status_code=400, detail="Google profile could not be read.")
+        profile = userinfo_res.json()
+
+    email = str(profile.get("email") or "").strip().lower()
+    if not email or not profile.get("email_verified"):
+        raise HTTPException(status_code=400, detail="Google email must be verified.")
+    display_name = str(profile.get("name") or email.split("@")[0]).strip()[:120] or email
+    avatar_url = str(profile.get("picture") or "").strip() or None
+
+    if mode == "admin":
+        res = await db.execute(select(User).where(User.email == email))
+        user = res.scalar_one_or_none()
+        if not user:
+            user = User(
+                email=email,
+                password_hash=hash_password(secrets.token_urlsafe(32)),
+                role=Role.admin,
+                heptacoin_balance=100,
+                is_verified=True,
+                verification_token=None,
+            )
+            db.add(user)
+            await db.commit()
+            await db.refresh(user)
+        elif not user.is_verified:
+            user.is_verified = True
+            user.verification_token = None
+            await db.commit()
+        token = create_access_token(user_id=user.id, role=user.role)
+    else:
+        res = await db.execute(select(PublicMember).where(PublicMember.email == email))
+        member = res.scalar_one_or_none()
+        if not member:
+            member = PublicMember(
+                public_id=await _generate_public_member_public_id(db),
+                email=email,
+                display_name=display_name,
+                avatar_url=avatar_url,
+                password_hash=hash_password(secrets.token_urlsafe(32)),
+                is_verified=True,
+                verification_token=None,
+            )
+            db.add(member)
+            await db.commit()
+            await db.refresh(member)
+        else:
+            changed = False
+            if not member.is_verified:
+                member.is_verified = True
+                member.verification_token = None
+                changed = True
+            if avatar_url and not member.avatar_url:
+                member.avatar_url = avatar_url
+                changed = True
+            if changed:
+                await db.commit()
+        token = create_public_member_access_token(member_id=member.id)
+
+    params = urlencode({"mode": mode, "token": token, "next": next_url})
+    return RedirectResponse(f"{settings.frontend_base_url.rstrip('/')}/auth/google/callback?{params}")
+
+
+@app.get(
+    "/api/admin/google/sheets/status",
+    response_model=GoogleSheetsStatusOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def google_sheets_status(
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    configured = bool(settings.google_oauth_client_id and settings.google_oauth_client_secret)
+    integration = await _get_user_google_integration(db, me.id)
+    scopes = _normalize_google_scopes(integration.scopes if integration else [])
+    missing_scopes = _google_sheets_missing_scopes(scopes) if integration else GOOGLE_SHEETS_SCOPES
+    return GoogleSheetsStatusOut(
+        configured=configured,
+        connected=bool(configured and integration and integration.refresh_token and not missing_scopes),
+        google_email=integration.google_email if integration else None,
+        scopes=scopes,
+        missing_scopes=missing_scopes,
+    )
+
+
+@app.get(
+    "/api/admin/google/sheets/start",
+    response_model=GoogleSheetsAuthStartOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def google_sheets_auth_start(
+    next: Optional[str] = Query(default="/admin/events"),
+    me: CurrentUser = Depends(get_current_user),
+):
+    if not settings.google_oauth_client_id or not settings.google_oauth_client_secret:
+        raise HTTPException(status_code=503, detail="Google OAuth is not configured.")
+    state = make_email_token({
+        "action": "google_sheets_oauth",
+        "user_id": me.id,
+        "next": _normalize_oauth_next(next, "/admin/events"),
+    })
+    params = {
+        "client_id": settings.google_oauth_client_id,
+        "redirect_uri": _google_sheets_redirect_uri(),
+        "response_type": "code",
+        "scope": " ".join(GOOGLE_SHEETS_SCOPES),
+        "state": state,
+        "access_type": "offline",
+        "prompt": "consent select_account",
+        "include_granted_scopes": "true",
+    }
+    return GoogleSheetsAuthStartOut(
+        authorization_url=f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+    )
+
+
+@app.get("/api/admin/google/sheets/callback")
+async def google_sheets_auth_callback(
+    code: str = Query(...),
+    state: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+):
+    if not settings.google_oauth_client_id or not settings.google_oauth_client_secret:
+        raise HTTPException(status_code=503, detail="Google OAuth is not configured.")
+    try:
+        state_payload = verify_email_token(state, max_age=600)
+    except Exception:
+        raise bad_request("Google Sheets OAuth state is invalid or expired.")
+    if state_payload.get("action") != "google_sheets_oauth":
+        raise bad_request("Invalid Google Sheets OAuth state.")
+
+    user_id = int(state_payload.get("user_id") or 0)
+    if user_id <= 0:
+        raise bad_request("Invalid Google Sheets OAuth user.")
+
+    token_data = await _google_exchange_code_for_tokens(code, _google_sheets_redirect_uri())
+    access_token = str(token_data.get("access_token") or "")
+    if not access_token:
+        raise HTTPException(status_code=400, detail="Google access token missing.")
+    profile = await _google_get_profile(access_token)
+    email = str(profile.get("email") or "").strip().lower() or None
+
+    integration = await _get_user_google_integration(db, user_id)
+    if not integration:
+        integration = UserGoogleIntegration(user_id=user_id)
+        db.add(integration)
+    integration.google_email = email
+    integration.access_token = _encrypt_secret(access_token)
+    if token_data.get("refresh_token"):
+        integration.refresh_token = _encrypt_secret(str(token_data.get("refresh_token")))
+    integration.token_expires_at = datetime.now(timezone.utc) + timedelta(seconds=int(token_data.get("expires_in") or 3600))
+    integration.scopes = _normalize_google_scopes(token_data.get("scope"))
+    db.add(integration)
+    await db.commit()
+
+    next_url = _normalize_oauth_next(str(state_payload.get("next") or ""), "/admin/events")
+    separator = "&" if "?" in next_url else "?"
+    return RedirectResponse(f"{settings.frontend_base_url.rstrip('/')}{next_url}{separator}google_sheets=connected")
 
 
 @app.post("/api/public/auth/register", status_code=201)
@@ -8085,7 +8860,7 @@ async def get_delivery_logs(
 # Ã¢â€â‚¬Ã¢â€â‚¬ Admin: Webhook Subscriptions Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 class WebhookSubscriptionIn(BaseModel):
-    event_type: str  # email.sent, email.failed, email.bounced, email.opened
+    event_type: str  # email.sent, email.failed, email.bounced, email.opened, attendee.register
     url: str  # HTTPS endpoint where webhook will be POSTed
     secret: Optional[str] = None  # HMAC secret for verification
 
@@ -8101,9 +8876,9 @@ async def create_webhook_subscription(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Subscribe to email events (sent, failed, bounced, opened)."""
+    """Subscribe to email and registration events."""
     # Validate event type
-    valid_events = ["email.sent", "email.failed", "email.bounced", "email.opened"]
+    valid_events = ["email.sent", "email.failed", "email.bounced", "email.opened", "attendee.register"]
     if payload.event_type not in valid_events:
         raise HTTPException(
             status_code=400,
@@ -9582,6 +10357,14 @@ async def create_event(
         name=payload.name,
         template_image_url=payload.template_image_url or "placeholder",
         config=next_config,
+        event_type=normalize_event_type(payload.event_type),
+        certificate_enabled=normalize_feature_bool(payload.certificate_enabled, default=FEATURE_DEFAULTS["certificate_enabled"]),
+        checkin_enabled=normalize_feature_bool(payload.checkin_enabled, default=FEATURE_DEFAULTS["checkin_enabled"]),
+        ticketing_enabled=normalize_feature_bool(payload.ticketing_enabled, default=FEATURE_DEFAULTS["ticketing_enabled"]),
+        registration_enabled=normalize_feature_bool(payload.registration_enabled, default=FEATURE_DEFAULTS["registration_enabled"]),
+        raffles_enabled=normalize_feature_bool(payload.raffles_enabled, default=FEATURE_DEFAULTS["raffles_enabled"]),
+        gamification_enabled=normalize_feature_bool(payload.gamification_enabled, default=FEATURE_DEFAULTS["gamification_enabled"]),
+        requires_approval=normalize_feature_bool(payload.requires_approval, default=FEATURE_DEFAULTS["requires_approval"]),
     )
     db.add(ev)
     await db.commit()
@@ -9609,6 +10392,14 @@ def _event_to_out(ev: Event) -> EventOut:
         require_email_verification=_get_event_email_verification_required(ev),
         registration_quota=_get_event_registration_quota(ev),
         registration_quota_enabled=_is_event_registration_quota_enabled(ev),
+        event_type=normalize_event_type(getattr(ev, "event_type", None)),
+        certificate_enabled=normalize_feature_bool(getattr(ev, "certificate_enabled", None), default=FEATURE_DEFAULTS["certificate_enabled"]),
+        checkin_enabled=normalize_feature_bool(getattr(ev, "checkin_enabled", None), default=FEATURE_DEFAULTS["checkin_enabled"]),
+        ticketing_enabled=normalize_feature_bool(getattr(ev, "ticketing_enabled", None), default=FEATURE_DEFAULTS["ticketing_enabled"]),
+        registration_enabled=normalize_feature_bool(getattr(ev, "registration_enabled", None), default=FEATURE_DEFAULTS["registration_enabled"]),
+        raffles_enabled=normalize_feature_bool(getattr(ev, "raffles_enabled", None), default=FEATURE_DEFAULTS["raffles_enabled"]),
+        gamification_enabled=normalize_feature_bool(getattr(ev, "gamification_enabled", None), default=FEATURE_DEFAULTS["gamification_enabled"]),
+        requires_approval=normalize_feature_bool(getattr(ev, "requires_approval", None), default=FEATURE_DEFAULTS["requires_approval"]),
     )
 
 
@@ -9619,6 +10410,89 @@ async def get_event(event_id: int, me: CurrentUser = Depends(get_current_user), 
     if not ev:
         raise HTTPException(status_code=404, detail="Event not found")
     return _event_to_out(ev)
+
+
+async def _event_sheets_status_payload(db: AsyncSession, event: Event) -> EventSheetsStatusOut:
+    integration = await _get_user_google_integration(db, event.admin_id)
+    scopes = _normalize_google_scopes(integration.scopes if integration else [])
+    missing_scopes = _google_sheets_missing_scopes(scopes) if integration else GOOGLE_SHEETS_SCOPES
+    sheets_config = _get_event_google_sheets_config(event)
+    return EventSheetsStatusOut(
+        google_configured=bool(settings.google_oauth_client_id and settings.google_oauth_client_secret),
+        google_connected=bool(integration and integration.refresh_token and not missing_scopes),
+        google_email=integration.google_email if integration else None,
+        spreadsheet_id=sheets_config.get("spreadsheet_id"),
+        spreadsheet_url=sheets_config.get("spreadsheet_url"),
+        sheet_name=sheets_config.get("sheet_name"),
+        enabled=bool(sheets_config.get("enabled")),
+        last_synced_at=sheets_config.get("last_synced_at"),
+        missing_scopes=missing_scopes,
+    )
+
+
+@app.get(
+    "/api/admin/events/{event_id}/sheets",
+    response_model=EventSheetsStatusOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def get_event_sheets_status(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    event = await _get_event_for_admin(event_id, me, db)
+    return await _event_sheets_status_payload(db, event)
+
+
+@app.post(
+    "/api/admin/events/{event_id}/sheets/connect",
+    response_model=EventSheetsStatusOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def connect_event_google_sheet(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    event = await _get_event_for_admin(event_id, me, db)
+    await _write_event_attendees_to_google_sheet(db, event, create_if_missing=True)
+    return await _event_sheets_status_payload(db, event)
+
+
+@app.post(
+    "/api/admin/events/{event_id}/sheets/sync",
+    response_model=EventSheetsStatusOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def sync_event_google_sheet(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    event = await _get_event_for_admin(event_id, me, db)
+    sheets_config = _get_event_google_sheets_config(event)
+    if not sheets_config.get("enabled") or not sheets_config.get("spreadsheet_id"):
+        raise HTTPException(status_code=409, detail="No Google Sheet is connected for this event.")
+    await _write_event_attendees_to_google_sheet(db, event)
+    return await _event_sheets_status_payload(db, event)
+
+
+@app.delete(
+    "/api/admin/events/{event_id}/sheets",
+    response_model=EventSheetsStatusOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def disconnect_event_google_sheet(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    event = await _get_event_for_admin(event_id, me, db)
+    _set_event_google_sheets_config(event, None)
+    db.add(event)
+    await db.commit()
+    await db.refresh(event)
+    return await _event_sheets_status_payload(db, event)
 
 
 @app.patch("/api/admin/events/{event_id}", response_model=EventOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
@@ -9671,19 +10545,67 @@ async def rename_event(
     if "registration_quota_enabled" in payload.model_fields_set:
         next_config["registration_quota_enabled"] = bool(payload.registration_quota_enabled)
         config_dirty = True
-    if config_dirty:
-        ev.config = next_config
-        if "registration_fields" in payload.model_fields_set:
-            await _sync_registration_option_capacities(db, ev)
+    if "event_type" in payload.model_fields_set:
+        ev.event_type = normalize_event_type(payload.event_type)
+    if "certificate_enabled" in payload.model_fields_set:
+        ev.certificate_enabled = normalize_feature_bool(payload.certificate_enabled, default=FEATURE_DEFAULTS["certificate_enabled"])
+    if "checkin_enabled" in payload.model_fields_set:
+        ev.checkin_enabled = normalize_feature_bool(payload.checkin_enabled, default=FEATURE_DEFAULTS["checkin_enabled"])
+    if "ticketing_enabled" in payload.model_fields_set:
+        ev.ticketing_enabled = normalize_feature_bool(payload.ticketing_enabled, default=FEATURE_DEFAULTS["ticketing_enabled"])
+    if "registration_enabled" in payload.model_fields_set:
+        ev.registration_enabled = normalize_feature_bool(payload.registration_enabled, default=FEATURE_DEFAULTS["registration_enabled"])
+    if "raffles_enabled" in payload.model_fields_set:
+        ev.raffles_enabled = normalize_feature_bool(payload.raffles_enabled, default=FEATURE_DEFAULTS["raffles_enabled"])
+    if "gamification_enabled" in payload.model_fields_set:
+        ev.gamification_enabled = normalize_feature_bool(payload.gamification_enabled, default=FEATURE_DEFAULTS["gamification_enabled"])
+    if "requires_approval" in payload.model_fields_set:
+        ev.requires_approval = normalize_feature_bool(payload.requires_approval, default=FEATURE_DEFAULTS["requires_approval"])
+    if "organizer_privacy_notice_enabled" in payload.model_fields_set:
+        next_config["organizer_privacy_notice_enabled"] = bool(payload.organizer_privacy_notice_enabled)
+        config_dirty = True
+    if "organizer_privacy_notice_text" in payload.model_fields_set:
+        if payload.organizer_privacy_notice_text is None:
+            next_config.pop("organizer_privacy_notice_text", None)
+        else:
+            next_config["organizer_privacy_notice_text"] = payload.organizer_privacy_notice_text.strip()
+        config_dirty = True
+    if "show_cross_border_transfer_notice" in payload.model_fields_set:
+        next_config["show_cross_border_transfer_notice"] = bool(payload.show_cross_border_transfer_notice)
+        config_dirty = True
+    if "require_cross_border_transfer_consent" in payload.model_fields_set:
+        next_config["require_cross_border_transfer_consent"] = bool(payload.require_cross_border_transfer_consent)
+        config_dirty = True
+    if "data_controller_name" in payload.model_fields_set:
+        if payload.data_controller_name is None:
+            next_config.pop("data_controller_name", None)
+        else:
+            next_config["data_controller_name"] = payload.data_controller_name.strip()
+        config_dirty = True
+    if "data_controller_contact_email" in payload.model_fields_set:
+        if payload.data_controller_contact_email is None:
+            next_config.pop("data_controller_contact_email", None)
+        else:
+            next_config["data_controller_contact_email"] = str(payload.data_controller_contact_email).strip()
+        config_dirty = True
+    if "data_retention_note" in payload.model_fields_set:
+        if payload.data_retention_note is None:
+            next_config.pop("data_retention_note", None)
+        else:
+            next_config["data_retention_note"] = payload.data_retention_note.strip()
+        config_dirty = True
     if payload.registration_quota is not None and bool(next_config.get("registration_quota_enabled")):
         attendee_count_res = await db.execute(
             select(func.count()).where(Attendee.event_id == ev.id)
         )
         attendee_count = int(attendee_count_res.scalar_one() or 0)
         if attendee_count >= int(payload.registration_quota):
-            next_config = dict(ev.config or {})
             next_config["registration_closed"] = True
-            ev.config = next_config
+            config_dirty = True
+    if config_dirty:
+        ev.config = next_config
+        if "registration_fields" in payload.model_fields_set:
+            await _sync_registration_option_capacities(db, ev)
     if "auto_email_on_cert" in payload.model_fields_set:
         ev.auto_email_on_cert = bool(payload.auto_email_on_cert)
     if "cert_email_template_id" in payload.model_fields_set:
@@ -9735,6 +10657,7 @@ async def upload_template(
     ev = res.scalar_one_or_none()
     if not ev:
         raise HTTPException(status_code=404, detail="Event not found")
+    _ensure_certificate_feature_enabled(ev)
 
     if not file.content_type or not file.content_type.startswith("image/"):
         raise bad_request("Only image uploads allowed")
@@ -9865,6 +10788,7 @@ async def bulk_generate(
     ev = res.scalar_one_or_none()
     if not ev:
         raise HTTPException(status_code=404, detail="Event not found")
+    _ensure_certificate_feature_enabled(ev)
 
     if not ev.config:
         raise bad_request("Event config missing. Save coordinates in editor first.")
@@ -10100,6 +11024,14 @@ async def verify(uuid: str, request: Request, db: AsyncSession = Depends(get_db)
 
     cert, ev = row
 
+    owner_org_res = await db.execute(
+        select(Organization).where(Organization.user_id == ev.admin_id)
+    )
+    owner_org = owner_org_res.scalar_one_or_none()
+    organizer_name = owner_org.org_name if owner_org else None
+    organizer_logo = owner_org.brand_logo if owner_org else None
+    organizer_public_id = owner_org.public_id if owner_org else None
+
     now = datetime.now(timezone.utc)
     if cert.hosting_ends_at and cert.hosting_ends_at < now and cert.status == CertStatus.active:
         cert.status = CertStatus.expired
@@ -10119,6 +11051,8 @@ async def verify(uuid: str, request: Request, db: AsyncSession = Depends(get_db)
     ))
 
     # Ã¢â€â‚¬Ã¢â€â‚¬ View count Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+    if not ctx.get("checkin_enabled", True):
+        raise HTTPException(status_code=403, detail="Check-in is disabled for this event.")
     count_res = await db.execute(
         select(func.count()).select_from(
             select(VerificationHit).where(VerificationHit.cert_uuid == uuid).subquery()
@@ -10173,6 +11107,9 @@ async def verify(uuid: str, request: Request, db: AsyncSession = Depends(get_db)
         student_name=cert.student_name,
         event_name=ev.name,
         event_date=ev.event_date.isoformat() if ev.event_date else None,
+        organizer_name=organizer_name,
+        organizer_logo=organizer_logo,
+        organizer_public_id=organizer_public_id,
         status=cert.status,
         pdf_url=pdf_url,
         png_url=png_url,
@@ -10369,6 +11306,7 @@ async def list_certificates(
     ev = res_ev.scalar_one_or_none()
     if not ev:
         raise HTTPException(status_code=404, detail="Event not found")
+    _ensure_certificate_feature_enabled(ev)
 
     q = select(Certificate).where(
         Certificate.event_id == event_id,
@@ -10458,6 +11396,7 @@ async def issue_certificate(
     ev = res.scalar_one_or_none()
     if not ev:
         raise HTTPException(status_code=404, detail="Event not found")
+    _ensure_certificate_feature_enabled(ev)
 
     if not ev.config:
         raise bad_request("Event config missing. Save coordinates in editor first.")
@@ -11397,7 +12336,7 @@ async def get_audit_logs(
     limit: int = 50,
     db: AsyncSession = Depends(get_db),
 ):
-    if page < 1 or limit < 1 or limit > 200:
+    if page < 1 or limit < 1 or limit > 500:
         raise bad_request("Invalid page/limit")
     q = select(AuditLog)
     if user_id:
@@ -11451,6 +12390,7 @@ async def bulk_certificate_action(
     ev = res_ev.scalar_one_or_none()
     if not ev:
         raise HTTPException(status_code=404, detail="Event not found")
+    _ensure_certificate_feature_enabled(ev)
 
     # Load certs that belong to this event
     res_certs = await db.execute(
@@ -11522,6 +12462,7 @@ async def export_certificates(
     ev = res_ev.scalar_one_or_none()
     if not ev:
         raise HTTPException(status_code=404, detail="Event not found")
+    _ensure_certificate_feature_enabled(ev)
 
     res = await db.execute(
         select(Certificate)
@@ -12118,11 +13059,48 @@ class SelfRegisterIn(BaseModel):
     email: EmailStr
     registration_answers: Dict[str, Any] = Field(default_factory=dict)
     kvkk_accepted: bool = False
+    organizer_notice_accepted: bool = False
+    cross_border_notice_read: bool = False
+    cross_border_transfer_consent: bool = False
     registration_documents: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class CheckinIn(BaseModel):
     email: EmailStr
+
+
+def _build_attendee_register_webhook_payload(
+    event: Event,
+    attendee: Attendee,
+    *,
+    result: str,
+) -> Dict[str, Any]:
+    answers = attendee.registration_answers or {}
+    registration_fields = _get_event_registration_fields(event)
+    labeled_answers: Dict[str, Any] = {}
+    for field in registration_fields:
+        field_id = str(field.get("id") or "")
+        if not field_id:
+            continue
+        label = str(field.get("label") or field_id)
+        labeled_answers[label] = answers.get(field_id, "")
+
+    return {
+        "event_id": event.id,
+        "event_public_id": _get_public_event_identifier(event),
+        "event_name": event.name,
+        "result": result,
+        "attendee": {
+            "id": attendee.id,
+            "name": attendee.name,
+            "email": attendee.email,
+            "source": attendee.source,
+            "registered_at": attendee.registered_at.isoformat() if attendee.registered_at else None,
+            "email_verified": bool(attendee.email_verified),
+        },
+        "registration_answers": answers,
+        "registration_answer_labels": labeled_answers,
+    }
 
 
 class CheckinOut(BaseModel):
@@ -12209,6 +13187,87 @@ async def _get_event_for_admin(event_id: int, me: CurrentUser, db: AsyncSession)
     return ev
 
 
+def _ensure_certificate_feature_enabled(event: Event) -> None:
+    if not is_certificate_enabled(event):
+        raise HTTPException(status_code=403, detail="Certificate features are disabled for this event.")
+
+
+def _ensure_checkin_feature_enabled(event: Event) -> None:
+    if not is_checkin_enabled(event):
+        raise HTTPException(status_code=403, detail="Check-in features are disabled for this event.")
+
+
+def _ensure_ticketing_feature_enabled(event: Event) -> None:
+    if not is_ticketing_enabled(event):
+        raise HTTPException(status_code=403, detail="Ticket/pass features are disabled for this event.")
+
+
+def _ticket_token_from_payload(raw_value: str) -> str:
+    value = str(raw_value or "").strip()
+    if not value:
+        return value
+    if "/tickets/" in value:
+        value = value.rsplit("/tickets/", 1)[-1]
+    return value.split("?", 1)[0].split("#", 1)[0].strip()
+
+
+def _ticket_public_url(token: str) -> str:
+    return f"{settings.frontend_base_url.rstrip('/')}/tickets/{token}"
+
+
+async def _issue_event_ticket_if_needed(db: AsyncSession, event: Event, attendee: Attendee) -> Optional[EventTicket]:
+    if not is_ticketing_enabled(event):
+        return None
+    existing_res = await db.execute(
+        select(EventTicket).where(
+            EventTicket.event_id == event.id,
+            EventTicket.attendee_id == attendee.id,
+        )
+    )
+    existing = existing_res.scalar_one_or_none()
+    if existing:
+        return existing
+    token = secrets.token_urlsafe(36)
+    ticket = EventTicket(
+        event_id=event.id,
+        attendee_id=attendee.id,
+        token=token,
+        qr_payload=_ticket_public_url(token),
+        status="issued",
+    )
+    db.add(ticket)
+    await db.flush()
+    return ticket
+
+
+def _ticket_to_out(ticket: EventTicket) -> EventTicketOut:
+    return EventTicketOut(
+        id=ticket.id,
+        event_id=ticket.event_id,
+        attendee_id=ticket.attendee_id,
+        attendee_name=ticket.attendee.name,
+        attendee_email=ticket.attendee.email,
+        token=ticket.token,
+        qr_payload=ticket.qr_payload,
+        status=ticket.status,
+        issued_at=ticket.issued_at,
+        checked_in_at=ticket.checked_in_at,
+    )
+
+
+def _ticket_response_payload(ticket: Optional[EventTicket]) -> Optional[Dict[str, Any]]:
+    if not ticket:
+        return None
+    return {
+        "id": ticket.id,
+        "token": ticket.token,
+        "qr_payload": ticket.qr_payload,
+        "status": ticket.status,
+        "issued_at": ticket.issued_at.isoformat() if ticket.issued_at else None,
+        "checked_in_at": ticket.checked_in_at.isoformat() if ticket.checked_in_at else None,
+    }
+
+
 def _session_to_out(s: EventSession, attendance_count: int = 0) -> SessionOut:
     start_str = s.session_start.strftime("%H:%M") if s.session_start else None
     return SessionOut(
@@ -12223,6 +13282,60 @@ def _session_to_out(s: EventSession, attendance_count: int = 0) -> SessionOut:
         created_at=s.created_at,
         attendance_count=attendance_count,
     )
+
+
+@app.get("/api/tickets/{token}", response_model=PublicTicketOut)
+async def get_public_ticket(token: str, db: AsyncSession = Depends(get_db)):
+    clean_token = _ticket_token_from_payload(token)
+    res = await db.execute(
+        select(EventTicket)
+        .options(selectinload(EventTicket.event), selectinload(EventTicket.attendee))
+        .where(EventTicket.token == clean_token)
+    )
+    ticket = res.scalar_one_or_none()
+    if not ticket or not is_ticketing_enabled(ticket.event):
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    return PublicTicketOut(
+        event_id=ticket.event_id,
+        event_public_id=_get_public_event_identifier(ticket.event),
+        event_name=ticket.event.name,
+        attendee_name=ticket.attendee.name,
+        attendee_email=ticket.attendee.email,
+        status=ticket.status,
+        issued_at=ticket.issued_at,
+        checked_in_at=ticket.checked_in_at,
+    )
+
+
+@app.get("/api/tickets/{token}/qr")
+async def get_public_ticket_qr(token: str, db: AsyncSession = Depends(get_db)):
+    clean_token = _ticket_token_from_payload(token)
+    res = await db.execute(
+        select(EventTicket)
+        .options(selectinload(EventTicket.event))
+        .where(EventTicket.token == clean_token)
+    )
+    ticket = res.scalar_one_or_none()
+    if not ticket or not is_ticketing_enabled(ticket.event):
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    if qrcode is None:
+        raise HTTPException(status_code=503, detail="QR generation is not available")
+
+    qr = qrcode.QRCode(
+        version=2,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(ticket.qr_payload)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+
+    from fastapi.responses import Response
+    return Response(content=buf.getvalue(), media_type="image/png")
 
 
 async def _get_event_attendance_counts(
@@ -12368,8 +13481,23 @@ def _build_public_event_detail(
         require_email_verification=_get_event_email_verification_required(event),
         registration_quota=_get_event_registration_quota(event),
         registration_quota_enabled=_is_event_registration_quota_enabled(event),
+        event_type=normalize_event_type(getattr(event, "event_type", None)),
+        certificate_enabled=is_certificate_enabled(event),
+        checkin_enabled=is_checkin_enabled(event),
+        ticketing_enabled=is_ticketing_enabled(event),
+        registration_enabled=is_public_registration_enabled(event),
+        raffles_enabled=is_raffles_enabled(event),
+        gamification_enabled=is_gamification_enabled(event),
+        requires_approval=normalize_feature_bool(getattr(event, "requires_approval", None), default=FEATURE_DEFAULTS["requires_approval"]),
         kvkk_consent_required=_is_event_kvkk_consent_required(event),
         kvkk_consent_text=_get_event_kvkk_consent_text(event),
+        organizer_privacy_notice_enabled=_is_event_organizer_privacy_notice_enabled(event),
+        organizer_privacy_notice_text=_get_event_organizer_privacy_notice_text(event) if _is_event_organizer_privacy_notice_enabled(event) else None,
+        show_cross_border_transfer_notice=_is_event_cross_border_transfer_notice_enabled(event),
+        require_cross_border_transfer_consent=_is_event_cross_border_transfer_consent_required(event),
+        data_controller_name=_get_event_data_controller_name(event),
+        data_controller_contact_email=_get_event_data_controller_contact_email(event),
+        data_retention_note=_get_event_data_retention_note(event),
         sessions=[
             {
                 "id": s.id,
@@ -12621,6 +13749,8 @@ async def upload_public_registration_document(
     ev = await _resolve_public_event(db, event_id)
     if not ev:
         raise HTTPException(status_code=404, detail="Event not found")
+    if not is_public_registration_enabled(ev):
+        raise HTTPException(status_code=403, detail="Registration is disabled for this event.")
     if _is_event_registration_closed(ev):
         raise HTTPException(status_code=403, detail="Registration is closed for this event.")
 
@@ -12671,10 +13801,18 @@ async def public_event_register(
     ev = await _resolve_public_event(db, event_id)
     if not ev:
         raise HTTPException(status_code=404, detail="Event not found")
+    if not is_public_registration_enabled(ev):
+        raise HTTPException(status_code=403, detail="Registration is disabled for this event.")
     if _is_event_registration_closed(ev):
         raise HTTPException(status_code=403, detail="Registration is closed for this event.")
     if _is_event_kvkk_consent_required(ev) and not payload.kvkk_accepted:
         raise bad_request("KVKK consent is required for this event.")
+    if _is_event_organizer_privacy_notice_enabled(ev) and not payload.organizer_notice_accepted:
+        raise bad_request("Organizer privacy notice acceptance is required for this event.")
+    if _is_event_cross_border_transfer_notice_enabled(ev) and not payload.cross_border_notice_read:
+        raise bad_request("Cross-border transfer notice must be acknowledged for this event.")
+    if _is_event_cross_border_transfer_consent_required(ev) and not payload.cross_border_transfer_consent:
+        raise bad_request("Cross-border transfer consent is required for this event.")
     registration_quota = _get_event_registration_quota(ev)
     quota_enabled = _is_event_registration_quota_enabled(ev)
     if quota_enabled and registration_quota is not None:
@@ -12769,6 +13907,9 @@ async def public_event_register(
         "accepted_at": datetime.now(timezone.utc).isoformat(),
         "ip_address": client_ip,
         "user_agent": user_agent,
+        "organizer_notice_accepted": bool(payload.organizer_notice_accepted),
+        "cross_border_notice_read": bool(payload.cross_border_notice_read),
+        "cross_border_transfer_consent": bool(payload.cross_border_transfer_consent),
     }
 
     await _enforce_registration_risk_controls(
@@ -12818,6 +13959,12 @@ async def public_event_register(
                 },
             )
             await db.commit()
+            await trigger_webhooks(
+                ev.user_id,
+                "attendee.register",
+                _build_attendee_register_webhook_payload(ev, existing_attendee, result="existing_unverified"),
+            )
+            await _sync_google_sheet_if_enabled(db, ev)
             await send_attendee_verification_email(attendee=existing_attendee, event=ev)
             response = JSONResponse(
                 status_code=200,
@@ -12852,6 +13999,7 @@ async def public_event_register(
             event_id=event_db_id,
             email=existing_attendee.email,
         )
+        ticket = await _issue_event_ticket_if_needed(db, ev, existing_attendee)
         await write_audit_log(
             db,
             user_id=None,
@@ -12870,6 +14018,16 @@ async def public_event_register(
             },
         )
         await db.commit()
+        await trigger_webhooks(
+            ev.user_id,
+            "attendee.register",
+            _build_attendee_register_webhook_payload(
+                ev,
+                existing_attendee,
+                result="existing_verified" if existing_attendee.email_verified else "existing_auto_verified",
+            ),
+        )
+        await _sync_google_sheet_if_enabled(db, ev)
         response = JSONResponse(
             status_code=200,
             content={
@@ -12892,6 +14050,7 @@ async def public_event_register(
                     attendee_id=existing_attendee.id,
                     email=existing_attendee.email,
                 ),
+                "ticket": _ticket_response_payload(ticket),
             },
         )
         if should_set_device_cookie:
@@ -12927,6 +14086,7 @@ async def public_event_register(
     else:
         attendee.email_verification_token = None
         attendee.email_verified_at = datetime.now(timezone.utc)
+        await _issue_event_ticket_if_needed(db, ev, attendee)
     await write_audit_log(
         db,
         user_id=None,
@@ -12954,6 +14114,20 @@ async def public_event_register(
             next_config["registration_closed"] = True
             ev.config = next_config
     await db.commit()
+    await trigger_webhooks(
+        ev.user_id,
+        "attendee.register",
+        _build_attendee_register_webhook_payload(
+            ev,
+            attendee,
+            result="created_unverified" if require_email_verification else "created_verified",
+        ),
+    )
+    await _append_attendee_to_google_sheet_if_enabled(db, ev, attendee)
+    ticket_res = await db.execute(
+        select(EventTicket).where(EventTicket.event_id == event_db_id, EventTicket.attendee_id == attendee.id)
+    )
+    issued_ticket = ticket_res.scalar_one_or_none()
     if require_email_verification:
         await send_attendee_verification_email(attendee=attendee, event=ev)
     survey_token = make_survey_access_token(
@@ -12983,6 +14157,7 @@ async def public_event_register(
                 attendee_id=attendee.id,
                 email=attendee.email,
             ) if attendee.email_verified else None,
+            "ticket": _ticket_response_payload(issued_ticket) if attendee.email_verified else None,
         },
     )
     if should_set_device_cookie:
@@ -13067,7 +14242,9 @@ async def verify_attendee_email(event_id: str, token: str = Query(...), db: Asyn
             next_config["registration_closed"] = True
             event.config = next_config
 
+    await _issue_event_ticket_if_needed(db, event, attendee)
     await db.commit()
+    await _sync_google_sheet_if_enabled(db, event)
 
     return {
         "detail": "E-posta dogrulandi.",
@@ -13116,6 +14293,8 @@ async def self_checkin(
     ctx = await _get_checkin_context_by_token(checkin_token, db)
     if not ctx:
         raise HTTPException(status_code=404, detail="Geçersiz QR kodu")
+    if not ctx.get("checkin_enabled", True):
+        raise HTTPException(status_code=403, detail="Check-in is disabled for this event.")
     if not ctx["is_active"]:
         raise HTTPException(status_code=403, detail="Bu oturum için check-in kapalı")
 
@@ -13352,7 +14531,8 @@ async def list_sessions(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db)
+    _ensure_checkin_feature_enabled(ev)
     res = await db.execute(
         select(EventSession).where(EventSession.event_id == event_id).order_by(EventSession.session_date, EventSession.session_start, EventSession.id)
     )
@@ -13372,7 +14552,8 @@ async def create_session(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db)
+    _ensure_checkin_feature_enabled(ev)
     from datetime import date as _date, time as _time
     sd = _date.fromisoformat(payload.session_date) if payload.session_date else None
     st = None
@@ -13401,7 +14582,8 @@ async def update_session(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db)
+    _ensure_checkin_feature_enabled(ev)
     res = await db.execute(select(EventSession).where(EventSession.id == session_id, EventSession.event_id == event_id))
     session = res.scalar_one_or_none()
     if not session:
@@ -13428,7 +14610,8 @@ async def delete_session(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db)
+    _ensure_checkin_feature_enabled(ev)
     res = await db.execute(select(EventSession).where(EventSession.id == session_id, EventSession.event_id == event_id))
     session = res.scalar_one_or_none()
     if not session:
@@ -13445,7 +14628,8 @@ async def toggle_session_checkin(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db)
+    _ensure_checkin_feature_enabled(ev)
     res = await db.execute(select(EventSession).where(EventSession.id == session_id, EventSession.event_id == event_id))
     session = res.scalar_one_or_none()
     if not session:
@@ -13469,6 +14653,7 @@ async def get_session_qr(
     db: AsyncSession = Depends(get_db),
 ):
     ev = await _get_event_for_admin(event_id, me, db)
+    _ensure_checkin_feature_enabled(ev)
 
     res = await db.execute(
         select(EventSession).where(
@@ -13524,6 +14709,62 @@ async def get_session_qr(
         headers={"X-Checkin-URL": checkin_url},
     )
 # Ã¢â€â‚¬Ã¢â€â‚¬ Admin: Attendees Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+
+@app.get(
+    "/api/admin/events/{event_id}/tickets",
+    response_model=List[EventTicketOut],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+)
+async def list_event_tickets(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    ev = await _get_event_for_admin(event_id, me, db)
+    _ensure_ticketing_feature_enabled(ev)
+    tickets_res = await db.execute(
+        select(EventTicket)
+        .options(selectinload(EventTicket.attendee))
+        .where(EventTicket.event_id == event_id)
+        .order_by(EventTicket.created_at.desc(), EventTicket.id.desc())
+    )
+    return [_ticket_to_out(ticket) for ticket in tickets_res.scalars().all()]
+
+
+@app.post(
+    "/api/admin/events/{event_id}/tickets/check-in",
+    response_model=EventTicketOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+)
+async def check_in_event_ticket(
+    event_id: int,
+    payload: TicketCheckInIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    ev = await _get_event_for_admin(event_id, me, db)
+    _ensure_ticketing_feature_enabled(ev)
+    clean_token = _ticket_token_from_payload(payload.token)
+    ticket_res = await db.execute(
+        select(EventTicket)
+        .options(selectinload(EventTicket.attendee))
+        .where(EventTicket.event_id == event_id, EventTicket.token == clean_token)
+        .with_for_update()
+    )
+    ticket = ticket_res.scalar_one_or_none()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    if ticket.status == "cancelled":
+        raise HTTPException(status_code=409, detail="Ticket is cancelled")
+    if ticket.status == "used":
+        return _ticket_to_out(ticket)
+    ticket.status = "used"
+    ticket.checked_in_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(ticket)
+    await db.refresh(ticket, attribute_names=["attendee"])
+    return _ticket_to_out(ticket)
+
 
 @app.get("/api/admin/events/{event_id}/attendees", dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)])
 async def list_attendees(
@@ -13874,7 +15115,7 @@ async def list_admin_event_comments(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db)
     comments_res = await db.execute(
         select(EventComment)
         .options(selectinload(EventComment.public_member))
@@ -14034,7 +15275,7 @@ async def create_manual_attendee(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db)
 
     normalized_email = str(payload.email).strip().lower()
     first_name = " ".join(payload.first_name.strip().split())
@@ -14070,6 +15311,7 @@ async def create_manual_attendee(
     )
     db.add(attendee)
     await db.flush()
+    await _issue_event_ticket_if_needed(db, event, attendee)
 
     await write_audit_log(
         db,
@@ -14137,7 +15379,8 @@ async def admin_manual_checkin(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db)
+    _ensure_checkin_feature_enabled(ev)
 
     session_res = await db.execute(
         select(EventSession).where(EventSession.id == session_id, EventSession.event_id == event_id)
@@ -14186,7 +15429,9 @@ async def _get_raffle_for_admin(
     me: CurrentUser,
     db: AsyncSession,
 ) -> EventRaffle:
-    await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db)
+    if not is_raffles_enabled(event):
+        raise HTTPException(status_code=403, detail="Raffle features are disabled for this event.")
     raffle_res = await db.execute(
         select(EventRaffle)
         .options(selectinload(EventRaffle.winners).selectinload(EventRaffleWinner.attendee))
@@ -14209,6 +15454,8 @@ async def list_event_raffles(
     db: AsyncSession = Depends(get_db),
 ):
     event = await _get_event_for_admin(event_id, me, db)
+    if not is_raffles_enabled(event):
+        raise HTTPException(status_code=403, detail="Raffle features are disabled for this event.")
     raffles_res = await db.execute(
         select(EventRaffle)
         .options(selectinload(EventRaffle.winners).selectinload(EventRaffleWinner.attendee))
@@ -14239,7 +15486,9 @@ async def list_event_raffle_audit_logs(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db)
+    if not is_raffles_enabled(event):
+        raise HTTPException(status_code=403, detail="Raffle features are disabled for this event.")
     logs_res = await db.execute(
         select(AuditLog)
         .where(
@@ -14264,6 +15513,8 @@ async def create_event_raffle(
     db: AsyncSession = Depends(get_db),
 ):
     event = await _get_event_for_admin(event_id, me, db)
+    if not is_raffles_enabled(event):
+        raise HTTPException(status_code=403, detail="Raffle features are disabled for this event.")
     raffle = EventRaffle(
         event_id=event_id,
         title=payload.title.strip(),
@@ -14638,6 +15889,7 @@ async def get_attendance_matrix(
     fmt: str = Query(default="json", pattern="^(csv|xlsx|json)$"),
 ):
     ev = await _get_event_for_admin(event_id, me, db)
+    _ensure_checkin_feature_enabled(ev)
     sess_res = await db.execute(
         select(EventSession).where(EventSession.event_id == event_id).order_by(EventSession.session_date, EventSession.session_start, EventSession.id)
     )
@@ -14761,6 +16013,7 @@ async def bulk_certify_attendees(
     )
 
     ev = await _get_event_for_admin(event_id, me, db)
+    _ensure_certificate_feature_enabled(ev)
     if not ev.config or ev.template_image_url in ("", "placeholder"):
         raise HTTPException(status_code=400, detail="Etkinlik sablon yapilandirmasi eksik")
 
@@ -14979,6 +16232,7 @@ async def bulk_certify_attendees_queue(
     HTTP timeouts for large attendee lists.
     """
     ev = await _get_event_for_admin(event_id, me, db)
+    _ensure_certificate_feature_enabled(ev)
     if not ev.config or ev.template_image_url in ("", "placeholder"):
         raise HTTPException(status_code=400, detail="Etkinlik sablon yapilandirmasi eksik")
 

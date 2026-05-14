@@ -8,6 +8,7 @@ import { clearToken, getRoleFromToken } from "@/lib/api";
 import { LanguageToggle, useI18n } from "@/lib/i18n";
 import InAppTourGuide from "@/components/Admin/InAppTourGuide";
 import AIAssistant from "@/components/Admin/AIAssistant";
+import HeptaCertLogoMark from "@/components/Brand/HeptaCertLogoMark";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarCheck2,
@@ -24,7 +25,6 @@ import {
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
-  Layers,
 } from "lucide-react";
 
 type NavItem = {
@@ -132,9 +132,7 @@ function SidebarContent({
   return (
     <div className="flex h-full flex-col">
       <div className={`flex items-center border-b border-sidebar-border ${collapsed ? "justify-center px-0 py-5" : "gap-2.5 px-4 py-5"}`}>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white shadow-brand">
-          <Layers className="h-4 w-4" />
-        </div>
+        <HeptaCertLogoMark className="h-8 w-8 rounded-lg shadow-brand" />
         {!collapsed && (
           <>
             <span className="text-sm font-bold tracking-tight text-surface-900">HeptaCert</span>
@@ -281,9 +279,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
           </button>
 
           <div className="flex min-w-0 items-center gap-2 lg:hidden">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-600 text-white">
-              <Layers className="h-3.5 w-3.5" />
-            </div>
+            <HeptaCertLogoMark className="h-7 w-7 rounded-md" />
             <div className="min-w-0">
               <div className="truncate text-sm font-bold text-surface-900">HeptaCert</div>
               <div className="truncate text-[11px] font-medium text-surface-400">{currentSection}</div>

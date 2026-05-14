@@ -157,6 +157,16 @@ export interface EventOut {
   cert_email_template_id?: number | null;
   visibility?: "private" | "unlisted" | "public";
   require_email_verification?: boolean;
+  registration_quota?: number | null;
+  registration_quota_enabled?: boolean;
+  event_type?: "certificate_event" | "seminar" | "workshop" | "conference" | "concert" | "training" | "club_event" | "online_event" | "custom";
+  certificate_enabled?: boolean;
+  checkin_enabled?: boolean;
+  ticketing_enabled?: boolean;
+  registration_enabled?: boolean;
+  raffles_enabled?: boolean;
+  gamification_enabled?: boolean;
+  requires_approval?: boolean;
 }
 
 export interface PublicMemberMe {
@@ -247,6 +257,14 @@ export interface PublicEventInfo {
   event_location: string | null;
   min_sessions_required: number;
   registration_closed?: boolean;
+  event_type?: "certificate_event" | "seminar" | "workshop" | "conference" | "concert" | "training" | "club_event" | "online_event" | "custom";
+  certificate_enabled?: boolean;
+  checkin_enabled?: boolean;
+  ticketing_enabled?: boolean;
+  registration_enabled?: boolean;
+  raffles_enabled?: boolean;
+  gamification_enabled?: boolean;
+  requires_approval?: boolean;
   event_banner_url: string | null;
   registration_fields?: RegistrationField[];
   survey?: PublicSurvey | null;
@@ -261,6 +279,13 @@ export interface PublicEventInfo {
   require_email_verification: boolean;
   kvkk_consent_required?: boolean;
   kvkk_consent_text?: string | null;
+  organizer_privacy_notice_enabled?: boolean;
+  organizer_privacy_notice_text?: string | null;
+  show_cross_border_transfer_notice?: boolean;
+  require_cross_border_transfer_consent?: boolean;
+  data_controller_name?: string | null;
+  data_controller_contact_email?: string | null;
+  data_retention_note?: string | null;
 }
 
 export interface PublicEventDetail {
@@ -286,8 +311,23 @@ export interface PublicEventDetail {
     session_location?: string | null;
   }>;
   visibility: "private" | "unlisted" | "public";
+  event_type?: "certificate_event" | "seminar" | "workshop" | "conference" | "concert" | "training" | "club_event" | "online_event" | "custom";
+  certificate_enabled?: boolean;
+  checkin_enabled?: boolean;
+  ticketing_enabled?: boolean;
+  registration_enabled?: boolean;
+  raffles_enabled?: boolean;
+  gamification_enabled?: boolean;
+  requires_approval?: boolean;
   kvkk_consent_required?: boolean;
   kvkk_consent_text?: string | null;
+  organizer_privacy_notice_enabled?: boolean;
+  organizer_privacy_notice_text?: string | null;
+  show_cross_border_transfer_notice?: boolean;
+  require_cross_border_transfer_consent?: boolean;
+  data_controller_name?: string | null;
+  data_controller_contact_email?: string | null;
+  data_retention_note?: string | null;
 }
 
 export interface RegistrationDocumentUploadOut {
@@ -297,6 +337,30 @@ export interface RegistrationDocumentUploadOut {
   content_type: string;
   size_bytes: number;
   sha256: string;
+}
+
+export interface PublicTicketInfo {
+  event_id: number;
+  event_public_id: string;
+  event_name: string;
+  attendee_name: string;
+  attendee_email: string;
+  status: "issued" | "used" | "cancelled";
+  issued_at: string;
+  checked_in_at?: string | null;
+}
+
+export interface EventTicketOut {
+  id: number;
+  event_id: number;
+  attendee_id: number;
+  attendee_name: string;
+  attendee_email: string;
+  token: string;
+  qr_payload: string;
+  status: "issued" | "used" | "cancelled";
+  issued_at: string;
+  checked_in_at?: string | null;
 }
 
 export interface PublicEventComment {
@@ -1184,6 +1248,9 @@ export async function publicRegisterAttendee(
     email: string;
     registration_answers?: Record<string, string | string[]>;
     kvkk_accepted?: boolean;
+    organizer_notice_accepted?: boolean;
+    cross_border_notice_read?: boolean;
+    cross_border_transfer_consent?: boolean;
     registration_documents?: Array<RegistrationDocumentUploadOut & { field_id?: string }>;
   }
 ): Promise<{
@@ -1198,6 +1265,14 @@ export async function publicRegisterAttendee(
   survey_token?: string;
   survey_url?: string;
   status_url?: string;
+  ticket?: {
+    id: number;
+    token: string;
+    qr_payload: string;
+    status: string;
+    issued_at?: string | null;
+    checked_in_at?: string | null;
+  } | null;
 }> {
   const fetcher = getPublicMemberToken() ? memberApiFetch : publicApiFetch;
   const res = await fetcher(`/events/${toEventRouteId(eventId)}/register`, {
@@ -1217,6 +1292,24 @@ export async function uploadPublicRegistrationDocument(
   const res = await fetcher(`/events/${toEventRouteId(eventId)}/registration-document`, {
     method: "POST",
     body: form,
+  });
+  return res.json();
+}
+
+export async function getPublicTicket(token: string): Promise<PublicTicketInfo> {
+  const res = await publicApiFetch(`/tickets/${encodeURIComponent(token)}`);
+  return res.json();
+}
+
+export async function listEventTickets(eventId: number): Promise<EventTicketOut[]> {
+  const res = await apiFetch(`/admin/events/${eventId}/tickets`);
+  return res.json();
+}
+
+export async function checkInEventTicket(eventId: number, token: string): Promise<EventTicketOut> {
+  const res = await apiFetch(`/admin/events/${eventId}/tickets/check-in`, {
+    method: "POST",
+    body: JSON.stringify({ token }),
   });
   return res.json();
 }

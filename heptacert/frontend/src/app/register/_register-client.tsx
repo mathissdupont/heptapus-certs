@@ -218,6 +218,11 @@ export default function RegisterPage() {
               {" "}{copy.termsSuffix}
             </span>
           </label>
+          <div className="flex flex-wrap gap-3 text-xs text-slate-500">
+            <Link href="/kvkk" className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "KVKK Aydınlatma Metni" : "Privacy Notice"}</Link>
+            <Link href="/gizlilik" className="font-semibold text-brand-600 hover:text-brand-700">{copy.privacyLink}</Link>
+            <Link href="/acik-riza" className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Açık Rıza Metni" : "Explicit Consent Text"}</Link>
+          </div>
 
           <AnimatePresence mode="wait">
             {err && (

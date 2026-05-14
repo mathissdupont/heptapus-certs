@@ -1,16 +1,28 @@
-﻿"use client";
+"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ElementType } from "react";
 import { motion } from "framer-motion";
-import {
-  ChevronLeft, Loader2, AlertCircle, TrendingUp, Users, Badge, Zap,
-  BarChart3, LineChart, PieChart, Calendar, Award, Percent, CheckCircle2,
-  CalendarDays, UserCheck, QrCode, LockKeyhole, Mail, Target,
-} from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import {
+  AlertCircle,
+  Award,
+  BarChart3,
+  Badge,
+  Calendar,
+  CalendarDays,
+  CheckCircle2,
+  ChevronLeft,
+  Loader2,
+  Percent,
+  QrCode,
+  Target,
+  TrendingUp,
+  UserCheck,
+  Users,
+} from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import { FeatureGate } from '@/lib/useSubscription';
+import { useSubscription } from "@/lib/useSubscription";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 
 type EngagementAnalytics = {
@@ -42,10 +54,7 @@ type BadgeAnalytics = {
 
 type TierAnalytics = {
   total_certificates: number;
-  tier_distribution: Record<
-    string,
-    { count: number; percentage: number }
-  >;
+  tier_distribution: Record<string, { count: number; percentage: number }>;
   unassigned_count: number;
 };
 
@@ -55,580 +64,392 @@ type TimelineAnalytics = {
   certificate_creations: Array<{ date: string; count: number }>;
 };
 
-const StatCard = ({
+type StatTone = "brand" | "emerald" | "amber" | "sky";
+
+function toneStyles(tone: StatTone) {
+  switch (tone) {
+    case "emerald":
+      return "border-emerald-100 bg-emerald-50 text-emerald-600";
+    case "amber":
+      return "border-amber-100 bg-amber-50 text-amber-600";
+    case "sky":
+      return "border-sky-100 bg-sky-50 text-sky-600";
+    default:
+      return "border-brand-100 bg-brand-50 text-brand-600";
+  }
+}
+
+function StatCard({
   icon: Icon,
   label,
   value,
-  change,
-  color = "brand",
+  caption,
+  tone = "brand",
 }: {
-  icon: React.ReactNode;
+  icon: ElementType;
   label: string;
   value: string | number;
-  change?: string;
-  color?: string;
-}) => (
-  <motion.div
-    initial={{ opacity: 0, y: 8 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="bg-white rounded-xl border border-gray-200 p-6"
-  >
-    <div className="flex items-start justify-between">
-      <div className="flex-1">
-        <p className="text-gray-500 text-sm font-medium">{label}</p>
-        <div className="mt-2 flex items-baseline gap-2">
-          <h3 className="text-3xl font-bold text-gray-900">{value}</h3>
-          {change && (
-            <span className="text-sm text-green-600 font-semibold">
-              {change}
-            </span>
-          )}
+  caption?: string;
+  tone?: StatTone;
+}) {
+  return (
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-gray-500">{label}</p>
+          <h3 className="mt-2 text-3xl font-bold text-gray-900">{value}</h3>
+          {caption && <p className="mt-2 text-xs text-gray-500">{caption}</p>}
+        </div>
+        <div className={`rounded-xl border p-3 ${toneStyles(tone)}`}>
+          <Icon className="h-6 w-6" />
         </div>
       </div>
-      <div
-        className={`p-3 rounded-lg bg-${color}-100 text-${color}-600`}
-      >
-        {Icon}
+    </motion.div>
+  );
+}
+
+function TimelineCard({
+  icon: Icon,
+  title,
+  items,
+  emptyText,
+  tone,
+}: {
+  icon: ElementType;
+  title: string;
+  items: Array<{ date: string; count: number }>;
+  emptyText: string;
+  tone: StatTone;
+}) {
+  const titleColor = tone === "brand" ? "text-brand-600" : tone === "emerald" ? "text-emerald-600" : "text-sky-600";
+
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="flex items-center gap-2">
+        <Icon className={`h-5 w-5 ${titleColor}`} />
+        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+      </div>
+      <div className="mt-4 space-y-3">
+        {items.length === 0 ? (
+          <p className="text-sm text-gray-500">{emptyText}</p>
+        ) : (
+          items.slice(0, 6).map((item) => (
+            <div key={`${title}-${item.date}`} className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 text-sm">
+              <span className="text-gray-600">{item.date}</span>
+              <span className="font-semibold text-gray-900">{item.count}</span>
+            </div>
+          ))
+        )}
       </div>
     </div>
-  </motion.div>
-);
+  );
+}
 
 export default function AdvancedAnalyticsPage() {
   const params = useParams();
   const eventId = params.id as string;
+  const { loading: subscriptionLoading, hasPlan } = useSubscription();
+  const canViewAnalytics = hasPlan(["growth", "enterprise"]);
 
-  const [engagement, setEngagement] = useState<EngagementAnalytics | null>(
-    null
-  );
+  const [engagement, setEngagement] = useState<EngagementAnalytics | null>(null);
   const [badges, setBadges] = useState<BadgeAnalytics | null>(null);
   const [tiers, setTiers] = useState<TierAnalytics | null>(null);
   const [timeline, setTimeline] = useState<TimelineAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<
-    "engagement" | "badges" | "tiers" | "timeline"
-  >("engagement");
+  const [activeTab, setActiveTab] = useState<"engagement" | "badges" | "tiers" | "timeline">("engagement");
 
-  // Load all analytics
   useEffect(() => {
-    loadAnalytics();
-  }, [eventId]);
-
-  const loadAnalytics = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const [engRes, badRes, tierRes, timelineRes] = await Promise.all([
-        apiFetch(
-          `/admin/events/${eventId}/analytics/engagement`,
-          { method: "GET" }
-        ),
-        apiFetch(
-          `/admin/events/${eventId}/analytics/badges`,
-          { method: "GET" }
-        ),
-        apiFetch(
-          `/admin/events/${eventId}/analytics/tiers`,
-          { method: "GET" }
-        ),
-        apiFetch(
-          `/admin/events/${eventId}/analytics/timeline`,
-          { method: "GET" }
-        ),
-      ]);
-
-      if (engRes) setEngagement(await engRes.json());
-      if (badRes) setBadges(await badRes.json());
-      if (tierRes) setTiers(await tierRes.json());
-      if (timelineRes) setTimeline(await timelineRes.json());
-    } catch (err: any) {
-      setError(err.message || "Analitikler yüklenemedi");
-    } finally {
+    if (subscriptionLoading) return;
+    if (!canViewAnalytics) {
       setLoading(false);
+      setError(null);
+      return;
     }
-  };
 
-  if (loading) {
+    let mounted = true;
+
+    async function loadAnalytics() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const [engRes, badRes, tierRes, timelineRes] = await Promise.all([
+          apiFetch(`/admin/events/${eventId}/analytics/engagement`),
+          apiFetch(`/admin/events/${eventId}/analytics/badges`),
+          apiFetch(`/admin/events/${eventId}/analytics/tiers`),
+          apiFetch(`/admin/events/${eventId}/analytics/timeline`),
+        ]);
+
+        if (!mounted) return;
+
+        if (engRes.ok) setEngagement((await engRes.json()) as EngagementAnalytics);
+        if (badRes.ok) setBadges((await badRes.json()) as BadgeAnalytics);
+        if (tierRes.ok) setTiers((await tierRes.json()) as TierAnalytics);
+        if (timelineRes.ok) setTimeline((await timelineRes.json()) as TimelineAnalytics);
+      } catch (err: any) {
+        if (!mounted) return;
+        setError(err?.message || "Analitikler yüklenemedi");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    void loadAnalytics();
+
+    return () => {
+      mounted = false;
+    };
+  }, [canViewAnalytics, eventId, subscriptionLoading]);
+
+  if (subscriptionLoading || (canViewAnalytics && loading)) {
     return (
-      <div className="flex items-center justify-center h-96">
+      <div className="flex h-96 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
       </div>
     );
   }
 
+  const overviewCards = engagement
+    ? [
+        {
+          label: "Toplam Katılımcı",
+          value: engagement.total_attendees,
+          icon: Users,
+          tone: "brand" as const,
+          caption: "Analitikte takip edilen aktif katılımcı sayısı",
+        },
+        {
+          label: "Katılım Oranı",
+          value: `${(engagement.attendance.attendance_rate || 0).toFixed(1)}%`,
+          icon: Percent,
+          tone: "sky" as const,
+          caption: "Check-in bazlı etkin katılım oranı",
+        },
+        {
+          label: "Anket Tamamlama",
+          value: `${engagement.survey_completion.completed}/${engagement.total_attendees}`,
+          icon: TrendingUp,
+          tone: "emerald" as const,
+          caption: `%${(engagement.survey_completion.completion_rate || 0).toFixed(1)} tamamlanma`,
+        },
+        {
+          label: "Ortalama Rozet",
+          value: engagement.badges.average_per_attendee.toFixed(2),
+          icon: Badge,
+          tone: "amber" as const,
+          caption: "Katılımcı başına ortalama rozet",
+        },
+      ]
+    : [];
+
   return (
-    <FeatureGate requiredPlans={["growth","enterprise"]}>
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="space-y-6"
-      >
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-6">
+      <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link href={`/admin/events/${eventId}/certificates`}>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="rounded-lg p-2 hover:bg-gray-100"
-            >
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="rounded-lg p-2 hover:bg-gray-100">
               <ChevronLeft className="h-5 w-5" />
             </motion.button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Gelişmiş Analitikler
-            </h1>
-            <p className="text-gray-500 text-sm mt-1">
-              Katılım, rozetler ve sertifikalar
-            </p>
+            <h1 className="text-3xl font-bold text-gray-900">Gelişmiş Analitikler</h1>
+            <p className="mt-1 text-sm text-gray-500">Katılım, rozetler, sertifikalar ve zaman içi eğilimler</p>
           </div>
         </div>
       </div>
 
       <EventAdminNav eventId={eventId} active="analytics" className="mb-2 flex flex-col gap-2 border-b border-gray-200 pb-4" />
 
-      {/* Error */}
-      {error && (
-        <motion.div
-          initial={{ opacity: 0, y: -4 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-lg bg-red-50 border border-red-200 p-4 flex items-start gap-3"
-        >
-          <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-          <p className="text-red-700 text-sm">{error}</p>
-        </motion.div>
-      )}
-
-      {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200 overflow-x-auto">
-        {[
-          { id: "engagement", label: "Katılım", icon: Users },
-          { id: "badges", label: "Rozetler", icon: Badge },
-          { id: "tiers", label: "Seviyeler", icon: Award },
-          { id: "timeline", label: "Zaman Çizelgesi", icon: Calendar },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() =>
-              setActiveTab(
-                tab.id as "engagement" | "badges" | "tiers" | "timeline"
-              )
-            }
-            className={`px-4 py-3 font-semibold text-sm transition-colors flex items-center gap-2 whitespace-nowrap ${
-              activeTab === tab.id
-                ? "text-brand-600 border-b-2 border-brand-600"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Engagement Tab */}
-      {activeTab === "engagement" && engagement && (
-        <div className="space-y-6">
-          {/* Overview Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              icon={<Users className="h-6 w-6" />}
-              label="Toplam Katılımcı"
-              value={engagement.total_attendees}
-            />
-
-            <StatCard
-              icon={<Percent className="h-6 w-6" />}
-              label="Katılım Oranı"
-              value={`${(
-                engagement.attendance.attendance_rate || 0
-              ).toFixed(1)}%`}
-            />
-
-            <StatCard
-              icon={<TrendingUp className="h-6 w-6" />}
-              label="Anket Tamamlama"
-              value={`${engagement.survey_completion.completed}/${engagement.total_attendees}`}
-              change={`%${(
-                engagement.survey_completion.completion_rate || 0
-              ).toFixed(1)}`}
-            />
-
-            <StatCard
-              icon={<Trophy className="h-6 w-6" />}
-              label="Ortalama Rozet"
-              value={engagement.badges.average_per_attendee.toFixed(2)}
-            />
+      {!canViewAnalytics ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
+          <div className="flex items-start gap-3">
+            <BarChart3 className="mt-0.5 h-5 w-5 flex-shrink-0" />
+            <div>
+              <h2 className="text-lg font-semibold">Growth veya Enterprise gerekiyor</h2>
+              <p className="mt-2 text-sm leading-6 text-amber-800">
+                İleri analitik, etkinlik katılım eğilimleri, rozet dağılımı, sertifika üretim trendleri ve zaman çizelgesi görünümü üst planlarda açılır.
+              </p>
+            </div>
           </div>
 
-          {/* Detailed Breakdown */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Attendance */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Users className="h-5 w-5 text-brand-600" />
-                Katılım
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Katıldı</span>
-                  <span className="font-bold text-gray-900">
-                    {engagement.attendance.attended}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-green-600 h-2 rounded-full"
-                    style={{
-                      width: `${
-                        engagement.total_attendees > 0
-                          ? (engagement.attendance.attended /
-                              engagement.total_attendees) *
-                            100
-                          : 0
-                      }%`,
-                    }}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Katılmadı</span>
-                  <span className="font-bold text-gray-900">
-                    {engagement.attendance.not_attended}
-                  </span>
-                </div>
-              </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-amber-200 bg-white/80 p-4">
+              <p className="text-sm font-semibold">Katılım eğilimleri</p>
+              <p className="mt-1 text-xs text-amber-700">Oturum bazlı performans ve tamamlanma oranı</p>
             </div>
-
-            {/* Survey Completion */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-brand-600" />
-                Anket Tamamlama
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Tamamlandı</span>
-                  <span className="font-bold text-gray-900">
-                    {engagement.survey_completion.completed}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full"
-                    style={{
-                      width: `${
-                        engagement.total_attendees > 0
-                          ? (engagement.survey_completion.completed /
-                              engagement.total_attendees) *
-                            100
-                          : 0
-                      }%`,
-                    }}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Beklemede</span>
-                  <span className="font-bold text-gray-900">
-                    {engagement.survey_completion.pending}
-                  </span>
-                </div>
-              </div>
+            <div className="rounded-xl border border-amber-200 bg-white/80 p-4">
+              <p className="text-sm font-semibold">Rozet dağılımı</p>
+              <p className="mt-1 text-xs text-amber-700">Hangi rozetin ne kadar üretildiğini görün</p>
+            </div>
+            <div className="rounded-xl border border-amber-200 bg-white/80 p-4">
+              <p className="text-sm font-semibold">Zaman çizelgesi</p>
+              <p className="mt-1 text-xs text-amber-700">Kayıt, anket ve sertifika üretim ritmi</p>
             </div>
           </div>
         </div>
-      )}
+      ) : (
+        <>
+          {error && (
+            <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
+              <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" />
+              <p className="text-sm text-red-700">{error}</p>
+            </motion.div>
+          )}
 
-      {/* Badges Tab */}
-      {activeTab === "badges" && badges && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <StatCard
-              icon={<Badge className="h-6 w-6" />}
-              label="Toplam Rozetler"
-              value={badges.total_badges}
-              color="yellow"
-            />
-
-            <StatCard
-              icon={<Zap className="h-6 w-6" />}
-              label="Otomatik"
-              value={badges.by_award_method.automatic}
-              color="blue"
-            />
-
-            <StatCard
-              icon={<CheckCircle2 className="h-6 w-6" />}
-              label="Manuel"
-              value={badges.by_award_method.manual}
-              color="green"
-            />
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {overviewCards.map((card) => (
+              <StatCard key={card.label} icon={card.icon} label={card.label} value={card.value} caption={card.caption} tone={card.tone} />
+            ))}
           </div>
 
-          {/* Badge Distribution */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-brand-600" />
-              Rozet Dağılımı
-            </h3>
+          <div className="flex gap-2 overflow-x-auto border-b border-gray-200">
+            {[
+              { id: "engagement", label: "Katılım", icon: Users },
+              { id: "badges", label: "Rozetler", icon: Badge },
+              { id: "tiers", label: "Seviyeler", icon: Award },
+              { id: "timeline", label: "Zaman Çizelgesi", icon: Calendar },
+            ].map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                  className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${activeTab === tab.id ? "border-brand-600 text-brand-600" : "border-transparent text-gray-600 hover:text-gray-900"}`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
 
-            {Object.keys(badges.by_type).length === 0 ? (
-              <p className="text-gray-500 text-center py-8">
-                Henüz rozet verilmedi
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {Object.entries(badges.by_type).map(([type, count]) => (
-                  <div key={type} className="flex items-center justify-between">
-                    <span className="text-gray-700">{type}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-32 bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-brand-600 h-2 rounded-full"
-                          style={{
-                            width: `${
-                              badges.total_badges > 0
-                                ? (count / badges.total_badges) * 100
-                                : 0
-                            }%`,
-                          }}
-                        />
-                      </div>
-                      <span className="font-bold text-gray-900 w-12 text-right">
-                        {count}
-                      </span>
-                    </div>
+          {activeTab === "engagement" && engagement && (
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <UserCheck className="h-5 w-5 text-brand-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Katılım özeti</h3>
+                </div>
+                <div className="mt-4 space-y-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Katıldı</span>
+                    <span className="font-semibold text-gray-900">{engagement.attendance.attended}</span>
                   </div>
-                ))}
+                  <div className="h-2 rounded-full bg-gray-100">
+                    <div className="h-2 rounded-full bg-brand-600" style={{ width: `${Math.min(100, Math.max(0, engagement.attendance.attendance_rate || 0))}%` }} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Katılmadı</span>
+                    <span className="font-semibold text-gray-900">{engagement.attendance.not_attended}</span>
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
-        </div>
-      )}
 
-      {/* Tiers Tab */}
-      {activeTab === "tiers" && tiers && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <StatCard
-              icon={<Award className="h-6 w-6" />}
-              label="Toplam Sertifika"
-              value={tiers.total_certificates}
-              color="purple"
-            />
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Anket tamamlanma</h3>
+                </div>
+                <div className="mt-4 space-y-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Tamamlandı</span>
+                    <span className="font-semibold text-gray-900">{engagement.survey_completion.completed}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-gray-100">
+                    <div className="h-2 rounded-full bg-emerald-600" style={{ width: `${Math.min(100, Math.max(0, engagement.survey_completion.completion_rate || 0))}%` }} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Bekliyor</span>
+                    <span className="font-semibold text-gray-900">{engagement.survey_completion.pending}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
-            <StatCard
-              icon={<AlertCircle className="h-6 w-6" />}
-              label="Atanmamış"
-              value={tiers.unassigned_count}
-              color="red"
-            />
-          </div>
-
-          {/* Tier Distribution */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <PieChart className="h-5 w-5 text-brand-600" />
-              Seviye Dağılımı
-            </h3>
-
-            {Object.keys(tiers.tier_distribution).length === 0 ? (
-              <p className="text-gray-500 text-center py-8">
-                Henüz sertifika verilmedi
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {Object.entries(tiers.tier_distribution).map(
-                  ([tier, data]) => (
-                    <div key={tier} className="flex items-center justify-between">
-                      <div>
-                        <span className="text-gray-900 font-semibold">
-                          {tier}
-                        </span>
-                        <p className="text-sm text-gray-500 mt-1">
-                          {data.percentage}%
-                        </p>
+          {activeTab === "badges" && badges && (
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <Badge className="h-5 w-5 text-brand-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Rozet dağılımı</h3>
+                </div>
+                <div className="mt-4 space-y-2">
+                  {Object.entries(badges.by_type || {}).length === 0 ? (
+                    <p className="text-sm text-gray-500">Henüz rozet verisi yok.</p>
+                  ) : (
+                    Object.entries(badges.by_type).map(([type, count]) => (
+                      <div key={type} className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 text-sm">
+                        <span className="font-medium text-gray-700">{type}</span>
+                        <span className="font-semibold text-gray-900">{count}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-40 bg-gray-200 rounded-full h-3">
-                          <div
-                            className="bg-gradient-to-r from-brand-500 to-violet-500 h-3 rounded-full"
-                            style={{ width: `${data.percentage}%` }}
-                          />
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <Target className="h-5 w-5 text-amber-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Atama yöntemi</h3>
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <StatCard icon={Badge} label="Otomatik" value={badges.by_award_method.automatic} tone="amber" />
+                  <StatCard icon={Badge} label="Manuel" value={badges.by_award_method.manual} tone="sky" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "tiers" && tiers && (
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <Award className="h-5 w-5 text-brand-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Sertifika dağılımı</h3>
+                </div>
+                <div className="mt-4 space-y-2">
+                  {Object.entries(tiers.tier_distribution || {}).length === 0 ? (
+                    <p className="text-sm text-gray-500">Henüz seviye dağılımı yok.</p>
+                  ) : (
+                    Object.entries(tiers.tier_distribution).map(([tier, detail]) => (
+                      <div key={tier} className="rounded-xl bg-gray-50 px-4 py-3">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium text-gray-700">{tier}</span>
+                          <span className="font-semibold text-gray-900">{detail.count}</span>
                         </div>
-                        <span className="font-bold text-gray-900 w-12 text-right">
-                          {data.count}
-                        </span>
-                      </div>
-                    </div>
-                  )
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Timeline Tab */}
-      {activeTab === "timeline" && timeline && (
-        <div className="space-y-6">
-          {/* Registrations */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <LineChart className="h-5 w-5 text-brand-600" />
-              Kayıtlar
-            </h3>
-
-            {timeline.registrations.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">
-                Henüz kayıt yok
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {timeline.registrations.map((item) => (
-                  <div
-                    key={item.date}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <span className="text-gray-600">{item.date}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-32 bg-gray-100 rounded h-6">
-                        <div
-                          className="bg-brand-600 h-6 rounded flex items-center justify-center text-xs font-bold text-white"
-                          style={{
-                            width: `${Math.min(
-                              (item.count /
-                                Math.max(
-                                  ...timeline.registrations.map((r) => r.count)
-                                )) *
-                                100,
-                              100
-                            )}%`,
-                          }}
-                        >
-                          {item.count > 0 && item.count}
+                        <div className="mt-2 h-2 rounded-full bg-gray-200">
+                          <div className="h-2 rounded-full bg-brand-600" style={{ width: `${Math.min(100, Math.max(0, detail.percentage || 0))}%` }} />
                         </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    ))
+                  )}
+                </div>
               </div>
-            )}
-          </div>
 
-          {/* Survey Completions */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-              Anket Tamamlamaları
-            </h3>
-
-            {timeline.survey_completions.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">
-                Henüz anket tamamlanmadı
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {timeline.survey_completions.map((item) => (
-                  <div
-                    key={item.date}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <span className="text-gray-600">{item.date}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-32 bg-gray-100 rounded h-6">
-                        <div
-                          className="bg-green-600 h-6 rounded flex items-center justify-center text-xs font-bold text-white"
-                          style={{
-                            width: `${Math.min(
-                              (item.count /
-                                Math.max(
-                                  ...timeline.survey_completions.map(
-                                    (r) => r.count
-                                  )
-                                )) *
-                                100,
-                              100
-                            )}%`,
-                          }}
-                        >
-                          {item.count > 0 && item.count}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-emerald-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Özet</h3>
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <StatCard icon={Award} label="Toplam sertifika" value={tiers.total_certificates} tone="emerald" />
+                  <StatCard icon={AlertCircle} label="Atanmayan" value={tiers.unassigned_count} tone="amber" />
+                </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Certificate Creations */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Award className="h-5 w-5 text-purple-600" />
-              Sertifika Oluşturmaları
-            </h3>
-
-            {timeline.certificate_creations.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">
-                Henüz sertifika oluşturulmadı
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {timeline.certificate_creations.map((item) => (
-                  <div
-                    key={item.date}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <span className="text-gray-600">{item.date}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-32 bg-gray-100 rounded h-6">
-                        <div
-                          className="bg-purple-600 h-6 rounded flex items-center justify-center text-xs font-bold text-white"
-                          style={{
-                            width: `${Math.min(
-                              (item.count /
-                                Math.max(
-                                  ...timeline.certificate_creations.map(
-                                    (r) => r.count
-                                  )
-                                )) *
-                                100,
-                              100
-                            )}%`,
-                          }}
-                        >
-                          {item.count > 0 && item.count}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+          {activeTab === "timeline" && timeline && (
+            <div className="grid gap-4 lg:grid-cols-3">
+              <TimelineCard icon={CalendarDays} title="Kayıtlar" items={timeline.registrations} emptyText="Kayıt eğrisi henüz oluşmadı." tone="brand" />
+              <TimelineCard icon={QrCode} title="Anket tamamlamaları" items={timeline.survey_completions} emptyText="Anket verisi yok." tone="emerald" />
+              <TimelineCard icon={CheckCircle2} title="Sertifika üretimleri" items={timeline.certificate_creations} emptyText="Sertifika üretimi yok." tone="sky" />
+            </div>
+          )}
+        </>
       )}
-      </motion.div>
-    </FeatureGate>
+    </motion.div>
   );
 }
-
-// Missing Trophy icon import - using this as fallback
-const Trophy = ({ className = "h-6 w-6" }: { className?: string }) => (
-  <svg
-    className={className}
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-2 4h4m0 0h3a2 2 0 110 4h-3m0 0H7a2 2 0 110-4h3m-2-4a2 2 0 100-4m0 0a2 2 0 110 4"
-    />
-  </svg>
-);

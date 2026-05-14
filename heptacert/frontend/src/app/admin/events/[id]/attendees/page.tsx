@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   listAttendees, importAttendees, createManualAttendee, deleteAttendee, getAdminAttendeeSurveyLink,
@@ -15,10 +15,10 @@ import {
   Users, Upload, Search, Trash2, Loader2, ChevronLeft, Download,
   Award, BarChart3, CheckSquare, XSquare, RefreshCw, AlertCircle,
   UserCheck, UserX, CheckCircle2, QrCode, LockKeyhole, Hash, UserPlus,
-  ShieldAlert, Sparkles, Copy, Link2
+  ShieldAlert, Sparkles, Copy, Link2, ClipboardList, FileSpreadsheet
 } from "lucide-react";
 
-type Tab = "list" | "matrix";
+type Tab = "list" | "matrix" | "answers";
 
 export default function AdminAttendeesPage() {
   const params = useParams();
@@ -57,6 +57,12 @@ export default function AdminAttendeesPage() {
   const [loadingMatrix, setLoadingMatrix] = useState(false);
   const [matrixError, setMatrixError] = useState<string | null>(null);
 
+  // Question answers tab
+  const [answerAttendees, setAnswerAttendees] = useState<AttendeeOut[]>([]);
+  const [loadingAnswers, setLoadingAnswers] = useState(false);
+  const [answersError, setAnswersError] = useState<string | null>(null);
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
+
   // Bulk certify
   const [certifying, setCertifying] = useState(false);
   const [certResult, setCertResult] = useState<string | null>(null);
@@ -77,7 +83,9 @@ export default function AdminAttendeesPage() {
     ]);
     setEventName(r.name);
     setMinSessions(r.min_sessions_required ?? 1);
-    setRegistrationFields(Array.isArray(r.config?.registration_fields) ? r.config.registration_fields : []);
+    const fields = Array.isArray(r.config?.registration_fields) ? r.config.registration_fields : [];
+    setRegistrationFields(fields);
+    setSelectedQuestionId((current) => current || fields[0]?.id || null);
     const hasPaidPlan = subInfo.role === "superadmin" || (subInfo.active && ["pro", "growth", "enterprise"].includes(subInfo.plan_id ?? ""));
     setPlanOk(hasPaidPlan);
   }
@@ -110,6 +118,19 @@ export default function AdminAttendeesPage() {
     }
   }
 
+  async function loadQuestionAnswers() {
+    setLoadingAnswers(true);
+    setAnswersError(null);
+    try {
+      const data = await listAttendees(eventId, { page: 1, limit: 500 });
+      setAnswerAttendees(data.items);
+    } catch (e: any) {
+      setAnswersError(e.message);
+    } finally {
+      setLoadingAnswers(false);
+    }
+  }
+
   useEffect(() => {
     if (!eventId) return;
     loadEventMeta();
@@ -118,6 +139,7 @@ export default function AdminAttendeesPage() {
 
   useEffect(() => {
     if (tab === "matrix" && !matrix) loadMatrix();
+    if (tab === "answers" && answerAttendees.length === 0) loadQuestionAnswers();
   }, [tab]);
 
   useEffect(() => {
@@ -176,7 +198,7 @@ export default function AdminAttendeesPage() {
     const lastName = manualLastName.trim();
 
     if (!email || !firstName || !lastName) {
-      setListError("E-posta, ad ve soyad alanlari zorunlu.");
+      setListError("E-posta, ad ve soyad alanları zorunlu.");
       return;
     }
 
@@ -190,10 +212,10 @@ export default function AdminAttendeesPage() {
       setManualEmail("");
       setManualFirstName("");
       setManualLastName("");
-      setManualResult("Katilimci basariyla eklendi.");
+      setManualResult("Katılımcı başarıyla eklendi.");
       await loadAttendees(1, "");
     } catch (e: any) {
-      setListError(e.message || "Manuel katilimci eklenemedi.");
+      setListError(e.message || "Manuel katılımcı eklenemedi.");
     } finally {
       setAddingManual(false);
     }
@@ -331,6 +353,34 @@ export default function AdminAttendeesPage() {
     return [...fieldPreview, ...extraPreview].slice(0, 3);
   }, [registrationFields]);
 
+  const formatAnswerValue = useCallback((value: unknown) => {
+    if (value == null || value === "") return "Yanıt yok";
+    if (Array.isArray(value)) return value.length ? value.map((item) => String(item)).join(", ") : "Yanıt yok";
+    if (typeof value === "boolean") return value ? "Evet" : "Hayır";
+    if (typeof value === "object") return JSON.stringify(value);
+    return String(value);
+  }, []);
+
+  const answerQuestionStats = useMemo(
+    () =>
+      registrationFields.map((field) => {
+        const answeredCount = answerAttendees.filter((attendee) => {
+          const value = attendee.registration_answers?.[field.id];
+          return Array.isArray(value) ? value.length > 0 : value != null && value !== "";
+        }).length;
+        return { field, answeredCount };
+      }),
+    [answerAttendees, registrationFields]
+  );
+
+  const selectedQuestion = registrationFields.find((field) => field.id === selectedQuestionId) || registrationFields[0] || null;
+  const selectedQuestionAnswers = selectedQuestion
+    ? answerAttendees.map((attendee) => ({
+        attendee,
+        value: attendee.registration_answers?.[selectedQuestion.id],
+      }))
+    : [];
+
   return (
     <div className="flex flex-col gap-6 pb-20">
         <EventAdminNav eventId={eventId} eventName={eventName} active="attendees" className="mb-6 flex flex-col gap-2" />
@@ -405,13 +455,19 @@ export default function AdminAttendeesPage() {
             onClick={() => setTab("list")}
             className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${tab === "list" ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
           >
-            <span className="flex items-center gap-2"><Users className="w-4 h-4" /> Liste</span>
+            <span className="flex items-center gap-2"><Users className="w-4 h-4" /> Katılımcı Listesi</span>
           </button>
           <button
             onClick={() => setTab("matrix")}
             className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${tab === "matrix" ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
           >
             <span className="flex items-center gap-2"><BarChart3 className="w-4 h-4" /> Yoklama Matrisi</span>
+          </button>
+          <button
+            onClick={() => setTab("answers")}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${tab === "answers" ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
+          >
+            <span className="flex items-center gap-2"><ClipboardList className="w-4 h-4" /> Soru Bazlı Cevaplar</span>
           </button>
         </div>
         </div>
@@ -420,7 +476,7 @@ export default function AdminAttendeesPage() {
           <>
             <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-5 shadow-sm">
               <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <UserPlus className="w-4 h-4 text-emerald-500" /> Manuel Katilimci Ekle
+                <UserPlus className="w-4 h-4 text-emerald-500" /> Manuel Katılımcı Ekle
               </h2>
               <form onSubmit={handleManualAdd} className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_1fr_1fr_auto]">
                 <input
@@ -648,6 +704,123 @@ export default function AdminAttendeesPage() {
               </>
             )}
           </>
+        )}
+
+        {tab === "answers" && (
+          <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                    <ClipboardList className="h-4 w-4 text-indigo-600" />
+                    Form Soruları
+                  </h2>
+                  <p className="mt-1 text-xs leading-5 text-gray-500">
+                    Google Forms mantığında, önce soruyu seçip sonra katılımcı cevaplarını inceleyin.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void loadQuestionAnswers()}
+                  className="rounded-lg border border-gray-200 bg-white p-2 text-gray-500 transition hover:bg-gray-50 hover:text-indigo-600"
+                  title="Cevapları yenile"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-3 py-3 text-xs leading-5 text-blue-800">
+                <div className="flex items-start gap-2">
+                  <FileSpreadsheet className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p>
+                    E-tablo için şimdilik üstteki <b>Excel İndir</b> butonu kullanılabilir. Google Sheets'e canlı bağlamak için ayrıca Google OAuth/senkronizasyon akışı gerekir.
+                  </p>
+                </div>
+              </div>
+
+              {registrationFields.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-400">
+                  Bu etkinlikte özel kayıt sorusu yok.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {answerQuestionStats.map(({ field, answeredCount }) => (
+                    <button
+                      key={field.id}
+                      type="button"
+                      onClick={() => setSelectedQuestionId(field.id)}
+                      className={`w-full rounded-xl border px-3 py-3 text-left transition ${
+                        selectedQuestion?.id === field.id
+                          ? "border-indigo-200 bg-indigo-50 text-indigo-900"
+                          : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm font-semibold">{field.label}</p>
+                        <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-xs font-bold text-gray-500">
+                          {answeredCount}/{answerAttendees.length}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-gray-500">
+                        {field.type === "textarea" ? "Uzun metin" : field.type === "select" ? "Seçenekli soru" : field.type === "file" ? "Dosya yükleme" : "Kısa cevap"}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+              <div className="border-b border-gray-100 px-5 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">Seçili soru</p>
+                <h3 className="mt-1 text-lg font-black text-gray-900">{selectedQuestion?.label || "Soru seçin"}</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  {answerAttendees.length} katılımcı içinde cevap dağılımı gösteriliyor.
+                </p>
+              </div>
+
+              {answersError && (
+                <div className="m-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{answersError}</div>
+              )}
+
+              {loadingAnswers ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 className="h-7 w-7 animate-spin text-indigo-500" />
+                </div>
+              ) : !selectedQuestion ? (
+                <div className="px-5 py-16 text-center text-sm text-gray-400">İncelenecek soru bulunamadı.</div>
+              ) : selectedQuestionAnswers.length === 0 ? (
+                <div className="px-5 py-16 text-center text-sm text-gray-400">Henüz katılımcı cevabı yok.</div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {selectedQuestionAnswers.map(({ attendee, value }) => {
+                    const hasAnswer = Array.isArray(value) ? value.length > 0 : value != null && value !== "";
+                    return (
+                      <div key={`${selectedQuestion.id}-${attendee.id}`} className="grid gap-3 px-5 py-4 md:grid-cols-[240px_1fr]">
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedAttendee(attendee)}
+                            className="text-left text-sm font-bold text-gray-900 transition hover:text-indigo-600"
+                          >
+                            {attendee.name}
+                          </button>
+                          <p className="mt-1 break-all text-xs text-gray-500">{attendee.email}</p>
+                        </div>
+                        <div className={`rounded-xl px-4 py-3 text-sm leading-6 ${hasAnswer ? "bg-gray-50 text-gray-800" : "bg-gray-50 text-gray-400"}`}>
+                          {selectedQuestion.type === "file" ? (
+                            <span>{hasAnswer ? "Dosya cevabı katılımcı kartında görüntülenebilir." : "Yanıt yok"}</span>
+                          ) : (
+                            <span className="whitespace-pre-wrap">{formatAnswerValue(value)}</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
         {tab === "matrix" && (

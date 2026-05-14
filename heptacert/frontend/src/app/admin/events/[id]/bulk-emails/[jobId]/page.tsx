@@ -144,7 +144,7 @@ export default function EmailJobDetailsPage() {
             <QrCode className="h-3.5 w-3.5" /> Check-in
           </Link>
           <Link href={`/admin/events/${eventId}/gamification`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
-            <Target className="h-3.5 w-3.5" /> Gamification
+            <Target className="h-3.5 w-3.5" /> Oyunlaştırma
           </Link>
           <Link href={`/admin/events/${eventId}/surveys`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
             <UserCheck className="h-3.5 w-3.5" /> Anketler
@@ -156,7 +156,7 @@ export default function EmailJobDetailsPage() {
             <Mail className="h-3.5 w-3.5" /> Email
           </Link>
           <span className="inline-flex items-center gap-1.5 rounded-md bg-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700">
-            <Send className="h-3.5 w-3.5" /> Toplu Email
+            <Send className="h-3.5 w-3.5" /> Toplu E-posta
           </span>
           <Link href={`/admin/events/${eventId}/settings`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
             <LockKeyhole className="h-3.5 w-3.5" /> Ayarlar

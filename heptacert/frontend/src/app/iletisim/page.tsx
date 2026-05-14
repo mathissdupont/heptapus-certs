@@ -31,8 +31,8 @@ export default function IletisimPage() {
         {
           title: "Hukuki ve KVKK",
           subtitle: "Yasal Talepler",
-          href: "mailto:legal@heptapusgroup.com",
-          label: "legal@heptapusgroup.com",
+          href: "mailto:contact@heptapusgroup.com",
+          label: "contact@heptapusgroup.com",
           desc: "KVKK başvuruları, gizlilik talepleri ve hukuki bildirimler için.",
           icon: MessageCircle,
           iconClass: "bg-emerald-50 text-emerald-600",
@@ -69,8 +69,8 @@ export default function IletisimPage() {
         {
           title: "Legal and Privacy",
           subtitle: "Formal Requests",
-          href: "mailto:legal@heptapusgroup.com",
-          label: "legal@heptapusgroup.com",
+          href: "mailto:contact@heptapusgroup.com",
+          label: "contact@heptapusgroup.com",
           desc: "For privacy requests, legal notices, and compliance matters.",
           icon: MessageCircle,
           iconClass: "bg-emerald-50 text-emerald-600",

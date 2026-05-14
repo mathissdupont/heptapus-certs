@@ -1,12 +1,13 @@
 ﻿"use client";
 
 import { useMemo, useState } from "react";
-import { apiFetch, setToken, clearToken } from "@/lib/api";
+import { API_BASE, apiFetch, setToken, clearToken } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lock, Mail, Loader2, ArrowRight, ShieldCheck, KeyRound, Sparkles, CheckCircle2 } from "lucide-react";
+import { Lock, Mail, Loader2, ArrowRight, KeyRound, Sparkles, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import HeptaCertLogoMark from "@/components/Brand/HeptaCertLogoMark";
 
 type MeOut = {
   id: number;
@@ -36,6 +37,7 @@ export default function AdminLogin() {
             noAccount: "Hesabınız yok mu?",
             register: "Ücretsiz Kayıt Ol",
             magicLogin: "Magic link ile giriş yap",
+            googleLogin: "Google ile devam et",
             otpTitle: "İki Faktörlü Doğrulama",
             otpSubtitle: "Kimlik doğrulama uygulamanızdaki 6 haneli kodu girin",
             otpCode: "Doğrulama Kodu",
@@ -68,6 +70,7 @@ export default function AdminLogin() {
             noAccount: "Don't have an account?",
             register: "Create Free Account",
             magicLogin: "Sign in with a magic link",
+            googleLogin: "Continue with Google",
             otpTitle: "Two-Factor Authentication",
             otpSubtitle: "Enter the 6-digit code from your authenticator app",
             otpCode: "Verification Code",
@@ -183,9 +186,7 @@ export default function AdminLogin() {
           {step === "credentials" ? (
             <motion.div key="credentials" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div className="mb-8 text-center">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-600 text-white shadow-brand">
-                  <ShieldCheck className="h-6 w-6" />
-                </div>
+                <HeptaCertLogoMark className="mx-auto mb-4 h-12 w-12 rounded-xl shadow-brand" />
                 <h1 className="text-2xl font-bold text-gray-900">{copy.title}</h1>
                 <p className="mt-1.5 text-sm text-gray-500">{copy.subtitle}</p>
               </div>
@@ -244,6 +245,20 @@ export default function AdminLogin() {
                   )}
                 </button>
               </form>
+
+              <div className="my-5 flex items-center gap-3">
+                <div className="h-px flex-1 bg-gray-200" />
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">veya</span>
+                <div className="h-px flex-1 bg-gray-200" />
+              </div>
+
+              <a
+                href={`${API_BASE}/auth/google/start?mode=admin&next=${encodeURIComponent("/admin/events")}`}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+              >
+                <span className="text-base font-black text-blue-600">G</span>
+                {copy.googleLogin}
+              </a>
 
               <div className="mt-6 text-center text-sm text-gray-500">
                 {copy.noAccount}{" "}

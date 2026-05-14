@@ -170,7 +170,7 @@ export default function VerifyIndexPage() {
               <img src={branding.brand_logo} alt={brandName} className="h-8 w-auto object-contain" />
             ) : (
               <div className="flex items-center gap-2">
-                <ShieldCheck className="h-6 w-6 text-slate-900" />
+                <img src="/favicon.svg" alt="" className="h-8 w-8 object-contain" />
                 <span className="text-lg font-bold tracking-tight text-slate-900">{brandName}</span>
               </div>
             )}
@@ -351,7 +351,7 @@ export default function VerifyIndexPage() {
               {copy.trustPoints.map((point, i) => (
                 <li key={i} className="flex items-start gap-3">
                   <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100">
-                    <ShieldCheck className="h-3.5 w-3.5 text-slate-700" />
+                    <CheckCircle2 className="h-3.5 w-3.5 text-slate-700" />
                   </div>
                   <span className="text-sm font-medium leading-relaxed text-slate-700">{point}</span>
                 </li>

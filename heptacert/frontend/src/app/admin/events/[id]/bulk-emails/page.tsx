@@ -60,7 +60,7 @@ export default function BulkEmailsPage() {
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
   const copy = lang === "tr"
     ? {
-        pageTitle: "Toplu Email Kampanyalari",
+        pageTitle: "Toplu E-posta Kampanyaları",
         pageSubtitle: "Kampanya baslatma, ilerleme takibi ve hedef secimi artik daha net bir akista.",
         newCampaign: "Yeni kampanya",
         loadError: "Veri yukleme basarisiz.",

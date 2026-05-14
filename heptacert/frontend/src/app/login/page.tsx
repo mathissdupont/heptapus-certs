@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Building2, Lock, Mail, ShieldCheck, UserRound } from "lucide-react";
-import { loginPublicMember, setPublicMemberToken } from "@/lib/api";
+import { API_BASE, loginPublicMember, setPublicMemberToken } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 type LoginMode = "member" | "organizer";
@@ -37,6 +37,7 @@ function MemberLoginContent() {
             emailPlaceholder: "siz@example.com",
             passwordPlaceholder: "Şifreniz",
             submit: "Üye Girişi Yap",
+            googleLogin: "Google ile devam et",
             loading: "Giriş yapılıyor...",
             loginFailed: "Giriş başarısız oldu.",
             organizerCta: "Yönetici Paneline Git",
@@ -58,6 +59,7 @@ function MemberLoginContent() {
             emailPlaceholder: "you@example.com",
             passwordPlaceholder: "Your password",
             submit: "Sign In as Member",
+            googleLogin: "Continue with Google",
             loading: "Signing in...",
             loginFailed: "Login failed.",
             organizerCta: "Open Admin Panel",
@@ -195,6 +197,20 @@ function MemberLoginContent() {
                   )}
                 </button>
               </form>
+
+              <div className="my-5 flex items-center gap-3">
+                <div className="h-px flex-1 bg-slate-200" />
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">veya</span>
+                <div className="h-px flex-1 bg-slate-200" />
+              </div>
+
+              <a
+                href={`${API_BASE}/auth/google/start?mode=member&next=${encodeURIComponent("/events")}`}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                <span className="text-base font-black text-blue-600">G</span>
+                {copy.googleLogin}
+              </a>
 
               <div className="mt-6 text-center text-sm text-slate-500">
                 {copy.noAccount}{" "}

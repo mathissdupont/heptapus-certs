@@ -1,13 +1,19 @@
-﻿"use client";
+"use client";
 
-import { motion } from "framer-motion";
-import { ArrowRight, Compass, Users, CheckCircle2, QrCode, Search, Building2, CalendarDays, MessageSquare, Zap, ShieldCheck } from "lucide-react";
+import { ArrowRight, Building2, CalendarDays, CheckCircle2, QrCode, Users } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+import { API_BASE } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
-type Branding = { org_name?: string; brand_logo?: string | null; brand_color?: string | null; settings?: { hide_heptacert_home?: boolean } };
+type Branding = {
+  org_name?: string;
+  brand_logo?: string | null;
+  brand_color?: string | null;
+  settings?: { hide_heptacert_home?: boolean };
+};
+
 type StatsData = {
   active_members?: string;
   hosted_events?: string;
@@ -20,10 +26,6 @@ type StatsData = {
 
 const HOSTS = new Set(["heptacert.com", "www.heptacert.com", "cert.heptapusgroup.com", "localhost", "127.0.0.1"]);
 
-// Animasyonlar
-const fadeUp = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } } };
-const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.1 } } };
-
 export default function LandingPage() {
   const { lang } = useI18n();
   const [stats, setStats] = useState<StatsData | null>(null);
@@ -32,267 +34,246 @@ export default function LandingPage() {
 
   useEffect(() => {
     if (typeof window !== "undefined") setHost(window.location.hostname);
-    fetch("/api/branding", { credentials: "include" })
+
+    fetch(`${API_BASE}/branding`, { credentials: "include", cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!data) return;
         setBranding(data);
         if (data.brand_color) document.documentElement.style.setProperty("--site-brand-color", data.brand_color);
       })
-      .catch(() => { });
-    
-    fetch("/api/stats")
+      .catch(() => {});
+
+    fetch(`${API_BASE}/stats`, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => data && setStats(data))
-      .catch(() => { });
+      .then((data) => {
+        if (data) setStats(data);
+      })
+      .catch(() => {});
   }, []);
 
   const brandName = branding?.org_name || "HeptaCert";
-  const brandColor = branding?.brand_color || "#0f172a"; 
-  const isWhiteLabel = useMemo(() => !!branding?.org_name && (branding?.settings?.hide_heptacert_home || (host ? !HOSTS.has(host) : false)), [branding, host]);
-  const showECommerceLinks = !isWhiteLabel;
+  const isWhiteLabel = useMemo(
+    () => !!branding?.org_name && (branding?.settings?.hide_heptacert_home || (host ? !HOSTS.has(host) : false)),
+    [branding, host],
+  );
+  const showPlatformLinks = !isWhiteLabel;
 
-  const copy = useMemo(() => lang === "tr" ? {
-    heroBadge: "Yeni Nesil Topluluk Ekosistemi",
-    heroTitle: "Etkinlikleri Keşfet, Topluluğa Katıl, Sertifikanı Al",
-    heroDesc: "Binlerce kişinin buluştuğu etkinliklere katılın, tartışmalara dahil olun ve katılımınızı doğrulanabilir sertifikalarla kanıtlayın.",
-    searchPlaceholder: "Etkinlik, topluluk veya konu ara...",
-    primaryBtn: "Etkinlikleri Keşfet",
-    secondaryBtn: "Topluluklara Göz At",
-    
-    feature1Title: "Topluluklarla Bağlantıda Kal",
-    feature1Desc: "Üniversite kulüpleri, yazılım toplulukları ve bağımsız grupların açtığı tartışmalara katılın, fikirlerinizi paylaşın.",
-    
-    feature2Title: "Etkinlik Yönetimi & Check-in",
-    feature2Desc: "Tek tıkla etkinliklere kayıt olun. Kapıda QR kodunuzu okutarak saniyeler içinde içeri girin ve yoklamanızı verin.",
-    
-    feature3Title: "Doğrulanabilir Sertifikalar",
-    feature3Desc: "Etkinlik sonu hak ettiğiniz sertifikanız anında profilinize düşer. LinkedIn'e tek tıkla ekleyin, orijinalliğini herkes kanıtlasın.",
-    
-    statsUsers: "Aktif Üye",
-    statsEvents: "Düzenlenen Etkinlik",
-    statsCerts: "Verilen Sertifika",
-    
-    discoverTitle: "Platformda Neler Oluyor?",
-    discoverDesc: "Güncel etkinliklere ve aktif topluluklara göz atın.",
-    
-    ctaTitle: "Kendi Topluluğunu Büyüt",
-    ctaDesc: "Etkinlik düzenlemek, katılımcıları yönetmek ve saniyeler içinde yüzlerce sertifika üretmek için organizatör hesabını hemen aç.",
-    ctaBtn: "Organizatör Olarak Başla",
-    
-    footerVerify: "Sertifika Doğrula",
-    footerContact: "İletişim",
-    footerPrivacy: "Gizlilik Politikası",
-    footerTerms: "Kullanım Koşulları"
-  } : {
-    heroBadge: "Next-Gen Community Ecosystem",
-    heroTitle: "Discover Events, Join Communities, Earn Certificates",
-    heroDesc: "Join events where thousands meet, participate in discussions, and prove your attendance with verifiable, blockchain-backed certificates.",
-    searchPlaceholder: "Search events, communities or topics...",
-    primaryBtn: "Explore Events",
-    secondaryBtn: "Browse Communities",
-    
-    feature1Title: "Stay Connected with Communities",
-    feature1Desc: "Join discussions opened by university clubs, tech communities, and independent groups. Share your ideas.",
-    
-    feature2Title: "Event Management & Check-in",
-    feature2Desc: "Register for events with one click. Scan your QR code at the door to get in and complete your check-in in seconds.",
-    
-    feature3Title: "Verifiable Certificates",
-    feature3Desc: "The certificate you earned drops into your profile instantly. Add it to LinkedIn with one click, let anyone prove its authenticity.",
-    
-    statsUsers: "Active Members",
-    statsEvents: "Hosted Events",
-    statsCerts: "Issued Certificates",
-    
-    discoverTitle: "What's happening on the platform?",
-    discoverDesc: "Check out the latest events and active communities.",
-    
-    ctaTitle: "Grow Your Own Community",
-    ctaDesc: "Create your organizer account now to host events, manage attendees, and issue hundreds of certificates in seconds.",
-    ctaBtn: "Start as an Organizer",
-    
-    footerVerify: "Verify Certificate",
-    footerContact: "Contact",
-    footerPrivacy: "Privacy Policy",
-    footerTerms: "Terms of Service"
-  }, [lang]);
+  const copy = useMemo(
+    () =>
+      lang === "tr"
+        ? {
+            heroTitle: "Etkinlik, kayıt ve sertifika süreçlerini tek yerden yönetin.",
+            heroDesc:
+              "HeptaCert; etkinlik kaydı, QR check-in, katılımcı takibi ve doğrulanabilir sertifika üretimini sade bir yönetim akışında birleştirir.",
+            primaryBtn: "Ücretsiz Başla",
+            secondaryBtn: "Etkinlikleri Gör",
+            verifyBtn: "Sertifika Doğrula",
+            statsUsers: "Aktif Üye",
+            statsEvents: "Düzenlenen Etkinlik",
+            statsCerts: "Verilen Sertifika",
+            sectionTitle: "Sade ama operasyonel",
+            sectionDesc: "Organizatörlerin günlük işini hızlandıran temel akışlar.",
+            feature1Title: "Kayıt ve katılımcı yönetimi",
+            feature1Desc: "Kayıt formları, onaylar, belge yüklemeleri ve katılımcı listeleri tek panelde.",
+            feature2Title: "QR check-in",
+            feature2Desc: "Oturum bazlı QR yoklama ve giriş kontrolüyle sahada hızlı operasyon.",
+            feature3Title: "Doğrulanabilir sertifika",
+            feature3Desc: "Katılımcılar sertifikalarını paylaşabilir, kurumlar doğruluğunu anında kontrol edebilir.",
+            ctaTitle: "Organizatör paneline geçin",
+            ctaDesc: "Etkinlik oluşturun, kayıt alın ve sertifikaları operasyon bitmeden hazır hale getirin.",
+            pricing: "Fiyatlandırma",
+            footerVerify: "Sertifika Doğrula",
+            footerContact: "İletişim",
+            footerPrivacy: "Gizlilik Politikası",
+            footerTerms: "Kullanım Koşulları",
+          }
+        : {
+            heroTitle: "Run event registration and certificates from one workspace.",
+            heroDesc:
+              "HeptaCert combines registration, QR check-in, attendee operations, and verifiable certificate delivery in a clean organizer workflow.",
+            primaryBtn: "Start Free",
+            secondaryBtn: "Explore Events",
+            verifyBtn: "Verify Certificate",
+            statsUsers: "Active Members",
+            statsEvents: "Hosted Events",
+            statsCerts: "Issued Certificates",
+            sectionTitle: "Lightweight, operational, focused",
+            sectionDesc: "Core workflows built for everyday organizer work.",
+            feature1Title: "Registration management",
+            feature1Desc: "Forms, notices, documents, approvals, and attendee lists in one panel.",
+            feature2Title: "QR check-in",
+            feature2Desc: "Session-level attendance and entrance control for faster on-site operations.",
+            feature3Title: "Verifiable certificates",
+            feature3Desc: "Participants can share credentials, and anyone can verify authenticity instantly.",
+            ctaTitle: "Move into the organizer panel",
+            ctaDesc: "Create your event, collect registrations, and prepare certificates before the operation ends.",
+            pricing: "Pricing",
+            footerVerify: "Verify Certificate",
+            footerContact: "Contact",
+            footerPrivacy: "Privacy Policy",
+            footerTerms: "Terms of Service",
+          },
+    [lang],
+  );
+
+  const statItems = [
+    { label: copy.statsUsers, value: stats?.active_members ?? "..." },
+    { label: copy.statsEvents, value: stats?.hosted_events ?? "..." },
+    { label: copy.statsCerts, value: stats?.issued_certificates ?? stats?.certs_issued ?? "..." },
+  ];
+
+  const features = [
+    { icon: Users, title: copy.feature1Title, desc: copy.feature1Desc },
+    { icon: QrCode, title: copy.feature2Title, desc: copy.feature2Desc },
+    { icon: CheckCircle2, title: copy.feature3Title, desc: copy.feature3Desc },
+  ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F9FAFB] dark:bg-gray-950 font-sans text-gray-900 dark:text-gray-100">
-      
-      {/* HERO SECTION - Sosyal Platform Tarzı */}
-      <section className="relative pt-24 pb-16 md:pt-32 md:pb-24 overflow-hidden border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-[20%] -right-[10%] w-[50%] h-[50%] rounded-full bg-blue-500/10 dark:bg-blue-500/5 blur-3xl" />
-          <div className="absolute top-[40%] -left-[10%] w-[40%] h-[40%] rounded-full bg-purple-500/10 dark:bg-purple-500/5 blur-3xl" />
-        </div>
-
-        <motion.div variants={stagger} initial="hidden" animate="show" className="relative max-w-5xl mx-auto px-4 sm:px-6 text-center">
-          
-          <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-xs font-semibold uppercase tracking-wide mb-8">
-            <Zap className="h-3.5 w-3.5" />
-            {copy.heroBadge}
-          </motion.div>
-
-          <motion.h1 variants={fadeUp} className="text-4xl md:text-6xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-6">
-            {copy.heroTitle}
-          </motion.h1>
-
-          <motion.p variants={fadeUp} className="text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto mb-10 leading-relaxed">
-            {copy.heroDesc}
-          </motion.p>
-
-          {/* Arama ve Navigasyon Çubuğu */}
-          <motion.div variants={fadeUp} className="max-w-2xl mx-auto mb-10">
-            <div className="relative group flex items-center bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-2 shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
-              <Search className="h-5 w-5 text-gray-400 ml-3" />
-              <input 
-                type="text" 
-                placeholder={copy.searchPlaceholder}
-                className="w-full bg-transparent border-none focus:ring-0 text-gray-900 dark:text-white placeholder-gray-500 px-4 py-2 outline-none"
-              />
-              <Link href="/events" className="hidden sm:flex items-center justify-center px-6 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-semibold rounded-xl hover:bg-slate-800 dark:hover:bg-gray-100 transition-colors shadow-sm whitespace-nowrap">
+    <div className="flex min-h-screen flex-col bg-zinc-50 text-zinc-950">
+      <section className="border-b border-zinc-200 bg-white">
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:py-20">
+          <div>
+            <div className="mb-6 flex items-center gap-3">
+              {branding?.brand_logo ? (
+                <img src={branding.brand_logo} alt={brandName} className="h-10 w-auto object-contain" />
+              ) : isWhiteLabel ? (
+                <span className="text-lg font-bold">{brandName}</span>
+              ) : (
+                <Image src="/logo.png" alt="HeptaCert" width={132} height={36} className="h-10 w-auto" priority />
+              )}
+            </div>
+            <h1 className="max-w-3xl text-4xl font-black tracking-tight text-zinc-950 sm:text-5xl lg:text-6xl">
+              {copy.heroTitle}
+            </h1>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-zinc-600 sm:text-lg">{copy.heroDesc}</p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/register?mode=organizer" className="inline-flex items-center gap-2 rounded-xl bg-zinc-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-zinc-800">
                 {copy.primaryBtn}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              {showPlatformLinks && (
+                <Link href="/events" className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-5 py-3 text-sm font-bold text-zinc-800 transition hover:bg-zinc-50">
+                  <CalendarDays className="h-4 w-4" />
+                  {copy.secondaryBtn}
+                </Link>
+              )}
+              <Link href="/verify" className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-5 py-3 text-sm font-bold text-zinc-800 transition hover:bg-zinc-50">
+                <QrCode className="h-4 w-4" />
+                {copy.verifyBtn}
               </Link>
             </div>
-          </motion.div>
-
-          {/* Quick Links */}
-          <motion.div variants={fadeUp} className="flex flex-wrap justify-center gap-4">
-            <Link href="/events" className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-              <CalendarDays className="h-4 w-4 text-blue-500" />
-              Etkinlikler
-            </Link>
-            <Link href="/organizations" className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-              <Building2 className="h-4 w-4 text-purple-500" />
-              {copy.secondaryBtn}
-            </Link>
-            <Link href="/verify" className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-              <QrCode className="h-4 w-4 text-emerald-500" />
-              {copy.footerVerify}
-            </Link>
-          </motion.div>
-
-        </motion.div>
-      </section>
-
-      {/* STATS SECTION */}
-      {showECommerceLinks && (
-        <section className="py-10 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-center divide-y sm:divide-y-0 sm:divide-x divide-gray-100 dark:divide-gray-800">
-              <div className="flex flex-col py-4 sm:py-0">
-                <span className="text-3xl font-black text-gray-900 dark:text-white">{stats?.active_members || "0"}</span>
-                <span className="text-sm font-medium text-gray-500 mt-1">{copy.statsUsers}</span>
-              </div>
-              <div className="flex flex-col py-4 sm:py-0">
-                <span className="text-3xl font-black text-gray-900 dark:text-white">{stats?.hosted_events || "0"}</span>
-                <span className="text-sm font-medium text-gray-500 mt-1">{copy.statsEvents}</span>
-              </div>
-              <div className="flex flex-col py-4 sm:py-0">
-                <span className="text-3xl font-black text-gray-900 dark:text-white">{stats?.issued_certificates || stats?.certs_issued || "0"}</span>
-                <span className="text-sm font-medium text-gray-500 mt-1">{copy.statsCerts}</span>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* HOW IT WORKS / FEATURES (Sosyal Odaklı) */}
-      <section className="py-20 md:py-28">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">{copy.discoverTitle}</h2>
-            <p className="text-gray-600 dark:text-gray-400">{copy.discoverDesc}</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Feature 1 */}
-            <div className="bg-white dark:bg-gray-900 p-8 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow">
-              <div className="h-12 w-12 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center mb-6">
-                <MessageSquare className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+          <div className="rounded-3xl border border-zinc-200 bg-zinc-50 p-5">
+            <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-between gap-4 border-b border-zinc-100 pb-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">HeptaCert</p>
+                  <p className="mt-1 text-sm font-semibold text-zinc-900">{copy.sectionTitle}</p>
+                </div>
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">Live</span>
               </div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">{copy.feature1Title}</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                {copy.feature1Desc}
-              </p>
-            </div>
-
-            {/* Feature 2 */}
-            <div className="bg-white dark:bg-gray-900 p-8 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow">
-              <div className="h-12 w-12 rounded-2xl bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center mb-6">
-                <Compass className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              <div className="mt-5 grid gap-3">
+                {features.map((feature) => {
+                  const Icon = feature.icon;
+                  return (
+                    <div key={feature.title} className="flex gap-3 rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-zinc-800">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-zinc-950">{feature.title}</h3>
+                        <p className="mt-1 text-sm leading-6 text-zinc-500">{feature.desc}</p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">{copy.feature2Title}</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                {copy.feature2Desc}
-              </p>
-            </div>
-
-            {/* Feature 3 */}
-            <div className="bg-white dark:bg-gray-900 p-8 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow">
-              <div className="h-12 w-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center mb-6">
-                <ShieldCheck className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">{copy.feature3Title}</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                {copy.feature3Desc}
-              </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA SECTION (Organizatörler İçin) */}
-      {showECommerceLinks && (
-        <section className="pb-20 md:pb-28">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <div className="relative rounded-[2.5rem] bg-slate-900 overflow-hidden px-6 py-16 sm:px-12 sm:py-20 text-center shadow-xl">
-              <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay"></div>
-              <div className="relative z-10">
-                <Users className="h-12 w-12 text-blue-400 mx-auto mb-6 opacity-80" />
-                <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4">{copy.ctaTitle}</h2>
-                <p className="text-lg text-slate-300 max-w-2xl mx-auto mb-10">
-                  {copy.ctaDesc}
-                </p>
-                <div className="flex flex-col sm:flex-row justify-center gap-4">
-                  <Link href="/register?mode=organizer" className="inline-flex items-center justify-center px-8 py-3.5 bg-white text-slate-900 font-bold rounded-xl hover:bg-gray-100 transition-colors">
-                    {copy.ctaBtn} <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                  <Link href="/pricing" className="inline-flex items-center justify-center px-8 py-3.5 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-700 border border-slate-700 transition-colors">
-                    Planları İncele
-                  </Link>
+      {showPlatformLinks && (
+        <section className="border-b border-zinc-200 bg-white">
+          <div className="mx-auto grid max-w-6xl divide-y divide-zinc-100 px-4 py-8 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:px-6">
+            {statItems.map((item) => (
+              <div key={item.label} className="py-5 text-center sm:py-3">
+                <p className="text-3xl font-black tracking-tight text-zinc-950">{item.value}</p>
+                <p className="mt-1 text-sm font-medium text-zinc-500">{item.label}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="flex-1 py-14 sm:py-18">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="max-w-2xl">
+            <h2 className="text-2xl font-black tracking-tight text-zinc-950 sm:text-3xl">{copy.sectionTitle}</h2>
+            <p className="mt-3 text-base leading-7 text-zinc-600">{copy.sectionDesc}</p>
+          </div>
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            {features.map((feature) => {
+              const Icon = feature.icon;
+              return (
+                <div key={feature.title} className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+                  <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-base font-bold text-zinc-950">{feature.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-zinc-500">{feature.desc}</p>
                 </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {showPlatformLinks && (
+        <section className="pb-14">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6">
+            <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-8 sm:p-8">
+              <div>
+                <h2 className="text-2xl font-black tracking-tight text-zinc-950">{copy.ctaTitle}</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600">{copy.ctaDesc}</p>
+              </div>
+              <div className="mt-5 flex shrink-0 flex-wrap gap-3 sm:mt-0">
+                <Link href="/register?mode=organizer" className="inline-flex items-center gap-2 rounded-xl bg-zinc-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-zinc-800">
+                  {copy.primaryBtn}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link href="/pricing" className="inline-flex items-center rounded-xl border border-zinc-200 bg-white px-5 py-3 text-sm font-bold text-zinc-800 transition hover:bg-zinc-50">
+                  {copy.pricing}
+                </Link>
               </div>
             </div>
           </div>
         </section>
       )}
 
-      {/* FOOTER */}
-      <footer className="mt-auto border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 py-10">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+      <footer className="mt-auto border-t border-zinc-200 bg-white py-8">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-5 px-4 sm:px-6 md:flex-row">
           <div className="flex items-center gap-3">
             {branding?.brand_logo ? (
               <img src={branding.brand_logo} alt={branding.org_name || "Logo"} className="h-7 w-auto" />
             ) : isWhiteLabel ? (
-              <span className="text-lg font-bold text-gray-900 dark:text-white">{brandName}</span>
+              <span className="text-base font-bold text-zinc-950">{brandName}</span>
             ) : (
               <Image src="/logo.png" alt="HeptaCert" width={120} height={30} className="h-7 w-auto" />
             )}
-            <span className="text-sm text-gray-400">© {new Date().getFullYear()}</span>
+            <span className="text-sm text-zinc-400">© {new Date().getFullYear()}</span>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm font-medium text-gray-500 dark:text-gray-400">
-            <Link href="/verify" className="hover:text-gray-900 dark:hover:text-white transition-colors">{copy.footerVerify}</Link>
-            <Link href="/iletisim" className="hover:text-gray-900 dark:hover:text-white transition-colors">{copy.footerContact}</Link>
-            <Link href="/kullanim-kosullari" className="hover:text-gray-900 dark:hover:text-white transition-colors">{copy.footerTerms}</Link>
-            <Link href="/gizlilik" className="hover:text-gray-900 dark:hover:text-white transition-colors">{copy.footerPrivacy}</Link>
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm font-medium text-zinc-500">
+            <Link href="/verify" className="transition hover:text-zinc-950">{copy.footerVerify}</Link>
+            <Link href="/iletisim" className="transition hover:text-zinc-950">{copy.footerContact}</Link>
+            <Link href="/kullanim-kosullari" className="transition hover:text-zinc-950">{copy.footerTerms}</Link>
+            <Link href="/gizlilik" className="transition hover:text-zinc-950">{copy.footerPrivacy}</Link>
           </div>
         </div>
       </footer>
-
     </div>
   );
 }

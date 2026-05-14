@@ -13,6 +13,7 @@ import {
   Trash2,
   ToggleLeft,
   ToggleRight,
+  Info,
   TestTube2,
   Loader2,
   ExternalLink,
@@ -34,6 +35,7 @@ interface Webhook {
 }
 
 const EVENT_TYPES = [
+  { value: 'attendee.register', label: 'Katılımcı Kaydı', color: 'badge-active' },
   { value: 'email.sent',    label: 'Email Gönderildi',  color: 'badge-active' },
   { value: 'email.failed',  label: 'Email Başarısız',   color: 'badge-revoked' },
   { value: 'email.bounced', label: 'Email Bounce',      color: 'badge-expired' },
@@ -61,7 +63,7 @@ export default function WebhooksPage() {
   const [formError, setFormError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    event_type: 'email.sent',
+    event_type: 'attendee.register',
     url: '',
     secret: '',
   });
@@ -93,7 +95,7 @@ export default function WebhooksPage() {
       });
       const data = await res.json();
       setWebhooks(prev => [...prev, data]);
-      setFormData({ event_type: 'email.sent', url: '', secret: '' });
+      setFormData({ event_type: 'attendee.register', url: '', secret: '' });
       setShowForm(false);
       toast.success('Webhook oluşturuldu');
     } catch (error: any) {
@@ -157,7 +159,7 @@ export default function WebhooksPage() {
       <div className="flex flex-col gap-6">
       <PageHeader
         title="Webhooks"
-        subtitle="Email olaylarını harici sistemlere gönderin"
+        subtitle="Katılımcı kayıtlarını, e-posta olaylarını ve otomasyon verilerini kendi sistemlerinize gerçek zamanlı gönderin"
         icon={<Webhook className="h-5 w-5" />}
         actions={
           <button onClick={() => setShowForm(v => !v)} className="btn-primary">
@@ -170,6 +172,20 @@ export default function WebhooksPage() {
         }
       />
 
+      {/* Info Box */}
+      <div className="card bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-4">
+        <div className="flex gap-3">
+          <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-blue-900 dark:text-blue-100">
+            <p className="font-semibold mb-1">Webhook nedir?</p>
+            <p className="mb-2">Bir olay tetiklendiğinde sistem sizin belirlediğiniz URL'ye veri gönderir. Google Sheets entegrasyonu için bir Google Apps Script Web App URL'si oluşturup burada Katılımcı Kaydı olayına bağlayabilirsiniz.</p>
+            <p className="text-xs opacity-90 font-mono bg-white dark:bg-blue-900 px-2 py-1 rounded">
+              attendee.register - registration_answer_labels alanını Sheet satırına yazabilirsiniz
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Create Form */}
       <AnimatePresence>
         {showForm && (
@@ -181,10 +197,14 @@ export default function WebhooksPage() {
           >
             <form onSubmit={handleCreate} className="card p-5 space-y-4">
               <h2 className="text-sm font-semibold text-surface-900">Webhook Oluştur</h2>
+              <p className="text-xs text-surface-500">Aşağıda, olayı tetiklendiğinde bildirimleri alacak noktayı (endpoint) yapılandırın</p>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="label">Olay Tipi</label>
+                  <label className="label">
+                    Olay Tipi
+                    <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs bg-gray-200 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-400 cursor-help" title="Hangi e-posta olayı tetiklediğinde webhook tetiklenecek">?</span>
+                  </label>
                   <select
                     value={formData.event_type}
                     onChange={e => setFormData(f => ({ ...f, event_type: e.target.value }))}
@@ -194,9 +214,13 @@ export default function WebhooksPage() {
                       <option key={e.value} value={e.value}>{e.label}</option>
                     ))}
                   </select>
+                  <p className="mt-1 text-xs text-surface-400">Katılımcı kaydı seçilirse her kayıt/yeniden kayıt olayında endpoint'e form cevapları gönderilir.</p>
                 </div>
                 <div>
-                  <label className="label">Webhook URL</label>
+                  <label className="label">
+                    Webhook URL
+                    <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs bg-gray-200 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-400 cursor-help" title="İstek alacak sunucunuzun adresi">?</span>
+                  </label>
                   <input
                     type="url"
                     value={formData.url}
@@ -205,11 +229,15 @@ export default function WebhooksPage() {
                     className="input-field"
                     required
                   />
+                  <p className="mt-1 text-xs text-surface-400">Kendi sunucunuzun URL'si (HTTPS gerekli). Örn: https://example.com/api/email-events</p>
                 </div>
               </div>
 
               <div>
-                <label className="label">Secret (isteğe bağlı)</label>
+                <label className="label">
+                  Secret (İsteğe bağlı)
+                  <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs bg-gray-200 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-400 cursor-help" title="Webhook isteklerini doğrulamak için gizli anahtar">?</span>
+                </label>
                 <input
                   type="text"
                   value={formData.secret}
@@ -217,7 +245,9 @@ export default function WebhooksPage() {
                   placeholder="Boş bırakılırsa otomatik oluşturulur"
                   className="input-field"
                 />
-                <p className="mt-1 text-xs text-surface-400">Webhook isteklerini doğrulamak için HMAC secret</p>
+                <p className="mt-1 text-xs text-surface-400">
+                  Webhook güvenliği için: Biz gelen isteğe X-Webhook-Secret header'ı ekliyoruz. Alıcı tarafında bu header'ı doğrulayarak isteklerin gerçekten bizden geldiğini kontrol edebilirsiniz.
+                </p>
               </div>
 
               {formError && (
@@ -377,4 +407,3 @@ export default function WebhooksPage() {
     </FeatureGate>
   );
 }
-

@@ -1,9 +1,10 @@
 ﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
-import { getEventCapacities, getPublicEventInfo, getPublicMemberMe, getPublicMemberToken, publicRegisterAttendee, uploadPublicRegistrationDocument, type RegistrationField, type RegistrationDocumentUploadOut } from "@/lib/api";
+import { API_BASE, getEventCapacities, getPublicEventInfo, getPublicMemberMe, getPublicMemberToken, publicRegisterAttendee, uploadPublicRegistrationDocument, type RegistrationField, type RegistrationDocumentUploadOut } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import {
   CheckCircle2,
@@ -15,6 +16,8 @@ import {
   Shield,
   Award,
   ShieldCheck,
+  Ticket,
+  QrCode,
   X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -28,8 +31,21 @@ interface EventInfo {
   event_banner_url: string | null;
   min_sessions_required: number;
   registration_closed?: boolean;
+  event_type?: string;
+  certificate_enabled?: boolean;
+  checkin_enabled?: boolean;
+  ticketing_enabled?: boolean;
+  registration_enabled?: boolean;
+  requires_approval?: boolean;
   kvkk_consent_required?: boolean;
   kvkk_consent_text?: string | null;
+  organizer_privacy_notice_enabled?: boolean;
+  organizer_privacy_notice_text?: string | null;
+  show_cross_border_transfer_notice?: boolean;
+  require_cross_border_transfer_consent?: boolean;
+  data_controller_name?: string | null;
+  data_controller_contact_email?: string | null;
+  data_retention_note?: string | null;
   registration_fields?: RegistrationField[];
   survey?: {
     is_required: boolean;
@@ -45,6 +61,15 @@ interface EventInfo {
     session_location: string | null;
   }>;
 }
+
+type IssuedTicket = {
+  id: number;
+  token: string;
+  qr_payload: string;
+  status: string;
+  issued_at?: string | null;
+  checked_in_at?: string | null;
+};
 
 type BrandingData = {
   org_name?: string;
@@ -98,8 +123,11 @@ export default function EventRegisterPage() {
             loading: "Etkinlik yükleniyor...",
             securePowered: "HeptaCert altyapısıyla güvence altındadır.",
             certifiedEvent: "Sertifikalı Etkinlik",
+            standardEvent: "Etkinlik Kaydı",
+            ticketedEvent: "Biletli Etkinlik",
             sessionsTitle: "Etkinlik Oturumları",
             minSessionsText: "Sertifika almak için en az",
+            attendanceText: "Katılım için en az",
             sessionsRequired: "oturuma katılmanız gerekiyor.",
             alreadyRegisteredTitle: "Zaten Kayıtlısınız",
             successTitle: "Kayıt Tamamlandı",
@@ -119,6 +147,11 @@ export default function EventRegisterPage() {
             surveyLink: "Anket Bağlantısı",
             surveyRequired: "Anket zorunlu",
             surveyRequiredBody: "Sertifikanızı indirebilmek için anketi check-in sonrasında, sertifika adımına geçmeden önce doldurmanız gerekiyor.",
+            surveyRequiredBodyGeneric: "Etkinlik akışını tamamlamak için check-in sonrasında anketi doldurmanız gerekiyor.",
+            ticketReady: "Dijital biletiniz hazır",
+            ticketQr: "Bilet QR",
+            surveyFlow: "Anketli Akış",
+            directAccess: "Doğrudan Erişim",
             statusPage: "Durum Sayfası",
             openSurvey: "Anketi Aç",
             fillSurvey: "Anketi Doldur",
@@ -130,8 +163,16 @@ export default function EventRegisterPage() {
             emailPlaceholder: "ornek@mail.com",
             customInfo: "Ek bilgiler",
             kvkkTitle: "KVKK Onayı",
-            kvkkRead: "KVKK metnini oku",
+            kvkkRead: "Aydınlatma metinlerini oku",
             kvkkAccept: "KVKK aydinlatma metnini okudum ve kabul ediyorum.",
+            privacyNoticesAccept: "KVKK aydınlatma metni, gizlilik politikası ve etkinliğe özel aydınlatmaları okudum.",
+            organizerNoticeTitle: "Organizatör Aydınlatması",
+            organizerNoticeAccept: "Organizatörün aydınlatma metnini okudum.",
+            crossBorderNoticeTitle: "Yurt Dışı Aktarım Bilgilendirmesi",
+            crossBorderNoticeAccept: "Yurt dışında bulunan altyapı hizmetleriyle ilgili bilgilendirmeyi okudum.",
+            crossBorderConsent: "HeptaCert hizmetlerinin çalışması için kullanılan yurt dışındaki altyapı sağlayıcılarına (barındırma, yedekleme, güvenlik ve teknik destek amaçlarıyla) kişisel verilerimin aktarılmasına açık rıza veriyorum.",
+            dataController: "Veri sorumlusu",
+            retentionNote: "Saklama notu",
             kvkkRequired: "Devam etmek için KVKK onayı gereklidir.",
             documentTitle: "Belge Yükleme (Opsiyonel)",
             documentHint: "PDF/JPG/PNG/WEBP formatında belge yükleyebilirsiniz (maks. 2 MB / dosya).",
@@ -141,7 +182,8 @@ export default function EventRegisterPage() {
             documentUploading: "Belgeler yükleniyor...",
             submit: "Kayıt Ol",
             cardRuleLabel: "Min. {count} oturum",
-            poweredFooter: "Bu etkinlik sayfası kurumsal olarak özelleştirilmiş olsa da kayıt, doğrulama ve sertifika altyapısı HeptaCert tarafından sağlanır.",
+            entryPass: "Giriş Kartı",
+            poweredFooter: "Bu etkinlik sayfası kurumsal olarak özelleştirilmiş olsa da kayıt, doğrulama ve etkinlik altyapısı HeptaCert tarafından sağlanır.",
           }
         : {
             eventNotFound: "Event not found",
@@ -149,8 +191,11 @@ export default function EventRegisterPage() {
             loading: "Loading event...",
             securePowered: "Secured by HeptaCert infrastructure.",
             certifiedEvent: "Certified Event",
+            standardEvent: "Event Registration",
+            ticketedEvent: "Ticketed Event",
             sessionsTitle: "Event Sessions",
             minSessionsText: "To receive a certificate, you must attend at least",
+            attendanceText: "To participate, you must attend at least",
             sessionsRequired: "sessions.",
             alreadyRegisteredTitle: "You Are Already Registered",
             successTitle: "Registration Complete",
@@ -170,6 +215,11 @@ export default function EventRegisterPage() {
             surveyLink: "Survey Link",
             surveyRequired: "Survey required",
             surveyRequiredBody: "To download your certificate, you must complete the survey after check-in and before moving to the certificate step.",
+            surveyRequiredBodyGeneric: "To complete the event flow, you must complete the survey after check-in.",
+            ticketReady: "Your digital ticket is ready",
+            ticketQr: "Ticket QR",
+            surveyFlow: "Survey Flow",
+            directAccess: "Direct Access",
             statusPage: "Status Page",
             openSurvey: "Open Survey",
             fillSurvey: "Fill Survey",
@@ -181,8 +231,16 @@ export default function EventRegisterPage() {
             emailPlaceholder: "name@email.com",
             customInfo: "Additional details",
             kvkkTitle: "KVKK Consent",
-            kvkkRead: "Read KVKK text",
+            kvkkRead: "Read privacy notices",
             kvkkAccept: "I have read and accept the KVKK disclosure text.",
+            privacyNoticesAccept: "I have read the KVKK disclosure, privacy policy, and event-specific notices.",
+            organizerNoticeTitle: "Organizer Notice",
+            organizerNoticeAccept: "I have read the organizer's notice.",
+            crossBorderNoticeTitle: "Cross-Border Transfer Notice",
+            crossBorderNoticeAccept: "I have read the notice about overseas infrastructure services.",
+            crossBorderConsent: "I explicitly consent to my personal data being transferred to overseas infrastructure providers used to operate HeptaCert services for hosting, backup, security, and technical support.",
+            dataController: "Data controller",
+            retentionNote: "Retention note",
             kvkkRequired: "KVKK consent is required to continue.",
             documentTitle: "Document Upload (Optional)",
             documentHint: "You can upload documents as PDF/JPG/PNG/WEBP (max. 2 MB per file).",
@@ -192,7 +250,8 @@ export default function EventRegisterPage() {
             documentUploading: "Uploading documents...",
             submit: "Register",
             cardRuleLabel: "Min. {count} sessions",
-            poweredFooter: "Even if this event page is customized for the organization, registration, verification, and certificate infrastructure are provided by HeptaCert.",
+            entryPass: "Entry Pass",
+            poweredFooter: "Even if this event page is customized for the organization, registration, verification, and event infrastructure are provided by HeptaCert.",
           },
     [lang]
   );
@@ -208,6 +267,9 @@ export default function EventRegisterPage() {
   const [capacitiesByField, setCapacitiesByField] = useState<Record<string, Array<{ label: string; capacity?: number | null; remaining?: number | null }>>>({});
   const [showKvkkModal, setShowKvkkModal] = useState(false);
   const [kvkkAccepted, setKvkkAccepted] = useState(false);
+  const [organizerNoticeAccepted, setOrganizerNoticeAccepted] = useState(false);
+  const [crossBorderNoticeRead, setCrossBorderNoticeRead] = useState(false);
+  const [crossBorderTransferConsent, setCrossBorderTransferConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [uploadingDocs, setUploadingDocs] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -216,6 +278,7 @@ export default function EventRegisterPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [surveyUrl, setSurveyUrl] = useState<string | null>(null);
   const [statusUrl, setStatusUrl] = useState<string | null>(null);
+  const [issuedTicket, setIssuedTicket] = useState<IssuedTicket | null>(null);
   const [memberLocked, setMemberLocked] = useState(false);
 
   useEffect(() => {
@@ -259,6 +322,15 @@ export default function EventRegisterPage() {
   const brandName = branding?.org_name || "HeptaCert";
   const brandColor = branding?.brand_color || "#7c73ff";
   const locale = lang === "tr" ? "tr-TR" : "en-US";
+  const certificateEnabled = event?.certificate_enabled !== false;
+  const ticketingEnabled = event?.ticketing_enabled === true;
+  const organizerNoticeEnabled = Boolean(event?.organizer_privacy_notice_enabled);
+  const crossBorderNoticeEnabled = true;
+  const crossBorderConsentRequired = true;
+  const requiredNoticesAcknowledged =
+    (!(event?.kvkk_consent_required ?? false) || kvkkAccepted) &&
+    (!organizerNoticeEnabled || organizerNoticeAccepted) &&
+    (!crossBorderNoticeEnabled || crossBorderNoticeRead);
   const surveyEnabled = Boolean(event?.survey);
   const fileFields = useMemo(
     () =>
@@ -329,8 +401,12 @@ export default function EventRegisterPage() {
       setSubmitError(copy.registrationClosed);
       return;
     }
-    if ((event?.kvkk_consent_required ?? false) && !kvkkAccepted) {
+    if (!requiredNoticesAcknowledged) {
       setSubmitError(copy.kvkkRequired);
+      return;
+    }
+    if (crossBorderConsentRequired && !crossBorderTransferConsent) {
+      setSubmitError(lang === "tr" ? "Yurt dışı aktarım için açık rıza gereklidir." : "Explicit cross-border transfer consent is required.");
       return;
     }
     if (isDocumentRequirementMissing) {
@@ -360,7 +436,10 @@ export default function EventRegisterPage() {
         name: name.trim(),
         email: email.trim().toLowerCase(),
         registration_answers: registrationAnswers,
-        kvkk_accepted: kvkkAccepted,
+        kvkk_accepted: (event?.kvkk_consent_required ?? false) ? kvkkAccepted : false,
+        organizer_notice_accepted: organizerNoticeEnabled ? organizerNoticeAccepted : false,
+        cross_border_notice_read: crossBorderNoticeRead,
+        cross_border_transfer_consent: crossBorderTransferConsent,
         registration_documents: uploadedDocuments,
       });
 
@@ -370,6 +449,7 @@ export default function EventRegisterPage() {
       setEmail(registered.attendee_email || email.trim().toLowerCase());
       setSurveyUrl(registered.email_verified ? registered.survey_url || null : null);
       setStatusUrl(registered.email_verified ? registered.status_url || null : null);
+      setIssuedTicket(registered.email_verified ? registered.ticket || null : null);
 
       if (registered.verification_required && !registered.email_verified) {
         toast.info(copy.verifyEmailBody, copy.verifyEmailTitle, 7000);
@@ -457,7 +537,7 @@ export default function EventRegisterPage() {
           <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }} className="max-w-3xl rounded-[28px] border border-white/12 bg-black/30 p-6 shadow-[0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl md:p-8">
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-xs font-semibold text-white/85 backdrop-blur-sm">
               <Shield className="h-3.5 w-3.5" style={{ color: brandColor }} />
-              {copy.certifiedEvent} · {brandName}
+              {ticketingEnabled ? copy.ticketedEvent : certificateEnabled ? copy.certifiedEvent : copy.standardEvent} · {brandName}
             </div>
 
             <div className="mb-5 flex items-center gap-3">
@@ -468,7 +548,7 @@ export default function EventRegisterPage() {
                 </div>
               ) : (
                 <div className="rounded-2xl border border-white/10 bg-white/10 p-3" style={{ boxShadow: `0 10px 30px ${brandColor}22` }}>
-                  <Award className="h-7 w-7" style={{ color: brandColor }} />
+                  {ticketingEnabled ? <Ticket className="h-7 w-7" style={{ color: brandColor }} /> : <Award className="h-7 w-7" style={{ color: brandColor }} />}
                 </div>
               )}
             </div>
@@ -538,7 +618,7 @@ export default function EventRegisterPage() {
                 {event.min_sessions_required > 1 && (
                   <div className="mt-4 rounded-2xl border px-4 py-3" style={{ borderColor: `${brandColor}40`, backgroundColor: `${brandColor}16` }}>
                     <p className="text-xs font-medium leading-relaxed" style={{ color: brandColor }}>
-                      {copy.minSessionsText} <strong>{event.min_sessions_required}</strong> {copy.sessionsRequired}
+                      {certificateEnabled ? copy.minSessionsText : copy.attendanceText} <strong>{event.min_sessions_required}</strong> {copy.sessionsRequired}
                     </p>
                   </div>
                 )}
@@ -592,12 +672,43 @@ export default function EventRegisterPage() {
 
                     <div className="mt-4 flex flex-wrap gap-2">
                       <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/65">
-                        Premium Pass
+                        {ticketingEnabled ? copy.entryPass : certificateEnabled ? copy.certifiedEvent : copy.standardEvent}
                       </span>
                       <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/65">
-                        {surveyEnabled ? "Survey Flow" : "Direct Access"}
+                        {surveyEnabled ? copy.surveyFlow : copy.directAccess}
                       </span>
                     </div>
+
+                    {issuedTicket && (
+                      <div className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-white/8">
+                        <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+                          <p className="flex items-center gap-2 text-sm font-semibold text-white">
+                            <Ticket className="h-4 w-4" style={{ color: brandColor }} />
+                            {copy.ticketReady}
+                          </p>
+                          <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-100">
+                            {copy.entryPass}
+                          </span>
+                        </div>
+                        <div className="grid gap-4 p-4 sm:grid-cols-[132px_minmax(0,1fr)] sm:items-center">
+                          <div className="mx-auto flex h-32 w-32 shrink-0 items-center justify-center rounded-2xl bg-white p-2 shadow-lg sm:mx-0">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={`${API_BASE}/tickets/${issuedTicket.token}/qr`} alt={copy.ticketQr} className="h-full w-full object-contain" />
+                          </div>
+                          <div className="min-w-0 text-center sm:text-left">
+                            <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold text-white/75">
+                              <QrCode className="h-3.5 w-3.5" />
+                              {copy.ticketQr}
+                            </p>
+                            <p className="mt-3 break-all rounded-xl bg-black/15 px-3 py-2 text-xs text-white/60">{issuedTicket.qr_payload}</p>
+                            <a href={issuedTicket.qr_payload} className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition-opacity hover:opacity-90">
+                              {copy.openCard}
+                              <ArrowRight className="h-4 w-4" />
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {verificationRequired ? (
                       <div className="mt-5 rounded-2xl border border-sky-300/30 bg-sky-400/10 px-4 py-4">
@@ -623,7 +734,7 @@ export default function EventRegisterPage() {
                   {!verificationRequired && event.survey?.is_required && (
                     <div className="mx-auto mt-6 max-w-md rounded-2xl border border-amber-400/25 bg-amber-400/10 p-4 text-left">
                       <p className="text-sm font-semibold text-amber-200">{copy.surveyRequired}</p>
-                      <p className="mt-1 text-xs leading-relaxed text-amber-100/85">{copy.surveyRequiredBody}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-amber-100/85">{certificateEnabled ? copy.surveyRequiredBody : copy.surveyRequiredBodyGeneric}</p>
 
                       <div className="mt-4 flex flex-wrap gap-3">
                         <a href={`/events/${eventId}/status`} className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition-opacity hover:opacity-90">
@@ -862,12 +973,35 @@ export default function EventRegisterPage() {
                       <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3">
                         <input
                           type="checkbox"
-                          checked={kvkkAccepted}
-                          onChange={(eventArg) => setKvkkAccepted(eventArg.target.checked)}
+                          checked={requiredNoticesAcknowledged}
+                          onChange={(eventArg) => {
+                            const checked = eventArg.target.checked;
+                            setKvkkAccepted(checked);
+                            setOrganizerNoticeAccepted(checked);
+                            setCrossBorderNoticeRead(checked);
+                          }}
                           className="mt-1 h-4 w-4"
                         />
-                        <span className="text-sm text-gray-700">{copy.kvkkAccept}</span>
+                        <span className="text-sm text-gray-700">{copy.privacyNoticesAccept}</span>
                       </label>
+
+                      <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                        <Link href="/kvkk" className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "KVKK Aydınlatma Metni" : "Privacy Notice"}</Link>
+                        <Link href="/gizlilik" className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Gizlilik Politikası" : "Privacy Policy"}</Link>
+                        <Link href="/acik-riza" className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Açık Rıza Metni" : "Explicit Consent Text"}</Link>
+                      </div>
+
+                        {crossBorderConsentRequired && (
+                          <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3">
+                            <input
+                              type="checkbox"
+                              checked={crossBorderTransferConsent}
+                              onChange={(eventArg) => setCrossBorderTransferConsent(eventArg.target.checked)}
+                              className="mt-1 h-4 w-4"
+                            />
+                            <span className="text-sm text-gray-700">{copy.crossBorderConsent}</span>
+                          </label>
+                        )}
                     </div>
 
                     <AnimatePresence>
@@ -880,7 +1014,7 @@ export default function EventRegisterPage() {
 
                     <button
                       type="submit"
-                      disabled={submitting || uploadingDocs || !name.trim() || !email.trim() || Boolean(event.registration_closed) || ((event.kvkk_consent_required ?? false) && !kvkkAccepted) || isDocumentRequirementMissing}
+                      disabled={submitting || uploadingDocs || !name.trim() || !email.trim() || Boolean(event.registration_closed) || !requiredNoticesAcknowledged || (crossBorderConsentRequired && !crossBorderTransferConsent) || isDocumentRequirementMissing}
                       className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-bold text-white transition-all disabled:cursor-not-allowed disabled:opacity-50"
                       style={primaryBtnStyle}
                     >
@@ -903,8 +1037,52 @@ export default function EventRegisterPage() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="max-h-[60vh] overflow-y-auto rounded-xl border border-gray-200 bg-gray-50 p-4">
-              <p className="whitespace-pre-wrap text-sm leading-6 text-gray-700">{event.kvkk_consent_text || copy.kvkkAccept}</p>
+            <div className="max-h-[60vh] space-y-4 overflow-y-auto rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <section className="space-y-2 rounded-xl border border-gray-200 bg-white p-4">
+                <h4 className="text-sm font-semibold text-gray-900">{copy.kvkkTitle}</h4>
+                <p className="whitespace-pre-wrap text-sm leading-6 text-gray-700">{event.kvkk_consent_text || copy.kvkkAccept}</p>
+              </section>
+              {organizerNoticeEnabled && (
+                <section className="space-y-2 rounded-xl border border-gray-200 bg-white p-4">
+                  <h4 className="text-sm font-semibold text-gray-900">{copy.organizerNoticeTitle}</h4>
+                  {event.organizer_privacy_notice_text ? (
+                    <div
+                      className="rich-text-content text-sm leading-6 text-gray-700"
+                      dangerouslySetInnerHTML={{ __html: event.organizer_privacy_notice_text }}
+                    />
+                  ) : (
+                    <p className="whitespace-pre-wrap text-sm leading-6 text-gray-700">{copy.organizerNoticeAccept}</p>
+                  )}
+                </section>
+              )}
+              {crossBorderNoticeEnabled && (
+                <section className="space-y-2 rounded-xl border border-gray-200 bg-white p-4">
+                  <h4 className="text-sm font-semibold text-gray-900">{copy.crossBorderNoticeTitle}</h4>
+                  <p className="whitespace-pre-wrap text-sm leading-6 text-gray-700">
+                    {lang === "tr"
+                      ? "HeptaCert altyapısında kullanılan bazı hizmetler yurt dışında bulunan sunucular üzerinden sağlanabilmektedir. Bu nedenle kişisel verileriniz, hizmetin sunulması, güvenlik, yedekleme ve sistem sürekliliği amaçlarıyla yurt dışındaki altyapı hizmetlerinde işlenebilir."
+                      : "Some services used by HeptaCert may be delivered through servers located outside the country. As a result, your personal data may be processed by overseas infrastructure services for service delivery, security, backup, and continuity purposes."}
+                  </p>
+                </section>
+              )}
+              {(event.data_controller_name || event.data_controller_contact_email || event.data_retention_note) && (
+                <section className="space-y-2 rounded-xl border border-gray-200 bg-white p-4">
+                  <h4 className="text-sm font-semibold text-gray-900">
+                    {lang === "tr" ? "Etkinlik veri sorumlusu bilgileri" : "Event controller details"}
+                  </h4>
+                  <div className="space-y-2 text-sm leading-6 text-gray-700">
+                    {event.data_controller_name && (
+                      <p><span className="font-semibold">{copy.dataController}:</span> {event.data_controller_name}</p>
+                    )}
+                    {event.data_controller_contact_email && (
+                      <p><span className="font-semibold">E-posta:</span> {event.data_controller_contact_email}</p>
+                    )}
+                    {event.data_retention_note && (
+                      <p className="whitespace-pre-wrap"><span className="font-semibold">{copy.retentionNote}:</span> {event.data_retention_note}</p>
+                    )}
+                  </div>
+                </section>
+              )}
             </div>
           </div>
         </div>
@@ -913,6 +1091,11 @@ export default function EventRegisterPage() {
       <footer className="border-t border-white/5 py-8">
         <div className="mx-auto max-w-6xl px-4 text-center md:px-6">
           <div className="inline-flex items-center gap-2 text-xs font-medium text-white/55">
+              <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                <Link href="/kvkk" className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "KVKK Aydınlatma Metni" : "Privacy Notice"}</Link>
+                <Link href="/gizlilik" className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Gizlilik Politikası" : "Privacy Policy"}</Link>
+                <Link href="/acik-riza" className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Açık Rıza Metni" : "Explicit Consent Text"}</Link>
+              </div>
             <ShieldCheck className="h-3.5 w-3.5" style={{ color: brandColor }} />
             {copy.securePowered}
           </div>

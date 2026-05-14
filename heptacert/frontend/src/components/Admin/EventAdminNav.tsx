@@ -1,8 +1,8 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { createContext, useContext, useRef, type ReactNode, type WheelEvent } from "react";
-import { usePathname } from "next/navigation";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type WheelEvent } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ChevronLeft,
   LockKeyhole,
@@ -16,14 +16,17 @@ import {
   Settings,
   Palette,
   ClipboardList,
+  Ticket,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import { apiFetch, type EventOut } from "@/lib/api";
 
 type EventAdminTab =
   | "certificates"
   | "sessions"
   | "attendees"
   | "checkin"
+  | "tickets"
   | "gamification"
   | "raffles"
   | "surveys"
@@ -43,8 +46,9 @@ const NAV_ITEMS: NavItem[] = [
   { tab: "certificates", label: { tr: "Sertifikalar", en: "Certificates" }, icon: LockKeyhole, href: (id) => `/admin/events/${id}/certificates` },
   { tab: "sessions", label: { tr: "Oturumlar", en: "Sessions" }, icon: QrCode, href: (id) => `/admin/events/${id}/sessions` },
   { tab: "attendees", label: { tr: "Katılımcılar", en: "Attendees" }, icon: Users, href: (id) => `/admin/events/${id}/attendees` },
+  { tab: "tickets", label: { tr: "Biletler", en: "Tickets" }, icon: Ticket, href: (id) => `/admin/events/${id}/tickets` },
   { tab: "checkin", label: { tr: "Check-in", en: "Check-in" }, icon: UserCheck, href: (id) => `/admin/events/${id}/checkin` },
-  { tab: "gamification", label: { tr: "Gamification", en: "Gamification" }, icon: Target, href: (id) => `/admin/events/${id}/gamification` },
+  { tab: "gamification", label: { tr: "Oyunlaştırma", en: "Gamification" }, icon: Target, href: (id) => `/admin/events/${id}/gamification` },
   { tab: "raffles", label: { tr: "Çekilişler", en: "Raffles" }, icon: Gift, href: (id) => `/admin/events/${id}/raffles` },
   { tab: "surveys", label: { tr: "Anketler", en: "Surveys" }, icon: ClipboardList, href: (id) => `/admin/events/${id}/surveys` },
   { tab: "analytics", label: { tr: "İleri Analitik", en: "Advanced Analytics" }, icon: BarChart3, href: (id) => `/admin/events/${id}/advanced-analytics` },
@@ -52,6 +56,46 @@ const NAV_ITEMS: NavItem[] = [
   { tab: "email", label: { tr: "E-posta", en: "Email" }, icon: Mail, href: (id) => `/admin/events/${id}/email-templates` },
   { tab: "settings", label: { tr: "Ayarlar", en: "Settings" }, icon: Settings, href: (id) => `/admin/events/${id}/settings` },
 ];
+
+const EVENT_META_CACHE = new Map<string, EventOut>();
+const EVENT_META_REFRESH_EVENT = "heptacert:event-admin-meta-updated";
+
+export function refreshEventAdminMeta(eventId?: string | number) {
+  if (typeof window === "undefined") return;
+  if (eventId !== undefined && eventId !== null) {
+    EVENT_META_CACHE.delete(String(eventId));
+  } else {
+    EVENT_META_CACHE.clear();
+  }
+  window.dispatchEvent(
+    new CustomEvent(EVENT_META_REFRESH_EVENT, {
+      detail: { eventId: eventId !== undefined && eventId !== null ? String(eventId) : null },
+    }),
+  );
+}
+
+function isNavItemEnabled(item: NavItem, event: EventOut | null) {
+  if (item.tab === "tickets") return event?.ticketing_enabled === true;
+  if (!event) {
+    return !["certificates", "editor", "sessions", "checkin", "raffles", "gamification"].includes(item.tab);
+  }
+  if (event.certificate_enabled === false && (item.tab === "certificates" || item.tab === "editor")) {
+    return false;
+  }
+  if (
+    event.checkin_enabled === false &&
+    (item.tab === "sessions" || item.tab === "checkin")
+  ) {
+    return false;
+  }
+  if (item.tab === "raffles" && event.raffles_enabled !== true) {
+    return false;
+  }
+  if (item.tab === "gamification" && event.gamification_enabled !== true) {
+    return false;
+  }
+  return true;
+}
 
 type EventAdminNavProps = {
   eventId: string | number;
@@ -76,6 +120,7 @@ export function EventAdminLayoutProvider({
 function getActiveFromPath(pathname: string): EventAdminTab {
   if (pathname.includes("/sessions")) return "sessions";
   if (pathname.includes("/attendees")) return "attendees";
+  if (pathname.includes("/tickets")) return "tickets";
   if (pathname.includes("/checkin")) return "checkin";
   if (pathname.includes("/gamification")) return "gamification";
   if (pathname.includes("/raffles")) return "raffles";
@@ -96,9 +141,17 @@ export default function EventAdminNav({
 }: EventAdminNavProps) {
   const { lang } = useI18n();
   const pathname = usePathname() || "";
+  const router = useRouter();
   const { hideInlineNav } = useContext(EventAdminLayoutContext);
   const resolvedActive = active ?? getActiveFromPath(pathname);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const cacheKey = String(eventId);
+  const [eventMeta, setEventMeta] = useState<EventOut | null>(() => EVENT_META_CACHE.get(cacheKey) ?? null);
+  const [loadingEventMeta, setLoadingEventMeta] = useState(() => !EVENT_META_CACHE.has(cacheKey));
+  const visibleNavItems = useMemo(
+    () => NAV_ITEMS.filter((item) => isNavItemEnabled(item, eventMeta)),
+    [eventMeta],
+  );
   const copy = {
     tr: {
       allEvents: "Tüm Etkinlikler",
@@ -109,6 +162,57 @@ export default function EventAdminNav({
       eventFallback: (id: string | number) => `Event #${id}`,
     },
   }[lang];
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadEventMeta() {
+      const cached = EVENT_META_CACHE.get(cacheKey);
+      if (cached) {
+        setEventMeta(cached);
+        setLoadingEventMeta(false);
+      } else {
+        setEventMeta(null);
+        setLoadingEventMeta(true);
+      }
+
+      try {
+        const response = await apiFetch(`/admin/events/${eventId}`);
+        const data = (await response.json()) as EventOut;
+        EVENT_META_CACHE.set(cacheKey, data);
+        if (!cancelled) {
+          setEventMeta(data);
+          setLoadingEventMeta(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setEventMeta(null);
+          setLoadingEventMeta(false);
+        }
+      }
+    }
+
+    void loadEventMeta();
+
+    function handleRefresh(event: Event) {
+      const customEvent = event as CustomEvent<{ eventId?: string | null }>;
+      if (customEvent.detail?.eventId && customEvent.detail.eventId !== cacheKey) {
+        return;
+      }
+      void loadEventMeta();
+    }
+
+    window.addEventListener(EVENT_META_REFRESH_EVENT, handleRefresh as EventListener);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(EVENT_META_REFRESH_EVENT, handleRefresh as EventListener);
+    };
+  }, [cacheKey, eventId]);
+
+  useEffect(() => {
+    if (!eventMeta || visibleNavItems.length === 0) return;
+    if (visibleNavItems.some((item) => item.tab === resolvedActive)) return;
+    router.replace(visibleNavItems[0].href(eventId));
+  }, [eventId, eventMeta, resolvedActive, router, visibleNavItems]);
 
   if (hideInlineNav && variant === "inline") {
     return null;
@@ -138,7 +242,7 @@ export default function EventAdminNav({
             {getActiveLabel(resolvedActive, lang)}
           </p>
           <p className="mt-1 text-base font-bold leading-snug text-surface-900 lg:text-lg">
-            {eventName || copy.eventFallback(eventId)}
+            {eventName || eventMeta?.name || copy.eventFallback(eventId)}
           </p>
         </div>
 
@@ -148,7 +252,9 @@ export default function EventAdminNav({
           className="scrollbar-polished overflow-x-auto pb-1"
         >
           <div className="flex min-w-max items-center gap-1.5 rounded-lg border border-surface-200 bg-surface-50 p-1.5 lg:min-w-0 lg:flex-wrap">
-            {NAV_ITEMS.map(({ tab, label, icon: Icon, href }) => {
+            {loadingEventMeta && !eventMeta ? (
+              <NavSkeleton variant="sidebar" />
+            ) : visibleNavItems.map(({ tab, label, icon: Icon, href }) => {
               const isAct = resolvedActive === tab;
               return (
                 <Link
@@ -177,14 +283,16 @@ export default function EventAdminNav({
         <ChevronLeft className="h-3.5 w-3.5" />
         {copy.allEvents}
       </Link>
-      {eventName && <p className="mb-3 text-sm font-bold text-surface-900">{eventName}</p>}
+      {(eventName || eventMeta?.name) && <p className="mb-3 text-sm font-bold text-surface-900">{eventName || eventMeta?.name}</p>}
       <div
         ref={scrollerRef}
         onWheel={handleWheel}
         className="scrollbar-polished overflow-x-auto pb-2"
       >
         <div className="flex min-w-max gap-0.5 border-b border-surface-200 lg:min-w-0 lg:flex-wrap lg:gap-1 lg:rounded-lg lg:border lg:bg-surface-50 lg:p-1.5">
-          {NAV_ITEMS.map(({ tab, label, icon: Icon, href }) => {
+          {loadingEventMeta && !eventMeta ? (
+            <NavSkeleton variant="inline" />
+          ) : visibleNavItems.map(({ tab, label, icon: Icon, href }) => {
             const isAct = resolvedActive === tab;
             return (
               <Link
@@ -205,6 +313,20 @@ export default function EventAdminNav({
         </div>
       </div>
     </div>
+  );
+}
+
+function NavSkeleton({ variant }: { variant: "inline" | "sidebar" }) {
+  const itemClass =
+    variant === "sidebar"
+      ? "h-10 w-28 rounded-lg bg-surface-200/70"
+      : "h-9 w-10 rounded-lg bg-surface-200/70 sm:w-24";
+  return (
+    <>
+      {Array.from({ length: 5 }).map((_, index) => (
+        <div key={index} className={`${itemClass} animate-pulse`} />
+      ))}
+    </>
   );
 }
 

@@ -14,6 +14,9 @@ type CertData = {
   student_name: string;
   event_name: string;
   event_date?: string | null;
+  organizer_name?: string | null;
+  organizer_logo?: string | null;
+  organizer_public_id?: string | null;
   status: "active" | "revoked" | "expired";
   issued_at?: string | null;
   pdf_url?: string | null;
@@ -49,6 +52,7 @@ export default function VerifyPage({ params }: { params: { uuid: string } }) {
     verifyCode: "Doğrulama kimliği",
     owner: "Sahip",
     event: "Etkinlik",
+    organizer: "Düzenleyen",
     downloadPdf: "PDF indir",
     downloadPng: "PNG indir",
     addLinkedIn: "LinkedIn'e ekle",
@@ -73,6 +77,7 @@ export default function VerifyPage({ params }: { params: { uuid: string } }) {
     verifyCode: "Verification ID",
     owner: "Owner",
     event: "Event",
+    organizer: "Organizer",
     downloadPdf: "Download PDF",
     downloadPng: "Download PNG",
     addLinkedIn: "Add to LinkedIn",
@@ -119,7 +124,7 @@ export default function VerifyPage({ params }: { params: { uuid: string } }) {
             {cert?.branding?.brand_logo ? (
               <img src={cert.branding.brand_logo} alt={cert.branding.org_name || "Brand"} className="h-9 w-auto object-contain" />
             ) : (
-              <FileCheck2 className="h-5 w-5 text-brand-600" />
+              <img src="/favicon.svg" alt="" className="h-9 w-9 object-contain" />
             )}
             <span className="truncate text-lg font-black text-slate-950">{cert?.branding?.org_name || "HeptaCert"}</span>
           </div>
@@ -183,6 +188,18 @@ export default function VerifyPage({ params }: { params: { uuid: string } }) {
                   <InfoCard icon={Hash} label={copy.verifyCode} value={<code className="font-mono text-xs text-slate-500 break-all">{cert.uuid}</code>} />
                   <InfoCard icon={User} label={copy.owner} value={cert.student_name} />
                   <InfoCard icon={FileCheck2} label={copy.event} value={cert.event_name} />
+                  {cert.organizer_name && (
+                    <InfoCard
+                      icon={Building2}
+                      label={copy.organizer}
+                      value={
+                        <span className="inline-flex min-w-0 items-center gap-2">
+                          {cert.organizer_logo && <img src={cert.organizer_logo} alt="" className="h-6 w-6 rounded-md object-contain" />}
+                          <span className="truncate">{cert.organizer_name}</span>
+                        </span>
+                      }
+                    />
+                  )}
                 </div>
 
                 <div className="mt-8 flex flex-wrap gap-3 border-t border-slate-100 pt-6">

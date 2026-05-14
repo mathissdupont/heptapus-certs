@@ -15,6 +15,7 @@ import {
 import PageHeader from "@/components/Admin/PageHeader";
 import { useToast } from "@/hooks/useToast";
 import { normalizeExternalUrl } from "@/lib/url";
+import HeptaCertLogoMark from "@/components/Brand/HeptaCertLogoMark";
 
 const TABS = [
   { id: "account", label: "Hesap", description: "Şifre ve e-posta", icon: Lock },
@@ -887,7 +888,7 @@ function BrandingTab() {
             
             <div className="mt-2 flex justify-center">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-100 bg-white px-3 py-1 text-xs font-medium shadow-sm" style={{ color: brandColor }}>
-                <BadgeCheck className="h-4 w-4" /> Resmi Doğrulama
+                <HeptaCertLogoMark className="h-4 w-4 rounded-sm" /> Resmi Doğrulama
               </span>
             </div>
 

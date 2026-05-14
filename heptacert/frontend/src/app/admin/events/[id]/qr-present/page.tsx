@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { fetchSessionQr, apiFetch } from "@/lib/api";
 import Image from "next/image";
-import { ShieldCheck, QrCode } from "lucide-react";
+import { QrCode } from "lucide-react";
+import HeptaCertLogoMark from "@/components/Brand/HeptaCertLogoMark";
 
 type BrandingData = {
   org_name?: string;
@@ -191,7 +192,7 @@ export default function QrPresentPage() {
       {/* Bottom trust bar */}
       <div className="absolute bottom-6 left-0 right-0 text-center px-4">
         <div className="inline-flex items-center gap-2 text-xs font-medium text-white/40">
-          <ShieldCheck className="w-3.5 h-3.5" style={{ color: brandColor }} />
+          <HeptaCertLogoMark className="h-4 w-4 rounded-sm" />
           HeptaCert altyapısıyla güvence altındadır.
         </div>
         <p className="mt-2 text-[11px] text-white/20">

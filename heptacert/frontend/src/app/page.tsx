@@ -3,10 +3,10 @@ import HomeClient from "./_home-client";
 
 export const metadata: Metadata = {
   title: "HeptaCert | Digital Certificate Platform",
-  description: "Create, manage, and verify digital certificates for events, trainings, and branded certificate journeys.",
+  description: "HeptaCert is a digital certificate and event management platform operated by Heptapus Group.",
   openGraph: {
     title: "HeptaCert | Digital Certificate Platform",
-    description: "Create, manage, and verify digital certificates from one operational workspace.",
+    description: "HeptaCert is a digital certificate and event management platform operated by Heptapus Group.",
     type: "website",
   },
 };

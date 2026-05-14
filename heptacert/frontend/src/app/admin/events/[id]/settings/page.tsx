@@ -26,6 +26,8 @@ import {
   Phone,
   Hash,
   Calendar,
+  ExternalLink,
+  FileSpreadsheet,
   List,
   FileUp,
   Eye,
@@ -33,9 +35,11 @@ import {
   Lightbulb,
   Settings,
   ShieldAlert,
+  RefreshCw,
+  Unplug,
 } from "lucide-react";
 import { apiFetch, getMySubscription, listAdminEventComments, updateAdminEventComment, type RegistrationField, type SubscriptionInfo, type PublicEventComment } from "@/lib/api";
-import EventAdminNav from "@/components/Admin/EventAdminNav";
+import EventAdminNav, { refreshEventAdminMeta } from "@/components/Admin/EventAdminNav";
 import PageHeader from "@/components/Admin/PageHeader";
 import RichTextEditor from "@/components/RichTextEditor";
 import { useI18n } from "@/lib/i18n";
@@ -63,6 +67,14 @@ type EventOut = {
   require_email_verification?: boolean;
   registration_quota?: number | null;
   registration_quota_enabled?: boolean;
+  event_type?: EventType;
+  certificate_enabled?: boolean;
+  checkin_enabled?: boolean;
+  ticketing_enabled?: boolean;
+  registration_enabled?: boolean;
+  raffles_enabled?: boolean;
+  gamification_enabled?: boolean;
+  requires_approval?: boolean;
 };
 
 type EmailTemplate = {
@@ -72,6 +84,18 @@ type EmailTemplate = {
   subject_en: string;
   template_type: string;
   event_id?: number | null;
+};
+
+type EventSheetsStatus = {
+  google_configured: boolean;
+  google_connected: boolean;
+  google_email?: string | null;
+  spreadsheet_id?: string | null;
+  spreadsheet_url?: string | null;
+  sheet_name?: string | null;
+  enabled: boolean;
+  last_synced_at?: string | null;
+  missing_scopes?: string[];
 };
 
 type FormState = {
@@ -88,7 +112,33 @@ type FormState = {
   registration_quota: string;
   auto_email_on_cert: boolean;
   cert_email_template_id: number | null;
+  event_type: EventType;
+  certificate_enabled: boolean;
+  checkin_enabled: boolean;
+  ticketing_enabled: boolean;
+  registration_enabled: boolean;
+  raffles_enabled: boolean;
+  gamification_enabled: boolean;
+  requires_approval: boolean;
+  organizer_privacy_notice_enabled: boolean;
+  organizer_privacy_notice_text: string;
+  show_cross_border_transfer_notice: boolean;
+  require_cross_border_transfer_consent: boolean;
+  data_controller_name: string;
+  data_controller_contact_email: string;
+  data_retention_note: string;
 };
+
+type EventType =
+  | "certificate_event"
+  | "seminar"
+  | "workshop"
+  | "conference"
+  | "concert"
+  | "training"
+  | "club_event"
+  | "online_event"
+  | "custom";
 
 const FIELD_TYPE_OPTIONS: Array<{ value: RegistrationField["type"]; tr: string; en: string; desc_tr?: string; desc_en?: string; icon?: any }> = [
   { value: "text", tr: "Kısa Metin", en: "Short Text", desc_tr: "Tek satır (isim, e-posta, vb.)", desc_en: "Single line (name, email, etc.)", icon: Type },
@@ -105,6 +155,59 @@ const VISIBILITY_OPTIONS = [
   { value: "unlisted", tr: "Liste dışı", en: "Unlisted" },
   { value: "public", tr: "Herkese açık", en: "Public" },
 ] as const;
+
+const EVENT_TYPE_OPTIONS: Array<{ value: EventType; tr: string; en: string }> = [
+  { value: "certificate_event", tr: "Sertifika etkinliği", en: "Certificate event" },
+  { value: "seminar", tr: "Seminer", en: "Seminar" },
+  { value: "workshop", tr: "Workshop", en: "Workshop" },
+  { value: "conference", tr: "Konferans", en: "Conference" },
+  { value: "concert", tr: "Konser", en: "Concert" },
+  { value: "training", tr: "Eğitim", en: "Training" },
+  { value: "club_event", tr: "Kulüp etkinliği", en: "Club event" },
+  { value: "online_event", tr: "Online etkinlik", en: "Online event" },
+  { value: "custom", tr: "Özel", en: "Custom" },
+];
+
+function defaultsForEventType(eventType: EventType) {
+  if (eventType === "concert" || eventType === "club_event") {
+    return {
+      certificate_enabled: false,
+      checkin_enabled: true,
+      ticketing_enabled: true,
+      registration_enabled: true,
+      raffles_enabled: false,
+      gamification_enabled: false,
+    };
+  }
+  if (eventType === "online_event") {
+    return {
+      certificate_enabled: false,
+      checkin_enabled: false,
+      ticketing_enabled: false,
+      registration_enabled: true,
+      raffles_enabled: false,
+      gamification_enabled: false,
+    };
+  }
+  if (eventType === "custom") {
+    return {
+      certificate_enabled: false,
+      checkin_enabled: true,
+      ticketing_enabled: false,
+      registration_enabled: true,
+      raffles_enabled: false,
+      gamification_enabled: false,
+    };
+  }
+  return {
+    certificate_enabled: true,
+    checkin_enabled: true,
+    ticketing_enabled: false,
+    registration_enabled: true,
+    raffles_enabled: false,
+    gamification_enabled: false,
+  };
+}
 
 const SETTINGS_TABS = [
   { id: "general", label_tr: "Genel", label_en: "General", icon: FileText },
@@ -163,13 +266,13 @@ export default function EventSettingsPage() {
         registrationStatusTitle: "Kayıt durumu",
         registrationStatusBody: "Etkinlik bittiğinde veya kapasite dolduğunda kayıt sayfasını sistem üzerinden kapatabilirsiniz.",
         registrationToggle: "Yeni kayıtları kapat",
-        registrationHint: "Kapalıysa public kayıt endpoint'i yeni katılımcı kabul etmez.",
+        registrationHint: "Kapalıysa yeni kişiler artık kaydolamaz; sadece siz kendiniz kişi ekleyebilirsiniz.",
         registrationQuotaLabel: "Kayıt kotası",
-        registrationQuotaToggle: "Kayıt kotasını aktif et",
-        registrationQuotaHint: "Boş bırakılırsa limitsiz olur. Kota dolduğunda kayıt otomatik kapanır.",
+        registrationQuotaToggle: "Kayıt kotasını sınırla",
+        registrationQuotaHint: "Belirli sayıda kişi kaydolduktan sonra otomatik kayıt sayfası kapatılır. Örn: 500 kişi dolduktan sonra kapatsın.",
         registrationQuotaPlaceholder: "Örn. 300",
-        verificationToggle: "Kayıttan sonra e-posta doğrulaması zorunlu olsun",
-        verificationHint: "Kapalıysa katılımcı kayıt olur olmaz aktif sayılır; check-in ve çekiliş akışı doğrulama beklemez.",
+        verificationToggle: "Katılımcılar kayıt olduktan sonra e-posta doğrulaması zorunlu olsun",
+        verificationHint: "Kapalıysa: Katılımcı kayıt olur olmaz direkt aktif sayılır, QR check-in'de kullanabilir. Açık ise: E-posta doğrulama yapmadan QR scanbiliriz ama check-in veya sertifika almadan önce e-postasını onaylanması gerekir.",
         addField: "Alan ekle",
         emptyFields: "Henüz özel kayıt alanı eklenmedi.",
         fieldLabel: "Alan etiketi",
@@ -338,6 +441,21 @@ export default function EventSettingsPage() {
     registration_quota: "",
     auto_email_on_cert: false,
     cert_email_template_id: null,
+    event_type: "certificate_event",
+    certificate_enabled: true,
+    checkin_enabled: true,
+    ticketing_enabled: false,
+    registration_enabled: true,
+    raffles_enabled: false,
+    gamification_enabled: false,
+    requires_approval: false,
+    organizer_privacy_notice_enabled: false,
+    organizer_privacy_notice_text: "",
+    show_cross_border_transfer_notice: true,
+    require_cross_border_transfer_consent: true,
+    data_controller_name: "",
+    data_controller_contact_email: "",
+    data_retention_note: "",
   });
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
@@ -349,6 +467,9 @@ export default function EventSettingsPage() {
   const [comments, setComments] = useState<PublicEventComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentsSavingId, setCommentsSavingId] = useState<number | null>(null);
+  const [sheetsStatus, setSheetsStatus] = useState<EventSheetsStatus | null>(null);
+  const [sheetsLoading, setSheetsLoading] = useState(false);
+  const [sheetsAction, setSheetsAction] = useState<"auth" | "connect" | "sync" | "disconnect" | null>(null);
 
   const hasGrowthPlan = subscription?.role === "superadmin" || (subscription?.active && ["growth", "enterprise"].includes(subscription?.plan_id || ""));
   const fieldTypeOptions = FIELD_TYPE_OPTIONS.map((option) => ({
@@ -388,6 +509,7 @@ export default function EventSettingsPage() {
       setCustomEmailTemplates(customData || []);
       setSystemEmailTemplates(systemData || []);
       setSubscription(subRes);
+      void loadSheetsStatus();
       setFormData({
         name: eventData.name || "",
         event_date: eventData.event_date || "",
@@ -422,11 +544,107 @@ export default function EventSettingsPage() {
         require_email_verification: eventData.require_email_verification ?? true,
         auto_email_on_cert: Boolean(eventData.auto_email_on_cert),
         cert_email_template_id: eventData.cert_email_template_id || null,
+        event_type: eventData.event_type || "certificate_event",
+        certificate_enabled: eventData.certificate_enabled ?? true,
+        checkin_enabled: eventData.checkin_enabled ?? true,
+        ticketing_enabled: eventData.ticketing_enabled ?? false,
+        registration_enabled: eventData.registration_enabled ?? true,
+        raffles_enabled: eventData.raffles_enabled ?? false,
+        gamification_enabled: eventData.gamification_enabled ?? false,
+        requires_approval: eventData.requires_approval ?? false,
+        organizer_privacy_notice_enabled: Boolean(eventData.config?.organizer_privacy_notice_enabled),
+        organizer_privacy_notice_text: String(eventData.config?.organizer_privacy_notice_text || ""),
+        show_cross_border_transfer_notice: true,
+        require_cross_border_transfer_consent: true,
+        data_controller_name: String(eventData.config?.data_controller_name || ""),
+        data_controller_contact_email: String(eventData.config?.data_controller_contact_email || ""),
+        data_retention_note: String(eventData.config?.data_retention_note || ""),
       });
     } catch (e: any) {
       setError(e?.message || copy.loadingError);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadSheetsStatus() {
+    if (!eventId) return;
+    setSheetsLoading(true);
+    try {
+      const res = await apiFetch(`/admin/events/${eventId}/sheets`);
+      setSheetsStatus(await res.json());
+    } catch {
+      setSheetsStatus(null);
+    } finally {
+      setSheetsLoading(false);
+    }
+  }
+
+  async function handleConnectGoogleSheetsAuth() {
+    setSheetsAction("auth");
+    setError(null);
+    try {
+      const res = await apiFetch(`/admin/google/sheets/start?next=${encodeURIComponent(`/admin/events/${eventId}/settings`)}`);
+      const data = await res.json();
+      if (data?.authorization_url) {
+        window.location.href = data.authorization_url;
+      } else {
+        throw new Error(lang === "tr" ? "Google yetkilendirme adresi alinamadi." : "Could not get Google authorization URL.");
+      }
+    } catch (err: any) {
+      const message = err?.message || (lang === "tr" ? "Google Sheets baglantisi baslatilamadi." : "Google Sheets connection could not be started.");
+      setError(message);
+      toast.error(message);
+    } finally {
+      setSheetsAction(null);
+    }
+  }
+
+  async function handleCreateGoogleSheet() {
+    setSheetsAction("connect");
+    setError(null);
+    try {
+      const res = await apiFetch(`/admin/events/${eventId}/sheets/connect`, { method: "POST" });
+      setSheetsStatus(await res.json());
+      toast.success(lang === "tr" ? "Google Sheet olusturuldu ve kayitlar aktarildi." : "Google Sheet created and registrations synced.");
+    } catch (err: any) {
+      const message = err?.message || (lang === "tr" ? "Google Sheet olusturulamadi." : "Google Sheet could not be created.");
+      setError(message);
+      toast.error(message);
+    } finally {
+      setSheetsAction(null);
+    }
+  }
+
+  async function handleSyncGoogleSheet() {
+    setSheetsAction("sync");
+    setError(null);
+    try {
+      const res = await apiFetch(`/admin/events/${eventId}/sheets/sync`, { method: "POST" });
+      setSheetsStatus(await res.json());
+      toast.success(lang === "tr" ? "Google Sheet guncellendi." : "Google Sheet synced.");
+    } catch (err: any) {
+      const message = err?.message || (lang === "tr" ? "Google Sheet guncellenemedi." : "Google Sheet could not be synced.");
+      setError(message);
+      toast.error(message);
+    } finally {
+      setSheetsAction(null);
+    }
+  }
+
+  async function handleDisconnectGoogleSheet() {
+    setSheetsAction("disconnect");
+    setError(null);
+    try {
+      const res = await apiFetch(`/admin/events/${eventId}/sheets`, { method: "DELETE" });
+      setSheetsStatus(await res.json());
+      toast.success(lang === "tr" ? "Google Sheet baglantisi kapatildi." : "Google Sheet connection disabled.");
+    } catch (err: any) {
+      const message = err?.message || (lang === "tr" ? "Baglanti kapatilamadi." : "Connection could not be disabled.");
+      setError(message);
+      toast.error(message);
+    } finally {
+      setSheetsAction(null);
     }
   }
 
@@ -554,6 +772,21 @@ export default function EventSettingsPage() {
         registration_quota: formData.registration_quota_enabled && formData.registration_quota.trim()
           ? Number(formData.registration_quota)
           : null,
+        event_type: formData.event_type,
+        certificate_enabled: formData.certificate_enabled,
+        checkin_enabled: formData.checkin_enabled,
+        ticketing_enabled: formData.ticketing_enabled,
+        registration_enabled: formData.registration_enabled,
+        raffles_enabled: formData.raffles_enabled,
+        gamification_enabled: formData.gamification_enabled,
+        requires_approval: formData.requires_approval,
+        organizer_privacy_notice_enabled: formData.organizer_privacy_notice_enabled,
+        organizer_privacy_notice_text: formData.organizer_privacy_notice_text.trim() || null,
+        show_cross_border_transfer_notice: true,
+        require_cross_border_transfer_consent: true,
+        data_controller_name: formData.data_controller_name.trim() || null,
+        data_controller_contact_email: formData.data_controller_contact_email.trim() || null,
+        data_retention_note: formData.data_retention_note.trim() || null,
       };
 
       if (hasGrowthPlan) {
@@ -579,6 +812,7 @@ export default function EventSettingsPage() {
 
       setSuccess(copy.saveSuccess);
       toast.success(copy.saveSuccess);
+      refreshEventAdminMeta(eventId);
       await loadData();
     } catch (e: any) {
       const message = e?.message || copy.saveError;
@@ -712,6 +946,123 @@ export default function EventSettingsPage() {
                     onChange={(value) => setFormData((current) => ({ ...current, event_description: value }))}
                     placeholder={copy.descriptionPlaceholder}
                   />
+                </div>
+              </div>
+            </section>
+
+            {/* Event Type & Features */}
+            <section className="card p-6 sm:p-7">
+              <div className="flex items-start gap-3">
+                <div className="rounded-lg bg-violet-50 p-3 text-violet-600">
+                  <Settings className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-surface-900">
+                    {lang === "tr" ? "Etkinlik tipi ve özellikler" : "Event type and features"}
+                  </h2>
+                  <p className="mt-1 text-sm text-surface-500">
+                    {lang === "tr"
+                      ? "Sertifika, check-in, biletleme, çekiliş, oyunlaştırma ve herkese açık kayıt davranışını etkinlik bazında seçin."
+                      : "Choose certificate, check-in, ticketing, raffle, gamification, and public registration behavior per event."}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-4">
+                <div>
+                  <label className="label">{lang === "tr" ? "Etkinlik tipi" : "Event type"}</label>
+                  <select
+                    value={formData.event_type}
+                    onChange={(event) =>
+                      setFormData((current) => {
+                        const nextEventType = event.target.value as EventType;
+                        return {
+                          ...current,
+                          event_type: nextEventType,
+                          ...defaultsForEventType(nextEventType),
+                        };
+                      })
+                    }
+                    className="input-field"
+                  >
+                    {EVENT_TYPE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {lang === "tr" ? option.tr : option.en}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  {[
+                    {
+                      key: "certificate_enabled",
+                      label: lang === "tr" ? "Sertifika modu aktif" : "Certificate mode enabled",
+                      hint: lang === "tr"
+                        ? "Kapalıysa: Katılımcılar sertifika alamaz, yönetici de sertifika üretemez ve gösteremez."
+                        : "When off: Participants cannot receive certificates, and admins cannot issue or manage them.",
+                    },
+                    {
+                      key: "checkin_enabled",
+                      label: lang === "tr" ? "QR check-in aktif" : "QR check-in enabled",
+                      hint: lang === "tr"
+                        ? "Kapalıysa: QR taraması ve kapıda giriş kontrolü devre dışı kalır. Katılımcıları kaydedemezsiniz."
+                        : "When off: QR scanning and entry check-in are disabled. You cannot record who attended.",
+                    },
+                    {
+                      key: "ticketing_enabled",
+                      label: lang === "tr" ? "Bilet / giriş kartı modu aktif" : "Ticket/pass mode enabled",
+                      hint: lang === "tr"
+                        ? "Açık ise kayıt olan katılımcılar için QR tabanlı dijital bilet oluşturulur."
+                        : "When on, registered attendees receive a QR-based digital ticket.",
+                    },
+                    {
+                      key: "raffles_enabled",
+                      label: lang === "tr" ? "Çekiliş modu aktif" : "Raffle mode enabled",
+                      hint: lang === "tr"
+                        ? "Açık ise çekiliş ekranı görünür. Check-in/oturum kapalıysa çekiliş ekranı gizlenir."
+                        : "When on, raffle screens are visible. They stay hidden if check-in/sessions are off.",
+                    },
+                    {
+                      key: "gamification_enabled",
+                      label: lang === "tr" ? "Oyunlaştırma modu aktif" : "Gamification mode enabled",
+                      hint: lang === "tr"
+                        ? "Açık ise rozet ve oyunlaştırma ekranı görünür. Check-in/oturum kapalıysa gizlenir."
+                        : "When on, badge and gamification screens are visible. They stay hidden if check-in/sessions are off.",
+                    },
+                    {
+                      key: "registration_enabled",
+                      label: lang === "tr" ? "Herkese açık kayıt aktif" : "Public registration enabled",
+                      hint: lang === "tr"
+                        ? "Kapalıysa: Dış kişiler (linkten bulan insanlar) kayıt olamaz. Sadece siz kendiniz veya toplu yükleme ile kişi ekleyebilirsiniz."
+                        : "When off: People cannot self-register from the link. You must manually add or bulk-import attendees.",
+                    },
+                    {
+                      key: "requires_approval",
+                      label: lang === "tr" ? "Kayıtlar onay gerektirsin" : "Registrations require approval",
+                      hint: lang === "tr"
+                        ? "Açık ise: Katılımcı kaydı siz onaylayıncaya kadar bekleme durumunda kalır. Kapalı ise: Katılımcı kayıt olunca otomatik aktif olur."
+                        : "When on: Registrations are inactive until you manually approve them.",
+                    },
+                  ].map((feature) => (
+                    <label key={feature.key} className="flex items-start gap-3 rounded-lg border border-surface-200 bg-surface-50 px-4 py-4">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(formData[feature.key as keyof FormState])}
+                        onChange={(event) =>
+                          setFormData((current) => ({
+                            ...current,
+                            [feature.key]: event.target.checked,
+                          }))
+                        }
+                        className="mt-1 h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500"
+                      />
+                      <div>
+                        <p className="text-sm font-semibold text-surface-900">{feature.label}</p>
+                        <p className="mt-1 text-xs text-surface-500">{feature.hint}</p>
+                      </div>
+                    </label>
+                  ))}
                 </div>
               </div>
             </section>
@@ -857,6 +1208,112 @@ export default function EventSettingsPage() {
                 </label>
               </div>
             </section>
+
+            <section className="card p-6 sm:p-7">
+              <div className="flex items-start gap-3">
+                <div className="rounded-lg bg-sky-50 p-3 text-sky-600">
+                  <ShieldAlert className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-surface-900">{lang === "tr" ? "KVKK ve Veri İşleme" : "Privacy and Data Processing"}</h2>
+                  <p className="mt-1 text-sm text-surface-500">
+                    {lang === "tr"
+                      ? "Etkinliğe özel aydınlatma metni, organizatör sorumluluğu ve yurt dışı altyapı bilgilendirmesini burada tanımlayabilirsiniz."
+                      : "Define the event-specific notice, organizer responsibility wording, and cross-border transfer information here."}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-4">
+                <label className="flex items-start gap-3 rounded-lg border border-surface-200 bg-surface-50 px-4 py-4">
+                  <input
+                    type="checkbox"
+                    checked={formData.organizer_privacy_notice_enabled}
+                    onChange={(event) =>
+                      setFormData((current) => ({
+                        ...current,
+                        organizer_privacy_notice_enabled: event.target.checked,
+                      }))
+                    }
+                    className="mt-1 h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500"
+                  />
+                  <div>
+                    <p className="text-sm font-semibold text-surface-900">
+                      {lang === "tr" ? "Organizatör aydınlatma metni aktif" : "Organizer notice enabled"}
+                    </p>
+                    <p className="mt-1 text-xs text-surface-500">
+                      {lang === "tr"
+                        ? "Açık olursa kayıt formunda organizatöre ait ayrı bir KVKK metni gösterilir ve onay istenir."
+                        : "When enabled, a separate organizer-specific notice is shown in registration and requires acknowledgement."}
+                    </p>
+                  </div>
+                </label>
+
+                <div>
+                  <label className="label">{lang === "tr" ? "Organizatör KVKK metni" : "Organizer privacy notice"}</label>
+                  <RichTextEditor
+                    value={formData.organizer_privacy_notice_text}
+                    onChange={(value) => setFormData((current) => ({ ...current, organizer_privacy_notice_text: value }))}
+                    placeholder={lang === "tr"
+                      ? "Etkinliğe özel aydınlatma metnini burada yazın."
+                      : "Write the event-specific privacy notice here."}
+                  />
+                  <p className="mt-1 text-xs text-surface-500">
+                    {lang === "tr"
+                      ? "Örnek: TC kimlik no, pasaport no, doğum tarihi gibi alanların neden toplandığı ve saklama süresi burada açıklanabilir."
+                      : "Example: explain why fields like national ID, passport number, or date of birth are collected and how long they are kept."}
+                  </p>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="label">{lang === "tr" ? "Veri sorumlusu adı" : "Data controller name"}</label>
+                    <input
+                      value={formData.data_controller_name}
+                      onChange={(event) => setFormData((current) => ({ ...current, data_controller_name: event.target.value }))}
+                      className="input-field"
+                      placeholder={lang === "tr" ? "Örn. ABC Derneği" : "e.g. ABC Association"}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">{lang === "tr" ? "İletişim e-postası" : "Contact email"}</label>
+                    <input
+                      type="email"
+                      value={formData.data_controller_contact_email}
+                      onChange={(event) => setFormData((current) => ({ ...current, data_controller_contact_email: event.target.value }))}
+                      className="input-field"
+                      placeholder={lang === "tr" ? "kvkk@ornek.org" : "privacy@example.org"}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="label">{lang === "tr" ? "Saklama notu" : "Retention note"}</label>
+                  <textarea
+                    value={formData.data_retention_note}
+                    onChange={(event) => setFormData((current) => ({ ...current, data_retention_note: event.target.value }))}
+                    className="input-field min-h-28"
+                    placeholder={lang === "tr" ? "Örn. Etkinlik bitiminden sonra 90 gün saklanır." : "e.g. Kept for 90 days after the event ends."}
+                  />
+                  <p className="mt-1 text-xs text-surface-500">
+                    {lang === "tr"
+                      ? "Bu not sadece organizatörün etkinlik içi saklama politikasını açıklamak içindir."
+                      : "This note is for explaining the organizer's event-specific retention policy."}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-4">
+                  <p className="text-sm font-semibold text-amber-900">
+                    {lang === "tr" ? "Yurt dışı aktarım onayı sistem tarafından zorunlu tutulur" : "Cross-border transfer consent is required by the system"}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-amber-800">
+                    {lang === "tr"
+                      ? "HeptaCert altyapısı yurt dışındaki barındırma, yedekleme, güvenlik ve teknik destek sağlayıcılarını kullanabildiği için bu bilgilendirme ve açık rıza kayıt akışına otomatik eklenir."
+                      : "Because HeptaCert may use overseas providers for hosting, backup, security, and technical support, this notice and explicit consent are added to the registration flow automatically."}
+                  </p>
+                </div>
+              </div>
+            </section>
           </>
         )}
 
@@ -888,6 +1345,106 @@ export default function EventSettingsPage() {
                   <li>• {lang === "tr" ? "Koşullu zorunlu alanlar ekleyebilirsiniz" : "Add conditional requirements for smart forms"}</li>
                   <li>• {lang === "tr" ? "Her alan için yardımcı metin ekleyebilirsiniz" : "Add helper text to guide users"}</li>
                 </ul>
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-lg border border-surface-200 bg-white p-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-lg bg-emerald-50 p-3 text-emerald-600">
+                    <FileSpreadsheet className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-surface-900">
+                      {lang === "tr" ? "Google Sheets otomasyonu" : "Google Sheets automation"}
+                    </h3>
+                    <p className="mt-1 max-w-2xl text-sm leading-6 text-surface-600">
+                      {lang === "tr"
+                        ? "Bu etkinlikteki kayitlar Google E-Tablolar'a otomatik akar. Mevcut kayitlari tek seferde senkronlayabilir, yeni kayitlari da tabloya anlik ekletebilirsiniz."
+                        : "Registrations for this event can flow into Google Sheets automatically. Existing attendees can be synced once, and new registrations are appended as they arrive."}
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-surface-500">
+                      {sheetsLoading ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          {lang === "tr" ? "Durum kontrol ediliyor" : "Checking status"}
+                        </span>
+                      ) : sheetsStatus?.google_email ? (
+                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700">
+                          {sheetsStatus.google_email}
+                        </span>
+                      ) : (
+                        <span>{lang === "tr" ? "Google hesabi bagli degil" : "No Google account connected"}</span>
+                      )}
+                      {sheetsStatus?.last_synced_at && (
+                        <span>
+                          {lang === "tr" ? "Son senkron: " : "Last sync: "}
+                          {new Date(sheetsStatus.last_synced_at).toLocaleString(lang === "tr" ? "tr-TR" : "en-US")}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 lg:justify-end">
+                  {!sheetsStatus?.google_configured ? (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+                      {lang === "tr"
+                        ? "Google OAuth ayarlari .env icinde eksik."
+                        : "Google OAuth settings are missing in .env."}
+                    </div>
+                  ) : !sheetsStatus?.google_connected ? (
+                    <button
+                      type="button"
+                      onClick={handleConnectGoogleSheetsAuth}
+                      disabled={Boolean(sheetsAction)}
+                      className="btn-primary inline-flex items-center gap-2 disabled:opacity-60"
+                    >
+                      {sheetsAction === "auth" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
+                      {lang === "tr" ? "Google izni ver" : "Connect Google"}
+                    </button>
+                  ) : sheetsStatus.enabled && sheetsStatus.spreadsheet_url ? (
+                    <>
+                      <a
+                        href={sheetsStatus.spreadsheet_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn-secondary inline-flex items-center gap-2"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        {lang === "tr" ? "Sheet'i ac" : "Open Sheet"}
+                      </a>
+                      <button
+                        type="button"
+                        onClick={handleSyncGoogleSheet}
+                        disabled={Boolean(sheetsAction)}
+                        className="btn-secondary inline-flex items-center gap-2 disabled:opacity-60"
+                      >
+                        {sheetsAction === "sync" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                        {lang === "tr" ? "Senkronla" : "Sync"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDisconnectGoogleSheet}
+                        disabled={Boolean(sheetsAction)}
+                        className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60"
+                      >
+                        {sheetsAction === "disconnect" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Unplug className="h-4 w-4" />}
+                        {lang === "tr" ? "Kapat" : "Disable"}
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleCreateGoogleSheet}
+                      disabled={Boolean(sheetsAction)}
+                      className="btn-primary inline-flex items-center gap-2 disabled:opacity-60"
+                    >
+                      {sheetsAction === "connect" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
+                      {lang === "tr" ? "Sheet olustur ve bagla" : "Create and connect Sheet"}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 

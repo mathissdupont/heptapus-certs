@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Building2, CheckCircle2, Eye, EyeOff, Lock, Mail, ShieldCheck, UserRound } from "lucide-react";
-import { apiFetch, registerPublicMember } from "@/lib/api";
+import { API_BASE, apiFetch, registerPublicMember } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 type RegisterMode = "organizer" | "member";
@@ -54,6 +54,7 @@ export default function RegisterHub() {
             registerFailed: "Kayıt işlemi başarısız oldu.",
             verifyHint: "E-posta gelmediyse spam klasörünü de kontrol edin.",
             createAccount: "Hesap Oluştur",
+            googleRegister: "Google ile devam et",
             name: "Ad Soyad",
             namePlaceholder: "Örn. Ayşe Yılmaz",
             email: "E-posta Adresi",
@@ -102,6 +103,7 @@ export default function RegisterHub() {
             registerFailed: "Registration failed.",
             verifyHint: "If you do not see the email, check your spam folder too.",
             createAccount: "Create Account",
+            googleRegister: "Continue with Google",
             name: "Full Name",
             namePlaceholder: "e.g. Ayse Yilmaz",
             email: "Email Address",
@@ -329,6 +331,11 @@ export default function RegisterHub() {
               {copy.termsSuffix}
             </span>
           </label>
+          <div className="flex flex-wrap gap-3 text-xs text-slate-500">
+            <Link href="/kvkk" className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "KVKK Aydınlatma Metni" : "Privacy Notice"}</Link>
+            <Link href="/gizlilik" className="font-semibold text-brand-600 hover:text-brand-700">{copy.privacyLink}</Link>
+            <Link href="/acik-riza" className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Açık Rıza Metni" : "Explicit Consent Text"}</Link>
+          </div>
 
           <AnimatePresence mode="wait">
             {err ? (
@@ -349,6 +356,20 @@ export default function RegisterHub() {
             )}
           </button>
         </form>
+
+        <div className="my-5 flex items-center gap-3">
+          <div className="h-px flex-1 bg-slate-200" />
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">veya</span>
+          <div className="h-px flex-1 bg-slate-200" />
+        </div>
+
+        <a
+          href={`${API_BASE}/auth/google/start?mode=${mode === "organizer" ? "admin" : "member"}&next=${encodeURIComponent(mode === "organizer" ? "/admin/events" : "/events")}`}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+        >
+          <span className="text-base font-black text-blue-600">G</span>
+          {copy.googleRegister}
+        </a>
 
         <div className="mt-6 text-center text-sm text-gray-500">
           {copy.hasAccount}{" "}

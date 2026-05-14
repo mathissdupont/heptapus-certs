@@ -26,6 +26,7 @@ import {
   Search,
   Sparkles,
   CalendarRange,
+  Ticket,
 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import PageHeader from "@/components/Admin/PageHeader";
@@ -34,9 +35,48 @@ import EmptyState from "@/components/Admin/EmptyState";
 import { StatCard } from "@/components/Admin/StatCard";
 import { useI18n } from "@/lib/i18n";
 
-type EventOut = { id: number; public_id?: string | null; name: string; template_image_url: string; config: any };
+type EventOut = {
+  id: number;
+  public_id?: string | null;
+  name: string;
+  template_image_url: string;
+  config: any;
+  event_type?: EventType;
+  certificate_enabled?: boolean;
+  checkin_enabled?: boolean;
+  ticketing_enabled?: boolean;
+  registration_enabled?: boolean;
+  raffles_enabled?: boolean;
+  gamification_enabled?: boolean;
+};
 type MeOut = { id: number; email: string; role: "admin" | "superadmin"; heptacoin_balance: number };
 type EventStat = { event_id: number; active: number; total: number };
+type EventType = "certificate_event" | "seminar" | "workshop" | "conference" | "concert" | "training" | "club_event" | "online_event" | "custom";
+
+const EVENT_TYPE_OPTIONS: Array<{ value: EventType; label: string }> = [
+  { value: "certificate_event", label: "Sertifikalı etkinlik" },
+  { value: "seminar", label: "Seminer" },
+  { value: "workshop", label: "Workshop" },
+  { value: "conference", label: "Konferans" },
+  { value: "concert", label: "Konser" },
+  { value: "training", label: "Eğitim" },
+  { value: "club_event", label: "Kulüp etkinliği" },
+  { value: "online_event", label: "Online etkinlik" },
+  { value: "custom", label: "Özel etkinlik" },
+];
+
+function defaultsForEventType(eventType: EventType) {
+  if (eventType === "concert" || eventType === "club_event") {
+    return { certificateEnabled: false, checkinEnabled: true, ticketingEnabled: true, registrationEnabled: true, rafflesEnabled: false, gamificationEnabled: false };
+  }
+  if (eventType === "online_event") {
+    return { certificateEnabled: false, checkinEnabled: false, ticketingEnabled: false, registrationEnabled: true, rafflesEnabled: false, gamificationEnabled: false };
+  }
+  if (eventType === "custom") {
+    return { certificateEnabled: false, checkinEnabled: true, ticketingEnabled: false, registrationEnabled: true, rafflesEnabled: false, gamificationEnabled: false };
+  }
+  return { certificateEnabled: true, checkinEnabled: true, ticketingEnabled: false, registrationEnabled: true, rafflesEnabled: false, gamificationEnabled: false };
+}
 
 export default function AdminEvents() {
   const { lang } = useI18n();
@@ -55,6 +95,13 @@ export default function AdminEvents() {
   const [hasPaidPlan, setHasPaidPlan] = useState(false);
   const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState("");
+  const [eventType, setEventType] = useState<EventType>("certificate_event");
+  const [certificateEnabled, setCertificateEnabled] = useState(true);
+  const [checkinEnabled, setCheckinEnabled] = useState(true);
+  const [ticketingEnabled, setTicketingEnabled] = useState(false);
+  const [registrationEnabled, setRegistrationEnabled] = useState(true);
+  const [rafflesEnabled, setRafflesEnabled] = useState(false);
+  const [gamificationEnabled, setGamificationEnabled] = useState(false);
 
   const copy = {
     tr: {
@@ -74,8 +121,16 @@ export default function AdminEvents() {
       starter: "Başlangıç",
       balance: "Bakiye",
       flowTitle: "Yeni etkinlik akışı",
-      flowBody: "Etkinliği oluşturduktan sonra editör, oturumlar, sertifikalar ve çekiliş gibi alt modüllere direkt geçebilirsin.",
+      flowBody: "Etkinlik türünü ve aktif modülleri seç; oluşturduktan sonra sadece ilgili ekranlar görünsün.",
       eventNamePlaceholder: "Yeni etkinlik adı...",
+      eventType: "Etkinlik Türü",
+      features: "Özellikler",
+      certificateFeature: "Sertifika",
+      checkinFeature: "Check-in / Oturum",
+      ticketFeature: "Bilet / Giriş kartı",
+      registrationFeature: "Herkese açık kayıt",
+      raffleFeature: "Çekiliş",
+      gamificationFeature: "Oyunlaştırma",
       newEvent: "Yeni Etkinlik",
       searchLabel: "Etkinliklerde Ara",
       searchPlaceholder: "Ad veya ID ile ara",
@@ -97,6 +152,9 @@ export default function AdminEvents() {
       editor: "Editör",
       certificates: "Sertifikalar",
       sessions: "Oturumlar",
+      tickets: "Biletler",
+      raffles: "Çekilişler",
+      gamification: "Oyunlaştırma",
       paidPlanRequired: "Pro veya Enterprise plan gerekli",
       copied: "Kopyalandı!",
       registerLink: "Kayıt Linki",
@@ -123,8 +181,16 @@ export default function AdminEvents() {
       starter: "Starter",
       balance: "Balance",
       flowTitle: "New event flow",
-      flowBody: "After creating an event, you can jump straight into the editor, sessions, certificates, and raffle modules.",
+      flowBody: "Choose the event type and active modules; only relevant screens will appear after creation.",
       eventNamePlaceholder: "New event name...",
+      eventType: "Event Type",
+      features: "Features",
+      certificateFeature: "Certificate",
+      checkinFeature: "Check-in / Sessions",
+      ticketFeature: "Ticket / Pass",
+      registrationFeature: "Public registration",
+      raffleFeature: "Raffle",
+      gamificationFeature: "Gamification",
       newEvent: "New Event",
       searchLabel: "Search Events",
       searchPlaceholder: "Search by name or ID",
@@ -146,6 +212,9 @@ export default function AdminEvents() {
       editor: "Editor",
       certificates: "Certificates",
       sessions: "Sessions",
+      tickets: "Tickets",
+      raffles: "Raffles",
+      gamification: "Gamification",
       paidPlanRequired: "Pro or Enterprise plan required",
       copied: "Copied!",
       registerLink: "Registration Link",
@@ -167,6 +236,17 @@ export default function AdminEvents() {
   }
 
   const router = useRouter();
+
+  function applyEventTypeDefaults(nextType: EventType) {
+    const defaults = defaultsForEventType(nextType);
+    setEventType(nextType);
+    setCertificateEnabled(defaults.certificateEnabled);
+    setCheckinEnabled(defaults.checkinEnabled);
+    setTicketingEnabled(defaults.ticketingEnabled);
+    setRegistrationEnabled(defaults.registrationEnabled);
+    setRafflesEnabled(defaults.rafflesEnabled);
+    setGamificationEnabled(defaults.gamificationEnabled);
+  }
 
   async function load() {
     setErr(null);
@@ -217,13 +297,32 @@ export default function AdminEvents() {
     try {
       const res = await apiFetch("/admin/events", {
         method: "POST",
-        body: JSON.stringify({ name, template_image_url: "placeholder", config: {} }),
+        body: JSON.stringify({
+          name,
+          template_image_url: "placeholder",
+          config: { visibility: "unlisted" },
+          event_type: eventType,
+          certificate_enabled: certificateEnabled,
+          checkin_enabled: checkinEnabled,
+          ticketing_enabled: ticketingEnabled,
+          registration_enabled: registrationEnabled,
+          raffles_enabled: rafflesEnabled,
+          gamification_enabled: gamificationEnabled,
+        }),
       });
       const created = await res.json();
       setName("");
       toast.success(copy.created(created.name));
       await load();
-      router.push(`/admin/events/${created.id}/editor`);
+      if (created.certificate_enabled !== false) {
+        router.push(`/admin/events/${created.id}/editor`);
+      } else if (created.ticketing_enabled === true) {
+        router.push(`/admin/events/${created.id}/tickets`);
+      } else if (created.checkin_enabled !== false) {
+        router.push(`/admin/events/${created.id}/sessions`);
+      } else {
+        router.push(`/admin/events/${created.id}/settings`);
+      }
     } catch (e: any) {
       setErr(e?.message || copy.createFailed);
     } finally {
@@ -327,7 +426,7 @@ export default function AdminEvents() {
                 <p className="mt-1 text-sm leading-6 text-surface-500">{copy.flowBody}</p>
               </div>
             </div>
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_260px]">
               <div className="relative flex-1">
                 <Zap className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
                 <input
@@ -338,6 +437,47 @@ export default function AdminEvents() {
                   placeholder={copy.eventNamePlaceholder}
                 />
               </div>
+              <select
+                value={eventType}
+                onChange={(event) => applyEventTypeDefaults(event.target.value as EventType)}
+                className="input-field"
+                aria-label={copy.eventType}
+              >
+                {EVENT_TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              {[
+                [copy.certificateFeature, certificateEnabled, setCertificateEnabled],
+                [copy.checkinFeature, checkinEnabled, setCheckinEnabled],
+                [copy.ticketFeature, ticketingEnabled, setTicketingEnabled],
+                [copy.registrationFeature, registrationEnabled, setRegistrationEnabled],
+                [copy.raffleFeature, rafflesEnabled, setRafflesEnabled],
+                [copy.gamificationFeature, gamificationEnabled, setGamificationEnabled],
+              ].map(([label, enabled, setter]) => {
+                const toggle = setter as (updater: (value: boolean) => boolean) => void;
+                return (
+                  <button
+                    key={String(label)}
+                    type="button"
+                    onClick={() => toggle((value) => !value)}
+                    className={`inline-flex items-center justify-between rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+                      enabled
+                        ? "border-brand-200 bg-white text-brand-700"
+                        : "border-surface-200 bg-white/60 text-surface-400"
+                    }`}
+                  >
+                    <span>{label as string}</span>
+                    <span className={`h-2.5 w-2.5 rounded-full ${enabled ? "bg-brand-500" : "bg-surface-300"}`} />
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-3 flex justify-end">
               <button onClick={createEvent} disabled={!name.trim() || creating} className="btn-primary gap-2 px-6">
                 {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                 {copy.newEvent}
@@ -415,7 +555,13 @@ export default function AdminEvents() {
                 }
               />
             ) : (
-              filteredEvents.map((ev) => (
+              filteredEvents.map((ev) => {
+                const eventCertificateEnabled = ev.certificate_enabled !== false;
+                const eventCheckinEnabled = ev.checkin_enabled !== false;
+                const eventTicketingEnabled = ev.ticketing_enabled === true;
+                const eventRafflesEnabled = ev.raffles_enabled === true;
+                const eventGamificationEnabled = ev.gamification_enabled === true;
+                return (
                 <motion.div key={ev.id} variants={itemVars}>
                   <div className="group card p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card">
                     <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
@@ -481,24 +627,45 @@ export default function AdminEvents() {
                           >
                             <Pencil className="h-3.5 w-3.5" /> {copy.rename}
                           </button>
-                          <Link href={`/admin/events/${ev.id}/editor`} className="inline-flex items-center gap-1.5 rounded-lg border border-brand-100 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-100">
-                            <Pencil className="h-3.5 w-3.5" /> {copy.editor}
-                          </Link>
-                          <Link href={`/admin/events/${ev.id}/certificates`} className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100">
-                            <ListChecks className="h-3.5 w-3.5" /> {copy.certificates}
-                            {certStats[ev.id] && (
-                              <span className="ml-0.5 rounded-full bg-emerald-200 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
-                                {certStats[ev.id].total}
-                              </span>
-                            )}
-                          </Link>
-                          <Link
-                            href={`/admin/events/${ev.id}/sessions`}
-                            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${hasPaidPlan ? "border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100" : "cursor-not-allowed border-surface-200 bg-surface-50 text-surface-400"}`}
-                            title={hasPaidPlan ? undefined : copy.paidPlanRequired}
-                          >
-                            <Hash className="h-3.5 w-3.5" /> {copy.sessions}
-                          </Link>
+                          {eventCertificateEnabled && (
+                            <>
+                              <Link href={`/admin/events/${ev.id}/editor`} className="inline-flex items-center gap-1.5 rounded-lg border border-brand-100 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-100">
+                                <Pencil className="h-3.5 w-3.5" /> {copy.editor}
+                              </Link>
+                              <Link href={`/admin/events/${ev.id}/certificates`} className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100">
+                                <ListChecks className="h-3.5 w-3.5" /> {copy.certificates}
+                                {certStats[ev.id] && (
+                                  <span className="ml-0.5 rounded-full bg-emerald-200 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                                    {certStats[ev.id].total}
+                                  </span>
+                                )}
+                              </Link>
+                            </>
+                          )}
+                          {eventCheckinEnabled && (
+                            <Link
+                              href={`/admin/events/${ev.id}/sessions`}
+                              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${hasPaidPlan ? "border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100" : "cursor-not-allowed border-surface-200 bg-surface-50 text-surface-400"}`}
+                              title={hasPaidPlan ? undefined : copy.paidPlanRequired}
+                            >
+                              <Hash className="h-3.5 w-3.5" /> {copy.sessions}
+                            </Link>
+                          )}
+                          {eventTicketingEnabled && (
+                            <Link href={`/admin/events/${ev.id}/tickets`} className="inline-flex items-center gap-1.5 rounded-lg border border-amber-100 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-100">
+                              <Ticket className="h-3.5 w-3.5" /> {copy.tickets}
+                            </Link>
+                          )}
+                          {eventCheckinEnabled && eventRafflesEnabled && (
+                            <Link href={`/admin/events/${ev.id}/raffles`} className="inline-flex items-center gap-1.5 rounded-lg border border-fuchsia-100 bg-fuchsia-50 px-3 py-1.5 text-xs font-semibold text-fuchsia-700 transition-colors hover:bg-fuchsia-100">
+                              <Sparkles className="h-3.5 w-3.5" /> {copy.raffles}
+                            </Link>
+                          )}
+                          {eventCheckinEnabled && eventGamificationEnabled && (
+                            <Link href={`/admin/events/${ev.id}/gamification`} className="inline-flex items-center gap-1.5 rounded-lg border border-violet-100 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-100">
+                              <Zap className="h-3.5 w-3.5" /> {copy.gamification}
+                            </Link>
+                          )}
                           {hasPaidPlan && (
                             <button onClick={() => copyRegisterLink(ev.id, ev.public_id)} className="inline-flex items-center gap-1.5 rounded-lg border border-sky-100 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-100">
                               {copiedId === ev.id ? (
@@ -520,7 +687,8 @@ export default function AdminEvents() {
                     </div>
                   </div>
                 </motion.div>
-              ))
+                );
+              })
             )}
           </motion.div>
         )}

@@ -98,7 +98,7 @@ export default function AuditLogsPage() {
       if (mode === "load") setLoading(true);
       if (mode === "refresh") setRefreshing(true);
       setError(null);
-      const result = await listAuditLogs({ page: 1, limit: 100 });
+      const result = await listAuditLogs({ page: 1, limit: 500 });
       setLogs(result.items);
     } catch (e: any) {
       const message = e?.message || copy.loadFailed;
@@ -144,6 +144,28 @@ export default function AuditLogsPage() {
     [lang]
   );
 
+  const exportVisibleLogs = () => {
+    const headers = ["id", "created_at", "user_email", "action", "resource_type", "resource_id", "ip_address", "details"];
+    const rows = filteredLogs.map((log) => [
+      log.id,
+      log.created_at,
+      log.user_email || "",
+      log.action,
+      log.resource_type || "",
+      log.resource_id || "",
+      log.ip_address || "",
+      (log.details || "").replaceAll('"', '""'),
+    ]);
+    const csv = [headers.join(","), ...rows.map((row) => row.map((value) => `"${String(value)}"`).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const formatRelative = (value: string) => {
     const diffMs = new Date(value).getTime() - Date.now();
     const diffMinutes = Math.round(diffMs / 60000);
@@ -170,10 +192,16 @@ export default function AuditLogsPage() {
         subtitle={copy.subtitle}
         icon={<ShieldAlert className="h-5 w-5" />}
         actions={
-          <button onClick={() => fetchLogs("refresh")} disabled={refreshing} className="btn-secondary gap-2 text-xs">
-            {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-            {copy.refresh}
-          </button>
+          <div className="flex gap-2">
+            <button onClick={exportVisibleLogs} className="btn-secondary gap-2 text-xs">
+              <FileText className="h-3.5 w-3.5" />
+              CSV
+            </button>
+            <button onClick={() => fetchLogs("refresh")} disabled={refreshing} className="btn-secondary gap-2 text-xs">
+              {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              {copy.refresh}
+            </button>
+          </div>
         }
       />
 
@@ -253,7 +281,18 @@ export default function AuditLogsPage() {
                         <p className="text-xs font-semibold uppercase tracking-wide text-surface-400">{copy.details}</p>
                         <p className="mt-1 text-sm text-surface-600">{log.details || copy.noDetails}</p>
                       </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-surface-400">IP</p>
+                        <p className="mt-1 break-all text-sm font-medium text-surface-900">{log.ip_address || "-"}</p>
+                      </div>
                     </div>
+
+                    {log.extra && Object.keys(log.extra).length > 0 && (
+                      <details className="mt-3 rounded-xl border border-surface-200 bg-surface-50 px-4 py-3">
+                        <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-surface-500">Extra JSON</summary>
+                        <pre className="mt-3 overflow-x-auto text-xs leading-5 text-surface-600">{JSON.stringify(log.extra, null, 2)}</pre>
+                      </details>
+                    )}
                   </div>
 
                   <div className="rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3 text-sm">

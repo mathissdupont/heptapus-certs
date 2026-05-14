@@ -350,6 +350,92 @@ class TestPublicEndpoints:
 
 class TestPublicSocialAndEventControls:
     @pytest.mark.asyncio
+    async def test_admin_event_feature_flags_default_and_patch(self):
+        async with SessionLocal() as db:
+            admin = User(email="feature-admin@test.com", password_hash=hash_password("AdminPass123!"), role=Role.admin)
+            db.add(admin)
+            await db.commit()
+            await db.refresh(admin)
+            admin_token = create_access_token(user_id=admin.id, role=Role.admin)
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            create_resp = await ac.post(
+                "/api/admin/events",
+                json={"name": "Feature Event", "template_image_url": "placeholder", "config": {}},
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+            assert create_resp.status_code == 201
+            created = create_resp.json()
+            assert created["event_type"] == "certificate_event"
+            assert created["certificate_enabled"] is True
+            assert created["checkin_enabled"] is True
+            assert created["ticketing_enabled"] is False
+            assert created["registration_enabled"] is True
+            assert created["requires_approval"] is False
+
+            patch_resp = await ac.patch(
+                f"/api/admin/events/{created['id']}",
+                json={
+                    "name": "Feature Event Updated",
+                    "event_type": "not-a-real-type",
+                    "certificate_enabled": False,
+                    "checkin_enabled": False,
+                    "ticketing_enabled": True,
+                    "registration_enabled": False,
+                    "requires_approval": True,
+                },
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+            assert patch_resp.status_code == 200
+            updated = patch_resp.json()
+            assert updated["event_type"] == "certificate_event"
+            assert updated["certificate_enabled"] is False
+            assert updated["checkin_enabled"] is False
+            assert updated["ticketing_enabled"] is True
+            assert updated["registration_enabled"] is False
+            assert updated["requires_approval"] is True
+
+    @pytest.mark.asyncio
+    async def test_registration_disabled_blocks_public_but_not_admin_manual_attendee(self):
+        async with SessionLocal() as db:
+            admin = User(email="registration-disabled-admin@test.com", password_hash=hash_password("AdminPass123!"), role=Role.admin)
+            db.add(admin)
+            await db.flush()
+            db.add(Subscription(user_id=admin.id, plan_id="growth", is_active=True))
+            event = Event(
+                admin_id=admin.id,
+                public_id="evt_registration_disabled",
+                name="Registration Disabled",
+                template_image_url="placeholder",
+                config={"visibility": "public"},
+                registration_enabled=False,
+            )
+            db.add(event)
+            await db.commit()
+            await db.refresh(admin)
+            await db.refresh(event)
+            admin_token = create_access_token(user_id=admin.id, role=Role.admin)
+            event_id = event.id
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            public_resp = await ac.post(
+                "/api/events/evt_registration_disabled/register",
+                json={"name": "Blocked User", "email": "blocked@test.com", "registration_answers": {}, "kvkk_accepted": True},
+            )
+            assert public_resp.status_code == 403
+            assert "disabled" in public_resp.json()["detail"].lower()
+
+            admin_resp = await ac.post(
+                f"/api/admin/events/{event_id}/attendees",
+                json={"first_name": "Manual", "last_name": "User", "email": "manual-disabled@test.com"},
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+            assert admin_resp.status_code == 200
+            assert admin_resp.json()["email"] == "manual-disabled@test.com"
+
+    @pytest.mark.asyncio
     async def test_public_event_registration_closed_returns_403(self):
         """Test that closed event registration returns 403."""
         # Create event with admin context

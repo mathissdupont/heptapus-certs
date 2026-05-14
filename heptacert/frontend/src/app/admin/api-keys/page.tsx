@@ -233,6 +233,21 @@ export default function ApiKeysPage() {
         }
       />
 
+      {/* Info Box */}
+      <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} className="card bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-4">
+        <div className="flex gap-3">
+          <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-blue-900 dark:text-blue-100">
+            <p className="font-semibold mb-1">API Anahtarları Nasıl Kullanılır?</p>
+            <p className="mb-2">API anahtarları, harici uygulamalardan (ör: kendi yazılımınız, üçüncü parti servisler) API'mize güvenli bir şekilde erişebilmeniz için kullanılır. Her istekte anahtar gönderilerek kimlik doğrulaması yapılır.</p>
+            <div className="text-xs opacity-90 space-y-1 mt-2 font-mono bg-white dark:bg-blue-900 px-2 py-2 rounded">
+              <div>curl -H "Authorization: Bearer YOUR_API_KEY" https://api.example.com/events</div>
+            </div>
+            <p className="mt-2 text-xs"><strong>Uyarı:</strong> API anahtarlarınızı asla halka açık yerlere (GitHub, sosyal medya) yazmayın!</p>
+          </div>
+        </div>
+      </motion.div>
+
       {/* Error Alert */}
       {error && (
         <div className="error-banner mb-6">
@@ -293,21 +308,27 @@ export default function ApiKeysPage() {
         >
           <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6">
             <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Yeni API Anahtarı</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Bu anahtar yazılımınızda API istekleri için kullanılacak. Oluştur'u tıklamadan sonra, anahtar sadece bir kez gösterilir - lütfen güvenli bir yerde saklayın.</p>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Anahtar İsmi</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Anahtar İsmi
+                <span className="ml-2 inline-flex items-center justify-center w-4 h-4 text-xs bg-gray-200 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-400" title="Bu anahtarı neyin için kullanacağınızı açıklayan isim">?</span>
+              </label>
               <input
                 type="text"
-                placeholder="örn. Production API Key"
+                placeholder="örn. Production API Key, Mobile App"
                 value={keyName}
                 onChange={(e) => setKeyName(e.target.value)}
                 className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
+              <p className="mt-1 text-xs text-gray-500">Birden fazla anahtar oluşturup farklı uygulamalar için kullanabilirsiniz (örneğin: test ortamı, production)</p>
             </div>
 
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Geçerlilik Süresi (gün) <span className="text-gray-400 font-normal">— isteğe bağlı</span>
+                Geçerlilik Süresi (gün)
+                <span className="ml-2 inline-flex items-center justify-center w-4 h-4 text-xs bg-gray-200 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-400" title="Kaç gün sonra bu anahtar otomatik olarak devre dışı bırakılacak">?</span>
               </label>
               <input
                 type="number"
@@ -317,6 +338,7 @@ export default function ApiKeysPage() {
                 min="1"
                 className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
+              <p className="mt-1 text-xs text-gray-500">Güvenlik için 30-90 gün arası belirlemeniz önerilir. Anahtarlar her zaman devre dışı bırakılabilir.</p>
             </div>
 
             <div className="flex gap-3">
