@@ -145,15 +145,14 @@ export default function AuditLogsPage() {
   );
 
   const exportVisibleLogs = () => {
-    const headers = ["id", "created_at", "user_email", "action", "resource_type", "resource_id", "ip_address", "details"];
+    const headers = ["id", "created_at", "user_email", "action", "resource_type", "resource_id", "details"];
     const rows = filteredLogs.map((log) => [
       log.id,
-      log.created_at,
+      new Date(log.created_at).toLocaleString(copy.locale),
       log.user_email || "",
       log.action,
       log.resource_type || "",
       log.resource_id || "",
-      log.ip_address || "",
       (log.details || "").replaceAll('"', '""'),
     ]);
     const csv = [headers.join(","), ...rows.map((row) => row.map((value) => `"${String(value)}"`).join(","))].join("\n");

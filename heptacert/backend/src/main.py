@@ -2977,6 +2977,14 @@ def _sheet_safe_value(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
+def _format_export_datetime(value: Optional[datetime]) -> str:
+    if value is None:
+        return ""
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc).strftime("%d.%m.%Y %H:%M:%S UTC")
+
+
 def _google_sheets_header_for_event(event: "Event") -> List[str]:
     header = [
         "registered_at",
@@ -2997,7 +3005,7 @@ def _google_sheets_header_for_event(event: "Event") -> List[str]:
 def _google_sheets_row_for_attendee(event: "Event", attendee: "Attendee") -> List[str]:
     answers = attendee.registration_answers or {}
     row = [
-        attendee.registered_at.isoformat() if attendee.registered_at else "",
+        _format_export_datetime(attendee.registered_at),
         event.name,
         str(attendee.id),
         attendee.name,
@@ -14889,7 +14897,6 @@ async def export_attendance(
     # Fetch all attendees without pagination
     res = await db.execute(
         select(Attendee)
-        .options(selectinload(Attendee.public_member))
         .where(Attendee.event_id == event_id)
         .order_by(Attendee.registered_at.desc())
     )
@@ -14919,12 +14926,10 @@ async def export_attendance(
         row_data = {
             "İsim": a.name,
             "Email": a.email,
-            "Kayıt Tarihi": a.registered_at.isoformat() if a.registered_at else "",
+            "Kayıt Tarihi": _format_export_datetime(a.registered_at),
             "Katıldığı Oturumlar": sessions_attended,
             "Sertifika": "Evet" if has_certificate else "Hayır",
             "Kaynak": a.source or "",
-            "Kamu Üye": a.public_member.display_name if a.public_member else "",
-            "Kamu Email": a.public_member.email if a.public_member else "",
         }
         
         # Add registration answers as individual columns
@@ -14948,7 +14953,7 @@ async def export_attendance(
         ws.title = "Katılımcılar"
         
         # Build columns: base columns + dynamic answer keys
-        base_columns = ["İsim", "Email", "Kayıt Tarihi", "Katıldığı Oturumlar", "Sertifika", "Kaynak", "Kamu Üye", "Kamu Email"]
+        base_columns = ["İsim", "Email", "Kayıt Tarihi", "Katıldığı Oturumlar", "Sertifika", "Kaynak"]
         answer_columns = sorted(list(all_answer_keys))  # Sort for consistent ordering
         columns = base_columns + answer_columns
         
@@ -14981,7 +14986,7 @@ async def export_attendance(
     else:
         # CSV export
         buf = io.StringIO()
-        base_columns = ["İsim", "Email", "Kayıt Tarihi", "Katıldığı Oturumlar", "Sertifika", "Kaynak", "Kamu Üye", "Kamu Email"]
+        base_columns = ["İsim", "Email", "Kayıt Tarihi", "Katıldığı Oturumlar", "Sertifika", "Kaynak"]
         answer_columns = sorted(list(all_answer_keys))  # Sort for consistent ordering
         columns = base_columns + answer_columns
         
@@ -15947,7 +15952,6 @@ async def get_attendance_matrix(
     sessions = sess_res.scalars().all()
     att_res = await db.execute(
         select(Attendee)
-        .options(selectinload(Attendee.public_member))
         .where(Attendee.event_id == event_id)
         .order_by(Attendee.name)
     )
@@ -16009,8 +16013,6 @@ async def get_attendance_matrix(
             "Ad Soyad": a.name,
             "E-posta": a.email,
             "Kaynak": a.source,
-            "Uye Hesabi": a.public_member.display_name if a.public_member else "",
-            "Uye E-postasi": a.public_member.email if a.public_member else "",
         }
         for s in sessions:
             row[s.name] = "Evet" if (a.id, s.id) in rec_set else "Hayir"

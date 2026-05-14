@@ -3,7 +3,7 @@ API endpoint integration tests using FastAPI TestClient.
 Tests the actual HTTP endpoints with mocked DB where needed.
 """
 import pytest
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy import func, select
 
@@ -1345,6 +1345,64 @@ class TestCommunitySocialFlows:
         
         assert resp.status_code == 200
         assert resp.headers["content-type"] == "text/csv; charset=utf-8"
+
+    @pytest.mark.asyncio
+    async def test_attendance_export_omits_public_member_pii_and_formats_dates(self):
+        async with SessionLocal() as db:
+            admin = User(email="attendance-export-admin@test.com", password_hash=hash_password("AdminPass123!"), role=Role.admin)
+            db.add(admin)
+            await db.flush()
+            admin_id = admin.id
+
+            sub = Subscription(user_id=admin_id, plan_id="growth", is_active=True)
+            db.add(sub)
+
+            event = Event(
+                admin_id=admin_id,
+                public_id="evt_attendance_export_privacy",
+                name="Attendance Privacy Event",
+                template_image_url="placeholder",
+                config={"visibility": "public", "registration_fields": []},
+            )
+            db.add(event)
+            await db.flush()
+
+            member = PublicMember(
+                public_id="mem_attendance_export_privacy",
+                email="member-privacy@test.com",
+                display_name="Privacy Member",
+                password_hash=hash_password("MemberPass123!"),
+            )
+            db.add(member)
+            await db.flush()
+
+            attendee = Attendee(
+                event_id=event.id,
+                name="Test Attendee",
+                email="attendee-privacy@test.com",
+                source="import",
+                public_member_id=member.id,
+                registered_at=datetime(2024, 1, 2, 3, 4, 5, tzinfo=timezone.utc),
+            )
+            db.add(attendee)
+            await db.commit()
+
+        admin_token = create_access_token(user_id=admin_id, role=Role.admin)
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.get(
+                f"/api/admin/events/{event.id}/attendance/export?fmt=csv",
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+
+        assert resp.status_code == 200
+        body = resp.text
+        assert "Kamu Üye" not in body
+        assert "Kamu Email" not in body
+        assert "member-privacy@test.com" not in body
+        assert "Privacy Member" not in body
+        assert "02.01.2024 03:04:05 UTC" in body
 
     @pytest.mark.asyncio
     async def test_get_attendance_matrix_with_registration_fields(self):
