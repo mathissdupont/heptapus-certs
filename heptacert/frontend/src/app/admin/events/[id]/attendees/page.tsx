@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   listAttendees, importAttendees, createManualAttendee, deleteAttendee, getAdminAttendeeSurveyLink,
   getAttendanceMatrix, bulkCertifyQueue, getBulkGenerateJob,
-  exportAttendanceFile, exportRegistrationDocumentsZip, apiFetch, getMySubscription,
+  exportAttendanceFile, exportRegistrationDocumentsZip, apiFetch, getMySubscription, setToken,
   type AttendeeOut, type AttendanceMatrix, type RegistrationField, type SubscriptionInfo
 } from "@/lib/api";
 import Link from "next/link";
@@ -15,10 +15,23 @@ import {
   Users, Upload, Search, Trash2, Loader2, ChevronLeft, Download,
   Award, BarChart3, CheckSquare, XSquare, RefreshCw, AlertCircle,
   UserCheck, UserX, CheckCircle2, QrCode, LockKeyhole, Hash, UserPlus,
-  ShieldAlert, Sparkles, Copy, Link2, ClipboardList, FileSpreadsheet
+  ShieldAlert, Sparkles, Copy, Link2, ClipboardList, FileSpreadsheet,
+  ExternalLink, Unplug
 } from "lucide-react";
 
 type Tab = "list" | "matrix" | "answers";
+
+type EventSheetsStatus = {
+  google_configured: boolean;
+  google_connected: boolean;
+  google_email?: string | null;
+  spreadsheet_id?: string | null;
+  spreadsheet_url?: string | null;
+  sheet_name?: string | null;
+  enabled: boolean;
+  last_synced_at?: string | null;
+  missing_scopes?: string[];
+};
 
 export default function AdminAttendeesPage() {
   const params = useParams();
@@ -69,6 +82,12 @@ export default function AdminAttendeesPage() {
 
   // Plan gate
   const [planOk, setPlanOk] = useState<boolean | null>(null);
+  const [authBridgeReady, setAuthBridgeReady] = useState(false);
+
+  // Google Sheets
+  const [sheetsStatus, setSheetsStatus] = useState<EventSheetsStatus | null>(null);
+  const [sheetsLoading, setSheetsLoading] = useState(false);
+  const [sheetsAction, setSheetsAction] = useState<"auth" | "connect" | "sync" | "disconnect" | null>(null);
 
   // Confirm modals
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
@@ -88,6 +107,19 @@ export default function AdminAttendeesPage() {
     setSelectedQuestionId((current) => current || fields[0]?.id || null);
     const hasPaidPlan = subInfo.role === "superadmin" || (subInfo.active && ["pro", "growth", "enterprise"].includes(subInfo.plan_id ?? ""));
     setPlanOk(hasPaidPlan);
+  }
+
+  async function loadSheetsStatus() {
+    if (!eventId) return;
+    setSheetsLoading(true);
+    try {
+      const res = await apiFetch(`/admin/events/${eventId}/sheets`);
+      setSheetsStatus(await res.json());
+    } catch {
+      setSheetsStatus(null);
+    } finally {
+      setSheetsLoading(false);
+    }
   }
 
   async function loadAttendees(p = 1, s = search) {
@@ -132,10 +164,27 @@ export default function AdminAttendeesPage() {
   }
 
   useEffect(() => {
-    if (!eventId) return;
+    const bridgeToken =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("admin_token")
+        : null;
+    if (bridgeToken) {
+      setToken(bridgeToken);
+      if (typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("admin_token");
+        window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+      }
+    }
+    setAuthBridgeReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!eventId || !authBridgeReady) return;
     loadEventMeta();
     loadAttendees(1, "");
-  }, [eventId]);
+    loadSheetsStatus();
+  }, [eventId, authBridgeReady]);
 
   useEffect(() => {
     if (tab === "matrix" && !matrix) loadMatrix();
@@ -275,6 +324,65 @@ export default function AdminAttendeesPage() {
       setListError(e.message || "Belgeler toplu indirilemedi.");
     } finally {
       setExportingDocuments(false);
+    }
+  }
+
+  async function handleConnectGoogleSheetsAuth() {
+    setSheetsAction("auth");
+    setListError(null);
+    try {
+      const frontendOrigin = typeof window !== "undefined" ? window.location.origin : "";
+      const params = new URLSearchParams({
+        next: `/admin/events/${eventId}/attendees`,
+        frontend_origin: frontendOrigin,
+      });
+      const res = await apiFetch(`/admin/google/sheets/start?${params.toString()}`);
+      const data = await res.json();
+      if (!data?.authorization_url) throw new Error("Google yetkilendirme adresi alınamadı.");
+      window.location.href = data.authorization_url;
+    } catch (e: any) {
+      setListError(e?.message || "Google Sheets bağlantısı başlatılamadı.");
+    } finally {
+      setSheetsAction(null);
+    }
+  }
+
+  async function handleCreateGoogleSheet() {
+    setSheetsAction("connect");
+    setListError(null);
+    try {
+      const res = await apiFetch(`/admin/events/${eventId}/sheets/connect`, { method: "POST" });
+      setSheetsStatus(await res.json());
+    } catch (e: any) {
+      setListError(e?.message || "Google Sheet oluşturulamadı.");
+    } finally {
+      setSheetsAction(null);
+    }
+  }
+
+  async function handleSyncGoogleSheet() {
+    setSheetsAction("sync");
+    setListError(null);
+    try {
+      const res = await apiFetch(`/admin/events/${eventId}/sheets/sync`, { method: "POST" });
+      setSheetsStatus(await res.json());
+    } catch (e: any) {
+      setListError(e?.message || "Google Sheet güncellenemedi.");
+    } finally {
+      setSheetsAction(null);
+    }
+  }
+
+  async function handleDisconnectGoogleSheet() {
+    setSheetsAction("disconnect");
+    setListError(null);
+    try {
+      const res = await apiFetch(`/admin/events/${eventId}/sheets`, { method: "DELETE" });
+      setSheetsStatus(await res.json());
+    } catch (e: any) {
+      setListError(e?.message || "Google Sheets bağlantısı kapatılamadı.");
+    } finally {
+      setSheetsAction(null);
     }
   }
 
@@ -448,6 +556,96 @@ export default function AdminAttendeesPage() {
         {certResult && (
           <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 text-sm text-indigo-800 mb-4">{certResult}</div>
         )}
+
+        <div className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600">
+                <FileSpreadsheet className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-gray-900">Google Sheets otomasyonu</h2>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">
+                  Bu etkinliğin katılımcıları Google E-Tablolar'a canlı aktarılır. Mevcut kayıtları buradan senkronlayabilir,
+                  yeni kayıtların otomatik satır olarak eklenmesini sağlayabilirsiniz.
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                  {sheetsLoading ? (
+                    <span className="inline-flex items-center gap-1">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Durum kontrol ediliyor
+                    </span>
+                  ) : sheetsStatus?.google_email ? (
+                    <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700">
+                      {sheetsStatus.google_email}
+                    </span>
+                  ) : (
+                    <span>Google hesabı bağlı değil</span>
+                  )}
+                  {sheetsStatus?.last_synced_at && (
+                    <span>Son senkron: {new Date(sheetsStatus.last_synced_at).toLocaleString("tr-TR")}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 lg:justify-end">
+              {!sheetsStatus?.google_configured ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+                  Google OAuth ayarları .env içinde eksik.
+                </div>
+              ) : !sheetsStatus?.google_connected ? (
+                <button
+                  type="button"
+                  onClick={handleConnectGoogleSheetsAuth}
+                  disabled={Boolean(sheetsAction)}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                >
+                  {sheetsAction === "auth" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
+                  Google izni ver
+                </button>
+              ) : sheetsStatus.enabled && sheetsStatus.spreadsheet_url ? (
+                <>
+                  <a
+                    href={sheetsStatus.spreadsheet_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                  >
+                    <ExternalLink className="h-4 w-4" /> Sheet'i aç
+                  </a>
+                  <button
+                    type="button"
+                    onClick={handleSyncGoogleSheet}
+                    disabled={Boolean(sheetsAction)}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+                  >
+                    {sheetsAction === "sync" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                    Senkronla
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDisconnectGoogleSheet}
+                    disabled={Boolean(sheetsAction)}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60"
+                  >
+                    {sheetsAction === "disconnect" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Unplug className="h-4 w-4" />}
+                    Kapat
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleCreateGoogleSheet}
+                  disabled={Boolean(sheetsAction)}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                >
+                  {sheetsAction === "connect" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
+                  Sheet oluştur ve bağla
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
 
         {/* Tabs */}
         <div className="mb-5 w-full overflow-x-auto"><div className="flex w-max min-w-full gap-1 rounded-xl bg-gray-100 p-1 sm:min-w-0 sm:w-fit">
@@ -729,11 +927,11 @@ export default function AdminAttendeesPage() {
                 </button>
               </div>
 
-              <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-3 py-3 text-xs leading-5 text-blue-800">
+              <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-xs leading-5 text-emerald-800">
                 <div className="flex items-start gap-2">
                   <FileSpreadsheet className="mt-0.5 h-4 w-4 shrink-0" />
                   <p>
-                    E-tablo için şimdilik üstteki <b>Excel İndir</b> butonu kullanılabilir. Google Sheets'e canlı bağlamak için ayrıca Google OAuth/senkronizasyon akışı gerekir.
+                    Canlı E-Tablo bağlantısı bu sayfanın üstündeki Google Sheets otomasyonu alanından yönetilir.
                   </p>
                 </div>
               </div>

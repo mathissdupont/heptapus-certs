@@ -26,7 +26,6 @@ import {
   Search,
   Sparkles,
   CalendarRange,
-  Ticket,
 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import PageHeader from "@/components/Admin/PageHeader";
@@ -149,6 +148,7 @@ export default function AdminEvents() {
       missing: "Eksik",
       certificatesCount: (count: number) => `${count} sertifika`,
       rename: "Yeniden Adlandır",
+      eventDetails: "Etkinlik Detayları",
       editor: "Editör",
       certificates: "Sertifikalar",
       sessions: "Oturumlar",
@@ -209,6 +209,7 @@ export default function AdminEvents() {
       missing: "Missing",
       certificatesCount: (count: number) => `${count} certificates`,
       rename: "Rename",
+      eventDetails: "Event Details",
       editor: "Editor",
       certificates: "Certificates",
       sessions: "Sessions",
@@ -314,15 +315,7 @@ export default function AdminEvents() {
       setName("");
       toast.success(copy.created(created.name));
       await load();
-      if (created.certificate_enabled !== false) {
-        router.push(`/admin/events/${created.id}/editor`);
-      } else if (created.ticketing_enabled === true) {
-        router.push(`/admin/events/${created.id}/tickets`);
-      } else if (created.checkin_enabled !== false) {
-        router.push(`/admin/events/${created.id}/sessions`);
-      } else {
-        router.push(`/admin/events/${created.id}/settings`);
-      }
+      router.push(`/admin/events/${created.id}`);
     } catch (e: any) {
       setErr(e?.message || copy.createFailed);
     } finally {
@@ -556,11 +549,6 @@ export default function AdminEvents() {
               />
             ) : (
               filteredEvents.map((ev) => {
-                const eventCertificateEnabled = ev.certificate_enabled !== false;
-                const eventCheckinEnabled = ev.checkin_enabled !== false;
-                const eventTicketingEnabled = ev.ticketing_enabled === true;
-                const eventRafflesEnabled = ev.raffles_enabled === true;
-                const eventGamificationEnabled = ev.gamification_enabled === true;
                 return (
                 <motion.div key={ev.id} variants={itemVars}>
                   <div className="group card p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card">
@@ -627,45 +615,14 @@ export default function AdminEvents() {
                           >
                             <Pencil className="h-3.5 w-3.5" /> {copy.rename}
                           </button>
-                          {eventCertificateEnabled && (
-                            <>
-                              <Link href={`/admin/events/${ev.id}/editor`} className="inline-flex items-center gap-1.5 rounded-lg border border-brand-100 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-100">
-                                <Pencil className="h-3.5 w-3.5" /> {copy.editor}
-                              </Link>
-                              <Link href={`/admin/events/${ev.id}/certificates`} className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100">
-                                <ListChecks className="h-3.5 w-3.5" /> {copy.certificates}
-                                {certStats[ev.id] && (
-                                  <span className="ml-0.5 rounded-full bg-emerald-200 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
-                                    {certStats[ev.id].total}
-                                  </span>
-                                )}
-                              </Link>
-                            </>
-                          )}
-                          {eventCheckinEnabled && (
-                            <Link
-                              href={`/admin/events/${ev.id}/sessions`}
-                              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${hasPaidPlan ? "border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100" : "cursor-not-allowed border-surface-200 bg-surface-50 text-surface-400"}`}
-                              title={hasPaidPlan ? undefined : copy.paidPlanRequired}
-                            >
-                              <Hash className="h-3.5 w-3.5" /> {copy.sessions}
-                            </Link>
-                          )}
-                          {eventTicketingEnabled && (
-                            <Link href={`/admin/events/${ev.id}/tickets`} className="inline-flex items-center gap-1.5 rounded-lg border border-amber-100 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-100">
-                              <Ticket className="h-3.5 w-3.5" /> {copy.tickets}
-                            </Link>
-                          )}
-                          {eventCheckinEnabled && eventRafflesEnabled && (
-                            <Link href={`/admin/events/${ev.id}/raffles`} className="inline-flex items-center gap-1.5 rounded-lg border border-fuchsia-100 bg-fuchsia-50 px-3 py-1.5 text-xs font-semibold text-fuchsia-700 transition-colors hover:bg-fuchsia-100">
-                              <Sparkles className="h-3.5 w-3.5" /> {copy.raffles}
-                            </Link>
-                          )}
-                          {eventCheckinEnabled && eventGamificationEnabled && (
-                            <Link href={`/admin/events/${ev.id}/gamification`} className="inline-flex items-center gap-1.5 rounded-lg border border-violet-100 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-100">
-                              <Zap className="h-3.5 w-3.5" /> {copy.gamification}
-                            </Link>
-                          )}
+                          <Link href={`/admin/events/${ev.id}`} className="inline-flex items-center gap-1.5 rounded-lg border border-brand-100 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-100">
+                            <FolderKanban className="h-3.5 w-3.5" /> {copy.eventDetails}
+                            {certStats[ev.id] && (
+                              <span className="ml-0.5 rounded-full bg-brand-100 px-1.5 py-0.5 text-[10px] font-bold text-brand-800">
+                                {certStats[ev.id].total}
+                              </span>
+                            )}
+                          </Link>
                           {hasPaidPlan && (
                             <button onClick={() => copyRegisterLink(ev.id, ev.public_id)} className="inline-flex items-center gap-1.5 rounded-lg border border-sky-100 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-100">
                               {copiedId === ev.id ? (

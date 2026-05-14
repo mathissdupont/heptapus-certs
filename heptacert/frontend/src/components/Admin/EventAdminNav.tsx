@@ -17,11 +17,13 @@ import {
   Palette,
   ClipboardList,
   Ticket,
+  FolderKanban,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { apiFetch, type EventOut } from "@/lib/api";
 
 type EventAdminTab =
+  | "details"
   | "certificates"
   | "sessions"
   | "attendees"
@@ -43,6 +45,7 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
+  { tab: "details", label: { tr: "Etkinlik Detayları", en: "Event Details" }, icon: FolderKanban, href: (id) => `/admin/events/${id}` },
   { tab: "certificates", label: { tr: "Sertifikalar", en: "Certificates" }, icon: LockKeyhole, href: (id) => `/admin/events/${id}/certificates` },
   { tab: "sessions", label: { tr: "Oturumlar", en: "Sessions" }, icon: QrCode, href: (id) => `/admin/events/${id}/sessions` },
   { tab: "attendees", label: { tr: "Katılımcılar", en: "Attendees" }, icon: Users, href: (id) => `/admin/events/${id}/attendees` },
@@ -129,7 +132,7 @@ function getActiveFromPath(pathname: string): EventAdminTab {
   if (pathname.includes("/editor") || pathname.includes("/preview") || pathname.includes("/qr-present")) return "editor";
   if (pathname.includes("/email-templates") || pathname.includes("/bulk-emails") || pathname.includes("/schedule-email")) return "email";
   if (pathname.includes("/settings")) return "settings";
-  return "certificates";
+  return "details";
 }
 
 export default function EventAdminNav({
