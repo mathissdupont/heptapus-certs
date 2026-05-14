@@ -75,7 +75,7 @@ router = APIRouter()
 
 
 class CommunityPostCreateIn(BaseModel):
-    body: str = Field(min_length=2, max_length=1500)
+    body: str = Field(min_length=2, max_length=2000)
 
 
 class CommunityCommentCreateIn(BaseModel):
@@ -83,7 +83,7 @@ class CommunityCommentCreateIn(BaseModel):
 
 
 class CommunityPostUpdateIn(BaseModel):
-    body: str = Field(min_length=2, max_length=1500)
+    body: str = Field(min_length=2, max_length=2000)
 
 
 class CommunityPostEditHistoryOut(BaseModel):

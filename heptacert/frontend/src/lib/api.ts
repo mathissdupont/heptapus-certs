@@ -66,6 +66,31 @@ export class ApiError extends Error {
   }
 }
 
+function formatApiDetail(detail: unknown): string {
+  if (!detail) return "";
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item: any) => {
+        if (typeof item === "string") return item;
+        const location = Array.isArray(item?.loc) ? item.loc.join(".") : "";
+        const message = item?.msg || item?.message || JSON.stringify(item);
+        return location ? `${location}: ${message}` : String(message);
+      })
+      .join("\n");
+  }
+  if (typeof detail === "object") {
+    const anyDetail = detail as any;
+    if (typeof anyDetail.message === "string") return anyDetail.message;
+    if (typeof anyDetail.msg === "string") return anyDetail.msg;
+  }
+  try {
+    return JSON.stringify(detail);
+  } catch {
+    return String(detail);
+  }
+}
+
 async function requestApi(
   path: string,
   init: RequestInit = {},
@@ -107,7 +132,7 @@ async function requestApi(
     let detail = `Istek basarisiz (${res.status})`;
     try {
       const j = await res.json();
-      detail = j?.detail || JSON.stringify(j);
+      detail = formatApiDetail(j?.detail) || formatApiDetail(j) || detail;
     } catch {}
     throw new ApiError(res.status, detail);
   }

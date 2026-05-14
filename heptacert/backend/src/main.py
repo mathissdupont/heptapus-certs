@@ -22,7 +22,7 @@ from html import escape
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Dict, Optional, List, Tuple
-from urllib.parse import urlencode, quote
+from urllib.parse import urlencode, quote, urlparse
 from pydantic import field_validator
 import uuid as _uuid_module
 import aiosmtplib
@@ -7288,6 +7288,19 @@ def _normalize_oauth_next(next_url: Optional[str], fallback: str) -> str:
     return fallback
 
 
+def _normalize_oauth_frontend_origin(origin: Optional[str]) -> str:
+    value = (origin or "").strip().rstrip("/")
+    parsed = urlparse(value)
+    configured_origin = settings.frontend_base_url.rstrip("/")
+    allowed = {configured_origin}
+    for host in ("localhost", "127.0.0.1"):
+        for port in ("3000", "3030"):
+            allowed.add(f"http://{host}:{port}")
+    if parsed.scheme in {"http", "https"} and value in allowed:
+        return value
+    return configured_origin
+
+
 def _google_oauth_redirect_uri() -> str:
     return f"{settings.public_base_url.rstrip('/')}/api/auth/google/callback"
 
@@ -7450,6 +7463,7 @@ async def google_sheets_status(
 )
 async def google_sheets_auth_start(
     next: Optional[str] = Query(default="/admin/events"),
+    frontend_origin: Optional[str] = Query(default=None),
     me: CurrentUser = Depends(get_current_user),
 ):
     if not settings.google_oauth_client_id or not settings.google_oauth_client_secret:
@@ -7458,6 +7472,7 @@ async def google_sheets_auth_start(
         "action": "google_sheets_oauth",
         "user_id": me.id,
         "next": _normalize_oauth_next(next, "/admin/events"),
+        "frontend_origin": _normalize_oauth_frontend_origin(frontend_origin),
     })
     params = {
         "client_id": settings.google_oauth_client_id,
@@ -7514,8 +7529,9 @@ async def google_sheets_auth_callback(
     await db.commit()
 
     next_url = _normalize_oauth_next(str(state_payload.get("next") or ""), "/admin/events")
+    frontend_origin = _normalize_oauth_frontend_origin(str(state_payload.get("frontend_origin") or ""))
     separator = "&" if "?" in next_url else "?"
-    return RedirectResponse(f"{settings.frontend_base_url.rstrip('/')}{next_url}{separator}google_sheets=connected")
+    return RedirectResponse(f"{frontend_origin}{next_url}{separator}google_sheets=connected")
 
 
 @app.post("/api/public/auth/register", status_code=201)

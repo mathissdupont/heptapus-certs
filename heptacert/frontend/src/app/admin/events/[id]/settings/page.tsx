@@ -584,7 +584,12 @@ export default function EventSettingsPage() {
     setSheetsAction("auth");
     setError(null);
     try {
-      const res = await apiFetch(`/admin/google/sheets/start?next=${encodeURIComponent(`/admin/events/${eventId}/settings`)}`);
+      const frontendOrigin = typeof window !== "undefined" ? window.location.origin : "";
+      const params = new URLSearchParams({
+        next: `/admin/events/${eventId}/settings`,
+        frontend_origin: frontendOrigin,
+      });
+      const res = await apiFetch(`/admin/google/sheets/start?${params.toString()}`);
       const data = await res.json();
       if (data?.authorization_url) {
         window.location.href = data.authorization_url;
