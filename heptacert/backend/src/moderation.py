@@ -61,8 +61,26 @@ def _normalize_for_match(value: str) -> str:
     return _NON_ALNUM_RE.sub("", compact)
 
 
+def _clean_public_text(value: str) -> str:
+    normalized = (value or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    if not normalized:
+        return ""
+    lines = [re.sub(r"[ \t\f\v]+", " ", line).strip() for line in normalized.split("\n")]
+    cleaned_lines: list[str] = []
+    blank_count = 0
+    for line in lines:
+        if not line:
+            blank_count += 1
+            if blank_count <= 1 and cleaned_lines:
+                cleaned_lines.append("")
+            continue
+        blank_count = 0
+        cleaned_lines.append(line)
+    return "\n".join(cleaned_lines).strip()
+
+
 def moderate_public_text(value: str) -> str:
-    cleaned = " ".join((value or "").split()).strip()
+    cleaned = _clean_public_text(value)
     if len(cleaned) < 2:
         raise HTTPException(status_code=422, detail="Icerik cok kisa.")
 
