@@ -2833,6 +2833,10 @@ GOOGLE_SHEETS_SCOPES = [
     "https://www.googleapis.com/auth/drive.file",
 ]
 
+GOOGLE_SHEETS_REQUIRED_SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+]
+
 
 def _google_sheets_redirect_uri() -> str:
     return f"{settings.public_base_url.rstrip('/')}/api/admin/google/sheets/callback"
@@ -2848,8 +2852,8 @@ def _normalize_google_scopes(raw_scopes: Any) -> List[str]:
 
 def _google_sheets_missing_scopes(scopes: Any) -> List[str]:
     present = set(_normalize_google_scopes(scopes))
-    required = set(GOOGLE_SHEETS_SCOPES)
-    return [scope for scope in GOOGLE_SHEETS_SCOPES if scope in required and scope not in present]
+    required = set(GOOGLE_SHEETS_REQUIRED_SCOPES)
+    return [scope for scope in GOOGLE_SHEETS_REQUIRED_SCOPES if scope in required and scope not in present]
 
 
 def _get_event_google_sheets_config(event: "Event") -> Dict[str, Any]:

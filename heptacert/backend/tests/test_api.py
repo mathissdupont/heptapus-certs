@@ -28,6 +28,7 @@ from src.main import (
     create_public_member_access_token,
     _google_sheets_a1_range,
     _google_sheets_default_sheet_name,
+    _google_sheets_missing_scopes,
     hash_password,
 )
 
@@ -1411,6 +1412,15 @@ class TestCommunitySocialFlows:
         assert _google_sheets_default_sheet_name(metadata) == "Kayıtlar 2026"
         assert _google_sheets_a1_range("Kayıtlar 2026") == "%27Kayıtlar%202026%27%21A1"
         assert _google_sheets_a1_range("Sheet1") == "Sheet1%21A1"
+
+    def test_google_sheets_missing_scopes_only_requires_spreadsheets(self):
+        scopes = [
+            "openid",
+            "email",
+            "profile",
+            "https://www.googleapis.com/auth/drive.file",
+        ]
+        assert _google_sheets_missing_scopes(scopes) == ["https://www.googleapis.com/auth/spreadsheets"]
 
     @pytest.mark.asyncio
     async def test_get_attendance_matrix_with_registration_fields(self):
