@@ -26,6 +26,8 @@ from src.main import (
     User,
     create_access_token,
     create_public_member_access_token,
+    _google_sheets_a1_range,
+    _google_sheets_default_sheet_name,
     hash_password,
 )
 
@@ -1403,6 +1405,12 @@ class TestCommunitySocialFlows:
         assert "member-privacy@test.com" not in body
         assert "Privacy Member" not in body
         assert "02.01.2024 03:04:05 UTC" in body
+
+    def test_google_sheets_helpers_use_actual_tab_title(self):
+        metadata = {"sheets": [{"properties": {"title": "Kayıtlar 2026"}}]}
+        assert _google_sheets_default_sheet_name(metadata) == "Kayıtlar 2026"
+        assert _google_sheets_a1_range("Kayıtlar 2026") == "%27Kayıtlar%202026%27%21A1"
+        assert _google_sheets_a1_range("Sheet1") == "Sheet1%21A1"
 
     @pytest.mark.asyncio
     async def test_get_attendance_matrix_with_registration_fields(self):

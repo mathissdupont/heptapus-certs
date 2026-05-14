@@ -2985,6 +2985,26 @@ def _format_export_datetime(value: Optional[datetime]) -> str:
     return value.astimezone(timezone.utc).strftime("%d.%m.%Y %H:%M:%S UTC")
 
 
+def _google_sheets_a1_range(sheet_name: str, cell_range: str = "A1") -> str:
+    safe_sheet_name = sheet_name.replace("'", "''")
+    if any(char in safe_sheet_name for char in (" ", "!", ":", ",", "(", ")")):
+        safe_sheet_name = f"'{safe_sheet_name}'"
+    return quote(f"{safe_sheet_name}!{cell_range}", safe="")
+
+
+def _google_sheets_default_sheet_name(spreadsheet_metadata: Dict[str, Any]) -> str:
+    sheets = spreadsheet_metadata.get("sheets")
+    if isinstance(sheets, list) and sheets:
+        first_sheet = sheets[0]
+        if isinstance(first_sheet, dict):
+            properties = first_sheet.get("properties")
+            if isinstance(properties, dict):
+                title = properties.get("title")
+                if title:
+                    return str(title)
+    return "Sheet1"
+
+
 def _google_sheets_header_for_event(event: "Event") -> List[str]:
     header = [
         "registered_at",
@@ -3043,7 +3063,7 @@ async def _write_event_attendees_to_google_sheet(
         )
         spreadsheet_id = str(created.get("spreadsheetId") or "")
         spreadsheet_url = str(created.get("spreadsheetUrl") or f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}")
-        sheet_name = "Sheet1"
+        sheet_name = _google_sheets_default_sheet_name(created)
         if not spreadsheet_id:
             raise HTTPException(status_code=502, detail="Google Sheet could not be created.")
 
@@ -3054,7 +3074,7 @@ async def _write_event_attendees_to_google_sheet(
     values = [_google_sheets_header_for_event(event)]
     values.extend(_google_sheets_row_for_attendee(event, attendee) for attendee in attendees)
 
-    encoded_range = quote(f"{sheet_name}!A1", safe="")
+    encoded_range = _google_sheets_a1_range(sheet_name)
     await _google_json_request(
         access_token,
         "POST",
@@ -3091,7 +3111,7 @@ async def _append_attendee_to_google_sheet_if_enabled(db: AsyncSession, event: "
         access_token = await _get_google_access_token_for_sheets(db, event.admin_id)
         sheet_name = str(sheets_config.get("sheet_name") or "Registrations")
         spreadsheet_id = str(sheets_config.get("spreadsheet_id"))
-        encoded_range = quote(f"{sheet_name}!A1", safe="")
+        encoded_range = _google_sheets_a1_range(sheet_name)
         await _google_json_request(
             access_token,
             "POST",
