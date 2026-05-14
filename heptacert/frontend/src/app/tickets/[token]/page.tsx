@@ -7,13 +7,21 @@ import {
   CalendarDays,
   CheckCircle2,
   Copy,
+  Download,
+  Home,
   Loader2,
   Mail,
   QrCode,
   Ticket,
   User,
+  WalletCards,
   XCircle,
 } from "lucide-react";
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+};
 
 function formatDate(value?: string | null) {
   if (!value) return "-";
@@ -33,10 +41,22 @@ export default function PublicTicketPage() {
   const [ticket, setTicket] = useState<PublicTicketInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [homeHint, setHomeHint] = useState(false);
 
   const qrUrl = useMemo(() => {
     if (!token) return "";
     return `${API_BASE}/tickets/${encodeURIComponent(String(token))}/qr`;
+  }, [token]);
+
+  const pngUrl = useMemo(() => {
+    if (!token) return "";
+    return `${API_BASE}/tickets/${encodeURIComponent(String(token))}/png`;
+  }, [token]);
+
+  const pdfUrl = useMemo(() => {
+    if (!token) return "";
+    return `${API_BASE}/tickets/${encodeURIComponent(String(token))}/pdf`;
   }, [token]);
 
   useEffect(() => {
@@ -46,10 +66,31 @@ export default function PublicTicketPage() {
       .catch(() => setError("Bilet bulunamadı veya artık geçerli değil."));
   }, [token]);
 
+  useEffect(() => {
+    function handleBeforeInstallPrompt(event: Event) {
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+    }
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+  }, []);
+
   async function copyTicketLink() {
     await navigator.clipboard.writeText(window.location.href);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function addToHomeScreen() {
+    if (installPrompt) {
+      await installPrompt.prompt();
+      await installPrompt.userChoice.catch(() => null);
+      setInstallPrompt(null);
+      return;
+    }
+    setHomeHint(true);
+    window.setTimeout(() => setHomeHint(false), 6000);
   }
 
   // Yükleniyor veya Hata durumları için minimalist Apple stili
@@ -172,11 +213,48 @@ export default function PublicTicketPage() {
             </div>
           </div>
 
+          <div className="mt-8 rounded-2xl border border-dashed border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-500">
+            <div className="flex items-center gap-2 font-semibold text-zinc-700">
+              <WalletCards className="h-4 w-4" />
+              Apple Wallet
+            </div>
+            <p className="mt-1 text-xs leading-5">
+              Apple Developer sertifikasi gerektirdigi icin bu ozellik simdilik insa halinde.
+            </p>
+          </div>
+
+          {!cancelled && (
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <a href={pdfUrl} download className="flex items-center justify-center gap-2 rounded-2xl bg-zinc-950 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-zinc-800 active:scale-[0.98]">
+                <Download className="h-4 w-4" />
+                PDF
+              </a>
+              <a href={pngUrl} download className="flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-zinc-900 ring-1 ring-zinc-200 transition-all hover:bg-zinc-50 active:scale-[0.98]">
+                <Download className="h-4 w-4" />
+                PNG
+              </a>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={addToHomeScreen}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3.5 text-[15px] font-semibold text-zinc-900 ring-1 ring-zinc-200 transition-all hover:bg-zinc-50 active:scale-[0.98]"
+          >
+            <Home className="h-5 w-5" />
+            Ana Ekrana Ekle
+          </button>
+          {homeHint && (
+            <p className="mt-2 rounded-2xl bg-blue-50 px-4 py-3 text-xs leading-5 text-blue-700">
+              iPhone Safari: Paylas dugmesi &gt; Ana Ekrana Ekle. Android Chrome: menu &gt; Ana ekrana ekle.
+            </p>
+          )}
+
           {/* Buton (iOS Stili) */}
           <button
             type="button"
             onClick={copyTicketLink}
-            className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3.5 text-[15px] font-semibold text-white transition-all hover:bg-blue-700 active:scale-[0.98] active:bg-blue-800 disabled:opacity-50"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3.5 text-[15px] font-semibold text-white transition-all hover:bg-blue-700 active:scale-[0.98] active:bg-blue-800 disabled:opacity-50"
           >
             {copied ? (
               <>

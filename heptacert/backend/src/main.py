@@ -29,11 +29,14 @@ import aiosmtplib
 import httpx
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from cryptography.fernet import Fernet, InvalidToken
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.serialization import pkcs7
+from cryptography import x509
 import pandas as pd
 import pyotp
 from fastapi import FastAPI, Body, Depends, HTTPException, UploadFile, File, Query, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse, RedirectResponse, JSONResponse
+from fastapi.responses import FileResponse, StreamingResponse, RedirectResponse, JSONResponse, Response
 from .moderation import moderate_public_text
 try:
     from PIL import Image as PILImage
@@ -254,6 +257,12 @@ class Settings(BaseSettings):
     google_oauth_client_secret: str = Field(default="", alias="GOOGLE_OAUTH_CLIENT_SECRET")
     ms365_oauth_client_id: str = Field(default="", alias="MS365_OAUTH_CLIENT_ID")
     ms365_oauth_client_secret: str = Field(default="", alias="MS365_OAUTH_CLIENT_SECRET")
+    apple_wallet_pass_type_id: str = Field(default="", alias="APPLE_WALLET_PASS_TYPE_ID")
+    apple_wallet_team_id: str = Field(default="", alias="APPLE_WALLET_TEAM_ID")
+    apple_wallet_cert_path: str = Field(default="", alias="APPLE_WALLET_CERT_PATH")
+    apple_wallet_key_path: str = Field(default="", alias="APPLE_WALLET_KEY_PATH")
+    apple_wallet_key_password: str = Field(default="", alias="APPLE_WALLET_KEY_PASSWORD")
+    apple_wallet_wwdr_cert_path: str = Field(default="", alias="APPLE_WALLET_WWDR_CERT_PATH")
 
     storage_mode: str = Field(default="local", alias="STORAGE_MODE")
     local_storage_dir: str = Field(default="/data", alias="LOCAL_STORAGE_DIR")
@@ -13890,8 +13899,309 @@ async def get_public_ticket_qr(token: str, db: AsyncSession = Depends(get_db)):
     img.save(buf, format="PNG")
     buf.seek(0)
 
-    from fastapi.responses import Response
     return Response(content=buf.getvalue(), media_type="image/png")
+
+
+def _apple_wallet_configured() -> bool:
+    required = [
+        settings.apple_wallet_pass_type_id,
+        settings.apple_wallet_team_id,
+        settings.apple_wallet_cert_path,
+        settings.apple_wallet_key_path,
+        settings.apple_wallet_wwdr_cert_path,
+    ]
+    if not all(required):
+        return False
+    return all(
+        Path(path).expanduser().exists()
+        for path in [
+            settings.apple_wallet_cert_path,
+            settings.apple_wallet_key_path,
+            settings.apple_wallet_wwdr_cert_path,
+        ]
+    )
+
+
+def _load_x509_cert(path: str) -> x509.Certificate:
+    data = Path(path).expanduser().read_bytes()
+    try:
+        return x509.load_pem_x509_certificate(data)
+    except ValueError:
+        return x509.load_der_x509_certificate(data)
+
+
+def _make_pass_icon(size: int) -> bytes:
+    if PILImage is None:
+        raise HTTPException(status_code=503, detail="Wallet icon generation is not available")
+    img = PILImage.new("RGB", (size, size), "#111827")
+    inner_margin = max(4, size // 8)
+    inner = PILImage.new("RGB", (size - inner_margin * 2, size - inner_margin * 2), "#2563eb")
+    img.paste(inner, (inner_margin, inner_margin))
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def _wrap_text(draw: Any, text: str, font: Any, max_width: int) -> List[str]:
+    words = str(text or "").split()
+    if not words:
+        return []
+    lines: List[str] = []
+    current = words[0]
+    for word in words[1:]:
+        candidate = f"{current} {word}"
+        bbox = draw.textbbox((0, 0), candidate, font=font)
+        if bbox[2] - bbox[0] <= max_width:
+            current = candidate
+        else:
+            lines.append(current)
+            current = word
+    lines.append(current)
+    return lines
+
+
+def _ticket_status_label(status: str) -> str:
+    if status in {"cancelled", "revoked"}:
+        return "Iptal edildi"
+    if status == "used":
+        return "Kullanildi"
+    return "Girise hazir"
+
+
+def _make_ticket_image(ticket: EventTicket) -> bytes:
+    if PILImage is None or qrcode is None:
+        raise HTTPException(status_code=503, detail="Ticket image generation is not available")
+    from PIL import ImageDraw, ImageFont
+
+    width, height = 900, 1320
+    image = PILImage.new("RGB", (width, height), "#f5f5f7")
+    draw = ImageDraw.Draw(image)
+
+    try:
+        title_font = ImageFont.truetype("arial.ttf", 48)
+        body_font = ImageFont.truetype("arial.ttf", 30)
+        small_font = ImageFont.truetype("arial.ttf", 24)
+        label_font = ImageFont.truetype("arial.ttf", 20)
+    except Exception:
+        title_font = body_font = small_font = label_font = ImageFont.load_default()
+
+    card = (70, 70, width - 70, height - 70)
+    draw.rounded_rectangle(card, radius=56, fill="#ffffff", outline="#e5e7eb", width=2)
+
+    draw.rounded_rectangle((385, 130, 515, 260), radius=65, fill="#eff6ff")
+    draw.text((width // 2, 178), "HC", fill="#2563eb", font=title_font, anchor="mm")
+    draw.text((width // 2, 315), "Dijital Bilet", fill="#71717a", font=small_font, anchor="mm")
+
+    y = 365
+    for line in _wrap_text(draw, ticket.event.name, title_font, 680)[:3]:
+        draw.text((width // 2, y), line, fill="#18181b", font=title_font, anchor="mm")
+        y += 56
+
+    qr = qrcode.QRCode(
+        version=2,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=12,
+        border=3,
+    )
+    qr.add_data(ticket.qr_payload)
+    qr.make(fit=True)
+    qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB").resize((430, 430))
+    qr_x = (width - 430) // 2
+    qr_y = 560
+    draw.rounded_rectangle((qr_x - 28, qr_y - 28, qr_x + 458, qr_y + 458), radius=42, fill="#ffffff", outline="#f1f5f9", width=3)
+    image.paste(qr_img, (qr_x, qr_y))
+
+    status = _ticket_status_label(ticket.status)
+    draw.rounded_rectangle((310, 1040, 590, 1098), radius=29, fill="#eff6ff")
+    draw.text((width // 2, 1069), status, fill="#2563eb", font=small_font, anchor="mm")
+
+    details_y = 1145
+    draw.text((120, details_y), "Katilimci", fill="#71717a", font=label_font)
+    draw.text((120, details_y + 30), ticket.attendee.name, fill="#18181b", font=body_font)
+    draw.text((120, details_y + 78), ticket.attendee.email, fill="#52525b", font=small_font)
+    if ticket.event.event_date:
+        draw.text((560, details_y), "Tarih", fill="#71717a", font=label_font)
+        draw.text((560, details_y + 34), ticket.event.event_date.isoformat(), fill="#18181b", font=small_font)
+
+    buf = io.BytesIO()
+    image.save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def _ticket_download_filename(ticket: EventTicket, ext: str) -> str:
+    event_slug = re.sub(r"[^A-Za-z0-9_-]+", "-", ticket.event.name).strip("-") or "event"
+    return f"{event_slug}-{ticket.id}.{ext}"
+
+
+@app.get("/api/tickets/{token}/png")
+async def get_public_ticket_png(token: str, db: AsyncSession = Depends(get_db)):
+    clean_token = _ticket_token_from_payload(token)
+    res = await db.execute(
+        select(EventTicket)
+        .options(selectinload(EventTicket.event), selectinload(EventTicket.attendee))
+        .where(EventTicket.token == clean_token)
+    )
+    ticket = res.scalar_one_or_none()
+    if not ticket or not is_ticketing_enabled(ticket.event):
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    png_bytes = _make_ticket_image(ticket)
+    return Response(
+        content=png_bytes,
+        media_type="image/png",
+        headers={
+            "Content-Disposition": f'attachment; filename="{_ticket_download_filename(ticket, "png")}"',
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+@app.get("/api/tickets/{token}/pdf")
+async def get_public_ticket_pdf(token: str, db: AsyncSession = Depends(get_db)):
+    clean_token = _ticket_token_from_payload(token)
+    res = await db.execute(
+        select(EventTicket)
+        .options(selectinload(EventTicket.event), selectinload(EventTicket.attendee))
+        .where(EventTicket.token == clean_token)
+    )
+    ticket = res.scalar_one_or_none()
+    if not ticket or not is_ticketing_enabled(ticket.event):
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    png_bytes = _make_ticket_image(ticket)
+    image = PILImage.open(io.BytesIO(png_bytes)).convert("RGB")
+    buf = io.BytesIO()
+    image.save(buf, format="PDF", resolution=144.0)
+    return Response(
+        content=buf.getvalue(),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{_ticket_download_filename(ticket, "pdf")}"',
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+def _make_apple_wallet_pass(ticket: EventTicket) -> bytes:
+    if not _apple_wallet_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Apple Wallet pass configuration is missing",
+        )
+
+    event = ticket.event
+    attendee = ticket.attendee
+    event_date = event.event_date.isoformat() if event.event_date else None
+    serial = f"ticket-{ticket.id}-{ticket.token}"
+    ticket_url = f"{settings.frontend_base_url.rstrip('/')}/tickets/{ticket.token}"
+
+    pass_payload: Dict[str, Any] = {
+        "formatVersion": 1,
+        "passTypeIdentifier": settings.apple_wallet_pass_type_id,
+        "serialNumber": serial,
+        "teamIdentifier": settings.apple_wallet_team_id,
+        "organizationName": "HeptaCert",
+        "description": f"{event.name} digital ticket",
+        "logoText": "HeptaCert",
+        "foregroundColor": "rgb(255, 255, 255)",
+        "backgroundColor": "rgb(37, 99, 235)",
+        "labelColor": "rgb(219, 234, 254)",
+        "sharingProhibited": False,
+        "barcodes": [
+            {
+                "format": "PKBarcodeFormatQR",
+                "message": ticket.qr_payload,
+                "messageEncoding": "iso-8859-1",
+            }
+        ],
+        "barcode": {
+            "format": "PKBarcodeFormatQR",
+            "message": ticket.qr_payload,
+            "messageEncoding": "iso-8859-1",
+        },
+        "eventTicket": {
+            "primaryFields": [
+                {"key": "event", "label": "Etkinlik", "value": event.name},
+            ],
+            "secondaryFields": [
+                {"key": "name", "label": "Katilimci", "value": attendee.name},
+            ],
+            "auxiliaryFields": [
+                {"key": "status", "label": "Durum", "value": ticket.status},
+            ],
+            "backFields": [
+                {"key": "email", "label": "E-posta", "value": attendee.email},
+                {"key": "ticket", "label": "Bilet linki", "value": ticket_url},
+            ],
+        },
+    }
+    if event.event_location:
+        pass_payload["eventTicket"]["secondaryFields"].append(
+            {"key": "location", "label": "Konum", "value": event.event_location}
+        )
+    if event_date:
+        pass_payload["relevantDate"] = f"{event_date}T09:00:00+03:00"
+        pass_payload["eventTicket"]["auxiliaryFields"].insert(
+            0,
+            {"key": "date", "label": "Tarih", "value": event_date},
+        )
+
+    files: Dict[str, bytes] = {
+        "pass.json": json.dumps(pass_payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8"),
+        "icon.png": _make_pass_icon(29),
+        "icon@2x.png": _make_pass_icon(58),
+        "logo.png": _make_pass_icon(160),
+        "logo@2x.png": _make_pass_icon(320),
+    }
+    manifest = {
+        name: hashlib.sha1(content).hexdigest()
+        for name, content in files.items()
+    }
+    manifest_bytes = json.dumps(manifest, separators=(",", ":"), sort_keys=True).encode("utf-8")
+
+    cert = _load_x509_cert(settings.apple_wallet_cert_path)
+    wwdr_cert = _load_x509_cert(settings.apple_wallet_wwdr_cert_path)
+    key_password = settings.apple_wallet_key_password.encode("utf-8") if settings.apple_wallet_key_password else None
+    key_data = Path(settings.apple_wallet_key_path).expanduser().read_bytes()
+    private_key = serialization.load_pem_private_key(key_data, password=key_password)
+    signature = (
+        pkcs7.PKCS7SignatureBuilder()
+        .set_data(manifest_bytes)
+        .add_signer(cert, private_key, hashes.SHA256())
+        .add_certificate(wwdr_cert)
+        .sign(serialization.Encoding.DER, [pkcs7.PKCS7Options.DetachedSignature, pkcs7.PKCS7Options.Binary])
+    )
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for name, content in files.items():
+            archive.writestr(name, content)
+        archive.writestr("manifest.json", manifest_bytes)
+        archive.writestr("signature", signature)
+    return buf.getvalue()
+
+
+@app.get("/api/tickets/{token}/apple-wallet")
+async def get_public_ticket_apple_wallet(token: str, db: AsyncSession = Depends(get_db)):
+    clean_token = _ticket_token_from_payload(token)
+    res = await db.execute(
+        select(EventTicket)
+        .options(selectinload(EventTicket.event), selectinload(EventTicket.attendee))
+        .where(EventTicket.token == clean_token)
+    )
+    ticket = res.scalar_one_or_none()
+    if not ticket or not is_ticketing_enabled(ticket.event):
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    if ticket.status in {"cancelled", "revoked"}:
+        raise HTTPException(status_code=409, detail="Cancelled tickets cannot be added to Wallet")
+    pass_bytes = _make_apple_wallet_pass(ticket)
+    safe_name = re.sub(r"[^A-Za-z0-9_-]+", "-", ticket.event.name).strip("-") or "event"
+    return Response(
+        content=pass_bytes,
+        media_type="application/vnd.apple.pkpass",
+        headers={
+            "Content-Disposition": f'attachment; filename="{safe_name}-{ticket.id}.pkpass"',
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 async def _get_event_attendance_counts(
