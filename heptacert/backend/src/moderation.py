@@ -6,6 +6,7 @@ from fastapi import HTTPException
 _URL_RE = re.compile(r"https?://|www\.", re.IGNORECASE)
 _REPEATED_CHAR_RE = re.compile(r"(.)\1{7,}", re.IGNORECASE)
 _NON_ALNUM_RE = re.compile(r"[^a-z0-9]+")
+_TOKEN_RE = re.compile(r"[a-z0-9]+")
 
 _BLOCKED_TERMS = {
     "amk",
@@ -65,8 +66,9 @@ def moderate_public_text(value: str) -> str:
     if len(cleaned) < 2:
         raise HTTPException(status_code=422, detail="Icerik cok kisa.")
 
-    normalized = _normalize_for_match(cleaned)
-    if any(term in normalized for term in _BLOCKED_TERMS):
+    normalized_text = cleaned.lower().translate(_LEETSPEAK_MAP).translate(_TR_MAP)
+    normalized_tokens = {_normalize_for_match(token) for token in _TOKEN_RE.findall(normalized_text)}
+    if any(term in normalized_tokens for term in _BLOCKED_TERMS):
         raise HTTPException(status_code=422, detail="Icerik topluluk kurallarina uymuyor.")
 
     url_count = len(_URL_RE.findall(cleaned))
@@ -76,6 +78,7 @@ def moderate_public_text(value: str) -> str:
     if _REPEATED_CHAR_RE.search(cleaned):
         raise HTTPException(status_code=422, detail="Tekrarlayan/spam gorunumlu icerik algilandi.")
 
+    normalized = _normalize_for_match(cleaned)
     if len(normalized) >= 12 and len(set(normalized)) <= 3:
         raise HTTPException(status_code=422, detail="Anlamsiz veya spam gorunumlu icerik algilandi.")
 

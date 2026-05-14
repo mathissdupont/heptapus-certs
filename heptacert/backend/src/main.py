@@ -7536,6 +7536,7 @@ async def google_sheets_auth_callback(
     next_url = _normalize_oauth_next(str(state_payload.get("next") or ""), "/admin/events")
     frontend_origin = _normalize_oauth_frontend_origin(str(state_payload.get("frontend_origin") or ""))
     separator = "&" if "?" in next_url else "?"
+    logger.info("Google Sheets OAuth connected for user_id=%s; redirecting to %s%s", user_id, frontend_origin, next_url)
     return RedirectResponse(f"{frontend_origin}{next_url}{separator}google_sheets=connected")
 
 

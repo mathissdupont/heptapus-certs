@@ -9,7 +9,7 @@ import { createPublicFeedPost } from "@/lib/api";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
-const CHARACTER_LIMIT = 2000;
+const CHARACTER_LIMIT = 4000;
 const WARNING_THRESHOLD = 0.9;
 
 export default function CreatePostPage() {
