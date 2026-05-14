@@ -13974,6 +13974,8 @@ def _ticket_font(size: int, bold: bool = False) -> Any:
     candidates = [
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "C:/Windows/Fonts/arialbd.ttf" if bold else "C:/Windows/Fonts/arial.ttf",
+        "C:/Windows/Fonts/ARIALBD.TTF" if bold else "C:/Windows/Fonts/ARIAL.TTF",
         "arialbd.ttf" if bold else "arial.ttf",
         "Arial Bold.ttf" if bold else "Arial.ttf",
     ]
@@ -14032,8 +14034,42 @@ def _make_ticket_image(ticket: 'EventTicket') -> bytes:
 
     # 2. Üst Kısım: İkon ve Etkinlik Başlığı
     # İkon Yuvarlağı
-    draw.ellipse((width // 2 - 45, 120, width // 2 + 45, 210), fill="#f4f4f5")
-    draw.text((width // 2, 165), "HC", fill="#18181b", font=body_font, anchor="mm")
+    # Icon circle (background)
+    icon_radius = 45
+    icon_top = 120
+    cx = width // 2
+    draw.ellipse((cx - icon_radius, icon_top, cx + icon_radius, icon_top + icon_radius * 2), fill="#f4f4f5")
+
+    # Try to use a brand logo if available (URL or path), otherwise fallback to text
+    logo_used = False
+    logo_source = getattr(ticket.event, "brand_logo", None)
+    if logo_source:
+        try:
+            # lazy import to avoid adding dependency when unused
+            import httpx
+
+            resp = httpx.get(logo_source, timeout=5.0)
+            if resp.status_code == 200 and resp.content:
+                logo_img = PILImage.open(io.BytesIO(resp.content)).convert("RGBA")
+                # fit inside circle with slight padding
+                target_size = (icon_radius * 2 - 12, icon_radius * 2 - 12)
+                logo_img = logo_img.resize(target_size, PILImage.LANCZOS)
+
+                # circular mask
+                mask = PILImage.new("L", logo_img.size, 0)
+                mdraw = ImageDraw.Draw(mask)
+                mdraw.ellipse((0, 0, logo_img.size[0], logo_img.size[1]), fill=255)
+
+                paste_x = cx - logo_img.size[0] // 2
+                paste_y = icon_top + (icon_radius * 2 - logo_img.size[1]) // 2
+                image.paste(logo_img, (paste_x, paste_y), mask)
+                logo_used = True
+        except Exception:
+            logo_used = False
+
+    if not logo_used:
+        # Fallback: render a short text label; use a smaller bold font for crispness
+        draw.text((cx, icon_top + icon_radius), "HeptaCert", fill="#18181b", font=_ticket_font(28, bold=True), anchor="mm")
     
     # Dijital Bilet Etiketi
     draw.text((width // 2, 260), "DİJİTAL BİLET", fill="#a1a1aa", font=label_font, anchor="mm")
@@ -14160,8 +14196,8 @@ async def get_public_ticket_pdf(token: str, db: AsyncSession = Depends(get_db)):
     png_bytes = _make_ticket_image(ticket)
     image = PILImage.open(io.BytesIO(png_bytes)).convert("RGB")
     buf = io.BytesIO()
-    # Yüksek kalite PDF çıkışı için resolution 150 olarak ayarlandı
-    image.save(buf, format="PDF", resolution=150.0)
+    # Yüksek kalite PDF çıkışı için resolution 300 olarak ayarlandı
+    image.save(buf, format="PDF", resolution=300.0)
     
     return Response(
         content=buf.getvalue(),

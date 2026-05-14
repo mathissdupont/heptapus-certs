@@ -1592,8 +1592,8 @@ export default function EventSettingsPage() {
                     </h3>
                     <p className="mt-1 max-w-2xl text-sm leading-6 text-surface-600">
                       {lang === "tr"
-                        ? "Azure tarafı ücretli tenant gerektirdiği için bu entegrasyonu şimdilik inşa halinde tutuyoruz. Hazır olduğunda kayıtları OneDrive üzerindeki Excel dosyasına senkronlayacak."
-                        : "This integration is temporarily under construction because Azure requires a paid tenant. Once enabled, registrations will sync into an Excel workbook on OneDrive."}
+                        ? "Azure ile entegrasyon çalışmalarımız devam etmektedir bu sebeple şimdilik inşa halinde tutuyoruz. Hazır olduğunda kayıtları OneDrive üzerindeki Excel dosyasına senkronlayacak."
+                        : "This integration is temporarily under construction because we're trying to integrate the Azure services. Once enabled, registrations will sync into an Excel workbook on OneDrive."}
                     </p>
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-surface-500">
                       <span className="rounded-full bg-sky-50 px-2.5 py-1 font-semibold text-sky-700">
