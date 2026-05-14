@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
   CheckCircle2,
@@ -38,7 +38,7 @@ import {
   RefreshCw,
   Unplug,
 } from "lucide-react";
-import { apiFetch, getMySubscription, listAdminEventComments, updateAdminEventComment, type RegistrationField, type SubscriptionInfo, type PublicEventComment } from "@/lib/api";
+import { apiFetch, getMySubscription, listAdminEventComments, setToken, updateAdminEventComment, type RegistrationField, type SubscriptionInfo, type PublicEventComment } from "@/lib/api";
 import EventAdminNav, { refreshEventAdminMeta } from "@/components/Admin/EventAdminNav";
 import PageHeader from "@/components/Admin/PageHeader";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -237,6 +237,7 @@ function createRegistrationField(): RegistrationField {
 
 export default function EventSettingsPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const eventId = params.id as string;
   const toast = useToast();
   const { lang } = useI18n();
@@ -470,6 +471,7 @@ export default function EventSettingsPage() {
   const [sheetsStatus, setSheetsStatus] = useState<EventSheetsStatus | null>(null);
   const [sheetsLoading, setSheetsLoading] = useState(false);
   const [sheetsAction, setSheetsAction] = useState<"auth" | "connect" | "sync" | "disconnect" | null>(null);
+  const [authBridgeReady, setAuthBridgeReady] = useState(false);
 
   const hasGrowthPlan = subscription?.role === "superadmin" || (subscription?.active && ["growth", "enterprise"].includes(subscription?.plan_id || ""));
   const fieldTypeOptions = FIELD_TYPE_OPTIONS.map((option) => ({
@@ -487,8 +489,22 @@ export default function EventSettingsPage() {
   );
 
   useEffect(() => {
+    const bridgeToken = searchParams.get("admin_token");
+    if (bridgeToken) {
+      setToken(bridgeToken);
+      if (typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("admin_token");
+        window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+      }
+    }
+    setAuthBridgeReady(true);
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!authBridgeReady) return;
     void loadData();
-  }, [eventId]);
+  }, [eventId, authBridgeReady]);
 
   async function loadData() {
     setLoading(true);

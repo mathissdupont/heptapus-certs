@@ -7539,14 +7539,14 @@ async def google_sheets_auth_callback(
     user = user_res.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="Google Sheets OAuth user not found.")
-    callback_next = f"{next_url}{'&' if '?' in next_url else '?'}google_sheets=connected"
-    params = urlencode({
-        "mode": "admin",
-        "token": create_access_token(user_id=user.id, role=user.role),
-        "next": callback_next,
+    bridge_params = urlencode({
+        "google_sheets": "connected",
+        "admin_token": create_access_token(user_id=user.id, role=user.role),
     })
-    logger.info("Google Sheets OAuth connected for user_id=%s; redirecting through frontend callback to %s%s", user_id, frontend_origin, callback_next)
-    return RedirectResponse(f"{frontend_origin}/auth/google/callback?{params}")
+    separator = "&" if "?" in next_url else "?"
+    redirect_target = f"{frontend_origin}{next_url}{separator}{bridge_params}"
+    logger.info("Google Sheets OAuth connected for user_id=%s; redirecting to %s", user_id, redirect_target)
+    return RedirectResponse(redirect_target)
 
 
 @app.post("/api/public/auth/register", status_code=201)
