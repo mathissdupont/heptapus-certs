@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { checkInEventTicket, listEventTickets, type EventTicketOut } from "@/lib/api";
+import { checkInEventTicket, listEventTickets, updateEventTicketStatus, type EventTicketOut } from "@/lib/api";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 import {
   Camera,
@@ -18,11 +18,13 @@ import {
   ScanLine,
   Ticket,
   UserCheck,
+  Ban,
+  RotateCcw,
   X,
   XCircle,
 } from "lucide-react";
 
-type TicketFilter = "all" | "issued" | "used" | "cancelled";
+type TicketFilter = "all" | "issued" | "used" | "cancelled" | "revoked";
 
 function formatDate(value?: string | null) {
   if (!value) return "-";
@@ -44,7 +46,7 @@ function getTicketStatus(ticket: EventTicketOut) {
       icon: <CheckCircle2 className="h-3.5 w-3.5" />,
     };
   }
-  if (ticket.status === "cancelled") {
+  if (ticket.status === "cancelled" || ticket.status === "revoked") {
     return {
       label: "İptal",
       className: "border-red-200 bg-red-50 text-red-700",
@@ -79,12 +81,14 @@ export default function EventTicketsPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [pendingTicket, setPendingTicket] = useState<EventTicketOut | null>(null);
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scannerRef = useRef<any>(null);
 
   const stats = useMemo(() => {
     const used = tickets.filter((ticket) => ticket.status === "used").length;
-    const cancelled = tickets.filter((ticket) => ticket.status === "cancelled").length;
+    const cancelled = tickets.filter((ticket) => ticket.status === "cancelled" || ticket.status === "revoked").length;
     const ready = tickets.length - used - cancelled;
     const usedRate = tickets.length ? Math.round((used / tickets.length) * 100) : 0;
     return { total: tickets.length, used, ready, cancelled, usedRate };
@@ -108,12 +112,34 @@ export default function EventTicketsPage() {
     setLoading(true);
     setError(null);
     try {
-      setTickets(await listEventTickets(eventId));
+      const nextTickets = await listEventTickets(eventId);
+      setTickets(nextTickets);
+      setPendingTicket((current) => (current ? nextTickets.find((ticket) => ticket.id === current.id) || current : null));
     } catch (err: any) {
       setError(err.message || "Biletler yüklenemedi.");
     } finally {
       setLoading(false);
     }
+  }
+
+  function findTicketByToken(value: string, source = tickets) {
+    const normalizedToken = tokenFromQr(value);
+    return source.find((ticket) => ticket.token === normalizedToken);
+  }
+
+  function stageScannedTicket(value: string) {
+    const normalizedToken = tokenFromQr(value);
+    setToken(normalizedToken);
+    setShowScanner(false);
+    setError(null);
+    setMessage(null);
+    const ticket = findTicketByToken(normalizedToken);
+    if (ticket) {
+      setPendingTicket(ticket);
+      return;
+    }
+    setPendingTicket(null);
+    setError("QR okundu ancak bu etkinlikte eşleşen bilet bulunamadı. Listeyi yenileyip tekrar deneyin.");
   }
 
   useEffect(() => {
@@ -141,9 +167,7 @@ export default function EventTicketsPage() {
         scannerRef.current = scanner;
         scanner.render(
           (decodedText: string) => {
-            setToken(tokenFromQr(decodedText));
-            setShowScanner(false);
-            setError(null);
+            stageScannedTicket(decodedText);
           },
           () => {},
         );
@@ -170,9 +194,7 @@ export default function EventTicketsPage() {
       const { Html5Qrcode } = await import("html5-qrcode");
       const reader = new Html5Qrcode("qr-file-reader");
       const decodedText = await reader.scanFile(file, true);
-      setToken(tokenFromQr(decodedText));
-      setShowScanner(false);
-      setError(null);
+      stageScannedTicket(decodedText);
       reader.clear();
     } catch {
       setError("Yüklenen görselde okunabilir bir QR bulunamadı.");
@@ -181,9 +203,8 @@ export default function EventTicketsPage() {
     }
   }
 
-  async function handleCheckIn(event: React.FormEvent) {
-    event.preventDefault();
-    const normalizedToken = tokenFromQr(token);
+  async function confirmCheckIn(rawToken = token) {
+    const normalizedToken = tokenFromQr(rawToken);
     if (!normalizedToken) return;
     setChecking(true);
     setMessage(null);
@@ -192,6 +213,7 @@ export default function EventTicketsPage() {
       const checkedTicket = await checkInEventTicket(eventId, normalizedToken);
       setMessage(`${checkedTicket.attendee_name} için giriş onaylandı.`);
       setToken("");
+      setPendingTicket(null);
       await loadTickets();
     } catch (err: any) {
       setError(err.message || "Check-in başarısız oldu.");
@@ -200,10 +222,31 @@ export default function EventTicketsPage() {
     }
   }
 
+  async function handleCheckIn(event: React.FormEvent) {
+    event.preventDefault();
+    await confirmCheckIn(token);
+  }
+
   async function copyTicket(ticket: EventTicketOut) {
     await navigator.clipboard.writeText(ticket.qr_payload);
     setCopiedId(ticket.id);
     window.setTimeout(() => setCopiedId(null), 1600);
+  }
+
+  async function changeTicketStatus(ticket: EventTicketOut, status: "issued" | "cancelled" | "revoked") {
+    setUpdatingId(ticket.id);
+    setMessage(null);
+    setError(null);
+    try {
+      const updated = await updateEventTicketStatus(eventId, ticket.id, status);
+      setTickets((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+      if (pendingTicket?.id === updated.id) setPendingTicket(updated);
+      setMessage(status === "issued" ? `${updated.attendee_name} bileti tekrar aktif.` : `${updated.attendee_name} bileti iptal edildi.`);
+    } catch (err: any) {
+      setError(err.message || "Bilet durumu güncellenemedi.");
+    } finally {
+      setUpdatingId(null);
+    }
   }
 
   return (
@@ -230,7 +273,7 @@ export default function EventTicketsPage() {
           </div>
         </div>
 
-        <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-5">
           <div className="rounded-xl border border-surface-100 bg-surface-50 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-surface-400">Toplam</p>
             <p className="mt-1 text-2xl font-black text-surface-900">{stats.total}</p>
@@ -242,6 +285,10 @@ export default function EventTicketsPage() {
           <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-500">Giriş Yapıldı</p>
             <p className="mt-1 text-2xl font-black text-emerald-700">{stats.used}</p>
+          </div>
+          <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-red-500">İptal</p>
+            <p className="mt-1 text-2xl font-black text-red-700">{stats.cancelled}</p>
           </div>
           <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-600">Giriş Oranı</p>
@@ -265,7 +312,10 @@ export default function EventTicketsPage() {
           <form onSubmit={handleCheckIn} className="mt-5 flex flex-col gap-3 md:flex-row">
             <input
               value={token}
-              onChange={(event) => setToken(event.target.value)}
+              onChange={(event) => {
+                setToken(event.target.value);
+                setPendingTicket(findTicketByToken(event.target.value) || null);
+              }}
               placeholder="Token veya /tickets/... linki"
               className="input-field flex-1"
             />
@@ -295,9 +345,47 @@ export default function EventTicketsPage() {
                   Görsel Yükle
                 </button>
               </div>
-              <div id="qr-reader" className="overflow-hidden rounded-xl bg-white" />
+              <div className="relative overflow-hidden rounded-2xl border border-surface-200 bg-surface-950 p-3 shadow-inner">
+                <div id="qr-reader" className="overflow-hidden rounded-xl bg-white" />
+                <div className="pointer-events-none absolute inset-3 rounded-xl ring-1 ring-white/10" />
+              </div>
               <div id="qr-file-reader" className="hidden" />
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+            </div>
+          )}
+
+          {pendingTicket && (
+            <div className="mt-5 overflow-hidden rounded-2xl border border-brand-200 bg-brand-50">
+              <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-brand-700">
+                    <ScanLine className="h-3.5 w-3.5" />
+                    QR okundu
+                  </p>
+                  <h3 className="mt-2 text-lg font-black text-surface-900">{pendingTicket.attendee_name}</h3>
+                  <p className="mt-1 text-sm text-surface-600">{pendingTicket.attendee_email}</p>
+                  <p className="mt-2 text-xs text-surface-500">
+                    Durum: <span className="font-semibold">{pendingTicket.status === "used" ? "Giriş yapıldı" : pendingTicket.status === "issued" ? "Hazır" : "İptal edildi"}</span>
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2 sm:justify-end">
+                  {pendingTicket.status === "issued" ? (
+                    <button type="button" onClick={() => confirmCheckIn(pendingTicket.token)} disabled={checking} className="btn-primary justify-center">
+                      {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}
+                      Girişi Onayla
+                    </button>
+                  ) : (
+                    <span className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700">
+                      <Ban className="h-4 w-4" />
+                      Check-in kapalı
+                    </span>
+                  )}
+                  <button type="button" onClick={() => setPendingTicket(null)} className="btn-secondary justify-center">
+                    <X className="h-4 w-4" />
+                    Vazgeç
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -414,12 +502,34 @@ export default function EventTicketsPage() {
                         type="button"
                         onClick={() => {
                           setToken(ticket.token);
+                          setPendingTicket(ticket);
                           window.scrollTo({ top: 0, behavior: "smooth" });
                         }}
                         className="btn-primary min-h-0 px-3 py-2 text-xs"
                       >
                         <UserCheck className="h-4 w-4" />
                         Check-in
+                      </button>
+                    )}
+                    {ticket.status === "issued" || ticket.status === "used" ? (
+                      <button
+                        type="button"
+                        onClick={() => changeTicketStatus(ticket, "cancelled")}
+                        disabled={updatingId === ticket.id}
+                        className="btn-secondary min-h-0 px-3 py-2 text-xs text-red-700 hover:border-red-200 hover:bg-red-50"
+                      >
+                        {updatingId === ticket.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
+                        İptal et
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => changeTicketStatus(ticket, "issued")}
+                        disabled={updatingId === ticket.id}
+                        className="btn-secondary min-h-0 px-3 py-2 text-xs"
+                      >
+                        {updatingId === ticket.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+                        Aktif et
                       </button>
                     )}
                   </div>

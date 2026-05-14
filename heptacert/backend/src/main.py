@@ -1741,6 +1741,10 @@ class TicketCheckInIn(BaseModel):
     token: str = Field(min_length=12, max_length=512)
 
 
+class TicketStatusUpdateIn(BaseModel):
+    status: str = Field(pattern="^(issued|cancelled|revoked)$")
+
+
 class PublicTicketOut(BaseModel):
     event_id: int
     event_public_id: str
@@ -14837,12 +14841,44 @@ async def check_in_event_ticket(
     ticket = ticket_res.scalar_one_or_none()
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
-    if ticket.status == "cancelled":
+    if ticket.status in {"cancelled", "revoked"}:
         raise HTTPException(status_code=409, detail="Ticket is cancelled")
     if ticket.status == "used":
         return _ticket_to_out(ticket)
     ticket.status = "used"
     ticket.checked_in_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(ticket)
+    await db.refresh(ticket, attribute_names=["attendee"])
+    return _ticket_to_out(ticket)
+
+
+@app.patch(
+    "/api/admin/events/{event_id}/tickets/{ticket_id}/status",
+    response_model=EventTicketOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+)
+async def update_event_ticket_status(
+    event_id: int,
+    ticket_id: int,
+    payload: TicketStatusUpdateIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    ev = await _get_event_for_admin(event_id, me, db)
+    _ensure_ticketing_feature_enabled(ev)
+    ticket_res = await db.execute(
+        select(EventTicket)
+        .options(selectinload(EventTicket.attendee))
+        .where(EventTicket.event_id == event_id, EventTicket.id == ticket_id)
+        .with_for_update()
+    )
+    ticket = ticket_res.scalar_one_or_none()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    ticket.status = "cancelled" if payload.status == "revoked" else payload.status
+    if ticket.status == "issued":
+        ticket.checked_in_at = None
     await db.commit()
     await db.refresh(ticket)
     await db.refresh(ticket, attribute_names=["attendee"])

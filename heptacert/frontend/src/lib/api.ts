@@ -364,13 +364,15 @@ export interface RegistrationDocumentUploadOut {
   sha256: string;
 }
 
+export type EventTicketStatus = "issued" | "used" | "cancelled" | "revoked";
+
 export interface PublicTicketInfo {
   event_id: number;
   event_public_id: string;
   event_name: string;
   attendee_name: string;
   attendee_email: string;
-  status: "issued" | "used" | "cancelled";
+  status: EventTicketStatus;
   issued_at: string;
   checked_in_at?: string | null;
 }
@@ -383,7 +385,7 @@ export interface EventTicketOut {
   attendee_email: string;
   token: string;
   qr_payload: string;
-  status: "issued" | "used" | "cancelled";
+  status: EventTicketStatus;
   issued_at: string;
   checked_in_at?: string | null;
 }
@@ -1335,6 +1337,18 @@ export async function checkInEventTicket(eventId: number, token: string): Promis
   const res = await apiFetch(`/admin/events/${eventId}/tickets/check-in`, {
     method: "POST",
     body: JSON.stringify({ token }),
+  });
+  return res.json();
+}
+
+export async function updateEventTicketStatus(
+  eventId: number,
+  ticketId: number,
+  status: "issued" | "cancelled" | "revoked",
+): Promise<EventTicketOut> {
+  const res = await apiFetch(`/admin/events/${eventId}/tickets/${ticketId}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
   });
   return res.json();
 }

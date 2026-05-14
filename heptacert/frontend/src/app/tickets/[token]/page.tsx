@@ -75,7 +75,7 @@ export default function PublicTicketPage() {
   }
 
   const used = ticket.status === "used";
-  const cancelled = ticket.status === "cancelled";
+  const cancelled = ticket.status === "cancelled" || ticket.status === "revoked";
 
   return (
     <main className="min-h-screen bg-surface-50 px-4 py-8 text-surface-900">
