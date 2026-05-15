@@ -48,13 +48,17 @@ type EngagementAnalytics = {
     attended: number;
     not_attended: number;
     attendance_rate: number;
+    no_show_rate?: number;
   };
   tickets?: {
     total: number;
+    active_total?: number;
     issued: number;
     used: number;
     cancelled: number;
     revoked: number;
+    no_show?: number;
+    no_show_rate?: number;
     usage_rate: number;
   };
 };
@@ -72,12 +76,20 @@ type TierAnalytics = {
   total_certificates: number;
   tier_distribution: Record<string, { count: number; percentage: number }>;
   unassigned_count: number;
+  verification_hits?: number;
+  verified_certificates?: number;
+  verification_rate?: number;
 };
 
 type TimelineAnalytics = {
+  event_type?: string;
+  ticketing_enabled?: boolean;
+  certificate_enabled?: boolean;
+  checkin_enabled?: boolean;
   registrations: Array<{ date: string; count: number }>;
   survey_completions: Array<{ date: string; count: number }>;
   certificate_creations: Array<{ date: string; count: number }>;
+  ticket_checkins?: Array<{ date: string; count: number }>;
 };
 
 type StatTone = "brand" | "emerald" | "amber" | "sky";
@@ -137,7 +149,7 @@ function TimelineCard({
   emptyText: string;
   tone: StatTone;
 }) {
-  const titleColor = tone === "brand" ? "text-brand-600" : tone === "emerald" ? "text-emerald-600" : "text-sky-600";
+  const titleColor = tone === "brand" ? "text-brand-600" : tone === "emerald" ? "text-emerald-600" : tone === "amber" ? "text-amber-600" : "text-sky-600";
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -218,6 +230,12 @@ export default function AdvancedAnalyticsPage() {
     };
   }, [canViewAnalytics, eventId, subscriptionLoading]);
 
+  useEffect(() => {
+    if (activeTab === "tickets" && engagement && engagement.ticketing_enabled !== true) setActiveTab("engagement");
+    if (activeTab === "tiers" && engagement && engagement.certificate_enabled === false) setActiveTab("engagement");
+    if (activeTab === "badges" && engagement && engagement.gamification_enabled === false && (badges?.total_badges ?? 0) === 0) setActiveTab("engagement");
+  }, [activeTab, badges?.total_badges, engagement]);
+
   if (subscriptionLoading || (canViewAnalytics && loading)) {
     return (
       <div className="flex h-96 items-center justify-center">
@@ -263,7 +281,7 @@ export default function AdvancedAnalyticsPage() {
         isTicketedEvent && engagement.tickets
           ? {
               label: "Bilet Kullanımı",
-              value: `${engagement.tickets.used}/${engagement.tickets.total}`,
+              value: `${engagement.tickets.used}/${engagement.tickets.active_total ?? engagement.tickets.total}`,
               icon: Ticket,
               tone: "amber" as const,
               caption: `%${(engagement.tickets.usage_rate || 0).toFixed(1)} biletli giriş`,
@@ -373,6 +391,10 @@ export default function AdvancedAnalyticsPage() {
                     <span className="text-gray-600">Katılmadı</span>
                     <span className="font-semibold text-gray-900">{engagement.attendance.not_attended}</span>
                   </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">No-show oranı</span>
+                    <span className="font-semibold text-gray-900">%{(engagement.attendance.no_show_rate || 0).toFixed(1)}</span>
+                  </div>
                 </div>
               </div>
 
@@ -417,6 +439,10 @@ export default function AdvancedAnalyticsPage() {
                     <span className="text-gray-600">Toplam bilet</span>
                     <span className="font-semibold text-gray-900">{engagement.tickets.total}</span>
                   </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Aktif bilet</span>
+                    <span className="font-semibold text-gray-900">{engagement.tickets.active_total ?? engagement.tickets.total}</span>
+                  </div>
                 </div>
               </div>
 
@@ -428,6 +454,7 @@ export default function AdvancedAnalyticsPage() {
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <StatCard icon={Ticket} label="Bekleyen" value={engagement.tickets.issued} tone="sky" />
                   <StatCard icon={CheckCircle2} label="Kullanılan" value={engagement.tickets.used} tone="emerald" />
+                  <StatCard icon={Percent} label="No-show" value={engagement.tickets.no_show ?? engagement.tickets.issued} caption={`%${(engagement.tickets.no_show_rate || 0).toFixed(1)} aktif bilet`} tone="amber" />
                   <StatCard icon={AlertCircle} label="İptal" value={engagement.tickets.cancelled} tone="amber" />
                   <StatCard icon={AlertCircle} label="İptal edilen" value={engagement.tickets.revoked} tone="amber" />
                 </div>
@@ -503,14 +530,19 @@ export default function AdvancedAnalyticsPage() {
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <StatCard icon={Award} label="Toplam sertifika" value={tiers.total_certificates} tone="emerald" />
                   <StatCard icon={AlertCircle} label="Atanmayan" value={tiers.unassigned_count} tone="amber" />
+                  <StatCard icon={QrCode} label="Doğrulama hit" value={tiers.verification_hits ?? 0} tone="sky" />
+                  <StatCard icon={Percent} label="Doğrulanan" value={`%${(tiers.verification_rate || 0).toFixed(1)}`} caption={`${tiers.verified_certificates ?? 0} sertifika`} tone="brand" />
                 </div>
               </div>
             </div>
           )}
 
           {activeTab === "timeline" && timeline && (
-            <div className="grid gap-4 lg:grid-cols-3">
+            <div className={`grid gap-4 ${timeline.ticketing_enabled ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
               <TimelineCard icon={CalendarDays} title="Kayıtlar" items={timeline.registrations} emptyText="Kayıt eğrisi henüz oluşmadı." tone="brand" />
+              {timeline.ticketing_enabled ? (
+                <TimelineCard icon={Ticket} title="Biletli girişler" items={timeline.ticket_checkins || []} emptyText="Biletli giriş verisi yok." tone="amber" />
+              ) : null}
               <TimelineCard icon={QrCode} title="Anket tamamlamaları" items={timeline.survey_completions} emptyText="Anket verisi yok." tone="emerald" />
               <TimelineCard icon={CheckCircle2} title="Sertifika üretimleri" items={timeline.certificate_creations} emptyText="Sertifika üretimi yok." tone="sky" />
             </div>

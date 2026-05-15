@@ -7291,10 +7291,13 @@ async def get_engagement_analytics(
     ticketing_enabled = is_ticketing_enabled(event)
     ticket_counts = {
         "total": 0,
+        "active_total": 0,
         "issued": 0,
         "used": 0,
         "cancelled": 0,
         "revoked": 0,
+        "no_show": 0,
+        "no_show_rate": 0,
         "usage_rate": 0,
     }
     if ticketing_enabled:
@@ -7313,9 +7316,16 @@ async def get_engagement_analytics(
             }
         )
         ticket_counts["total"] = sum(int(ticket_counts[key]) for key in ("issued", "used", "cancelled", "revoked"))
+        ticket_counts["active_total"] = int(ticket_counts["issued"]) + int(ticket_counts["used"])
+        ticket_counts["no_show"] = int(ticket_counts["issued"])
         ticket_counts["usage_rate"] = (
-            ticket_counts["used"] / ticket_counts["total"] * 100
-            if ticket_counts["total"] > 0
+            ticket_counts["used"] / ticket_counts["active_total"] * 100
+            if ticket_counts["active_total"] > 0
+            else 0
+        )
+        ticket_counts["no_show_rate"] = (
+            ticket_counts["no_show"] / ticket_counts["active_total"] * 100
+            if ticket_counts["active_total"] > 0
             else 0
         )
 
@@ -7351,6 +7361,7 @@ async def get_engagement_analytics(
             "attended": attended_count,
             "not_attended": not_attended_count,
             "attendance_rate": (attended_count / total_attendees * 100) if total_attendees > 0 else 0,
+            "no_show_rate": (not_attended_count / total_attendees * 100) if total_attendees > 0 else 0,
         },
         "tickets": ticket_counts,
     }
@@ -7442,10 +7453,33 @@ async def get_tier_analytics(
             "percentage": round(percentage, 2),
         }
 
+    verification_hits_res = await db.execute(
+        select(func.count(VerificationHit.id))
+        .join(Certificate, Certificate.uuid == VerificationHit.cert_uuid)
+        .where(
+            Certificate.event_id == event_id,
+            Certificate.status == CertStatus.active,
+        )
+    )
+    verification_hits = int(verification_hits_res.scalar() or 0)
+
+    verified_certificates_res = await db.execute(
+        select(func.count(distinct(Certificate.id)))
+        .join(VerificationHit, Certificate.uuid == VerificationHit.cert_uuid)
+        .where(
+            Certificate.event_id == event_id,
+            Certificate.status == CertStatus.active,
+        )
+    )
+    verified_certificates = int(verified_certificates_res.scalar() or 0)
+
     return {
         "total_certificates": total,
         "tier_distribution": tier_dist,
         "unassigned_count": tier_dist.get("Unassigned", {}).get("count", 0),
+        "verification_hits": verification_hits,
+        "verified_certificates": verified_certificates,
+        "verification_rate": (verified_certificates / total * 100) if total > 0 else 0,
     }
 
 
@@ -7506,7 +7540,28 @@ async def get_timeline_analytics(
     )
     certificates = cert_res.all()
 
+    ticket_checkins: List[Tuple[Any, int]] = []
+    if is_ticketing_enabled(event):
+        ticket_res = await db.execute(
+            select(
+                func.date(EventTicket.checked_in_at).label("date"),
+                func.count(EventTicket.id).label("count"),
+            )
+            .where(
+                EventTicket.event_id == event_id,
+                EventTicket.status == "used",
+                EventTicket.checked_in_at.isnot(None),
+            )
+            .group_by(func.date(EventTicket.checked_in_at))
+            .order_by("date")
+        )
+        ticket_checkins = ticket_res.all()
+
     return {
+        "event_type": normalize_event_type(getattr(event, "event_type", None)),
+        "ticketing_enabled": is_ticketing_enabled(event),
+        "certificate_enabled": is_certificate_enabled(event),
+        "checkin_enabled": is_checkin_enabled(event),
         "registrations": [
             {"date": str(d), "count": c} for d, c in registrations
         ],
@@ -7515,6 +7570,9 @@ async def get_timeline_analytics(
         ],
         "certificate_creations": [
             {"date": str(d), "count": c} for d, c in certificates
+        ],
+        "ticket_checkins": [
+            {"date": str(d), "count": c} for d, c in ticket_checkins
         ],
     }
 
@@ -13933,6 +13991,58 @@ async def _issue_event_ticket_if_needed(db: AsyncSession, event: Event, attendee
     return ticket
 
 
+async def _get_or_create_ticket_checkin_session(db: AsyncSession, event: Event) -> EventSession:
+    session_res = await db.execute(
+        select(EventSession)
+        .where(EventSession.event_id == event.id, EventSession.name == "Ticket Check-in")
+        .order_by(EventSession.id.asc())
+        .limit(1)
+    )
+    session = session_res.scalar_one_or_none()
+    if session:
+        return session
+
+    session = EventSession(
+        event_id=event.id,
+        name="Ticket Check-in",
+        session_date=event.event_date,
+        session_location=event.event_location,
+        checkin_token=str(_uuid_module.uuid4()).replace("-", ""),
+        is_active=True,
+    )
+    db.add(session)
+    await db.flush()
+    return session
+
+
+async def _record_ticket_attendance(
+    db: AsyncSession,
+    *,
+    event: Event,
+    ticket: EventTicket,
+    ip_address: Optional[str] = None,
+) -> bool:
+    session = await _get_or_create_ticket_checkin_session(db, event)
+    existing_res = await db.execute(
+        select(AttendanceRecord.id).where(
+            AttendanceRecord.attendee_id == ticket.attendee_id,
+            AttendanceRecord.session_id == session.id,
+        )
+    )
+    if existing_res.scalar_one_or_none() is not None:
+        return False
+
+    db.add(
+        AttendanceRecord(
+            attendee_id=ticket.attendee_id,
+            session_id=session.id,
+            ip_address=ip_address,
+        )
+    )
+    await db.flush()
+    return True
+
+
 def _ticket_to_out(ticket: EventTicket) -> EventTicketOut:
     return EventTicketOut(
         id=ticket.id,
@@ -15872,6 +15982,7 @@ async def list_event_tickets(
 async def check_in_event_ticket(
     event_id: int,
     payload: TicketCheckInIn,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -15889,10 +16000,14 @@ async def check_in_event_ticket(
         raise HTTPException(status_code=404, detail="Ticket not found")
     if ticket.status in {"cancelled", "revoked"}:
         raise HTTPException(status_code=409, detail="Ticket is cancelled")
+    ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else None)
     if ticket.status == "used":
+        await _record_ticket_attendance(db, event=ev, ticket=ticket, ip_address=ip)
+        await db.commit()
         return _ticket_to_out(ticket)
     ticket.status = "used"
     ticket.checked_in_at = datetime.now(timezone.utc)
+    await _record_ticket_attendance(db, event=ev, ticket=ticket, ip_address=ip)
     await db.commit()
     await db.refresh(ticket)
     await db.refresh(ticket, attribute_names=["attendee"])
@@ -15923,8 +16038,19 @@ async def update_event_ticket_status(
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
     ticket.status = "cancelled" if payload.status == "revoked" else payload.status
-    if ticket.status == "issued":
+    if ticket.status != "used":
         ticket.checked_in_at = None
+        await db.execute(
+            delete(AttendanceRecord).where(
+                AttendanceRecord.attendee_id == ticket.attendee_id,
+                AttendanceRecord.session_id.in_(
+                    select(EventSession.id).where(
+                        EventSession.event_id == event_id,
+                        EventSession.name == "Ticket Check-in",
+                    )
+                ),
+            )
+        )
     await db.commit()
     await db.refresh(ticket)
     await db.refresh(ticket, attribute_names=["attendee"])

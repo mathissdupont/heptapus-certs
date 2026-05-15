@@ -18,7 +18,8 @@ import {
   ListChecks,
   FileText,
   LogIn,
-  CheckCircle2
+  CheckCircle2,
+  Ticket,
 } from "lucide-react";
 import {
   createPublicEventComment,
@@ -71,6 +72,10 @@ export default function PublicEventDetailClient() {
             sessions: "Oturumlar",
             customFields: "Kayıt Bilgileri",
             minSessions: "Sertifika için min. oturum",
+            entryRequirement: "Giriş / katılım şartı",
+            certificateFlow: "Sertifikalı akış",
+            ticketFlow: "Biletli giriş",
+            standardFlow: "Standart etkinlik",
             unlisted: "Liste Dışı",
             noSessions: "Henüz oturum eklenmedi.",
             defaultFields: "Bu etkinlikte sadece standart ad ve e-posta alanları kullanılıyor.",
@@ -97,6 +102,10 @@ export default function PublicEventDetailClient() {
             sessions: "Sessions",
             customFields: "Registration Fields",
             minSessions: "Min. sessions for certificate",
+            entryRequirement: "Entry / participation rule",
+            certificateFlow: "Certificate flow",
+            ticketFlow: "Ticketed entry",
+            standardFlow: "Standard event",
             unlisted: "Unlisted",
             noSessions: "No session has been added yet.",
             defaultFields: "This event currently uses standard name and email fields only.",
@@ -194,6 +203,10 @@ export default function PublicEventDetailClient() {
   const statusLinkHref = member
     ? statusHref
     : `/login?mode=member&next=${encodeURIComponent(statusHref)}`;
+  const isTicketedEvent = event?.ticketing_enabled === true;
+  const isCertificateEvent = event?.certificate_enabled !== false;
+  const flowLabel = isTicketedEvent ? copy.ticketFlow : isCertificateEvent ? copy.certificateFlow : copy.standardFlow;
+  const requirementLabel = isCertificateEvent && !isTicketedEvent ? copy.minSessions : copy.entryRequirement;
 
   if (loading) {
     return (
@@ -266,8 +279,12 @@ export default function PublicEventDetailClient() {
                 </span>
               )}
               <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                <CheckCircle2 className="h-3 w-3" />
-                {copy.minSessions}: {event.min_sessions_required}
+                {isTicketedEvent ? <Ticket className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+                {flowLabel}
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700">
+                <ListChecks className="h-3 w-3" />
+                {requirementLabel}: {event.min_sessions_required}
               </span>
             </div>
 

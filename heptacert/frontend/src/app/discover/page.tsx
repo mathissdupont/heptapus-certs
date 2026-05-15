@@ -163,7 +163,6 @@ export default function DiscoveryPage() {
       getPublicMemberToken() ? getPublicMemberMe().catch(() => null) : Promise.resolve(null),
     ])
       .then(([items, viewerData]) => {
-        console.log("Feed data received:", { itemsCount: items?.length, items });
         const scored = (Array.isArray(items) ? items : []).map((post) => ({
           ...post,
           score: calculateFinalScore(post),

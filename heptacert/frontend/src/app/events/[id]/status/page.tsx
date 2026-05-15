@@ -14,6 +14,7 @@ import {
   Ticket,
   ArrowLeft,
   Clock3,
+  Copy,
   IdCard,
 } from "lucide-react";
 import { API_BASE, getMyPublicParticipantStatus, getPublicMemberToken, getPublicParticipantStatus, type PublicParticipantStatus } from "@/lib/api";
@@ -57,11 +58,15 @@ export default function EventParticipantStatusPage() {
             ticketFlow: "Biletli giriş",
             ticketShow: "Bileti göster",
             ticketDownload: "Bileti indir",
+            ticketCopy: "Bilet linkini kopyala",
+            ticketCopied: "Kopyalandı",
             ticketQr: "Giriş QR kodu",
             ticketUnavailable: "Bilet bilgisi henüz oluşturulmamış. Kayıt veya e-posta doğrulaması tamamlandığında burada görünecek.",
+            ticketInvalid: "Bu bilet artık aktif değil. Giriş için organizasyonla iletişime geçin.",
             ticketStatusIssued: "Aktif",
             ticketStatusUsed: "Kullanıldı",
             ticketStatusCancelled: "İptal",
+            ticketCheckedInAt: "Giriş zamanı",
             minSessions: "Minimum {count} oturum",
             survey: "Anket",
             surveyDisabled: "Kapalı",
@@ -126,11 +131,15 @@ export default function EventParticipantStatusPage() {
             ticketFlow: "Ticketed entry",
             ticketShow: "Show ticket",
             ticketDownload: "Download ticket",
+            ticketCopy: "Copy ticket link",
+            ticketCopied: "Copied",
             ticketQr: "Entry QR code",
             ticketUnavailable: "Ticket details have not been created yet. They will appear here after registration or email verification is completed.",
+            ticketInvalid: "This ticket is no longer active. Please contact the organizer for entry.",
             ticketStatusIssued: "Active",
             ticketStatusUsed: "Used",
             ticketStatusCancelled: "Cancelled",
+            ticketCheckedInAt: "Entry time",
             minSessions: "Minimum {count} sessions",
             survey: "Survey",
             surveyDisabled: "Disabled",
@@ -186,6 +195,7 @@ export default function EventParticipantStatusPage() {
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [ticketCopied, setTicketCopied] = useState(false);
 
   useEffect(() => {
     fetch("/api/branding").then((r) => (r.ok ? r.json() : null)).then((data) => data && setBranding(data)).catch(() => {});
@@ -276,12 +286,17 @@ export default function EventParticipantStatusPage() {
   const hasSurvey = status.survey_enabled;
   const isTicketedEvent = status.ticketing_enabled === true;
   const ticket = status.ticket;
+  const ticketCheckedInAt = ticket?.checked_in_at ? badgeDateFormatter.format(new Date(ticket.checked_in_at)) : null;
+  const entryDone = isTicketedEvent && ticket?.status === "used" ? 1 : status.sessions_attended;
+  const entryTotal = isTicketedEvent ? 1 : Math.max(status.total_sessions, status.sessions_required);
   const ticketStatusLabel =
     ticket?.status === "used"
       ? copy.ticketStatusUsed
       : ticket?.status === "cancelled" || ticket?.status === "revoked"
         ? copy.ticketStatusCancelled
         : copy.ticketStatusIssued;
+  const isTicketInvalid = ticket?.status === "cancelled" || ticket?.status === "revoked";
+  const ticketUrl = ticket && typeof window !== "undefined" ? `${window.location.origin}/tickets/${encodeURIComponent(ticket.token)}` : "";
   const isCertificateEvent = status.certificate_enabled !== false && !isTicketedEvent;
   const showBadges = status.gamification_enabled !== false || status.badges.length > 0;
   const pageTitle = isTicketedEvent ? copy.ticketTitle : copy.title;
@@ -289,8 +304,8 @@ export default function EventParticipantStatusPage() {
   const nextStepDescription = !isCertificateEvent
     ? hasSurvey && status.survey_required && !status.survey_completed
       ? copy.surveyStep
-      : status.sessions_attended < status.sessions_required
-        ? copy.moreCheckins.replace("{count}", String(status.sessions_required - status.sessions_attended))
+      : entryDone < status.sessions_required
+        ? copy.moreCheckins.replace("{count}", String(status.sessions_required - entryDone))
         : copy.noSurveyTicketStep
     : status.certificate_ready
     ? copy.certReadyText
@@ -298,8 +313,8 @@ export default function EventParticipantStatusPage() {
       ? copy.surveyStep
       : !hasSurvey
         ? copy.noSurveyStep
-        : status.sessions_attended < status.sessions_required
-          ? copy.moreSessions.replace("{count}", String(status.sessions_required - status.sessions_attended))
+        : entryDone < status.sessions_required
+          ? copy.moreSessions.replace("{count}", String(status.sessions_required - entryDone))
           : copy.waitingUpdates;
 
   return (
@@ -363,14 +378,14 @@ export default function EventParticipantStatusPage() {
                   </div>
                   <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-semibold text-zinc-700">
                     {isTicketedEvent ? <Ticket className="h-4 w-4 text-sky-500" /> : <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
-                    {isTicketedEvent ? copy.ticketFlow : `${status.sessions_attended}/${Math.max(status.total_sessions, status.sessions_required)} ${copy.sessions}`}
+                    {isTicketedEvent ? copy.ticketFlow : `${entryDone}/${entryTotal} ${copy.sessions}`}
                   </div>
                 </div>
               </div>
             </div>
 
             {isTicketedEvent ? (
-              <div className="grid gap-5 rounded-3xl border border-sky-200/70 bg-sky-50/60 p-5 sm:grid-cols-[180px_1fr] sm:p-6">
+              <div className={`grid gap-5 rounded-3xl border p-5 sm:grid-cols-[180px_1fr] sm:p-6 ${isTicketInvalid ? "border-rose-200 bg-rose-50/70" : "border-sky-200/70 bg-sky-50/60"}`}>
                 <div className="flex min-h-[180px] items-center justify-center rounded-2xl border border-sky-200 bg-white p-4 shadow-sm">
                   {ticket ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -384,14 +399,20 @@ export default function EventParticipantStatusPage() {
                   )}
                 </div>
                 <div className="flex flex-col justify-center">
-                  <div className="inline-flex w-fit items-center gap-2 rounded-full border border-sky-200 bg-white px-3 py-1.5 text-xs font-semibold text-sky-700">
+                  <div className={`inline-flex w-fit items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-xs font-semibold ${isTicketInvalid ? "border-rose-200 text-rose-700" : "border-sky-200 text-sky-700"}`}>
                     <Ticket className="h-3.5 w-3.5" />
                     {copy.ticket}
                   </div>
                   <h2 className="mt-4 text-2xl font-bold text-zinc-900">{ticket ? ticketStatusLabel : copy.pending}</h2>
                   <p className="mt-2 max-w-xl text-sm leading-relaxed text-zinc-600">
-                    {ticket ? copy.noSurveyTicketStep : copy.ticketUnavailable}
+                    {ticket ? (isTicketInvalid ? copy.ticketInvalid : copy.noSurveyTicketStep) : copy.ticketUnavailable}
                   </p>
+                  {ticketCheckedInAt ? (
+                    <div className="mt-4 inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      {copy.ticketCheckedInAt}: {ticketCheckedInAt}
+                    </div>
+                  ) : null}
                   {ticket ? (
                     <div className="mt-5 flex flex-wrap gap-3">
                       <Link
@@ -406,6 +427,19 @@ export default function EventParticipantStatusPage() {
                       >
                         {copy.ticketDownload}
                       </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(ticketUrl).then(() => {
+                            setTicketCopied(true);
+                            window.setTimeout(() => setTicketCopied(false), 1800);
+                          });
+                        }}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-5 py-2.5 text-sm font-semibold text-zinc-700 shadow-sm transition hover:bg-zinc-50"
+                      >
+                        <Copy className="h-4 w-4" />
+                        {ticketCopied ? copy.ticketCopied : copy.ticketCopy}
+                      </button>
                     </div>
                   ) : null}
                 </div>
@@ -416,7 +450,7 @@ export default function EventParticipantStatusPage() {
             <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${isCertificateEvent ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
               <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-5 transition hover:bg-white hover:shadow-sm">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{isTicketedEvent ? copy.checkin : copy.sessions}</p>
-                <p className="mt-3 text-3xl font-bold text-zinc-900">{status.sessions_attended}<span className="text-xl text-zinc-400">/{Math.max(status.total_sessions, status.sessions_required)}</span></p>
+                <p className="mt-3 text-3xl font-bold text-zinc-900">{entryDone}<span className="text-xl text-zinc-400">/{entryTotal}</span></p>
                 <p className="mt-2 text-xs text-zinc-500">{isTicketedEvent ? copy.ticketFlow : copy.minSessions.replace("{count}", String(status.sessions_required))}</p>
               </div>
               <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-5 transition hover:bg-white hover:shadow-sm">
@@ -480,7 +514,7 @@ export default function EventParticipantStatusPage() {
                 <div className="mt-5 space-y-4">
                   <div className="flex items-center justify-between border-b border-zinc-100 pb-3 text-sm">
                     <span className="text-zinc-500">{isTicketedEvent ? copy.checkin : copy.completedSessions}</span>
-                    <span className="font-semibold text-zinc-900">{status.sessions_attended}</span>
+                    <span className="font-semibold text-zinc-900">{entryDone}</span>
                   </div>
                   <div className="flex items-center justify-between border-b border-zinc-100 pb-3 text-sm">
                     <span className="text-zinc-500">{copy.surveyStatus}</span>

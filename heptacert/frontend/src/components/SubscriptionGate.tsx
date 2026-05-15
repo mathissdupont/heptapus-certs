@@ -35,28 +35,16 @@ export default function SubscriptionGate({ requiredPlan, children, fallback = 'p
           return;
         }
 
-        // DEV MODE: If token exists, grant access (no subscription check)
-        // TODO: Remove this in production and uncomment subscription check below
-        setHasAccess(true);
-        setLoading(false);
-        return;
-
-        // Production subscription check (commented out for dev)
-        /*
         const sub = await getPublicMemberSubscription();
         setSubscription(sub);
 
-        // Check if user has required plan
         if (!sub.active || !sub.plan_id) {
           setHasAccess(false);
         } else if (requiredPlan === "member_pro") {
-          // Only member_pro passes
           setHasAccess(sub.plan_id === "member_pro");
         } else {
-          // member_plus or higher
           setHasAccess(["member_plus", "member_pro"].includes(sub.plan_id));
         }
-        */
       } catch (err) {
         console.error("Error checking subscription:", err);
         setHasAccess(false);

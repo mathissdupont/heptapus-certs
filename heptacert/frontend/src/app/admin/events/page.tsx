@@ -94,6 +94,7 @@ export default function AdminEvents() {
   const [hasPaidPlan, setHasPaidPlan] = useState(false);
   const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState("");
+  const [eventTypeFilter, setEventTypeFilter] = useState<"all" | EventType>("all");
   const [eventType, setEventType] = useState<EventType>("certificate_event");
   const [certificateEnabled, setCertificateEnabled] = useState(true);
   const [checkinEnabled, setCheckinEnabled] = useState(true);
@@ -123,6 +124,7 @@ export default function AdminEvents() {
       flowBody: "Etkinlik türünü ve aktif modülleri seç; oluşturduktan sonra sadece ilgili ekranlar görünsün.",
       eventNamePlaceholder: "Yeni etkinlik adı...",
       eventType: "Etkinlik Türü",
+      allEventTypes: "Tüm Türler",
       features: "Özellikler",
       certificateFeature: "Sertifika",
       checkinFeature: "Check-in / Oturum",
@@ -183,6 +185,7 @@ export default function AdminEvents() {
       flowBody: "Choose the event type and active modules; only relevant screens will appear after creation.",
       eventNamePlaceholder: "New event name...",
       eventType: "Event Type",
+      allEventTypes: "All Types",
       features: "Features",
       certificateFeature: "Certificate",
       checkinFeature: "Check-in / Sessions",
@@ -364,15 +367,16 @@ export default function AdminEvents() {
   const totalCertificates = Object.values(certStats).reduce((sum, stat) => sum + (stat?.total || 0), 0);
   const filteredEvents = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return events;
-    return events.filter((event) =>
-      [event.name, event.id]
+    return events.filter((event) => {
+      if (eventTypeFilter !== "all" && (event.event_type || "certificate_event") !== eventTypeFilter) return false;
+      if (!q) return true;
+      return [event.name, event.id]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()
-        .includes(q)
-    );
-  }, [events, search]);
+        .includes(q);
+    });
+  }, [eventTypeFilter, events, search]);
 
   return (
     <div className="flex flex-col gap-6 pb-20">
@@ -493,6 +497,25 @@ export default function AdminEvents() {
                 ? copy.allEventsVisible(events.length)
                 : copy.filteredEvents(filteredEvents.length)}
             </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setEventTypeFilter("all")}
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${eventTypeFilter === "all" ? "border-brand-200 bg-brand-50 text-brand-700" : "border-surface-200 bg-white text-surface-500 hover:text-surface-800"}`}
+              >
+                {copy.allEventTypes}
+              </button>
+              {EVENT_TYPE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setEventTypeFilter(option.value)}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${eventTypeFilter === option.value ? "border-brand-200 bg-brand-50 text-brand-700" : "border-surface-200 bg-white text-surface-500 hover:text-surface-800"}`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
         <AnimatePresence>
@@ -540,7 +563,7 @@ export default function AdminEvents() {
                 description={copy.searchEmptyBody}
                 icon={<Search className="h-8 w-8" />}
                 action={
-                  <button onClick={() => setSearch("")} className="btn-secondary">
+                  <button onClick={() => { setSearch(""); setEventTypeFilter("all"); }} className="btn-secondary">
                     {copy.clearFilter}
                   </button>
                 }
@@ -578,7 +601,14 @@ export default function AdminEvents() {
                         ) : (
                           <div className="min-w-0">
                             <div className="truncate font-semibold text-surface-800">{ev.name}</div>
-                            <div className="mt-0.5 flex items-center gap-3 text-[11px] font-medium text-surface-400">
+                            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-medium text-surface-500">
+                              <span className="rounded-full border border-surface-200 bg-surface-50 px-2 py-0.5">
+                                {EVENT_TYPE_OPTIONS.find((option) => option.value === (ev.event_type || "certificate_event"))?.label || ev.event_type}
+                              </span>
+                              {ev.ticketing_enabled ? <span className="rounded-full border border-sky-100 bg-sky-50 px-2 py-0.5 text-sky-700">{copy.tickets}</span> : null}
+                              {ev.certificate_enabled !== false ? <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-emerald-700">{copy.certificates}</span> : null}
+                            </div>
+                            <div className="mt-1.5 flex items-center gap-3 text-[11px] font-medium text-surface-400">
                               <span className="flex items-center gap-1">
                                 <Hash className="h-3 w-3" /> {copy.id} {ev.id}
                               </span>

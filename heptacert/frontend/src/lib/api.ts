@@ -4,7 +4,8 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:87
 if (
   typeof process !== "undefined" &&
   process.env.NODE_ENV === "production" &&
-  !process.env.NEXT_PUBLIC_API_BASE
+  !process.env.NEXT_PUBLIC_API_BASE &&
+  process.env.NEXT_PHASE !== "phase-production-build"
 ) {
   console.error(
     "[HeptaCert] NEXT_PUBLIC_API_BASE is not set! " +

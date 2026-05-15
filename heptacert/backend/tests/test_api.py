@@ -17,6 +17,7 @@ from src.main import (
     CommunityPostLike,
     Event,
     EventSession,
+    EventTicket,
     Organization,
     OrganizationFollower,
     PublicMember,
@@ -475,6 +476,125 @@ class TestPublicSocialAndEventControls:
             )
             assert admin_resp.status_code == 200
             assert admin_resp.json()["email"] == "manual-disabled@test.com"
+
+    @pytest.mark.asyncio
+    async def test_ticket_checkin_writes_and_clears_only_ticket_attendance(self):
+        async with SessionLocal() as db:
+            admin = User(email="ticket-attendance-admin@test.com", password_hash=hash_password("AdminPass123!"), role=Role.admin)
+            db.add(admin)
+            await db.flush()
+            db.add(Subscription(user_id=admin.id, plan_id="growth", is_active=True))
+            event = Event(
+                admin_id=admin.id,
+                public_id="evt_ticket_attendance",
+                name="Ticket Attendance",
+                template_image_url="placeholder",
+                config={},
+                ticketing_enabled=True,
+            )
+            db.add(event)
+            await db.flush()
+            real_session = EventSession(
+                event_id=event.id,
+                name="Main Session",
+                checkin_token="ticket_attendance_real_session",
+                is_active=True,
+            )
+            db.add(real_session)
+            attendee = Attendee(
+                event_id=event.id,
+                name="Ticket User",
+                email="ticket-user@test.com",
+                source="self_register",
+            )
+            db.add(attendee)
+            await db.flush()
+            db.add(AttendanceRecord(attendee_id=attendee.id, session_id=real_session.id))
+            ticket = EventTicket(
+                event_id=event.id,
+                attendee_id=attendee.id,
+                token="ticket-attendance-token",
+                qr_payload="http://test/tickets/ticket-attendance-token",
+                status="issued",
+            )
+            db.add(ticket)
+            waiting_attendee = Attendee(
+                event_id=event.id,
+                name="Waiting Ticket User",
+                email="waiting-ticket-user@test.com",
+                source="self_register",
+            )
+            db.add(waiting_attendee)
+            await db.flush()
+            db.add(
+                EventTicket(
+                    event_id=event.id,
+                    attendee_id=waiting_attendee.id,
+                    token="waiting-ticket-token",
+                    qr_payload="http://test/tickets/waiting-ticket-token",
+                    status="issued",
+                )
+            )
+            await db.commit()
+            event_id = event.id
+            ticket_id = ticket.id
+            admin_id = admin.id
+
+        admin_token = create_access_token(user_id=admin_id, role=Role.admin)
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            checkin_resp = await ac.post(
+                f"/api/admin/events/{event_id}/tickets/check-in",
+                json={"token": "ticket-attendance-token"},
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+            assert checkin_resp.status_code == 200
+            assert checkin_resp.json()["status"] == "used"
+
+            async with SessionLocal() as db:
+                ticket_written_res = await db.execute(
+                    select(func.count())
+                    .select_from(AttendanceRecord)
+                    .join(EventSession, EventSession.id == AttendanceRecord.session_id)
+                    .where(EventSession.event_id == event_id, EventSession.name == "Ticket Check-in")
+                )
+                assert int(ticket_written_res.scalar_one() or 0) == 1
+
+            analytics_resp = await ac.get(
+                f"/api/admin/events/{event_id}/analytics/engagement",
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+            assert analytics_resp.status_code == 200
+            tickets = analytics_resp.json()["tickets"]
+            assert tickets["active_total"] == 2
+            assert tickets["used"] == 1
+            assert tickets["no_show"] == 1
+            assert tickets["usage_rate"] == pytest.approx(50)
+            assert tickets["no_show_rate"] == pytest.approx(50)
+
+            status_resp = await ac.patch(
+                f"/api/admin/events/{event_id}/tickets/{ticket_id}/status",
+                json={"status": "issued"},
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+            assert status_resp.status_code == 200
+            assert status_resp.json()["status"] == "issued"
+
+        async with SessionLocal() as db:
+            real_count_res = await db.execute(
+                select(func.count())
+                .select_from(AttendanceRecord)
+                .join(EventSession, EventSession.id == AttendanceRecord.session_id)
+                .where(EventSession.event_id == event_id, EventSession.name == "Main Session")
+            )
+            ticket_count_res = await db.execute(
+                select(func.count())
+                .select_from(AttendanceRecord)
+                .join(EventSession, EventSession.id == AttendanceRecord.session_id)
+                .where(EventSession.event_id == event_id, EventSession.name == "Ticket Check-in")
+            )
+            assert int(real_count_res.scalar_one() or 0) == 1
+            assert int(ticket_count_res.scalar_one() or 0) == 0
 
     @pytest.mark.asyncio
     async def test_public_event_registration_closed_returns_403(self):
