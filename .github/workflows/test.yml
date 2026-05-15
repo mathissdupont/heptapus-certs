@@ -1,4 +1,4 @@
-name: CI — Tests & Security
+name: CI - Tests & Security
 
 on:
   push:
@@ -16,21 +16,6 @@ jobs:
     defaults:
       run:
         working-directory: heptacert/backend
-
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: heptacert_test
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U test -d heptacert_test"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 10
 
     env:
       DATABASE_URL: sqlite+aiosqlite:///
@@ -60,8 +45,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run tests with coverage
-        run: |
-          python -m pytest tests/ -v --tb=short --cov=src --cov-report=term-missing
+        run: python -m pytest tests/ -v --tb=short --cov=src --cov-report=term-missing
 
       - name: Check for security issues (bandit)
         run: |
@@ -86,7 +70,7 @@ jobs:
           cache-dependency-path: heptacert/frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci || npm install
+        run: npm ci
 
       - name: TypeScript type check
         run: npx tsc --noEmit || true

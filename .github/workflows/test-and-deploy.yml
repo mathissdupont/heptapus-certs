@@ -15,37 +15,19 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # ─────────────────────────────────────────────────────────────────────────
-  # Backend Tests
-  # ─────────────────────────────────────────────────────────────────────────
   backend-tests:
     name: Backend Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.12"]
-    
+
     defaults:
       run:
         working-directory: heptacert/backend
-    
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_DB: test_db
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_pass
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-    
+
     env:
-      DATABASE_URL: postgresql+asyncpg://test_user:test_pass@localhost:5432/test_db
+      DATABASE_URL: sqlite+aiosqlite:///
       JWT_SECRET: test-jwt-secret-32chars-minimum!!
       EMAIL_TOKEN_SECRET: test-email-token-secret
       BOOTSTRAP_SUPERADMIN_EMAIL: super@test.com
@@ -55,35 +37,32 @@ jobs:
       CORS_ORIGINS: "*"
       STORAGE_MODE: local
       LOCAL_STORAGE_DIR: /tmp/heptacert_test
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
+          cache: pip
           cache-dependency-path: heptacert/backend/requirements.txt
-      
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
           pip install -r requirements.txt
-          pip install pytest pytest-asyncio pytest-cov
-      
-      - name: Lint with flake8 (excluding generated)
+          pip install flake8
+
+      - name: Lint with flake8
         continue-on-error: true
         run: |
-          # Stop the build if there are Python syntax errors or undefined names
           flake8 src --count --select=E9,F63,F7,F82 --show-source --statistics
-          # Exit-code is non-zero if there are warnings
           flake8 src --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-      
+
       - name: Run tests with coverage
-        run: |
-          python -m pytest tests/ -v --tb=short --cov=src --cov-report=term-missing --cov-report=xml --cov-report=html
-      
+        run: python -m pytest tests/ -v --tb=short --cov=src --cov-report=term-missing --cov-report=xml --cov-report=html
+
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
         with:
@@ -91,38 +70,33 @@ jobs:
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
-  
-  # ─────────────────────────────────────────────────────────────────────────
-  # Frontend Build & Type Check
-  # ─────────────────────────────────────────────────────────────────────────
+
   frontend-build:
     name: Frontend Build & TypeScript Check
     runs-on: ubuntu-latest
-    
+
     defaults:
       run:
         working-directory: heptacert/frontend
-    
+
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Setup Node.js
+
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: "20"
+          cache: npm
           cache-dependency-path: heptacert/frontend/package-lock.json
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Type check with TypeScript
         run: npx tsc --noEmit
-      
+
       - name: Build frontend
         run: npm run build
         env:
-          NEXT_PUBLIC_API_URL: http://localhost:8000/api
+          NEXT_PUBLIC_API_BASE: http://localhost:8000/api
           NODE_ENV: production
-  
-  
