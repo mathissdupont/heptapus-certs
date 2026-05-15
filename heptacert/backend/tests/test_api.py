@@ -11,6 +11,7 @@ from src.main import (
     app,
     Attendee,
     AttendanceRecord,
+    Certificate,
     CommunityPost,
     CommunityPostComment,
     CommunityPostLike,
@@ -349,6 +350,39 @@ class TestPublicEndpoints:
     @pytest.mark.asyncio
     async def test_verify_nonexistent_cert(self):
         resp = await _safe_get("/api/verify/00000000-0000-0000-0000-000000000000")
+
+    @pytest.mark.asyncio
+    async def test_verify_certificate_when_checkin_disabled(self):
+        cert_uuid = "11111111-1111-4111-8111-111111111111"
+        async with SessionLocal() as db:
+            admin = User(email="verify-checkin-disabled@test.com", password_hash=hash_password("AdminPass123!"), role=Role.admin)
+            db.add(admin)
+            await db.flush()
+            event = Event(
+                admin_id=admin.id,
+                public_id="evt_verify_checkin_disabled",
+                name="Verify Checkin Disabled",
+                template_image_url="placeholder",
+                config={},
+                checkin_enabled=False,
+            )
+            db.add(event)
+            await db.flush()
+            db.add(Certificate(
+                uuid=cert_uuid,
+                public_id="cert_verify_checkin_disabled",
+                student_name="Verify Student",
+                event_id=event.id,
+                pdf_url="http://example.test/cert.pdf",
+            ))
+            await db.commit()
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.get(f"/api/verify/{cert_uuid}", headers={"Accept": "application/json"})
+
+        assert resp.status_code == 200
+        assert resp.json()["uuid"] == cert_uuid
 
 
 class TestPublicSocialAndEventControls:
