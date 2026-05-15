@@ -17,6 +17,7 @@ import {
   Percent,
   QrCode,
   Target,
+  Ticket,
   TrendingUp,
   UserCheck,
   Users,
@@ -26,6 +27,13 @@ import { useSubscription } from "@/lib/useSubscription";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 
 type EngagementAnalytics = {
+  event_type?: string;
+  certificate_enabled?: boolean;
+  checkin_enabled?: boolean;
+  ticketing_enabled?: boolean;
+  registration_enabled?: boolean;
+  raffles_enabled?: boolean;
+  gamification_enabled?: boolean;
   total_attendees: number;
   survey_completion: {
     completed: number;
@@ -40,6 +48,14 @@ type EngagementAnalytics = {
     attended: number;
     not_attended: number;
     attendance_rate: number;
+  };
+  tickets?: {
+    total: number;
+    issued: number;
+    used: number;
+    cancelled: number;
+    revoked: number;
+    usage_rate: number;
   };
 };
 
@@ -157,7 +173,7 @@ export default function AdvancedAnalyticsPage() {
   const [timeline, setTimeline] = useState<TimelineAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"engagement" | "badges" | "tiers" | "timeline">("engagement");
+  const [activeTab, setActiveTab] = useState<"engagement" | "tickets" | "badges" | "tiers" | "timeline">("engagement");
 
   useEffect(() => {
     if (subscriptionLoading) return;
@@ -210,6 +226,17 @@ export default function AdvancedAnalyticsPage() {
     );
   }
 
+  const isTicketedEvent = engagement?.ticketing_enabled === true;
+  const hasCertificates = engagement?.certificate_enabled !== false;
+  const hasBadges = engagement?.gamification_enabled !== false || (badges?.total_badges ?? 0) > 0;
+  const tabs = [
+    { id: "engagement" as const, label: "Katılım", icon: Users, visible: true },
+    { id: "tickets" as const, label: "Biletler", icon: Ticket, visible: isTicketedEvent },
+    { id: "badges" as const, label: "Rozetler", icon: Badge, visible: hasBadges },
+    { id: "tiers" as const, label: "Seviyeler", icon: Award, visible: hasCertificates },
+    { id: "timeline" as const, label: "Zaman Çizelgesi", icon: Calendar, visible: true },
+  ].filter((tab) => tab.visible);
+
   const overviewCards = engagement
     ? [
         {
@@ -233,13 +260,21 @@ export default function AdvancedAnalyticsPage() {
           tone: "emerald" as const,
           caption: `%${(engagement.survey_completion.completion_rate || 0).toFixed(1)} tamamlanma`,
         },
-        {
-          label: "Ortalama Rozet",
-          value: engagement.badges.average_per_attendee.toFixed(2),
-          icon: Badge,
-          tone: "amber" as const,
-          caption: "Katılımcı başına ortalama rozet",
-        },
+        isTicketedEvent && engagement.tickets
+          ? {
+              label: "Bilet Kullanımı",
+              value: `${engagement.tickets.used}/${engagement.tickets.total}`,
+              icon: Ticket,
+              tone: "amber" as const,
+              caption: `%${(engagement.tickets.usage_rate || 0).toFixed(1)} biletli giriş`,
+            }
+          : {
+              label: hasBadges ? "Ortalama Rozet" : "Sertifika",
+              value: hasBadges ? engagement.badges.average_per_attendee.toFixed(2) : tiers?.total_certificates ?? 0,
+              icon: hasBadges ? Badge : Award,
+              tone: "amber" as const,
+              caption: hasBadges ? "Katılımcı başına ortalama rozet" : "Üretilen sertifika sayısı",
+            },
       ]
     : [];
 
@@ -304,17 +339,12 @@ export default function AdvancedAnalyticsPage() {
           </div>
 
           <div className="flex gap-2 overflow-x-auto border-b border-gray-200">
-            {[
-              { id: "engagement", label: "Katılım", icon: Users },
-              { id: "badges", label: "Rozetler", icon: Badge },
-              { id: "tiers", label: "Seviyeler", icon: Award },
-              { id: "timeline", label: "Zaman Çizelgesi", icon: Calendar },
-            ].map((tab) => {
+            {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                  onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${activeTab === tab.id ? "border-brand-600 text-brand-600" : "border-transparent text-gray-600 hover:text-gray-900"}`}
                 >
                   <Icon className="h-4 w-4" />
@@ -363,6 +393,43 @@ export default function AdvancedAnalyticsPage() {
                     <span className="text-gray-600">Bekliyor</span>
                     <span className="font-semibold text-gray-900">{engagement.survey_completion.pending}</span>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "tickets" && engagement?.tickets && (
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <Ticket className="h-5 w-5 text-brand-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Bilet kullanımı</h3>
+                </div>
+                <div className="mt-4 space-y-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Kullanıldı</span>
+                    <span className="font-semibold text-gray-900">{engagement.tickets.used}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-gray-100">
+                    <div className="h-2 rounded-full bg-brand-600" style={{ width: `${Math.min(100, Math.max(0, engagement.tickets.usage_rate || 0))}%` }} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Toplam bilet</span>
+                    <span className="font-semibold text-gray-900">{engagement.tickets.total}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-emerald-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Bilet durumları</h3>
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <StatCard icon={Ticket} label="Bekleyen" value={engagement.tickets.issued} tone="sky" />
+                  <StatCard icon={CheckCircle2} label="Kullanılan" value={engagement.tickets.used} tone="emerald" />
+                  <StatCard icon={AlertCircle} label="İptal" value={engagement.tickets.cancelled} tone="amber" />
+                  <StatCard icon={AlertCircle} label="İptal edilen" value={engagement.tickets.revoked} tone="amber" />
                 </div>
               </div>
             </div>

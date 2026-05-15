@@ -1710,6 +1710,13 @@ class PublicEventListItemOut(BaseModel):
     registration_closed: bool = False
     visibility: str = "public"
     session_count: int = 0
+    event_type: str = "certificate_event"
+    certificate_enabled: bool = True
+    checkin_enabled: bool = True
+    ticketing_enabled: bool = False
+    registration_enabled: bool = True
+    raffles_enabled: bool = False
+    gamification_enabled: bool = False
 
 
 class PublicEventDetailOut(BaseModel):
@@ -3558,6 +3565,7 @@ async def build_public_participant_status(
     certificates = certs_res.scalars().all()
     latest_certificate = certificates[0] if certificates else None
 
+    ticket: Optional[EventTicket] = None
     ticket_out: Optional[PublicParticipantTicketOut] = None
     if ticketing_enabled:
         ticket_res = await db.execute(
@@ -3577,6 +3585,9 @@ async def build_public_participant_status(
                 issued_at=ticket.issued_at,
                 checked_in_at=ticket.checked_in_at,
             )
+
+    if ticketing_enabled and ticket and ticket.status == "used":
+        sessions_attended = max(sessions_attended, 1)
 
     eligible_raffles: List[Dict[str, Any]] = []
     if is_raffles_enabled(event):
@@ -7277,8 +7288,55 @@ async def get_engagement_analytics(
         )
     )
     attended_count = arc_res.scalar() or 0
+    ticketing_enabled = is_ticketing_enabled(event)
+    ticket_counts = {
+        "total": 0,
+        "issued": 0,
+        "used": 0,
+        "cancelled": 0,
+        "revoked": 0,
+        "usage_rate": 0,
+    }
+    if ticketing_enabled:
+        ticket_status_res = await db.execute(
+            select(EventTicket.status, func.count(EventTicket.id))
+            .where(EventTicket.event_id == event_id)
+            .group_by(EventTicket.status)
+        )
+        by_status = {str(status): int(count or 0) for status, count in ticket_status_res.all()}
+        ticket_counts.update(
+            {
+                "issued": by_status.get("issued", 0),
+                "used": by_status.get("used", 0),
+                "cancelled": by_status.get("cancelled", 0),
+                "revoked": by_status.get("revoked", 0),
+            }
+        )
+        ticket_counts["total"] = sum(int(ticket_counts[key]) for key in ("issued", "used", "cancelled", "revoked"))
+        ticket_counts["usage_rate"] = (
+            ticket_counts["used"] / ticket_counts["total"] * 100
+            if ticket_counts["total"] > 0
+            else 0
+        )
+
+        ticket_attended_res = await db.execute(
+            select(func.count(distinct(EventTicket.attendee_id))).where(
+                EventTicket.event_id == event_id,
+                EventTicket.status == "used",
+            )
+        )
+        attended_count = max(int(attended_count or 0), int(ticket_attended_res.scalar() or 0))
+
+    not_attended_count = max(0, int(total_attendees or 0) - int(attended_count or 0))
 
     return {
+        "event_type": normalize_event_type(getattr(event, "event_type", None)),
+        "certificate_enabled": is_certificate_enabled(event),
+        "checkin_enabled": is_checkin_enabled(event),
+        "ticketing_enabled": ticketing_enabled,
+        "registration_enabled": is_public_registration_enabled(event),
+        "raffles_enabled": is_raffles_enabled(event),
+        "gamification_enabled": is_gamification_enabled(event),
         "total_attendees": total_attendees,
         "survey_completion": {
             "completed": surveys_completed,
@@ -7291,9 +7349,10 @@ async def get_engagement_analytics(
         },
         "attendance": {
             "attended": attended_count,
-            "not_attended": total_attendees - attended_count,
+            "not_attended": not_attended_count,
             "attendance_rate": (attended_count / total_attendees * 100) if total_attendees > 0 else 0,
         },
+        "tickets": ticket_counts,
     }
 
 
@@ -14680,6 +14739,13 @@ async def list_public_events(
             registration_closed=_is_event_registration_closed(event),
             visibility=_get_event_visibility(event),
             session_count=session_counts.get(event.id, 0),
+            event_type=normalize_event_type(getattr(event, "event_type", None)),
+            certificate_enabled=is_certificate_enabled(event),
+            checkin_enabled=is_checkin_enabled(event),
+            ticketing_enabled=is_ticketing_enabled(event),
+            registration_enabled=is_public_registration_enabled(event),
+            raffles_enabled=is_raffles_enabled(event),
+            gamification_enabled=is_gamification_enabled(event),
         )
         for event in visible_events
     ]

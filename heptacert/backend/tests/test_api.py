@@ -31,6 +31,7 @@ from src.main import (
     _google_sheets_default_sheet_name,
     _google_sheets_missing_scopes,
     hash_password,
+    settings,
 )
 
 
@@ -353,6 +354,9 @@ class TestPublicEndpoints:
 
     @pytest.mark.asyncio
     async def test_verify_certificate_when_checkin_disabled(self):
+        if "asyncpg" in settings.database_url or settings.database_url.startswith("postgresql"):
+            pytest.skip("This regression test uses the in-process SQLite test engine; asyncpg is loop-bound in CI.")
+
         cert_uuid = "11111111-1111-4111-8111-111111111111"
         async with SessionLocal() as db:
             admin = User(email="verify-checkin-disabled@test.com", password_hash=hash_password("AdminPass123!"), role=Role.admin)

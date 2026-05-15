@@ -257,6 +257,13 @@ export interface PublicEventListItem {
   registration_closed: boolean;
   visibility: "private" | "unlisted" | "public";
   session_count: number;
+  event_type?: "certificate_event" | "seminar" | "workshop" | "conference" | "concert" | "training" | "club_event" | "online_event" | "custom";
+  certificate_enabled?: boolean;
+  checkin_enabled?: boolean;
+  ticketing_enabled?: boolean;
+  registration_enabled?: boolean;
+  raffles_enabled?: boolean;
+  gamification_enabled?: boolean;
 }
 
 export interface PublicSurvey {

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, MapPin, Search, Users, ArrowRight, ShieldCheck, Layers, Building2 } from "lucide-react";
+import { CalendarDays, MapPin, Search, Users, ArrowRight, ShieldCheck, Layers, Building2, Ticket } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { listPublicEvents, type PublicEventListItem } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
@@ -22,11 +22,36 @@ function formatDate(value: string | null | undefined, lang: "tr" | "en") {
 const staggerContainer = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.1 } } };
 const cardVariant = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } } };
 
+const EVENT_TYPE_LABELS: Record<string, { tr: string; en: string }> = {
+  certificate_event: { tr: "Sertifika", en: "Certificate" },
+  seminar: { tr: "Seminer", en: "Seminar" },
+  workshop: { tr: "Atölye", en: "Workshop" },
+  conference: { tr: "Konferans", en: "Conference" },
+  concert: { tr: "Konser", en: "Concert" },
+  training: { tr: "Eğitim", en: "Training" },
+  club_event: { tr: "Kulüp", en: "Club" },
+  online_event: { tr: "Online", en: "Online" },
+  custom: { tr: "Özel", en: "Custom" },
+};
+
+function eventTypeLabel(item: PublicEventListItem, lang: "tr" | "en") {
+  const key = item.event_type || "certificate_event";
+  return EVENT_TYPE_LABELS[key]?.[lang] || key;
+}
+
+function featureLabel(item: PublicEventListItem, lang: "tr" | "en") {
+  if (item.ticketing_enabled) return lang === "tr" ? "Biletli" : "Ticketed";
+  if (item.certificate_enabled) return lang === "tr" ? "Sertifikalı" : "Certificate";
+  if (item.checkin_enabled) return lang === "tr" ? "Katılım" : "Check-in";
+  return lang === "tr" ? "Etkinlik" : "Event";
+}
+
 export default function PublicEventsPage() {
   const { lang } = useI18n();
   const [upcomingItems, setUpcomingItems] = useState<PublicEventListItem[]>([]);
   const [pastItems, setPastItems] = useState<PublicEventListItem[]>([]);
   const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,6 +67,8 @@ export default function PublicEventsPage() {
     minSessions: "Sertifika Eşiği",
     details: "Detayları İncele",
     communities: "Toplulukları Keşfet",
+    allTypes: "Tümü",
+    clear: "Temizle",
   } : {
     eyebrow: "Discover",
     title: "Upcoming Events",
@@ -54,7 +81,30 @@ export default function PublicEventsPage() {
     minSessions: "Cert. Threshold",
     details: "View Details",
     communities: "Explore Communities",
+    allTypes: "All",
+    clear: "Clear",
   }, [lang]);
+
+  const typeOptions = useMemo(() => {
+    const seen = new Set<string>();
+    [...upcomingItems, ...pastItems].forEach((item) => seen.add(item.event_type || "certificate_event"));
+    return Array.from(seen).sort();
+  }, [pastItems, upcomingItems]);
+
+  const visibleUpcomingItems = useMemo(
+    () => typeFilter === "all" ? upcomingItems : upcomingItems.filter((item) => (item.event_type || "certificate_event") === typeFilter),
+    [typeFilter, upcomingItems],
+  );
+  const visiblePastItems = useMemo(
+    () => typeFilter === "all" ? pastItems : pastItems.filter((item) => (item.event_type || "certificate_event") === typeFilter),
+    [pastItems, typeFilter],
+  );
+
+  useEffect(() => {
+    if (typeFilter !== "all" && typeOptions.length > 0 && !typeOptions.includes(typeFilter)) {
+      setTypeFilter("all");
+    }
+  }, [typeFilter, typeOptions]);
 
   useEffect(() => {
     setLoading(true);
@@ -111,7 +161,7 @@ export default function PublicEventsPage() {
             />
             {search && (
               <button onClick={() => setSearch("")} className="absolute right-5 text-xs font-bold text-slate-400 hover:text-slate-700 uppercase tracking-wide">
-                Temizle
+                {copy.clear}
               </button>
             )}
           </div>
@@ -122,6 +172,27 @@ export default function PublicEventsPage() {
             {copy.communities}
           </Link>
         </motion.div>
+        {typeOptions.length > 1 ? (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mx-auto mt-6 flex max-w-4xl flex-wrap items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => setTypeFilter("all")}
+              className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${typeFilter === "all" ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-600 hover:text-slate-950"}`}
+            >
+              {copy.allTypes}
+            </button>
+            {typeOptions.map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setTypeFilter(type)}
+                className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${typeFilter === type ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-600 hover:text-slate-950"}`}
+              >
+                {EVENT_TYPE_LABELS[type]?.[lang] || type}
+              </button>
+            ))}
+          </motion.div>
+        ) : null}
       </section>
 
       {/* EVENTS GRID */}
@@ -152,7 +223,7 @@ export default function PublicEventsPage() {
             <ShieldCheck className="mb-4 h-10 w-10 text-rose-500" />
             <p className="text-sm font-bold text-rose-800">{error}</p>
           </div>
-        ) : upcomingItems.length === 0 && pastItems.length === 0 ? (
+        ) : visibleUpcomingItems.length === 0 && visiblePastItems.length === 0 ? (
           /* EMPTY STATE */
           <div className="mx-auto flex max-w-lg flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50/50 px-6 py-16 text-center">
             <Search className="mb-4 h-10 w-10 text-slate-300" />
@@ -164,11 +235,11 @@ export default function PublicEventsPage() {
             <div>
               <div className="mb-5 flex items-center justify-between">
                 <h2 className="text-2xl font-black text-slate-900">{lang === "tr" ? "Yaklaşan Etkinlikler" : "Upcoming Events"}</h2>
-                <span className="text-sm text-slate-500">{upcomingItems.length}</span>
+                <span className="text-sm text-slate-500">{visibleUpcomingItems.length}</span>
               </div>
               <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                 <AnimatePresence>
-                  {upcomingItems.map((item) => (
+                  {visibleUpcomingItems.map((item) => (
                     <motion.article
                       key={item.id}
                       layout
@@ -190,11 +261,21 @@ export default function PublicEventsPage() {
                           <div className="absolute right-4 top-4 rounded-full bg-white/90 backdrop-blur-md px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-900 shadow-sm">
                             {item.session_count} {copy.sessions}
                           </div>
+                          <div className="absolute left-4 top-4 rounded-full bg-slate-900/85 backdrop-blur-md px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm">
+                            {eventTypeLabel(item, lang)}
+                          </div>
                         </div>
                         <div className="flex flex-1 flex-col p-6 sm:p-8">
                           <h2 className="text-xl font-bold text-slate-900 line-clamp-2 group-hover:text-brand-600 transition-colors">{item.name}</h2>
                           {item.organization_public_id && item.organization_name ? <div className="mt-3"><span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">{item.organization_name}</span></div> : null}
                           {stripRichTextToPlainText(item.event_description) && <p className="mt-3 text-sm leading-relaxed text-slate-500 line-clamp-2">{stripRichTextToPlainText(item.event_description)}</p>}
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
+                              {item.ticketing_enabled ? <Ticket className="h-3.5 w-3.5" /> : <ShieldCheck className="h-3.5 w-3.5" />}
+                              {featureLabel(item, lang)}
+                            </span>
+                            {item.raffles_enabled ? <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">Çekiliş</span> : null}
+                          </div>
                           <div className="mt-6 flex flex-col gap-3">
                             <div className="flex items-center gap-3 text-sm font-medium text-slate-600"><CalendarDays className="h-4 w-4 text-slate-400" /><span className="line-clamp-1">{formatDate(item.event_date, lang)}</span></div>
                             <div className="flex items-center gap-3 text-sm font-medium text-slate-600"><MapPin className="h-4 w-4 text-slate-400" /><span className="line-clamp-1">{item.event_location || "-"}</span></div>
@@ -209,15 +290,15 @@ export default function PublicEventsPage() {
               </motion.div>
             </div>
 
-            {pastItems.length > 0 ? (
+            {visiblePastItems.length > 0 ? (
               <div>
                 <div className="mb-5 flex items-center justify-between">
                   <h2 className="text-2xl font-black text-slate-900">{lang === "tr" ? "Geçmiş Etkinlikler" : "Past Events"}</h2>
-                  <span className="text-sm text-slate-500">{pastItems.length}</span>
+                  <span className="text-sm text-slate-500">{visiblePastItems.length}</span>
                 </div>
                 <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                   <AnimatePresence>
-                    {pastItems.map((item) => (
+                    {visiblePastItems.map((item) => (
                       <motion.article
                         key={`past-${item.id}`}
                         layout
@@ -239,11 +320,21 @@ export default function PublicEventsPage() {
                             <div className="absolute right-4 top-4 rounded-full bg-white/90 backdrop-blur-md px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-900 shadow-sm">
                               {item.session_count} {copy.sessions}
                             </div>
+                            <div className="absolute left-4 top-4 rounded-full bg-slate-900/85 backdrop-blur-md px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm">
+                              {eventTypeLabel(item, lang)}
+                            </div>
                           </div>
                           <div className="flex flex-1 flex-col p-6 sm:p-8">
                             <h2 className="text-xl font-bold text-slate-900 line-clamp-2 group-hover:text-brand-600 transition-colors">{item.name}</h2>
                             {item.organization_public_id && item.organization_name ? <div className="mt-3"><span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">{item.organization_name}</span></div> : null}
                             {stripRichTextToPlainText(item.event_description) && <p className="mt-3 text-sm leading-relaxed text-slate-500 line-clamp-2">{stripRichTextToPlainText(item.event_description)}</p>}
+                            <div className="mt-4 flex flex-wrap gap-2">
+                              <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
+                                {item.ticketing_enabled ? <Ticket className="h-3.5 w-3.5" /> : <ShieldCheck className="h-3.5 w-3.5" />}
+                                {featureLabel(item, lang)}
+                              </span>
+                              {item.raffles_enabled ? <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">Çekiliş</span> : null}
+                            </div>
                             <div className="mt-6 flex flex-col gap-3">
                               <div className="flex items-center gap-3 text-sm font-medium text-slate-600"><CalendarDays className="h-4 w-4 text-slate-400" /><span className="line-clamp-1">{formatDate(item.event_date, lang)}</span></div>
                               <div className="flex items-center gap-3 text-sm font-medium text-slate-600"><MapPin className="h-4 w-4 text-slate-400" /><span className="line-clamp-1">{item.event_location || "-"}</span></div>
