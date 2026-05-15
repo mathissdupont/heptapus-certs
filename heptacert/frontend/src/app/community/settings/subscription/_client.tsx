@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { getPublicMemberSubscription, getPublicMemberToken } from "@/lib/api";
+import { getPublicMemberSubscription, getPublicMemberToken, getPublicMemberEmailPreferences, updatePublicMemberEmailPreferences } from "@/lib/api";
 
 type SubscriptionInfo = {
   active: boolean;
@@ -49,6 +49,8 @@ export default function SubscriptionSettingsClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [digestOptIn, setDigestOptIn] = useState<boolean | null>(null);
+  const [savingDigestPref, setSavingDigestPref] = useState(false);
 
   useEffect(() => {
     const token = getPublicMemberToken();
@@ -63,6 +65,8 @@ export default function SubscriptionSettingsClient() {
     getPublicMemberSubscription()
       .then((data) => {
         setSubscription(data);
+        // load email preferences
+        getPublicMemberEmailPreferences().then((p) => setDigestOptIn(!!p.digest_opt_in)).catch(() => setDigestOptIn(null));
       })
       .catch((err) => {
         setError(err?.message || "Failed to load subscription");
@@ -333,8 +337,32 @@ export default function SubscriptionSettingsClient() {
                 )}
               </div>
             </div>
+              <div className="bg-slate-800/20 border border-slate-700/40 rounded-2xl p-6">
+                <h3 className="text-lg font-bold text-white mb-3">{lang === "tr" ? "E-posta Tercihleri" : "Email Preferences"}</h3>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-400">{lang === "tr" ? "Sistem digest e-postalarını al" : "Receive system digest emails"}</p>
+                  </div>
+                  <div>
+                    <label className="inline-flex items-center gap-3">
+                      <input disabled={savingDigestPref || digestOptIn === null} type="checkbox" checked={!!digestOptIn} onChange={async (e) => {
+                        try {
+                          setSavingDigestPref(true);
+                          const updated = await updatePublicMemberEmailPreferences({ digest_opt_in: e.target.checked });
+                          setDigestOptIn(!!updated.digest_opt_in);
+                        } catch (err: any) {
+                          // swallow
+                        } finally {
+                          setSavingDigestPref(false);
+                        }
+                      }} />
+                      <span className="text-sm text-white/90">{digestOptIn === null ? (lang === "tr" ? "Yükleniyor..." : "Loading...") : (digestOptIn ? (lang === "tr" ? "Evet" : "Yes") : (lang === "tr" ? "Hayır" : "No"))}</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
 
-            {/* Support link */}
+              {/* Support link */}
             <div className="text-center">
               <p className="text-slate-400 mb-4">
                 {lang === "tr"

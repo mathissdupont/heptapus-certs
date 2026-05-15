@@ -22,6 +22,7 @@ import { useI18n } from "@/lib/i18n";
 const TABS = [
   { href: "/admin/superadmin/admins", label: { tr: "Adminler", en: "Admins" }, icon: Users },
   { href: "/admin/superadmin/members", label: { tr: "Uyeler & Mail", en: "Members & Mail" }, icon: Mail },
+  { href: "/admin/superadmin/system-digest", label: { tr: "Sistem Maili", en: "System Digest" }, icon: Mail },
   { href: "/admin/superadmin/mail-logs", label: { tr: "Mail Loglari", en: "Mail Logs" }, icon: ScrollText },
   { href: "/admin/superadmin/subscriptions", label: { tr: "Abonelikler", en: "Subscriptions" }, icon: CreditCard },
   { href: "/admin/superadmin/pricing", label: { tr: "Fiyatlandırma", en: "Pricing" }, icon: Tag },

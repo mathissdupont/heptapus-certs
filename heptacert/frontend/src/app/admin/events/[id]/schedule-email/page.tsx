@@ -20,6 +20,7 @@ interface ScheduledEmail {
   sent_count: number;
   failed_count: number;
   scheduled_at: string | null;
+  cron_expression?: string | null;
   created_at: string;
   completed_at: string | null;
 }
@@ -87,9 +88,17 @@ export default function ScheduleEmailPage() {
 
     setScheduling(true);
     try {
+      const payload = {
+        ...formData,
+        scheduled_datetime:
+          formData.schedule_type === 'datetime' && formData.scheduled_datetime
+            ? new Date(formData.scheduled_datetime).toISOString()
+            : null,
+        cron_expression: formData.schedule_type === 'cron' ? formData.cron_expression : null,
+      };
       const res = await apiFetch(`/admin/events/${eventId}/scheduled-email`, {
         method: 'POST',
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       alert(`Email başarıyla zamanlandı: ${data.message}`);
@@ -318,6 +327,11 @@ export default function ScheduleEmailPage() {
                           <p className="text-sm text-gray-600 mb-3">
                             ⏰ Gönderilecek:{' '}
                             {new Date(email.scheduled_at).toLocaleString('tr-TR')}
+                          </p>
+                        )}
+                        {email.cron_expression && (
+                          <p className="text-sm text-gray-600 mb-3">
+                            Dönemsel: <span className="font-mono text-xs">{email.cron_expression}</span>
                           </p>
                         )}
 

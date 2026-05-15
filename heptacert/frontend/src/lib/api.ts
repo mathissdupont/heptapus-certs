@@ -1920,6 +1920,58 @@ export async function updateSuperAdminStats(
 }
 
 // -----------------------------------------------------------------------------
+// System digest & public member email preferences
+
+export interface PublicMemberEmailPreferencesOut {
+  digest_opt_in: boolean;
+}
+
+export async function getPublicMemberEmailPreferences(): Promise<PublicMemberEmailPreferencesOut> {
+  const res = await memberApiFetch(`/public/me/email-preferences`);
+  return res.json();
+}
+
+export async function updatePublicMemberEmailPreferences(data: Partial<PublicMemberEmailPreferencesOut>): Promise<PublicMemberEmailPreferencesOut> {
+  const res = await memberApiFetch(`/public/me/email-preferences`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export interface SystemEmailDigestConfigOut {
+  id: number;
+  enabled: boolean;
+  frequency: "daily" | "weekly";
+  send_weekday?: number | null;
+  send_hour: number;
+  max_events: number;
+  max_posts: number;
+  last_sent_at?: string | null;
+  updated_by?: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getSystemDigestConfig(): Promise<SystemEmailDigestConfigOut> {
+  const res = await apiFetch(`/superadmin/system-digest/config`);
+  return res.json();
+}
+
+export async function updateSystemDigestConfig(data: Partial<SystemEmailDigestConfigOut>): Promise<SystemEmailDigestConfigOut> {
+  const res = await apiFetch(`/superadmin/system-digest/config`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function sendSystemDigestNow(): Promise<{ message: string } & Partial<SystemEmailDigestConfigOut>> {
+  const res = await apiFetch(`/superadmin/system-digest/send-now`, { method: "POST" });
+  return res.json();
+}
+
+// -----------------------------------------------------------------------------
 
 export interface TwoFAStatusOut {
   is_enabled: boolean;

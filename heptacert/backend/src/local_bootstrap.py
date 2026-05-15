@@ -32,6 +32,16 @@ def _sync_additive_schema(sync_conn: sa.Connection) -> None:
     _add_column_if_missing(sync_conn, inspector, "events", '"raffles_enabled" BOOLEAN NOT NULL DEFAULT FALSE')
     _add_column_if_missing(sync_conn, inspector, "events", '"gamification_enabled" BOOLEAN NOT NULL DEFAULT FALSE')
 
+    if "attendees" in table_names:
+        _add_column_if_missing(sync_conn, inspector, "attendees", '"unsubscribed_at" TIMESTAMP WITH TIME ZONE')
+
+    if "bulk_email_jobs" in table_names:
+        _add_column_if_missing(sync_conn, inspector, "bulk_email_jobs", '"scheduled_at" TIMESTAMP WITH TIME ZONE')
+        _add_column_if_missing(sync_conn, inspector, "bulk_email_jobs", '"cron_expression" VARCHAR(120)')
+
+    if "superadmin_bulk_email_jobs" in table_names:
+        _add_column_if_missing(sync_conn, inspector, "superadmin_bulk_email_jobs", '"job_kind" VARCHAR(32) NOT NULL DEFAULT \'manual\'')
+
 
 async def _create_schema() -> None:
     async with engine.begin() as conn:
