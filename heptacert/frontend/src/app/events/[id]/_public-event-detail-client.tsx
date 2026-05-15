@@ -86,7 +86,7 @@ export default function PublicEventDetailClient() {
             reportBusy: "İşleniyor",
             writeError: "Yorum gönderilemedi.",
             sessionLabel: "Oturum",
-            viewStatus: "Durumu Görüntüle"
+            viewStatus: "Durumu Görüntüle",
           }
         : {
             back: "Back to events",
@@ -112,7 +112,7 @@ export default function PublicEventDetailClient() {
             reportBusy: "Processing",
             writeError: "Failed to submit comment.",
             sessionLabel: "Session",
-            viewStatus: "View Status"
+            viewStatus: "View Status",
           },
     [lang],
   );
@@ -187,6 +187,13 @@ export default function PublicEventDetailClient() {
       setReportingId(null);
     }
   }
+
+  const statusHref = event
+    ? `/events/${event.public_id}/status`
+    : `/events/${eventId}/status`;
+  const statusLinkHref = member
+    ? statusHref
+    : `/login?mode=member&next=${encodeURIComponent(statusHref)}`;
 
   if (loading) {
     return (
@@ -348,7 +355,7 @@ export default function PublicEventDetailClient() {
                 </Link>
               )}
               <Link
-                href={`/events/${event.public_id}/status`}
+                href={statusLinkHref}
                 className="inline-flex items-center justify-center px-6 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
               >
                 {copy.viewStatus}

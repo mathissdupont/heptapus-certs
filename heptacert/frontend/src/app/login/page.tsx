@@ -74,6 +74,11 @@ function MemberLoginContent() {
     setMode(searchParams.get("mode") === "organizer" ? "organizer" : "member");
   }, [searchParams]);
 
+  const nextPath = useMemo(() => {
+    const rawNext = searchParams.get("next") || "";
+    return rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/events";
+  }, [searchParams]);
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
@@ -81,7 +86,7 @@ function MemberLoginContent() {
     try {
       const data = await loginPublicMember({ email, password });
       setPublicMemberToken(data.access_token);
-      router.push("/events");
+      router.push(nextPath);
     } catch (err: any) {
       setError(err?.message || copy.loginFailed);
     } finally {
@@ -205,7 +210,7 @@ function MemberLoginContent() {
               </div>
 
               <a
-                href={`${API_BASE}/auth/google/start?mode=member&next=${encodeURIComponent("/events")}`}
+                href={`${API_BASE}/auth/google/start?mode=member&next=${encodeURIComponent(nextPath)}`}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               >
                 <span className="text-base font-black text-blue-600">G</span>
@@ -214,7 +219,7 @@ function MemberLoginContent() {
 
               <div className="mt-6 text-center text-sm text-slate-500">
                 {copy.noAccount}{" "}
-                <Link href="/register?mode=member" className="font-semibold text-brand-600 hover:text-brand-700">
+                <Link href={`/register?mode=member&next=${encodeURIComponent(nextPath)}`} className="font-semibold text-brand-600 hover:text-brand-700">
                   {copy.memberRegister}
                 </Link>
               </div>

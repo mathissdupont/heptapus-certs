@@ -1424,6 +1424,15 @@ export type PublicParticipantStatus = {
   certificate_count: number;
   latest_certificate_uuid?: string | null;
   latest_certificate_verify_url?: string | null;
+  ticket?: {
+    id: number;
+    token: string;
+    qr_payload: string;
+    status: string;
+    ticket_url: string;
+    issued_at?: string | null;
+    checked_in_at?: string | null;
+  } | null;
   badge_count: number;
   badges: PublicParticipantBadge[];
   eligible_raffles: Array<{
@@ -1451,6 +1460,15 @@ export async function getPublicParticipantStatus(
     } catch {}
     throw new ApiError(res.status, detail);
   }
+  return res.json();
+}
+
+export async function getMyPublicParticipantStatus(
+  eventId: EventRouteId,
+): Promise<PublicParticipantStatus> {
+  const res = await memberApiFetch(`/events/${toEventRouteId(eventId)}/participant-status/me`, {
+    cache: "no-store",
+  });
   return res.json();
 }
 

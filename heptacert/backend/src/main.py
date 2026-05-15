@@ -1783,6 +1783,16 @@ class PublicTicketOut(BaseModel):
     checked_in_at: Optional[datetime] = None
 
 
+class PublicParticipantTicketOut(BaseModel):
+    id: int
+    token: str
+    qr_payload: str
+    status: str
+    ticket_url: str
+    issued_at: Optional[datetime] = None
+    checked_in_at: Optional[datetime] = None
+
+
 class PublicMemberEventOut(BaseModel):
     attendee_id: int
     event_id: int
@@ -2329,6 +2339,7 @@ class PublicParticipantStatusOut(BaseModel):
     certificate_count: int
     latest_certificate_uuid: Optional[str] = None
     latest_certificate_verify_url: Optional[str] = None
+    ticket: Optional[PublicParticipantTicketOut] = None
     badge_count: int
     badges: List[ParticipantBadgeOut] = []
     eligible_raffles: List[Dict[str, Any]] = []
@@ -3547,6 +3558,26 @@ async def build_public_participant_status(
     certificates = certs_res.scalars().all()
     latest_certificate = certificates[0] if certificates else None
 
+    ticket_out: Optional[PublicParticipantTicketOut] = None
+    if ticketing_enabled:
+        ticket_res = await db.execute(
+            select(EventTicket).where(
+                EventTicket.event_id == event.id,
+                EventTicket.attendee_id == attendee.id,
+            )
+        )
+        ticket = ticket_res.scalar_one_or_none()
+        if ticket:
+            ticket_out = PublicParticipantTicketOut(
+                id=ticket.id,
+                token=ticket.token,
+                qr_payload=ticket.qr_payload,
+                status=ticket.status,
+                ticket_url=_ticket_public_url(ticket.token),
+                issued_at=ticket.issued_at,
+                checked_in_at=ticket.checked_in_at,
+            )
+
     eligible_raffles: List[Dict[str, Any]] = []
     if is_raffles_enabled(event):
         raffle_res = await db.execute(
@@ -3599,6 +3630,7 @@ async def build_public_participant_status(
         latest_certificate_verify_url=(
             build_certificate_verify_url(latest_certificate.uuid) if latest_certificate else None
         ),
+        ticket=ticket_out,
         badge_count=len(badge_items),
         badges=badge_items,
         eligible_raffles=eligible_raffles,
@@ -6290,6 +6322,45 @@ async def get_public_participant_status(
     )
     attendee = attendee_res.scalar_one_or_none()
     if not attendee or attendee.email.lower() != str(payload.get("email") or "").lower():
+        raise HTTPException(status_code=404, detail="Attendee not found")
+
+    return await build_public_participant_status(db, event=event, attendee=attendee)
+
+
+@app.get("/api/events/{event_id}/participant-status/me", response_model=PublicParticipantStatusOut)
+async def get_my_public_participant_status(
+    event_id: str,
+    member: CurrentPublicMember = Depends(get_current_public_member),
+    db: AsyncSession = Depends(get_db),
+):
+    event = await _resolve_public_event(db, event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    legacy_res = await db.execute(
+        select(Attendee).where(
+            Attendee.event_id == event.id,
+            func.lower(Attendee.email) == member.email.lower(),
+            Attendee.public_member_id.is_(None),
+        )
+    )
+    legacy_attendees = legacy_res.scalars().all()
+    if legacy_attendees:
+        for legacy_attendee in legacy_attendees:
+            legacy_attendee.public_member_id = member.id
+        await db.commit()
+
+    attendee_res = await db.execute(
+        select(Attendee)
+        .where(
+            Attendee.event_id == event.id,
+            Attendee.public_member_id == member.id,
+        )
+        .order_by(Attendee.registered_at.desc())
+        .limit(1)
+    )
+    attendee = attendee_res.scalar_one_or_none()
+    if not attendee:
         raise HTTPException(status_code=404, detail="Attendee not found")
 
     return await build_public_participant_status(db, event=event, attendee=attendee)
