@@ -3714,6 +3714,7 @@ async def send_email_async(
     smtp_auto_cc: Optional[str] = None
     smtp_use_tls = True
     using_user_smtp = False
+    list_unsubscribe_url: Optional[str] = None
 
     # Keep a copy for fallback if per-user SMTP is broken.
     global_smtp_host = settings.smtp_host
@@ -3772,6 +3773,55 @@ async def send_email_async(
         except Exception as exc:
             logger.error("Jinja2 template rendering failed: %s", exc)
             return
+
+    # Attempt to resolve recipient as an Attendee/PublicMember to support unsubscribe links.
+    try:
+        normalized_to = (to or "").strip().lower()
+        async with SessionLocal() as db_check:
+            a_res = await db_check.execute(select(Attendee).where(func.lower(func.trim(Attendee.email)) == normalized_to))
+            attendee = a_res.scalar_one_or_none()
+            if attendee:
+                # If attendee previously unsubscribed, skip sending
+                if attendee.unsubscribed_at:
+                    logger.info("Skipping email to unsubscribed attendee %s", normalized_to)
+                    return
+
+                token = hashlib.sha256(f"{attendee.id}:{attendee.email}".encode()).hexdigest()[:16]
+                list_unsubscribe_url = f"{settings.public_base_url}/api/public/attendees/{attendee.id}/unsubscribe?token={token}"
+
+            else:
+                member_res = await db_check.execute(
+                    select(PublicMember).where(func.lower(func.trim(PublicMember.email)) == normalized_to)
+                )
+                public_member = member_res.scalar_one_or_none()
+                if public_member:
+                    is_digest_message = (
+                        "{{ unsubscribe_url }}" in html_body
+                        or "{{unsubscribe_url}}" in html_body
+                        or "topluluk guncellemeleri" in html_body.lower()
+                    )
+                    if is_digest_message:
+                        if not bool(getattr(public_member, "digest_opt_in", True)):
+                            logger.info("Skipping digest email to opted-out public member %s", normalized_to)
+                            return
+
+                        token = hashlib.sha256(f"public_member:{public_member.id}:{public_member.email}".encode()).hexdigest()[:16]
+                        list_unsubscribe_url = f"{settings.public_base_url}/api/public/members/{public_member.id}/unsubscribe-digest?token={token}"
+
+            if list_unsubscribe_url:
+                had_unsubscribe_placeholder = "{{ unsubscribe_url }}" in html_body or "{{unsubscribe_url}}" in html_body
+                html_body = html_body.replace("{{ unsubscribe_url }}", list_unsubscribe_url).replace(
+                    "{{unsubscribe_url}}", list_unsubscribe_url
+                )
+
+                # Append a minimal unsubscribe footer if template does not contain an unsubscribe placeholder
+                if not had_unsubscribe_placeholder and "unsubscribe" not in html_body.lower():
+                    html_body = html_body + (
+                        f"<hr><p style=\"font-size:12px;color:#666\">E-posta almak istemiyorsaniz, "
+                        f"<a href=\"{list_unsubscribe_url}\">buradan abonelikten cikabilirsiniz</a>.</p>"
+                    )
+    except Exception:
+        logger.exception("Failed to resolve attendee for unsubscribe handling")
     
     msg = MIMEMultipart("alternative")
     msg["Subject"] = str(EmailHeader(subject, charset="utf-8"))
@@ -3785,8 +3835,11 @@ async def send_email_async(
         msg["Reply-To"] = smtp_reply_to
     if smtp_auto_cc:
         msg["Cc"] = smtp_auto_cc
-    # Add unsubscribe header (RFC 2369)
-    msg["List-Unsubscribe"] = f"<mailto:{smtp_reply_to or smtp_from_email}?subject=unsubscribe>"
+    # Add unsubscribe header (RFC 2369) with mailto and URL if available
+    list_unsub_header = f"<mailto:{smtp_reply_to or smtp_from_email}?subject=unsubscribe>"
+    if list_unsubscribe_url:
+        list_unsub_header = f"{list_unsub_header}, <{list_unsubscribe_url}>"
+    msg["List-Unsubscribe"] = list_unsub_header
     
     msg.attach(MIMEText(html_body, "html", "utf-8"))
     
@@ -3937,6 +3990,7 @@ async def send_certificate_delivery_email_task(
             "certificate_png_url": png_url or pdf_url or verify_url,
             "certificate_public_id": cert.public_id or "",
             "event_link": f"{settings.public_base_url}/events/{event.id}/register",
+            "logo_url": f"{settings.public_base_url}/static/images/email-logo.png",
         }
 
         try:
@@ -8300,6 +8354,39 @@ def _system_digest_is_due(config: SystemEmailDigestConfig, now: datetime) -> boo
 
 async def _build_system_digest_email_content(db: AsyncSession, config: SystemEmailDigestConfig) -> tuple[str, str, int, int]:
     today = datetime.now(timezone.utc).date()
+    now_year = datetime.now(timezone.utc).year
+
+    logo_data_uri: Optional[str] = None
+    logo_path = Path(__file__).with_name("logo1.png")
+    if logo_path.exists():
+        logo_data_uri = f"data:image/png;base64,{base64.b64encode(logo_path.read_bytes()).decode('ascii')}"
+
+    hero_svg = """
+    <svg xmlns='http://www.w3.org/2000/svg' width='1200' height='420' viewBox='0 0 1200 420' role='img' aria-label='HeptaCert community update banner'>
+        <defs>
+            <linearGradient id='g' x1='0' x2='1' y1='0' y2='1'>
+                <stop offset='0%' stop-color='#0f172a'/>
+                <stop offset='52%' stop-color='#0f766e'/>
+                <stop offset='100%' stop-color='#06b6d4'/>
+            </linearGradient>
+            <radialGradient id='r' cx='30%' cy='25%' r='80%'>
+                <stop offset='0%' stop-color='#ffffff' stop-opacity='0.28'/>
+                <stop offset='100%' stop-color='#ffffff' stop-opacity='0'/>
+            </radialGradient>
+        </defs>
+        <rect width='1200' height='420' fill='url(#g)'/>
+        <circle cx='180' cy='110' r='170' fill='url(#r)'/>
+        <circle cx='1020' cy='80' r='210' fill='#ffffff' fill-opacity='0.08'/>
+        <rect x='78' y='84' width='180' height='180' rx='38' fill='#ffffff' fill-opacity='0.12' stroke='#ffffff' stroke-opacity='0.18'/>
+        <path d='M138 126h60l42 42-42 42h-60l42-42z' fill='#ffffff' fill-opacity='0.96'/>
+        <path d='M152 160h132v20H152zM152 192h96v20h-96z' fill='#ffffff' fill-opacity='0.72'/>
+        <text x='308' y='155' fill='#ecfeff' font-size='58' font-weight='700' font-family='Arial, Helvetica, sans-serif'>HeptaCert topluluk ozeti</text>
+        <text x='308' y='215' fill='#cffafe' font-size='30' font-weight='400' font-family='Arial, Helvetica, sans-serif'>Yeni etkinlikler ve topluluk paylasimlari tek e-postada</text>
+        <rect x='308' y='252' width='230' height='52' rx='26' fill='#ffffff' fill-opacity='0.14' stroke='#ffffff' stroke-opacity='0.24'/>
+        <text x='338' y='286' fill='#ffffff' font-size='22' font-weight='700' font-family='Arial, Helvetica, sans-serif'>HeptaCert</text>
+    </svg>
+    """.strip()
+    hero_data_uri = f"data:image/svg+xml;base64,{base64.b64encode(hero_svg.encode('utf-8')).decode('ascii')}"
 
     public_events_res = await db.execute(
         select(Event, Organization)
@@ -8351,8 +8438,6 @@ async def _build_system_digest_email_content(db: AsyncSession, config: SystemEma
         )
         posts_rows = posts_res.all()
     except sa.exc.ProgrammingError:
-        # Migration may not have added PublicMember.digest_opt_in; rollback the failed transaction
-        # then fall back to selecting without PublicMember
         try:
             await db.rollback()
         except Exception:
@@ -8384,42 +8469,183 @@ async def _build_system_digest_email_content(db: AsyncSession, config: SystemEma
         if len(recent_posts) >= int(config.max_posts or 3):
             break
 
-    subject = "Bu haftanın HeptaCert önerileri"
-    if config.frequency == "daily":
-        subject = "Bugünün HeptaCert önerileri"
+    subject = "HeptaCert topluluk ozeti"
+    events_count = len(upcoming_events)
+    posts_count = len(recent_posts)
 
-    events_html = ""
     if upcoming_events:
         events_html = "".join(
-            f"<li style='margin-bottom:10px;'><strong>{escape(item['name'])}</strong><br><span style='color:#475569'>{escape(item['date'] or 'Tarih yakında')}{' · ' + escape(item['location']) if item['location'] else ''}{' · ' + escape(item['organization']) if item['organization'] else ''}</span><br><a href='{escape(item['link'])}'>Etkinliği aç</a></li>"
+            f"""
+            <tr>
+                <td style='padding:0 0 14px 0;'>
+                    <table role='presentation' width='100%' cellspacing='0' cellpadding='0' style='border:1px solid #e5e7eb;border-radius:18px;overflow:hidden;background:#ffffff;'>
+                        <tr>
+                            <td style='padding:18px 18px 14px 18px;'>
+                                <div style='font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f766e;font-weight:700;margin-bottom:6px;'>Etkinlik</div>
+                                <div style='font-size:18px;font-weight:700;color:#0f172a;margin-bottom:8px;'>{escape(item['name'])}</div>
+                                <div style='font-size:14px;color:#475569;margin-bottom:12px;'>{escape(item['date'] or 'Tarih yakinda')}{' - ' + escape(item['location']) if item['location'] else ''}{' - ' + escape(item['organization']) if item['organization'] else ''}</div>
+                                <a href='{escape(item['link'])}' style='display:inline-block;padding:10px 14px;background:#0f766e;color:#ffffff;text-decoration:none;border-radius:999px;font-size:13px;font-weight:700;'>Etkinligi ac</a>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            """
             for item in upcoming_events
         )
     else:
-        events_html = "<li>Şu an öne çıkan yeni etkinlik yok.</li>"
+        events_html = """
+        <tr>
+            <td style='padding:0 0 14px 0;'>
+                <table role='presentation' width='100%' cellspacing='0' cellpadding='0' style='border:1px dashed #d1d5db;border-radius:18px;background:#f8fafc;'>
+                    <tr>
+                        <td style='padding:18px;color:#64748b;'>Su an one cikan yeni etkinlik yok.</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        """.strip()
 
-    posts_html = ""
     if recent_posts:
         posts_html = "".join(
-            f"<li style='margin-bottom:10px;'><strong>{escape(item['author'])}</strong><br>{escape(item['snippet'] or 'Gönderi')}<br><a href='{escape(item['link'])}'>Feedi aç</a></li>"
+            f"""
+            <tr>
+                <td style='padding:0 0 14px 0;'>
+                    <table role='presentation' width='100%' cellspacing='0' cellpadding='0' style='border:1px solid #e5e7eb;border-radius:18px;overflow:hidden;background:#ffffff;'>
+                        <tr>
+                            <td style='padding:18px 18px 14px 18px;'>
+                                <div style='display:inline-block;padding:4px 10px;border-radius:999px;background:#eef2ff;color:#4338ca;font-size:12px;font-weight:700;margin-bottom:10px;'>Topluluk</div>
+                                <div style='font-size:18px;font-weight:700;color:#0f172a;margin-bottom:8px;'>{escape(item['author'])}</div>
+                                <div style='font-size:14px;color:#475569;margin-bottom:12px;line-height:1.55;'>{escape(item['snippet'] or 'Gonderi')}</div>
+                                <a href='{escape(item['link'])}' style='display:inline-block;padding:10px 14px;background:#4338ca;color:#ffffff;text-decoration:none;border-radius:999px;font-size:13px;font-weight:700;'>Paylasimi ac</a>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            """
             for item in recent_posts
         )
     else:
-        posts_html = "<li>Şu an gösterilecek yeni gönderi yok.</li>"
+        posts_html = """
+        <tr>
+            <td style='padding:0 0 14px 0;'>
+                <table role='presentation' width='100%' cellspacing='0' cellpadding='0' style='border:1px dashed #d1d5db;border-radius:18px;background:#f8fafc;'>
+                    <tr>
+                        <td style='padding:18px;color:#64748b;'>Su an gosterilecek yeni paylasim yok.</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        """.strip()
 
     body_html = f"""
-    <div style='font-family: Arial, sans-serif; color: #0f172a; line-height: 1.6;'>
-      <h2 style='margin:0 0 12px 0;'>HeptaCert'ten size uygun olabilecek içerikler</h2>
-      <p style='margin:0 0 18px 0;'>Son etkinlikleri ve topluluk akışını kısa bir özet halinde hazırladık. Feed'i açıp yeni fırsatları inceleyebilirsiniz.</p>
-      <h3 style='margin:24px 0 10px 0;'>Öne çıkan etkinlikler</h3>
-      <ul style='padding-left:18px;'>{events_html}</ul>
-      <h3 style='margin:24px 0 10px 0;'>Son topluluk paylaşımları</h3>
-      <ul style='padding-left:18px;'>{posts_html}</ul>
-      <p style='margin-top:24px;'><a href='{settings.frontend_base_url.rstrip("/")}/events' style='display:inline-block;padding:10px 16px;background:#0f766e;color:#fff;text-decoration:none;border-radius:10px;'>Etkinlikleri keşfet</a></p>
-      <p style='margin-top:12px;font-size:12px;color:#64748b;'><a href='{settings.frontend_base_url.rstrip("/")}/community/settings/subscription'>Bu tür mailleri yönet</a></p>
-    </div>
+    <!doctype html>
+    <html lang='tr'>
+    <head>
+        <meta charset='utf-8' />
+        <meta name='viewport' content='width=device-width,initial-scale=1.0' />
+        <meta http-equiv='x-ua-compatible' content='ie=edge' />
+        <title>{escape(subject)}</title>
+    </head>
+    <body style='margin:0;padding:0;background:#eef2ff;'>
+        <div style='display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;mso-hide:all;'>
+            HeptaCert: {events_count} etkinlik ve {posts_count} topluluk icerigi.
+        </div>
+        <table role='presentation' width='100%' cellspacing='0' cellpadding='0' border='0' style='background:linear-gradient(180deg,#eef2ff 0%,#f8fafc 100%);padding:24px 12px;'>
+            <tr>
+                <td align='center'>
+                    <table role='presentation' width='100%' cellspacing='0' cellpadding='0' border='0' style='max-width:760px;background:#ffffff;border-radius:28px;overflow:hidden;box-shadow:0 18px 60px rgba(15,23,42,0.12);'>
+                        <tr>
+                            <td>
+                                <img src='{hero_data_uri}' alt='HeptaCert topluluk ozeti' style='display:block;width:100%;max-width:760px;height:auto;border:0;'/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style='padding:28px 28px 8px 28px;'>
+                                {'<img src="' + logo_data_uri + '" alt="HeptaCert" style="display:block;width:56px;height:56px;border-radius:16px;margin-bottom:14px;"/>' if logo_data_uri else ''}
+                                <div style='font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f766e;font-weight:800;margin-bottom:8px;'>HeptaCert</div>
+                                <h1 style='margin:0 0 12px 0;font-size:28px;line-height:1.2;color:#0f172a;'>Yeni etkinlikler ve topluluk paylasimlari</h1>
+                                <p style='margin:0;color:#475569;font-size:15px;line-height:1.7;max-width:620px;'>Ilginizi cekebilecek etkinlikleri ve topluluktan son paylasimlari kisa bir ozet halinde hazirladik.</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style='padding:16px 28px 10px 28px;'>
+                                <table role='presentation' width='100%' cellspacing='0' cellpadding='0' border='0'>
+                                    <tr>
+                                        <td style='padding:0 10px 10px 0;width:50%;'>
+                                            <div style='border-radius:18px;background:#f8fafc;border:1px solid #e5e7eb;padding:18px;'>
+                                                <div style='font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;font-weight:700;'>Etkinlik</div>
+                                                <div style='font-size:30px;font-weight:800;color:#0f172a;margin-top:8px;'>{events_count}</div>
+                                                <div style='font-size:13px;color:#64748b;margin-top:4px;'>one cikan icerik</div>
+                                            </div>
+                                        </td>
+                                        <td style='padding:0 0 10px 10px;width:50%;'>
+                                            <div style='border-radius:18px;background:#f8fafc;border:1px solid #e5e7eb;padding:18px;'>
+                                                <div style='font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;font-weight:700;'>Topluluk</div>
+                                                <div style='font-size:30px;font-weight:800;color:#0f172a;margin-top:8px;'>{posts_count}</div>
+                                                <div style='font-size:13px;color:#64748b;margin-top:4px;'>son paylasim</div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style='padding:10px 28px 0 28px;'>
+                                <h2 style='margin:0 0 14px 0;font-size:20px;color:#0f172a;'>One cikan etkinlikler</h2>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style='padding:0 28px;'>
+                                <table role='presentation' width='100%' cellspacing='0' cellpadding='0' border='0'>
+                                    {events_html}
+                                </table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style='padding:8px 28px 0 28px;'>
+                                <h2 style='margin:0 0 14px 0;font-size:20px;color:#0f172a;'>Son topluluk paylasimlari</h2>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style='padding:0 28px;'>
+                                <table role='presentation' width='100%' cellspacing='0' cellpadding='0' border='0'>
+                                    {posts_html}
+                                </table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style='padding:14px 28px 30px 28px;'>
+                                <table role='presentation' width='100%' cellspacing='0' cellpadding='0' border='0' style='background:linear-gradient(135deg,#0f766e,#4338ca);border-radius:22px;'>
+                                    <tr>
+                                        <td style='padding:22px 22px 20px 22px;color:#ffffff;'>
+                                            <div style='font-size:18px;font-weight:800;margin-bottom:6px;'>HeptaCert'te kesfetmeye devam edin</div>
+                                            <div style='font-size:14px;line-height:1.7;opacity:0.95;margin-bottom:16px;'>Etkinlikleri inceleyin, toplulugu takip edin ve size uygun iceriklere ulasin.</div>
+                                            <a href='{settings.frontend_base_url.rstrip("/")}/events' style='display:inline-block;padding:12px 18px;background:#ffffff;color:#0f172a;text-decoration:none;border-radius:999px;font-size:14px;font-weight:800;'>Etkinlikleri kesfet</a>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style='padding:0 28px 28px 28px;'>
+                                <div style='font-size:12px;color:#64748b;line-height:1.7;'>
+                                    Bu e-posta, HeptaCert topluluk guncellemeleri kapsaminda gonderilmistir.
+                                    <br />
+                                    Bu tur e-postalari almak istemiyorsaniz <a href='{{{{ unsubscribe_url }}}}' style='color:#0f766e;text-decoration:none;font-weight:700;'>buradan abonelikten cikabilirsiniz</a>.
+                                </div>
+                                <div style='margin-top:14px;font-size:11px;color:#94a3b8;'>&copy; {now_year} HeptaCert</div>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
     """.strip()
-    return subject, body_html, len(upcoming_events), len(recent_posts)
-
+    return subject, body_html, events_count, posts_count
 
 async def _create_system_digest_job(
     db: AsyncSession,
@@ -16164,4 +16390,5 @@ app.include_router(_social_api.router)
 
 from . import connections_api as _connections_api
 app.include_router(_connections_api.router)
+
 

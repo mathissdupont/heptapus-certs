@@ -1,0 +1,323 @@
+﻿<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="x-ua-compatible" content="ie=edge" />
+  <title>HeptaCert Topluluk Özeti Şablonu</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #eef2ff;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #0f172a;
+    }
+    .wrap {
+      width: 100%;
+      padding: 24px 12px;
+      box-sizing: border-box;
+      background: linear-gradient(180deg, #eef2ff 0%, #f8fafc 100%);
+    }
+    .card {
+      max-width: 760px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow: 0 18px 60px rgba(15, 23, 42, 0.12);
+    }
+    .hero {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 0;
+    }
+    .content {
+      padding: 28px;
+    }
+    .eyebrow {
+      font-size: 12px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #0f766e;
+      font-weight: 800;
+      margin: 0 0 8px 0;
+    }
+    h1 {
+      margin: 0 0 12px 0;
+      font-size: 28px;
+      line-height: 1.2;
+      color: #0f172a;
+    }
+    p {
+      margin: 0;
+      color: #475569;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+    .logo {
+      display: block;
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      margin-bottom: 14px;
+    }
+    .stats {
+      width: 100%;
+      padding: 16px 28px 10px 28px;
+      box-sizing: border-box;
+    }
+    .stat {
+      width: 33.33%;
+      vertical-align: top;
+      padding-right: 10px;
+    }
+    .stat:last-child {
+      padding-right: 0;
+    }
+    .stat-box {
+      border-radius: 18px;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      padding: 18px;
+      box-sizing: border-box;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-weight: 700;
+    }
+    .stat-value {
+      font-size: 30px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 8px;
+    }
+    .stat-help {
+      font-size: 13px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+    h2 {
+      margin: 0 0 14px 0;
+      font-size: 20px;
+      color: #0f172a;
+    }
+    .section {
+      padding: 0 28px;
+    }
+    .item {
+      width: 100%;
+      margin-bottom: 14px;
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+    .item td {
+      padding: 18px 18px 14px 18px;
+    }
+    .item-type {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      background: #eef2ff;
+      color: #4338ca;
+    }
+    .item-type.event {
+      background: #ecfeff;
+      color: #0f766e;
+    }
+    .item-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+    .item-meta {
+      font-size: 14px;
+      color: #475569;
+      line-height: 1.55;
+      margin-bottom: 12px;
+    }
+    .item-text {
+      font-size: 14px;
+      color: #475569;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 14px;
+      color: #ffffff;
+      text-decoration: none;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .btn.event { background: #0f766e; }
+    .btn.post { background: #4338ca; }
+    .cta {
+      margin: 14px 28px 30px 28px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, #0f766e, #4338ca);
+      color: #ffffff;
+    }
+    .cta td {
+      padding: 22px;
+    }
+    .cta-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      color: #ffffff;
+    }
+    .cta-text {
+      font-size: 14px;
+      line-height: 1.7;
+      opacity: 0.95;
+      margin-bottom: 16px;
+      color: #ffffff;
+    }
+    .cta-btn {
+      display: inline-block;
+      padding: 12px 18px;
+      background: #ffffff;
+      color: #0f172a;
+      text-decoration: none;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 800;
+    }
+    .footer {
+      padding: 0 28px 28px 28px;
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.7;
+    }
+    .footer a {
+      color: #0f766e;
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .year {
+      margin-top: 14px;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+    @media (max-width: 640px) {
+      .wrap { padding: 12px 8px; }
+      .content, .section, .footer, .stats, .cta { padding-left: 16px !important; padding-right: 16px !important; }
+      .stat { display: block; width: 100%; padding-right: 0; padding-bottom: 10px; }
+      h1 { font-size: 24px; }
+      .card { border-radius: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="card">
+            <tr>
+              <td>
+                <img src="{{ hero_data_uri }}" alt="HeptaCert topluluk özeti" class="hero" />
+              </td>
+            </tr>
+            <tr>
+              <td class="content">
+                <img src="{{ logo_data_uri }}" alt="HeptaCert" class="logo" />
+                <div class="eyebrow">HeptaCert</div>
+                <h1>{{ title }}</h1>
+                <p>{{ intro_text }}</p>
+              </td>
+            </tr>
+            <tr>
+              <td class="stats">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    <td class="stat">
+                      <div class="stat-box">
+                        <div class="stat-label">Öne çıkan etkinlik</div>
+                        <div class="stat-value">{{ events_count }}</div>
+                        <div class="stat-help">yaklaşan veya yeni içerik</div>
+                      </div>
+                    </td>
+                    <td class="stat">
+                      <div class="stat-box">
+                        <div class="stat-label">Topluluk gönderisi</div>
+                        <div class="stat-value">{{ posts_count }}</div>
+                        <div class="stat-help">kısa özet</div>
+                      </div>
+                    </td>
+                    <td class="stat">
+                      <div class="stat-box">
+                        <div class="stat-label">Güncelleme</div>
+                        <div class="stat-value">{{ frequency_label }}</div>
+                        <div class="stat-help">topluluk özeti</div>
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td class="section">
+                <h2>Öne çıkan etkinlikler</h2>
+                {{ events_html }}
+              </td>
+            </tr>
+            <tr>
+              <td class="section" style="padding-top: 8px;">
+                <h2>Son topluluk paylaşımları</h2>
+                {{ posts_html }}
+              </td>
+            </tr>
+            <tr>
+              <td class="cta">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    <td>
+                      <div class="cta-title">Hepsi tek tık uzağınızda</div>
+                      <div class="cta-text">Etkinlikleri keşfedin, topluluğu takip edin ve ilgilendiğiniz içeriklere hızlıca ulaşın.</div>
+                      <a href="{{ events_url }}" class="cta-btn">Etkinlikleri keşfet</a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td class="footer">
+                Bu e-posta, HeptaCert topluluk güncellemeleri kapsamında gönderilmiştir.
+                <br />
+                Bu tür e-postaları almak istemiyorsanız <a href="{{ unsubscribe_url }}">buradan abonelikten çıkabilirsiniz</a>.
+                <div class="year">© {{ year }} HeptaCert</div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!--
+    Sample placeholders:
+    title = "Bugünün HeptaCert özeti"
+    intro_text = "Son etkinlikleri ve topluluk akışını kısa, okunabilir kartlar halinde hazırladık."
+    events_count = 3
+    posts_count = 2
+    frequency_label = "Günlük"
+    events_url = "https://example.com/events"
+    unsubscribe_url = "https://example.com/api/public/members/1/unsubscribe-digest?token=sample"
+    year = 2026
+  -->
+</body>
+</html>
+

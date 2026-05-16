@@ -6,6 +6,7 @@ from email.mime.text import MIMEText
 from typing import Optional
 
 from fastapi import Depends, HTTPException, Query
+from fastapi.responses import HTMLResponse
 from fastapi.routing import APIRouter
 from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy import distinct, func, literal, or_, select, union_all
@@ -1339,39 +1340,111 @@ async def retry_superadmin_bulk_email_job(
 
 
 
-@router.post("/api/public/attendees/{attendee_id}/unsubscribe")
-async def unsubscribe_from_email(
-    attendee_id: int,
-    token: str = Query(...),  # HMAC token for security
-    db: AsyncSession = Depends(get_db),
-):
-    """Unsubscribe an attendee from email communications.
-    
-    This endpoint is public but requires a valid unsubscribe token
-    for security to prevent abuse.
-    """
-    # Get attendee
+def _unsubscribe_success_html(title: str, message: str) -> str:
+    return f"""
+    <!doctype html>
+    <html lang="tr">
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>{title}</title>
+      <style>
+        body {{ margin: 0; font-family: Arial, Helvetica, sans-serif; background: #f8fafc; color: #0f172a; }}
+        main {{ min-height: 100vh; display: grid; place-items: center; padding: 24px; box-sizing: border-box; }}
+        section {{ max-width: 520px; background: #fff; border: 1px solid #e5e7eb; border-radius: 18px; padding: 28px; box-shadow: 0 18px 48px rgba(15,23,42,.08); }}
+        h1 {{ margin: 0 0 10px; font-size: 24px; }}
+        p {{ margin: 0; color: #475569; line-height: 1.6; }}
+        a {{ display: inline-block; margin-top: 20px; color: #0f766e; font-weight: 700; text-decoration: none; }}
+      </style>
+    </head>
+    <body>
+      <main>
+        <section>
+          <h1>{title}</h1>
+          <p>{message}</p>
+          <a href="https://heptacert.com">HeptaCert'e don</a>
+        </section>
+      </main>
+    </body>
+    </html>
+    """.strip()
+
+
+async def _unsubscribe_attendee(attendee_id: int, token: str, db: AsyncSession) -> dict[str, str]:
     a_res = await db.execute(select(Attendee).where(Attendee.id == attendee_id))
     attendee = a_res.scalar_one_or_none()
     if not attendee:
-        raise HTTPException(status_code=404, detail="KatÄ±lÄ±mcÄ± bulunamadÄ±")
-    
-    # Validate token (simple implementation - in production use HMAC)
-    # TODO: Implement proper token validation with HMAC-SHA256
+        raise HTTPException(status_code=404, detail="Katilimci bulunamadi")
+
     expected_token = hashlib.sha256(f"{attendee_id}:{attendee.email}".encode()).hexdigest()[:16]
     if token != expected_token:
         logger.warning(f"Invalid unsubscribe token for attendee {attendee_id}")
-        raise HTTPException(status_code=401, detail="GeÃ§ersiz token")
-    
-    # Mark as unsubscribed
-    attendee.unsubscribed_at = datetime.utcnow()
+        raise HTTPException(status_code=401, detail="Gecersiz token")
+
+    attendee.unsubscribed_at = datetime.now(timezone.utc)
     db.add(attendee)
     await db.commit()
-    
+
     return {
         "status": "unsubscribed",
-        "message": f"{attendee.email} adresinden abonelik kaldÄ±rÄ±ldÄ±",
+        "message": f"{attendee.email} adresi icin e-posta aboneligi kaldirildi.",
     }
 
 
+@router.get("/api/public/attendees/{attendee_id}/unsubscribe", response_class=HTMLResponse)
+async def unsubscribe_attendee_from_email_page(
+    attendee_id: int,
+    token: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await _unsubscribe_attendee(attendee_id, token, db)
+    return HTMLResponse(_unsubscribe_success_html("Abonelikten ciktiniz", result["message"]))
 
+
+@router.post("/api/public/attendees/{attendee_id}/unsubscribe")
+async def unsubscribe_from_email(
+    attendee_id: int,
+    token: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+):
+    return await _unsubscribe_attendee(attendee_id, token, db)
+
+
+async def _unsubscribe_public_member_digest(member_id: int, token: str, db: AsyncSession) -> dict[str, str]:
+    member_res = await db.execute(select(PublicMember).where(PublicMember.id == member_id))
+    member = member_res.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Uye bulunamadi")
+
+    expected_token = hashlib.sha256(f"public_member:{member.id}:{member.email}".encode()).hexdigest()[:16]
+    if token != expected_token:
+        logger.warning(f"Invalid digest unsubscribe token for public member {member_id}")
+        raise HTTPException(status_code=401, detail="Gecersiz token")
+
+    member.digest_opt_in = False
+    db.add(member)
+    await db.commit()
+
+    return {
+        "status": "unsubscribed",
+        "message": f"{member.email} adresi icin topluluk e-postalari kapatildi.",
+    }
+
+
+@router.get("/api/public/members/{member_id}/unsubscribe-digest", response_class=HTMLResponse)
+async def unsubscribe_public_member_digest_page(
+    member_id: int,
+    token: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await _unsubscribe_public_member_digest(member_id, token, db)
+    return HTMLResponse(_unsubscribe_success_html("E-posta tercihiniz guncellendi", result["message"]))
+
+
+@router.post("/api/public/members/{member_id}/unsubscribe-digest")
+async def unsubscribe_public_member_digest(
+    member_id: int,
+    token: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+):
+    return await _unsubscribe_public_member_digest(member_id, token, db)

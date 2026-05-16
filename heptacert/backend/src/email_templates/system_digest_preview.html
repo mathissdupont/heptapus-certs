@@ -1,0 +1,434 @@
+﻿<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HeptaCert Topluluk Özeti Önizleme</title>
+  <style>
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #eef2ff 0%, #f8fafc 100%);
+      font-family: Arial, Helvetica, sans-serif;
+      color: #0f172a;
+    }
+    .page {
+      padding: 24px 12px;
+    }
+    .card {
+      max-width: 760px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow: 0 18px 60px rgba(15, 23, 42, 0.12);
+    }
+    .hero {
+      min-height: 260px;
+      background: linear-gradient(135deg, #0f172a 0%, #0f766e 48%, #06b6d4 100%);
+      position: relative;
+      overflow: hidden;
+      color: #fff;
+    }
+    .hero:before,
+    .hero:after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+    }
+    .hero:before {
+      width: 300px;
+      height: 300px;
+      left: -80px;
+      top: -110px;
+    }
+    .hero:after {
+      width: 220px;
+      height: 220px;
+      right: -60px;
+      top: -40px;
+      background: rgba(255,255,255,0.08);
+    }
+    .hero-inner {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: center;
+      padding: 34px 28px;
+    }
+    .hero-copy h1 {
+      margin: 10px 0 12px;
+      font-size: 34px;
+      line-height: 1.1;
+      color: #fff;
+    }
+    .eyebrow {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: #cffafe;
+      font-weight: 800;
+    }
+    .sub {
+      margin: 0;
+      color: rgba(255,255,255,0.88);
+      font-size: 15px;
+      line-height: 1.7;
+      max-width: 560px;
+    }
+    .brand-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      margin-top: 18px;
+      font-weight: 700;
+    }
+    .brand-chip img {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: block;
+    }
+    .hero-visual {
+      width: 180px;
+      height: 180px;
+      border-radius: 38px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+    }
+    .hero-visual .stack {
+      width: 120px;
+      height: 120px;
+      position: relative;
+    }
+    .hero-visual .stack span {
+      position: absolute;
+      border-radius: 999px;
+      border: 6px solid rgba(255,255,255,0.95);
+    }
+    .hero-visual .stack span:nth-child(1) { width: 84px; height: 84px; left: 0; top: 18px; }
+    .hero-visual .stack span:nth-child(2) { width: 54px; height: 54px; right: 0; top: 0; }
+    .hero-visual .stack span:nth-child(3) { width: 54px; height: 54px; right: 0; bottom: 0; }
+    .content {
+      padding: 28px;
+    }
+    .logo {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      display: block;
+      margin-bottom: 14px;
+    }
+    .eyebrow-dark {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #0f766e;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .intro-title {
+      margin: 0 0 12px;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+    .intro {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.7;
+      color: #475569;
+    }
+    .stats {
+      padding: 16px 28px 10px;
+    }
+    .stat-cell {
+      width: 33.33%;
+      vertical-align: top;
+      padding-right: 10px;
+    }
+    .stat-cell:last-child { padding-right: 0; }
+    .stat-box {
+      border-radius: 18px;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      padding: 18px;
+    }
+    .label {
+      font-size: 12px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-weight: 700;
+    }
+    .value {
+      font-size: 30px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 8px;
+    }
+    .help {
+      font-size: 13px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+    .section {
+      padding: 0 28px;
+    }
+    h2 {
+      margin: 0 0 14px;
+      font-size: 20px;
+      color: #0f172a;
+    }
+    .item {
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+      overflow: hidden;
+      margin-bottom: 14px;
+      background: #fff;
+    }
+    .item td { padding: 18px; }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      background: #ecfeff;
+      color: #0f766e;
+    }
+    .badge.post { background: #eef2ff; color: #4338ca; }
+    .title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #0f172a;
+    }
+    .meta, .text {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #475569;
+      margin-bottom: 12px;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 14px;
+      border-radius: 999px;
+      color: #fff;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .btn.event { background: #0f766e; }
+    .btn.post { background: #4338ca; }
+    .cta {
+      margin: 14px 28px 30px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, #0f766e, #4338ca);
+      color: #fff;
+    }
+    .cta td { padding: 22px; }
+    .cta-title {
+      margin: 0 0 6px;
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .cta-text {
+      margin: 0 0 16px;
+      font-size: 14px;
+      line-height: 1.7;
+      color: rgba(255,255,255,0.94);
+    }
+    .cta-btn {
+      display: inline-block;
+      padding: 12px 18px;
+      background: #fff;
+      color: #0f172a;
+      text-decoration: none;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 800;
+    }
+    .footer {
+      padding: 0 28px 28px;
+      color: #64748b;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    .footer a {
+      color: #0f766e;
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .year {
+      margin-top: 14px;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+    @media (max-width: 640px) {
+      .hero-inner { grid-template-columns: 1fr; }
+      .hero-visual { width: 100%; height: 140px; }
+      .content, .stats, .section, .footer, .cta { padding-left: 16px !important; padding-right: 16px !important; }
+      .stat-cell { display: block; width: 100%; padding-right: 0; padding-bottom: 10px; }
+      .intro-title { font-size: 24px; }
+      .card { border-radius: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="card">
+            <tr>
+              <td>
+                <div class="hero">
+                  <div class="hero-inner">
+                    <div class="hero-copy">
+                      <div class="eyebrow">HeptaCert</div>
+                      <h1>Günün seçilmiş içerikleri tek e-postada</h1>
+                      <p class="sub">Son etkinlikleri ve topluluk akışını kısa, okunabilir kartlar halinde hazırladık. Hızlıca göz atın, ilgilendiğiniz içerikleri açın.</p>
+                      <div class="brand-chip">
+                        <img src="../logo1.png" alt="HeptaCert" />
+                        <span>HeptaCert</span>
+                      </div>
+                    </div>
+                    <div class="hero-visual" aria-hidden="true">
+                      <div class="stack">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="content">
+                <img src="../logo1.png" alt="HeptaCert" class="logo" />
+                <div class="eyebrow-dark">Önizleme</div>
+                <div class="intro-title">HeptaCert topluluk özeti</div>
+                <p class="intro">Bu dosya gerçek e-posta tasarımını göstermek için örnek verilerle hazırlanmıştır. Placeholder yerine kart yapısını, CTA alanını ve footer'ı doğrudan görebilirsiniz.</p>
+              </td>
+            </tr>
+            <tr>
+              <td class="stats">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    <td class="stat-cell">
+                      <div class="stat-box">
+                        <div class="label">Öne çıkan etkinlik</div>
+                        <div class="value">3</div>
+                        <div class="help">yaklaşan veya yeni içerik</div>
+                      </div>
+                    </td>
+                    <td class="stat-cell">
+                      <div class="stat-box">
+                        <div class="label">Topluluk gönderisi</div>
+                        <div class="value">2</div>
+                        <div class="help">kısa özet</div>
+                      </div>
+                    </td>
+                    <td class="stat-cell">
+                      <div class="stat-box">
+                        <div class="label">Güncelleme</div>
+                        <div class="value">Günlük</div>
+                        <div class="help">topluluk özeti</div>
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td class="section">
+                <h2>Öne çıkan etkinlikler</h2>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="item">
+                  <tr>
+                    <td>
+                      <div class="badge">Etkinlik</div>
+                      <div class="title">JavaScript Workshop 2026</div>
+                      <div class="meta">2026-05-22 · İstanbul · HeptaCert Community</div>
+                      <a href="#" class="btn event">Etkinliği aç</a>
+                    </td>
+                  </tr>
+                </table>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="item">
+                  <tr>
+                    <td>
+                      <div class="badge">Etkinlik</div>
+                      <div class="title">Certificate Design Lab</div>
+                      <div class="meta">2026-05-24 · Online · HeptaCert Design Team</div>
+                      <a href="#" class="btn event">Etkinliği aç</a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td class="section" style="padding-top: 8px;">
+                <h2>Son topluluk paylaşımları</h2>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="item">
+                  <tr>
+                    <td>
+                      <div class="badge post">Topluluk</div>
+                      <div class="title">Yeni sertifika şablonları yayında</div>
+                      <div class="text">Topluluk tarafından önerilen yeni sertifika arka planları ve tipografi iyileştirmeleri paylaşıldı.</div>
+                      <a href="#" class="btn post">Feedi aç</a>
+                    </td>
+                  </tr>
+                </table>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="item">
+                  <tr>
+                    <td>
+                      <div class="badge post">Topluluk</div>
+                      <div class="title">Etkinlik sayfası performans notları</div>
+                      <div class="text">Açılış hızını artırmak için küçük görsel optimizasyonlar ve kart düzeni önerileri eklendi.</div>
+                      <a href="#" class="btn post">Feedi aç</a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td class="cta">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    <td>
+                      <div class="cta-title">Hepsi tek tık uzağınızda</div>
+                      <div class="cta-text">Etkinlikleri keşfedin, topluluğu takip edin ve ilgilendiğiniz içeriklere hızlıca ulaşın.</div>
+                      <a href="#" class="cta-btn">Etkinlikleri keşfet</a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td class="footer">
+                Bu e-posta, HeptaCert topluluk güncellemeleri kapsamında gönderilmiştir.
+                <br />
+                Bu tür e-postaları almak istemiyorsanız <a href="#">buradan abonelikten çıkabilirsiniz</a>.
+                <div class="year">© 2026 HeptaCert</div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </div>
+</body>
+</html>
+
