@@ -59,6 +59,7 @@ from .main import (
     require_email_system_access,
     require_role,
     send_email_async,
+    settings,
 )
 
 router = APIRouter()
@@ -1362,7 +1363,7 @@ def _unsubscribe_success_html(title: str, message: str) -> str:
         <section>
           <h1>{title}</h1>
           <p>{message}</p>
-          <a href="https://heptacert.com">HeptaCert'e don</a>
+          <a href="{settings.public_base_url}">Siteye dön</a>
         </section>
       </main>
     </body>
