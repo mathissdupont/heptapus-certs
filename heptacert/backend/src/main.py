@@ -7870,7 +7870,7 @@ async def google_oauth_start(
         "access_type": "online",
         "prompt": "select_account",
     }
-    return RedirectResponse(f"https://accounts.google.com/o/oauth2/v2/auth{urlencode(params)}")
+    return RedirectResponse(f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}")
 
 
 @app.get("/api/auth/google/callback")
@@ -7973,7 +7973,7 @@ async def google_oauth_callback(
         token = create_public_member_access_token(member_id=member.id)
 
     params = urlencode({"mode": mode, "token": token, "next": next_url})
-    return RedirectResponse(f"{settings.frontend_base_url.rstrip('/')}/auth/google/callback{params}")
+    return RedirectResponse(f"{settings.frontend_base_url.rstrip('/')}/auth/google/callback?{params}")
 
 
 @app.get(
