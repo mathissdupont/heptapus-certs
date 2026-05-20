@@ -12359,7 +12359,7 @@ async def issue_certificate(
         db,
         user_id=me.id,
         action="certificate.issued",
-        actor_ip=None,
+        ip_address=None,
         user_agent=None,
         extra={"event_id": ev.id, "public_id": public_id, "student_name": payload.student_name},
     )
@@ -12460,7 +12460,7 @@ async def bulk_certificate_action(
         db,
         user_id=me.id,
         action=f"certificate.bulk.{payload.action}",
-        actor_ip=None,
+        ip_address=None,
         user_agent=None,
         extra={"event_id": event_id, "count": processed},
     )
