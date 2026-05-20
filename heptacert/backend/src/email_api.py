@@ -1,7 +1,7 @@
 import asyncio
 import hashlib
 import smtplib
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from email.mime.text import MIMEText
 from typing import Optional
 
@@ -49,6 +49,7 @@ from .main import (
     _create_system_digest_job,
     _encrypt_smtp_password,
     _enqueue_superadmin_bulk_email_job,
+    _get_event_for_admin,
     _ensure_system_digest_config,
     _ensure_user_email_config,
     _resolve_superadmin_recipient_emails,
@@ -63,6 +64,55 @@ from .main import (
 )
 
 router = APIRouter()
+
+SUPERADMIN_BULK_EMAIL_DAILY_JOB_QUOTA = 10
+SUPERADMIN_BULK_EMAIL_DAILY_RECIPIENT_QUOTA = 2000
+SUPERADMIN_DIGEST_MANUAL_DAILY_QUOTA = 1
+
+
+async def _enforce_superadmin_email_quota(
+    db: AsyncSession,
+    *,
+    user_id: int,
+    job_kind: str,
+    target_count: int,
+) -> None:
+    now = datetime.now(timezone.utc)
+    since = now - timedelta(days=1)
+    count_res = await db.execute(
+        select(
+            func.count(SuperadminBulkEmailJob.id),
+            func.coalesce(func.sum(SuperadminBulkEmailJob.total_targets), 0),
+        ).where(
+            SuperadminBulkEmailJob.created_by == user_id,
+            SuperadminBulkEmailJob.job_kind == job_kind,
+            SuperadminBulkEmailJob.created_at >= since,
+            SuperadminBulkEmailJob.status.notin_(["cancelled", "caoncelled", "failed"]),
+        )
+    )
+    jobs_used, recipients_used = count_res.one()
+    jobs_used = int(jobs_used or 0)
+    recipients_used = int(recipients_used or 0)
+
+    if job_kind == "system_digest":
+        if jobs_used >= SUPERADMIN_DIGEST_MANUAL_DAILY_QUOTA:
+            raise HTTPException(
+                status_code=429,
+                detail="Sistem digest'i 24 saat içinde en fazla 1 kez manuel gönderilebilir.",
+            )
+        return
+
+    if jobs_used >= SUPERADMIN_BULK_EMAIL_DAILY_JOB_QUOTA:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Superadmin toplu e-posta kotası doldu: 24 saatte en fazla {SUPERADMIN_BULK_EMAIL_DAILY_JOB_QUOTA} kampanya oluşturabilirsiniz.",
+        )
+    if recipients_used + target_count > SUPERADMIN_BULK_EMAIL_DAILY_RECIPIENT_QUOTA:
+        remaining = max(SUPERADMIN_BULK_EMAIL_DAILY_RECIPIENT_QUOTA - recipients_used, 0)
+        raise HTTPException(
+            status_code=429,
+            detail=f"Superadmin toplu e-posta alıcı kotası doldu. Kalan günlük alıcı hakkı: {remaining}.",
+        )
 @router.get(
     "/api/admin/events/{event_id}/email-templates",
     response_model=list[EmailTemplateOut],
@@ -74,12 +124,7 @@ async def list_event_email_templates(
     db: AsyncSession = Depends(get_db),
 ):
     """Get all email templates for an event."""
-    # Verify ownership
-    ev_res = await db.execute(
-        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
-    )
-    if not ev_res.scalar_one_or_none() and me.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+    await _get_event_for_admin(event_id, me, db, "email:write")
     
     res = await db.execute(
         select(EmailTemplate)
@@ -102,12 +147,7 @@ async def create_event_email_template(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new email template for an event."""
-    # Verify ownership
-    ev_res = await db.execute(
-        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
-    )
-    if not ev_res.scalar_one_or_none() and me.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+    await _get_event_for_admin(event_id, me, db, "email:write")
     
     template = EmailTemplate(
         event_id=event_id,
@@ -138,12 +178,7 @@ async def update_event_email_template(
     db: AsyncSession = Depends(get_db),
 ):
     """Update an email template."""
-    # Verify ownership
-    ev_res = await db.execute(
-        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
-    )
-    if not ev_res.scalar_one_or_none() and me.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+    await _get_event_for_admin(event_id, me, db, "email:write")
     
     t_res = await db.execute(
         select(EmailTemplate).where(EmailTemplate.id == template_id, EmailTemplate.event_id == event_id)
@@ -173,12 +208,7 @@ async def delete_event_email_template(
     db: AsyncSession = Depends(get_db),
 ):
     """Delete an email template."""
-    # Verify ownership
-    ev_res = await db.execute(
-        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
-    )
-    if not ev_res.scalar_one_or_none() and me.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+    await _get_event_for_admin(event_id, me, db, "email:write")
     
     t_res = await db.execute(
         select(EmailTemplate).where(EmailTemplate.id == template_id, EmailTemplate.event_id == event_id)
@@ -205,12 +235,7 @@ async def preview_email_template(
     db: AsyncSession = Depends(get_db),
 ):
     """Preview an email template with sample data."""
-    # Verify ownership
-    ev_res = await db.execute(
-        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
-    )
-    if not ev_res.scalar_one_or_none() and me.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+    await _get_event_for_admin(event_id, me, db, "email:write")
     
     # Get template
     t_res = await db.execute(
@@ -425,13 +450,7 @@ async def start_bulk_email(
     db: AsyncSession = Depends(get_db),
 ):
     """Start a bulk email job."""
-    # Verify ownership
-    ev_res = await db.execute(
-        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
-    )
-    event = ev_res.scalar_one_or_none()
-    if not event and me.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+    event = await _get_event_for_admin(event_id, me, db, "email:write")
     
     # Verify template exists
     t_res = await db.execute(
@@ -443,12 +462,22 @@ async def start_bulk_email(
     # Count recipients
     if payload.recipient_type == "attendees":
         count_res = await db.execute(
-            select(func.count(Attendee.id)).where(Attendee.event_id == event_id)
+            select(func.count(Attendee.id)).where(
+                Attendee.event_id == event_id,
+                Attendee.email.is_not(None),
+                func.trim(Attendee.email) != "",
+                Attendee.unsubscribed_at.is_(None),
+            )
         )
         recipients_count = count_res.scalar() or 0
     else:  # certified
         attendee_res = await db.execute(
-            select(Attendee.name).where(Attendee.event_id == event_id)
+            select(Attendee.name).where(
+                Attendee.event_id == event_id,
+                Attendee.email.is_not(None),
+                func.trim(Attendee.email) != "",
+                Attendee.unsubscribed_at.is_(None),
+            )
         )
         attendee_names = {
             (name or "").strip().lower()
@@ -499,12 +528,7 @@ async def get_bulk_email_job(
     db: AsyncSession = Depends(get_db),
 ):
     """Get bulk email job details."""
-    # Verify ownership
-    ev_res = await db.execute(
-        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
-    )
-    if not ev_res.scalar_one_or_none() and me.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+    await _get_event_for_admin(event_id, me, db, "email:write")
     
     j_res = await db.execute(
         select(BulkEmailJob).where(BulkEmailJob.id == job_id, BulkEmailJob.event_id == event_id)
@@ -527,12 +551,7 @@ async def list_bulk_email_jobs(
     db: AsyncSession = Depends(get_db),
 ):
     """Get all bulk email jobs for an event."""
-    # Verify ownership
-    ev_res = await db.execute(
-        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
-    )
-    if not ev_res.scalar_one_or_none() and me.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+    await _get_event_for_admin(event_id, me, db, "email:write")
     
     res = await db.execute(
         select(BulkEmailJob)
@@ -561,13 +580,7 @@ async def schedule_email_job(
     - datetime: Send at specific datetime
     - cron: Send on schedule (e.g., "0 9 * * MON" = every Monday at 9 AM)
     """
-    # Verify ownership
-    ev_res = await db.execute(
-        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
-    )
-    event = ev_res.scalar_one_or_none()
-    if not event and me.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+    event = await _get_event_for_admin(event_id, me, db, "email:write")
     
     # Verify template exists
     t_res = await db.execute(
@@ -579,12 +592,22 @@ async def schedule_email_job(
     # Count recipients
     if payload.recipient_type == "attendees":
         count_res = await db.execute(
-            select(func.count(Attendee.id)).where(Attendee.event_id == event_id)
+            select(func.count(Attendee.id)).where(
+                Attendee.event_id == event_id,
+                Attendee.email.is_not(None),
+                func.trim(Attendee.email) != "",
+                Attendee.unsubscribed_at.is_(None),
+            )
         )
         recipients_count = count_res.scalar() or 0
     else:  # certified
         attendee_res = await db.execute(
-            select(Attendee.name).where(Attendee.event_id == event_id)
+            select(Attendee.name).where(
+                Attendee.event_id == event_id,
+                Attendee.email.is_not(None),
+                func.trim(Attendee.email) != "",
+                Attendee.unsubscribed_at.is_(None),
+            )
         )
         attendee_names = {
             (name or "").strip().lower()
@@ -663,12 +686,7 @@ async def list_scheduled_emails(
     db: AsyncSession = Depends(get_db),
 ):
     """Get scheduled email jobs for an event."""
-    # Verify ownership
-    ev_res = await db.execute(
-        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
-    )
-    if not ev_res.scalar_one_or_none() and me.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+    await _get_event_for_admin(event_id, me, db, "email:write")
     
     q = select(BulkEmailJob).where(BulkEmailJob.event_id == event_id, BulkEmailJob.status != "pending")
     if status:
@@ -706,12 +724,7 @@ async def cancel_email_job(
     db: AsyncSession = Depends(get_db),
 ):
     """Cancel a scheduled or pending email job."""
-    # Verify ownership
-    ev_res = await db.execute(
-        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
-    )
-    if not ev_res.scalar_one_or_none() and me.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+    await _get_event_for_admin(event_id, me, db, "email:write")
     
     j_res = await db.execute(
         select(BulkEmailJob).where(BulkEmailJob.id == job_id, BulkEmailJob.event_id == event_id)
@@ -778,12 +791,7 @@ async def get_delivery_stats(
     db: AsyncSession = Depends(get_db),
 ):
     """Get delivery statistics for a bulk email job."""
-    # Verify ownership
-    ev_res = await db.execute(
-        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
-    )
-    if not ev_res.scalar_one_or_none() and me.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+    await _get_event_for_admin(event_id, me, db, "email:write")
     
     # Get job
     j_res = await db.execute(
@@ -830,12 +838,7 @@ async def get_delivery_logs(
     db: AsyncSession = Depends(get_db),
 ):
     """Get detailed delivery logs for a bulk email job."""
-    # Verify ownership
-    ev_res = await db.execute(
-        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
-    )
-    if not ev_res.scalar_one_or_none() and me.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+    await _get_event_for_admin(event_id, me, db, "email:write")
     
     # Get logs
     q = select(EmailDeliveryLog, Attendee).join(
@@ -990,6 +993,13 @@ async def send_superadmin_bulk_email(
             message="Dry-run tamamlandi. E-posta gonderimi yapilmadi.",
         )
 
+    await _enforce_superadmin_email_quota(
+        db,
+        user_id=me.id,
+        job_kind="manual",
+        target_count=len(recipient_emails),
+    )
+
     sem = asyncio.Semaphore(10)
     sent_count = 0
     failed_count = 0
@@ -1010,6 +1020,23 @@ async def send_superadmin_bulk_email(
                 failed_count += 1
 
     await asyncio.gather(*[_send_single(email) for email in recipient_emails])
+
+    audit_job = SuperadminBulkEmailJob(
+        created_by=me.id,
+        source=payload.source,
+        job_kind="manual",
+        subject=payload.subject,
+        body_html=payload.body_html,
+        total_targets=len(recipient_emails),
+        sent_count=sent_count,
+        failed_count=failed_count,
+        status="completed",
+        started_at=datetime.now(timezone.utc),
+        completed_at=datetime.now(timezone.utc),
+        caoncel_requested=False,
+    )
+    db.add(audit_job)
+    await db.commit()
 
     return SuperadminBulkEmailOut(
         dry_run=False,
@@ -1035,6 +1062,12 @@ async def create_superadmin_bulk_email_job(
     recipient_emails = await _resolve_superadmin_recipient_emails(db, payload.source)
     if not recipient_emails:
         raise HTTPException(status_code=400, detail="Hedef alici bulunamadi.")
+    await _enforce_superadmin_email_quota(
+        db,
+        user_id=me.id,
+        job_kind="manual",
+        target_count=len(recipient_emails),
+    )
 
     job = SuperadminBulkEmailJob(
         created_by=me.id,
@@ -1063,7 +1096,7 @@ async def verify_unsubscribe_token(
     a_res = await db.execute(select(Attendee).where(Attendee.id == attendee_id))
     attendee = a_res.scalar_one_or_none()
     if not attendee:
-        raise HTTPException(status_code=404, detail="Katilimci bulunamadi")
+        raise HTTPException(status_code=404, detail="Katılımcı bulunamadı")
 
     expected_token = hashlib.sha256(f"{attendee_id}:{attendee.email}".encode()).hexdigest()[:16]
     is_valid = token == expected_token
@@ -1120,6 +1153,12 @@ async def send_system_digest_now(
 ):
     config = await _ensure_system_digest_config(db)
     subject, body_html, _, _ = await _build_system_digest_email_content(db, config)
+    await _enforce_superadmin_email_quota(
+        db,
+        user_id=me.id,
+        job_kind="system_digest",
+        target_count=1,
+    )
     return await _create_system_digest_job(db, me.id, subject, body_html)
 
 
@@ -1363,7 +1402,7 @@ def _unsubscribe_success_html(title: str, message: str) -> str:
         <section>
           <h1>{title}</h1>
           <p>{message}</p>
-          <a href="{settings.public_base_url}">Siteye dön</a>
+          <a href="{settings.frontend_base_url}">Siteye dön</a>
         </section>
       </main>
     </body>
@@ -1375,12 +1414,12 @@ async def _unsubscribe_attendee(attendee_id: int, token: str, db: AsyncSession) 
     a_res = await db.execute(select(Attendee).where(Attendee.id == attendee_id))
     attendee = a_res.scalar_one_or_none()
     if not attendee:
-        raise HTTPException(status_code=404, detail="Katilimci bulunamadi")
+        raise HTTPException(status_code=404, detail="Katılımcı bulunamadı")
 
     expected_token = hashlib.sha256(f"{attendee_id}:{attendee.email}".encode()).hexdigest()[:16]
     if token != expected_token:
         logger.warning(f"Invalid unsubscribe token for attendee {attendee_id}")
-        raise HTTPException(status_code=401, detail="Gecersiz token")
+        raise HTTPException(status_code=401, detail="Geçersiz token")
 
     attendee.unsubscribed_at = datetime.now(timezone.utc)
     db.add(attendee)
@@ -1388,7 +1427,7 @@ async def _unsubscribe_attendee(attendee_id: int, token: str, db: AsyncSession) 
 
     return {
         "status": "unsubscribed",
-        "message": f"{attendee.email} adresi icin e-posta aboneligi kaldirildi.",
+        "message": f"{attendee.email} adresi için e-posta aboneliği kaldırıldı.",
     }
 
 
@@ -1399,7 +1438,7 @@ async def unsubscribe_attendee_from_email_page(
     db: AsyncSession = Depends(get_db),
 ):
     result = await _unsubscribe_attendee(attendee_id, token, db)
-    return HTMLResponse(_unsubscribe_success_html("Abonelikten ciktiniz", result["message"]))
+    return HTMLResponse(_unsubscribe_success_html("Abonelikten çıktınız", result["message"]))
 
 
 @router.post("/api/public/attendees/{attendee_id}/unsubscribe")
@@ -1415,12 +1454,12 @@ async def _unsubscribe_public_member_digest(member_id: int, token: str, db: Asyn
     member_res = await db.execute(select(PublicMember).where(PublicMember.id == member_id))
     member = member_res.scalar_one_or_none()
     if not member:
-        raise HTTPException(status_code=404, detail="Uye bulunamadi")
+        raise HTTPException(status_code=404, detail="Üye bulunamadı")
 
     expected_token = hashlib.sha256(f"public_member:{member.id}:{member.email}".encode()).hexdigest()[:16]
     if token != expected_token:
         logger.warning(f"Invalid digest unsubscribe token for public member {member_id}")
-        raise HTTPException(status_code=401, detail="Gecersiz token")
+        raise HTTPException(status_code=401, detail="Geçersiz token")
 
     member.digest_opt_in = False
     db.add(member)
@@ -1428,7 +1467,7 @@ async def _unsubscribe_public_member_digest(member_id: int, token: str, db: Asyn
 
     return {
         "status": "unsubscribed",
-        "message": f"{member.email} adresi icin topluluk e-postalari kapatildi.",
+        "message": f"{member.email} adresi için topluluk e-postaları kapatıldı.",
     }
 
 
@@ -1439,7 +1478,7 @@ async def unsubscribe_public_member_digest_page(
     db: AsyncSession = Depends(get_db),
 ):
     result = await _unsubscribe_public_member_digest(member_id, token, db)
-    return HTMLResponse(_unsubscribe_success_html("E-posta tercihiniz guncellendi", result["message"]))
+    return HTMLResponse(_unsubscribe_success_html("E-posta tercihiniz güncellendi", result["message"]))
 
 
 @router.post("/api/public/members/{member_id}/unsubscribe-digest")

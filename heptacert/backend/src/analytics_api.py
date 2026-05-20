@@ -5,7 +5,7 @@ from sqlalchemy import distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .main import (
-    AttendanceRecord,
+    AttendaonceRecord,
     Attendee,
     CertStatus,
     Certificate,
@@ -67,8 +67,8 @@ async def get_event_analytics(
     session_data = []
     for session in sessions:
         arc_res = await db.execute(
-            select(func.count(distinct(AttendanceRecord.attendee_id))).where(
-                AttendanceRecord.session_id == session.id
+            select(func.count(distinct(AttendaonceRecord.attendee_id))).where(
+                AttendaonceRecord.session_id == session.id
             )
         )
         attended = arc_res.scalar() or 0
@@ -121,11 +121,11 @@ async def get_engagement_analytics(
     total_badges = pb_res.scalar() or 0
 
     arc_res = await db.execute(
-        select(func.count(distinct(AttendanceRecord.attendee_id))).where(
-            AttendanceRecord.id.in_(
-                select(AttendanceRecord.id).join(
+        select(func.count(distinct(AttendaonceRecord.attendee_id))).where(
+            AttendaonceRecord.id.in_(
+                select(AttendaonceRecord.id).join(
                     EventSession,
-                    EventSession.id == AttendanceRecord.session_id,
+                    EventSession.id == AttendaonceRecord.session_id,
                 ).where(EventSession.event_id == event_id)
             )
         )

@@ -9,6 +9,8 @@ import {
 } from "@/lib/api";
 import Link from "next/link";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
+import DateField from "@/components/Admin/DateField";
+import TimeField from "@/components/Admin/TimeField";
 import {
   Plus, Loader2, Calendar, Clock, MapPin, QrCode, ToggleLeft,
   ToggleRight, Pencil, Trash2, ChevronLeft, Check, X, Download, ExternalLink,
@@ -304,24 +306,19 @@ export default function AdminSessionsPage() {
                 />
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Tarih</label>
-                  <input
-                    type="date"
-                    value={formDate}
-                    onChange={(e) => setFormDate(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Saat</label>
-                  <input
-                    type="time"
-                    value={formStart}
-                    onChange={(e) => setFormStart(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                  />
-                </div>
+                <DateField
+                  label="Tarih"
+                  value={formDate}
+                  onChange={setFormDate}
+                  placeholder="Tarih seçin"
+                  locale="tr-TR"
+                />
+                <TimeField
+                  label="Saat"
+                  value={formStart}
+                  onChange={setFormStart}
+                  placeholder="Saat seçin"
+                />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Konum</label>

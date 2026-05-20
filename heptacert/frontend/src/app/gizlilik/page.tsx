@@ -26,8 +26,8 @@ export default function GizlilikPage() {
           "Veriler hizmetin sunulması, kimlik doğrulama, sertifika üretimi, etkinlik operasyonları, destek, güvenlik, kötüye kullanımın önlenmesi ve yasal yükümlülüklerin yerine getirilmesi için kullanılır.",
         ],
         [
-          "5. Google ile Giriş ve Google Kullanıcı Verileri",
-          "HeptaCert, Google ile giriş özelliğini yalnızca kullanıcıların kimliğini doğrulamak ve hesap oluşturma/giriş sürecini kolaylaştırmak amacıyla kullanır. Google tarafından sağlanması halinde ad, soyad, e-posta adresi ve profil görseli gibi temel profil bilgileri işlenebilir. HeptaCert; Gmail, Google Drive, Google Calendar veya diğer Google kullanıcı içeriklerine erişmez, bu içerikleri okumaz, saklamaz veya işlemez.",
+          "5. Google ile Giriş, Google Sheets ve Google Drive Dosya Erişimi",
+          "HeptaCert, Google ile giriş özelliğini kullanıcıların kimliğini doğrulamak ve hesap oluşturma/giriş sürecini kolaylaştırmak amacıyla kullanır. Google tarafından sağlanması halinde ad, soyad, e-posta adresi ve profil görseli gibi temel profil bilgileri işlenebilir. Kullanıcı veya organizatör tarafından açıkça yetki verilmesi halinde HeptaCert, etkinliklere ilişkin katılımcı, kayıt, check-in, bilet ve sertifika verilerinin Google Sheets’e aktarılması, oluşturulan tabloların güncellenmesi ve yönetilmesi amacıyla Google Sheets ve Google Drive dosya erişimini kullanabilir. HeptaCert, Google Drive erişimini yalnızca uygulama tarafından oluşturulan veya kullanıcının uygulama ile kullanmayı seçtiği dosyalar için kullanır; kullanıcının ilgisiz Google Drive dosyalarına, Gmail içeriklerine, Google Calendar verilerine veya diğer Google kullanıcı içeriklerine erişmez.",
         ],
         [
           "6. Kullanıcı ve Organizatör Sorumluluğu",
@@ -72,8 +72,8 @@ export default function GizlilikPage() {
           "Data is used for service delivery, authentication, certificate generation, event operations, support, security, abuse prevention, and legal compliance.",
         ],
         [
-          "5. Google Sign-In and Google User Data",
-          "HeptaCert uses Google Sign-In only to authenticate users and simplify account creation and login. Where provided by Google, basic profile information such as name, email address, and profile picture may be processed. HeptaCert does not access, read, store, or process Gmail, Google Drive, Google Calendar, or other Google user content.",
+          "5. Google Sign-In, Google Sheets and Google Drive File Access",
+          "HeptaCert uses Google Sign-In to authenticate users and simplify account creation and login. Where provided by Google, basic profile information such as name, email address, and profile picture may be processed. When explicitly authorized by the user or organizer, HeptaCert may use Google Sheets and Google Drive file access to export, create, update, and manage spreadsheets containing event-related participant, registration, check-in, ticket, and certificate data. HeptaCert uses Google Drive access only for files created by the app or files the user chooses to use with the app. HeptaCert does not access unrelated Google Drive files, Gmail content, Google Calendar data, or other Google user content.",
         ],
         [
           "6. User and Organizer Responsibility",
@@ -122,7 +122,7 @@ export default function GizlilikPage() {
             {isTr ? "HeptaCert Gizlilik Politikası" : "HeptaCert Privacy Policy"}
           </h1>
           <p className="mt-2 text-sm text-gray-500">
-            {isTr ? "Son güncelleme: 14 Mayıs 2026" : "Last updated: May 14, 2026"}
+            {isTr ? "Son güncelleme: 19 Mayıs 2026" : "Last updated: May 19, 2026"}
           </p>
         </div>
 

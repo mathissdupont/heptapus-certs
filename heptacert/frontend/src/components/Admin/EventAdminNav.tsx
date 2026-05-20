@@ -8,6 +8,7 @@ import {
   LockKeyhole,
   QrCode,
   Users,
+  UserCog,
   UserCheck,
   Target,
   Gift,
@@ -20,13 +21,14 @@ import {
   FolderKanban,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
-import { apiFetch, type EventOut } from "@/lib/api";
+import { apiFetch, getEventAccess, type EventAccessOut, type EventOut, type EventTeamPermission } from "@/lib/api";
 
 type EventAdminTab =
   | "details"
   | "certificates"
   | "sessions"
   | "attendees"
+  | "team"
   | "checkin"
   | "tickets"
   | "gamification"
@@ -49,6 +51,7 @@ const NAV_ITEMS: NavItem[] = [
   { tab: "certificates", label: { tr: "Sertifikalar", en: "Certificates" }, icon: LockKeyhole, href: (id) => `/admin/events/${id}/certificates` },
   { tab: "sessions", label: { tr: "Oturumlar", en: "Sessions" }, icon: QrCode, href: (id) => `/admin/events/${id}/sessions` },
   { tab: "attendees", label: { tr: "Katılımcılar", en: "Attendees" }, icon: Users, href: (id) => `/admin/events/${id}/attendees` },
+  { tab: "team", label: { tr: "Ekip", en: "Team" }, icon: UserCog, href: (id) => `/admin/events/${id}/team` },
   { tab: "tickets", label: { tr: "Biletler", en: "Tickets" }, icon: Ticket, href: (id) => `/admin/events/${id}/tickets` },
   { tab: "checkin", label: { tr: "Check-in", en: "Check-in" }, icon: UserCheck, href: (id) => `/admin/events/${id}/checkin` },
   { tab: "gamification", label: { tr: "Oyunlaştırma", en: "Gamification" }, icon: Target, href: (id) => `/admin/events/${id}/gamification` },
@@ -61,7 +64,25 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const EVENT_META_CACHE = new Map<string, EventOut>();
+const EVENT_ACCESS_CACHE = new Map<string, EventAccessOut>();
 const EVENT_META_REFRESH_EVENT = "heptacert:event-admin-meta-updated";
+
+const TAB_PERMISSIONS: Partial<Record<EventAdminTab, EventTeamPermission>> = {
+  details: "event:view",
+  certificates: "certificates:write",
+  sessions: "checkin:write",
+  attendees: "attendees:read",
+  team: "team:manage",
+  checkin: "checkin:write",
+  tickets: "checkin:write",
+  gamification: "settings:write",
+  raffles: "settings:write",
+  surveys: "settings:write",
+  analytics: "analytics:read",
+  editor: "certificates:write",
+  email: "email:write",
+  settings: "settings:write",
+};
 
 export function refreshEventAdminMeta(eventId?: string | number) {
   if (typeof window === "undefined") return;
@@ -121,8 +142,10 @@ export function EventAdminLayoutProvider({
 }
 
 function getActiveFromPath(pathname: string): EventAdminTab {
+  if (pathname.includes("/certificates")) return "certificates";
   if (pathname.includes("/sessions")) return "sessions";
   if (pathname.includes("/attendees")) return "attendees";
+  if (pathname.includes("/team")) return "team";
   if (pathname.includes("/tickets")) return "tickets";
   if (pathname.includes("/checkin")) return "checkin";
   if (pathname.includes("/gamification")) return "gamification";
@@ -150,10 +173,16 @@ export default function EventAdminNav({
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const cacheKey = String(eventId);
   const [eventMeta, setEventMeta] = useState<EventOut | null>(() => EVENT_META_CACHE.get(cacheKey) ?? null);
-  const [loadingEventMeta, setLoadingEventMeta] = useState(() => !EVENT_META_CACHE.has(cacheKey));
+  const [eventAccess, setEventAccess] = useState<EventAccessOut | null>(() => EVENT_ACCESS_CACHE.get(cacheKey) ?? null);
+  const [loadingEventMeta, setLoadingEventMeta] = useState(() => !EVENT_META_CACHE.has(cacheKey) || !EVENT_ACCESS_CACHE.has(cacheKey));
   const visibleNavItems = useMemo(
-    () => NAV_ITEMS.filter((item) => isNavItemEnabled(item, eventMeta)),
-    [eventMeta],
+    () => NAV_ITEMS.filter((item) => {
+      if (!isNavItemEnabled(item, eventMeta)) return false;
+      if (!eventAccess) return false;
+      const required = TAB_PERMISSIONS[item.tab];
+      return !required || eventAccess.permissions.includes(required);
+    }),
+    [eventAccess, eventMeta],
   );
   const copy = {
     tr: {
@@ -172,18 +201,29 @@ export default function EventAdminNav({
       const cached = EVENT_META_CACHE.get(cacheKey);
       if (cached) {
         setEventMeta(cached);
-        setLoadingEventMeta(false);
       } else {
         setEventMeta(null);
+        setLoadingEventMeta(true);
+      }
+      const cachedAccess = EVENT_ACCESS_CACHE.get(cacheKey);
+      if (cachedAccess) {
+        setEventAccess(cachedAccess);
+      } else {
+        setEventAccess(null);
         setLoadingEventMeta(true);
       }
 
       try {
         const response = await apiFetch(`/admin/events/${eventId}`);
-        const data = (await response.json()) as EventOut;
+        const [data, access] = await Promise.all([
+          response.json() as Promise<EventOut>,
+          getEventAccess(Number(eventId)),
+        ]);
         EVENT_META_CACHE.set(cacheKey, data);
+        EVENT_ACCESS_CACHE.set(cacheKey, access);
         if (!cancelled) {
           setEventMeta(data);
+          setEventAccess(access);
           setLoadingEventMeta(false);
         }
       } catch {

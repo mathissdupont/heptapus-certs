@@ -195,6 +195,51 @@ export interface EventOut {
   requires_approval?: boolean;
 }
 
+export type EventTeamRole = "manager" | "checkin" | "certificate" | "email" | "analytics" | "viewer";
+export type EventTeamStatus = "pending" | "active" | "disabled";
+export type EventTeamPermission =
+  | "event:view"
+  | "team:manage"
+  | "attendees:read"
+  | "attendees:write"
+  | "checkin:write"
+  | "certificates:write"
+  | "email:write"
+  | "analytics:read"
+  | "settings:write";
+
+export interface EventTeamMember {
+  id: number;
+  event_id: number;
+  user_id?: number | null;
+  email: string;
+  role: EventTeamRole;
+  permissions?: EventTeamPermission[] | null;
+  effective_permissions: EventTeamPermission[];
+  status: EventTeamStatus;
+  invited_by?: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventAccessOut {
+  event_id: number;
+  is_owner: boolean;
+  role: string;
+  permissions: EventTeamPermission[];
+  permission_labels: Record<string, string>;
+}
+
+export interface EventTeamActivity {
+  id: number;
+  actor_email?: string | null;
+  actor_label: string;
+  action: string;
+  action_label: string;
+  detail: string;
+  created_at: string;
+}
+
 export interface PublicMemberMe {
   id: number;
   public_id: string;
@@ -636,6 +681,56 @@ export async function uploadEventBanner(eventId: number, file: File): Promise<{ 
   const res = await apiFetch(`/admin/events/${eventId}/banner-upload`, {
     method: "POST",
     body: form,
+  });
+  return res.json();
+}
+
+export async function listEventTeamMembers(eventId: number): Promise<EventTeamMember[]> {
+  const res = await apiFetch(`/admin/events/${eventId}/team`);
+  return res.json();
+}
+
+export async function getEventAccess(eventId: number): Promise<EventAccessOut> {
+  const res = await apiFetch(`/admin/events/${eventId}/access`);
+  return res.json();
+}
+
+export async function addEventTeamMember(eventId: number, data: { email: string; role: EventTeamRole; permissions?: EventTeamPermission[] | null }): Promise<EventTeamMember> {
+  const res = await apiFetch(`/admin/events/${eventId}/team`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function updateEventTeamMember(
+  eventId: number,
+  memberId: number,
+  data: { role?: EventTeamRole; status?: EventTeamStatus; permissions?: EventTeamPermission[] | null },
+): Promise<EventTeamMember> {
+  const res = await apiFetch(`/admin/events/${eventId}/team/${memberId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function deleteEventTeamMember(eventId: number, memberId: number): Promise<{ ok: boolean }> {
+  const res = await apiFetch(`/admin/events/${eventId}/team/${memberId}`, {
+    method: "DELETE",
+  });
+  return res.json();
+}
+
+export async function listEventTeamActivity(eventId: number): Promise<EventTeamActivity[]> {
+  const res = await apiFetch(`/admin/events/${eventId}/team/activity`);
+  return res.json();
+}
+
+export async function acceptEventTeamInvite(token: string): Promise<{ ok: boolean; event_id: number; event_name: string; email: string; status: EventTeamStatus; message: string }> {
+  const res = await publicApiFetch("/event-team/invitations/accept", {
+    method: "POST",
+    body: JSON.stringify({ token }),
   });
   return res.json();
 }

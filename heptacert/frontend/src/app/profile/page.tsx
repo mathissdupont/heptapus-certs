@@ -7,7 +7,6 @@ import { AlertTriangle, ArrowRight, Camera, Globe, KeyRound, Loader2, MapPin, Sa
 import { PUBLIC_MEMBER_TOKEN_EVENT, changePublicMemberPassword, clearPublicMemberToken, deletePublicMemberAccount, getMyConnectionPrivacy, getPublicMemberMe, getPublicMemberSubscription, updateMyConnectionPrivacy, updatePublicMemberProfile, uploadPublicMemberAvatar, type PublicMemberSubscriptionInfo } from "@/lib/api";
 import { normalizeExternalUrl } from "@/lib/url";
 import { useI18n } from "@/lib/i18n";
-import SubscriptionGate from "@/components/SubscriptionGate";
 
 export default function ProfilePage() {
   const { lang } = useI18n();
@@ -402,8 +401,7 @@ export default function ProfilePage() {
           )}
         </div>
 
-        <SubscriptionGate requiredPlan="member_plus">
-          <div className="space-y-8">
+        <div className="space-y-8">
             
             {/* PROFILE SECTION */}
             <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
@@ -723,7 +721,6 @@ export default function ProfilePage() {
             </section>
 
           </div>
-        </SubscriptionGate>
       </div>
     </div>
   );

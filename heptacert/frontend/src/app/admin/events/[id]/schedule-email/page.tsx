@@ -5,6 +5,8 @@ import { useParams } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
 import { FeatureGate } from '@/lib/useSubscription';
 import { Send } from 'lucide-react';
+import DateField from '@/components/Admin/DateField';
+import TimeField from '@/components/Admin/TimeField';
 
 interface EmailTemplate {
   id: number;
@@ -43,6 +45,8 @@ export default function ScheduleEmailPage() {
     scheduled_datetime: '',
     cron_expression: '',
   });
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -76,7 +80,7 @@ export default function ScheduleEmailPage() {
       return;
     }
 
-    if (formData.schedule_type === 'datetime' && !formData.scheduled_datetime) {
+    if (formData.schedule_type === 'datetime' && (!scheduledDate || !scheduledTime)) {
       alert('Lütfen bir tarih ve saat seçin');
       return;
     }
@@ -91,8 +95,8 @@ export default function ScheduleEmailPage() {
       const payload = {
         ...formData,
         scheduled_datetime:
-          formData.schedule_type === 'datetime' && formData.scheduled_datetime
-            ? new Date(formData.scheduled_datetime).toISOString()
+          formData.schedule_type === 'datetime' && scheduledDate && scheduledTime
+            ? new Date(`${scheduledDate}T${scheduledTime}`).toISOString()
             : null,
         cron_expression: formData.schedule_type === 'cron' ? formData.cron_expression : null,
       };
@@ -108,6 +112,8 @@ export default function ScheduleEmailPage() {
         scheduled_datetime: '',
         cron_expression: '',
       }));
+      setScheduledDate('');
+      setScheduledTime('');
     } catch (error: any) {
       alert(`Hata: ${error?.message || error}`);
     } finally {
@@ -238,17 +244,19 @@ export default function ScheduleEmailPage() {
 
               {/* DateTime Picker */}
               {formData.schedule_type === 'datetime' && (
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tarih ve Saat
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={formData.scheduled_datetime}
-                    onChange={e =>
-                      setFormData({ ...formData, scheduled_datetime: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                <div className="mb-6 grid gap-3 sm:grid-cols-2">
+                  <DateField
+                    label="Tarih"
+                    value={scheduledDate}
+                    onChange={setScheduledDate}
+                    placeholder="Tarih seçin"
+                    locale="tr-TR"
+                  />
+                  <TimeField
+                    label="Saat"
+                    value={scheduledTime}
+                    onChange={setScheduledTime}
+                    placeholder="Saat seçin"
                   />
                 </div>
               )}

@@ -41,6 +41,7 @@ import {
 import { apiFetch, getMySubscription, listAdminEventComments, setToken, updateAdminEventComment, type RegistrationField, type SubscriptionInfo, type PublicEventComment } from "@/lib/api";
 import EventAdminNav, { refreshEventAdminMeta } from "@/components/Admin/EventAdminNav";
 import PageHeader from "@/components/Admin/PageHeader";
+import DateField from "@/components/Admin/DateField";
 import RichTextEditor from "@/components/RichTextEditor";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/useToast";
@@ -1044,16 +1045,13 @@ export default function EventSettingsPage() {
                   />
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="label">{copy.date}</label>
-                    <input
-                      type="date"
-                      value={formData.event_date}
-                      onChange={(event) => setFormData((current) => ({ ...current, event_date: event.target.value }))}
-                      className="input-field"
-                      placeholder={copy.datePlaceholder}
-                    />
-                  </div>
+                  <DateField
+                    label={copy.date}
+                    value={formData.event_date}
+                    onChange={(value) => setFormData((current) => ({ ...current, event_date: value }))}
+                    placeholder={copy.datePlaceholder}
+                    locale={lang === "tr" ? "tr-TR" : "en-US"}
+                  />
                   <div>
                     <label className="label">{copy.location}</label>
                     <input

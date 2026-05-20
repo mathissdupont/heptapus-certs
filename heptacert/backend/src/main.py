@@ -59,7 +59,7 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
 from sqlalchemy import (
     Boolean, String, Integer, BigInteger, DateTime, ForeignKey, Text,
-    Enum as SAEnum, UniqueConstraint, Index, select, func, distinct, update, delete, or_,
+    Enum as SAEnum, UniqueConstraint, Index, select, func, distinct, update, delete, or_, and_,
     Date as sa_Date, Time as sa_Time, literal, union_all
 )
 from sqlalchemy import cast
@@ -118,9 +118,9 @@ def _sanitize_rich_text_style(style_text: str) -> str:
         value = raw_value.strip()
         if key not in ALLOWED_RICH_TEXT_STYLES or not value:
             continue
-        if key == "color" and not re.fullmatch(r"#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})|rgba?\([\d\s.,%]+\)", value):
+        if key == "color" and not re.fullmatch(r"#(:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})|rgba\([\d\s.,%]+\)", value):
             continue
-        if key == "font-size" and not re.fullmatch(r"\d{1,3}(?:px|em|rem|%)", value):
+        if key == "font-size" and not re.fullmatch(r"\d{1,3}(:px|em|rem|%)", value):
             continue
         if key == "font-family" and not re.fullmatch(r"[A-Za-z0-9 ,\"'_-]{1,120}", value):
             continue
@@ -214,7 +214,7 @@ class _RichTextSanitizer(HTMLParser):
                     styles.append(f"font-size: {FONT_SIZE_MAP[value]}")
                 if attr_key == "face" and re.fullmatch(r"[A-Za-z0-9 ,\"'_-]{1,120}", value):
                     styles.append(f"font-family: {escape(value, quote=True)}")
-                if attr_key == "color" and re.fullmatch(r"#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})", value):
+                if attr_key == "color" and re.fullmatch(r"#(:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})", value):
                     styles.append(f"color: {value}")
         if canonical not in {"p", "span"} or not styles:
             return ""
@@ -254,6 +254,8 @@ class Settings(BaseSettings):
     public_base_url: str = Field(default="http://localhost:8000", alias="PUBLIC_BASE_URL")
     frontend_base_url: str = Field(default="http://localhost:3000", alias="FRONTEND_BASE_URL")
     cors_origins: str = Field(default="*", alias="CORS_ORIGINS")
+    redis_url: str = Field(default="", alias="REDIS_URL")
+    rate_limit_storage_uri: str = Field(default="", alias="RATE_LIMIT_STORAGE_URI")
     google_oauth_client_id: str = Field(default="", alias="GOOGLE_OAUTH_CLIENT_ID")
     google_oauth_client_secret: str = Field(default="", alias="GOOGLE_OAUTH_CLIENT_SECRET")
     ms365_oauth_client_id: str = Field(default="", alias="MS365_OAUTH_CLIENT_ID")
@@ -347,7 +349,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     role: Mapped[Role] = mapped_column(SAEnum(Role, name="role_enum"), index=True)
-    heptacoin_balance: Mapped[int] = mapped_column(Integer, default=0)
+    heptacoin_balaonce: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     verification_token: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
@@ -417,7 +419,7 @@ class Event(Base):
     config: Mapped[dict] = mapped_column(JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     cert_seq: Mapped[int] = mapped_column(Integer, default=0)
-    # Attendance management fields (migration 003)
+    # Attendaonce management fields (migration 003)
     event_date: Mapped[Optional[date_type]] = mapped_column(sa_Date, nullable=True)
     event_description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     event_location: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
@@ -448,8 +450,32 @@ class Event(Base):
     email_templates: Mapped[List["EmailTemplate"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
     bulk_email_jobs: Mapped[List["BulkEmailJob"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
     bulk_certificate_jobs: Mapped[List["BulkCertificateJob"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
+    team_members: Mapped[List["EventTeamMember"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
 
     __table_args__ = (Index("ix_events_admin_id_created", "admin_id", "created_at"),)
+
+
+class EventTeamMember(Base):
+    __tablename__ = "event_team_members"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id: Mapped[int] = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    email: Mapped[str] = mapped_column(String(320), index=True)
+    role: Mapped[str] = mapped_column(String(32), default="checkin", index=True)
+    permissions: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)
+    status: Mapped[str] = mapped_column(String(24), default="active", index=True)
+    invited_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    event: Mapped["Event"] = relationship(back_populates="team_members")
+    user: Mapped[Optional["User"]] = relationship(foreign_keys=[user_id])
+    inviter: Mapped[Optional["User"]] = relationship(foreign_keys=[invited_by])
+
+    __table_args__ = (
+        UniqueConstraint("event_id", "email", name="uq_event_team_members_event_email"),
+        Index("ix_event_team_members_event_status", "event_id", "status"),
+    )
 
 
 class Certificate(Base):
@@ -859,7 +885,7 @@ class Organization(Base):
     - user_id: Foreign key to Users table (admin who owns this organization)
     - public_id: Shareable identifier for public-facing URLs
     - org_name: Organization display name
-    - custom_domain: Optional custom domain for branded experience
+    - custom_domain: Optional custom domain for branded experieonce
     - brand_logo: Organization logo URL
     - brand_color: Primary color (hex) for branding
     - settings: JSON config for organization-specific settings
@@ -1138,7 +1164,7 @@ class SuperadminBulkEmailJob(Base):
     sent_count: Mapped[int] = mapped_column(Integer, default=0)
     failed_count: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
-    cancel_requested: Mapped[bool] = mapped_column(Boolean, default=False)
+    caoncel_requested: Mapped[bool] = mapped_column(Boolean, default=False)
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -1179,7 +1205,7 @@ class BulkCertificateJob(Base):
     spent_heptacoin: Mapped[int] = mapped_column(Integer, default=0)
     generated_files: Mapped[list] = mapped_column(JSONB, default=list)
     zip_file_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    status: Mapped[str] = mapped_column(String(50), default="pending")  # pending | processing | completed | failed | cancelled
+    status: Mapped[str] = mapped_column(String(50), default="pending")  # pending | processing | completed | failed | caoncelled
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -1196,7 +1222,7 @@ class EmailDeliveryLog(Base):
     bulk_job_id: Mapped[int] = mapped_column(Integer, ForeignKey("bulk_email_jobs.id", ondelete="CASCADE"), index=True)
     attendee_id: Mapped[int] = mapped_column(Integer, ForeignKey("attendees.id", ondelete="CASCADE"), index=True)
     recipient_email: Mapped[str] = mapped_column(String(255))
-    status: Mapped[str] = mapped_column(String(50), default="pending")  # pending, sent, bounced, failed, opened
+    status: Mapped[str] = mapped_column(String(50), default="pending")  # pending, sent, bouonced, failed, opened
     reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     opened_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -1209,7 +1235,7 @@ class WebhookSubscription(Base):
     __tablename__ = "webhook_subscriptions"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    event_type: Mapped[str] = mapped_column(String(50), index=True)  # email.sent, email.failed, email.bounced, email.opened
+    event_type: Mapped[str] = mapped_column(String(50), index=True)  # email.sent, email.failed, email.bouonced, email.opened
     url: Mapped[str] = mapped_column(Text)
     secret: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -1231,7 +1257,7 @@ class WebhookLog(Base):
     webhook: Mapped["WebhookSubscription"] = relationship()
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Attendance management models (migration 003) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# Ã¢â€â‚¬Ã¢â€â‚¬ Attendaonce management models (migration 003) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 class AttendeeSource(str, Enum):
     import_ = "import"
@@ -1253,7 +1279,7 @@ class EventSession(Base):
     created_at:              Mapped[datetime]       = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     event: Mapped["Event"] = relationship(back_populates="sessions")
-    attendance_records: Mapped[List["AttendanceRecord"]] = relationship(back_populates="session", cascade="all, delete-orphan")
+    attendaonce_records: Mapped[List["AttendaonceRecord"]] = relationship(back_populates="session", cascade="all, delete-orphan")
 
 
 class Attendee(Base):
@@ -1279,7 +1305,7 @@ class Attendee(Base):
 
     event: Mapped["Event"] = relationship(back_populates="attendees")
     public_member: Mapped[Optional["PublicMember"]] = relationship(back_populates="attendees")
-    attendance_records: Mapped[List["AttendanceRecord"]] = relationship(back_populates="attendee", cascade="all, delete-orphan")
+    attendaonce_records: Mapped[List["AttendaonceRecord"]] = relationship(back_populates="attendee", cascade="all, delete-orphan")
     tickets: Mapped[List["EventTicket"]] = relationship(back_populates="attendee", cascade="all, delete-orphan")
 
     __table_args__ = (
@@ -1347,19 +1373,19 @@ class EventComment(Base):
     public_member: Mapped["PublicMember"] = relationship(back_populates="comments")
 
 
-class AttendanceRecord(Base):
-    __tablename__ = "attendance_records"
+class AttendaonceRecord(Base):
+    __tablename__ = "attendaonce_records"
     id:            Mapped[int]           = mapped_column(Integer, primary_key=True, autoincrement=True)
     attendee_id:   Mapped[int]           = mapped_column(Integer, ForeignKey("attendees.id", ondelete="CASCADE"), index=True)
     session_id:    Mapped[int]           = mapped_column(Integer, ForeignKey("event_sessions.id", ondelete="CASCADE"), index=True)
     checked_in_at: Mapped[datetime]      = mapped_column(DateTime(timezone=True), server_default=func.now())
     ip_address:    Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
 
-    attendee: Mapped["Attendee"] = relationship(back_populates="attendance_records")
-    session:  Mapped["EventSession"] = relationship(back_populates="attendance_records")
+    attendee: Mapped["Attendee"] = relationship(back_populates="attendaonce_records")
+    session:  Mapped["EventSession"] = relationship(back_populates="attendaonce_records")
 
     __table_args__ = (
-        UniqueConstraint("attendee_id", "session_id", name="uq_attendance_attendee_session"),
+        UniqueConstraint("attendee_id", "session_id", name="uq_attendaonce_attendee_session"),
     )
 
 
@@ -1543,11 +1569,11 @@ class PublicMemberProfileUpdateIn(BaseModel):
     contact_email: Optional[EmailStr] = None
 
 
-class PublicMemberEmailPreferencesIn(BaseModel):
+class PublicMemberEmailPrefereoncesIn(BaseModel):
     digest_opt_in: bool = True
 
 
-class PublicMemberEmailPreferencesOut(BaseModel):
+class PublicMemberEmailPrefereoncesOut(BaseModel):
     digest_opt_in: bool
 
 
@@ -1694,6 +1720,149 @@ class EventOut(BaseModel):
     requires_approval: bool = False
 
 
+EVENT_TEAM_ROLES = {"manager", "checkin", "certificate", "email", "analytics", "viewer"}
+EVENT_TEAM_STATUSES = {"pending", "active", "disabled"}
+EVENT_TEAM_ROLE_PERMISSIONS: Dict[str, set[str]] = {
+    "manager": {"event:view", "team:manage", "attendees:read", "attendees:write", "checkin:write", "certificates:write", "email:write", "analytics:read", "settings:write"},
+    "checkin": {"event:view", "attendees:read", "checkin:write"},
+    "certificate": {"event:view", "attendees:read", "certificates:write"},
+    "email": {"event:view", "attendees:read", "email:write"},
+    "analytics": {"event:view", "analytics:read"},
+    "viewer": {"event:view"},
+}
+EVENT_TEAM_PERMISSION_LABELS: Dict[str, str] = {
+    "event:view": "Etkinligi goruntuleyebilir",
+    "team:manage": "Ekip uyelerini ve yetkilerini yonetebilir",
+    "attendees:read": "Katilimci listesini gorebilir",
+    "attendees:write": "Katilimci ekleyebilir, ice aktarabilir ve silebilir",
+    "checkin:write": "Check-in ve bilet kontrolu yapabilir",
+    "certificates:write": "Sertifika olusturabilir ve sertifika islemleri yapabilir",
+    "email:write": "E-posta sablonlari ve toplu e-posta islemlerini yonetebilir",
+    "analytics:read": "Analitik ekranlarini gorebilir",
+    "settings:write": "Etkinlik ayarlarini degistirebilir",
+}
+
+
+def _normalize_event_team_permissions(raw_permissions: Optional[List[str]]) -> Optional[List[str]]:
+    if raw_permissions is None:
+        return None
+    allowed = set(EVENT_TEAM_PERMISSION_LABELS.keys())
+    normalized = list(dict.fromkeys(str(item).strip() for item in raw_permissions if str(item).strip()))
+    invalid = [item for item in normalized if item not in allowed]
+    if invalid:
+        raise ValueError(f"invalid permissions: {', '.join(invalid)}")
+    if "event:view" not in normalized:
+        normalized.insert(0, "event:view")
+    return normalized
+
+
+def _effective_event_team_permissions(member: "EventTeamMember") -> List[str]:
+    if isinstance(member.permissions, list) and member.permissions:
+        try:
+            normalized = _normalize_event_team_permissions([str(item) for item in member.permissions])
+            return normalized or []
+        except ValueError:
+            return ["event:view"]
+    defaults = EVENT_TEAM_ROLE_PERMISSIONS.get((member.role or "").strip().lower(), {"event:view"})
+    return sorted(defaults)
+
+
+class EventTeamMemberIn(BaseModel):
+    email: EmailStr
+    role: str = Field(default="checkin", max_length=32)
+    permissions: Optional[List[str]] = None
+
+    @field_validator("role")
+    @classmethod
+    def validate_role(cls, value: str) -> str:
+        role = (value or "").strip().lower()
+        if role not in EVENT_TEAM_ROLES:
+            raise ValueError(f"role must be one of: {', '.join(sorted(EVENT_TEAM_ROLES))}")
+        return role
+
+    @field_validator("permissions")
+    @classmethod
+    def validate_permissions(cls, value: Optional[List[str]]) -> Optional[List[str]]:
+        return _normalize_event_team_permissions(value)
+
+
+class EventTeamMemberUpdateIn(BaseModel):
+    role: Optional[str] = Field(default=None, max_length=32)
+    permissions: Optional[List[str]] = None
+    status: Optional[str] = Field(default=None, max_length=24)
+
+    @field_validator("role")
+    @classmethod
+    def validate_role(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        role = value.strip().lower()
+        if role not in EVENT_TEAM_ROLES:
+            raise ValueError(f"role must be one of: {', '.join(sorted(EVENT_TEAM_ROLES))}")
+        return role
+
+    @field_validator("permissions")
+    @classmethod
+    def validate_permissions(cls, value: Optional[List[str]]) -> Optional[List[str]]:
+        return _normalize_event_team_permissions(value)
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        status = value.strip().lower()
+        if status not in EVENT_TEAM_STATUSES:
+            raise ValueError(f"status must be one of: {', '.join(sorted(EVENT_TEAM_STATUSES))}")
+        return status
+
+
+class EventTeamInviteAcceptIn(BaseModel):
+    token: str
+
+
+class EventTeamInviteAcceptOut(BaseModel):
+    ok: bool
+    event_id: int
+    event_name: str
+    email: EmailStr
+    status: str
+    message: str
+
+
+class EventTeamMemberOut(BaseModel):
+    id: int
+    event_id: int
+    user_id: Optional[int] = None
+    email: EmailStr
+    role: str
+    permissions: Optional[List[str]] = None
+    effective_permissions: List[str] = Field(default_factory=list)
+    status: str
+    invited_by: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+class EventAccessOut(BaseModel):
+    event_id: int
+    is_owner: bool = False
+    role: str
+    permissions: List[str]
+    permission_labels: Dict[str, str]
+
+
+class EventTeamActivityOut(BaseModel):
+    id: int
+    actor_email: Optional[str] = None
+    actor_label: str
+    action: str
+    action_label: str
+    detail: str
+    created_at: datetime
+
+
 class PublicMemberMeOut(BaseModel):
     id: int
     public_id: str
@@ -1807,7 +1976,7 @@ class TicketCheckInIn(BaseModel):
 
 
 class TicketStatusUpdateIn(BaseModel):
-    status: str = Field(pattern="^(issued|cancelled|revoked)$")
+    status: str = Field(pattern="^(issued|caoncelled|revoked)$")
 
 
 class PublicTicketOut(BaseModel):
@@ -2051,12 +2220,12 @@ class ApiKeyOut(BaseModel):
 
 
 class ApiKeyCreateOut(ApiKeyOut):
-    full_key: str  # only returned once at creation
+    full_key: str  # only returned oonce at creation
 
 
 class TotpSetupOut(BaseModel):
     otpauth_url: str
-    secret: str  # for manual entry; show once
+    secret: str  # for manual entry; show oonce
 
 
 class TotpConfirmIn(BaseModel):
@@ -2554,7 +2723,7 @@ class EventSheetsStatusOut(BaseModel):
     spreadsheet_url: Optional[str] = None
     sheet_name: Optional[str] = None
     enabled: bool = False
-    last_synced_at: Optional[str] = None
+    last_syonced_at: Optional[str] = None
     missing_scopes: List[str] = Field(default_factory=list)
 
 
@@ -2579,7 +2748,7 @@ class EventMicrosoftExcelStatusOut(BaseModel):
     workbook_name: Optional[str] = None
     sheet_name: Optional[str] = None
     enabled: bool = False
-    last_synced_at: Optional[str] = None
+    last_syonced_at: Optional[str] = None
     missing_scopes: List[str] = Field(default_factory=list)
 
 
@@ -2603,7 +2772,7 @@ class EmailDeliveryLogOut(BaseModel):
     id: int
     bulk_job_id: int
     attendee_id: int
-    status: str  # sent, bounced, failed, opened
+    status: str  # sent, bouonced, failed, opened
     reason: Optional[str]
     sent_at: datetime
     opened_at: Optional[datetime]
@@ -2626,7 +2795,7 @@ class ScheduledEmailOut(BaseModel):
     schedule_type: str
     scheduled_at: Optional[datetime]
     cron_expression: Optional[str]
-    status: str  # pending | scheduled | completed | failed | cancelled
+    status: str  # pending | scheduled | completed | failed | caoncelled
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
@@ -2640,10 +2809,10 @@ DEFAULT_PRICING: List[dict] = [
         "price_annual": 0,
         "hc_quota": 50,
         "features_tr": [
-            "50 HC hoÃ…Å¸ geldin bonusu (tek seferlik)",
+            "50 HC hoÅŸ geldin bonusu (tek seferlik)",
             "QR kod doÃ„Å¸rulama",
             "Sertifika arÃ…Å¸ivi (1 yÃ„Â±l)",
-            "Temel Ã…Å¸ablon editÃƒÂ¶rÃƒÂ¼",
+            "Temel ÅŸablon editÃ¶rÃ¼",
             "HeptaCert watermark",
         ],
         "features_en": [
@@ -2670,7 +2839,7 @@ DEFAULT_PRICING: List[dict] = [
             "Sertifika arÃ…Å¸ivi (3 yÃ„Â±l)",
             "Etkinlik kayÃ„Â±t ve check-in sistemi",
             "QR ile yoklama takibi",
-            "Ãƒâ€“ncelikli destek",
+            "Ã–oncelikli destek",
         ],
         "features_en": [
             "500 HC per month",
@@ -2678,7 +2847,7 @@ DEFAULT_PRICING: List[dict] = [
             "Excel bulk generation",
             "Certificate archive (3 years)",
             "Event registration & check-in system",
-            "QR attendance tracking",
+            "QR attendaonce tracking",
             "Priority support",
         ],
         "is_free": False,
@@ -2686,7 +2855,7 @@ DEFAULT_PRICING: List[dict] = [
     },
     {
         "id": "growth",
-        "name_tr": "BÃƒÂ¼yÃƒÂ¼me",
+        "name_tr": "BÃ¼yÃ¼me",
         "name_en": "Growth",
         "price_monthly": 1299,
         "price_annual": 1099,
@@ -2698,14 +2867,14 @@ DEFAULT_PRICING: List[dict] = [
             "Sertifika arÃ…Å¸ivi (3 yÃ„Â±l)",
             "Etkinlik kayÃ„Â±t ve check-in sistemi",
             "QR ile yoklama takibi",
-            "API eriÃ…Å¸imi (tam)",
+            "API eriÅŸimi (tam)",
             "Ãƒâ€“zel alan adÃ„Â± doÃ„Å¸rulama",
             "Marka watermark kaldÃ„Â±rma",
-            "Otomatik email sistemi (bulk mail + Ã…Å¸ablonlar)",
+            "Otomatik email sistemi (bulk mail + ÅŸablonlar)",
             "5-7 hazÃ„Â±r sertifika Ã…Å¸ablonu",
             "Custom event aÃƒÂ§Ã„Â±klamasÃ„Â± ve banneri",
             "Webhook API desteÃ„Å¸i",
-            "Advanced analytics dashboard",
+            "Advaonced analytics dashboard",
             "Custom form alanlarÃ„Â±",
             "KatÃ„Â±lÃ„Â±mcÃ„Â± self-service sertifika indirme",
         ],
@@ -2715,7 +2884,7 @@ DEFAULT_PRICING: List[dict] = [
             "Excel bulk generation",
             "Certificate archive (3 years)",
             "Event registration & check-in system",
-            "QR attendance tracking",
+            "QR attendaonce tracking",
             "Full API access",
             "Custom domain verification",
             "Remove branding watermark",
@@ -2723,7 +2892,7 @@ DEFAULT_PRICING: List[dict] = [
             "5-7 pre-built certificate templates",
             "Custom event description & banner",
             "Webhook API support",
-            "Advanced analytics dashboard",
+            "Advaonced analytics dashboard",
             "Custom form fields",
             "Attendee self-service certificate download",
         ],
@@ -2744,7 +2913,7 @@ DEFAULT_PRICING: List[dict] = [
             "Ãƒâ€“zel alan adÃ„Â± desteÃ„Å¸i",
             "Etkinlik kayÃ„Â±t ve check-in sistemi",
             "QR ile yoklama takibi",
-            "Toplu sertifika ÃƒÂ¼retimi",
+            "Toplu sertifika Ã¼retimi",
             "7/24 kurumsal destek",
         ],
         "features_en": [
@@ -2753,7 +2922,7 @@ DEFAULT_PRICING: List[dict] = [
             "API integration",
             "Custom domain support",
             "Event registration & check-in system",
-            "QR attendance tracking",
+            "QR attendaonce tracking",
             "Bulk certificate generation",
             "24/7 enterprise support",
         ],
@@ -2781,7 +2950,7 @@ def hosting_units(term: str, asset_size_bytes: int) -> int:
     m = monthly_hosting_units(asset_size_bytes)
     if term == "monthly":
         return m
-    return m * 10  # yearly: 10 ay ÃƒÂ¼cret
+    return m * 10  # yearly: 10 ay Ã¼cret
 
 def compute_hosting_ends(term: str) -> datetime:
     now = datetime.now(timezone.utc)
@@ -2862,7 +3031,7 @@ def build_public_survey_url(*, event_id: str, attendee_id: int, email: str) -> s
         event_id=event_id,
         email=email,
     )
-    return f"{settings.frontend_base_url.rstrip('/')}/events/{event_id}/survey?token={survey_token}"
+    return f"{settings.frontend_base_url.rstrip('/')}/events/{event_id}/surveytoken={survey_token}"
 
 
 def build_public_status_url(*, event_id: str, attendee_id: int, email: str) -> str:
@@ -2871,11 +3040,11 @@ def build_public_status_url(*, event_id: str, attendee_id: int, email: str) -> s
         event_id=event_id,
         email=email,
     )
-    return f"{settings.frontend_base_url.rstrip('/')}/events/{event_id}/status?token={survey_token}"
+    return f"{settings.frontend_base_url.rstrip('/')}/events/{event_id}/statustoken={survey_token}"
 
 
 def build_attendee_verify_url(*, event_id: str, token: str) -> str:
-    return f"{settings.frontend_base_url.rstrip('/')}/events/{event_id}/verify-email?token={token}"
+    return f"{settings.frontend_base_url.rstrip('/')}/events/{event_id}/verify-emailtoken={token}"
 
 
 async def _ensure_user_email_config(db: AsyncSession, user_id: int) -> "UserEmailConfig":
@@ -3205,7 +3374,7 @@ async def _write_event_attendees_to_google_sheet(
     await _google_json_request(
         access_token,
         "PUT",
-        f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/{encoded_range}?valueInputOption=USER_ENTERED",
+        f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/{encoded_range}valueInputOption=USER_ENTERED",
         json_body={"majorDimension": "ROWS", "values": values},
     )
 
@@ -3215,7 +3384,7 @@ async def _write_event_attendees_to_google_sheet(
         "spreadsheet_url": spreadsheet_url,
         "sheet_name": sheet_name,
         "header": values[0],
-        "last_synced_at": datetime.now(timezone.utc).isoformat(),
+        "last_syonced_at": datetime.now(timezone.utc).isoformat(),
     }
     _set_event_google_sheets_config(event, next_sheets_config)
     db.add(event)
@@ -3236,7 +3405,7 @@ async def _append_attendee_to_google_sheet_if_enabled(db: AsyncSession, event: "
         await _google_json_request(
             access_token,
             "POST",
-            f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/{encoded_range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",
+            f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/{encoded_range}:appendvalueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",
             json_body={"majorDimension": "ROWS", "values": [_google_sheets_row_for_attendee(event, attendee)]},
         )
     except Exception as exc:
@@ -3387,7 +3556,7 @@ async def _ms365_upload_workbook(access_token: str, workbook_bytes: bytes, *, wo
 
 
 def _safe_ms365_filename(value: str) -> str:
-    cleaned = re.sub(r'[<>:"/\\|?*\x00-\x1F]', "-", value).strip().strip(".")
+    cleaned = re.sub(r'[<>:"/\\|*\x00-\x1F]', "-", value).strip().strip(".")
     return cleaned[:180] or "HeptaCert Registrations.xlsx"
 
 
@@ -3432,7 +3601,7 @@ async def _write_event_attendees_to_ms365_excel(db: AsyncSession, event: "Event"
         "workbook_name": workbook_name,
         "sheet_name": "Registrations",
         "header": _google_sheets_header_for_event(event),
-        "last_synced_at": datetime.now(timezone.utc).isoformat(),
+        "last_syonced_at": datetime.now(timezone.utc).isoformat(),
     }
     _set_event_ms365_excel_config(event, next_excel_config)
     db.add(event)
@@ -3458,13 +3627,13 @@ async def send_attendee_verification_email(*, attendee: "Attendee", event: "Even
     verify_link = build_attendee_verify_url(event_id=_get_public_event_identifier(event), token=token)
     await send_email_async(
         to=attendee.email,
-        subject=f"{event.name} etkinliği için e-posta adresinizi doğrulayın",
+        subject=f"{event.name} etkinliği icin e-posta adresinizi doğrulayın",
         html_body=f"""
         <p>Merhaba {attendee.name},</p>
-        <p>{event.name} etkinlik kaydınızı tamamlamak için e-posta adresinizi doğrulamanız gerekiyor.</p>
+        <p>{event.name} etkinlik kaydınızı tamamlamak icin e-posta adresinizi doğrulamanız gerekiyor.</p>
         <p><a href="{verify_link}">{verify_link}</a></p>
-        <p>Bu bağlantıyı doğrulamadan check-in yapamaz ve çekilişlere dahil olamazsınız.</p>
-        <p>Bağlantı 24 saat geçerlidir.</p>
+        <p>Bu bağlantıyı doğrulamadan check-in yapamaz ve cekilişlere dahil olamazsınız.</p>
+        <p>Bağlantı 24 saat gecerlidir.</p>
         """,
         sender_user_id=event.admin_id,
     )
@@ -3573,7 +3742,7 @@ async def build_public_participant_status(
     total_sessions = int(total_sessions_res.scalar_one() or 0)
 
     sessions_attended_res = await db.execute(
-        select(func.count()).select_from(AttendanceRecord).where(AttendanceRecord.attendee_id == attendee.id)
+        select(func.count()).select_from(AttendaonceRecord).where(AttendaonceRecord.attendee_id == attendee.id)
     )
     sessions_attended = int(sessions_attended_res.scalar_one() or 0)
 
@@ -3798,7 +3967,9 @@ async def send_email_async(
                     is_digest_message = (
                         "{{ unsubscribe_url }}" in html_body
                         or "{{unsubscribe_url}}" in html_body
+                        or "topluluk güncellemeleri" in html_body.lower()
                         or "topluluk guncellemeleri" in html_body.lower()
+                        or "topluluk guoncellemeleri" in html_body.lower()
                     )
                     if is_digest_message:
                         if not bool(getattr(public_member, "digest_opt_in", True)):
@@ -3817,8 +3988,8 @@ async def send_email_async(
                 # Append a minimal unsubscribe footer if template does not contain an unsubscribe placeholder
                 if not had_unsubscribe_placeholder and "unsubscribe" not in html_body.lower():
                     html_body = html_body + (
-                        f"<hr><p style=\"font-size:12px;color:#666\">E-posta almak istemiyorsaniz, "
-                        f"<a href=\"{list_unsubscribe_url}\">buradan abonelikten cikabilirsiniz</a>.</p>"
+                        f"<hr><p style=\"font-size:12px;color:#666\">E-posta almak istemiyorsanız, "
+                        f"<a href=\"{list_unsubscribe_url}\">buradan abonelikten çıkabilirsiniz</a>.</p>"
                     )
     except Exception:
         logger.exception("Failed to resolve attendee for unsubscribe handling")
@@ -3836,10 +4007,12 @@ async def send_email_async(
     if smtp_auto_cc:
         msg["Cc"] = smtp_auto_cc
     # Add unsubscribe header (RFC 2369) with mailto and URL if available
-    list_unsub_header = f"<mailto:{smtp_reply_to or smtp_from_email}?subject=unsubscribe>"
+    list_unsub_header = f"<mailto:{smtp_reply_to or smtp_from_email}subject=unsubscribe>"
     if list_unsubscribe_url:
         list_unsub_header = f"{list_unsub_header}, <{list_unsubscribe_url}>"
     msg["List-Unsubscribe"] = list_unsub_header
+    if list_unsubscribe_url:
+        msg["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
     
     msg.attach(MIMEText(html_body, "html", "utf-8"))
     
@@ -3886,12 +4059,12 @@ async def send_email_async(
     except Exception as exc:
         logger.error("SMTP send failed to %s: %s", to, exc)
 
-        # If per-user SMTP fails, try global SMTP once to avoid system-wide email outage.
+        # If per-user SMTP fails, try global SMTP oonce to avoid system-wide email outage.
         if using_user_smtp and global_smtp_host:
             try:
                 fallback_from = global_smtp_from or smtp_from_email
                 msg.replace_header("From", fallback_from)
-                msg.replace_header("List-Unsubscribe", f"<mailto:{smtp_reply_to or fallback_from}?subject=unsubscribe>")
+                msg.replace_header("List-Unsubscribe", f"<mailto:{smtp_reply_to or fallback_from}subject=unsubscribe>")
 
                 fallback_implicit_tls = bool(int(global_smtp_port or 0) == 465)
                 fallback_starttls = not fallback_implicit_tls
@@ -4296,7 +4469,7 @@ async def require_paid_plan(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Attendance/check-in features require Pro or Enterprise plan. Superadmins bypass."""
+    """Attendaonce/check-in features require Pro or Enterprise plan. Superadmins bypass."""
     if me.role == Role.superadmin:
         return me
     res = await db.execute(
@@ -4309,14 +4482,14 @@ async def require_paid_plan(
     if not sub or sub.plan_id not in ("pro", "growth", "enterprise"):
         raise HTTPException(
             status_code=403,
-            detail="Bu özellik sadece Pro, Growth ve Enterprise planlarında kullanılabilir.",
+            detail="Bu ozellik sadece Pro, Growth ve Enterprise planlarında kullanılabilir.",
         )
     now = datetime.now(timezone.utc)
     expires_at = ensure_utc(sub.expires_at)
     if expires_at and expires_at < now:
         raise HTTPException(
             status_code=403,
-            detail="Aboneliğiniz sona ermiş. Lütfen planınızı yenileyin.",
+            detail="Aboneliğiniz sona ermiş. Lutfen planınızı yenileyin.",
         )
     return me
 
@@ -4345,9 +4518,70 @@ async def require_email_system_access(
     if expires_at and expires_at < now:
         raise HTTPException(
             status_code=403,
-            detail="Aboneliğiniz sona ermiş. Lütfen planınızı yenileyin.",
+            detail="Aboneliğiniz sona ermiş. Lutfen planınızı yenileyin.",
         )
     return me
+
+
+async def _check_event_owner_has_premium_for_teams(
+    event_id: int,
+    db: AsyncSession,
+) -> bool:
+    """Check if event owner has premium plan for teams feature. Returns True if owner has premium."""
+    res = await db.execute(
+        select(Event, Subscription)
+        .outerjoin(Subscription, Subscription.user_id == Event.admin_id)
+        .where(
+            Event.id == event_id,
+            Subscription.is_active == True,
+        )
+        .order_by(Subscription.expires_at.desc())
+    )
+    row = res.first()
+    if not row:
+        return False
+    event, sub = row
+    if not sub or sub.plan_id not in ("pro", "growth", "enterprise"):
+        return False
+    now = datetime.now(timezone.utc)
+    expires_at = ensure_utc(sub.expires_at)
+    if expires_at and expires_at < now:
+        return False
+    return True
+
+
+async def require_event_owner_premium_for_teams(
+    event_id: int,
+    db: AsyncSession = Depends(get_db),
+    me: CurrentUser = Depends(get_current_user),
+):
+    """Verify event owner has premium plan for team features. Allow superadmins and owners to bypass."""
+    if me.role == Role.superadmin:
+        return True
+    
+    res = await db.execute(select(Event).where(Event.id == event_id))
+    event = res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    if event.admin_id == me.id:
+        # Event owner - check their subscription
+        has_premium = await _check_event_owner_has_premium_for_teams(event_id, db)
+        if not has_premium:
+            raise HTTPException(
+                status_code=403,
+                detail="Ekip özellikleri Pro, Growth veya Enterprise planında kullanılabilir.",
+            )
+        return True
+    else:
+        # Team member - check the EVENT OWNER's subscription, not theirs
+        has_premium = await _check_event_owner_has_premium_for_teams(event_id, db)
+        if not has_premium:
+            raise HTTPException(
+                status_code=403,
+                detail="Etkinliğin sahibinin Ekip özellikleri için Premium plana sahip olması gerekir.",
+            )
+        return True
 
 
 def ensure_dirs():
@@ -4357,7 +4591,7 @@ def ensure_dirs():
 
 
 def local_path_from_url(url_or_path: str) -> Path:
-    """Convert a stored URL or relative path Ã¢â€ â€™ absolute local filesystem path."""
+    """Convert a stored URL or relative path â†’ absolute local filesystem path."""
     if url_or_path.startswith(("http://", "https://")):
         # Extract relative part after /api/files/
         marker = "/api/files/"
@@ -4397,14 +4631,25 @@ app = FastAPI(title="HeptaCert API", version="2.0.0")
 
 # Prefer the first X-Forwarded-For IP when behind reverse proxies.
 def _client_ip_for_rate_limit(request: Request) -> str:
+    peer_host = request.client.host if request.client and request.client.host else None
     xff = request.headers.get("X-Forwarded-For")
-    if xff:
+    if xff and _is_trusted_proxy_peer(peer_host):
         first_ip = xff.split(",", 1)[0].strip()
         if first_ip:
             return first_ip
-    if request.client and request.client.host:
-        return request.client.host
+    if peer_host:
+        return peer_host
     return "unknown"
+
+
+def _is_trusted_proxy_peer(peer_host: Optional[str]) -> bool:
+    if not peer_host:
+        return False
+    try:
+        ip = ipaddress.ip_address(peer_host)
+    except ValueError:
+        return peer_host in {"localhost"}
+    return ip.is_loopback or ip.is_private or ip.is_link_local
 
 
 def _get_registration_device_id(request: Request) -> tuple[str, bool]:
@@ -4427,9 +4672,15 @@ async def _heptacert_rate_limit_handler(request: Request, exc: RateLimitExceeded
 
 
 # Rate limiter
-limiter = Limiter(key_func=_client_ip_for_rate_limit, default_limits=["200/minute"])
+rate_limit_storage_uri = settings.rate_limit_storage_uri or settings.redis_url or "memory://"
+limiter = Limiter(
+    key_func=_client_ip_for_rate_limit,
+    default_limits=["200/minute"],
+    storage_uri=rate_limit_storage_uri,
+)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _heptacert_rate_limit_handler)
+logger.info("Rate limiter storage: %s", "redis" if rate_limit_storage_uri.startswith("redis") else "memory")
 
 # Include domains router (custom domains / Caddy ask endpoint)
 try:
@@ -4589,13 +4840,13 @@ async def startup():
                 email=str(settings.bootstrap_superadmin_email),
                 password_hash=hash_password(settings.bootstrap_superadmin_password),
                 role=Role.superadmin,
-                heptacoin_balance=0,
+                heptacoin_balaonce=0,
                 is_verified=True,
             )
             db.add(u)
             await db.commit()
 
-    # Fix any stored URLs that still reference old ports/hosts
+    # Fix any stored URLs that still refereonce old ports/hosts
     # (e.g. localhost:8000 from before port change to 8765)
     old_prefixes = ["http://localhost:8000", "http://localhost:3000"]
     new_base = settings.public_base_url  # e.g. http://localhost:8765
@@ -4744,7 +4995,7 @@ async def startup():
                         subject_en="Your Certificate is Ready! | {{event_name}}",
                         body_html="""
 <h2>Merhaba {{recipient_name}},</h2>
-<p>Tebrikler! {{event_name}} etkinliğine katılım için sertifikanız hazır.</p>
+<p>Tebrikler! {{event_name}} etkinliğine katılım icin sertifikanız hazır.</p>
 
 <div style="margin: 20px 0; padding: 15px; background: #f0f9ff; border-radius: 5px;">
     <p><a href="{{certificate_link}}" style="display: inline-block; padding: 10px 20px; background: #3b82f6; color: white; text-decoration: none; border-radius: 5px;">Sertifikayı İndir</a></p>
@@ -4754,7 +5005,7 @@ async def startup():
 <p>Sertifikanız QR kodu tarafından korunmaktadır ve resmi olarak doğrulanabilir.</p>
 
 <br>
-<p>Sorularınız için <a href="mailto:support@heptacert.com">destek@heptacert.com</a> adresine yazabilirsiniz.</p>
+<p>Sorularınız icin <a href="mailto:support@heptacert.com">destek@heptacert.com</a> adresine yazabilirsiniz.</p>
 
 <p>Saygılarımızla,<br>HeptaCert Ekibi</p>
                         """,
@@ -4777,10 +5028,10 @@ async def startup():
     <li><strong>Yer:</strong> {{event_location}}</li>
 </ul>
 
-<p>Etkinlik hakkında daha fazla bilgi için lütfen <a href="{{event_link}}">buraya tıklayın</a>.</p>
+<p>Etkinlik hakkında daha fazla bilgi icin lutfen <a href="{{event_link}}">buraya tıklayın</a>.</p>
 
 <br>
-<p>Sorularınız için <a href="mailto:support@heptacert.com">destek@heptacert.com</a> adresine yazabilirsiniz.</p>
+<p>Sorularınız icin <a href="mailto:support@heptacert.com">destek@heptacert.com</a> adresine yazabilirsiniz.</p>
 
 <p>Saygılarımızla,<br>HeptaCert Ekibi</p>
                         """,
@@ -4792,6 +5043,72 @@ async def startup():
                     db.add(tmpl)
                 await db.commit()
                 logger.info("Seeded %d default email templates", len(email_templates))
+
+    # Repair older local databases where the default Turkish templates were seeded with mojibake.
+    async with SessionLocal() as db:
+        system_templates_res = await db.execute(
+            select(EmailTemplate)
+            .where(EmailTemplate.template_type == "system", EmailTemplate.is_default == True)
+            .order_by(EmailTemplate.created_at.asc(), EmailTemplate.id.asc())
+        )
+        system_templates = system_templates_res.scalars().all()
+        default_template_updates = [
+            {
+                "name": "Sertifika Teslim - TR",
+                "subject_tr": "Sertifikanız Hazır! | {{event_name}}",
+                "subject_en": "Your Certificate is Ready! | {{event_name}}",
+                "body_html": """
+<h2>Merhaba {{recipient_name}},</h2>
+<p>Tebrikler! {{event_name}} etkinliğine katılımınız için sertifikanız hazır.</p>
+
+<div style="margin: 20px 0; padding: 15px; background: #f0f9ff; border-radius: 5px;">
+    <p><a href="{{certificate_link}}" style="display: inline-block; padding: 10px 20px; background: #3b82f6; color: white; text-decoration: none; border-radius: 5px;">Sertifikayı İndir</a></p>
+</div>
+
+<p><strong>QR Kod ile Doğrulama:</strong></p>
+<p>Sertifikanız QR kodu ile korunur ve resmi olarak doğrulanabilir.</p>
+
+<br>
+<p>Sorularınız için <a href="mailto:support@heptacert.com">destek@heptacert.com</a> adresine yazabilirsiniz.</p>
+
+<p>Saygılarımızla,<br>HeptaCert Ekibi</p>
+                """,
+            },
+            {
+                "name": "Kayıt Onayı - TR",
+                "subject_tr": "Kaydınız Başarıyla Alındı | {{event_name}}",
+                "subject_en": "Your Registration is Confirmed | {{event_name}}",
+                "body_html": """
+<h2>Merhaba {{recipient_name}},</h2>
+<p>{{event_name}} etkinliğine kaydınız başarıyla tamamlanmıştır.</p>
+
+<p><strong>Etkinlik Detayları:</strong></p>
+<ul>
+    <li><strong>Tarih:</strong> {{event_date}}</li>
+    <li><strong>Yer:</strong> {{event_location}}</li>
+</ul>
+
+<p>Etkinlik hakkında daha fazla bilgi için lütfen <a href="{{event_link}}">buraya tıklayın</a>.</p>
+
+<br>
+<p>Sorularınız için <a href="mailto:support@heptacert.com">destek@heptacert.com</a> adresine yazabilirsiniz.</p>
+
+<p>Saygılarımızla,<br>HeptaCert Ekibi</p>
+                """,
+            },
+        ]
+        repaired = 0
+        for template, update_data in zip(system_templates[:2], default_template_updates):
+            if template.name != update_data["name"] or "Ä" in (template.body_html or "") or "Ä" in (template.subject_tr or ""):
+                template.name = update_data["name"]
+                template.subject_tr = update_data["subject_tr"]
+                template.subject_en = update_data["subject_en"]
+                template.body_html = update_data["body_html"]
+                db.add(template)
+                repaired += 1
+        if repaired:
+            await db.commit()
+            logger.info("Repaired %d default email templates", repaired)
 
     # Start background scheduler for expiring cert notifications
     try:
@@ -4840,7 +5157,7 @@ async def startup():
                         <tr><th>KatÃ„Â±lÃ„Â±mcÃ„Â±</th><th>Etkinlik</th><th>BitiÃ…Å¸ Tarihi</th></tr>
                         {rows_html}
                         </table>
-                        <p><a href="{settings.frontend_base_url}/admin/events">Panele Git Ã¢â€ â€™</a></p>
+                        <p><a href="{settings.frontend_base_url}/admin/events">Panele Git â†’</a></p>
                         """
                         await send_email_async(
                             data["email"],
@@ -4871,7 +5188,7 @@ async def startup():
                     usr = usr_res.scalar_one_or_none()
                     if not usr:
                         continue
-                    usr.heptacoin_balance += quota
+                    usr.heptacoin_balaonce += quota
                     db_r.add(Transaction(
                         user_id=usr.id, amount=quota, type=TxType.credit,
                         description=f"AylÃ„Â±k HC yenileme: {sub_r2.plan_id}",
@@ -4954,7 +5271,12 @@ async def startup():
                         
                         # Get recipients (all attendees or only certified attendees)
                         att_res = await db_bulk.execute(
-                            select(Attendee).where(Attendee.event_id == job.event_id)
+                            select(Attendee).where(
+                                Attendee.event_id == job.event_id,
+                                Attendee.email.is_not(None),
+                                func.trim(Attendee.email) != "",
+                                Attendee.unsubscribed_at.is_(None),
+                            )
                         )
                         all_attendees = att_res.scalars().all()
 
@@ -4982,6 +5304,7 @@ async def startup():
                             ]
                         else:
                             attendees = all_attendees
+                        job.recipients_count = len(attendees)
 
                         if not attendees:
                             job.status = "completed"
@@ -5299,13 +5622,13 @@ def _validate_registration_fields_for_write(raw_fields: Any, *, existing_fields:
     valid_ids = set(field_types_by_id)
     for index, field_id, cond_id, cond_value in conditional_specs:
         if cond_id not in valid_ids:
-            raise bad_request(f"registration_fields[{index}] id={field_id} references an unknown required_when_field_id: {cond_id}.")
+            raise bad_request(f"registration_fields[{index}] id={field_id} refereonces an unknown required_when_field_id: {cond_id}.")
         if cond_id == field_id:
             raise bad_request(f"registration_fields[{index}] id={field_id} cannot depend on itself.")
         if field_types_by_id.get(cond_id) != "select":
-            raise bad_request(f"registration_fields[{index}] id={field_id} required_when_field_id must reference a select field: {cond_id}.")
+            raise bad_request(f"registration_fields[{index}] id={field_id} required_when_field_id must refereonce a select field: {cond_id}.")
         if cond_value not in select_options_by_id.get(cond_id, set()):
-            raise bad_request(f"registration_fields[{index}] id={field_id} required_when_equals must match one of the referenced select options on {cond_id}: {cond_value}.")
+            raise bad_request(f"registration_fields[{index}] id={field_id} required_when_equals must match one of the refereonced select options on {cond_id}: {cond_value}.")
 
     return normalized
 
@@ -5361,7 +5684,7 @@ def _normalize_registration_fields(raw_fields: Any) -> List[Dict[str, Any]]:
                     if s:
                         options.append({"label": s, "capacity": None})
         if field_type == "select":
-            # dedupe by label keeping first occurrence
+            # dedupe by label keeping first occurreonce
             seen = set()
             deduped: List[Dict[str, Any]] = []
             for o in options:
@@ -5676,12 +5999,12 @@ def _normalize_registration_answers(
                 elif isinstance(raw_value, (list, tuple, set)):
                     values = [str(item).strip()[:120] for item in raw_value if str(item).strip()]
                 else:
-                    raise bad_request(f'"{field["label"]}" alanı için geçerli bir değer girin.')
+                    raise bad_request(f'"{field["label"]}" alanı icin gecerli bir değer girin.')
 
                 values = list(dict.fromkeys(values))[:30]
                 invalid_values = [value for value in values if value not in option_labels]
                 if invalid_values:
-                    raise bad_request(f'"{field["label"]}" alanı için geçerli seçimler yapın.')
+                    raise bad_request(f'"{field["label"]}" alanı icin gecerli secimler yapın.')
 
                 is_required = bool(field.get("required")) or _is_registration_field_condition_met(field, raw_map)
                 if is_required and not values:
@@ -5698,7 +6021,7 @@ def _normalize_registration_answers(
             elif isinstance(raw_value, (int, float, bool)):
                 value = str(raw_value).strip()
             else:
-                raise bad_request(f'"{field["label"]}" alanı için geçerli bir değer girin.')
+                raise bad_request(f'"{field["label"]}" alanı icin gecerli bir değer girin.')
 
             is_required = bool(field.get("required")) or _is_registration_field_condition_met(field, raw_map)
             if is_required and not value:
@@ -5708,7 +6031,7 @@ def _normalize_registration_answers(
                 continue
 
             if value not in option_labels:
-                raise bad_request(f'"{field["label"]}" alanı için geçerli bir seçim yapın.')
+                raise bad_request(f'"{field["label"]}" alanı icin gecerli bir secim yapın.')
 
             normalized[field_id] = value[:1000]
             continue
@@ -5721,7 +6044,7 @@ def _normalize_registration_answers(
         elif isinstance(raw_value, (int, float, bool)):
             value = str(raw_value).strip()
         else:
-            raise bad_request(f'"{field["label"]}" alanı için geçerli bir değer girin.')
+            raise bad_request(f'"{field["label"]}" alanı icin gecerli bir değer girin.')
 
         is_required = bool(field.get("required")) or _is_registration_field_condition_met(field, raw_map)
         if is_required and not value:
@@ -5854,7 +6177,7 @@ async def _process_one_bulk_certificate_job(job_id: int) -> None:
         if not job:
             return
 
-        if job.status in ["completed", "failed", "cancelled"]:
+        if job.status in ["completed", "failed", "caoncelled"]:
             return
 
         if job.status == "pending":
@@ -5948,7 +6271,7 @@ async def _process_one_bulk_certificate_job(job_id: int) -> None:
         for idx in range(start_idx, end_idx):
             student_name = names[idx]
 
-            if user.heptacoin_balance < ISSUE_UNITS_PER_CERT:
+            if user.heptacoin_balaonce < ISSUE_UNITS_PER_CERT:
                 job.status = "failed"
                 job.error_message = f"Insufficient HeptaCoin at index={idx}"
                 job.current_index = idx
@@ -6014,7 +6337,7 @@ async def _process_one_bulk_certificate_job(job_id: int) -> None:
                 hosting_spend = hosting_units(hosting_term, asset_size_bytes)
                 spend_units = ISSUE_UNITS_PER_CERT + hosting_spend
 
-                if user.heptacoin_balance < spend_units:
+                if user.heptacoin_balaonce < spend_units:
                     job.status = "failed"
                     job.error_message = f"Insufficient HeptaCoin at index={idx}"
                     job.current_index = idx
@@ -6039,7 +6362,7 @@ async def _process_one_bulk_certificate_job(job_id: int) -> None:
                 )
                 db_job.add(cert)
 
-                user.heptacoin_balance -= spend_units
+                user.heptacoin_balaonce -= spend_units
                 db_job.add(Transaction(user_id=user.id, amount=spend_units, type=TxType.spend))
 
                 job.created_count += 1
@@ -6132,7 +6455,7 @@ async def create_or_update_badge_rules(
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
     
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+        raise HTTPException(status_code=403, detail="Unauthorized")
 
     if not is_gamification_enabled(event):
         raise HTTPException(status_code=403, detail="Oyunlaştırma bu etkinlikte kapalı")
@@ -6175,7 +6498,7 @@ async def get_badge_rules(
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     if not is_gamification_enabled(event):
         raise HTTPException(status_code=403, detail="Oyunlaştırma bu etkinlikte kapalı")
@@ -6202,7 +6525,7 @@ async def award_badge_manually(
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     if not is_gamification_enabled(event):
         raise HTTPException(status_code=403, detail="Oyunlaştırma bu etkinlikte kapalı")
@@ -6228,7 +6551,7 @@ async def award_badge_manually(
     )
     existing_badge = pb_res.scalar_one_or_none()
     if existing_badge:
-        raise HTTPException(status_code=409, detail="Bu rozet zaten veriliÃ…Å¸")
+        raise HTTPException(status_code=409, detail="Bu rozet zaten veriliÅŸ")
 
     # Create badge
     new_badge = ParticipantBadge(
@@ -6308,7 +6631,7 @@ async def list_badges(
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     if not is_gamification_enabled(event):
         raise HTTPException(status_code=403, detail="Oyunlaştırma bu etkinlikte kapalı")
@@ -6510,7 +6833,7 @@ async def trigger_automatic_badge_calculation(
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     if not is_gamification_enabled(event):
         raise HTTPException(status_code=403, detail="Oyunlaştırma bu etkinlikte kapalı")
@@ -6534,7 +6857,7 @@ async def trigger_automatic_badge_calculation(
     )
     attendees = att_res.scalars().all()
 
-    # Pre-compute total session count for attendance_rate
+    # Pre-compute total session count for attendaonce_rate
     sessions_res = await db.execute(
         select(func.count()).select_from(EventSession).where(EventSession.event_id == event_id)
     )
@@ -6548,10 +6871,10 @@ async def trigger_automatic_badge_calculation(
 
     created_count = 0
     for attendee in attendees:
-        # Load attendance records for this attendee once
+        # Load attendaonce records for this attendee oonce
         ar_res = await db.execute(
-            select(func.count()).select_from(AttendanceRecord).where(
-                AttendanceRecord.attendee_id == attendee.id
+            select(func.count()).select_from(AttendaonceRecord).where(
+                AttendaonceRecord.attendee_id == attendee.id
             )
         )
         sessions_attended = ar_res.scalar() or 0
@@ -6583,7 +6906,7 @@ async def trigger_automatic_badge_calculation(
                     if not ok:
                         passed = False
 
-                elif key == "attendance_rate":
+                elif key == "attendaonce_rate":
                     rate = (sessions_attended / total_sessions * 100) if total_sessions > 0 else 0
                     ok = rate >= float(threshold)
                     criteria_met[key] = {"required": threshold, "actual": round(rate, 1), "passed": ok}
@@ -6656,7 +6979,7 @@ async def create_or_update_tier_rules(
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     # Check if rules exist
     ctr_res = await db.execute(
@@ -6694,7 +7017,7 @@ async def get_tier_rules(
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     ctr_res = await db.execute(
         select(CertificateTierRule).where(CertificateTierRule.event_id == event_id)
@@ -6717,7 +7040,7 @@ async def assign_certificate_tiers(
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     # Get tier rules
     ctr_res = await db.execute(
@@ -6771,7 +7094,7 @@ async def get_tier_summary(
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     # Get tier distribution
     certs_res = await db.execute(
@@ -6812,21 +7135,21 @@ async def configure_event_survey(
     e_res = await db.execute(select(Event).where(Event.id == event_id))
     event = e_res.scalar_one_or_none()
     if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamad?")
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamad")
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eri?im")
+        raise HTTPException(status_code=403, detail="Yetkisiz eriim")
 
     if survey_in.survey_type not in {"disabled", "builtin", "external", "both"}:
-        raise HTTPException(status_code=400, detail="Ge?ersiz anket t?r?")
+        raise HTTPException(status_code=400, detail="Gecersiz anket turu")
 
     survey_disabled = survey_in.survey_type == "disabled"
     builtin_questions = [] if survey_disabled else [q.model_dump() for q in survey_in.builtin_questions]
     if survey_in.survey_type in {"builtin", "both"} and not builtin_questions:
-        raise HTTPException(status_code=400, detail="Yerle?ik anket i?in en az bir soru gerekli")
+        raise HTTPException(status_code=400, detail="Yerleik anket icin en az bir soru gerekli")
 
     if survey_in.survey_type in {"external", "both"} and not survey_in.external_url:
-        raise HTTPException(status_code=400, detail="Harici anket i?in URL gerekli")
+        raise HTTPException(status_code=400, detail="Harici anket icin URL gerekli")
 
     webhook_key = survey_in.external_webhook_key
     if survey_in.survey_type in {"external", "both"} and not webhook_key:
@@ -6882,10 +7205,10 @@ async def get_event_survey(
     e_res = await db.execute(select(Event).where(Event.id == event_id))
     event = e_res.scalar_one_or_none()
     if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamad?")
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamad")
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eri?im")
+        raise HTTPException(status_code=403, detail="Yetkisiz eriim")
 
     es_res = await db.execute(select(EventSurvey).where(EventSurvey.event_id == event_id))
     event_survey = es_res.scalar_one_or_none()
@@ -6933,24 +7256,24 @@ async def submit_builtin_survey(
     )
     attendee = att_res.scalar_one_or_none()
     if not attendee:
-        raise HTTPException(status_code=404, detail="Kat?l?mc? bulunamad?")
+        raise HTTPException(status_code=404, detail="Katlmc bulunamad")
     if token_email and attendee.email.lower() != token_email:
         raise HTTPException(status_code=404, detail="KatÃ„Â±lÃ„Â±mcÃ„Â± bulunamadÃ„Â±")
 
     es_res = await db.execute(select(EventSurvey).where(EventSurvey.event_id == event_db_id))
     event_survey = es_res.scalar_one_or_none()
     if not event_survey:
-        raise HTTPException(status_code=400, detail="Bu etkinlik i?in anket yap?land?r?lmam??")
+        raise HTTPException(status_code=400, detail="Bu etkinlik icin anket yaplandrlmam")
 
     if survey_resp_in.survey_type != "builtin":
-        raise HTTPException(status_code=400, detail="Bu endpoint yaln?zca yerle?ik anket i?indir")
+        raise HTTPException(status_code=400, detail="Bu endpoint yalnzca yerleik anket icindir")
 
     if event_survey.survey_type not in {"builtin", "both"}:
-        raise HTTPException(status_code=400, detail="Bu etkinlik yerle?ik anket kabul etmiyor")
+        raise HTTPException(status_code=400, detail="Bu etkinlik yerleik anket kabul etmiyor")
 
     builtin_questions = event_survey.builtin_questions or []
     if not builtin_questions:
-        raise HTTPException(status_code=400, detail="Yerle?ik anket sorular? tan?mlanmam??")
+        raise HTTPException(status_code=400, detail="Yerleik anket sorular tanmlanmam")
 
     answers = survey_resp_in.answers or {}
     for question in builtin_questions:
@@ -6966,7 +7289,7 @@ async def submit_builtin_survey(
         if question.get("type") == "multiple_choice" and normalized_answer:
             options = [str(option) for option in (question.get("options") or [])]
             if options and normalized_answer not in options:
-                raise HTTPException(status_code=400, detail=f"'{question_id}' sorusu i?in ge?ersiz se?enek")
+                raise HTTPException(status_code=400, detail=f"'{question_id}' sorusu icin gecersiz secenek")
 
     sr_res = await db.execute(
         select(SurveyResponse).where(
@@ -6977,7 +7300,7 @@ async def submit_builtin_survey(
     )
     existing = sr_res.scalar_one_or_none()
     if existing:
-        raise HTTPException(status_code=409, detail="Bu anket zaten g?nderilmi?")
+        raise HTTPException(status_code=409, detail="Bu anket zaten gnderilmi")
 
     now = datetime.utcnow()
     survey_response = SurveyResponse(
@@ -7088,7 +7411,7 @@ async def get_survey_responses(
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     sr_res = await db.execute(
         select(SurveyResponse)
@@ -7143,7 +7466,7 @@ async def create_sponsor_slot(
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     # Create sponsor slot
     sponsor_slot = SponsorSlot(
@@ -7175,7 +7498,7 @@ async def list_sponsors(
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     ss_res = await db.execute(
         select(SponsorSlot)
@@ -7207,7 +7530,7 @@ async def update_sponsor_slot(
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     # Get sponsor slot
     ss_res = await db.execute(
@@ -7249,7 +7572,7 @@ async def delete_sponsor_slot(
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     # Get sponsor slot
     ss_res = await db.execute(
@@ -7306,7 +7629,7 @@ async def health_check():
 
 
 def editor_config_to_template_config(raw: dict) -> "TemplateConfig":
-    """Translate nested EditorConfig or flat legacy format Ã¢â€ â€™ TemplateConfig."""
+    """Translate nested EditorConfig or flat legacy format â†’ TemplateConfig."""
     if "name" in raw and isinstance(raw.get("name"), dict):
         name    = raw["name"]
         cert_id = raw.get("cert_id") or {}
@@ -7369,7 +7692,7 @@ async def login(request: Request, data: LoginIn, db: AsyncSession = Depends(get_
     res = await db.execute(select(User).where(User.email == str(data.email)))
     user = res.scalar_one_or_none()
     if not user or not verify_password(data.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="GeÃƒÂ§ersiz e-posta veya Ã…Å¸ifre.")
+        raise HTTPException(status_code=401, detail="GeÃ§ersiz e-posta veya ÅŸifre.")
     if not user.is_verified:
         raise HTTPException(status_code=403, detail="E-posta adresinizi doÃ„Å¸rulamanÃ„Â±z gerekiyor. LÃƒÂ¼tfen gelen kutunuzu kontrol edin.")
 
@@ -7436,7 +7759,7 @@ async def login(request: Request, data: LoginIn, db: AsyncSession = Depends(get_
 @limiter.limit("3/minute")
 async def register(request: Request, data: RegisterIn, db: AsyncSession = Depends(get_db)):
     if not data.terms_accepted:
-        raise bad_request("Kayıt için kullanım koşullarını kabul etmelisiniz.")
+        raise bad_request("Kayıt icin kullanım koşullarını kabul etmelisiniz.")
 
     res = await db.execute(select(User).where(User.email == str(data.email)))
     if res.scalar_one_or_none():
@@ -7447,25 +7770,25 @@ async def register(request: Request, data: RegisterIn, db: AsyncSession = Depend
         email=str(data.email),
         password_hash=hash_password(data.password),
         role=Role.admin,
-        heptacoin_balance=100,  # 100 HC hoÃ…Å¸ geldin hediyesi
+        heptacoin_balaonce=100,  # 100 HC hoÅŸ geldin hediyesi
         is_verified=False,
         verification_token=token,
     )
     db.add(user)
     await db.commit()
 
-    verify_link = f"{settings.frontend_base_url}/verify-email?token={token}"
+    verify_link = f"{settings.frontend_base_url}/verify-emailtoken={token}"
     await send_email_async(
         to=str(data.email),
         subject="HeptaCert - E-posta Adresinizi Doğrulayın",
         html_body=f"""
         <p>Merhaba,</p>
-        <p>HeptaCert'e hoş geldiniz! Hesabınızı aktif etmek için aşağıdaki bağlantıya tıklayın:</p>
+        <p>HeptaCert'e hoş geldiniz! Hesabınızı aktif etmek icin aşağıdaki bağlantıya tıklayın:</p>
         <p><a href="{verify_link}">{verify_link}</a></p>
-        <p>Bu bağlantı 24 saat geçerlidir.</p>
+        <p>Bu bağlantı 24 saat gecerlidir.</p>
         """,
     )
-    return {"detail": "Kayıt başarılı. Aktivasyon e-postası gönderildi."}
+    return {"detail": "Kayıt başarılı. Aktivasyon e-postası gonderildi."}
 
 
 @app.get("/api/auth/verify-email")
@@ -7473,12 +7796,12 @@ async def verify_email_endpoint(token: str = Query(...), db: AsyncSession = Depe
     try:
         payload = verify_email_token(token, max_age=86400)
     except SignatureExpired:
-        raise bad_request("Doğrulama bağlantısının süresi dolmuş. Lütfen yeniden kayıt olun.")
+        raise bad_request("Doğrulama bağlantısının suresi dolmuş. Lutfen yeniden kayıt olun.")
     except (BadSignature, Exception):
-        raise bad_request("Geçersiz doğrulama bağlantısı.")
+        raise bad_request("Gecersiz doğrulama bağlantısı.")
 
     if payload.get("action") != "verify":
-        raise bad_request("Geçersiz token türü.")
+        raise bad_request("Gecersiz token turu.")
 
     email = payload.get("email")
     res = await db.execute(select(User).where(User.email == email))
@@ -7546,7 +7869,7 @@ async def google_oauth_start(
         "access_type": "online",
         "prompt": "select_account",
     }
-    return RedirectResponse(f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}")
+    return RedirectResponse(f"https://accounts.google.com/o/oauth2/v2/auth{urlencode(params)}")
 
 
 @app.get("/api/auth/google/callback")
@@ -7607,7 +7930,7 @@ async def google_oauth_callback(
                 email=email,
                 password_hash=hash_password(secrets.token_urlsafe(32)),
                 role=Role.admin,
-                heptacoin_balance=100,
+                heptacoin_balaonce=100,
                 is_verified=True,
                 verification_token=None,
             )
@@ -7649,7 +7972,7 @@ async def google_oauth_callback(
         token = create_public_member_access_token(member_id=member.id)
 
     params = urlencode({"mode": mode, "token": token, "next": next_url})
-    return RedirectResponse(f"{settings.frontend_base_url.rstrip('/')}/auth/google/callback?{params}")
+    return RedirectResponse(f"{settings.frontend_base_url.rstrip('/')}/auth/google/callback{params}")
 
 
 @app.get(
@@ -7705,7 +8028,7 @@ async def google_sheets_auth_start(
         "include_granted_scopes": "true",
     }
     return GoogleSheetsAuthStartOut(
-        authorization_url=f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+        authorization_url=f"https://accounts.google.com/o/oauth2/v2/auth{urlencode(params)}"
     )
 
 
@@ -7770,7 +8093,7 @@ async def google_sheets_auth_callback(
         "google_sheets": sheet_status,
         "admin_token": create_access_token(user_id=user.id, role=user.role),
     })
-    separator = "&" if "?" in next_url else "?"
+    separator = "&" if "" in next_url else ""
     redirect_target = f"{frontend_origin}{next_url}{separator}{bridge_params}"
     logger.info(
         "Google Sheets OAuth connected for user_id=%s; redirecting to frontend_origin=%s next=%s",
@@ -7833,7 +8156,7 @@ async def microsoft_excel_auth_start(
         "prompt": "select_account",
     }
     return MicrosoftExcelAuthStartOut(
-        authorization_url=f"https://login.microsoftonline.com/common/oauth2/v2.0/authorize?{urlencode(params)}"
+        authorization_url=f"https://login.microsoftonline.com/common/oauth2/v2.0/authorize{urlencode(params)}"
     )
 
 
@@ -7898,7 +8221,7 @@ async def microsoft_excel_auth_callback(
         "ms365_excel": excel_status,
         "admin_token": create_access_token(user_id=user.id, role=user.role),
     })
-    separator = "&" if "?" in next_url else "?"
+    separator = "&" if "" in next_url else ""
     redirect_target = f"{frontend_origin}{next_url}{separator}{bridge_params}"
     logger.info(
         "Microsoft Excel OAuth connected for user_id=%s; redirecting to frontend_origin=%s next=%s",
@@ -7936,7 +8259,7 @@ async def public_member_register(request: Request, data: PublicMemberRegisterIn,
     db.add(member)
     await db.commit()
 
-    verify_link = f"{settings.frontend_base_url}/member/verify-email?token={token}"
+    verify_link = f"{settings.frontend_base_url}/member/verify-emailtoken={token}"
     await send_email_async(
         to=email,
         subject="HeptaCert - Verify your member account",
@@ -8077,7 +8400,7 @@ async def forgot_password(request: Request, data: ForgotPasswordIn, db: AsyncSes
             html_body=f"""
             <p>Şifrenizi sıfırlamak için aşağıdaki bağlantıya tıklayın:</p>
             <p><a href="{reset_link}">{reset_link}</a></p>
-            <p>Bu bağlantı 1 saat geçerlidir.</p>
+            <p>Bu bağlantı 1 saat gecerlidir.</p>
             """,
         )
     return {"detail": "Şifre sıfırlama talimatları e-posta adresinize gönderildi."}
@@ -8091,10 +8414,10 @@ async def reset_password(request: Request, data: ResetPasswordIn, db: AsyncSessi
     except SignatureExpired:
         raise bad_request("Şifre sıfırlama bağlantısının süresi dolmuş.")
     except (BadSignature, Exception):
-        raise bad_request("Geçersiz sıfırlama bağlantısı.")
+        raise bad_request("Gecersiz sıfırlama bağlantısı.")
 
     if payload.get("action") != "reset":
-        raise bad_request("Geçersiz token türü.")
+        raise bad_request("Gecersiz token turu.")
 
     email = payload.get("email")
     res = await db.execute(select(User).where(User.email == email))
@@ -8109,13 +8432,13 @@ async def reset_password(request: Request, data: ResetPasswordIn, db: AsyncSessi
     user.password_hash = hash_password(data.new_password)
     user.password_reset_token = None
     await db.commit()
-    return {"detail": "Şifreniz başarıyla güncellendi."}
+    return {"detail": "Şifreniz başarıyla güoncellendi."}
 
 
 class AdminListItem(BaseModel):
     id: int
     email: EmailStr
-    heptacoin_balance: int
+    heptacoin_balaonce: int
     created_at: datetime
 
 class TxListItem(BaseModel):
@@ -8136,17 +8459,17 @@ class AdminRowOut(BaseModel):
     id: int
     email: EmailStr
     role: Role
-    heptacoin_balance: int
+    heptacoin_balaonce: int
 
 
-class SuperadminAudienceItemOut(BaseModel):
+class SuperadminAudieonceItemOut(BaseModel):
     email: EmailStr
     public_member_count: int
     attendee_count: int
 
 
-class SuperadminAudienceOut(BaseModel):
-    items: List[SuperadminAudienceItemOut]
+class SuperadminAudieonceOut(BaseModel):
+    items: List[SuperadminAudieonceItemOut]
     total: int
     limit: int
     offset: int
@@ -8188,13 +8511,29 @@ class SuperadminBulkEmailJobOut(BaseModel):
     sent_count: int
     failed_count: int
     status: str
-    cancel_requested: bool
+    caoncel_requested: bool
     error_message: Optional[str]
     created_at: datetime
     started_at: Optional[datetime]
     completed_at: Optional[datetime]
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class SuperadminAudienceItemOut(BaseModel):
+    email: str
+    public_member_count: int
+    attendee_count: int
+
+
+class SuperadminAudienceOut(BaseModel):
+    items: List[SuperadminAudienceItemOut]
+    total: int
+    limit: int
+    offset: int
+    source: str
+    unique_public_member_emails: List[str]
+    unique_attendee_emails: List[str]
 
 
 class SystemEmailDigestConfigIn(BaseModel):
@@ -8305,11 +8644,11 @@ async def _resolve_system_digest_recipient_emails(db: AsyncSession) -> List[str]
         func.trim(Attendee.email) != "",
         Attendee.unsubscribed_at.is_(None),
     )
-    audience_stmt = union_all(member_emails_stmt, attendee_emails_stmt).subquery("system_digest_audience")
+    audieonce_stmt = union_all(member_emails_stmt, attendee_emails_stmt).subquery("system_digest_audieonce")
     email_rows_res = await db.execute(
-        select(distinct(audience_stmt.c.email))
-        .where(audience_stmt.c.email.is_not(None), audience_stmt.c.email != "")
-        .order_by(audience_stmt.c.email.asc())
+        select(distinct(audieonce_stmt.c.email))
+        .where(audieonce_stmt.c.email.is_not(None), audieonce_stmt.c.email != "")
+        .order_by(audieonce_stmt.c.email.asc())
     )
     return [email for email in email_rows_res.scalars().all() if email]
 
@@ -8380,8 +8719,8 @@ async def _build_system_digest_email_content(db: AsyncSession, config: SystemEma
         <rect x='78' y='84' width='180' height='180' rx='38' fill='#ffffff' fill-opacity='0.12' stroke='#ffffff' stroke-opacity='0.18'/>
         <path d='M138 126h60l42 42-42 42h-60l42-42z' fill='#ffffff' fill-opacity='0.96'/>
         <path d='M152 160h132v20H152zM152 192h96v20h-96z' fill='#ffffff' fill-opacity='0.72'/>
-        <text x='308' y='155' fill='#ecfeff' font-size='58' font-weight='700' font-family='Arial, Helvetica, sans-serif'>HeptaCert topluluk ozeti</text>
-        <text x='308' y='215' fill='#cffafe' font-size='30' font-weight='400' font-family='Arial, Helvetica, sans-serif'>Yeni etkinlikler ve topluluk paylasimlari tek e-postada</text>
+        <text x='308' y='155' fill='#ecfeff' font-size='58' font-weight='700' font-family='Arial, Helvetica, sans-serif'>HeptaCert topluluk özeti</text>
+        <text x='308' y='215' fill='#cffafe' font-size='30' font-weight='400' font-family='Arial, Helvetica, sans-serif'>Yeni etkinlikler ve topluluk paylaşımları tek e-postada</text>
         <rect x='308' y='252' width='230' height='52' rx='26' fill='#ffffff' fill-opacity='0.14' stroke='#ffffff' stroke-opacity='0.24'/>
         <text x='338' y='286' fill='#ffffff' font-size='22' font-weight='700' font-family='Arial, Helvetica, sans-serif'>HeptaCert</text>
     </svg>
@@ -8469,7 +8808,7 @@ async def _build_system_digest_email_content(db: AsyncSession, config: SystemEma
         if len(recent_posts) >= int(config.max_posts or 3):
             break
 
-    subject = "HeptaCert topluluk ozeti"
+    subject = "HeptaCert topluluk özeti"
     events_count = len(upcoming_events)
     posts_count = len(recent_posts)
 
@@ -8483,8 +8822,8 @@ async def _build_system_digest_email_content(db: AsyncSession, config: SystemEma
                             <td style='padding:18px 18px 14px 18px;'>
                                 <div style='font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f766e;font-weight:700;margin-bottom:6px;'>Etkinlik</div>
                                 <div style='font-size:18px;font-weight:700;color:#0f172a;margin-bottom:8px;'>{escape(item['name'])}</div>
-                                <div style='font-size:14px;color:#475569;margin-bottom:12px;'>{escape(item['date'] or 'Tarih yakinda')}{' - ' + escape(item['location']) if item['location'] else ''}{' - ' + escape(item['organization']) if item['organization'] else ''}</div>
-                                <a href='{escape(item['link'])}' style='display:inline-block;padding:10px 14px;background:#0f766e;color:#ffffff;text-decoration:none;border-radius:999px;font-size:13px;font-weight:700;'>Etkinligi ac</a>
+                                <div style='font-size:14px;color:#475569;margin-bottom:12px;'>{escape(item['date'] or 'Tarih yakında')}{' - ' + escape(item['location']) if item['location'] else ''}{' - ' + escape(item['organization']) if item['organization'] else ''}</div>
+                                <a href='{escape(item['link'])}' style='display:inline-block;padding:10px 14px;background:#0f766e;color:#ffffff;text-decoration:none;border-radius:999px;font-size:13px;font-weight:700;'>Etkinliği aç</a>
                             </td>
                         </tr>
                     </table>
@@ -8499,7 +8838,7 @@ async def _build_system_digest_email_content(db: AsyncSession, config: SystemEma
             <td style='padding:0 0 14px 0;'>
                 <table role='presentation' width='100%' cellspacing='0' cellpadding='0' style='border:1px dashed #d1d5db;border-radius:18px;background:#f8fafc;'>
                     <tr>
-                        <td style='padding:18px;color:#64748b;'>Su an one cikan yeni etkinlik yok.</td>
+                        <td style='padding:18px;color:#64748b;'>Şu an öne çıkan yeni etkinlik yok.</td>
                     </tr>
                 </table>
             </td>
@@ -8516,8 +8855,8 @@ async def _build_system_digest_email_content(db: AsyncSession, config: SystemEma
                             <td style='padding:18px 18px 14px 18px;'>
                                 <div style='display:inline-block;padding:4px 10px;border-radius:999px;background:#eef2ff;color:#4338ca;font-size:12px;font-weight:700;margin-bottom:10px;'>Topluluk</div>
                                 <div style='font-size:18px;font-weight:700;color:#0f172a;margin-bottom:8px;'>{escape(item['author'])}</div>
-                                <div style='font-size:14px;color:#475569;margin-bottom:12px;line-height:1.55;'>{escape(item['snippet'] or 'Gonderi')}</div>
-                                <a href='{escape(item['link'])}' style='display:inline-block;padding:10px 14px;background:#4338ca;color:#ffffff;text-decoration:none;border-radius:999px;font-size:13px;font-weight:700;'>Paylasimi ac</a>
+                                <div style='font-size:14px;color:#475569;margin-bottom:12px;line-height:1.55;'>{escape(item['snippet'] or 'Gönderi')}</div>
+                                <a href='{escape(item['link'])}' style='display:inline-block;padding:10px 14px;background:#4338ca;color:#ffffff;text-decoration:none;border-radius:999px;font-size:13px;font-weight:700;'>Paylaşımı aç</a>
                             </td>
                         </tr>
                     </table>
@@ -8532,7 +8871,7 @@ async def _build_system_digest_email_content(db: AsyncSession, config: SystemEma
             <td style='padding:0 0 14px 0;'>
                 <table role='presentation' width='100%' cellspacing='0' cellpadding='0' style='border:1px dashed #d1d5db;border-radius:18px;background:#f8fafc;'>
                     <tr>
-                        <td style='padding:18px;color:#64748b;'>Su an gosterilecek yeni paylasim yok.</td>
+                        <td style='padding:18px;color:#64748b;'>Şu an gösterilecek yeni paylaşım yok.</td>
                     </tr>
                 </table>
             </td>
@@ -8550,7 +8889,7 @@ async def _build_system_digest_email_content(db: AsyncSession, config: SystemEma
     </head>
     <body style='margin:0;padding:0;background:#eef2ff;'>
         <div style='display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;mso-hide:all;'>
-            HeptaCert: {events_count} etkinlik ve {posts_count} topluluk icerigi.
+            HeptaCert: {events_count} etkinlik ve {posts_count} topluluk içeriği.
         </div>
         <table role='presentation' width='100%' cellspacing='0' cellpadding='0' border='0' style='background:linear-gradient(180deg,#eef2ff 0%,#f8fafc 100%);padding:24px 12px;'>
             <tr>
@@ -8558,15 +8897,15 @@ async def _build_system_digest_email_content(db: AsyncSession, config: SystemEma
                     <table role='presentation' width='100%' cellspacing='0' cellpadding='0' border='0' style='max-width:760px;background:#ffffff;border-radius:28px;overflow:hidden;box-shadow:0 18px 60px rgba(15,23,42,0.12);'>
                         <tr>
                             <td>
-                                <img src='{hero_data_uri}' alt='HeptaCert topluluk ozeti' style='display:block;width:100%;max-width:760px;height:auto;border:0;'/>
+                                <img src='{hero_data_uri}' alt='HeptaCert topluluk özeti' style='display:block;width:100%;max-width:760px;height:auto;border:0;'/>
                             </td>
                         </tr>
                         <tr>
                             <td style='padding:28px 28px 8px 28px;'>
                                 {'<img src="' + logo_data_uri + '" alt="HeptaCert" style="display:block;width:56px;height:56px;border-radius:16px;margin-bottom:14px;"/>' if logo_data_uri else ''}
                                 <div style='font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f766e;font-weight:800;margin-bottom:8px;'>HeptaCert</div>
-                                <h1 style='margin:0 0 12px 0;font-size:28px;line-height:1.2;color:#0f172a;'>Yeni etkinlikler ve topluluk paylasimlari</h1>
-                                <p style='margin:0;color:#475569;font-size:15px;line-height:1.7;max-width:620px;'>Ilginizi cekebilecek etkinlikleri ve topluluktan son paylasimlari kisa bir ozet halinde hazirladik.</p>
+                                <h1 style='margin:0 0 12px 0;font-size:28px;line-height:1.2;color:#0f172a;'>Yeni etkinlikler ve topluluk paylaşımları</h1>
+                                <p style='margin:0;color:#475569;font-size:15px;line-height:1.7;max-width:620px;'>İlginizi çekebilecek etkinlikleri ve topluluktan son paylaşımları kısa bir özet halinde hazırladık.</p>
                             </td>
                         </tr>
                         <tr>
@@ -8577,14 +8916,14 @@ async def _build_system_digest_email_content(db: AsyncSession, config: SystemEma
                                             <div style='border-radius:18px;background:#f8fafc;border:1px solid #e5e7eb;padding:18px;'>
                                                 <div style='font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;font-weight:700;'>Etkinlik</div>
                                                 <div style='font-size:30px;font-weight:800;color:#0f172a;margin-top:8px;'>{events_count}</div>
-                                                <div style='font-size:13px;color:#64748b;margin-top:4px;'>one cikan icerik</div>
+                                                <div style='font-size:13px;color:#64748b;margin-top:4px;'>öne çıkan içerik</div>
                                             </div>
                                         </td>
                                         <td style='padding:0 0 10px 10px;width:50%;'>
                                             <div style='border-radius:18px;background:#f8fafc;border:1px solid #e5e7eb;padding:18px;'>
                                                 <div style='font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;font-weight:700;'>Topluluk</div>
                                                 <div style='font-size:30px;font-weight:800;color:#0f172a;margin-top:8px;'>{posts_count}</div>
-                                                <div style='font-size:13px;color:#64748b;margin-top:4px;'>son paylasim</div>
+                                                <div style='font-size:13px;color:#64748b;margin-top:4px;'>son paylaşım</div>
                                             </div>
                                         </td>
                                     </tr>
@@ -8593,7 +8932,7 @@ async def _build_system_digest_email_content(db: AsyncSession, config: SystemEma
                         </tr>
                         <tr>
                             <td style='padding:10px 28px 0 28px;'>
-                                <h2 style='margin:0 0 14px 0;font-size:20px;color:#0f172a;'>One cikan etkinlikler</h2>
+                                <h2 style='margin:0 0 14px 0;font-size:20px;color:#0f172a;'>Öne çıkan etkinlikler</h2>
                             </td>
                         </tr>
                         <tr>
@@ -8605,7 +8944,7 @@ async def _build_system_digest_email_content(db: AsyncSession, config: SystemEma
                         </tr>
                         <tr>
                             <td style='padding:8px 28px 0 28px;'>
-                                <h2 style='margin:0 0 14px 0;font-size:20px;color:#0f172a;'>Son topluluk paylasimlari</h2>
+                                <h2 style='margin:0 0 14px 0;font-size:20px;color:#0f172a;'>Son topluluk paylaşımları</h2>
                             </td>
                         </tr>
                         <tr>
@@ -8621,8 +8960,8 @@ async def _build_system_digest_email_content(db: AsyncSession, config: SystemEma
                                     <tr>
                                         <td style='padding:22px 22px 20px 22px;color:#ffffff;'>
                                             <div style='font-size:18px;font-weight:800;margin-bottom:6px;'>HeptaCert'te kesfetmeye devam edin</div>
-                                            <div style='font-size:14px;line-height:1.7;opacity:0.95;margin-bottom:16px;'>Etkinlikleri inceleyin, toplulugu takip edin ve size uygun iceriklere ulasin.</div>
-                                            <a href='{settings.frontend_base_url.rstrip("/")}/events' style='display:inline-block;padding:12px 18px;background:#ffffff;color:#0f172a;text-decoration:none;border-radius:999px;font-size:14px;font-weight:800;'>Etkinlikleri kesfet</a>
+                                            <div style='font-size:14px;line-height:1.7;opacity:0.95;margin-bottom:16px;'>Etkinlikleri inceleyin, topluluğu takip edin ve size uygun içeriklere ulaşın.</div>
+                                            <a href='{settings.frontend_base_url.rstrip("/")}/events' style='display:inline-block;padding:12px 18px;background:#ffffff;color:#0f172a;text-decoration:none;border-radius:999px;font-size:14px;font-weight:800;'>Etkinlikleri keşfet</a>
                                         </td>
                                     </tr>
                                 </table>
@@ -8631,9 +8970,9 @@ async def _build_system_digest_email_content(db: AsyncSession, config: SystemEma
                         <tr>
                             <td style='padding:0 28px 28px 28px;'>
                                 <div style='font-size:12px;color:#64748b;line-height:1.7;'>
-                                    Bu e-posta, HeptaCert topluluk guncellemeleri kapsaminda gonderilmistir.
+                                    Bu e-posta, HeptaCert topluluk güncellemeleri kapsamında gönderilmiştir.
                                     <br />
-                                    Bu tur e-postalari almak istemiyorsaniz <a href='{{{{ unsubscribe_url }}}}' style='color:#0f766e;text-decoration:none;font-weight:700;'>buradan abonelikten cikabilirsiniz</a>.
+                                    Bu tür e-postaları almak istemiyorsanız <a href='{{{{ unsubscribe_url }}}}' style='color:#0f766e;text-decoration:none;font-weight:700;'>buradan abonelikten çıkabilirsiniz</a>.
                                 </div>
                                 <div style='margin-top:14px;font-size:11px;color:#94a3b8;'>&copy; {now_year} HeptaCert</div>
                             </td>
@@ -8665,7 +9004,7 @@ async def _create_system_digest_job(
         body_html=body_html,
         total_targets=len(recipient_emails),
         status="pending",
-        cancel_requested=False,
+        caoncel_requested=False,
     )
     db.add(job)
     await db.commit()
@@ -8710,8 +9049,8 @@ async def _run_superadmin_bulk_email_job(job_id: int) -> None:
             if not job or job.status != "pending":
                 return
 
-            if job.cancel_requested:
-                job.status = "cancelled"
+            if job.caoncel_requested:
+                job.status = "caoncelled"
                 job.completed_at = datetime.now(timezone.utc)
                 db_job.add(job)
                 await db_job.commit()
@@ -8749,10 +9088,10 @@ async def _run_superadmin_bulk_email_job(job_id: int) -> None:
                 fresh_job = check_res.scalar_one_or_none()
                 if not fresh_job:
                     return
-                if fresh_job.cancel_requested:
+                if fresh_job.caoncel_requested:
                     fresh_job.sent_count = sent_count
                     fresh_job.failed_count = failed_count
-                    fresh_job.status = "cancelled"
+                    fresh_job.status = "caoncelled"
                     fresh_job.completed_at = datetime.now(timezone.utc)
                     db_job.add(fresh_job)
                     await db_job.commit()
@@ -8848,13 +9187,7 @@ async def apply_cert_template(
     db: AsyncSession = Depends(get_db),
 ):
     """Apply a certificate template to an event."""
-    # Verify ownership
-    ev_res = await db.execute(
-        select(Event).where(Event.id == event_id, Event.admin_id == me.id)
-    )
-    event = ev_res.scalar_one_or_none()
-    if not event and me.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃ…Å¸im")
+    event = await _get_event_for_admin(event_id, me, db, "certificates:write")
     
     cert_template_id = payload.get("cert_template_id")
     if not cert_template_id:
@@ -8895,7 +9228,7 @@ async def create_webhook_subscription(
 ):
     """Subscribe to email and registration events."""
     # Validate event type
-    valid_events = ["email.sent", "email.failed", "email.bounced", "email.opened", "attendee.register"]
+    valid_events = ["email.sent", "email.failed", "email.bouonced", "email.opened", "attendee.register"]
     if payload.event_type not in valid_events:
         raise HTTPException(
             status_code=400,
@@ -8945,7 +9278,7 @@ async def list_webhooks(
 )
 async def update_webhook(
     webhook_id: int,
-    payload: dict,  # { is_active: bool, url?: str }
+    payload: dict,  # { is_active: bool, url: str }
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -9061,7 +9394,7 @@ async def list_admins(db: AsyncSession = Depends(get_db)):
             id=u.id,
             email=u.email,
             role=u.role,                  # <-- kritik
-            heptacoin_balance=u.heptacoin_balance
+            heptacoin_balaonce=u.heptacoin_balaonce
         )
         for u in users
     ]
@@ -9115,13 +9448,13 @@ async def create_admin(payload: CreateAdminIn, db: AsyncSession = Depends(get_db
         email=str(payload.email),
         password_hash=hash_password(payload.password),
         role=Role.admin,
-        heptacoin_balance=0,
+        heptacoin_balaonce=0,
         is_verified=True,  # superadmin tarafÃ„Â±ndan oluÃ…Å¸turulan hesaplar otomatik doÃ„Å¸rulanÃ„Â±r
     )
     db.add(admin)
     await db.commit()
     await db.refresh(admin)
-    return {"id": admin.id, "email": admin.email, "role": admin.role, "heptacoin_balance": admin.heptacoin_balance}
+    return {"id": admin.id, "email": admin.email, "role": admin.role, "heptacoin_balaonce": admin.heptacoin_balaonce}
 
 
 class AdminRoleIn(BaseModel):
@@ -9186,10 +9519,10 @@ async def credit_coins(payload: CreditCoinsIn, db: AsyncSession = Depends(get_db
     if not user or user.role not in (Role.admin, Role.superadmin):
         raise bad_request("Admin or superadmin user not found")
 
-    user.heptacoin_balance += payload.amount
+    user.heptacoin_balaonce += payload.amount
     db.add(Transaction(user_id=user.id, amount=payload.amount, type=TxType.credit))
     await db.commit()
-    return {"admin_user_id": user.id, "new_balance": user.heptacoin_balance}
+    return {"admin_user_id": user.id, "new_balaonce": user.heptacoin_balaonce}
 
 
 # Ã¢â€â‚¬Ã¢â€â‚¬ Waitlist Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
@@ -9444,8 +9777,8 @@ async def create_payment(
         customer_email=me.email,
         customer_name=me.email.split("@")[0],
         customer_ip=client_ip,
-        success_url=f"{frontend}/checkout/success?order_id={order.id}",
-        cancel_url=f"{frontend}/checkout/cancel?order_id={order.id}",
+        success_url=f"{frontend}/checkout/successorder_id={order.id}",
+        caoncel_url=f"{frontend}/checkout/caoncelorder_id={order.id}",
         webhook_url=f"{settings.public_base_url}/api/billing/webhook/{provider.name}",
     )
 
@@ -9537,7 +9870,7 @@ async def payment_webhook(
             usr_pay_res = await db.execute(select(User).where(User.id == order.user_id))
             usr_pay = usr_pay_res.scalar_one_or_none()
             if usr_pay:
-                usr_pay.heptacoin_balance += hc_quota_pay
+                usr_pay.heptacoin_balaonce += hc_quota_pay
                 db.add(Transaction(
                     user_id=usr_pay.id, amount=hc_quota_pay, type=TxType.credit,
                     description=f"Plan {('aktivasyonu' if not existing_sub else 'yenileme')}: {order.plan_id} ({period})",
@@ -9639,14 +9972,14 @@ class MeOut(BaseModel):
     id: int
     email: EmailStr
     role: Role
-    heptacoin_balance: int
+    heptacoin_balaonce: int
 
 
 @app.get("/api/me", response_model=MeOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
 async def me(me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(User).where(User.id == me.id))
     u = res.scalar_one()
-    return MeOut(id=u.id, email=u.email, role=u.role, heptacoin_balance=u.heptacoin_balance)
+    return MeOut(id=u.id, email=u.email, role=u.role, heptacoin_balaonce=u.heptacoin_balaonce)
 
 
 @app.get("/api/public/me", response_model=PublicMemberMeOut)
@@ -9673,8 +10006,8 @@ async def public_me(
     )
 
 
-@app.get("/api/public/me/email-preferences", response_model=PublicMemberEmailPreferencesOut)
-async def get_public_member_email_preferences(
+@app.get("/api/public/me/email-prefereonces", response_model=PublicMemberEmailPrefereoncesOut)
+async def get_public_member_email_prefereonces(
     member: CurrentPublicMember = Depends(get_current_public_member),
     db: AsyncSession = Depends(get_db),
 ):
@@ -9682,12 +10015,12 @@ async def get_public_member_email_preferences(
     db_member = res.scalar_one_or_none()
     if not db_member:
         raise HTTPException(status_code=404, detail="Member not found.")
-    return PublicMemberEmailPreferencesOut(digest_opt_in=bool(getattr(db_member, "digest_opt_in", True)))
+    return PublicMemberEmailPrefereoncesOut(digest_opt_in=bool(getattr(db_member, "digest_opt_in", True)))
 
 
-@app.patch("/api/public/me/email-preferences", response_model=PublicMemberEmailPreferencesOut)
-async def update_public_member_email_preferences(
-    data: PublicMemberEmailPreferencesIn,
+@app.patch("/api/public/me/email-prefereonces", response_model=PublicMemberEmailPrefereoncesOut)
+async def update_public_member_email_prefereonces(
+    data: PublicMemberEmailPrefereoncesIn,
     member: CurrentPublicMember = Depends(get_current_public_member),
     db: AsyncSession = Depends(get_db),
 ):
@@ -9698,7 +10031,7 @@ async def update_public_member_email_preferences(
     db_member.digest_opt_in = bool(data.digest_opt_in)
     await db.commit()
     await db.refresh(db_member)
-    return PublicMemberEmailPreferencesOut(digest_opt_in=bool(db_member.digest_opt_in))
+    return PublicMemberEmailPrefereoncesOut(digest_opt_in=bool(db_member.digest_opt_in))
 
 
 @app.get("/api/public/billing/subscription")
@@ -9915,12 +10248,12 @@ async def public_member_events(
     if not attendees:
         return []
 
-    attendance_counts_res = await db.execute(
-        select(AttendanceRecord.attendee_id, func.count().label("cnt"))
-        .where(AttendanceRecord.attendee_id.in_([attendee.id for attendee in attendees]))
-        .group_by(AttendanceRecord.attendee_id)
+    attendaonce_counts_res = await db.execute(
+        select(AttendaonceRecord.attendee_id, func.count().label("cnt"))
+        .where(AttendaonceRecord.attendee_id.in_([attendee.id for attendee in attendees]))
+        .group_by(AttendaonceRecord.attendee_id)
     )
-    attendance_counts = {int(row.attendee_id): int(row.cnt or 0) for row in attendance_counts_res.all()}
+    attendaonce_counts = {int(row.attendee_id): int(row.cnt or 0) for row in attendaonce_counts_res.all()}
 
     return [
         PublicMemberEventOut(
@@ -9932,7 +10265,7 @@ async def public_member_events(
             event_banner_url=attendee.event.event_banner_url,
             registered_at=attendee.registered_at,
             email_verified=attendee.email_verified,
-            sessions_attended=attendance_counts.get(attendee.id, 0),
+            sessions_attended=attendaonce_counts.get(attendee.id, 0),
             min_sessions_required=attendee.event.min_sessions_required,
             status_url=build_public_status_url(
                 event_id=_get_public_event_identifier(attendee.event),
@@ -9956,7 +10289,7 @@ async def change_password(
         raise bad_request("Mevcut Ã…Å¸ifre yanlÃ„Â±Ã…Å¸.")
     user.password_hash = hash_password(data.new_password)
     await db.commit()
-    return {"detail": "Ã…Âifre baÃ…Å¸arÃ„Â±yla gÃƒÂ¼ncellendi."}
+    return {"detail": "Ã…Âifre baÃ…Å¸arÃ„Â±yla gÃƒÂ¼oncellendi."}
 
 
 @app.patch("/api/me/email", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
@@ -9974,7 +10307,7 @@ async def change_email(
         raise bad_request("Bu e-posta adresi zaten kullanÃ„Â±mda.")
     user.email = str(data.new_email)
     await db.commit()
-    return {"detail": "E-posta baÃ…Å¸arÃ„Â±yla gÃƒÂ¼ncellendi."}
+    return {"detail": "E-posta baÃ…Å¸arÃ„Â±yla gÃƒÂ¼oncellendi."}
 
 
 @app.delete("/api/me", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
@@ -9999,8 +10332,24 @@ async def delete_admin_account(
 
 @app.get("/api/admin/events", response_model=list[EventOut], dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
 async def list_events(me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    normalized_email = str(me.email).strip().lower()
     res = await db.execute(
-        select(Event).where(Event.admin_id == me.id).order_by(Event.created_at.desc())
+        select(Event)
+        .outerjoin(EventTeamMember, EventTeamMember.event_id == Event.id)
+        .where(
+            or_(
+                Event.admin_id == me.id,
+                and_(
+                    EventTeamMember.status == "active",
+                    or_(
+                        EventTeamMember.user_id == me.id,
+                        func.lower(func.trim(EventTeamMember.email)) == normalized_email,
+                    ),
+                ),
+            )
+        )
+        .distinct()
+        .order_by(Event.created_at.desc())
     )
     items = res.scalars().all()
     return [_event_to_out(e) for e in items]
@@ -10071,13 +10420,391 @@ def _event_to_out(ev: Event) -> EventOut:
     )
 
 
+def _event_team_invite_url(token: str) -> str:
+    return f"{settings.frontend_base_url.rstrip('/')}/admin/team-invite?token={token}"
+
+
+async def _send_event_team_invite_email(
+    *,
+    event: Event,
+    member: EventTeamMember,
+    invited_by: CurrentUser,
+) -> None:
+    token = make_email_token(
+        {
+            "action": "event_team_invite",
+            "event_id": event.id,
+            "email": member.email.strip().lower(),
+            "role": member.role,
+        }
+    )
+    invite_url = _event_team_invite_url(token)
+    subject = f"HeptaCert etkinlik daveti: {event.name}"
+    role_label = member.role or "team"
+    html_body = f"""
+    <div style="font-family:Inter,Arial,sans-serif;line-height:1.6;color:#1f2937">
+      <h2 style="margin:0 0 12px">Etkinlik ekibine davet edildiniz</h2>
+      <p><strong>{escape(event.name)}</strong> etkinliği için <strong>{escape(role_label)}</strong> rolüyle ekip erişimi tanımlandı.</p>
+      <p>Davet eden: {escape(invited_by.email)}</p>
+      <p style="margin:24px 0">
+        <a href="{escape(invite_url, quote=True)}" style="background:#7c3aed;color:#fff;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:700">
+          Daveti kabul et
+        </a>
+      </p>
+      <p style="font-size:13px;color:#6b7280">Buton çalışmazsa bu bağlantıyı tarayıcınıza yapıştırın:<br>{escape(invite_url)}</p>
+    </div>
+    """
+    await send_email_async(
+        to=member.email,
+        subject=subject,
+        html_body=html_body,
+        sender_user_id=event.admin_id,
+    )
+
+
 @app.get("/api/admin/events/{event_id}", response_model=EventOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
 async def get_event(event_id: int, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    res = await db.execute(select(Event).where(Event.id == event_id, Event.admin_id == me.id))
-    ev = res.scalar_one_or_none()
-    if not ev:
-        raise HTTPException(status_code=404, detail="Event not found")
+    ev = await _get_event_for_admin(event_id, me, db, "event:view")
     return _event_to_out(ev)
+
+
+@app.get(
+    "/api/admin/events/{event_id}/team",
+    response_model=list[EventTeamMemberOut],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def list_event_team_members(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await require_event_owner_premium_for_teams(event_id, db, me)
+    await _get_event_for_admin(event_id, me, db, "team:manage")
+    res = await db.execute(
+        select(EventTeamMember)
+        .where(EventTeamMember.event_id == event_id)
+        .order_by(EventTeamMember.created_at.asc(), EventTeamMember.id.asc())
+    )
+    return [_event_team_member_to_out(member) for member in res.scalars().all()]
+
+
+@app.get(
+    "/api/admin/events/{event_id}/access",
+    response_model=EventAccessOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def get_event_access(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    event = await _get_event_for_admin(event_id, me, db, "event:view")
+    all_permissions = sorted(EVENT_TEAM_PERMISSION_LABELS.keys())
+    if me.role == Role.superadmin or event.admin_id == me.id:
+        return EventAccessOut(
+            event_id=event_id,
+            is_owner=True,
+            role="owner",
+            permissions=all_permissions,
+            permission_labels=EVENT_TEAM_PERMISSION_LABELS,
+        )
+    membership = await _get_event_team_membership(event_id, me, db)
+    permissions = _effective_event_team_permissions(membership) if membership else []
+    return EventAccessOut(
+        event_id=event_id,
+        is_owner=False,
+        role=membership.role if membership else "none",
+        permissions=permissions,
+        permission_labels={key: EVENT_TEAM_PERMISSION_LABELS[key] for key in permissions if key in EVENT_TEAM_PERMISSION_LABELS},
+    )
+
+
+@app.post(
+    "/api/admin/events/{event_id}/team",
+    response_model=EventTeamMemberOut,
+    status_code=201,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def add_event_team_member(
+    event_id: int,
+    payload: EventTeamMemberIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await require_event_owner_premium_for_teams(event_id, db, me)
+    event = await _get_event_for_admin(event_id, me, db, "team:manage")
+    normalized_email = str(payload.email).strip().lower()
+    if normalized_email == str(me.email).strip().lower() and me.role != Role.superadmin:
+        raise HTTPException(status_code=400, detail="Event owner is already the full-access owner")
+    owner_res = await db.execute(select(User).where(User.id == event.admin_id))
+    owner = owner_res.scalar_one_or_none()
+    if owner and normalized_email == owner.email.strip().lower():
+        raise HTTPException(status_code=400, detail="Event owner is already the full-access owner")
+
+    user_res = await db.execute(select(User).where(func.lower(func.trim(User.email)) == normalized_email))
+    user = user_res.scalar_one_or_none()
+
+    existing_res = await db.execute(
+        select(EventTeamMember).where(
+            EventTeamMember.event_id == event_id,
+            func.lower(func.trim(EventTeamMember.email)) == normalized_email,
+        )
+    )
+    member = existing_res.scalar_one_or_none()
+    if member:
+        member.role = payload.role
+        member.permissions = payload.permissions
+        member.status = "pending"
+        member.user_id = user.id if user else member.user_id
+        member.invited_by = me.id
+    else:
+        member = EventTeamMember(
+            event_id=event_id,
+            user_id=user.id if user else None,
+            email=normalized_email,
+            role=payload.role,
+            permissions=payload.permissions,
+            status="pending",
+            invited_by=me.id,
+        )
+    db.add(member)
+    await db.flush()
+    await write_audit_log(
+        db,
+        user_id=me.id,
+        action="team.member.invited",
+        resource_type="event_team_member",
+        resource_id=str(member.id) if member.id else None,
+        extra={"event_id": event_id, "member_email": normalized_email, "role": payload.role},
+    )
+    await db.commit()
+    await db.refresh(member)
+    await _send_event_team_invite_email(event=event, member=member, invited_by=me)
+    return _event_team_member_to_out(member)
+
+
+@app.post("/api/event-team/invitations/accept", response_model=EventTeamInviteAcceptOut)
+async def accept_event_team_invite(
+    payload: EventTeamInviteAcceptIn,
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        invite = verify_email_token(payload.token, max_age=60 * 60 * 24 * 14)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Davet baglantisi gecersiz veya suresi dolmus.")
+    if invite.get("action") != "event_team_invite":
+        raise HTTPException(status_code=400, detail="Gecersiz davet baglantisi.")
+
+    event_id = int(invite.get("event_id") or 0)
+    normalized_email = str(invite.get("email") or "").strip().lower()
+    if not event_id or not normalized_email:
+        raise HTTPException(status_code=400, detail="Davet bilgisi eksik.")
+
+    res = await db.execute(select(EventTeamMember).where(
+        EventTeamMember.event_id == event_id,
+        func.lower(func.trim(EventTeamMember.email)) == normalized_email,
+    ))
+    member = res.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Davet bulunamadi.")
+
+    event_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = event_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadi.")
+
+    user_res = await db.execute(select(User).where(func.lower(func.trim(User.email)) == normalized_email))
+    user = user_res.scalar_one_or_none()
+    if user:
+        member.user_id = user.id
+    member.status = "active"
+    db.add(member)
+    await write_audit_log(
+        db,
+        user_id=user.id if user else member.invited_by,
+        action="team.member.accepted",
+        resource_type="event_team_member",
+        resource_id=str(member.id),
+        extra={"event_id": event_id, "member_email": normalized_email, "role": member.role},
+    )
+    await db.commit()
+    return EventTeamInviteAcceptOut(
+        ok=True,
+        event_id=event.id,
+        event_name=event.name,
+        email=member.email,
+        status=member.status,
+        message="Davet kabul edildi.",
+    )
+
+
+@app.patch(
+    "/api/admin/events/{event_id}/team/{member_id}",
+    response_model=EventTeamMemberOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def update_event_team_member(
+    event_id: int,
+    member_id: int,
+    payload: EventTeamMemberUpdateIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await require_event_owner_premium_for_teams(event_id, db, me)
+    await _get_event_for_admin(event_id, me, db, "team:manage")
+    res = await db.execute(select(EventTeamMember).where(EventTeamMember.id == member_id, EventTeamMember.event_id == event_id))
+    member = res.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Team member not found")
+    if payload.role is not None:
+        member.role = payload.role
+    if "permissions" in payload.model_fields_set:
+        member.permissions = payload.permissions
+    if payload.status is not None:
+        member.status = payload.status
+    db.add(member)
+    await write_audit_log(
+        db,
+        user_id=me.id,
+        action="team.member.updated",
+        resource_type="event_team_member",
+        resource_id=str(member.id),
+        extra={"event_id": event_id, "member_email": member.email, "role": member.role, "status": member.status},
+    )
+    await db.commit()
+    await db.refresh(member)
+    return _event_team_member_to_out(member)
+
+
+@app.delete(
+    "/api/admin/events/{event_id}/team/{member_id}",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def delete_event_team_member(
+    event_id: int,
+    member_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await require_event_owner_premium_for_teams(event_id, db, me)
+    await _get_event_for_admin(event_id, me, db, "team:manage")
+    res = await db.execute(select(EventTeamMember).where(EventTeamMember.id == member_id, EventTeamMember.event_id == event_id))
+    member = res.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Team member not found")
+    removed_email = member.email
+    await db.delete(member)
+    await write_audit_log(
+        db,
+        user_id=me.id,
+        action="team.member.removed",
+        resource_type="event_team_member",
+        resource_id=str(member_id),
+        extra={"event_id": event_id, "member_email": removed_email},
+    )
+    await db.commit()
+    return {"ok": True}
+
+
+def _event_activity_label(action: str) -> tuple[str, str]:
+    labels = {
+        "team.member.invited": ("Ekip daveti gonderildi", "Bir kisiye etkinlik ekibi daveti gonderildi."),
+        "team.member.added": ("Ekip uyesi eklendi", "Bir kisiye etkinlik ekibi erisimi verildi."),
+        "team.member.accepted": ("Ekip daveti kabul edildi", "Bir ekip uyesi daveti kabul etti."),
+        "team.member.updated": ("Ekip yetkisi guncellendi", "Bir ekip uyesinin rolu, durumu veya izinleri degistirildi."),
+        "team.member.removed": ("Ekip uyesi kaldirildi", "Bir kisinin etkinlik ekibi erisimi kaldirildi."),
+        "attendee.manual_add": ("Katilimci eklendi", "Etkinlige elle katilimci eklendi."),
+        "admin.comment.update": ("Yorum durumu degistirildi", "Etkinlik yorumlarindan birinin gorunurluk durumu guncellendi."),
+        "raffle.create": ("Cekilis olusturuldu", "Etkinlik icin yeni cekilis olusturuldu."),
+        "raffle.update": ("Cekilis guncellendi", "Cekilis bilgileri degistirildi."),
+        "raffle.delete": ("Cekilis silindi", "Bir cekilis etkinlikten kaldirildi."),
+        "raffle.draw": ("Cekilis yapildi", "Cekilis kazananlari belirlendi."),
+        "raffle.redraw": ("Cekilis yenilendi", "Cekilis yeniden calistirildi."),
+        "raffle.export": ("Cekilis sonucu indirildi", "Cekilis sonuc dosyasi olusturuldu."),
+        "raffle.reset": ("Cekilis sifirlandi", "Cekilis sonuclari temizlendi."),
+    }
+    return labels.get(action, ("Etkinlik islemi", "Etkinlik uzerinde bir islem yapildi."))
+
+
+def _event_activity_detail(log: AuditLog) -> str:
+    extra = log.extra if isinstance(log.extra, dict) else {}
+    action = log.action or ""
+    if action.startswith("team.member."):
+        email = extra.get("member_email")
+        role = extra.get("role")
+        status = extra.get("status")
+        pieces = []
+        if email:
+            pieces.append(f"Kisi: {email}")
+        if role:
+            pieces.append(f"Rol: {role}")
+        if status:
+            pieces.append(f"Durum: {status}")
+        return " | ".join(pieces) or "Ekip kaydi guncellendi."
+    if "attendee_email" in extra:
+        return f"Katilimci: {extra.get('attendee_email')}"
+    if "title" in extra:
+        return f"Baslik: {extra.get('title')}"
+    if "status" in extra:
+        return f"Yeni durum: {extra.get('status')}"
+    return "Detay kaydi bulunmuyor."
+
+
+@app.get(
+    "/api/admin/events/{event_id}/team/activity",
+    response_model=list[EventTeamActivityOut],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def list_event_team_activity(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await require_event_owner_premium_for_teams(event_id, db, me)
+    event = await _get_event_for_admin(event_id, me, db, "team:manage")
+    team_res = await db.execute(select(EventTeamMember).where(EventTeamMember.event_id == event_id))
+    team_members = team_res.scalars().all()
+    user_ids = {event.admin_id, me.id}
+    emails = set()
+    for member in team_members:
+        if member.user_id:
+            user_ids.add(member.user_id)
+        emails.add(member.email.strip().lower())
+
+    users_res = await db.execute(select(User).where(or_(User.id.in_(user_ids), func.lower(func.trim(User.email)).in_(emails))))
+    users = users_res.scalars().all()
+    user_email_by_id = {user.id: user.email for user in users}
+    for user in users:
+        user_ids.add(user.id)
+
+    logs_res = await db.execute(
+        select(AuditLog)
+        .where(AuditLog.user_id.in_(user_ids))
+        .order_by(AuditLog.created_at.desc())
+        .limit(300)
+    )
+    items: List[EventTeamActivityOut] = []
+    for log in logs_res.scalars().all():
+        extra = log.extra if isinstance(log.extra, dict) else {}
+        if str(extra.get("event_id")) != str(event_id):
+            continue
+        title, fallback_detail = _event_activity_label(log.action)
+        actor_email = user_email_by_id.get(log.user_id) if log.user_id else None
+        actor_label = "Organizator" if log.user_id == event.admin_id else (actor_email or "Ekip uyesi")
+        items.append(
+            EventTeamActivityOut(
+                id=log.id,
+                actor_email=actor_email,
+                actor_label=actor_label,
+                action=log.action,
+                action_label=title,
+                detail=_event_activity_detail(log) or fallback_detail,
+                created_at=log.created_at,
+            )
+        )
+        if len(items) >= 80:
+            break
+    return items
 
 
 async def _event_sheets_status_payload(db: AsyncSession, event: Event) -> EventSheetsStatusOut:
@@ -10093,7 +10820,7 @@ async def _event_sheets_status_payload(db: AsyncSession, event: Event) -> EventS
         spreadsheet_url=sheets_config.get("spreadsheet_url"),
         sheet_name=sheets_config.get("sheet_name"),
         enabled=bool(sheets_config.get("enabled")),
-        last_synced_at=sheets_config.get("last_synced_at"),
+        last_syonced_at=sheets_config.get("last_syonced_at"),
         missing_scopes=missing_scopes,
     )
 
@@ -10108,7 +10835,7 @@ async def get_event_sheets_status(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    event = await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db, "attendees:read")
     return await _event_sheets_status_payload(db, event)
 
 
@@ -10122,7 +10849,7 @@ async def connect_event_google_sheet(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    event = await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db, "settings:write")
     await _write_event_attendees_to_google_sheet(db, event, create_if_missing=True)
     return await _event_sheets_status_payload(db, event)
 
@@ -10137,7 +10864,7 @@ async def sync_event_google_sheet(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    event = await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db, "settings:write")
     sheets_config = _get_event_google_sheets_config(event)
     if not sheets_config.get("enabled") or not sheets_config.get("spreadsheet_id"):
         raise HTTPException(status_code=409, detail="No Google Sheet is connected for this event.")
@@ -10155,7 +10882,7 @@ async def disconnect_event_google_sheet(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    event = await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db, "settings:write")
     _set_event_google_sheets_config(event, None)
     db.add(event)
     await db.commit()
@@ -10177,7 +10904,7 @@ async def _event_ms365_excel_status_payload(db: AsyncSession, event: Event) -> E
         workbook_name=excel_config.get("workbook_name"),
         sheet_name=excel_config.get("sheet_name"),
         enabled=bool(excel_config.get("enabled")),
-        last_synced_at=excel_config.get("last_synced_at"),
+        last_syonced_at=excel_config.get("last_syonced_at"),
         missing_scopes=missing_scopes,
     )
 
@@ -10192,7 +10919,7 @@ async def get_event_ms365_excel_status(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    event = await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db, "attendees:read")
     return await _event_ms365_excel_status_payload(db, event)
 
 
@@ -10206,7 +10933,7 @@ async def connect_event_ms365_excel(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    event = await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db, "settings:write")
     await _write_event_attendees_to_ms365_excel(db, event, create_if_missing=True)
     return await _event_ms365_excel_status_payload(db, event)
 
@@ -10221,7 +10948,7 @@ async def sync_event_ms365_excel(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    event = await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db, "settings:write")
     excel_config = _get_event_ms365_excel_config(event)
     if not excel_config.get("enabled") or not excel_config.get("workbook_id"):
         raise HTTPException(status_code=409, detail="No Microsoft Excel workbook is connected for this event.")
@@ -10239,7 +10966,7 @@ async def disconnect_event_ms365_excel(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    event = await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db, "settings:write")
     _set_event_ms365_excel_config(event, None)
     db.add(event)
     await db.commit()
@@ -10254,10 +10981,7 @@ async def rename_event(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    res = await db.execute(select(Event).where(Event.id == event_id, Event.admin_id == me.id))
-    ev = res.scalar_one_or_none()
-    if not ev:
-        raise HTTPException(status_code=404, detail="Event not found")
+    ev = await _get_event_for_admin(event_id, me, db, "settings:write")
     existing_registration_fields = _get_event_registration_fields(ev)
     ev.name = payload.name
     if payload.event_date is not None:
@@ -10405,10 +11129,7 @@ async def upload_template(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    res = await db.execute(select(Event).where(Event.id == event_id, Event.admin_id == me.id))
-    ev = res.scalar_one_or_none()
-    if not ev:
-        raise HTTPException(status_code=404, detail="Event not found")
+    ev = await _get_event_for_admin(event_id, me, db, "certificates:write")
     _ensure_certificate_feature_enabled(ev)
 
     if not file.content_type or not file.content_type.startswith("image/"):
@@ -10463,10 +11184,7 @@ async def upload_event_banner(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    res = await db.execute(select(Event).where(Event.id == event_id, Event.admin_id == me.id))
-    ev = res.scalar_one_or_none()
-    if not ev:
-        raise HTTPException(status_code=404, detail="Event not found")
+    ev = await _get_event_for_admin(event_id, me, db, "settings:write")
     if not file.content_type or not file.content_type.startswith("image/"):
         raise bad_request("Only image uploads allowed")
     ext = Path(file.filename or "banner.jpg").suffix.lower() or ".jpg"
@@ -10488,10 +11206,7 @@ async def save_event_config(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    res = await db.execute(select(Event).where(Event.id == event_id, Event.admin_id == me.id))
-    ev = res.scalar_one_or_none()
-    if not ev:
-        raise HTTPException(status_code=404, detail="Event not found")
+    ev = await _get_event_for_admin(event_id, me, db, "certificates:write")
 
     if not isinstance(payload, dict):
         raise bad_request("config payload must be an object.")
@@ -10535,11 +11250,7 @@ async def bulk_generate(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Event (admin kontrol)
-    res = await db.execute(select(Event).where(Event.id == event_id, Event.admin_id == me.id))
-    ev = res.scalar_one_or_none()
-    if not ev:
-        raise HTTPException(status_code=404, detail="Event not found")
+    ev = await _get_event_for_admin(event_id, me, db, "certificates:write")
     _ensure_certificate_feature_enabled(ev)
 
     if not ev.config:
@@ -10586,14 +11297,14 @@ async def bulk_generate(
     user = res_u.scalar_one()
 
     ISSUE_UNITS_PER_CERT = 10
-    HOSTING_ESTIMATE_UNITS = 20  # estimate per cert for early balance check
+    HOSTING_ESTIMATE_UNITS = 20  # estimate per cert for early balaonce check
 
-    # Ã¢â€â‚¬Ã¢â€â‚¬ Early balance check (before any file I/O) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+    # Ã¢â€â‚¬Ã¢â€â‚¬ Early balaonce check (before any file I/O) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     estimated_total = len(names) * (ISSUE_UNITS_PER_CERT + HOSTING_ESTIMATE_UNITS)
-    if user.heptacoin_balance < estimated_total:
+    if user.heptacoin_balaonce < estimated_total:
         raise HTTPException(
             status_code=402,
-            detail=f"Yetersiz HeptaCoin. TahminiGereksinim={estimated_total}, Bakiye={user.heptacoin_balance}",
+            detail=f"Yetersiz HeptaCoin. TahminiGereksinim={estimated_total}, Bakiye={user.heptacoin_balaonce}",
         )
     # Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
@@ -10627,7 +11338,7 @@ async def list_bulk_generate_jobs(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    _ = await _get_event_for_admin(event_id, me, db)
+    _ = await _get_event_for_admin(event_id, me, db, "certificates:write")
     res = await db.execute(
         select(BulkCertificateJob)
         .where(BulkCertificateJob.event_id == event_id, BulkCertificateJob.created_by == me.id)
@@ -10648,7 +11359,7 @@ async def get_bulk_generate_job(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    _ = await _get_event_for_admin(event_id, me, db)
+    _ = await _get_event_for_admin(event_id, me, db, "certificates:write")
     res = await db.execute(
         select(BulkCertificateJob).where(
             BulkCertificateJob.id == job_id,
@@ -10663,16 +11374,16 @@ async def get_bulk_generate_job(
 
 
 @app.post(
-    "/api/admin/events/{event_id}/bulk-generate-jobs/{job_id}/cancel",
+    "/api/admin/events/{event_id}/bulk-generate-jobs/{job_id}/caoncel",
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
 )
-async def cancel_bulk_generate_job(
+async def caoncel_bulk_generate_job(
     event_id: int,
     job_id: int,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    _ = await _get_event_for_admin(event_id, me, db)
+    _ = await _get_event_for_admin(event_id, me, db, "certificates:write")
     res = await db.execute(
         select(BulkCertificateJob).where(
             BulkCertificateJob.id == job_id,
@@ -10683,10 +11394,10 @@ async def cancel_bulk_generate_job(
     job = res.scalar_one_or_none()
     if not job:
         raise HTTPException(status_code=404, detail="Bulk certificate job not found")
-    if job.status in ["completed", "failed", "cancelled"]:
+    if job.status in ["completed", "failed", "caoncelled"]:
         raise HTTPException(status_code=400, detail="Job already finished")
 
-    job.status = "cancelled"
+    job.status = "caoncelled"
     job.completed_at = datetime.now(timezone.utc)
     db.add(job)
     await db.commit()
@@ -10703,7 +11414,7 @@ async def download_bulk_generate_job_zip(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    _ = await _get_event_for_admin(event_id, me, db)
+    _ = await _get_event_for_admin(event_id, me, db, "certificates:write")
     res = await db.execute(
         select(BulkCertificateJob).where(
             BulkCertificateJob.id == job_id,
@@ -10840,7 +11551,7 @@ async def verify(uuid: str, request: Request, db: AsyncSession = Depends(get_db)
                 verification_path=verification_path,
             ),
         })
-        linkedin_url = f"https://www.linkedin.com/profile/add?{params}"
+        linkedin_url = f"https://www.linkedin.com/profile/add{params}"
 
     await db.commit()
 
@@ -11048,14 +11759,7 @@ async def list_certificates(
     if page < 1 or limit < 1 or limit > 200:
         raise bad_request("Invalid page/limit")
 
-    # Event eriÃ…Å¸im kontrolÃƒÂ¼ (superadmin her event'e bakabilsin diye esnetiyoruz)
-    q_event = select(Event).where(Event.id == event_id)
-    if me.role != Role.superadmin:
-        q_event = q_event.where(Event.admin_id == me.id)
-    res_ev = await db.execute(q_event)
-    ev = res_ev.scalar_one_or_none()
-    if not ev:
-        raise HTTPException(status_code=404, detail="Event not found")
+    ev = await _get_event_for_admin(event_id, me, db, "certificates:write")
     _ensure_certificate_feature_enabled(ev)
 
     q = select(Certificate).where(
@@ -11138,14 +11842,7 @@ async def issue_certificate(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Event eriÃ…Å¸im kontrolÃƒÂ¼
-    q_event = select(Event).where(Event.id == event_id)
-    if me.role != Role.superadmin:
-        q_event = q_event.where(Event.admin_id == me.id)
-    res = await db.execute(q_event)
-    ev = res.scalar_one_or_none()
-    if not ev:
-        raise HTTPException(status_code=404, detail="Event not found")
+    ev = await _get_event_for_admin(event_id, me, db, "certificates:write")
     _ensure_certificate_feature_enabled(ev)
 
     if not ev.config:
@@ -11155,11 +11852,13 @@ async def issue_certificate(
     except Exception as e:
         raise bad_request(f"Invalid event config: {e}")
 
-    # Enforce hologram: only Growth/Enterprise can disable it
+    billing_user_id = ev.admin_id
+
+    # Enforce hologram: only Growth/Enterprise can disable it for the organizer account
     if not cfg.show_hologram and me.role != Role.superadmin:
         _sub_h = await db.execute(
             select(Subscription)
-            .where(Subscription.user_id == me.id, Subscription.is_active == True)
+            .where(Subscription.user_id == billing_user_id, Subscription.is_active == True)
             .order_by(Subscription.expires_at.desc()).limit(1)
         )
         _sub_h_row = _sub_h.scalar_one_or_none()
@@ -11168,18 +11867,15 @@ async def issue_certificate(
                 (_sub_h_row.expires_at and _sub_h_row.expires_at < _now_h):
             cfg.show_hologram = True
 
-    # User
-    res_u = await db.execute(select(User).where(User.id == me.id))
+    res_u = await db.execute(select(User).where(User.id == billing_user_id))
     user = res_u.scalar_one()
 
-    # Template bytes
     template_path = local_path_from_url(ev.template_image_url)
     if not template_path.exists():
         raise bad_request("Template image not found on server. Upload template or fix template_image_url.")
     template_bytes = template_path.read_bytes()
 
-    # Brand logo for QR overlay (from user's organization)
-    org_res2 = await db.execute(select(Organization).where(Organization.user_id == me.id))
+    org_res2 = await db.execute(select(Organization).where(Organization.user_id == billing_user_id))
     org2 = org_res2.scalar_one_or_none()
     single_brand_logo_bytes: Optional[bytes] = None
     if org2 and org2.brand_logo:
@@ -11195,7 +11891,6 @@ async def issue_certificate(
     except Exception:
         certificate_footer = None
 
-    # Event lock (cert_seq atomic)
     res_lock = await db.execute(select(Event).where(Event.id == ev.id).with_for_update())
     ev = res_lock.scalar_one()
 
@@ -11207,7 +11902,6 @@ async def issue_certificate(
     public_id = f"EV{ev.id}-{ev.cert_seq:06d}"
     verify_url = build_certificate_verify_url(cert_uuid)
 
-    # generator.py: public_id param zorunlu olmalÃ„Â±
     pdf_bytes = render_certificate_pdf(
         template_image_bytes=template_bytes,
         student_name=payload.student_name,
@@ -11225,7 +11919,6 @@ async def issue_certificate(
     asset_size_bytes = abs_pdf_path.stat().st_size
 
     rel_png_path: Optional[str] = None
-    # Save watermarked PNG alongside PDF (steganographic verification support)
     try:
         png_bytes = await asyncio.to_thread(
             render_certificate_png_watermarked,
@@ -11242,16 +11935,15 @@ async def issue_certificate(
         abs_png_path.parent.mkdir(parents=True, exist_ok=True)
         abs_png_path.write_bytes(png_bytes)
     except Exception:
-        pass  # PNG watermark is non-critical; PDF is always saved
+        pass
 
-    # hosting units
     hosting_spend = hosting_units(term, asset_size_bytes)
     spend_units = ISSUE_UNITS_PER_CERT + hosting_spend
 
-    if user.heptacoin_balance < spend_units:
+    if user.heptacoin_balaonce < spend_units:
         raise HTTPException(
             status_code=402,
-            detail=f"Insufficient HeptaCoin. NeededUnits={spend_units}, balanceUnits={user.heptacoin_balance}",
+            detail=f"Insufficient HeptaCoin. NeededUnits={spend_units}, balaonceUnits={user.heptacoin_balaonce}",
         )
 
     pdf_url = build_public_pdf_url(rel_pdf_path)
@@ -11270,8 +11962,17 @@ async def issue_certificate(
     )
     db.add(cert)
 
-    user.heptacoin_balance -= spend_units
+    user.heptacoin_balaonce -= spend_units
     db.add(Transaction(user_id=user.id, amount=spend_units, type=TxType.spend))
+
+    await write_audit_log(
+        db,
+        user_id=me.id,
+        action="certificate.issued",
+        actor_ip=None,
+        user_agent=None,
+        extra={"event_id": ev.id, "public_id": public_id, "student_name": payload.student_name},
+    )
 
     await db.commit()
     await db.refresh(cert)
@@ -11295,10 +11996,9 @@ async def issue_certificate(
             recipient_email=attendee_for_email.email,
         )
 
-    # Ã¢â€â‚¬Ã¢â€â‚¬ Fire webhook Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     from .webhooks import deliver_webhook, WebhookEvent
     background_tasks.add_task(
-        deliver_webhook, db, me.id, WebhookEvent.cert_issued.value,
+        deliver_webhook, db, billing_user_id, WebhookEvent.cert_issued.value,
         {"uuid": cert.uuid, "public_id": cert.public_id, "student_name": cert.student_name, "event_id": ev.id},
     )
 
@@ -11317,810 +12017,6 @@ async def issue_certificate(
     )
 
 
-
-
-@app.patch(
-    "/api/admin/certificates/{cert_id}",
-    response_model=CertificateOut,
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
-)
-async def update_certificate_status(
-    cert_id: int,
-    payload: UpdateCertificateStatusIn,
-    background_tasks: BackgroundTasks,
-    me: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    # cert + event join (yetki kontrolÃƒÂ¼ iÃƒÂ§in)
-    q = (
-        select(Certificate, Event)
-        .join(Event, Certificate.event_id == Event.id)
-        .where(Certificate.id == cert_id, Certificate.deleted_at.is_(None))
-    )
-    if me.role != Role.superadmin:
-        q = q.where(Event.admin_id == me.id)
-
-    res = await db.execute(q)
-    row = res.first()
-    if not row:
-        raise HTTPException(status_code=404, detail="Certificate not found")
-
-    cert, ev = row
-    cert.status = payload.status
-    await db.commit()
-    await db.refresh(cert)
-
-    # Remove PDF file from disk on revoke/expire
-    if payload.status in (CertStatus.revoked, CertStatus.expired) and cert.pdf_url:
-        try:
-            pdf_path = local_path_from_url(cert.pdf_url)
-            if pdf_path.exists():
-                pdf_path.unlink(missing_ok=True)
-        except Exception as exc:
-            logger.warning("PDF file cleanup failed for cert %s: %s", cert.id, exc)
-
-    if payload.status == CertStatus.revoked:
-        from .webhooks import deliver_webhook, WebhookEvent
-        background_tasks.add_task(
-            deliver_webhook, db, me.id, WebhookEvent.cert_revoked.value,
-            {"uuid": cert.uuid, "public_id": cert.public_id, "student_name": cert.student_name},
-        )
-
-    pdf_url = cert.pdf_url if cert.status == CertStatus.active else None
-
-    return CertificateOut(
-        id=cert.id,
-        uuid=cert.uuid,
-        public_id=cert.public_id,
-        student_name=cert.student_name,
-        event_id=cert.event_id,
-        status=cert.status,
-        issued_at=getattr(cert, "issued_at", None),
-        hosting_term=getattr(cert, "hosting_term", None),
-        hosting_ends_at=getattr(cert, "hosting_ends_at", None),
-        pdf_url=pdf_url,
-    )
-
-
-
-
-@app.delete(
-    "/api/admin/certificates/{cert_id}",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
-)
-async def soft_delete_certificate(
-    cert_id: int,
-    me: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    q = (
-        select(Certificate, Event)
-        .join(Event, Certificate.event_id == Event.id)
-        .where(Certificate.id == cert_id, Certificate.deleted_at.is_(None))
-    )
-    if me.role != Role.superadmin:
-        q = q.where(Event.admin_id == me.id)
-
-    res = await db.execute(q)
-    row = res.first()
-    if not row:
-        raise HTTPException(status_code=404, detail="Certificate not found")
-
-    cert, ev = row
-    cert.deleted_at = datetime.now(timezone.utc)
-    await db.commit()
-    # Remove PDF file from disk
-    if cert.pdf_url:
-        try:
-            pdf_path = local_path_from_url(cert.pdf_url)
-            if pdf_path.exists():
-                pdf_path.unlink(missing_ok=True)
-        except Exception as exc:
-            logger.warning("PDF file cleanup failed for cert %s: %s", cert.id, exc)
-    return {"ok": True}
-
-#certificates.heptapusgroup.com {
-
-#    encode zstd gzip
-
-#    @api path /api/*
-#    handle @api {
-#        reverse_proxy heptacert-backend:8000
-#    }
-
-#    handle {
-#        reverse_proxy heptacert-frontend:3000
-#    }
-#}
-
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-# 2FA Ã¢â‚¬â€œ TOTP endpoints
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-
-@app.post("/api/auth/2fa/setup", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
-async def setup_2fa(
-    db: AsyncSession = Depends(get_db),
-    cu: CurrentUser = Depends(get_current_user),
-):
-    secret = pyotp.random_base32()
-    res = await db.execute(select(TotpSecret).where(TotpSecret.user_id == cu.id))
-    existing = res.scalar_one_or_none()
-    if existing:
-        existing.secret = secret
-        existing.enabled = False
-        db.add(existing)
-    else:
-        db.add(TotpSecret(user_id=cu.id, secret=secret, enabled=False))
-    await db.commit()
-    otp_uri = pyotp.totp.TOTP(secret).provisioning_uri(cu.email, issuer_name="HeptaCert")
-    return TotpSetupOut(otpauth_url=otp_uri, secret=secret)
-
-
-@app.post("/api/auth/2fa/confirm", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
-async def confirm_2fa(
-    data: TotpConfirmIn,
-    db: AsyncSession = Depends(get_db),
-    cu: CurrentUser = Depends(get_current_user),
-):
-    res = await db.execute(select(TotpSecret).where(TotpSecret.user_id == cu.id))
-    totp_row = res.scalar_one_or_none()
-    if not totp_row:
-        raise HTTPException(status_code=400, detail="2FA kurulumu baÃ…Å¸latÃ„Â±lmamÃ„Â±Ã…Å¸")
-    if not pyotp.TOTP(totp_row.secret).verify(data.code, valid_window=1):
-        raise HTTPException(status_code=400, detail="GeÃƒÂ§ersiz kod")
-    totp_row.enabled = True
-    await db.commit()
-    return {"ok": True}
-
-
-@app.post("/api/auth/2fa/validate")
-@limiter.limit("10/minute")
-async def validate_2fa(
-    request: Request,
-    data: TotpValidateIn,
-    db: AsyncSession = Depends(get_db),
-):
-    try:
-        payload = jwt.decode(data.partial_token, settings.jwt_secret, algorithms=["HS256"])
-        if not payload.get("partial"):
-            raise HTTPException(status_code=400, detail="Invalid token type")
-        user_id = int(payload["sub"])
-    except JWTError:
-        raise HTTPException(status_code=401, detail="GeÃƒÂ§ersiz veya sÃƒÂ¼resi dolmuÃ…Å¸ token")
-    user_res = await db.execute(select(User).where(User.id == user_id))
-    user = user_res.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=401, detail="KullanÃ„Â±cÃ„Â± bulunamadÃ„Â±")
-    totp_res = await db.execute(
-        select(TotpSecret).where(TotpSecret.user_id == user_id, TotpSecret.enabled.is_(True))
-    )
-    totp_row = totp_res.scalar_one_or_none()
-    if not totp_row or not pyotp.TOTP(totp_row.secret).verify(data.code, valid_window=1):
-        raise HTTPException(status_code=400, detail="GeÃƒÂ§ersiz kod")
-    return TokenOut(access_token=create_access_token(user_id=user.id, role=user.role), token_type="bearer")
-
-
-@app.patch("/api/auth/2fa/disable", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
-async def disable_2fa(
-    data: TotpConfirmIn,
-    db: AsyncSession = Depends(get_db),
-    cu: CurrentUser = Depends(get_current_user),
-):
-    res = await db.execute(
-        select(TotpSecret).where(TotpSecret.user_id == cu.id, TotpSecret.enabled.is_(True))
-    )
-    totp_row = res.scalar_one_or_none()
-    if not totp_row:
-        raise HTTPException(status_code=400, detail="2FA zaten pasif")
-    if not pyotp.TOTP(totp_row.secret).verify(data.code, valid_window=1):
-        raise HTTPException(status_code=400, detail="GeÃƒÂ§ersiz kod")
-    await db.delete(totp_row)
-    await db.commit()
-    return {"ok": True}
-
-
-@app.get("/api/auth/2fa/status", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
-async def get_2fa_status(
-    db: AsyncSession = Depends(get_db),
-    cu: CurrentUser = Depends(get_current_user),
-):
-    res = await db.execute(
-        select(TotpSecret).where(TotpSecret.user_id == cu.id, TotpSecret.enabled.is_(True))
-    )
-    totp = res.scalar_one_or_none()
-    return {"enabled": totp is not None}
-
-
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-# API Keys
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-
-@app.post(
-    "/api/admin/api-keys",
-    response_model=ApiKeyCreateOut,
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
-)
-async def create_api_key(
-    data: ApiKeyCreateIn,
-    db: AsyncSession = Depends(get_db),
-    cu: CurrentUser = Depends(get_current_user),
-):
-    raw_key = "hc_live_" + secrets.token_urlsafe(32)
-    key_prefix = raw_key[:14]  # "hc_live_" + first 6 chars
-    key_hash = _hash_api_key(raw_key)
-    expires_at = (
-        datetime.now(timezone.utc) + timedelta(days=data.expires_days)
-        if data.expires_days
-        else None
-    )
-    ak = ApiKey(
-        user_id=cu.id,
-        name=data.name,
-        key_prefix=key_prefix,
-        key_hash=key_hash,
-        scopes=["read", "write"],
-        is_active=True,
-        expires_at=expires_at,
-    )
-    db.add(ak)
-    await db.commit()
-    await db.refresh(ak)
-    return ApiKeyCreateOut(
-        id=ak.id,
-        name=ak.name,
-        key_prefix=ak.key_prefix,
-        scopes=ak.scopes,
-        is_active=ak.is_active,
-        expires_at=ak.expires_at,
-        created_at=ak.created_at,
-        full_key=raw_key,
-    )
-
-
-@app.get(
-    "/api/admin/api-keys",
-    response_model=List[ApiKeyOut],
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
-)
-async def list_api_keys(
-    db: AsyncSession = Depends(get_db),
-    cu: CurrentUser = Depends(get_current_user),
-):
-    res = await db.execute(select(ApiKey).where(ApiKey.user_id == cu.id).order_by(ApiKey.created_at.desc()))
-    return res.scalars().all()
-
-
-@app.delete(
-    "/api/admin/api-keys/{key_id}",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
-)
-async def revoke_api_key(
-    key_id: int,
-    db: AsyncSession = Depends(get_db),
-    cu: CurrentUser = Depends(get_current_user),
-):
-    res = await db.execute(select(ApiKey).where(ApiKey.id == key_id, ApiKey.user_id == cu.id))
-    ak = res.scalar_one_or_none()
-    if not ak:
-        raise HTTPException(status_code=404, detail="API key bulunamadÃ„Â±")
-    ak.is_active = False
-    await db.commit()
-    return {"ok": True}
-
-
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-# Custom Domain (self-service for Growth / Enterprise)
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-
-class UpdateCustomDomainIn(BaseModel):
-    custom_domain: Optional[str] = Field(default=None, max_length=253)
-
-
-@app.get(
-    "/api/admin/organization/domain",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
-)
-async def get_custom_domain(
-    me: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    org_res = await db.execute(select(Organization).where(Organization.user_id == me.id))
-    org = org_res.scalar_one_or_none()
-    return {"custom_domain": org.custom_domain if org else None}
-
-
-@app.put(
-    "/api/admin/organization/domain",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
-)
-async def update_custom_domain(
-    payload: UpdateCustomDomainIn,
-    me: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Growth/Enterprise users can set their own custom domain."""
-    if me.role != Role.superadmin:
-        sub_cd = await db.execute(
-            select(Subscription)
-            .where(Subscription.user_id == me.id, Subscription.is_active == True)
-            .order_by(Subscription.expires_at.desc()).limit(1)
-        )
-        sub_cd_row = sub_cd.scalar_one_or_none()
-        now_cd = datetime.now(timezone.utc)
-        if not sub_cd_row or sub_cd_row.plan_id not in ("growth", "enterprise") or \
-                (sub_cd_row.expires_at and sub_cd_row.expires_at < now_cd):
-            raise HTTPException(
-                status_code=403,
-                detail="Ãƒâ€“zel alan adÃ„Â± Growth ve Enterprise planlarÃ„Â±nda kullanÃ„Â±labilir.",
-            )
-    org_res = await db.execute(select(Organization).where(Organization.user_id == me.id))
-    org = org_res.scalar_one_or_none()
-    if org is None:
-        org = Organization(
-            user_id=me.id,
-            public_id=await _generate_organization_public_id(db),
-            org_name="",
-            custom_domain=payload.custom_domain or None,
-            brand_color="#6366f1",
-            settings={},
-        )
-        db.add(org)
-    else:
-        org.custom_domain = payload.custom_domain or None
-    await db.commit()
-    return {"custom_domain": payload.custom_domain or None}
-
-
-@app.get(
-    "/api/admin/organization/settings",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
-)
-async def get_organization_settings(
-    me: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    res = await db.execute(select(Organization).where(Organization.user_id == me.id))
-    org = res.scalar_one_or_none()
-    if org is None:
-        # Create a default organization record for this user to simplify UX
-        org = Organization(
-            user_id=me.id,
-            public_id=await _generate_organization_public_id(db),
-            org_name="",
-            brand_color="#6366f1",
-            settings={},
-        )
-        db.add(org)
-        await db.commit()
-        await db.refresh(org)
-    return {
-        "id": org.id,
-        "public_id": org.public_id,
-        "org_name": org.org_name,
-        "brand_logo": org.brand_logo,
-        "brand_color": org.brand_color,
-        "settings": getattr(org, "settings", {}) or {},
-    }
-
-
-
-@app.get(
-    "/api/admin/organization/allowlist",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
-)
-async def list_organization_allowlist(
-    me: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    res = await db.execute(select(Organization).where(Organization.user_id == me.id))
-    org = res.scalar_one_or_none()
-    if not org:
-        return []
-    rows = await db.execute(select(OrganizationAllowlist).where(OrganizationAllowlist.org_id == org.id).order_by(OrganizationAllowlist.created_at.desc()))
-    entries = rows.scalars().all()
-    return [
-        {"id": e.id, "email": e.email, "created_at": e.created_at.isoformat() if e.created_at else None}
-        for e in entries
-    ]
-
-
-@app.post(
-    "/api/admin/organization/allowlist",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
-)
-async def add_organization_allowlist(
-    payload: Dict[str, str] = Body(...),
-    me: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    email = (payload.get("email") or "").strip().lower()
-    if not email or "@" not in email:
-        raise bad_request("A valid email is required")
-    res = await db.execute(select(Organization).where(Organization.user_id == me.id))
-    org = res.scalar_one_or_none()
-    if not org:
-        org = Organization(
-            user_id=me.id,
-            public_id=await _generate_organization_public_id(db),
-            org_name="",
-            brand_color="#6366f1",
-            settings={},
-        )
-        db.add(org)
-        await db.commit()
-        await db.refresh(org)
-
-    # avoid duplicates
-    existing = await db.execute(select(OrganizationAllowlist).where(OrganizationAllowlist.org_id == org.id, OrganizationAllowlist.email == email))
-    if existing.scalar_one_or_none():
-        return {"ok": True}
-
-    entry = OrganizationAllowlist(org_id=org.id, email=email)
-    db.add(entry)
-    await db.commit()
-    await db.refresh(entry)
-    return {"ok": True, "id": entry.id, "email": entry.email}
-
-
-@app.delete(
-    "/api/admin/organization/allowlist/{entry_id}",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
-)
-async def delete_organization_allowlist(
-    entry_id: int,
-    me: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    res = await db.execute(select(Organization).where(Organization.user_id == me.id))
-    org = res.scalar_one_or_none()
-    if not org:
-        raise HTTPException(status_code=404, detail="Organization not found")
-    row = await db.execute(select(OrganizationAllowlist).where(OrganizationAllowlist.id == entry_id, OrganizationAllowlist.org_id == org.id))
-    entry = row.scalar_one_or_none()
-    if not entry:
-        raise HTTPException(status_code=404, detail="Allowlist entry not found")
-    await db.delete(entry)
-    await db.commit()
-    return {"ok": True}
-
-
-@app.patch(
-    "/api/admin/organization/settings",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
-)
-async def patch_organization_settings(
-    payload: Dict[str, Any] = Body(...),
-    me: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    res = await db.execute(select(Organization).where(Organization.user_id == me.id))
-    org = res.scalar_one_or_none()
-
-    if not org:
-        org = Organization(
-            user_id=me.id,
-            public_id=await _generate_organization_public_id(db),
-            org_name="",
-            brand_color="#6366f1",
-            brand_logo=None,
-            settings={},
-        )
-        db.add(org)
-        await db.commit()
-        await db.refresh(org)
-
-    if not isinstance(payload, dict):
-        raise bad_request("Expected JSON object for settings")
-
-    existing = getattr(org, "settings", {}) or {}
-    if not isinstance(existing, dict):
-        existing = {}
-    else:
-        # Avoid mutating the ORM-backed dict in-place; create a fresh copy so
-        # SQLAlchemy consistently detects and persists JSON changes.
-        existing = dict(existing)
-
-    # AyrÃ„Â± kolonlar
-    if "brand_color" in payload:
-        org.brand_color = payload.pop("brand_color") or "#6366f1"
-
-    if "brand_logo" in payload:
-        org.brand_logo = payload.pop("brand_logo")
-
-    if "org_name" in payload:
-        org.org_name = payload.pop("org_name") or ""
-
-    if "custom_domain" in payload:
-        org.custom_domain = payload.pop("custom_domain")
-
-    # Geri kalanlar settings iÃƒÂ§ine
-    existing.update(payload)
-
-    try:
-        org.settings = existing
-    except Exception:
-        raise HTTPException(status_code=500, detail="Database missing settings column; run migrations")
-
-    await db.commit()
-    await db.refresh(org)
-
-    return {
-        "ok": True,
-        "id": org.id,
-        "public_id": org.public_id,
-        "org_name": org.org_name,
-        "brand_logo": org.brand_logo,
-        "brand_color": org.brand_color,
-        "custom_domain": org.custom_domain,
-        "settings": org.settings or {},
-    }
-
-
-@app.post(
-    "/api/admin/organization/logo",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
-)
-async def upload_organization_logo(
-    file: UploadFile = File(...),
-    me: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    res = await db.execute(select(Organization).where(Organization.user_id == me.id))
-    org = res.scalar_one_or_none()
-    if not org:
-        raise HTTPException(status_code=404, detail="Organization not found")
-    if not file.content_type or not file.content_type.startswith("image/"):
-        raise bad_request("Only image uploads allowed")
-    data = await file.read()
-    max_bytes = 1_000_000
-    if len(data) > max_bytes:
-        raise bad_request("Image too large (max 1MB)")
-    ext = Path(file.filename or "logo.png").suffix.lower() or ".png"
-    safe_name = f"orgs/{org.id}/logo{ext}"
-    dest = Path(settings.local_storage_dir) / safe_name
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_bytes(data)
-    pub_url = f"{settings.public_base_url}/api/files/{safe_name}"
-    org.brand_logo = pub_url
-    await db.commit()
-    return {"brand_logo": pub_url}
-
-
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-# Webhooks
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-
-@app.post(
-    "/api/admin/webhooks",
-    response_model=WebhookEndpointOut,
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
-)
-async def create_webhook(
-    data: WebhookEndpointIn,
-    db: AsyncSession = Depends(get_db),
-    cu: CurrentUser = Depends(get_current_user),
-):
-    wh_secret = "whsec_" + secrets.token_hex(24)
-    wh = WebhookEndpoint(
-        user_id=cu.id,
-        url=str(data.url),
-        events=data.events,
-        secret=wh_secret,
-        is_active=True,
-    )
-    db.add(wh)
-    await db.commit()
-    await db.refresh(wh)
-    return WebhookEndpointOut(
-        id=wh.id,
-        url=wh.url,
-        events=wh.events,
-        secret=wh.secret,
-        is_active=wh.is_active,
-        created_at=wh.created_at,
-        last_fired_at=wh.last_fired_at,
-    )
-
-
-@app.get(
-    "/api/admin/webhooks",
-    response_model=List[WebhookEndpointOut],
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
-)
-async def list_webhooks(
-    db: AsyncSession = Depends(get_db),
-    cu: CurrentUser = Depends(get_current_user),
-):
-    res = await db.execute(
-        select(WebhookEndpoint).where(WebhookEndpoint.user_id == cu.id).order_by(WebhookEndpoint.created_at.desc())
-    )
-    return res.scalars().all()
-
-
-@app.delete(
-    "/api/admin/webhooks/{wh_id}",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
-)
-async def delete_webhook(
-    wh_id: int,
-    db: AsyncSession = Depends(get_db),
-    cu: CurrentUser = Depends(get_current_user),
-):
-    res = await db.execute(
-        select(WebhookEndpoint).where(WebhookEndpoint.id == wh_id, WebhookEndpoint.user_id == cu.id)
-    )
-    wh = res.scalar_one_or_none()
-    if not wh:
-        raise HTTPException(status_code=404, detail="Webhook bulunamadÃ„Â±")
-    await db.delete(wh)
-    await db.commit()
-    return {"ok": True}
-
-
-@app.get(
-    "/api/admin/webhooks/{wh_id}/deliveries",
-    response_model=List[WebhookDeliveryOut],
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
-)
-async def webhook_deliveries(
-    wh_id: int,
-    db: AsyncSession = Depends(get_db),
-    cu: CurrentUser = Depends(get_current_user),
-):
-    # ownership check
-    res_wh = await db.execute(
-        select(WebhookEndpoint).where(WebhookEndpoint.id == wh_id, WebhookEndpoint.user_id == cu.id)
-    )
-    if not res_wh.scalar_one_or_none():
-        raise HTTPException(status_code=404, detail="Webhook bulunamadÃ„Â±")
-    res = await db.execute(
-        select(WebhookDelivery)
-        .where(WebhookDelivery.endpoint_id == wh_id)
-        .order_by(WebhookDelivery.delivered_at.desc())
-        .limit(50)
-    )
-    return res.scalars().all()
-
-
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-# Organizations (white-label) Ã¢â‚¬â€œ superadmin only
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-
-@app.post(
-    "/api/superadmin/organizations",
-    response_model=OrgOut,
-    dependencies=[Depends(require_role(Role.superadmin))],
-)
-async def create_org(
-    data: OrgIn,
-    db: AsyncSession = Depends(get_db),
-    cu: CurrentUser = Depends(get_current_user),
-):
-    # Lookup target user by id provided in data, or use cu.id if not provided
-    target_user_id = data.user_id if hasattr(data, "user_id") and data.user_id else cu.id
-    # Validate the target user exists (prevent FK violations)
-    user_res = await db.execute(select(User).where(User.id == target_user_id))
-    if not user_res.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail=f"User with id {target_user_id} not found")
-    org = Organization(
-        user_id=target_user_id,
-        public_id=await _generate_organization_public_id(db),
-        org_name=data.org_name,
-        custom_domain=data.custom_domain,
-        brand_logo=data.brand_logo,
-        brand_color=data.brand_color,
-        settings={},
-    )
-    db.add(org)
-    await db.commit()
-    await db.refresh(org)
-    return org
-
-
-@app.get(
-    "/api/superadmin/organizations",
-    response_model=List[OrgOut],
-    dependencies=[Depends(require_role(Role.superadmin))],
-)
-async def list_orgs(db: AsyncSession = Depends(get_db)):
-    res = await db.execute(select(Organization).order_by(Organization.created_at.desc()))
-    return res.scalars().all()
-
-
-@app.patch(
-    "/api/superadmin/organizations/{org_id}",
-    response_model=OrgOut,
-    dependencies=[Depends(require_role(Role.superadmin))],
-)
-async def update_org(
-    org_id: int,
-    data: OrgIn,
-    db: AsyncSession = Depends(get_db),
-):
-    res = await db.execute(select(Organization).where(Organization.id == org_id))
-    org = res.scalar_one_or_none()
-    if not org:
-        raise HTTPException(status_code=404, detail="Organizasyon bulunamadÃ„Â±")
-    if data.org_name is not None:
-        org.org_name = data.org_name
-    if data.custom_domain is not None:
-        org.custom_domain = data.custom_domain
-    if data.brand_logo is not None:
-        org.brand_logo = data.brand_logo
-    if data.brand_color is not None:
-        org.brand_color = data.brand_color
-    await db.commit()
-    await db.refresh(org)
-    return org
-
-
-@app.delete(
-    "/api/superadmin/organizations/{org_id}",
-    dependencies=[Depends(require_role(Role.superadmin))],
-)
-async def delete_org(org_id: int, db: AsyncSession = Depends(get_db)):
-    res = await db.execute(select(Organization).where(Organization.id == org_id))
-    org = res.scalar_one_or_none()
-    if not org:
-        raise HTTPException(status_code=404, detail="Organizasyon bulunamadÃ„Â±")
-    await db.delete(org)
-    await db.commit()
-    return {"ok": True}
-
-
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-# Audit Logs Ã¢â‚¬â€œ superadmin only
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-
-@app.get(
-    "/api/superadmin/audit-logs",
-    response_model=List[AuditLogOut],
-    dependencies=[Depends(require_role(Role.superadmin))],
-)
-async def get_audit_logs(
-    user_id: Optional[int] = None,
-    action: Optional[str] = None,
-    from_date: Optional[datetime] = None,
-    to_date: Optional[datetime] = None,
-    page: int = 1,
-    limit: int = 50,
-    db: AsyncSession = Depends(get_db),
-):
-    if page < 1 or limit < 1 or limit > 500:
-        raise bad_request("Invalid page/limit")
-    q = select(AuditLog)
-    if user_id:
-        q = q.where(AuditLog.user_id == user_id)
-    if action:
-        import re as _re
-        safe_action = _re.sub(r"[^\w\s/\-]", "", action)[:128]
-        q = q.where(AuditLog.action.ilike(f"%{safe_action}%"))
-    if from_date:
-        q = q.where(AuditLog.created_at >= from_date)
-    if to_date:
-        q = q.where(AuditLog.created_at <= to_date)
-    q = q.order_by(AuditLog.created_at.desc()).offset((page - 1) * limit).limit(limit)
-    res = await db.execute(q)
-    logs = res.scalars().all()
-    # Convert IPv4Address objects to strings for response
-    result = []
-    for log in logs:
-        result.append({
-            'id': log.id,
-            'user_id': log.user_id,
-            'action': log.action,
-            'resource_type': log.resource_type,
-            'resource_id': log.resource_id,
-            'ip_address': str(log.ip_address) if log.ip_address else None,
-            'created_at': log.created_at,
-        })
-    return [AuditLogOut(**item) for item in result]
-
-
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-# Bulk Certificate Action
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-
 @app.post(
     "/api/admin/events/{event_id}/certificates/bulk-action",
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
@@ -12132,17 +12028,9 @@ async def bulk_certificate_action(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Verify event ownership
-    q_event = select(Event).where(Event.id == event_id)
-    if me.role != Role.superadmin:
-        q_event = q_event.where(Event.admin_id == me.id)
-    res_ev = await db.execute(q_event)
-    ev = res_ev.scalar_one_or_none()
-    if not ev:
-        raise HTTPException(status_code=404, detail="Event not found")
+    ev = await _get_event_for_admin(event_id, me, db, "certificates:write")
     _ensure_certificate_feature_enabled(ev)
 
-    # Load certs that belong to this event
     res_certs = await db.execute(
         select(Certificate).where(
             Certificate.id.in_(payload.cert_ids),
@@ -12158,7 +12046,6 @@ async def bulk_certificate_action(
     for cert in certs:
         if payload.action == "delete":
             cert.deleted_at = datetime.now(timezone.utc)
-            # Cleanup PDF
             if cert.pdf_url:
                 try:
                     pdf_path = local_path_from_url(cert.pdf_url)
@@ -12179,12 +12066,20 @@ async def bulk_certificate_action(
             cert.status = CertStatus.expired
         processed += 1
 
+    await write_audit_log(
+        db,
+        user_id=me.id,
+        action=f"certificate.bulk.{payload.action}",
+        actor_ip=None,
+        user_agent=None,
+        extra={"event_id": event_id, "count": processed},
+    )
     await db.commit()
 
     if payload.action == "revoke" and background_tasks:
         from .webhooks import deliver_webhook, WebhookEvent
         background_tasks.add_task(
-            deliver_webhook, db, me.id, WebhookEvent.cert_bulk_completed.value,
+            deliver_webhook, db, ev.admin_id, WebhookEvent.cert_bulk_completed.value,
             {"event_id": event_id, "action": "revoke", "count": processed},
         )
 
@@ -12205,13 +12100,7 @@ async def export_certificates(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    q_event = select(Event).where(Event.id == event_id)
-    if me.role != Role.superadmin:
-        q_event = q_event.where(Event.admin_id == me.id)
-    res_ev = await db.execute(q_event)
-    ev = res_ev.scalar_one_or_none()
-    if not ev:
-        raise HTTPException(status_code=404, detail="Event not found")
+    ev = await _get_event_for_admin(event_id, me, db, "certificates:write")
     _ensure_certificate_feature_enabled(ev)
 
     res = await db.execute(
@@ -12539,7 +12428,7 @@ async def grant_subscription(payload: GrantSubscriptionIn, db: AsyncSession = De
     # Validate plan_id
     valid_plans = [t["id"] for t in DEFAULT_PRICING]
     if payload.plan_id not in valid_plans:
-        raise HTTPException(status_code=400, detail=f"GeÃƒÂ§ersiz plan. GeÃƒÂ§erli planlar: {', '.join(valid_plans)}")
+        raise HTTPException(status_code=400, detail=f"GeÃ§ersiz plan. GeÃ§erli planlar: {', '.join(valid_plans)}")
 
     # Deactivate all existing active subscriptions for this user
     await db.execute(
@@ -12562,7 +12451,7 @@ async def grant_subscription(payload: GrantSubscriptionIn, db: AsyncSession = De
     # Credit initial HC quota immediately
     hc_quota_grant = _get_hc_quota(payload.plan_id)
     if hc_quota_grant:
-        user.heptacoin_balance += hc_quota_grant
+        user.heptacoin_balaonce += hc_quota_grant
         db.add(Transaction(
             user_id=user.id, amount=hc_quota_grant, type=TxType.credit,
             description=f"Superadmin plan aktivasyonu: {payload.plan_id}",
@@ -12629,19 +12518,19 @@ async def request_magic_link(
         user.magic_link_token = token
         await db.commit()
 
-        verify_link = f"{settings.frontend_base_url}/admin/magic-verify?token={token}"
+        verify_link = f"{settings.frontend_base_url}/admin/magic-verifytoken={token}"
         await send_email_async(
             to=str(data.email),
             subject="HeptaCert - Giriş Bağlantısı",
             html_body=f"""
             <p>Merhaba,</p>
-            <p>HeptaCert'e giriş yapmak için aşağıdaki bağlantıya tıklayın:</p>
+            <p>HeptaCert'e giriş yapmak icin aşağıdaki bağlantıya tıklayın:</p>
             <p><a href="{verify_link}" style="background:#6366f1;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;display:inline-block">Giriş Yap</a></p>
-            <p>Bu bağlantı 15 dakika geçerlidir.</p>
-            <p>Eğer bu isteği siz yapmadıysanız, bu e-postayı görmezden gelebilirsiniz.</p>
+            <p>Bu bağlantı 15 dakika gecerlidir.</p>
+            <p>Eğer bu isteği siz yapmadıysanız, bu e-postayı gormezden gelebilirsiniz.</p>
             """,
         )
-    return {"detail": "Giriş bağlantısı e-posta adresinize gönderildi."}
+    return {"detail": "Giriş bağlantısı e-posta adresinize gonderildi."}
 
 
 @app.get("/api/auth/magic-link/verify")
@@ -12652,12 +12541,12 @@ async def verify_magic_link(
     try:
         payload = verify_email_token(token, max_age=900)  # 15 minutes
     except SignatureExpired:
-        raise bad_request("Giriş bağlantısının süresi dolmuş. Lütfen yeni bir bağlantı isteyin.")
+        raise bad_request("Giriş bağlantısının suresi dolmuş. Lutfen yeni bir bağlantı isteyin.")
     except (BadSignature, Exception):
-        raise bad_request("Geçersiz giriş bağlantısı.")
+        raise bad_request("Gecersiz giriş bağlantısı.")
 
     if payload.get("action") != "magic_link":
-        raise bad_request("Geçersiz token türü.")
+        raise bad_request("Gecersiz token turu.")
 
     email = payload.get("email")
     res = await db.execute(select(User).where(User.email == email))
@@ -12665,7 +12554,7 @@ async def verify_magic_link(
     if not user:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
     if not user.is_verified:
-        raise bad_request("Hesabınız henüz doğrulanmamış.")
+        raise bad_request("Hesabınız henuz doğrulanmamış.")
 
     # Invalidate token after use
     user.magic_link_token = None
@@ -12691,12 +12580,7 @@ async def get_template_history(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    q_event = select(Event).where(Event.id == event_id)
-    if me.role != Role.superadmin:
-        q_event = q_event.where(Event.admin_id == me.id)
-    res_ev = await db.execute(q_event)
-    if not res_ev.scalar_one_or_none():
-        raise HTTPException(status_code=404, detail="Event not found")
+    await _get_event_for_admin(event_id, me, db, "certificates:write")
 
     res = await db.execute(
         select(EventTemplateSnapshot)
@@ -12717,13 +12601,7 @@ async def restore_template_snapshot(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    q_event = select(Event).where(Event.id == event_id)
-    if me.role != Role.superadmin:
-        q_event = q_event.where(Event.admin_id == me.id)
-    res_ev = await db.execute(q_event)
-    ev = res_ev.scalar_one_or_none()
-    if not ev:
-        raise HTTPException(status_code=404, detail="Event not found")
+    ev = await _get_event_for_admin(event_id, me, db, "certificates:write")
 
     res_snap = await db.execute(
         select(EventTemplateSnapshot).where(
@@ -12753,10 +12631,10 @@ async def restore_template_snapshot(
 
 
 # Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-# Attendance Management
+# Attendaonce Management
 # Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Pydantic schemas for attendance Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# Ã¢â€â‚¬Ã¢â€â‚¬ Pydantic schemas for attendaonce Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 class SessionCreateIn(BaseModel):
     name: str = Field(min_length=2, max_length=200)
@@ -12775,7 +12653,7 @@ class SessionOut(BaseModel):
     checkin_token: str
     is_active: bool
     created_at: datetime
-    attendance_count: int = 0
+    attendaonce_count: int = 0
 
 
 class AttendeeImportRow(BaseModel):
@@ -12929,11 +12807,68 @@ class EventRaffleExportOut(BaseModel):
 
 # Ã¢â€â‚¬Ã¢â€â‚¬ Helper: resolve event + ownership Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
-async def _get_event_for_admin(event_id: int, me: CurrentUser, db: AsyncSession) -> Event:
-    res = await db.execute(select(Event).where(Event.id == event_id, Event.admin_id == me.id))
+def _event_team_member_allows(member: EventTeamMember, required_permission: Optional[str]) -> bool:
+    if required_permission is None:
+        required_permission = "event:view"
+    return required_permission in set(_effective_event_team_permissions(member))
+
+
+def _event_team_member_to_out(member: EventTeamMember) -> EventTeamMemberOut:
+    return EventTeamMemberOut(
+        id=member.id,
+        event_id=member.event_id,
+        user_id=member.user_id,
+        email=member.email,
+        role=member.role,
+        permissions=[str(item) for item in member.permissions] if isinstance(member.permissions, list) else None,
+        effective_permissions=_effective_event_team_permissions(member),
+        status=member.status,
+        invited_by=member.invited_by,
+        created_at=member.created_at,
+        updated_at=member.updated_at,
+    )
+
+
+async def _get_event_team_membership(event_id: int, me: CurrentUser, db: AsyncSession) -> Optional[EventTeamMember]:
+    normalized_email = (me.email or "").strip().lower()
+    res = await db.execute(
+        select(EventTeamMember).where(
+            EventTeamMember.event_id == event_id,
+            EventTeamMember.status == "active",
+            or_(
+                EventTeamMember.user_id == me.id,
+                func.lower(func.trim(EventTeamMember.email)) == normalized_email,
+            ),
+        )
+    )
+    return res.scalar_one_or_none()
+
+
+async def _get_event_for_admin(
+    event_id: int,
+    me: CurrentUser,
+    db: AsyncSession,
+    required_permission: Optional[str] = "team:manage",
+) -> Event:
+    res = await db.execute(select(Event).where(Event.id == event_id))
     ev = res.scalar_one_or_none()
     if not ev:
         raise HTTPException(status_code=404, detail="Event not found")
+    if me.role == Role.superadmin or ev.admin_id == me.id:
+        return ev
+    membership = await _get_event_team_membership(event_id, me, db)
+    if membership and _event_team_member_allows(membership, required_permission):
+        return ev
+    raise HTTPException(status_code=404, detail="Event not found")
+
+
+async def _get_event_for_owner(event_id: int, me: CurrentUser, db: AsyncSession) -> Event:
+    res = await db.execute(select(Event).where(Event.id == event_id))
+    ev = res.scalar_one_or_none()
+    if not ev:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if me.role != Role.superadmin and ev.admin_id != me.id:
+        raise HTTPException(status_code=403, detail="Only the event owner can manage the team")
     return ev
 
 
@@ -12958,7 +12893,7 @@ def _ticket_token_from_payload(raw_value: str) -> str:
         return value
     if "/tickets/" in value:
         value = value.rsplit("/tickets/", 1)[-1]
-    return value.split("?", 1)[0].split("#", 1)[0].strip()
+    return value.split("", 1)[0].split("#", 1)[0].strip()
 
 
 def _ticket_public_url(token: str) -> str:
@@ -13014,7 +12949,7 @@ async def _get_or_create_ticket_checkin_session(db: AsyncSession, event: Event) 
     return session
 
 
-async def _record_ticket_attendance(
+async def _record_ticket_attendaonce(
     db: AsyncSession,
     *,
     event: Event,
@@ -13023,16 +12958,16 @@ async def _record_ticket_attendance(
 ) -> bool:
     session = await _get_or_create_ticket_checkin_session(db, event)
     existing_res = await db.execute(
-        select(AttendanceRecord.id).where(
-            AttendanceRecord.attendee_id == ticket.attendee_id,
-            AttendanceRecord.session_id == session.id,
+        select(AttendaonceRecord.id).where(
+            AttendaonceRecord.attendee_id == ticket.attendee_id,
+            AttendaonceRecord.session_id == session.id,
         )
     )
     if existing_res.scalar_one_or_none() is not None:
         return False
 
     db.add(
-        AttendanceRecord(
+        AttendaonceRecord(
             attendee_id=ticket.attendee_id,
             session_id=session.id,
             ip_address=ip_address,
@@ -13070,7 +13005,7 @@ def _ticket_response_payload(ticket: Optional[EventTicket]) -> Optional[Dict[str
     }
 
 
-def _session_to_out(s: EventSession, attendance_count: int = 0) -> SessionOut:
+def _session_to_out(s: EventSession, attendaonce_count: int = 0) -> SessionOut:
     start_str = s.session_start.strftime("%H:%M") if s.session_start else None
     return SessionOut(
         id=s.id,
@@ -13082,7 +13017,7 @@ def _session_to_out(s: EventSession, attendance_count: int = 0) -> SessionOut:
         checkin_token=s.checkin_token,
         is_active=s.is_active,
         created_at=s.created_at,
-        attendance_count=attendance_count,
+        attendaonce_count=attendaonce_count,
     )
 
 
@@ -13145,7 +13080,7 @@ def _wrap_text(draw: Any, text: str, font: Any, max_width: int) -> List[str]:
 
 def _ticket_status_theme(status: str) -> tuple[str, str, str]:
     # (Metin, Yazı Rengi, Arkaplan Rengi)
-    if status in {"cancelled", "revoked"}:
+    if status in {"caoncelled", "revoked"}:
         return "İptal Edildi", "#dc2626", "#fef2f2"  # Red
     if status == "used":
         return "Kullanıldı", "#71717a", "#f4f4f5"    # Zinc
@@ -13202,13 +13137,13 @@ def _make_ticket_image(ticket: 'EventTicket') -> bytes:
     image = PILImage.new("RGB", (width, height), "#f5f5f7")
     draw = ImageDraw.Draw(image)
 
-    # Yeni font sistemiyle boyutları premium tasarıma göre ayarlıyoruz
+    # Yeni font sistemiyle boyutları premium tasarıma gre ayarlıyoruz
     title_font = _ticket_font(52, bold=True)
     body_font = _ticket_font(36, bold=True)
     small_font = _ticket_font(28)
     label_font = _ticket_font(22, bold=True)
 
-    # 1. Ana Bilet Kartı (Geniş köşeli, saf temiz görünüm)
+    # 1. Ana Bilet Kartı (Geniş kşeli, saf temiz gorunum)
     card_margin = 60
     draw.rounded_rectangle(
         (card_margin, 60, width - card_margin, height - 60), 
@@ -13216,7 +13151,7 @@ def _make_ticket_image(ticket: 'EventTicket') -> bytes:
         fill="#ffffff"
     )
 
-    # 2. Üst Kısım: İkon ve Etkinlik Başlığı
+    # 2. st Kısım: İkon ve Etkinlik Başlığı
     # İkon Yuvarlağı
     # Icon circle (background)
     icon_radius = 45
@@ -13260,7 +13195,7 @@ def _make_ticket_image(ticket: 'EventTicket') -> bytes:
 
     # Başlık (Sarma)
     y = 320
-    # Satır yüksekliği dinamik hesaplanır
+    # Satır yksekliği dinamik hesaplanır
     bbox_test = draw.textbbox((0, 0), "Test", font=title_font)
     line_height = (bbox_test[3] - bbox_test[1]) + 20
 
@@ -13279,11 +13214,11 @@ def _make_ticket_image(ticket: 'EventTicket') -> bytes:
     qr.add_data(ticket.qr_payload)
     qr.make(fit=True)
     
-    # QR kodunu koyu gri (Zinc 900) bir tonla çiziyoruz
+    # QR kodunu koyu gri (Zinc 900) bir tonla ciziyoruz
     qr_img = qr.make_image(fill_color="#18181b", back_color="white").convert("RGB").resize((420, 420))
     qr_x = (width - 420) // 2
     
-    # QR Çerçevesi (Hafif gri border)
+    # QR erevesi (Hafif gri border)
     draw.rounded_rectangle((qr_x - 24, qr_y - 24, qr_x + 444, qr_y + 444), radius=36, fill="#ffffff", outline="#e4e4e7", width=2)
     image.paste(qr_img, (qr_x, qr_y))
 
@@ -13291,7 +13226,7 @@ def _make_ticket_image(ticket: 'EventTicket') -> bytes:
     pill_y = qr_y + 490
     status_text, text_color, bg_color = _ticket_status_theme(ticket.status)
     
-    # Rozet genişliğini metne göre dinamik ayarlıyoruz
+    # Rozet genişliğini metne gre dinamik ayarlıyoruz
     bbox_status = draw.textbbox((0, 0), status_text, font=small_font)
     text_w = bbox_status[2] - bbox_status[0]
     pill_w = text_w + 80  # Sağ/sol padding
@@ -13303,11 +13238,11 @@ def _make_ticket_image(ticket: 'EventTicket') -> bytes:
     divider_y = pill_y + 120
     cutout_radius = 40
     
-    # Sol ve Sağ Cüzdan Kesikleri
+    # Sol ve Sağ Czdan Kesikleri
     draw.ellipse((card_margin - cutout_radius, divider_y - cutout_radius, card_margin + cutout_radius, divider_y + cutout_radius), fill="#f5f5f7")
     draw.ellipse((width - card_margin - cutout_radius, divider_y - cutout_radius, width - card_margin + cutout_radius, divider_y + cutout_radius), fill="#f5f5f7")
     
-    # Kesik (Dashed) Çizgi - Senin fonksiyonunla çiziliyor
+    # Kesik (Dashed) izgi - Senin fonksiyonunla iziliyor
     start_x = card_margin + cutout_radius + 15
     end_x = width - card_margin - cutout_radius - 15
     _draw_dashed_line(draw, (start_x, divider_y, end_x, divider_y), fill="#e4e4e7", width=3, dash=16, gap=16)
@@ -13315,12 +13250,12 @@ def _make_ticket_image(ticket: 'EventTicket') -> bytes:
     # 6. Alt Kısım: Detaylar
     details_y = divider_y + 60
     
-    # Katılımcı Bölümü
+    # Katılımcı Blm
     draw.text((130, details_y), "Katılımcı", fill="#a1a1aa", font=label_font)
     draw.text((130, details_y + 40), _fit_text(ticket.attendee.name, 24), fill="#18181b", font=body_font)
     draw.text((130, details_y + 95), _fit_text(ticket.attendee.email, 30), fill="#71717a", font=small_font)
     
-    # Tarih Bölümü
+    # Tarih Blm
     if ticket.event.event_date:
         draw.text((540, details_y), "Tarih", fill="#a1a1aa", font=label_font)
         
@@ -13441,7 +13376,7 @@ def _make_apple_wallet_pass(ticket: EventTicket) -> bytes:
     return buf.getvalue()
 
 
-async def _get_event_attendance_counts(
+async def _get_event_attendaonce_counts(
     event_id: int,
     db: AsyncSession,
 ) -> tuple[List[Attendee], Dict[int, int]]:
@@ -13453,9 +13388,9 @@ async def _get_event_attendance_counts(
         return [], {}
 
     counts_res = await db.execute(
-        select(AttendanceRecord.attendee_id, func.count().label("cnt"))
-        .where(AttendanceRecord.attendee_id.in_([a.id for a in attendees]))
-        .group_by(AttendanceRecord.attendee_id)
+        select(AttendaonceRecord.attendee_id, func.count().label("cnt"))
+        .where(AttendaonceRecord.attendee_id.in_([a.id for a in attendees]))
+        .group_by(AttendaonceRecord.attendee_id)
     )
     counts = {int(row.attendee_id): int(row.cnt or 0) for row in counts_res.all()}
     return attendees, counts
@@ -13464,7 +13399,7 @@ async def _get_event_attendance_counts(
 def _raffle_to_out(
     raffle: EventRaffle,
     attendees: List[Attendee],
-    attendance_counts: Dict[int, int],
+    attendaonce_counts: Dict[int, int],
     *,
     require_email_verification: bool,
 ) -> EventRaffleOut:
@@ -13480,11 +13415,11 @@ def _raffle_to_out(
             attendee_id=attendee.id,
             attendee_name=attendee.name,
             attendee_email=attendee.email,
-            sessions_attended=attendance_counts.get(attendee.id, 0),
+            sessions_attended=attendaonce_counts.get(attendee.id, 0),
         )
         for attendee in attendees
         if (attendee.email_verified or not require_email_verification)
-        and attendance_counts.get(attendee.id, 0) >= raffle.min_sessions_required
+        and attendaonce_counts.get(attendee.id, 0) >= raffle.min_sessions_required
     ]
     winners: List[EventRaffleWinnerOut] = []
     for winner in sorted(raffle.winners, key=_winner_draw_sort_key):
@@ -13496,7 +13431,7 @@ def _raffle_to_out(
                 attendee_id=attendee.id,
                 attendee_name=attendee.name,
                 attendee_email=attendee.email,
-                sessions_attended=attendance_counts.get(attendee.id, 0),
+                sessions_attended=attendaonce_counts.get(attendee.id, 0),
                 drawn_at=winner.drawn_at,
             )
         )
@@ -13524,7 +13459,7 @@ def _raffle_to_out(
 def _pick_raffle_winners(
     raffle: EventRaffle,
     attendees: List[Attendee],
-    attendance_counts: Dict[int, int],
+    attendaonce_counts: Dict[int, int],
     *,
     require_email_verification: bool,
     excluded_attendee_ids: Optional[set[int]] = None,
@@ -13534,11 +13469,11 @@ def _pick_raffle_winners(
         attendee
         for attendee in attendees
         if (attendee.email_verified or not require_email_verification)
-        and attendance_counts.get(attendee.id, 0) >= raffle.min_sessions_required
+        and attendaonce_counts.get(attendee.id, 0) >= raffle.min_sessions_required
         and attendee.id not in excluded
     ]
     if not eligible_attendees:
-        raise HTTPException(status_code=400, detail="Çekiliş için uygun katılımcı bulunamadı")
+        raise HTTPException(status_code=400, detail="cekiliş icin uygun katılımcı bulunamadı")
 
     draw_count = min(raffle.winner_count + raffle.reserve_winner_count, len(eligible_attendees))
     return secrets.SystemRandom().sample(eligible_attendees, draw_count)
@@ -13918,7 +13853,7 @@ async def public_event_register(
     if _is_event_kvkk_consent_required(ev) and not payload.kvkk_accepted:
         raise bad_request("KVKK consent is required for this event.")
     if _is_event_organizer_privacy_notice_enabled(ev) and not payload.organizer_notice_accepted:
-        raise bad_request("Organizer privacy notice acceptance is required for this event.")
+        raise bad_request("Organizer privacy notice acceptaonce is required for this event.")
     if _is_event_cross_border_transfer_notice_enabled(ev) and not payload.cross_border_notice_read:
         raise bad_request("Cross-border transfer notice must be acknowledged for this event.")
     if _is_event_cross_border_transfer_consent_required(ev) and not payload.cross_border_transfer_consent:
@@ -13956,12 +13891,12 @@ async def public_event_register(
     reservations_to_attempt = _collect_registration_option_reservations(ev, registration_answers)
 
     # Per-option capacity is only consumed immediately when no email verification is required.
-    # Otherwise it is consumed once the attendee verifies their email.
+    # Otherwise it is consumed oonce the attendee verifies their email.
     if not require_email_verification:
         for (ev_id, fid, label, cap) in reservations_to_attempt:
             ok = await _reserve_option_capacity(db, ev_id, fid, label, cap)
             if not ok:
-                raise bad_request(f'"{fid}" alanındaki "{label}" seçeneği için kontenjan doldu.')
+                raise bad_request(f'"{fid}" alanındaki "{label}" seeneği icin kontenjan doldu.')
     required_file_field_ids = {
         str(field.get("id"))
         for field in file_fields
@@ -14339,7 +14274,7 @@ async def verify_attendee_email(event_id: str, token: str = Query(...), db: Asyn
         for (ev_id, fid, label, cap) in reservation_requests:
             ok = await _reserve_option_capacity(db, ev_id, fid, label, cap)
             if not ok:
-                raise bad_request(f'"{fid}" alanındaki "{label}" seçeneği için kontenjan doldu.')
+                raise bad_request(f'"{fid}" alanındaki "{label}" seeneği icin kontenjan doldu.')
 
     attendee.email_verified = True
     attendee.email_verification_token = None
@@ -14375,9 +14310,9 @@ API_AUDIT_SKIP_PREFIXES_EXTENDED = ("/api/attend/", "/api/events/")
 async def get_session_by_token(checkin_token: str, db: AsyncSession = Depends(get_db)):
     ctx = await _get_checkin_context_by_token(checkin_token, db)
     if not ctx:
-        raise HTTPException(status_code=404, detail="Geçersiz QR kodu")
+        raise HTTPException(status_code=404, detail="Gecersiz QR kodu")
     count_res = await db.execute(
-        select(func.count()).where(AttendanceRecord.session_id == ctx["session_id"])
+        select(func.count()).where(AttendaonceRecord.session_id == ctx["session_id"])
     )
     count = int(count_res.scalar_one() or 0)
     return {
@@ -14392,7 +14327,7 @@ async def get_session_by_token(checkin_token: str, db: AsyncSession = Depends(ge
         "event_name": ctx["event_name"],
         "event_date": ctx["event_date"].isoformat() if ctx["event_date"] else None,
         "min_sessions_required": ctx["min_sessions_required"],
-        "attendance_count": count,
+        "attendaonce_count": count,
     }
 
 
@@ -14406,11 +14341,11 @@ async def self_checkin(
 ):
     ctx = await _get_checkin_context_by_token(checkin_token, db)
     if not ctx:
-        raise HTTPException(status_code=404, detail="Geçersiz QR kodu")
+        raise HTTPException(status_code=404, detail="Gecersiz QR kodu")
     if not ctx.get("checkin_enabled", True):
         raise HTTPException(status_code=403, detail="Check-in is disabled for this event.")
     if not ctx["is_active"]:
-        raise HTTPException(status_code=403, detail="Bu oturum için check-in kapalı")
+        raise HTTPException(status_code=403, detail="Bu oturum icin check-in kapalı")
 
     att_res = await db.execute(
         select(Attendee).where(
@@ -14423,30 +14358,30 @@ async def self_checkin(
     event = event_res.scalar_one_or_none()
     require_email_verification = _get_event_email_verification_required(event) if event else True
     if attendee and require_email_verification and not attendee.email_verified:
-        raise HTTPException(status_code=403, detail="Check-in icin once e-posta dogrulamasi yapmalisiniz.")
+        raise HTTPException(status_code=403, detail="Check-in icin oonce e-posta dogrulamasi yapmalisiniz.")
     if not attendee:
         raise HTTPException(
             status_code=404,
-            detail="Bu e-posta ile etkinlikte kayıtlı değilsiniz. Lütfen önce kayıt olun.",
+            detail="Bu e-posta ile etkinlikte kayıtlı değilsiniz. Lutfen once kayıt olun.",
         )
 
     ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else None)
     insert_stmt = (
-        _pg_insert(AttendanceRecord.__table__)
+        _pg_insert(AttendaonceRecord.__table__)
         .values(
             attendee_id=attendee.id,
             session_id=ctx["session_id"],
             ip_address=ip,
         )
         .on_conflict_do_nothing(index_elements=["attendee_id", "session_id"])
-        .returning(AttendanceRecord.id)
+        .returning(AttendaonceRecord.id)
     )
     inserted_res = await db.execute(insert_stmt)
     inserted_id = inserted_res.scalar_one_or_none()
     await db.commit()
 
     attended_res = await db.execute(
-        select(func.count()).where(AttendanceRecord.attendee_id == attendee.id)
+        select(func.count()).where(AttendaonceRecord.attendee_id == attendee.id)
     )
     attended_count = int(attended_res.scalar_one() or 0)
     total_sessions = await _get_event_total_sessions_cached(ctx["event_id"], db)
@@ -14506,7 +14441,7 @@ async def send_ticket_notification_email(ticket: SupportTicket, user_email: str,
                     <p><strong>Konu:</strong> {ticket.subject}</p>
                     <p><strong>Durum:</strong> {ticket.status}</p>
                     <hr>
-                    <p><a href="{settings.frontend_base_url}/admin/superadmin/support-tickets/{ticket.id}">Talepleri Görünt-üleme</a></p>
+                    <p><a href="{settings.frontend_base_url}/admin/superadmin/support-tickets/{ticket.id}">Talepleri Grnt-leme</a></p>
                 </body>
             </html>
             """
@@ -14645,7 +14580,7 @@ async def list_sessions(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    ev = await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db, "checkin:write")
     _ensure_checkin_feature_enabled(ev)
     res = await db.execute(
         select(EventSession).where(EventSession.event_id == event_id).order_by(EventSession.session_date, EventSession.session_start, EventSession.id)
@@ -14653,7 +14588,7 @@ async def list_sessions(
     sessions = res.scalars().all()
     results = []
     for s in sessions:
-        cnt_res = await db.execute(select(func.count()).where(AttendanceRecord.session_id == s.id))
+        cnt_res = await db.execute(select(func.count()).where(AttendaonceRecord.session_id == s.id))
         cnt = int(cnt_res.scalar_one() or 0)
         results.append(_session_to_out(s, cnt))
     return results
@@ -14666,7 +14601,7 @@ async def create_session(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    ev = await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db, "checkin:write")
     _ensure_checkin_feature_enabled(ev)
     from datetime import date as _date, time as _time
     sd = _date.fromisoformat(payload.session_date) if payload.session_date else None
@@ -14696,7 +14631,7 @@ async def update_session(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    ev = await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db, "checkin:write")
     _ensure_checkin_feature_enabled(ev)
     res = await db.execute(select(EventSession).where(EventSession.id == session_id, EventSession.event_id == event_id))
     session = res.scalar_one_or_none()
@@ -14712,7 +14647,7 @@ async def update_session(
     if payload.session_location is not None:
         session.session_location = payload.session_location
     await db.commit()
-    cnt_res = await db.execute(select(func.count()).where(AttendanceRecord.session_id == session.id))
+    cnt_res = await db.execute(select(func.count()).where(AttendaonceRecord.session_id == session.id))
     cnt = int(cnt_res.scalar_one() or 0)
     return _session_to_out(session, cnt)
 
@@ -14724,7 +14659,7 @@ async def delete_session(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    ev = await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db, "checkin:write")
     _ensure_checkin_feature_enabled(ev)
     res = await db.execute(select(EventSession).where(EventSession.id == session_id, EventSession.event_id == event_id))
     session = res.scalar_one_or_none()
@@ -14742,7 +14677,7 @@ async def toggle_session_checkin(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    ev = await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db, "checkin:write")
     _ensure_checkin_feature_enabled(ev)
     res = await db.execute(select(EventSession).where(EventSession.id == session_id, EventSession.event_id == event_id))
     session = res.scalar_one_or_none()
@@ -14750,7 +14685,7 @@ async def toggle_session_checkin(
         raise HTTPException(status_code=404, detail="Session not found")
     session.is_active = not session.is_active
     await db.commit()
-    cnt_res = await db.execute(select(func.count()).where(AttendanceRecord.session_id == session.id))
+    cnt_res = await db.execute(select(func.count()).where(AttendaonceRecord.session_id == session.id))
     cnt = int(cnt_res.scalar_one() or 0)
     return _session_to_out(session, cnt)
 
@@ -14766,7 +14701,7 @@ async def get_session_qr(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    ev = await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db, "checkin:write")
     _ensure_checkin_feature_enabled(ev)
 
     res = await db.execute(
@@ -14779,13 +14714,13 @@ async def get_session_qr(
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    # Event sahibinin organization/domain bilgisini ÃƒÂ§ek
+    # Event sahibinin organization/domain bilgisini Ã§ek
     org_res = await db.execute(
         select(Organization).where(Organization.user_id == ev.admin_id)
     )
     org = org_res.scalar_one_or_none()
 
-    # Ãƒâ€“ncelik: organization custom domain
+    # Ã–oncelik: organization custom domain
     # fallback: request host
     # en son: settings.frontend_base_url
     host = None
@@ -14833,7 +14768,7 @@ async def list_attendees(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    ev = await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db, "attendees:read")
     q = select(Attendee).options(selectinload(Attendee.public_member)).where(Attendee.event_id == event_id)
     if search:
         like = f"%{search.lower()}%"
@@ -14848,7 +14783,7 @@ async def list_attendees(
     # Get session counts per attendee
     results = []
     for a in attendees:
-        cnt_res = await db.execute(select(func.count()).where(AttendanceRecord.attendee_id == a.id))
+        cnt_res = await db.execute(select(func.count()).where(AttendaonceRecord.attendee_id == a.id))
         cnt = int(cnt_res.scalar_one() or 0)
         # Check if has certificate
         cert_res = await db.execute(
@@ -14877,17 +14812,17 @@ async def list_attendees(
 
 
 @app.get(
-    "/api/admin/events/{event_id}/attendance/export",
+    "/api/admin/events/{event_id}/attendaonce/export",
     dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
 )
-async def export_attendance(
+async def export_attendaonce(
     event_id: int,
     fmt: str = Query(default="xlsx", pattern="^(csv|xlsx)$"),
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Export attendees list as CSV or XLSX file."""
-    ev = await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db, "attendees:read")
     
     # Get registration fields mapping (field_id -> field_label)
     registration_fields = _get_event_registration_fields(ev)
@@ -14908,7 +14843,7 @@ async def export_attendance(
     for a in attendees:
         # Get session count
         cnt_res = await db.execute(
-            select(func.count()).where(AttendanceRecord.attendee_id == a.id)
+            select(func.count()).where(AttendaonceRecord.attendee_id == a.id)
         )
         sessions_attended = int(cnt_res.scalar_one() or 0)
         
@@ -15011,7 +14946,7 @@ async def export_registration_documents_grouped(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    event = await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db, "attendees:read")
     registration_fields = _get_event_registration_fields(event)
     file_fields = [field for field in registration_fields if field.get("type") == "file"]
     field_id_to_label = {
@@ -15138,7 +15073,7 @@ async def get_attendee_survey_link(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    event = await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db, "attendees:read")
     res = await db.execute(
         select(Attendee).where(Attendee.id == attendee_id, Attendee.event_id == event_id)
     )
@@ -15170,7 +15105,7 @@ async def list_admin_event_comments(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    ev = await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db, "attendees:read")
     comments_res = await db.execute(
         select(EventComment)
         .options(selectinload(EventComment.public_member))
@@ -15188,7 +15123,7 @@ async def update_admin_event_comment(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_event_for_admin(event_id, me, db)
+    await _get_event_for_admin(event_id, me, db, "settings:write")
     comment_res = await db.execute(
         select(EventComment)
         .options(selectinload(EventComment.public_member))
@@ -15231,7 +15166,7 @@ async def filter_attendees_for_email(
     - unsubscribed: attendees who unsubscribed
     - certified: attendees with certificates
     """
-    ev = await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db, "email:write")
     
     q = select(Attendee).where(Attendee.event_id == event_id)
     
@@ -15278,7 +15213,7 @@ async def import_attendees(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_event_for_admin(event_id, me, db)
+    await _get_event_for_admin(event_id, me, db, "attendees:write")
     content = await file.read()
     try:
         if file.filename and file.filename.endswith(".csv"):
@@ -15330,7 +15265,7 @@ async def create_manual_attendee(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    event = await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db, "attendees:write")
 
     normalized_email = str(payload.email).strip().lower()
     first_name = " ".join(payload.first_name.strip().split())
@@ -15410,7 +15345,7 @@ async def delete_attendee(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_event_for_admin(event_id, me, db)
+    await _get_event_for_admin(event_id, me, db, "attendees:write")
     res = await db.execute(select(Attendee).where(Attendee.id == attendee_id, Attendee.event_id == event_id))
     att = res.scalar_one_or_none()
     if not att:
@@ -15420,7 +15355,7 @@ async def delete_attendee(
     return {"ok": True}
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Admin: Attendance matrix & manual check-in Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# Ã¢â€â‚¬Ã¢â€â‚¬ Admin: Attendaonce matrix & manual check-in Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 @app.post(
     "/api/admin/events/{event_id}/sessions/{session_id}/checkin",
@@ -15434,7 +15369,7 @@ async def admin_manual_checkin(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    ev = await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db, "checkin:write")
     _ensure_checkin_feature_enabled(ev)
 
     session_res = await db.execute(
@@ -15460,21 +15395,21 @@ async def admin_manual_checkin(
 
     ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else None)
     insert_stmt = (
-        _pg_insert(AttendanceRecord.__table__)
+        _pg_insert(AttendaonceRecord.__table__)
         .values(
             attendee_id=attendee.id,
             session_id=session_id,
             ip_address=ip,
         )
         .on_conflict_do_nothing(index_elements=["attendee_id", "session_id"])
-        .returning(AttendanceRecord.id)
+        .returning(AttendaonceRecord.id)
     )
     inserted_res = await db.execute(insert_stmt)
     inserted_id = inserted_res.scalar_one_or_none()
     await db.commit()
 
     if inserted_id is None:
-        return {"ok": False, "message": "Bu katılımcı bu oturum için zaten check-in yapılmış."}
+        return {"ok": False, "message": "Bu katılımcı bu oturum icin zaten check-in yapılmış."}
 
     return {"ok": True, "message": f"Check-in başarılı: {attendee.name}"}
 
@@ -15484,7 +15419,7 @@ async def _get_raffle_for_admin(
     me: CurrentUser,
     db: AsyncSession,
 ) -> EventRaffle:
-    event = await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db, "settings:write")
     if not is_raffles_enabled(event):
         raise HTTPException(status_code=403, detail="Raffle features are disabled for this event.")
     raffle_res = await db.execute(
@@ -15508,7 +15443,7 @@ async def list_event_raffles(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    event = await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db, "settings:write")
     if not is_raffles_enabled(event):
         raise HTTPException(status_code=403, detail="Raffle features are disabled for this event.")
     raffles_res = await db.execute(
@@ -15518,13 +15453,13 @@ async def list_event_raffles(
         .order_by(EventRaffle.created_at.desc(), EventRaffle.id.desc())
     )
     raffles = raffles_res.scalars().all()
-    attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
+    attendees, attendaonce_counts = await _get_event_attendaonce_counts(event_id, db)
     require_email_verification = _get_event_email_verification_required(event)
     return [
         _raffle_to_out(
             raffle,
             attendees,
-            attendance_counts,
+            attendaonce_counts,
             require_email_verification=require_email_verification,
         )
         for raffle in raffles
@@ -15541,7 +15476,7 @@ async def list_event_raffle_audit_logs(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    event = await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db, "settings:write")
     if not is_raffles_enabled(event):
         raise HTTPException(status_code=403, detail="Raffle features are disabled for this event.")
     logs_res = await db.execute(
@@ -15567,7 +15502,7 @@ async def create_event_raffle(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    event = await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db, "settings:write")
     if not is_raffles_enabled(event):
         raise HTTPException(status_code=403, detail="Raffle features are disabled for this event.")
     raffle = EventRaffle(
@@ -15599,11 +15534,11 @@ async def create_event_raffle(
     )
     await db.commit()
     raffle = await _get_raffle_for_admin(event_id, raffle.id, me, db)
-    attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
+    attendees, attendaonce_counts = await _get_event_attendaonce_counts(event_id, db)
     return _raffle_to_out(
         raffle,
         attendees,
-        attendance_counts,
+        attendaonce_counts,
         require_email_verification=_get_event_email_verification_required(event),
     )
 
@@ -15620,7 +15555,7 @@ async def update_event_raffle(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    event = await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db, "settings:write")
     raffle = await _get_raffle_for_admin(event_id, raffle_id, me, db)
     should_reset_draw = False
 
@@ -15665,11 +15600,11 @@ async def update_event_raffle(
     )
     await db.commit()
     refreshed = await _get_raffle_for_admin(event_id, raffle_id, me, db)
-    attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
+    attendees, attendaonce_counts = await _get_event_attendaonce_counts(event_id, db)
     return _raffle_to_out(
         refreshed,
         attendees,
-        attendance_counts,
+        attendaonce_counts,
         require_email_verification=_get_event_email_verification_required(event),
     )
 
@@ -15714,15 +15649,15 @@ async def draw_event_raffle(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    event = await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db, "settings:write")
     raffle = await _get_raffle_for_admin(event_id, raffle_id, me, db)
     if raffle.winners:
         raise HTTPException(status_code=400, detail="Kazananlar zaten ÃƒÂ§ekildi. Yeni tur iÃƒÂ§in tekrar ÃƒÂ§ek kullanÃ„Â±n")
-    attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
+    attendees, attendaonce_counts = await _get_event_attendaonce_counts(event_id, db)
     selected_winners = _pick_raffle_winners(
         raffle,
         attendees,
-        attendance_counts,
+        attendaonce_counts,
         require_email_verification=_get_event_email_verification_required(event),
     )
     draw_time = datetime.now(timezone.utc)
@@ -15749,11 +15684,11 @@ async def draw_event_raffle(
     await db.commit()
 
     refreshed = await _get_raffle_for_admin(event_id, raffle_id, me, db)
-    attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
+    attendees, attendaonce_counts = await _get_event_attendaonce_counts(event_id, db)
     return _raffle_to_out(
         refreshed,
         attendees,
-        attendance_counts,
+        attendaonce_counts,
         require_email_verification=_get_event_email_verification_required(event),
     )
 
@@ -15769,14 +15704,14 @@ async def redraw_event_raffle(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    event = await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db, "settings:write")
     raffle = await _get_raffle_for_admin(event_id, raffle_id, me, db)
-    attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
+    attendees, attendaonce_counts = await _get_event_attendaonce_counts(event_id, db)
     excluded_attendee_ids = {winner.attendee_id for winner in raffle.winners}
     selected_winners = _pick_raffle_winners(
         raffle,
         attendees,
-        attendance_counts,
+        attendaonce_counts,
         require_email_verification=_get_event_email_verification_required(event),
         excluded_attendee_ids=excluded_attendee_ids,
     )
@@ -15806,11 +15741,11 @@ async def redraw_event_raffle(
     await db.commit()
 
     refreshed = await _get_raffle_for_admin(event_id, raffle_id, me, db)
-    attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
+    attendees, attendaonce_counts = await _get_event_attendaonce_counts(event_id, db)
     return _raffle_to_out(
         refreshed,
         attendees,
-        attendance_counts,
+        attendaonce_counts,
         require_email_verification=_get_event_email_verification_required(event),
     )
 
@@ -15825,13 +15760,13 @@ async def export_event_raffle(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    event = await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db, "settings:write")
     raffle = await _get_raffle_for_admin(event_id, raffle_id, me, db)
-    attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
+    attendees, attendaonce_counts = await _get_event_attendaonce_counts(event_id, db)
     raffle_out = _raffle_to_out(
         raffle,
         attendees,
-        attendance_counts,
+        attendaonce_counts,
         require_email_verification=_get_event_email_verification_required(event),
     )
 
@@ -15907,7 +15842,7 @@ async def reset_event_raffle(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    event = await _get_event_for_admin(event_id, me, db)
+    event = await _get_event_for_admin(event_id, me, db, "settings:write")
     raffle = await _get_raffle_for_admin(event_id, raffle_id, me, db)
     await db.execute(delete(EventRaffleWinner).where(EventRaffleWinner.raffle_id == raffle.id))
     raffle.winners.clear()
@@ -15927,23 +15862,23 @@ async def reset_event_raffle(
     await db.commit()
 
     refreshed = await _get_raffle_for_admin(event_id, raffle_id, me, db)
-    attendees, attendance_counts = await _get_event_attendance_counts(event_id, db)
+    attendees, attendaonce_counts = await _get_event_attendaonce_counts(event_id, db)
     return _raffle_to_out(
         refreshed,
         attendees,
-        attendance_counts,
+        attendaonce_counts,
         require_email_verification=_get_event_email_verification_required(event),
     )
 
 
-@app.get("/api/admin/events/{event_id}/attendance", dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)])
-async def get_attendance_matrix(
+@app.get("/api/admin/events/{event_id}/attendaonce", dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)])
+async def get_attendaonce_matrix(
     event_id: int,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     fmt: str = Query(default="json", pattern="^(csv|xlsx|json)$"),
 ):
-    ev = await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db, "certificates:write")
     _ensure_checkin_feature_enabled(ev)
     sess_res = await db.execute(
         select(EventSession).where(EventSession.event_id == event_id).order_by(EventSession.session_date, EventSession.session_start, EventSession.id)
@@ -15958,8 +15893,8 @@ async def get_attendance_matrix(
 
     # Build set of (attendee_id, session_id) for O(1) lookup
     rec_res = await db.execute(
-        select(AttendanceRecord.attendee_id, AttendanceRecord.session_id, AttendanceRecord.checked_in_at).where(
-            AttendanceRecord.attendee_id.in_([a.id for a in attendees])
+        select(AttendaonceRecord.attendee_id, AttendaonceRecord.session_id, AttendaonceRecord.checked_in_at).where(
+            AttendaonceRecord.attendee_id.in_([a.id for a in attendees])
         )
     )
     records = rec_res.all()
@@ -16028,14 +15963,14 @@ async def get_attendance_matrix(
     if fmt == "csv":
         df.to_csv(buf, index=False)
         buf.seek(0)
-        return StreamingResponse(buf, media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="attendance_{event_id}.csv"'})
+        return StreamingResponse(buf, media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="attendaonce_{event_id}.csv"'})
     else:
         df.to_excel(buf, index=False)
         buf.seek(0)
         return StreamingResponse(
             buf,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f'attachment; filename="attendance_{event_id}.xlsx"'},
+            headers={"Content-Disposition": f'attachment; filename="attendaonce_{event_id}.xlsx"'},
         )
 
 
@@ -16064,7 +15999,7 @@ async def bulk_certify_attendees(
         render_certificate_png_watermarked,
     )
 
-    ev = await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db, "certificates:write")
     _ensure_certificate_feature_enabled(ev)
     if not ev.config or ev.template_image_url in ("", "placeholder"):
         raise HTTPException(status_code=400, detail="Etkinlik sablon yapilandirmasi eksik")
@@ -16076,11 +16011,12 @@ async def bulk_certify_attendees(
         raise HTTPException(status_code=400, detail="Katilimci listesi bos")
 
     # Determine hologram policy: only Growth/Enterprise can disable it
+    billing_user_id = ev.admin_id
     _allow_no_hologram = me.role == Role.superadmin
     if not _allow_no_hologram:
         _sub_hb = await db.execute(
             select(Subscription)
-            .where(Subscription.user_id == me.id, Subscription.is_active == True)
+            .where(Subscription.user_id == billing_user_id, Subscription.is_active == True)
             .order_by(Subscription.expires_at.desc()).limit(1)
         )
         _sub_hb_row = _sub_hb.scalar_one_or_none()
@@ -16090,11 +16026,11 @@ async def bulk_certify_attendees(
             (not _sub_hb_row.expires_at or _sub_hb_row.expires_at > _now_hb)
         )
 
-    # Fetch attendance counts
+    # Fetch attendaonce counts
     rec_res = await db.execute(
-        select(AttendanceRecord.attendee_id, func.count().label("cnt"))
-        .where(AttendanceRecord.attendee_id.in_([a.id for a in attendees]))
-        .group_by(AttendanceRecord.attendee_id)
+        select(AttendaonceRecord.attendee_id, func.count().label("cnt"))
+        .where(AttendaonceRecord.attendee_id.in_([a.id for a in attendees]))
+        .group_by(AttendaonceRecord.attendee_id)
     )
     attend_counts: dict[int, int] = {r.attendee_id: r.cnt for r in rec_res.all()}
 
@@ -16110,15 +16046,15 @@ async def bulk_certify_attendees(
             spent_heptacoin=0
         )
 
-    # Balance check
-    user_res = await db.execute(select(User).where(User.id == me.id))
+    # Balaonce check
+    user_res = await db.execute(select(User).where(User.id == billing_user_id))
     user = user_res.scalar_one()
     # Rough estimate: check at least 10 HC per cert available
-    if user.heptacoin_balance < 10:
+    if user.heptacoin_balaonce < 10:
         raise HTTPException(status_code=402, detail="Yetersiz HeptaCoin")
 
     # Load org branding
-    org_res = await db.execute(select(Organization).where(Organization.user_id == me.id))
+    org_res = await db.execute(select(Organization).where(Organization.user_id == billing_user_id))
     org = org_res.scalar_one_or_none()
     brand_logo_path: Optional[Path] = None
     if org and org.brand_logo:
@@ -16146,10 +16082,10 @@ async def bulk_certify_attendees(
             already_had_cert += 1
             continue
 
-        # Re-check balance each iteration
-        fresh_user = await db.execute(select(User).where(User.id == me.id))
+        # Re-check balaonce each iteration
+        fresh_user = await db.execute(select(User).where(User.id == billing_user_id))
         user = fresh_user.scalar_one()
-        if user.heptacoin_balance < 10:
+        if user.heptacoin_balaonce < 10:
             break  # stop if out of coins
 
         cert_uuid = new_certificate_uuid()
@@ -16243,7 +16179,7 @@ async def bulk_certify_attendees(
             asset_size_bytes=asset_size,
         )
         db.add(cert)
-        user.heptacoin_balance -= cost
+        user.heptacoin_balaonce -= cost
         db.add(Transaction(user_id=me.id, amount=cost, type=TxType.spend))
         created += 1
         total_spent += cost
@@ -16283,7 +16219,7 @@ async def bulk_certify_attendees_queue(
     immediately and heavy PDF rendering happens asynchronously, preventing
     HTTP timeouts for large attendee lists.
     """
-    ev = await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db, "certificates:write")
     _ensure_certificate_feature_enabled(ev)
     if not ev.config or ev.template_image_url in ("", "placeholder"):
         raise HTTPException(status_code=400, detail="Etkinlik sablon yapilandirmasi eksik")
@@ -16294,11 +16230,11 @@ async def bulk_certify_attendees_queue(
     if not attendees:
         raise HTTPException(status_code=400, detail="Katilimci listesi bos")
 
-    # Count attendance per attendee
+    # Count attendaonce per attendee
     rec_res = await db.execute(
-        select(AttendanceRecord.attendee_id, func.count().label("cnt"))
-        .where(AttendanceRecord.attendee_id.in_([a.id for a in attendees]))
-        .group_by(AttendanceRecord.attendee_id)
+        select(AttendaonceRecord.attendee_id, func.count().label("cnt"))
+        .where(AttendaonceRecord.attendee_id.in_([a.id for a in attendees]))
+        .group_by(AttendaonceRecord.attendee_id)
     )
     attend_counts: dict[int, int] = {r.attendee_id: r.cnt for r in rec_res.all()}
 
@@ -16308,22 +16244,22 @@ async def bulk_certify_attendees_queue(
 
     names = [a.name for a in eligible]
 
-    # Early balance check
-    res_u = await db.execute(select(User).where(User.id == me.id))
+    # Early balaonce check
+    res_u = await db.execute(select(User).where(User.id == ev.admin_id))
     user = res_u.scalar_one()
     ISSUE_UNITS_PER_CERT = 10
     HOSTING_ESTIMATE_UNITS = 20
     estimated_total = len(names) * (ISSUE_UNITS_PER_CERT + HOSTING_ESTIMATE_UNITS)
-    if user.heptacoin_balance < estimated_total:
+    if user.heptacoin_balaonce < estimated_total:
         raise HTTPException(
             status_code=402,
-            detail=f"Yetersiz HeptaCoin. Tahmini Gereksinim={estimated_total}, Bakiye={user.heptacoin_balance}",
+            detail=f"Yetersiz HeptaCoin. Tahmini Gereksinim={estimated_total}, Bakiye={user.heptacoin_balaonce}",
         )
 
     chunk_size = 5 if len(names) >= 500 else 10
     job = BulkCertificateJob(
         event_id=ev.id,
-        created_by=me.id,
+        created_by=ev.admin_id,
         names=names,
         chunk_size=chunk_size,
         total_count=len(names),
@@ -16373,17 +16309,20 @@ async def list_my_transactions_paginated(
 
 # Ã¢â€â‚¬Ã¢â€â‚¬ Public: Email Unsubscribe Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
-from . import analytics_api as _analytics_api
-app.include_router(_analytics_api.router)
+# Temporarily disabled API module imports due to circular dependencies
+# These will be re-enabled after restructuring to avoid circular imports
 
-from . import tickets_api as _tickets_api
-app.include_router(_tickets_api.router)
+# from . import analytics_api as _analytics_api
+# app.include_router(_analytics_api.router)
+
+# from . import tickets_api as _tickets_api
+# app.include_router(_tickets_api.router)
 
 from . import email_api as _email_api
 app.include_router(_email_api.router)
 
-from . import community_api as _community_api
-app.include_router(_community_api.router)
+# from . import community_api as _community_api
+# app.include_router(_community_api.router)
 
 from . import social_api as _social_api
 app.include_router(_social_api.router)

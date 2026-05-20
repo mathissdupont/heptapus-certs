@@ -14,6 +14,18 @@ services:
       retries: 20
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_local:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
@@ -27,6 +39,8 @@ services:
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8765}
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3030}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3030}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      RATE_LIMIT_STORAGE_URI: ${RATE_LIMIT_STORAGE_URI:-redis://redis:6379/0}
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
       GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
       STORAGE_MODE: local
@@ -57,7 +71,7 @@ services:
       - storage_local:/data
     ports:
       - "${BACKEND_PORT:-8765}:8000"
-    command: sh -lc "python -m src.local_bootstrap && alembic upgrade head && uvicorn src.main:app --host 0.0.0.0 --port 8000 --workers 1"
+    command: sh -lc "alembic upgrade head && python -m src.local_bootstrap && uvicorn src.main:app --host 0.0.0.0 --port 8000 --workers 1"
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')\" || exit 1"]
       interval: 10s
@@ -66,6 +80,8 @@ services:
       start_period: 30s
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     restart: unless-stopped
 
@@ -85,4 +101,5 @@ services:
 
 volumes:
   postgres_local:
+  redis_local:
   storage_local:

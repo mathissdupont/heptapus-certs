@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from .main import (
-    AttendanceRecord,
+    AttendaonceRecord,
     CurrentUser,
     EventSession,
     EventTicket,
@@ -26,7 +26,7 @@ from .main import (
     _get_public_event_identifier,
     _make_apple_wallet_pass,
     _make_ticket_image,
-    _record_ticket_attendance,
+    _record_ticket_attendaonce,
     _ticket_download_filename,
     _ticket_to_out,
     _ticket_token_from_payload,
@@ -181,7 +181,7 @@ async def list_event_tickets(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    ev = await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db, "attendees:read")
     _ensure_ticketing_feature_enabled(ev)
     tickets_res = await db.execute(
         select(EventTicket)
@@ -204,7 +204,7 @@ async def check_in_event_ticket(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    ev = await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db, "checkin:write")
     _ensure_ticketing_feature_enabled(ev)
     clean_token = _ticket_token_from_payload(payload.token)
     ticket_res = await db.execute(
@@ -220,12 +220,12 @@ async def check_in_event_ticket(
         raise HTTPException(status_code=409, detail="Ticket is cancelled")
     ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else None)
     if ticket.status == "used":
-        await _record_ticket_attendance(db, event=ev, ticket=ticket, ip_address=ip)
+        await _record_ticket_attendaonce(db, event=ev, ticket=ticket, ip_address=ip)
         await db.commit()
         return _ticket_to_out(ticket)
     ticket.status = "used"
     ticket.checked_in_at = datetime.now(timezone.utc)
-    await _record_ticket_attendance(db, event=ev, ticket=ticket, ip_address=ip)
+    await _record_ticket_attendaonce(db, event=ev, ticket=ticket, ip_address=ip)
     await db.commit()
     await db.refresh(ticket)
     await db.refresh(ticket, attribute_names=["attendee"])
@@ -244,7 +244,7 @@ async def update_event_ticket_status(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    ev = await _get_event_for_admin(event_id, me, db)
+    ev = await _get_event_for_admin(event_id, me, db, "checkin:write")
     _ensure_ticketing_feature_enabled(ev)
     ticket_res = await db.execute(
         select(EventTicket)
@@ -259,9 +259,9 @@ async def update_event_ticket_status(
     if ticket.status != "used":
         ticket.checked_in_at = None
         await db.execute(
-            delete(AttendanceRecord).where(
-                AttendanceRecord.attendee_id == ticket.attendee_id,
-                AttendanceRecord.session_id.in_(
+            delete(AttendaonceRecord).where(
+                AttendaonceRecord.attendee_id == ticket.attendee_id,
+                AttendaonceRecord.session_id.in_(
                     select(EventSession.id).where(
                         EventSession.event_id == event_id,
                         EventSession.name == "Ticket Check-in",
