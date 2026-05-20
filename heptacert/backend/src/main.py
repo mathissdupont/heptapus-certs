@@ -16518,14 +16518,83 @@ async def list_my_transactions_paginated(
 
 # Ã¢â€â‚¬Ã¢â€â‚¬ Public: Email Unsubscribe Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
-# Temporarily disabled API module imports due to circular dependencies
-# These will be re-enabled after restructuring to avoid circular imports
+# ═════ SUPERADMIN: AUDIT LOGS ═════
 
-# from . import analytics_api as _analytics_api
-# app.include_router(_analytics_api.router)
+@app.get("/api/superadmin/audit-logs", dependencies=[Depends(require_role(Role.superadmin))])
+async def get_audit_logs(
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=50, le=500),
+    action: Optional[str] = Query(None),
+    resource_type: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get paginated audit logs - superadmin only."""
+    q = select(AuditLog)
+    if action:
+        q = q.where(AuditLog.action.ilike(f"%{action}%"))
+    if resource_type:
+        q = q.where(AuditLog.resource_type == resource_type)
+    
+    total_res = await db.execute(select(func.count()).select_from(q.subquery()))
+    total = int(total_res.scalar_one() or 0)
+    
+    q = q.order_by(AuditLog.created_at.desc()).offset((page - 1) * limit).limit(limit)
+    res = await db.execute(q)
+    logs = res.scalars().all()
+    
+    return {
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "items": [
+            {
+                "id": log.id,
+                "user_id": log.user_id,
+                "action": log.action,
+                "resource_type": log.resource_type,
+                "resource_id": log.resource_id,
+                "ip_address": log.ip_address,
+                "user_agent": log.user_agent[:100] if log.user_agent else None,
+                "created_at": log.created_at.isoformat() if log.created_at else None,
+            }
+            for log in logs
+        ]
+    }
 
-# from . import tickets_api as _tickets_api
-# app.include_router(_tickets_api.router)
+
+# ═════ SUPERADMIN: ORGANIZATIONS ═════
+
+@app.get("/api/superadmin/organizations", dependencies=[Depends(require_role(Role.superadmin))])
+async def get_organizations(
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=20, le=100),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get list of admin users (organizations) - superadmin only."""
+    q = select(User).where(User.role == Role.admin)
+    
+    total_res = await db.execute(select(func.count()).select_from(q.subquery()))
+    total = int(total_res.scalar_one() or 0)
+    
+    q = q.order_by(User.created_at.desc()).offset((page - 1) * limit).limit(limit)
+    res = await db.execute(q)
+    admins = res.scalars().all()
+    
+    return {
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "items": [
+            {
+                "id": admin.id,
+                "email": admin.email,
+                "role": admin.role,
+                "created_at": admin.created_at.isoformat() if admin.created_at else None,
+            }
+            for admin in admins
+        ]
+    }
+
 
 from . import email_api as _email_api
 app.include_router(_email_api.router)
@@ -16538,5 +16607,12 @@ app.include_router(_social_api.router)
 
 from . import connections_api as _connections_api
 app.include_router(_connections_api.router)
+
+# API module imports - these are loaded after all models are defined
+from . import analytics_api as _analytics_api
+app.include_router(_analytics_api.router)
+
+from . import tickets_api as _tickets_api
+app.include_router(_tickets_api.router)
 
 
