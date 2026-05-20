@@ -8439,7 +8439,7 @@ async def reset_password(request: Request, data: ResetPasswordIn, db: AsyncSessi
 class AdminListItem(BaseModel):
     id: int
     email: EmailStr
-    heptacoin_balaonce: int
+    heptacoin_balance: int
     created_at: datetime
 
 class TxListItem(BaseModel):
@@ -8460,7 +8460,7 @@ class AdminRowOut(BaseModel):
     id: int
     email: EmailStr
     role: Role
-    heptacoin_balaonce: int
+    heptacoin_balance: int
 
 
 class SuperadminAudieonceItemOut(BaseModel):
@@ -9395,7 +9395,7 @@ async def list_admins(db: AsyncSession = Depends(get_db)):
             id=u.id,
             email=u.email,
             role=u.role,                  # <-- kritik
-            heptacoin_balaonce=u.heptacoin_balaonce
+            heptacoin_balance=u.heptacoin_balaonce
         )
         for u in users
     ]
@@ -9455,7 +9455,7 @@ async def create_admin(payload: CreateAdminIn, db: AsyncSession = Depends(get_db
     db.add(admin)
     await db.commit()
     await db.refresh(admin)
-    return {"id": admin.id, "email": admin.email, "role": admin.role, "heptacoin_balaonce": admin.heptacoin_balaonce}
+    return {"id": admin.id, "email": admin.email, "role": admin.role, "heptacoin_balance": admin.heptacoin_balaonce}
 
 
 class AdminRoleIn(BaseModel):
@@ -9523,7 +9523,7 @@ async def credit_coins(payload: CreditCoinsIn, db: AsyncSession = Depends(get_db
     user.heptacoin_balaonce += payload.amount
     db.add(Transaction(user_id=user.id, amount=payload.amount, type=TxType.credit))
     await db.commit()
-    return {"admin_user_id": user.id, "new_balaonce": user.heptacoin_balaonce}
+    return {"admin_user_id": user.id, "new_balance": user.heptacoin_balaonce}
 
 
 # Ã¢â€â‚¬Ã¢â€â‚¬ Waitlist Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
@@ -9973,14 +9973,14 @@ class MeOut(BaseModel):
     id: int
     email: EmailStr
     role: Role
-    heptacoin_balaonce: int
+    heptacoin_balance: int
 
 
 @app.get("/api/me", response_model=MeOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
 async def me(me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(User).where(User.id == me.id))
     u = res.scalar_one()
-    return MeOut(id=u.id, email=u.email, role=u.role, heptacoin_balaonce=u.heptacoin_balaonce)
+    return MeOut(id=u.id, email=u.email, role=u.role, heptacoin_balance=u.heptacoin_balaonce)
 
 
 @app.get("/api/public/me", response_model=PublicMemberMeOut)
