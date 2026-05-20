@@ -87,7 +87,7 @@ async def _enforce_superadmin_email_quota(
             SuperadminBulkEmailJob.created_by == user_id,
             SuperadminBulkEmailJob.job_kind == job_kind,
             SuperadminBulkEmailJob.created_at >= since,
-            SuperadminBulkEmailJob.status.notin_(["cancelled", "caoncelled", "failed"]),
+            SuperadminBulkEmailJob.status.notin_(["cancelled", "failed"]),
         )
     )
     jobs_used, recipients_used = count_res.one()

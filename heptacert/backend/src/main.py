@@ -1206,7 +1206,7 @@ class BulkCertificateJob(Base):
     spent_heptacoin: Mapped[int] = mapped_column(Integer, default=0)
     generated_files: Mapped[list] = mapped_column(JSONB, default=list)
     zip_file_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    status: Mapped[str] = mapped_column(String(50), default="pending")  # pending | processing | completed | failed | caoncelled
+    status: Mapped[str] = mapped_column(String(50), default="pending")  # pending | processing | completed | failed | cancelled
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -1977,7 +1977,7 @@ class TicketCheckInIn(BaseModel):
 
 
 class TicketStatusUpdateIn(BaseModel):
-    status: str = Field(pattern="^(issued|caoncelled|revoked)$")
+    status: str = Field(pattern="^(issued|cancelled|revoked)$")
 
 
 class PublicTicketOut(BaseModel):
@@ -2796,7 +2796,7 @@ class ScheduledEmailOut(BaseModel):
     schedule_type: str
     scheduled_at: Optional[datetime]
     cron_expression: Optional[str]
-    status: str  # pending | scheduled | completed | failed | caoncelled
+    status: str  # pending | scheduled | completed | failed | cancelled
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
@@ -6184,7 +6184,7 @@ async def _process_one_bulk_certificate_job(job_id: int) -> None:
         if not job:
             return
 
-        if job.status in ["completed", "failed", "caoncelled"]:
+        if job.status in ["completed", "failed", "cancelled"]:
             return
 
         if job.status == "pending":
@@ -9093,7 +9093,7 @@ async def _run_superadmin_bulk_email_job(job_id: int) -> None:
                 return
 
             if job.cancel_requested:
-                job.status = "caoncelled"
+                job.status = "cancelled"
                 job.completed_at = datetime.now(timezone.utc)
                 db_job.add(job)
                 await db_job.commit()
@@ -9134,7 +9134,7 @@ async def _run_superadmin_bulk_email_job(job_id: int) -> None:
                 if fresh_job.cancel_requested:
                     fresh_job.sent_count = sent_count
                     fresh_job.failed_count = failed_count
-                    fresh_job.status = "caoncelled"
+                    fresh_job.status = "cancelled"
                     fresh_job.completed_at = datetime.now(timezone.utc)
                     db_job.add(fresh_job)
                     await db_job.commit()
@@ -9820,8 +9820,8 @@ async def create_payment(
         customer_email=me.email,
         customer_name=me.email.split("@")[0],
         customer_ip=client_ip,
-        success_url=f"{frontend}/checkout/successorder_id={order.id}",
-        caoncel_url=f"{frontend}/checkout/caoncelorder_id={order.id}",
+        success_url=f"{frontend}/checkout/success?order_id={order.id}",
+        cancel_url=f"{frontend}/checkout/cancel?order_id={order.id}",
         webhook_url=f"{settings.public_base_url}/api/billing/webhook/{provider.name}",
     )
 
@@ -11340,9 +11340,9 @@ async def bulk_generate(
     user = res_u.scalar_one()
 
     ISSUE_UNITS_PER_CERT = 10
-    HOSTING_ESTIMATE_UNITS = 20  # estimate per cert for early balaonce check
+    HOSTING_ESTIMATE_UNITS = 20  # estimate per cert for early balance check
 
-    # Ã¢â€â‚¬Ã¢â€â‚¬ Early balaonce check (before any file I/O) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+    # Ã¢â€â‚¬Ã¢â€â‚¬ Early balance check (before any file I/O) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     estimated_total = len(names) * (ISSUE_UNITS_PER_CERT + HOSTING_ESTIMATE_UNITS)
     if user.heptacoin_balaonce < estimated_total:
         raise HTTPException(
@@ -11417,10 +11417,10 @@ async def get_bulk_generate_job(
 
 
 @app.post(
-    "/api/admin/events/{event_id}/bulk-generate-jobs/{job_id}/caoncel",
+    "/api/admin/events/{event_id}/bulk-generate-jobs/{job_id}/cancel",
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
 )
-async def caoncel_bulk_generate_job(
+async def cancel_bulk_generate_job(
     event_id: int,
     job_id: int,
     me: CurrentUser = Depends(get_current_user),
@@ -11437,10 +11437,10 @@ async def caoncel_bulk_generate_job(
     job = res.scalar_one_or_none()
     if not job:
         raise HTTPException(status_code=404, detail="Bulk certificate job not found")
-    if job.status in ["completed", "failed", "caoncelled"]:
+    if job.status in ["completed", "failed", "cancelled"]:
         raise HTTPException(status_code=400, detail="Job already finished")
 
-    job.status = "caoncelled"
+    job.status = "cancelled"
     job.completed_at = datetime.now(timezone.utc)
     db.add(job)
     await db.commit()
@@ -12152,7 +12152,7 @@ async def issue_certificate(
     if user.heptacoin_balaonce < spend_units:
         raise HTTPException(
             status_code=402,
-            detail=f"Insufficient HeptaCoin. NeededUnits={spend_units}, balaonceUnits={user.heptacoin_balaonce}",
+            detail=f"Insufficient HeptaCoin. NeededUnits={spend_units}, balanceUnits={user.heptacoin_balaonce}",
         )
 
     pdf_url = build_public_pdf_url(rel_pdf_path)
@@ -13289,7 +13289,7 @@ def _wrap_text(draw: Any, text: str, font: Any, max_width: int) -> List[str]:
 
 def _ticket_status_theme(status: str) -> tuple[str, str, str]:
     # (Metin, Yazı Rengi, Arkaplan Rengi)
-    if status in {"caoncelled", "revoked"}:
+    if status in {"cancelled", "revoked"}:
         return "İptal Edildi", "#dc2626", "#fef2f2"  # Red
     if status == "used":
         return "Kullanıldı", "#71717a", "#f4f4f5"    # Zinc
@@ -16255,7 +16255,7 @@ async def bulk_certify_attendees(
             spent_heptacoin=0
         )
 
-    # Balaonce check
+    # Balance check
     user_res = await db.execute(select(User).where(User.id == billing_user_id))
     user = user_res.scalar_one()
     # Rough estimate: check at least 10 HC per cert available
@@ -16291,7 +16291,7 @@ async def bulk_certify_attendees(
             already_had_cert += 1
             continue
 
-        # Re-check balaonce each iteration
+        # Re-check balance each iteration
         fresh_user = await db.execute(select(User).where(User.id == billing_user_id))
         user = fresh_user.scalar_one()
         if user.heptacoin_balaonce < 10:
@@ -16453,7 +16453,7 @@ async def bulk_certify_attendees_queue(
 
     names = [a.name for a in eligible]
 
-    # Early balaonce check
+    # Early balance check
     res_u = await db.execute(select(User).where(User.id == ev.admin_id))
     user = res_u.scalar_one()
     ISSUE_UNITS_PER_CERT = 10
