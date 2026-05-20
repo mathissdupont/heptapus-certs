@@ -1062,6 +1062,22 @@ export async function registerPublicMember(data: {
   return res.json();
 }
 
+export async function resendOrganizerVerification(email: string): Promise<{ detail: string }> {
+  const res = await publicApiFetch("/auth/resend-verification", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+  return res.json();
+}
+
+export async function resendPublicMemberVerification(email: string): Promise<{ detail: string }> {
+  const res = await publicApiFetch("/public/auth/resend-verification", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+  return res.json();
+}
+
 export async function loginPublicMember(data: { email: string; password: string }): Promise<{
   access_token: string;
   token_type: string;
@@ -1482,6 +1498,17 @@ export async function verifyPublicAttendeeEmail(
     `/events/${toEventRouteId(eventId)}/verify-email?token=${encodeURIComponent(token)}`,
     { method: "GET" },
   );
+  return res.json();
+}
+
+export async function resendPublicAttendeeVerification(
+  eventId: EventRouteId,
+  email: string,
+): Promise<{ detail: string }> {
+  const res = await publicApiFetch(`/events/${toEventRouteId(eventId)}/resend-verification`, {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
   return res.json();
 }
 

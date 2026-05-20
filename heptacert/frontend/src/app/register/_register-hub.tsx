@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Building2, CheckCircle2, Eye, EyeOff, Lock, Mail, ShieldCheck, UserRound } from "lucide-react";
-import { API_BASE, apiFetch, registerPublicMember } from "@/lib/api";
+import { API_BASE, apiFetch, registerPublicMember, resendOrganizerVerification, resendPublicMemberVerification } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 type RegisterMode = "organizer" | "member";
@@ -23,6 +23,9 @@ export default function RegisterHub() {
   const [err, setErr] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const copy = useMemo(
     () =>
@@ -53,6 +56,10 @@ export default function RegisterHub() {
             termsRequired: "Devam etmek için Kullanım Koşulları'nı kabul etmelisiniz.",
             registerFailed: "Kayıt işlemi başarısız oldu.",
             verifyHint: "E-posta gelmediyse spam klasörünü de kontrol edin.",
+            resend: "Doğrulama mailini tekrar gönder",
+            resendWait: "Tekrar göndermek için {seconds} sn bekleyin",
+            resendSent: "Doğrulama maili tekrar gönderildi. Gelen kutunuzu ve spam klasörünü kontrol edin.",
+            resendFailed: "Doğrulama maili tekrar gönderilemedi.",
             createAccount: "Hesap Oluştur",
             googleRegister: "Google ile devam et",
             name: "Ad Soyad",
@@ -102,6 +109,10 @@ export default function RegisterHub() {
             termsRequired: "You must accept the Terms of Use to continue.",
             registerFailed: "Registration failed.",
             verifyHint: "If you do not see the email, check your spam folder too.",
+            resend: "Resend verification email",
+            resendWait: "Wait {seconds}s to resend",
+            resendSent: "Verification email has been sent again. Check your inbox and spam folder.",
+            resendFailed: "Could not resend the verification email.",
             createAccount: "Create Account",
             googleRegister: "Continue with Google",
             name: "Full Name",
@@ -134,6 +145,14 @@ export default function RegisterHub() {
   }, [searchParams]);
 
   const modeCopy = copy[mode];
+
+  useEffect(() => {
+    if (!resendCooldown) return;
+    const timer = window.setInterval(() => {
+      setResendCooldown((value) => Math.max(value - 1, 0));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [resendCooldown]);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -170,10 +189,29 @@ export default function RegisterHub() {
         });
       }
       setSuccess(true);
+      setResendCooldown(45);
     } catch (error: any) {
       setErr(error?.message || copy.registerFailed);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function resendVerification() {
+    setResendMessage(null);
+    setResendLoading(true);
+    try {
+      if (mode === "organizer") {
+        await resendOrganizerVerification(email);
+      } else {
+        await resendPublicMemberVerification(email);
+      }
+      setResendMessage(copy.resendSent);
+      setResendCooldown(60);
+    } catch (error: any) {
+      setResendMessage(error?.message || copy.resendFailed);
+    } finally {
+      setResendLoading(false);
     }
   }
 
@@ -188,7 +226,20 @@ export default function RegisterHub() {
           <p className="mb-6 text-sm leading-relaxed text-gray-500">
             <strong className="text-gray-700">{email}</strong> {modeCopy.verifyBody}
           </p>
-          <p className="text-xs text-gray-400">{copy.verifyHint}</p>
+          <p className="text-xs leading-5 text-gray-400">{copy.verifyHint}</p>
+          {resendMessage ? <p className="mt-3 text-xs leading-5 text-gray-500">{resendMessage}</p> : null}
+          <button
+            type="button"
+            onClick={resendVerification}
+            disabled={resendLoading || resendCooldown > 0}
+            className="btn-primary mt-6 w-full justify-center disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {resendLoading
+              ? copy.loading
+              : resendCooldown > 0
+                ? copy.resendWait.replace("{seconds}", String(resendCooldown))
+                : copy.resend}
+          </button>
           <Link href={modeCopy.loginHref} className="btn-secondary mt-6 w-full justify-center">
             {modeCopy.loginLabel}
           </Link>

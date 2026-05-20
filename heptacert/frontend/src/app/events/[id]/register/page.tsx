@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
-import { API_BASE, getEventCapacities, getPublicEventInfo, getPublicMemberMe, getPublicMemberToken, publicRegisterAttendee, uploadPublicRegistrationDocument, type RegistrationField, type RegistrationDocumentUploadOut } from "@/lib/api";
+import { API_BASE, getEventCapacities, getPublicEventInfo, getPublicMemberMe, getPublicMemberToken, publicRegisterAttendee, resendPublicAttendeeVerification, uploadPublicRegistrationDocument, type RegistrationField, type RegistrationDocumentUploadOut } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import {
   CheckCircle2,
@@ -143,6 +143,10 @@ export default function EventRegisterPage() {
             registrationExists: "Kayıt zaten mevcut",
             verifyEmailTitle: "E-posta doğrulaması gerekiyor",
             verifyEmailBody: "Doğrulama e-postası gönderildi. Gelen kutunuzu ve spam klasörünü kontrol edin. E-postayı onayladıktan sonra katılım kartınız aktif olacak.",
+            resendVerification: "Doğrulama mailini tekrar gönder",
+            resendVerificationSent: "Doğrulama maili tekrar gönderildi. Gelen kutunuzu ve spam klasörünü kontrol edin.",
+            resendVerificationFailed: "Doğrulama maili tekrar gönderilemedi.",
+            resendVerificationWait: "Tekrar göndermek için {seconds} sn bekleyin",
             openCard: "Katılım Kartını Aç",
             surveyLink: "Anket Bağlantısı",
             surveyRequired: "Anket zorunlu",
@@ -211,6 +215,10 @@ export default function EventRegisterPage() {
             registrationExists: "Registration already exists",
             verifyEmailTitle: "Email verification required",
             verifyEmailBody: "A verification email has been sent. Please check your inbox and spam folder. Your attendance card will become active after you confirm your email.",
+            resendVerification: "Resend verification email",
+            resendVerificationSent: "Verification email has been sent again. Check your inbox and spam folder.",
+            resendVerificationFailed: "Could not resend the verification email.",
+            resendVerificationWait: "Wait {seconds}s to resend",
             openCard: "Open Attendance Card",
             surveyLink: "Survey Link",
             surveyRequired: "Survey required",
@@ -275,6 +283,9 @@ export default function EventRegisterPage() {
   const [success, setSuccess] = useState(false);
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const [verificationRequired, setVerificationRequired] = useState(false);
+  const [resendVerificationLoading, setResendVerificationLoading] = useState(false);
+  const [resendVerificationCooldown, setResendVerificationCooldown] = useState(0);
+  const [resendVerificationMessage, setResendVerificationMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [surveyUrl, setSurveyUrl] = useState<string | null>(null);
   const [statusUrl, setStatusUrl] = useState<string | null>(null);
@@ -318,6 +329,14 @@ export default function EventRegisterPage() {
         setMemberLocked(false);
       });
   }, []);
+
+  useEffect(() => {
+    if (!resendVerificationCooldown) return;
+    const timer = window.setInterval(() => {
+      setResendVerificationCooldown((value) => Math.max(value - 1, 0));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [resendVerificationCooldown]);
 
   const brandName = branding?.org_name || "HeptaCert";
   const brandColor = branding?.brand_color || "#7c73ff";
@@ -453,6 +472,7 @@ export default function EventRegisterPage() {
 
       if (registered.verification_required && !registered.email_verified) {
         toast.info(copy.verifyEmailBody, copy.verifyEmailTitle, 7000);
+        setResendVerificationCooldown(45);
       }
 
       if (typeof window !== "undefined" && registered.email_verified) {
@@ -469,6 +489,20 @@ export default function EventRegisterPage() {
     } finally {
       setUploadingDocs(false);
       setSubmitting(false);
+    }
+  }
+
+  async function handleResendVerification() {
+    setResendVerificationMessage(null);
+    setResendVerificationLoading(true);
+    try {
+      await resendPublicAttendeeVerification(eventId, email.trim().toLowerCase());
+      setResendVerificationMessage(copy.resendVerificationSent);
+      setResendVerificationCooldown(60);
+    } catch (err: any) {
+      setResendVerificationMessage(err?.message || copy.resendVerificationFailed);
+    } finally {
+      setResendVerificationLoading(false);
     }
   }
 
@@ -714,6 +748,21 @@ export default function EventRegisterPage() {
                       <div className="mt-5 rounded-2xl border border-sky-300/30 bg-sky-400/10 px-4 py-4">
                         <p className="text-sm font-semibold text-sky-100">{copy.verifyEmailTitle}</p>
                         <p className="mt-1 text-xs leading-relaxed text-sky-50/85">{copy.verifyEmailBody}</p>
+                        {resendVerificationMessage ? (
+                          <p className="mt-3 text-xs leading-relaxed text-sky-50/80">{resendVerificationMessage}</p>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={handleResendVerification}
+                          disabled={resendVerificationLoading || resendVerificationCooldown > 0}
+                          className="mt-4 inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {resendVerificationLoading
+                            ? copy.documentUploading
+                            : resendVerificationCooldown > 0
+                              ? copy.resendVerificationWait.replace("{seconds}", String(resendVerificationCooldown))
+                              : copy.resendVerification}
+                        </button>
                       </div>
                     ) : (
                       <div className="mt-5 flex flex-wrap gap-3">

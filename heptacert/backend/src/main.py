@@ -7864,6 +7864,33 @@ async def verify_email_endpoint(token: str = Query(...), db: AsyncSession = Depe
     return {"detail": "E-posta başarıyla doğrulandı. Giriş yapabilirsiniz."}
 
 
+@app.post("/api/auth/resend-verification")
+@limiter.limit("3/hour")
+async def resend_verification_email(request: Request, data: ForgotPasswordIn, db: AsyncSession = Depends(get_db)):
+    email = str(data.email).strip().lower()
+    res = await db.execute(select(User).where(func.lower(User.email) == email))
+    user = res.scalar_one_or_none()
+    if user and not user.is_verified:
+        token = make_email_token({"email": user.email, "action": "verify"})
+        user.verification_token = token
+        db.add(user)
+        await db.commit()
+
+        verify_link = f"{settings.frontend_base_url.rstrip('/')}/verify-email?token={token}"
+        await send_email_async(
+            to=user.email,
+            subject="HeptaCert - E-posta adresinizi doğrulayın",
+            html_body=f"""
+            <p>Merhaba,</p>
+            <p>HeptaCert hesabınızı aktif etmek için aşağıdaki bağlantıya tıklayın:</p>
+            <p><a href="{verify_link}">{verify_link}</a></p>
+            <p>Bu bağlantı 24 saat geçerlidir. Maili göremiyorsanız spam klasörünü de kontrol edin.</p>
+            """,
+        )
+
+    return {"detail": "Eğer doğrulanmamış bir hesap varsa doğrulama e-postası yeniden gönderildi."}
+
+
 def _normalize_oauth_next(next_url: Optional[str], fallback: str) -> str:
     value = (next_url or "").strip()
     if value.startswith("/") and not value.startswith("//"):
@@ -8377,6 +8404,33 @@ async def verify_public_member_email(token: str = Query(...), db: AsyncSession =
     member.verification_token = None
     await db.commit()
     return {"detail": "Member email verified successfully. You can now sign in."}
+
+
+@app.post("/api/public/auth/resend-verification")
+@limiter.limit("3/hour")
+async def public_member_resend_verification(request: Request, data: ForgotPasswordIn, db: AsyncSession = Depends(get_db)):
+    email = str(data.email).strip().lower()
+    res = await db.execute(select(PublicMember).where(PublicMember.email == email))
+    member = res.scalar_one_or_none()
+    if member and not member.is_verified:
+        token = make_email_token({"email": email, "action": "public_member_verify"})
+        member.verification_token = token
+        db.add(member)
+        await db.commit()
+
+        verify_link = f"{settings.frontend_base_url.rstrip('/')}/member/verify-email?token={token}"
+        await send_email_async(
+            to=email,
+            subject="HeptaCert - Üye hesabınızı doğrulayın",
+            html_body=f"""
+            <p>Merhaba {member.display_name},</p>
+            <p>HeptaCert üye hesabınızı doğrulamak için aşağıdaki bağlantıya tıklayın:</p>
+            <p><a href="{verify_link}">{verify_link}</a></p>
+            <p>Bu bağlantı 24 saat geçerlidir. Maili göremiyorsanız spam klasörünü de kontrol edin.</p>
+            """,
+        )
+
+    return {"detail": "Eğer doğrulanmamış bir üye hesabı varsa doğrulama e-postası yeniden gönderildi."}
 
 
 @app.post("/api/public/auth/forgot-password")
@@ -14640,6 +14694,42 @@ async def verify_attendee_email(event_id: str, token: str = Query(...), db: Asyn
 
 
 # Ã¢â€â‚¬Ã¢â€â‚¬ Public: QR check-in Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+@app.post("/api/events/{event_id}/resend-verification")
+@limiter.limit("3/hour")
+async def resend_attendee_verification_email(
+    request: Request,
+    event_id: str,
+    data: ForgotPasswordIn,
+    db: AsyncSession = Depends(get_db),
+):
+    event = await _resolve_public_event(db, event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı.")
+
+    email = str(data.email).strip().lower()
+    res = await db.execute(
+        select(Attendee).where(
+            Attendee.event_id == event.id,
+            func.lower(func.trim(Attendee.email)) == email,
+        )
+    )
+    attendee = res.scalar_one_or_none()
+    if attendee and not attendee.email_verified:
+        attendee.email_verification_token = make_email_token(
+            {
+                "action": "attendee_verify",
+                "attendee_id": attendee.id,
+                "event_id": event.id,
+                "email": attendee.email.lower(),
+            }
+        )
+        db.add(attendee)
+        await db.commit()
+        await send_attendee_verification_email(attendee=attendee, event=event)
+
+    return {"detail": "Eğer doğrulanmamış bir kayıt varsa doğrulama e-postası yeniden gönderildi."}
+
+
 API_AUDIT_SKIP_PREFIXES_EXTENDED = ("/api/attend/", "/api/events/")
 
 @app.get("/api/attend/{checkin_token}")
