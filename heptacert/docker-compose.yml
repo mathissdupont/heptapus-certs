@@ -14,6 +14,18 @@ services:
       retries: 20
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
@@ -24,6 +36,8 @@ services:
       ALEMBIC_DATABASE_URL: postgresql+psycopg://heptacert:heptacert@db:5432/heptacert
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8765}
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3030}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      RATE_LIMIT_STORAGE_URI: ${RATE_LIMIT_STORAGE_URI:-redis://redis:6379/0}
       STORAGE_MODE: local
       LOCAL_STORAGE_DIR: /data
       # Email / SMTP — .env dosyasından alınır
@@ -67,6 +81,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - default
       - caddy_net
@@ -82,6 +98,8 @@ services:
       ALEMBIC_DATABASE_URL: postgresql+psycopg://heptacert:heptacert@db:5432/heptacert
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8765}
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3030}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      RATE_LIMIT_STORAGE_URI: ${RATE_LIMIT_STORAGE_URI:-redis://redis:6379/0}
       STORAGE_MODE: local
       LOCAL_STORAGE_DIR: /data
       EMAIL_TOKEN_SECRET: ${EMAIL_TOKEN_SECRET:-change-me}
@@ -111,6 +129,8 @@ services:
     command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --workers 1
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       backend:
         condition: service_healthy
@@ -180,3 +200,6 @@ networks:
   caddy_net:
     name: ${CADDY_NETWORK_NAME:-worldpass-real_default}
     external: true
+
+volumes:
+  redis_data:
