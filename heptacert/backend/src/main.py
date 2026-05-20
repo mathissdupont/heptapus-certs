@@ -3947,6 +3947,14 @@ async def send_email_async(
     # Attempt to resolve recipient as an Attendee/PublicMember to support unsubscribe links.
     try:
         normalized_to = (to or "").strip().lower()
+        is_digest_message = (
+            "{{ unsubscribe_url }}" in html_body
+            or "{{unsubscribe_url}}" in html_body
+            or "topluluk güncellemeleri" in html_body.lower()
+            or "topluluk gÃ¼ncellemeleri" in html_body.lower()
+            or "topluluk guncellemeleri" in html_body.lower()
+            or "topluluk guoncellemeleri" in html_body.lower()
+        )
         async with SessionLocal() as db_check:
             a_res = await db_check.execute(
                 select(Attendee)
@@ -3954,7 +3962,21 @@ async def send_email_async(
                 .order_by(Attendee.id.desc())
             )
             attendee = a_res.scalars().first()
-            if attendee:
+            member_res = await db_check.execute(
+                select(PublicMember)
+                .where(func.lower(func.trim(PublicMember.email)) == normalized_to)
+                .order_by(PublicMember.id.desc())
+            )
+            public_member = member_res.scalars().first()
+
+            if is_digest_message and public_member:
+                if not bool(getattr(public_member, "digest_opt_in", True)):
+                    logger.info("Skipping digest email to opted-out public member %s", normalized_to)
+                    return
+
+                token = hashlib.sha256(f"public_member:{public_member.id}:{public_member.email}".encode()).hexdigest()[:16]
+                list_unsubscribe_url = f"{settings.public_base_url}/api/public/members/{public_member.id}/unsubscribe-digest?token={token}"
+            elif attendee:
                 # If attendee previously unsubscribed, skip sending
                 if attendee.unsubscribed_at:
                     logger.info("Skipping email to unsubscribed attendee %s", normalized_to)
@@ -3962,29 +3984,6 @@ async def send_email_async(
 
                 token = hashlib.sha256(f"{attendee.id}:{attendee.email}".encode()).hexdigest()[:16]
                 list_unsubscribe_url = f"{settings.public_base_url}/api/public/attendees/{attendee.id}/unsubscribe?token={token}"
-
-            else:
-                member_res = await db_check.execute(
-                    select(PublicMember)
-                    .where(func.lower(func.trim(PublicMember.email)) == normalized_to)
-                    .order_by(PublicMember.id.desc())
-                )
-                public_member = member_res.scalars().first()
-                if public_member:
-                    is_digest_message = (
-                        "{{ unsubscribe_url }}" in html_body
-                        or "{{unsubscribe_url}}" in html_body
-                        or "topluluk güncellemeleri" in html_body.lower()
-                        or "topluluk guncellemeleri" in html_body.lower()
-                        or "topluluk guoncellemeleri" in html_body.lower()
-                    )
-                    if is_digest_message:
-                        if not bool(getattr(public_member, "digest_opt_in", True)):
-                            logger.info("Skipping digest email to opted-out public member %s", normalized_to)
-                            return
-
-                        token = hashlib.sha256(f"public_member:{public_member.id}:{public_member.email}".encode()).hexdigest()[:16]
-                        list_unsubscribe_url = f"{settings.public_base_url}/api/public/members/{public_member.id}/unsubscribe-digest?token={token}"
 
             if list_unsubscribe_url:
                 had_unsubscribe_placeholder = "{{ unsubscribe_url }}" in html_body or "{{unsubscribe_url}}" in html_body
@@ -4724,6 +4723,8 @@ _AUDIT_SKIP_PREFIXES = (
     "/api/auth/", "/api/billing/webhook/", "/api/files/",
     "/api/verify/", "/api/pricing/", "/api/stats", "/api/billing/status",
     "/api/waitlist",
+    "/api/public/attendees/",
+    "/api/public/members/",
     "/api/admin/google/sheets/callback",
     "/docs", "/openapi", "/redoc",
 )
@@ -8894,9 +8895,9 @@ async def _build_system_digest_email_content(db: AsyncSession, config: SystemEma
     """
 
     logo_html = (
-        f'<img src="{logo_data_uri}" alt="HeptaCert" style="display:block;width:48px;height:48px;border-radius:12px;margin:0 0 18px 0;" />'
-        if logo_data_uri
-        else '<div style="width:48px;height:48px;border-radius:12px;background:#f5f5f7;color:#1d1d1f;font-size:18px;font-weight:700;line-height:48px;text-align:center;margin:0 0 18px 0;">H</div>'
+        '<div style="display:inline-block;border-radius:14px;background:#f5f5f7;'
+        'padding:10px 12px;margin:0 0 18px 0;color:#1d1d1f;'
+        'font-size:15px;font-weight:800;letter-spacing:-.01em;">HeptaCert</div>'
     )
 
     events_url = settings.frontend_base_url.rstrip("/") + "/events"
