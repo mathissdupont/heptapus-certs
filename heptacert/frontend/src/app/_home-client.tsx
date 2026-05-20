@@ -72,7 +72,7 @@ export default function LandingPage() {
             statsUsers: "Aktif Üye",
             statsEvents: "Düzenlenen Etkinlik",
             statsCerts: "Verilen Sertifika",
-            sectionTitle: "Sade ama operasyonel",
+            sectionTitle: "Etkinliklerinizi kolayca yönetin",
             sectionDesc: "Organizatörlerin günlük işini hızlandıran temel akışlar.",
             feature1Title: "Kayıt ve katılımcı yönetimi",
             feature1Desc: "Kayıt formları, onaylar, belge yüklemeleri ve katılımcı listeleri tek panelde.",
@@ -98,7 +98,7 @@ export default function LandingPage() {
             statsUsers: "Active Members",
             statsEvents: "Hosted Events",
             statsCerts: "Issued Certificates",
-            sectionTitle: "Lightweight, operational, focused",
+            sectionTitle: "Manage your events with ease",
             sectionDesc: "Core workflows built for everyday organizer work.",
             feature1Title: "Registration management",
             feature1Desc: "Forms, notices, documents, approvals, and attendee lists in one panel.",
@@ -136,11 +136,11 @@ export default function LandingPage() {
           <div>
             <div className="mb-6 flex items-center gap-3">
               {branding?.brand_logo ? (
-                <img src={branding.brand_logo} alt={brandName} className="h-10 w-auto object-contain" />
+                <img src={branding.brand_logo} alt={brandName} className="h-12 w-auto object-contain sm:h-14" />
               ) : isWhiteLabel ? (
                 <span className="text-lg font-bold">{brandName}</span>
               ) : (
-                <Image src="/logo.png" alt="HeptaCert" width={132} height={36} className="h-10 w-auto" priority />
+                <Image src="/logo.svg" alt="HeptaCert" width={240} height={64} className="h-12 w-auto sm:h-14" priority />
               )}
             </div>
             <h1 className="max-w-3xl text-4xl font-black tracking-tight text-zinc-950 sm:text-5xl lg:text-6xl">
@@ -257,11 +257,11 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-5 px-4 sm:px-6 md:flex-row">
           <div className="flex items-center gap-3">
             {branding?.brand_logo ? (
-              <img src={branding.brand_logo} alt={branding.org_name || "Logo"} className="h-7 w-auto" />
+              <img src={branding.brand_logo} alt={branding.org_name || "Logo"} className="h-8 w-auto sm:h-9" />
             ) : isWhiteLabel ? (
               <span className="text-base font-bold text-zinc-950">{brandName}</span>
             ) : (
-              <Image src="/logo.png" alt="HeptaCert" width={120} height={30} className="h-7 w-auto" />
+              <Image src="/logo.svg" alt="HeptaCert" width={180} height={48} className="h-8 w-auto sm:h-9" />
             )}
             <span className="text-sm text-zinc-400">© {new Date().getFullYear()}</span>
           </div>

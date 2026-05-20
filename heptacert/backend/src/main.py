@@ -11699,6 +11699,172 @@ async def get_branding(request: Request, db: AsyncSession = Depends(get_db)):
         return {"org_name": None, "brand_logo": None, "brand_color": None, "settings": {}}
 
 
+async def _get_or_create_admin_organization(db: AsyncSession, user_id: int) -> Organization:
+    res = await db.execute(select(Organization).where(Organization.user_id == user_id))
+    org = res.scalar_one_or_none()
+    if org:
+        return org
+
+    for _ in range(20):
+        candidate_public_id = f"org_{secrets.token_hex(8)}"
+        exists_res = await db.execute(select(Organization.id).where(Organization.public_id == candidate_public_id))
+        if exists_res.scalar_one_or_none() is None:
+            org = Organization(
+                user_id=user_id,
+                public_id=candidate_public_id,
+                org_name="",
+                brand_color="#6366f1",
+                settings={},
+            )
+            db.add(org)
+            await db.flush()
+            return org
+
+    raise RuntimeError("Unable to generate organization public id")
+
+
+def _serialize_admin_organization(org: Organization) -> dict[str, Any]:
+    return {
+        "public_id": org.public_id,
+        "org_name": org.org_name,
+        "brand_logo": org.brand_logo,
+        "brand_color": org.brand_color,
+        "settings": getattr(org, "settings", {}) or {},
+    }
+
+
+@app.get("/api/admin/organization/settings", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def get_admin_organization_settings(me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    org = await _get_or_create_admin_organization(db, me.id)
+    return _serialize_admin_organization(org)
+
+
+@app.patch("/api/admin/organization/settings", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def update_admin_organization_settings(payload: dict[str, Any], me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    org = await _get_or_create_admin_organization(db, me.id)
+
+    settings_data = dict(getattr(org, "settings", {}) or {})
+    for key in (
+        "verification_path",
+        "certificate_footer",
+        "hide_heptacert_home",
+        "public_bio",
+        "public_website_url",
+        "public_linkedin_url",
+        "public_github_url",
+        "public_x_url",
+        "public_instagram_url",
+    ):
+        if key in payload:
+            value = payload.get(key)
+            if key == "hide_heptacert_home":
+                settings_data[key] = bool(value)
+            else:
+                settings_data[key] = str(value).strip() if value is not None else ""
+
+    org_name = str(payload.get("org_name") or "").strip()
+    if org_name:
+        org.org_name = org_name[:200]
+
+    brand_color = str(payload.get("brand_color") or "").strip()
+    if not brand_color:
+        brand_color = org.brand_color or "#6366f1"
+    if not re.fullmatch(r"^#[0-9a-fA-F]{6}$", brand_color):
+        raise HTTPException(status_code=400, detail="Invalid brand color")
+    org.brand_color = brand_color
+    org.settings = settings_data
+
+    await db.commit()
+    await db.refresh(org)
+    return _serialize_admin_organization(org)
+
+
+@app.post("/api/admin/organization/logo", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def upload_admin_organization_logo(
+    file: UploadFile = File(...),
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _get_or_create_admin_organization(db, me.id)
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise bad_request("Only image uploads allowed")
+
+    ext = Path(file.filename or "logo.png").suffix.lower() or ".png"
+    safe_name = f"org-logos/org_{org.id}/logo{ext}"
+    dest = Path(settings.local_storage_dir) / safe_name
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    data = await file.read()
+    dest.write_bytes(data)
+
+    org.brand_logo = f"{settings.public_base_url}/api/files/{safe_name}"
+    await db.commit()
+    await db.refresh(org)
+    return {"brand_logo": org.brand_logo}
+
+
+@app.get("/api/admin/api-keys", response_model=list[ApiKeyOut], dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def list_api_keys(me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    res = await db.execute(select(ApiKey).where(ApiKey.user_id == me.id).order_by(ApiKey.created_at.desc()))
+    api_keys = res.scalars().all()
+    return [
+        ApiKeyOut(
+            id=api_key.id,
+            name=api_key.name,
+            key_prefix=api_key.key_prefix,
+            is_active=api_key.is_active,
+            scopes=list(api_key.scopes or []),
+            last_used_at=api_key.last_used_at,
+            expires_at=api_key.expires_at,
+            created_at=api_key.created_at,
+        )
+        for api_key in api_keys
+    ]
+
+
+@app.post("/api/admin/api-keys", response_model=ApiKeyCreateOut, status_code=201, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def create_api_key(payload: ApiKeyCreateIn, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    full_key = f"hc_live_{secrets.token_urlsafe(32)}"
+    key_prefix = full_key[:12]
+    expires_at = None
+    if payload.expires_days is not None:
+        expires_at = datetime.now(timezone.utc) + timedelta(days=payload.expires_days)
+
+    api_key = ApiKey(
+        user_id=me.id,
+        name=payload.name.strip()[:200],
+        key_prefix=key_prefix,
+        key_hash=_hash_api_key(full_key),
+        scopes=[],
+        is_active=True,
+        expires_at=expires_at,
+    )
+    db.add(api_key)
+    await db.commit()
+    await db.refresh(api_key)
+    return ApiKeyCreateOut(
+        id=api_key.id,
+        name=api_key.name,
+        key_prefix=api_key.key_prefix,
+        is_active=api_key.is_active,
+        scopes=list(api_key.scopes or []),
+        last_used_at=api_key.last_used_at,
+        expires_at=api_key.expires_at,
+        created_at=api_key.created_at,
+        full_key=full_key,
+    )
+
+
+@app.delete("/api/admin/api-keys/{key_id}", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def delete_api_key(key_id: int, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    res = await db.execute(select(ApiKey).where(ApiKey.id == key_id, ApiKey.user_id == me.id))
+    api_key = res.scalar_one_or_none()
+    if not api_key:
+        raise HTTPException(status_code=404, detail="API key not found")
+    api_key.is_active = False
+    await db.commit()
+    return {"ok": True}
+
+
 
 
 @app.get("/public/branding")
@@ -16322,8 +16488,8 @@ async def list_my_transactions_paginated(
 from . import email_api as _email_api
 app.include_router(_email_api.router)
 
-# from . import community_api as _community_api
-# app.include_router(_community_api.router)
+from . import community_api as _community_api
+app.include_router(_community_api.router)
 
 from . import social_api as _social_api
 app.include_router(_social_api.router)
