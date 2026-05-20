@@ -1165,7 +1165,7 @@ class SuperadminBulkEmailJob(Base):
     sent_count: Mapped[int] = mapped_column(Integer, default=0)
     failed_count: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
-    caoncel_requested: Mapped[bool] = mapped_column(Boolean, default=False)
+    cancel_requested: Mapped[bool] = mapped_column(Boolean, default=False)
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -3948,8 +3948,12 @@ async def send_email_async(
     try:
         normalized_to = (to or "").strip().lower()
         async with SessionLocal() as db_check:
-            a_res = await db_check.execute(select(Attendee).where(func.lower(func.trim(Attendee.email)) == normalized_to))
-            attendee = a_res.scalar_one_or_none()
+            a_res = await db_check.execute(
+                select(Attendee)
+                .where(func.lower(func.trim(Attendee.email)) == normalized_to)
+                .order_by(Attendee.id.desc())
+            )
+            attendee = a_res.scalars().first()
             if attendee:
                 # If attendee previously unsubscribed, skip sending
                 if attendee.unsubscribed_at:
@@ -3961,9 +3965,11 @@ async def send_email_async(
 
             else:
                 member_res = await db_check.execute(
-                    select(PublicMember).where(func.lower(func.trim(PublicMember.email)) == normalized_to)
+                    select(PublicMember)
+                    .where(func.lower(func.trim(PublicMember.email)) == normalized_to)
+                    .order_by(PublicMember.id.desc())
                 )
-                public_member = member_res.scalar_one_or_none()
+                public_member = member_res.scalars().first()
                 if public_member:
                     is_digest_message = (
                         "{{ unsubscribe_url }}" in html_body
@@ -7756,6 +7762,41 @@ async def login(request: Request, data: LoginIn, db: AsyncSession = Depends(get_
     )
 
 
+@app.post("/api/auth/2fa/validate")
+@limiter.limit("10/minute")
+async def validate_login_2fa(request: Request, data: TotpValidateIn, db: AsyncSession = Depends(get_db)):
+    try:
+        payload = jwt.decode(data.partial_token, settings.jwt_secret, algorithms=["HS256"])
+        if not payload.get("partial"):
+            raise HTTPException(status_code=401, detail="Gecersiz 2FA oturumu")
+        user_id = int(payload.get("sub"))
+    except HTTPException:
+        raise
+    except (JWTError, ValueError, TypeError):
+        raise HTTPException(status_code=401, detail="2FA oturumu gecersiz veya suresi dolmus")
+
+    user_res = await db.execute(select(User).where(User.id == user_id))
+    user = user_res.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=401, detail="Kullanici bulunamadi")
+
+    totp_res = await db.execute(
+        select(TotpSecret).where(TotpSecret.user_id == user.id, TotpSecret.enabled.is_(True))
+    )
+    totp_secret = totp_res.scalar_one_or_none()
+    if not totp_secret:
+        raise HTTPException(status_code=400, detail="Bu hesapta 2FA etkin degil")
+
+    code = (data.code or "").strip()
+    if not pyotp.TOTP(totp_secret.secret).verify(code, valid_window=1):
+        raise HTTPException(status_code=401, detail="Gecersiz dogrulama kodu")
+
+    return {
+        "access_token": create_access_token(user_id=user.id, role=user.role),
+        "token_type": "bearer",
+    }
+
+
 @app.post("/api/auth/register", status_code=201)
 @limiter.limit("3/minute")
 async def register(request: Request, data: RegisterIn, db: AsyncSession = Depends(get_db)):
@@ -8512,7 +8553,7 @@ class SuperadminBulkEmailJobOut(BaseModel):
     sent_count: int
     failed_count: int
     status: str
-    caoncel_requested: bool
+    cancel_requested: bool
     error_message: Optional[str]
     created_at: datetime
     started_at: Optional[datetime]
@@ -8533,8 +8574,9 @@ class SuperadminAudienceOut(BaseModel):
     limit: int
     offset: int
     source: str
-    unique_public_member_emails: List[str]
-    unique_attendee_emails: List[str]
+    unique_public_member_emails: int
+    unique_attendee_emails: int
+    unique_organizer_emails: int
 
 
 class SystemEmailDigestConfigIn(BaseModel):
@@ -9005,7 +9047,7 @@ async def _create_system_digest_job(
         body_html=body_html,
         total_targets=len(recipient_emails),
         status="pending",
-        caoncel_requested=False,
+        cancel_requested=False,
     )
     db.add(job)
     await db.commit()
@@ -9050,7 +9092,7 @@ async def _run_superadmin_bulk_email_job(job_id: int) -> None:
             if not job or job.status != "pending":
                 return
 
-            if job.caoncel_requested:
+            if job.cancel_requested:
                 job.status = "caoncelled"
                 job.completed_at = datetime.now(timezone.utc)
                 db_job.add(job)
@@ -9089,7 +9131,7 @@ async def _run_superadmin_bulk_email_job(job_id: int) -> None:
                 fresh_job = check_res.scalar_one_or_none()
                 if not fresh_job:
                     return
-                if fresh_job.caoncel_requested:
+                if fresh_job.cancel_requested:
                     fresh_job.sent_count = sent_count
                     fresh_job.failed_count = failed_count
                     fresh_job.status = "caoncelled"

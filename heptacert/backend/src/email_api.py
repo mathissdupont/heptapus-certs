@@ -1033,7 +1033,7 @@ async def send_superadmin_bulk_email(
         status="completed",
         started_at=datetime.now(timezone.utc),
         completed_at=datetime.now(timezone.utc),
-        caoncel_requested=False,
+        cancel_requested=False,
     )
     db.add(audit_job)
     await db.commit()
