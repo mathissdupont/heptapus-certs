@@ -1995,8 +1995,9 @@ export async function listAuditLogs(params?: {
   if (params?.limit) qs.set("limit", String(params.limit));
   
   const res = await apiFetch(`/superadmin/audit-logs?${qs}`);
-  const items = await res.json();
-  return { items, total: items.length };
+  const data = await res.json();
+  const items = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
+  return { items, total: typeof data?.total === "number" ? data.total : items.length };
 }
 
 export async function getSuperAdminStats(): Promise<SuperAdminLandingStatsConfig> {

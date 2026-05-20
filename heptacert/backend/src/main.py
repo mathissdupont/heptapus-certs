@@ -13102,7 +13102,7 @@ def _ticket_token_from_payload(raw_value: str) -> str:
         return value
     if "/tickets/" in value:
         value = value.rsplit("/tickets/", 1)[-1]
-    return value.split("", 1)[0].split("#", 1)[0].strip()
+    return value.split("?", 1)[0].split("#", 1)[0].strip()
 
 
 def _ticket_public_url(token: str) -> str:
@@ -16570,15 +16570,15 @@ async def get_organizations(
     limit: int = Query(default=20, le=100),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get list of admin users (organizations) - superadmin only."""
-    q = select(User).where(User.role == Role.admin)
+    """Get paginated organization records - superadmin only."""
+    q = select(Organization)
     
     total_res = await db.execute(select(func.count()).select_from(q.subquery()))
     total = int(total_res.scalar_one() or 0)
     
-    q = q.order_by(User.created_at.desc()).offset((page - 1) * limit).limit(limit)
+    q = q.order_by(Organization.created_at.desc()).offset((page - 1) * limit).limit(limit)
     res = await db.execute(q)
-    admins = res.scalars().all()
+    organizations = res.scalars().all()
     
     return {
         "total": total,
@@ -16586,14 +16586,116 @@ async def get_organizations(
         "limit": limit,
         "items": [
             {
-                "id": admin.id,
-                "email": admin.email,
-                "role": admin.role,
-                "created_at": admin.created_at.isoformat() if admin.created_at else None,
+                "id": org.id,
+                "user_id": org.user_id,
+                "public_id": org.public_id,
+                "org_name": org.org_name,
+                "custom_domain": org.custom_domain,
+                "brand_logo": org.brand_logo,
+                "brand_color": org.brand_color,
+                "created_at": org.created_at.isoformat() if org.created_at else None,
             }
-            for admin in admins
+            for org in organizations
         ]
     }
+
+
+@app.post("/api/superadmin/organizations", dependencies=[Depends(require_role(Role.superadmin))])
+async def create_organization(
+    payload: OrgIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if not payload.user_id:
+        raise HTTPException(status_code=400, detail="Admin user ID is required")
+
+    user_res = await db.execute(select(User).where(User.id == payload.user_id))
+    user = user_res.scalar_one_or_none()
+    if not user or user.role not in {Role.admin, Role.superadmin}:
+        raise HTTPException(status_code=404, detail="Admin user not found")
+
+    existing_res = await db.execute(select(Organization).where(Organization.user_id == payload.user_id))
+    if existing_res.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Organization already exists for this user")
+
+    custom_domain = payload.custom_domain.strip().lower() if payload.custom_domain else None
+    if custom_domain:
+        domain_res = await db.execute(select(Organization.id).where(Organization.custom_domain == custom_domain))
+        if domain_res.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Custom domain is already in use")
+
+    org = Organization(
+        user_id=payload.user_id,
+        public_id=await _generate_organization_public_id(db),
+        org_name=payload.org_name.strip(),
+        custom_domain=custom_domain,
+        brand_logo=payload.brand_logo.strip() if payload.brand_logo else None,
+        brand_color=payload.brand_color,
+        settings={},
+    )
+    db.add(org)
+    await write_audit_log(db, user_id=me.id, action="organization.create", resource_type="organization", resource_id=str(payload.user_id))
+    await db.commit()
+    await db.refresh(org)
+    return org
+
+
+@app.patch("/api/superadmin/organizations/{org_id}", dependencies=[Depends(require_role(Role.superadmin))])
+async def update_organization(
+    org_id: int,
+    payload: OrgIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org_res = await db.execute(select(Organization).where(Organization.id == org_id))
+    org = org_res.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    if payload.user_id and payload.user_id != org.user_id:
+        user_res = await db.execute(select(User).where(User.id == payload.user_id))
+        user = user_res.scalar_one_or_none()
+        if not user or user.role not in {Role.admin, Role.superadmin}:
+            raise HTTPException(status_code=404, detail="Admin user not found")
+        existing_res = await db.execute(
+            select(Organization.id).where(Organization.user_id == payload.user_id, Organization.id != org_id)
+        )
+        if existing_res.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Organization already exists for this user")
+        org.user_id = payload.user_id
+
+    custom_domain = payload.custom_domain.strip().lower() if payload.custom_domain else None
+    if custom_domain:
+        domain_res = await db.execute(
+            select(Organization.id).where(Organization.custom_domain == custom_domain, Organization.id != org_id)
+        )
+        if domain_res.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Custom domain is already in use")
+
+    org.org_name = payload.org_name.strip()
+    org.custom_domain = custom_domain
+    org.brand_logo = payload.brand_logo.strip() if payload.brand_logo else None
+    org.brand_color = payload.brand_color
+    await write_audit_log(db, user_id=me.id, action="organization.update", resource_type="organization", resource_id=str(org_id))
+    await db.commit()
+    await db.refresh(org)
+    return org
+
+
+@app.delete("/api/superadmin/organizations/{org_id}", dependencies=[Depends(require_role(Role.superadmin))])
+async def delete_organization(
+    org_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org_res = await db.execute(select(Organization).where(Organization.id == org_id))
+    org = org_res.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    await db.delete(org)
+    await write_audit_log(db, user_id=me.id, action="organization.delete", resource_type="organization", resource_id=str(org_id))
+    await db.commit()
+    return {"ok": True}
 
 
 from . import email_api as _email_api

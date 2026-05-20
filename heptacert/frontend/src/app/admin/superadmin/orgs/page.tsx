@@ -126,7 +126,8 @@ export default function SuperadminOrgsPage() {
       setLoading(true);
       setError(null);
       const response = await apiFetch("/superadmin/organizations");
-      setOrgs(await response.json());
+      const data = await response.json();
+      setOrgs(Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : []);
     } catch (e: any) {
       setError(e?.message || copy.loadFailed);
     } finally {
