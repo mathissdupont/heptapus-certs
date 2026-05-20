@@ -9,6 +9,7 @@ from fastapi import Depends, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from fastapi.routing import APIRouter
 from apscheduler.triggers.cron import CronTrigger
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import distinct, func, literal, or_, select, union_all
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -68,6 +69,22 @@ router = APIRouter()
 SUPERADMIN_BULK_EMAIL_DAILY_JOB_QUOTA = 10
 SUPERADMIN_BULK_EMAIL_DAILY_RECIPIENT_QUOTA = 2000
 SUPERADMIN_DIGEST_MANUAL_DAILY_QUOTA = 1
+
+
+class SuperadminBulkEmailTestIn(BaseModel):
+    to_email: EmailStr
+    subject: str = Field(min_length=3, max_length=240)
+    body_html: str = Field(min_length=10, max_length=100_000)
+
+
+class SuperadminSystemDigestTestIn(BaseModel):
+    to_email: EmailStr
+
+
+class SuperadminTestEmailOut(BaseModel):
+    sent: bool
+    to_email: EmailStr
+    message: str
 
 
 async def _enforce_superadmin_email_quota(
@@ -1049,6 +1066,30 @@ async def send_superadmin_bulk_email(
 
 
 @router.post(
+    "/api/superadmin/bulk-email/test",
+    response_model=SuperadminTestEmailOut,
+    dependencies=[Depends(require_role(Role.superadmin))],
+)
+async def send_superadmin_bulk_email_test(
+    payload: SuperadminBulkEmailTestIn,
+    me: CurrentUser = Depends(get_current_user),
+):
+    to_email = str(payload.to_email).strip().lower()
+    await send_email_async(
+        to=to_email,
+        subject=f"[TEST] {payload.subject}",
+        html_body=payload.body_html,
+        raise_on_error=True,
+        sender_user_id=me.id,
+    )
+    return SuperadminTestEmailOut(
+        sent=True,
+        to_email=to_email,
+        message="Test e-postası gönderildi.",
+    )
+
+
+@router.post(
     "/api/superadmin/bulk-email/jobs",
     response_model=SuperadminBulkEmailJobOut,
     status_code=201,
@@ -1160,6 +1201,33 @@ async def send_system_digest_now(
         target_count=1,
     )
     return await _create_system_digest_job(db, me.id, subject, body_html)
+
+
+@router.post(
+    "/api/superadmin/system-digest/test",
+    response_model=SuperadminTestEmailOut,
+    dependencies=[Depends(require_role(Role.superadmin))],
+)
+async def send_system_digest_test(
+    payload: SuperadminSystemDigestTestIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    config = await _ensure_system_digest_config(db)
+    subject, body_html, _, _ = await _build_system_digest_email_content(db, config)
+    to_email = str(payload.to_email).strip().lower()
+    await send_email_async(
+        to=to_email,
+        subject=f"[TEST] {subject}",
+        html_body=body_html,
+        raise_on_error=True,
+        sender_user_id=me.id,
+    )
+    return SuperadminTestEmailOut(
+        sent=True,
+        to_email=to_email,
+        message="Test sistem digest'i gönderildi.",
+    )
 
 
 @router.get(

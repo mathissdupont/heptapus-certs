@@ -8851,20 +8851,140 @@ async def _build_system_digest_email_content(db: AsyncSession, config: SystemEma
         if len(recent_posts) >= int(config.max_posts or 3):
             break
 
-    subject = "HeptaCert topluluk özeti"
+    subject = "HeptaCert'te bu hafta"
     events_count = len(upcoming_events)
     posts_count = len(recent_posts)
+
+    apple_events_html = "".join(
+        f"""
+        <tr>
+            <td style="padding:20px 0;border-top:1px solid #e5e5ea;">
+                <div style="font-size:17px;line-height:1.35;font-weight:700;color:#1d1d1f;margin:0 0 6px 0;">{escape(item['name'])}</div>
+                <div style="font-size:14px;line-height:1.5;color:#6e6e73;margin:0 0 12px 0;">{escape(item['date'] or 'Tarih yakında')}{' · ' + escape(item['location']) if item['location'] else ''}{' · ' + escape(item['organization']) if item['organization'] else ''}</div>
+                <a href="{escape(item['link'])}" style="font-size:14px;line-height:1.4;color:#0071e3;text-decoration:none;font-weight:600;">Etkinliği aç →</a>
+            </td>
+        </tr>
+        """
+        for item in upcoming_events
+    ) or """
+        <tr>
+            <td style="padding:20px 0;border-top:1px solid #e5e5ea;color:#6e6e73;font-size:14px;line-height:1.6;">
+                Şu an öne çıkan yeni etkinlik yok.
+            </td>
+        </tr>
+    """
+
+    apple_posts_html = "".join(
+        f"""
+        <tr>
+            <td style="padding:20px 0;border-top:1px solid #e5e5ea;">
+                <div style="font-size:15px;line-height:1.4;font-weight:700;color:#1d1d1f;margin:0 0 7px 0;">{escape(item['author'])}</div>
+                <div style="font-size:14px;line-height:1.6;color:#6e6e73;margin:0 0 12px 0;">{escape(item['snippet'] or 'Gönderi')}</div>
+                <a href="{escape(item['link'])}" style="font-size:14px;line-height:1.4;color:#0071e3;text-decoration:none;font-weight:600;">Paylaşımı aç →</a>
+            </td>
+        </tr>
+        """
+        for item in recent_posts
+    ) or """
+        <tr>
+            <td style="padding:20px 0;border-top:1px solid #e5e5ea;color:#6e6e73;font-size:14px;line-height:1.6;">
+                Şu an gösterilecek yeni paylaşım yok.
+            </td>
+        </tr>
+    """
+
+    logo_html = (
+        f'<img src="{logo_data_uri}" alt="HeptaCert" style="display:block;width:48px;height:48px;border-radius:12px;margin:0 0 18px 0;" />'
+        if logo_data_uri
+        else '<div style="width:48px;height:48px;border-radius:12px;background:#f5f5f7;color:#1d1d1f;font-size:18px;font-weight:700;line-height:48px;text-align:center;margin:0 0 18px 0;">H</div>'
+    )
+
+    events_url = settings.frontend_base_url.rstrip("/") + "/events"
+    body_html = f"""
+    <!doctype html>
+    <html lang="tr">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+        <title>{escape(subject)}</title>
+    </head>
+    <body style="margin:0;padding:0;background:#f5f5f7;-webkit-font-smoothing:antialiased;">
+        <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+            HeptaCert'te öne çıkan {events_count} etkinlik ve {posts_count} topluluk paylaşımı.
+        </div>
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f5f5f7;padding:28px 12px;">
+            <tr>
+                <td align="center">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:680px;background:#ffffff;border-radius:28px;overflow:hidden;">
+                        <tr>
+                            <td style="padding:44px 44px 28px 44px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                                {logo_html}
+                                <div style="font-size:12px;line-height:1.4;letter-spacing:.12em;text-transform:uppercase;color:#86868b;font-weight:700;margin:0 0 12px 0;">HeptaCert</div>
+                                <h1 style="margin:0;color:#1d1d1f;font-size:36px;line-height:1.12;font-weight:800;letter-spacing:-.02em;">Bu haftanın kısa özeti.</h1>
+                                <p style="margin:16px 0 0 0;color:#6e6e73;font-size:17px;line-height:1.55;">İlginizi çekebilecek etkinlikleri ve topluluktan son paylaşımları sade bir özet halinde hazırladık.</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding:0 44px 28px 44px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                                    <tr>
+                                        <td style="width:50%;padding:0 8px 0 0;">
+                                            <div style="background:#f5f5f7;border-radius:20px;padding:18px;">
+                                                <div style="font-size:12px;line-height:1.4;color:#86868b;font-weight:700;text-transform:uppercase;letter-spacing:.08em;">Etkinlik</div>
+                                                <div style="font-size:32px;line-height:1;font-weight:800;color:#1d1d1f;margin-top:10px;">{events_count}</div>
+                                            </div>
+                                        </td>
+                                        <td style="width:50%;padding:0 0 0 8px;">
+                                            <div style="background:#f5f5f7;border-radius:20px;padding:18px;">
+                                                <div style="font-size:12px;line-height:1.4;color:#86868b;font-weight:700;text-transform:uppercase;letter-spacing:.08em;">Topluluk</div>
+                                                <div style="font-size:32px;line-height:1;font-weight:800;color:#1d1d1f;margin-top:10px;">{posts_count}</div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding:0 44px 8px 44px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                                <h2 style="margin:0;color:#1d1d1f;font-size:22px;line-height:1.25;font-weight:800;letter-spacing:-.01em;">Öne çıkan etkinlikler</h2>
+                                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">{apple_events_html}</table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding:18px 44px 8px 44px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                                <h2 style="margin:0;color:#1d1d1f;font-size:22px;line-height:1.25;font-weight:800;letter-spacing:-.01em;">Son topluluk paylaşımları</h2>
+                                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">{apple_posts_html}</table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding:24px 44px 44px 44px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                                <a href="{events_url}" style="display:inline-block;background:#0071e3;color:#ffffff;text-decoration:none;border-radius:999px;padding:13px 22px;font-size:15px;line-height:1.2;font-weight:700;">Etkinlikleri keşfet</a>
+                                <p style="margin:28px 0 0 0;color:#86868b;font-size:12px;line-height:1.7;">
+                                    Bu e-posta, HeptaCert topluluk güncellemeleri kapsamında gönderilmiştir.
+                                    <br />
+                                    Bu tür e-postaları almak istemiyorsanız <a href="{{{{ unsubscribe_url }}}}" style="color:#0071e3;text-decoration:none;font-weight:600;">buradan abonelikten çıkabilirsiniz</a>.
+                                </p>
+                                <p style="margin:14px 0 0 0;color:#a1a1a6;font-size:11px;line-height:1.5;">© {now_year} HeptaCert</p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """.strip()
+    return subject, body_html, events_count, posts_count
 
     if upcoming_events:
         events_html = "".join(
             f"""
             <tr>
                 <td style='padding:0 0 14px 0;'>
-                    <table role='presentation' width='100%' cellspacing='0' cellpadding='0' style='border:1px solid #e5e7eb;border-radius:18px;overflow:hidden;background:#ffffff;'>
+                    <table role='presentation' width='100%' cellspacing='0' cellpadding='0' style='border-collapse:collapse;'>
                         <tr>
-                            <td style='padding:18px 18px 14px 18px;'>
-                                <div style='font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f766e;font-weight:700;margin-bottom:6px;'>Etkinlik</div>
-                                <div style='font-size:18px;font-weight:700;color:#0f172a;margin-bottom:8px;'>{escape(item['name'])}</div>
+                            <td style='padding:18px 0;border-top:1px solid #e5e5ea;'>
+                                <div style='font-size:17px;line-height:1.35;font-weight:700;color:#1d1d1f;margin:0 0 6px 0;'>{escape(item['name'])}</div>
                                 <div style='font-size:14px;color:#475569;margin-bottom:12px;'>{escape(item['date'] or 'Tarih yakında')}{' - ' + escape(item['location']) if item['location'] else ''}{' - ' + escape(item['organization']) if item['organization'] else ''}</div>
                                 <a href='{escape(item['link'])}' style='display:inline-block;padding:10px 14px;background:#0f766e;color:#ffffff;text-decoration:none;border-radius:999px;font-size:13px;font-weight:700;'>Etkinliği aç</a>
                             </td>

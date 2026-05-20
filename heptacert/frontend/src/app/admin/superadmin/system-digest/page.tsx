@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Sparkles, Mail, Loader2 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
 import { useI18n } from "@/lib/i18n";
-import { getSystemDigestConfig, updateSystemDigestConfig, sendSystemDigestNow, SystemEmailDigestConfigOut } from "@/lib/api";
+import { getSystemDigestConfig, updateSystemDigestConfig, sendSystemDigestNow, sendSystemDigestTest, SystemEmailDigestConfigOut } from "@/lib/api";
 
 export default function SuperadminSystemDigestPage() {
   const { lang } = useI18n();
@@ -16,6 +16,8 @@ export default function SuperadminSystemDigestPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [previewing, setPreviewing] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
+  const [testSending, setTestSending] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -136,6 +138,42 @@ export default function SuperadminSystemDigestPage() {
           }} className="btn-ghost">{previewing ? (lang === "tr" ? "Önizleniyor..." : "Previewing...") : (lang === "tr" ? "Önizle" : "Preview")}</button>
         </div>
         {config.last_sent_at && <p className="mt-4 text-sm text-surface-500">{(lang === "tr" ? "Son gönderim" : "Last sent")}: {new Date(config.last_sent_at).toLocaleString()}</p>}
+        <div className="mt-6 grid gap-3 rounded-2xl border border-surface-200 bg-surface-50 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <label className="space-y-1">
+            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-surface-500">
+              {lang === "tr" ? "Test alÄ±cÄ±sÄ±" : "Test recipient"}
+            </span>
+            <input
+              type="email"
+              className="input-field w-full"
+              value={testEmail}
+              onChange={(event) => setTestEmail(event.target.value)}
+              placeholder="you@example.com"
+            />
+          </label>
+          <button disabled={testSending} onClick={async () => {
+            if (!testEmail.trim() || !testEmail.includes("@")) {
+              setError(lang === "tr" ? "GeÃ§erli bir test alÄ±cÄ±sÄ± girin" : "Enter a valid test recipient");
+              return;
+            }
+            try {
+              setTestSending(true);
+              setError(null);
+              const res = await sendSystemDigestTest(testEmail.trim());
+              setSuccessMessage(`${lang === "tr" ? "Test digest gÃ¶nderildi" : "Test digest sent"}: ${res.to_email}`);
+              setTimeout(() => setSuccessMessage(null), 4000);
+            } catch (e: any) {
+              setError(e?.message || (lang === "tr" ? "Test digest gÃ¶nderilemedi" : "Failed to send test digest"));
+            } finally {
+              setTestSending(false);
+            }
+          }} className="btn-secondary">
+            {testSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+            {testSending
+              ? lang === "tr" ? "Test gÃ¶nderiliyor..." : "Sending test..."
+              : lang === "tr" ? "Test Digest GÃ¶nder" : "Send Test Digest"}
+          </button>
+        </div>
         {error && <div className="error-banner mt-4">{error}</div>}
         {successMessage && <div className="success-banner mt-4">{successMessage}</div>}
       </div>

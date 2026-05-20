@@ -10,6 +10,7 @@ import {
   listSuperadminBulkEmailJobs,
   retrySuperadminBulkEmailJob,
   sendSuperadminBulkEmail,
+  sendSuperadminBulkEmailTest,
   type SuperadminBulkEmailJob,
   type SuperadminAudienceItem,
 } from "@/lib/api";
@@ -149,6 +150,8 @@ export default function SuperadminMembersPage() {
   const [subject, setSubject] = useState("");
   const [bodyHtml, setBodyHtml] = useState("");
   const [dryRun, setDryRun] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
+  const [testSending, setTestSending] = useState(false);
 
   async function loadAudience() {
     try {
@@ -229,6 +232,33 @@ export default function SuperadminMembersPage() {
       setError(e?.message || copy.sendError);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function onSendTest() {
+    if (!subject.trim() || !bodyHtml.trim()) {
+      setError(copy.invalidForm);
+      return;
+    }
+    if (!testEmail.trim() || !testEmail.includes("@")) {
+      setError(lang === "tr" ? "GeÃ§erli bir test alÄ±cÄ±sÄ± girin" : "Enter a valid test recipient");
+      return;
+    }
+
+    try {
+      setTestSending(true);
+      setError(null);
+      setResultMessage(null);
+      const res = await sendSuperadminBulkEmailTest({
+        to_email: testEmail.trim(),
+        subject,
+        body_html: bodyHtml,
+      });
+      setResultMessage(`${lang === "tr" ? "Test maili gÃ¶nderildi" : "Test email sent"}: ${res.to_email}`);
+    } catch (e: any) {
+      setError(e?.message || (lang === "tr" ? "Test maili gÃ¶nderilemedi" : "Failed to send test email"));
+    } finally {
+      setTestSending(false);
     }
   }
 
@@ -379,6 +409,27 @@ export default function SuperadminMembersPage() {
           <span className="text-xs font-semibold uppercase tracking-[0.12em] text-surface-500">{copy.mailBody}</span>
           <textarea className="input min-h-[260px] resize-y" value={bodyHtml} onChange={(e) => setBodyHtml(e.target.value)} />
         </label>
+        </div>
+
+        <div className="grid gap-3 rounded-2xl border border-surface-200 bg-surface-50 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <label className="space-y-1">
+            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-surface-500">
+              {lang === "tr" ? "Test alÄ±cÄ±sÄ±" : "Test recipient"}
+            </span>
+            <input
+              type="email"
+              className="input"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+              placeholder="you@example.com"
+            />
+          </label>
+          <button className="btn-secondary" onClick={() => void onSendTest()} disabled={testSending || submitting}>
+            {testSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+            {testSending
+              ? lang === "tr" ? "Test gÃ¶nderiliyor..." : "Sending test..."
+              : lang === "tr" ? "Test Maili GÃ¶nder" : "Send Test Email"}
+          </button>
         </div>
 
         <div className="flex flex-col gap-3 rounded-2xl border border-surface-200 bg-surface-50 p-4 sm:flex-row sm:items-center sm:justify-between">

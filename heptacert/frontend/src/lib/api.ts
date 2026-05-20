@@ -1790,6 +1790,18 @@ export async function sendSuperadminBulkEmail(
   return res.json();
 }
 
+export async function sendSuperadminBulkEmailTest(payload: {
+  to_email: string;
+  subject: string;
+  body_html: string;
+}): Promise<{ sent: boolean; to_email: string; message: string }> {
+  const res = await apiFetch(`/superadmin/bulk-email/test`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
 export async function createSuperadminBulkEmailJob(payload: {
   subject: string;
   body_html: string;
@@ -2064,6 +2076,14 @@ export async function updateSystemDigestConfig(data: Partial<SystemEmailDigestCo
 
 export async function sendSystemDigestNow(): Promise<{ message: string } & Partial<SystemEmailDigestConfigOut>> {
   const res = await apiFetch(`/superadmin/system-digest/send-now`, { method: "POST" });
+  return res.json();
+}
+
+export async function sendSystemDigestTest(to_email: string): Promise<{ sent: boolean; to_email: string; message: string }> {
+  const res = await apiFetch(`/superadmin/system-digest/test`, {
+    method: "POST",
+    body: JSON.stringify({ to_email }),
+  });
   return res.json();
 }
 
