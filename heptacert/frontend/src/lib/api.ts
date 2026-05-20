@@ -125,8 +125,16 @@ async function requestApi(
   clearTimeout(timeout);
 
   if (res.status === 401) {
-    options.onUnauthorized?.();
-    throw new ApiError(401, "Oturum sona erdi.");
+    let detail = "";
+    try {
+      const j = await res.json();
+      detail = formatApiDetail(j?.detail) || formatApiDetail(j);
+    } catch {}
+    if (token) {
+      options.onUnauthorized?.();
+      throw new ApiError(401, detail || "Oturum sona erdi.");
+    }
+    throw new ApiError(401, detail || "E-posta veya şifre hatalı.");
   }
 
   if (!res.ok) {

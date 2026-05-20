@@ -3032,7 +3032,7 @@ def build_public_survey_url(*, event_id: str, attendee_id: int, email: str) -> s
         event_id=event_id,
         email=email,
     )
-    return f"{settings.frontend_base_url.rstrip('/')}/events/{event_id}/surveytoken={survey_token}"
+    return f"{settings.frontend_base_url.rstrip('/')}/events/{event_id}/survey?token={survey_token}"
 
 
 def build_public_status_url(*, event_id: str, attendee_id: int, email: str) -> str:
@@ -3041,11 +3041,11 @@ def build_public_status_url(*, event_id: str, attendee_id: int, email: str) -> s
         event_id=event_id,
         email=email,
     )
-    return f"{settings.frontend_base_url.rstrip('/')}/events/{event_id}/statustoken={survey_token}"
+    return f"{settings.frontend_base_url.rstrip('/')}/events/{event_id}/status?token={survey_token}"
 
 
 def build_attendee_verify_url(*, event_id: str, token: str) -> str:
-    return f"{settings.frontend_base_url.rstrip('/')}/events/{event_id}/verify-emailtoken={token}"
+    return f"{settings.frontend_base_url.rstrip('/')}/events/{event_id}/verify-email?token={token}"
 
 
 async def _ensure_user_email_config(db: AsyncSession, user_id: int) -> "UserEmailConfig":
@@ -7700,8 +7700,10 @@ async def login(request: Request, data: LoginIn, db: AsyncSession = Depends(get_
     res = await db.execute(select(User).where(User.email == str(data.email)))
     user = res.scalar_one_or_none()
     if not user or not verify_password(data.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="E-posta veya şifre hatalı.")
         raise HTTPException(status_code=401, detail="GeÃ§ersiz e-posta veya ÅŸifre.")
     if not user.is_verified:
+        raise HTTPException(status_code=403, detail="E-posta adresinizi doğrulamanız gerekiyor. Lütfen gelen kutunuzu kontrol edin.")
         raise HTTPException(status_code=403, detail="E-posta adresinizi doÃ„Å¸rulamanÃ„Â±z gerekiyor. LÃƒÂ¼tfen gelen kutunuzu kontrol edin.")
 
     # Check if 2FA is enabled for this user
@@ -7820,7 +7822,7 @@ async def register(request: Request, data: RegisterIn, db: AsyncSession = Depend
     db.add(user)
     await db.commit()
 
-    verify_link = f"{settings.frontend_base_url}/verify-emailtoken={token}"
+    verify_link = f"{settings.frontend_base_url.rstrip('/')}/verify-email?token={token}"
     await send_email_async(
         to=str(data.email),
         subject="HeptaCert - E-posta Adresinizi Doğrulayın",
@@ -7851,6 +7853,8 @@ async def verify_email_endpoint(token: str = Query(...), db: AsyncSession = Depe
     user = res.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
+    if (not user.is_verified) and (not user.verification_token or not hmac.compare_digest(str(user.verification_token), token)):
+        raise bad_request("Geçersiz doğrulama bağlantısı.")
     if user.is_verified:
         return {"detail": "Hesabınız zaten doğrulanmış."}
 
@@ -8302,7 +8306,7 @@ async def public_member_register(request: Request, data: PublicMemberRegisterIn,
     db.add(member)
     await db.commit()
 
-    verify_link = f"{settings.frontend_base_url}/member/verify-emailtoken={token}"
+    verify_link = f"{settings.frontend_base_url.rstrip('/')}/member/verify-email?token={token}"
     await send_email_async(
         to=email,
         subject="HeptaCert - Verify your member account",
@@ -8323,8 +8327,10 @@ async def public_member_login(request: Request, data: PublicMemberLoginIn, db: A
     res = await db.execute(select(PublicMember).where(PublicMember.email == email))
     member = res.scalar_one_or_none()
     if not member or not verify_password(data.password, member.password_hash):
+        raise HTTPException(status_code=401, detail="E-posta veya şifre hatalı.")
         raise HTTPException(status_code=401, detail="Invalid email or password.")
     if not member.is_verified:
+        raise HTTPException(status_code=403, detail="E-posta adresinizi doğrulamanız gerekiyor. Lütfen gelen kutunuzu kontrol edin.")
         raise HTTPException(status_code=403, detail="Please verify your email before signing in.")
 
     member_out = PublicMemberMeOut(
