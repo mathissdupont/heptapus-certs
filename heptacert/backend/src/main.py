@@ -1375,7 +1375,7 @@ class EventComment(Base):
 
 
 class AttendaonceRecord(Base):
-    __tablename__ = "attendaonce_records"
+    __tablename__ = "attendance_records"
     id:            Mapped[int]           = mapped_column(Integer, primary_key=True, autoincrement=True)
     attendee_id:   Mapped[int]           = mapped_column(Integer, ForeignKey("attendees.id", ondelete="CASCADE"), index=True)
     session_id:    Mapped[int]           = mapped_column(Integer, ForeignKey("event_sessions.id", ondelete="CASCADE"), index=True)
@@ -1386,7 +1386,7 @@ class AttendaonceRecord(Base):
     session:  Mapped["EventSession"] = relationship(back_populates="attendaonce_records")
 
     __table_args__ = (
-        UniqueConstraint("attendee_id", "session_id", name="uq_attendaonce_attendee_session"),
+        UniqueConstraint("attendee_id", "session_id", name="uq_attendance_attendee_session"),
     )
 
 
@@ -4233,6 +4233,13 @@ async def send_certificate_delivery_email_task(
             )
         except Exception as exc:
             logger.error("Automatic certificate email failed for %s: %s", recipient_email, exc)
+
+
+async def deliver_webhook_task(user_id: int, event_type: str, payload: Dict[str, Any]) -> None:
+    from .webhooks import deliver_webhook
+
+    async with SessionLocal() as db_webhook:
+        await deliver_webhook(db_webhook, user_id, event_type, payload)
 
 
 async def trigger_webhooks(
@@ -12474,9 +12481,9 @@ async def issue_certificate(
             recipient_email=attendee_for_email.email,
         )
 
-    from .webhooks import deliver_webhook, WebhookEvent
+    from .webhooks import WebhookEvent
     background_tasks.add_task(
-        deliver_webhook, db, billing_user_id, WebhookEvent.cert_issued.value,
+        deliver_webhook_task, billing_user_id, WebhookEvent.cert_issued.value,
         {"uuid": cert.uuid, "public_id": cert.public_id, "student_name": cert.student_name, "event_id": ev.id},
     )
 
@@ -12527,10 +12534,9 @@ async def update_certificate_status(
     await db.refresh(cert)
 
     if payload.status == CertStatus.revoked and background_tasks:
-        from .webhooks import deliver_webhook, WebhookEvent
+        from .webhooks import WebhookEvent
         background_tasks.add_task(
-            deliver_webhook,
-            db,
+            deliver_webhook_task,
             ev.admin_id,
             WebhookEvent.cert_revoked.value,
             {"uuid": cert.uuid, "public_id": cert.public_id, "event_id": cert.event_id},
@@ -12630,9 +12636,9 @@ async def bulk_certificate_action(
     await db.commit()
 
     if payload.action == "revoke" and background_tasks:
-        from .webhooks import deliver_webhook, WebhookEvent
+        from .webhooks import WebhookEvent
         background_tasks.add_task(
-            deliver_webhook, db, ev.admin_id, WebhookEvent.cert_bulk_completed.value,
+            deliver_webhook_task, ev.admin_id, WebhookEvent.cert_bulk_completed.value,
             {"event_id": event_id, "action": "revoke", "count": processed},
         )
 
