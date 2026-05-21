@@ -2137,7 +2137,16 @@ class CertificateOut(BaseModel):
     issued_at: Optional[datetime] = None
     hosting_term: Optional[str] = None
     hosting_ends_at: Optional[datetime] = None
+    days_remaining: Optional[int] = None
+    asset_size_bytes: int = 0
+    issue_cost_units: int = 10
+    hosting_cost_units: int = 0
+    total_cost_units: int = 10
+    monthly_cost_units: int = 0
+    yearly_cost_units: int = 0
+    auto_renew_enabled: bool = False
     pdf_url: Optional[str] = None
+    png_url: Optional[str] = None
 
 class CertificateListOut(BaseModel):
     items: List[CertificateOut]
@@ -2724,6 +2733,7 @@ class EventSheetsStatusOut(BaseModel):
     spreadsheet_url: Optional[str] = None
     sheet_name: Optional[str] = None
     enabled: bool = False
+    last_synced_at: Optional[str] = None
     last_syonced_at: Optional[str] = None
     missing_scopes: List[str] = Field(default_factory=list)
 
@@ -2966,6 +2976,45 @@ def ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
+
+
+ISSUE_UNITS_PER_CERT = 10
+
+
+def _certificate_days_remaining(cert: "Certificate") -> Optional[int]:
+    hosting_ends_at = ensure_utc(getattr(cert, "hosting_ends_at", None))
+    if hosting_ends_at is None:
+        return None
+    remaining_seconds = (hosting_ends_at - datetime.now(timezone.utc)).total_seconds()
+    return max(0, math.ceil(remaining_seconds / 86400))
+
+
+def certificate_to_out(cert: "Certificate", *, include_locked_pdf: bool = False) -> CertificateOut:
+    asset_size_bytes = int(getattr(cert, "asset_size_bytes", 0) or 0)
+    hosting_term = getattr(cert, "hosting_term", None) or "yearly"
+    hosting_cost = hosting_units(hosting_term, asset_size_bytes)
+    pdf_url = cert.pdf_url if include_locked_pdf or cert.status == CertStatus.active else None
+    return CertificateOut(
+        id=cert.id,
+        uuid=cert.uuid,
+        public_id=cert.public_id,
+        student_name=cert.student_name,
+        event_id=cert.event_id,
+        status=cert.status,
+        issued_at=getattr(cert, "issued_at", None),
+        hosting_term=hosting_term,
+        hosting_ends_at=getattr(cert, "hosting_ends_at", None),
+        days_remaining=_certificate_days_remaining(cert),
+        asset_size_bytes=asset_size_bytes,
+        issue_cost_units=ISSUE_UNITS_PER_CERT,
+        hosting_cost_units=hosting_cost,
+        total_cost_units=ISSUE_UNITS_PER_CERT + hosting_cost,
+        monthly_cost_units=hosting_units("monthly", asset_size_bytes),
+        yearly_cost_units=hosting_units("yearly", asset_size_bytes),
+        auto_renew_enabled=False,
+        pdf_url=pdf_url,
+        png_url=_certificate_png_public_url(cert.event_id, cert.uuid),
+    )
 
 #helpers
 
@@ -3375,7 +3424,7 @@ async def _write_event_attendees_to_google_sheet(
     await _google_json_request(
         access_token,
         "PUT",
-        f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/{encoded_range}valueInputOption=USER_ENTERED",
+        f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/{encoded_range}?valueInputOption=USER_ENTERED",
         json_body={"majorDimension": "ROWS", "values": values},
     )
 
@@ -3385,7 +3434,7 @@ async def _write_event_attendees_to_google_sheet(
         "spreadsheet_url": spreadsheet_url,
         "sheet_name": sheet_name,
         "header": values[0],
-        "last_syonced_at": datetime.now(timezone.utc).isoformat(),
+        "last_synced_at": datetime.now(timezone.utc).isoformat(),
     }
     _set_event_google_sheets_config(event, next_sheets_config)
     db.add(event)
@@ -3406,7 +3455,7 @@ async def _append_attendee_to_google_sheet_if_enabled(db: AsyncSession, event: "
         await _google_json_request(
             access_token,
             "POST",
-            f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/{encoded_range}:appendvalueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",
+            f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/{encoded_range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",
             json_body={"majorDimension": "ROWS", "values": [_google_sheets_row_for_attendee(event, attendee)]},
         )
     except Exception as exc:
@@ -11044,6 +11093,7 @@ async def _event_sheets_status_payload(db: AsyncSession, event: Event) -> EventS
         spreadsheet_url=sheets_config.get("spreadsheet_url"),
         sheet_name=sheets_config.get("sheet_name"),
         enabled=bool(sheets_config.get("enabled")),
+        last_synced_at=sheets_config.get("last_synced_at") or sheets_config.get("last_syonced_at"),
         last_syonced_at=sheets_config.get("last_syonced_at"),
         missing_scopes=missing_scopes,
     )
@@ -11828,10 +11878,12 @@ async def verify_watermark(
     certificate details are returned.
     """
     if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Sadece gorsel dosyalari kabul edilir (PNG veya JPEG).")
         raise HTTPException(status_code=400, detail="Sadece gÃƒÂ¶rsel dosyalarÃ„Â± kabul edilir (PNG, JPEG, Ã¢â‚¬Â¦)")
 
     img_bytes = await file.read()
     if len(img_bytes) > 30 * 1024 * 1024:  # 30 MB guard
+        raise HTTPException(status_code=413, detail="Dosya 30 MB sinirini asiyor.")
         raise HTTPException(status_code=413, detail="Dosya 30 MB sÃ„Â±nÃ„Â±rÃ„Â±nÃ„Â± aÃ…Å¸Ã„Â±yor")
 
     # Extract watermark
@@ -11844,17 +11896,39 @@ async def verify_watermark(
     if not payload:
         return WatermarkVerifyOut(
             valid=False,
+            message="Bu gorselde HeptaCert dijital damgasi bulunamadi. Mumkunse sertifikanin sistemden indirilen orijinal PNG dosyasini yukleyin.",
+        )
+        return WatermarkVerifyOut(
+            valid=False,
             message="Bu gÃƒÂ¶rselde HeptaCert damgasÃ„Â± bulunamadÃ„Â±. Orijinal PNG dosyasÃ„Â±nÃ„Â± yÃƒÂ¼kleyin.",
+        )
+
+    payload = payload.strip()
+    looks_like_public_id = re.fullmatch(r"EV\d+-\d{6,}", payload) is not None
+    looks_like_uuid = re.fullmatch(
+        r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
+        payload,
+    ) is not None
+    if not looks_like_public_id and not looks_like_uuid:
+        return WatermarkVerifyOut(
+            valid=False,
+            message="Dijital damga okunamadi veya gecersiz bir sertifika kodu iceriyor. Lutfen orijinal PNG dosyasini yukleyin.",
         )
 
     # Look up certificate by public_id
     res = await db.execute(
         select(Certificate, Event)
         .join(Event, Certificate.event_id == Event.id)
-        .where(Certificate.public_id == payload, Certificate.deleted_at.is_(None))
+        .where(or_(Certificate.public_id == payload, Certificate.uuid == payload), Certificate.deleted_at.is_(None))
     )
     row = res.first()
     if not row:
+        return WatermarkVerifyOut(
+            valid=False,
+            message=f"Dijital damga okundu ({payload}) ancak veritabaninda eslesen sertifika bulunamadi.",
+            public_id=payload if looks_like_public_id else None,
+            cert_uuid=payload if looks_like_uuid else None,
+        )
         return WatermarkVerifyOut(
             valid=False,
             message=f"Damga gÃƒÂ¶rÃƒÂ¼ldÃƒÂ¼ ({payload}) ancak veritabanÃ„Â±nda eÃ…Å¸leÃ…Å¸en sertifika bulunamadÃ„Â±.",
@@ -11863,6 +11937,21 @@ async def verify_watermark(
 
     cert, ev = row
     issued_str = cert.issued_at.isoformat() if getattr(cert, "issued_at", None) else None
+
+    return WatermarkVerifyOut(
+        valid=cert.status == CertStatus.active,
+        message=(
+            "Bu gorsel gecerli bir HeptaCert sertifika kaydina ait."
+            if cert.status == CertStatus.active
+            else f"Sertifika bulundu ancak durumu: {cert.status.value}."
+        ),
+        public_id=cert.public_id,
+        cert_uuid=cert.uuid,
+        student_name=cert.student_name,
+        event_name=ev.name,
+        issued_at=issued_str,
+        status=cert.status.value,
+    )
 
     return WatermarkVerifyOut(
         valid=cert.status == CertStatus.active,
@@ -12210,7 +12299,7 @@ async def list_certificates(
         )
 
     return CertificateListOut(
-        items=[to_out(x) for x in items],
+        items=[certificate_to_out(x) for x in items],
         total=total,
         page=page,
         limit=limit,
@@ -12284,7 +12373,6 @@ async def issue_certificate(
     res_lock = await db.execute(select(Event).where(Event.id == ev.id).with_for_update())
     ev = res_lock.scalar_one()
 
-    ISSUE_UNITS_PER_CERT = 10
     term = payload.hosting_term
 
     cert_uuid = new_certificate_uuid()
@@ -12392,19 +12480,94 @@ async def issue_certificate(
         {"uuid": cert.uuid, "public_id": cert.public_id, "student_name": cert.student_name, "event_id": ev.id},
     )
 
-    return CertificateOut(
-        id=cert.id,
-        uuid=cert.uuid,
-        public_id=cert.public_id,
-        student_name=cert.student_name,
-        event_id=cert.event_id,
-        status=cert.status,
-        issued_at=getattr(cert, "issued_at", None),
-        hosting_term=cert.hosting_term,
-        hosting_ends_at=cert.hosting_ends_at,
-        pdf_url=cert.pdf_url,
-        png_url=_certificate_png_public_url(ev.id, cert.uuid),
+    return certificate_to_out(cert)
+
+
+@app.patch(
+    "/api/admin/certificates/{cert_id}",
+    response_model=CertificateOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def update_certificate_status(
+    cert_id: int,
+    payload: UpdateCertificateStatusIn,
+    background_tasks: BackgroundTasks,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    cert_res = await db.execute(
+        select(Certificate).where(Certificate.id == cert_id, Certificate.deleted_at.is_(None))
     )
+    cert = cert_res.scalar_one_or_none()
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+
+    ev = await _get_event_for_admin(cert.event_id, me, db, "certificates:write")
+    _ensure_certificate_feature_enabled(ev)
+
+    previous_status = cert.status
+    cert.status = payload.status
+    if payload.status == CertStatus.expired:
+        cert.hosting_ends_at = datetime.now(timezone.utc)
+
+    await write_audit_log(
+        db,
+        user_id=me.id,
+        action="certificate.status.updated",
+        resource_type="certificate",
+        resource_id=str(cert.id),
+        extra={
+            "event_id": cert.event_id,
+            "public_id": cert.public_id,
+            "from": previous_status.value if previous_status else None,
+            "to": payload.status.value,
+        },
+    )
+    await db.commit()
+    await db.refresh(cert)
+
+    if payload.status == CertStatus.revoked and background_tasks:
+        from .webhooks import deliver_webhook, WebhookEvent
+        background_tasks.add_task(
+            deliver_webhook,
+            db,
+            ev.admin_id,
+            WebhookEvent.cert_revoked.value,
+            {"uuid": cert.uuid, "public_id": cert.public_id, "event_id": cert.event_id},
+        )
+
+    return certificate_to_out(cert)
+
+
+@app.delete(
+    "/api/admin/certificates/{cert_id}",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def delete_certificate(
+    cert_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    cert_res = await db.execute(
+        select(Certificate).where(Certificate.id == cert_id, Certificate.deleted_at.is_(None))
+    )
+    cert = cert_res.scalar_one_or_none()
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+
+    await _get_event_for_admin(cert.event_id, me, db, "certificates:write")
+    cert.deleted_at = datetime.now(timezone.utc)
+
+    await write_audit_log(
+        db,
+        user_id=me.id,
+        action="certificate.deleted",
+        resource_type="certificate",
+        resource_id=str(cert.id),
+        extra={"event_id": cert.event_id, "public_id": cert.public_id},
+    )
+    await db.commit()
+    return {"ok": True}
 
 
 @app.post(
@@ -16297,6 +16460,7 @@ async def reset_event_raffle(
     )
 
 
+@app.get("/api/admin/events/{event_id}/attendance", dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)])
 @app.get("/api/admin/events/{event_id}/attendaonce", dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)])
 async def get_attendaonce_matrix(
     event_id: int,

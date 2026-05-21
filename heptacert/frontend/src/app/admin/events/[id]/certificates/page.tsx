@@ -47,6 +47,14 @@ type CertificateOut = {
   status: CertStatus;
   hosting_term?: string | null;
   hosting_ends_at?: string | null;
+  days_remaining?: number | null;
+  asset_size_bytes?: number;
+  issue_cost_units?: number;
+  hosting_cost_units?: number;
+  total_cost_units?: number;
+  monthly_cost_units?: number;
+  yearly_cost_units?: number;
+  auto_renew_enabled?: boolean;
   pdf_url?: string | null;
 };
 
@@ -122,6 +130,17 @@ export default function CertificatesPage({ params }: { params: { id: string } })
         issueBody: "Tek bir isimle hızlıca sertifika üretin; telefon ekranında bile kolayca tamamlanır.",
         recipientPlaceholder: "Örn. Ayşe Yılmaz",
         issueAction: "Sertifika oluştur",
+        estimatedCost: "Tahmini maliyet",
+        issueCost: "Basım",
+        hostingCost: "Barındırma",
+        autoRenewOff: "Oto-yenile kapalı",
+        autoRenewOn: "Oto-yenile açık",
+        remaining: "Kalan süre",
+        expiredNow: "Süresi doldu",
+        days: "gün",
+        costUnknown: "Dosya boyutuna göre hesaplanır",
+        monthlyCost: "Aylık",
+        yearlyCost: "Yıllık",
         filterTitle: "Ara ve filtrele",
         filterBody: "Listeyi isim veya durum ile daraltın, sonra toplu işlem uygulayın.",
         refresh: "Yenile",
@@ -157,6 +176,17 @@ export default function CertificatesPage({ params }: { params: { id: string } })
         issueBody: "Create a certificate from a single attendee name, even from a phone without fighting the layout.",
         recipientPlaceholder: "e.g. Alex Morgan",
         issueAction: "Create certificate",
+        estimatedCost: "Estimated cost",
+        issueCost: "Issue",
+        hostingCost: "Hosting",
+        autoRenewOff: "Auto-renew off",
+        autoRenewOn: "Auto-renew on",
+        remaining: "Time left",
+        expiredNow: "Expired",
+        days: "days",
+        costUnknown: "Calculated from file size",
+        monthlyCost: "Monthly",
+        yearlyCost: "Yearly",
         filterTitle: "Search and filter",
         filterBody: "Narrow the list by name or status, then apply bulk actions with less friction.",
         refresh: "Refresh",
@@ -338,6 +368,28 @@ export default function CertificatesPage({ params }: { params: { id: string } })
     );
   }, [items]);
 
+  const issueEstimate = useMemo(() => {
+    const sample = issueTerm === "monthly" ? items[0]?.monthly_cost_units : items[0]?.yearly_cost_units;
+    if (typeof sample !== "number") return null;
+    return {
+      issue: 10,
+      hosting: sample,
+      total: 10 + sample,
+    };
+  }, [items, issueTerm]);
+
+  function formatHc(units?: number | null) {
+    if (typeof units !== "number") return "-";
+    return `${(units / 10).toLocaleString(lang === "tr" ? "tr-TR" : "en-US", { maximumFractionDigits: 1 })} HC`;
+  }
+
+  function formatRemaining(cert: CertificateOut) {
+    if (cert.status === "expired" || cert.days_remaining === 0) return copy.expiredNow;
+    if (typeof cert.days_remaining === "number") return `${cert.days_remaining} ${copy.days}`;
+    if (cert.hosting_ends_at) return new Date(cert.hosting_ends_at).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US");
+    return "-";
+  }
+
   return (
     <div className="flex flex-col gap-6 pb-24 pt-6">
       <EventAdminNav eventId={eventId} active="certificates" eventName={eventName || `Etkinlik #${eventId}`} className="flex flex-col gap-3" />
@@ -441,8 +493,20 @@ export default function CertificatesPage({ params }: { params: { id: string } })
                 <label className="label">{t("certs_hosting_term")}</label>
                 <select value={issueTerm} onChange={(e) => setIssueTerm(e.target.value as any)} className="input-field appearance-none">
                   <option value="monthly">{t("certs_term_monthly")}</option>
-                  <option value="yearly">{t("certs_term_yearly")} (2 Ay)</option>
+                  <option value="yearly">{t("certs_term_yearly")} (12 Ay)</option>
                 </select>
+              </div>
+              <div className="rounded-2xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                <div className="flex items-center justify-between gap-3 font-bold">
+                  <span>{copy.estimatedCost}</span>
+                  <span>{issueEstimate ? formatHc(issueEstimate.total) : copy.costUnknown}</span>
+                </div>
+                {issueEstimate && (
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-amber-800">
+                    <span>{copy.issueCost}: {formatHc(issueEstimate.issue)}</span>
+                    <span>{copy.hostingCost}: {formatHc(issueEstimate.hosting)}</span>
+                  </div>
+                )}
               </div>
               <button onClick={issueOne} disabled={issuing} className="btn-primary mt-1 w-full justify-center">
                 {issuing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
@@ -542,6 +606,14 @@ export default function CertificatesPage({ params }: { params: { id: string } })
                             <span className="flex items-center gap-1"><Hash className="h-3 w-3" />{c.uuid.split("-")[0]}...</span>
                             {c.public_id && <span className="flex items-center gap-1"><LockKeyhole className="h-3 w-3" />{c.public_id}</span>}
                             {c.hosting_term && <span className="rounded-full border border-gray-100 bg-gray-50 px-2.5 py-1">{c.hosting_term}</span>}
+                            <span className="rounded-full border border-gray-100 bg-gray-50 px-2.5 py-1">{copy.remaining}: {formatRemaining(c)}</span>
+                            <span className="rounded-full border border-gray-100 bg-gray-50 px-2.5 py-1">{formatHc(c.total_cost_units)}</span>
+                            <span className="rounded-full border border-gray-100 bg-gray-50 px-2.5 py-1">
+                              {copy.monthlyCost}: {formatHc(c.monthly_cost_units)} / {copy.yearlyCost}: {formatHc(c.yearly_cost_units)}
+                            </span>
+                            <span className={`rounded-full border px-2.5 py-1 ${c.auto_renew_enabled ? "border-emerald-100 bg-emerald-50 text-emerald-700" : "border-gray-100 bg-gray-50 text-gray-400"}`}>
+                              {c.auto_renew_enabled ? copy.autoRenewOn : copy.autoRenewOff}
+                            </span>
                           </div>
                         </div>
                       </div>
