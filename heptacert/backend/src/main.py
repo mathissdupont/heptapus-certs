@@ -10357,40 +10357,6 @@ async def update_public_member_email_prefereonces(
     return PublicMemberEmailPrefereoncesOut(digest_opt_in=bool(db_member.digest_opt_in))
 
 
-@app.get("/api/public/billing/subscription")
-async def get_public_member_subscription(
-    member: CurrentPublicMember = Depends(get_current_public_member),
-    db: AsyncSession = Depends(get_db),
-):
-    res = await db.execute(
-        select(PublicMemberSubscription)
-        .where(PublicMemberSubscription.public_member_id == member.id, PublicMemberSubscription.is_active == True)
-        .order_by(PublicMemberSubscription.expires_at.desc().nullslast())
-        .limit(1)
-    )
-    sub = res.scalar_one_or_none()
-    if not sub:
-        return {"active": False, "plan_id": None, "expires_at": None}
-    return {
-        "active": True,
-        "plan_id": sub.plan_id,
-        "expires_at": sub.expires_at.isoformat() if sub.expires_at else None,
-    }
-
-
-@app.post("/api/public/billing/upgrade")
-async def upgrade_public_member_tier(
-    data: dict,
-    member: CurrentPublicMember = Depends(get_current_public_member),
-    db: AsyncSession = Depends(get_db),
-):
-    # Temporary safeguard: disable member self-service subscription changes.
-    raise HTTPException(
-        status_code=503,
-        detail="Member subscription changes are temporarily disabled.",
-    )
-
-
 @app.patch("/api/public/me", response_model=PublicMemberMeOut)
 async def update_public_me(
     data: PublicMemberProfileUpdateIn,
@@ -12933,7 +12899,7 @@ async def system_health(db: AsyncSession = Depends(get_db)):
 # Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
 
 class GrantSubscriptionIn(BaseModel):
-    target_type: str = Field(default="admin", pattern="^(admin|member)$")
+    target_type: str = Field(default="admin", pattern="^admin$")
     user_email: str
     plan_id: str
     days: int = 365
@@ -12964,28 +12930,7 @@ async def list_all_subscriptions(db: AsyncSession = Depends(get_db)):
         }
         for sub, email in res.all()
     ]
-    member_res = await db.execute(
-        select(PublicMemberSubscription, PublicMember.email)
-        .join(PublicMember, PublicMember.id == PublicMemberSubscription.public_member_id)
-        .order_by(PublicMemberSubscription.started_at.desc())
-        .limit(500)
-    )
-    rows.extend(
-        {
-            "id": sub.id,
-            "target_type": "member",
-            "user_id": sub.public_member_id,
-            "user_email": email,
-            "plan_id": sub.plan_id,
-            "order_id": None,
-            "started_at": sub.started_at.isoformat() if sub.started_at else None,
-            "expires_at": sub.expires_at.isoformat() if sub.expires_at else None,
-            "is_active": sub.is_active,
-        }
-        for sub, email in member_res.all()
-    )
-    rows.sort(key=lambda item: item.get("started_at") or "", reverse=True)
-    return rows[:500]
+    return rows
 
 
 @app.post(
@@ -12994,45 +12939,6 @@ async def list_all_subscriptions(db: AsyncSession = Depends(get_db)):
     status_code=201,
 )
 async def grant_subscription(payload: GrantSubscriptionIn, db: AsyncSession = Depends(get_db)):
-    if payload.target_type == "member":
-        valid_member_plans = ["member_plus", "member_pro"]
-        if payload.plan_id not in valid_member_plans:
-            raise HTTPException(status_code=400, detail=f"Gecersiz uye plani. Gecerli planlar: {', '.join(valid_member_plans)}")
-
-        member_res = await db.execute(select(PublicMember).where(PublicMember.email == payload.user_email))
-        member = member_res.scalar_one_or_none()
-        if not member:
-            raise HTTPException(status_code=404, detail="Uye bulunamadi.")
-
-        await db.execute(
-            update(PublicMemberSubscription)
-            .where(PublicMemberSubscription.public_member_id == member.id, PublicMemberSubscription.is_active == True)
-            .values(is_active=False)
-        )
-
-        now = datetime.now(timezone.utc)
-        new_member_sub = PublicMemberSubscription(
-            public_member_id=member.id,
-            plan_id=payload.plan_id,
-            started_at=now,
-            expires_at=now + timedelta(days=payload.days),
-            is_active=True,
-        )
-        db.add(new_member_sub)
-        await db.commit()
-        await db.refresh(new_member_sub)
-
-        return {
-            "id": new_member_sub.id,
-            "target_type": "member",
-            "user_id": new_member_sub.public_member_id,
-            "user_email": member.email,
-            "plan_id": new_member_sub.plan_id,
-            "started_at": new_member_sub.started_at.isoformat() if new_member_sub.started_at else None,
-            "expires_at": new_member_sub.expires_at.isoformat() if new_member_sub.expires_at else None,
-            "is_active": new_member_sub.is_active,
-        }
-
     # Find user by email
     user_res = await db.execute(select(User).where(User.email == payload.user_email))
     user = user_res.scalar_one_or_none()
@@ -13100,20 +13006,6 @@ async def revoke_subscription(sub_id: int, db: AsyncSession = Depends(get_db)):
 
 
 # Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-@app.delete(
-    "/api/superadmin/public-member-subscriptions/{sub_id}",
-    dependencies=[Depends(require_role(Role.superadmin))],
-)
-async def revoke_public_member_subscription(sub_id: int, db: AsyncSession = Depends(get_db)):
-    res = await db.execute(select(PublicMemberSubscription).where(PublicMemberSubscription.id == sub_id))
-    sub = res.scalar_one_or_none()
-    if not sub:
-        raise HTTPException(status_code=404, detail="Uye aboneligi bulunamadi.")
-    sub.is_active = False
-    await db.commit()
-    return {"detail": "Uye aboneligi iptal edildi."}
-
-
 # Magic Link Authentication
 # Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
 

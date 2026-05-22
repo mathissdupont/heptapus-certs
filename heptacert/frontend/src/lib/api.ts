@@ -262,12 +262,6 @@ export interface PublicMemberMe {
   created_at: string;
 }
 
-export interface PublicMemberSubscriptionInfo {
-  active: boolean;
-  plan_id: string | null;
-  expires_at?: string | null;
-}
-
 export interface PublicMemberProfile {
   public_id: string;
   display_name: string;
@@ -1092,24 +1086,6 @@ export async function loginPublicMember(data: { email: string; password: string 
 
 export async function getPublicMemberMe(): Promise<PublicMemberMe> {
   const res = await memberApiFetch("/public/me");
-  return res.json();
-}
-
-export async function getPublicMemberSubscription(): Promise<PublicMemberSubscriptionInfo> {
-  const res = await memberApiFetch("/public/billing/subscription");
-  return res.json();
-}
-
-export async function upgradePublicMemberTier(planId: string): Promise<{
-  status: string;
-  message: string;
-  plan_id: string;
-  expires_at?: string | null;
-}> {
-  const res = await memberApiFetch("/public/billing/upgrade", {
-    method: "POST",
-    body: JSON.stringify({ plan_id: planId }),
-  });
   return res.json();
 }
 

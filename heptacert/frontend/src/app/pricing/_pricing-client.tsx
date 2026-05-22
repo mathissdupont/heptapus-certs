@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle2, ShieldCheck, Star, HelpCircle, Coins, Loader2, AlertCircle, Clock, Mail, X, Phone, User, Sparkles, Globe2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, ShieldCheck, Star, HelpCircle, Coins, Loader2, AlertCircle, Clock, Mail, X, Phone, User, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useI18n, useT } from "@/lib/i18n";
@@ -27,10 +27,10 @@ type WaitlistModalProps = {
 };
 
 type PricingClientProps = {
-  mode?: "all" | "member" | "business";
+  mode?: "all" | "business";
 };
 
-export default function PricingPage({ mode = "all" }: PricingClientProps) {
+export default function PricingPage({ mode: _mode = "all" }: PricingClientProps) {
   const { lang } = useI18n();
   const t = useT();
 
@@ -89,9 +89,6 @@ export default function PricingPage({ mode = "all" }: PricingClientProps) {
     faqTitle: "Sıkça Sorulan Sorular",
     enterpriseContact: "Satış Ekibiyle Görüşün",
     startFree: "Ücretsiz Başla",
-    memberTitle: "Üyelik Premium",
-    memberSubtitle: "Normal kullanıcılar için tasarlanmış sosyal ve profil odaklı premium paketler.",
-    memberCta: "Üyelik hesabımdan incele"
   } : {
     badge: paymentEnabled ? "Checkout is Live" : "Paid Plans Coming Soon",
     title: "Simple, transparent pricing",
@@ -109,13 +106,7 @@ export default function PricingPage({ mode = "all" }: PricingClientProps) {
     faqTitle: "Frequently Asked Questions",
     enterpriseContact: "Contact Sales",
     startFree: "Start for Free",
-    memberTitle: "Member Premium",
-    memberSubtitle: "Premium plans designed for regular users with a stronger focus on profile and social features.",
-    memberCta: "Manage from my membership"
   };
-
-  const showMemberSection = mode !== "business";
-  const showBusinessSection = mode !== "member";
 
   return (
     <div className="flex flex-col gap-16 pb-24 pt-12 bg-slate-50 min-h-screen">
@@ -138,62 +129,8 @@ export default function PricingPage({ mode = "all" }: PricingClientProps) {
         </motion.div>
       </section>
 
-      {showMemberSection && (
-      <section id="member-premium" className="mx-auto w-full max-w-6xl px-6 lg:px-8">
-        <div className="mb-8 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">
-            <Globe2 className="h-4 w-4" />
-            {copy.memberTitle}
-          </div>
-          <h2 className="mt-5 text-3xl font-extrabold tracking-tight text-slate-900">{copy.memberTitle}</h2>
-          <p className="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-slate-600">{copy.memberSubtitle}</p>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          {[
-            {
-              id: "member_plus",
-              title: "Member Plus",
-              tone: "border-sky-200 bg-sky-50/70",
-              features: lang === "tr"
-                ? ["Geliştirilmiş profil görünümü", "Topluluk ve feed tarafında premium üye katmanı", "Sosyal özeliklerde premium hazırlanmış"]
-                : ["Enhanced profile visibility", "Premium member tier across communities and feed", "Premium-ready tier for social features"],
-            },
-            {
-              id: "member_pro",
-              title: "Member Pro",
-              tone: "border-emerald-200 bg-emerald-50/70",
-              features: lang === "tr"
-                ? ["Plus özeliklerinin tamamı", "Topluluklarda daha güçlü görünürlük", "Yeni sosyal özellikler için öncelikli premium katman"]
-                : ["Everything in Plus", "Stronger visibility across communities", "Priority premium tier for upcoming social features"],
-            },
-          ].map((plan) => (
-            <div key={plan.id} className={`rounded-[2rem] border p-8 shadow-sm ${plan.tone}`}>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">{plan.id.replace("_", " ")}</p>
-              <h3 className="mt-3 text-2xl font-extrabold text-slate-900">{plan.title}</h3>
-              <ul className="mt-6 space-y-3 text-sm text-slate-700">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-3">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-slate-900" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/profile"
-                className="mt-8 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
-              >
-                {copy.memberCta}
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-          ))}
-        </div>
-      </section>
-      )}
-
       {/* PRICING SECTION */}
-      {showBusinessSection && (
+      {(
       <section className="mx-auto w-full max-w-7xl px-6 lg:px-8">
         {loading ? (
           <div className="flex justify-center py-20">
@@ -326,7 +263,7 @@ export default function PricingPage({ mode = "all" }: PricingClientProps) {
       )}
 
       {/* FAQ SECTION */}
-      {showBusinessSection && (
+      {(
       <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mx-auto mt-12 w-full max-w-3xl px-6 lg:px-8">
         <div className="mb-10 text-center">
           <h2 className="text-3xl font-extrabold tracking-tight text-slate-900">{copy.faqTitle}</h2>

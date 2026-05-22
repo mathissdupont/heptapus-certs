@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { AlertTriangle, ArrowRight, Camera, Globe, KeyRound, Loader2, MapPin, Save, UserCircle2, ShieldAlert, CheckCircle2, Crown, Lock } from "lucide-react";
-import { PUBLIC_MEMBER_TOKEN_EVENT, changePublicMemberPassword, clearPublicMemberToken, deletePublicMemberAccount, getMyConnectionPrivacy, getPublicMemberMe, getPublicMemberSubscription, updateMyConnectionPrivacy, updatePublicMemberProfile, uploadPublicMemberAvatar, type PublicMemberSubscriptionInfo } from "@/lib/api";
+import { AlertTriangle, ArrowRight, Camera, Globe, KeyRound, Loader2, MapPin, Save, UserCircle2, ShieldAlert, CheckCircle2, Lock } from "lucide-react";
+import { PUBLIC_MEMBER_TOKEN_EVENT, changePublicMemberPassword, clearPublicMemberToken, deletePublicMemberAccount, getMyConnectionPrivacy, getPublicMemberMe, updateMyConnectionPrivacy, updatePublicMemberProfile, uploadPublicMemberAvatar } from "@/lib/api";
 import { normalizeExternalUrl } from "@/lib/url";
 import { useI18n } from "@/lib/i18n";
 
@@ -50,13 +50,6 @@ export default function ProfilePage() {
             profileSuccess: "Profil bilgileriniz başarıyla güncellendi.",
             passwordSuccess: "Şifreniz başarıyla güncellendi.",
             fallback: "Bir hata oluştu. Lütfen tekrar deneyin.",
-            memberPlanCard: "Üyelik Planı",
-            memberPlanDesc: "Mevcut abonelik durumunuzu ve plan detaylarını inceleyin.",
-            memberPlanNone: "Ücretsiz Plan",
-            memberPlanActive: "Premium Plan (Aktif)",
-            memberPlanExpires: "Yenilenme / Bitiş Tarihi",
-            memberPlanCta: "Planları İncele",
-            memberPlanBody: "Premium özellikler sayesinde toplulukta öne çıkın ve tüm sosyal araçlara erişin.",
             privacyCard: "Takip ve Gizlilik",
             privacyDesc: "Bağlantılarınızın kimler tarafından görülebileceğini seçin.",
             hideFollowers: "Takipçi listemi gizle",
@@ -109,13 +102,6 @@ export default function ProfilePage() {
             profileSuccess: "Your profile has been updated successfully.",
             passwordSuccess: "Your password has been updated successfully.",
             fallback: "An error occurred. Please try again.",
-            memberPlanCard: "Membership Plan",
-            memberPlanDesc: "Review your current subscription status and plan details.",
-            memberPlanNone: "Free Plan",
-            memberPlanActive: "Premium Plan (Active)",
-            memberPlanExpires: "Renewal / Expiry Date",
-            memberPlanCta: "Explore Plans",
-            memberPlanBody: "Unlock premium features to stand out in the community and access all social tools.",
             privacyCard: "Privacy & Connections",
             privacyDesc: "Choose who can see your connections.",
             hideFollowers: "Hide my followers list",
@@ -145,7 +131,6 @@ export default function ProfilePage() {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [savingPrivacy, setSavingPrivacy] = useState(false);
   
-  const [memberSubscription, setMemberSubscription] = useState<PublicMemberSubscriptionInfo | null>(null);
   const [hideFollowers, setHideFollowers] = useState(false);
   const [hideFollowing, setHideFollowing] = useState(false);
 
@@ -190,16 +175,6 @@ export default function ProfilePage() {
       })
       .finally(() => {
         if (active) setLoading(false);
-      });
-
-    getPublicMemberSubscription()
-      .then((subscription) => {
-        if (!active) return;
-        setMemberSubscription(subscription);
-      })
-      .catch(() => {
-        if (!active) return;
-        setMemberSubscription(null);
       });
 
     getMyConnectionPrivacy()
@@ -535,47 +510,6 @@ export default function ProfilePage() {
                   </button>
                 </div>
               </form>
-            </section>
-
-            {/* MEMBERSHIP PLAN */}
-            <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
-              <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 flex items-center gap-3">
-                <div className="h-8 w-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-500">
-                  <Crown className="h-4 w-4" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">{copy.memberPlanCard}</h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{copy.memberPlanDesc}</p>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
-                      {memberSubscription?.active && memberSubscription.plan_id ? copy.memberPlanActive : copy.memberPlanNone}
-                    </p>
-                    <p className="text-xl font-black text-gray-900 dark:text-white">
-                      {memberSubscription?.active && memberSubscription.plan_id
-                        ? memberSubscription.plan_id.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())
-                        : copy.memberPlanNone}
-                    </p>
-                    {memberSubscription?.active && memberSubscription.expires_at && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                        <span className="font-semibold">{copy.memberPlanExpires}:</span> {new Date(memberSubscription.expires_at).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US")}
-                      </p>
-                    )}
-                  </div>
-                  <Link
-                    href="/pricing/member"
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm whitespace-nowrap"
-                  >
-                    {copy.memberPlanCta}
-                  </Link>
-                </div>
-                <p className="mt-4 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                  {copy.memberPlanBody}
-                </p>
-              </div>
             </section>
 
             {/* PRIVACY SETTINGS */}
