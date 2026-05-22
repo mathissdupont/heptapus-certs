@@ -135,6 +135,8 @@ export default function CertificatesPage({ params }: { params: { id: string } })
         hostingCost: "Barındırma",
         autoRenewOff: "Oto-yenile kapalı",
         autoRenewOn: "Oto-yenile açık",
+        autoRenewEnable: "Oto-yenile aç",
+        autoRenewDisable: "Oto-yenile kapat",
         remaining: "Kalan süre",
         expiredNow: "Süresi doldu",
         days: "gün",
@@ -181,6 +183,8 @@ export default function CertificatesPage({ params }: { params: { id: string } })
         hostingCost: "Hosting",
         autoRenewOff: "Auto-renew off",
         autoRenewOn: "Auto-renew on",
+        autoRenewEnable: "Turn on auto-renew",
+        autoRenewDisable: "Turn off auto-renew",
         remaining: "Time left",
         expiredNow: "Expired",
         days: "days",
@@ -260,6 +264,21 @@ export default function CertificatesPage({ params }: { params: { id: string } })
     } catch (e: any) {
       toast.error(e?.message || "Durum güncellenemedi.");
       setErr(e?.message || "Durum güncellenemedi.");
+    }
+  }
+
+  async function patchAutoRenew(certId: number, enabled: boolean) {
+    setErr(null);
+    try {
+      await apiFetch(`/admin/certificates/${certId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ auto_renew_enabled: enabled }),
+      });
+      toast.success(enabled ? copy.autoRenewOn : copy.autoRenewOff);
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message || "Oto-yenileme güncellenemedi.");
+      setErr(e?.message || "Oto-yenileme güncellenemedi.");
     }
   }
 
@@ -633,6 +652,18 @@ export default function CertificatesPage({ params }: { params: { id: string } })
                             </div>
                           )}
                         </div>
+
+                        <button
+                          onClick={() => patchAutoRenew(c.id, !c.auto_renew_enabled)}
+                          className={`inline-flex items-center justify-center gap-1.5 rounded-2xl border px-3 py-3 text-xs font-bold transition-all ${
+                            c.auto_renew_enabled
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-500 hover:text-white"
+                              : "border-surface-200 bg-white text-surface-500 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
+                          }`}
+                        >
+                          <RefreshCcw className="h-3.5 w-3.5" />
+                          {c.auto_renew_enabled ? copy.autoRenewDisable : copy.autoRenewEnable}
+                        </button>
 
                         <div className="grid grid-cols-4 gap-1 rounded-2xl border border-surface-200 bg-surface-50 p-1">
                           <button onClick={() => patchStatus(c.id, "active")} disabled={c.status === "active"} className="rounded-xl px-2 py-2 text-[10px] font-bold text-surface-400 hover:text-emerald-700 hover:bg-emerald-50 disabled:opacity-25 transition-colors">{copy.activeAction}</button>

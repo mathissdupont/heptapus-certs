@@ -493,6 +493,7 @@ class Certificate(Base):
     issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     hosting_term: Mapped[str] = mapped_column(String(16), default="yearly")
     hosting_ends_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    auto_renew_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     asset_size_bytes: Mapped[int] = mapped_column(Integer, default=0)
     deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     certificate_tier: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
@@ -2159,7 +2160,8 @@ class IssueCertificateIn(BaseModel):
     hosting_term: str = Field(default="yearly", pattern="^(monthly|yearly)$")
 
 class UpdateCertificateStatusIn(BaseModel):
-    status: CertStatus
+    status: Optional[CertStatus] = None
+    auto_renew_enabled: Optional[bool] = None
 
 
 class BulkActionIn(BaseModel):
@@ -3011,7 +3013,7 @@ def certificate_to_out(cert: "Certificate", *, include_locked_pdf: bool = False)
         total_cost_units=ISSUE_UNITS_PER_CERT + hosting_cost,
         monthly_cost_units=hosting_units("monthly", asset_size_bytes),
         yearly_cost_units=hosting_units("yearly", asset_size_bytes),
-        auto_renew_enabled=False,
+        auto_renew_enabled=bool(getattr(cert, "auto_renew_enabled", False)),
         pdf_url=pdf_url,
         png_url=_certificate_png_public_url(cert.event_id, cert.uuid),
     )
@@ -5229,6 +5231,46 @@ async def startup():
                             html,
                         )
 
+        async def _auto_renew_certificates():
+            """Renew due certificate hosting for certificates with auto-renew enabled."""
+            now = datetime.now(timezone.utc)
+            async with SessionLocal() as db_auto:
+                res = await db_auto.execute(
+                    select(Certificate, Event, User)
+                    .join(Event, Certificate.event_id == Event.id)
+                    .join(User, Event.admin_id == User.id)
+                    .where(
+                        Certificate.auto_renew_enabled == True,
+                        Certificate.deleted_at.is_(None),
+                        Certificate.status != CertStatus.revoked,
+                        Certificate.hosting_ends_at.is_not(None),
+                        Certificate.hosting_ends_at <= now,
+                    )
+                    .limit(200)
+                )
+                for cert, ev, admin in res.all():
+                    cost = hosting_units(getattr(cert, "hosting_term", None) or "yearly", int(cert.asset_size_bytes or 0))
+                    if admin.heptacoin_balaonce < cost:
+                        cert.status = CertStatus.expired
+                        logger.warning(
+                            "Certificate auto-renew skipped for cert %s: insufficient HC balance on user %s",
+                            cert.id,
+                            admin.id,
+                        )
+                        continue
+
+                    admin.heptacoin_balaonce -= cost
+                    cert.hosting_ends_at = compute_hosting_ends(getattr(cert, "hosting_term", None) or "yearly")
+                    cert.status = CertStatus.active
+                    db_auto.add(Transaction(
+                        user_id=admin.id,
+                        amount=cost,
+                        type=TxType.spend,
+                        description=f"Certificate hosting auto-renew: {cert.public_id or cert.uuid}",
+                    ))
+                    logger.info("Certificate auto-renewed: cert=%s event=%s cost=%s", cert.id, ev.id, cost)
+                await db_auto.commit()
+
         async def _monthly_hc_renewal():
             """Credit monthly HC quota to all active paid subscribers."""
             now_r = datetime.now(timezone.utc)
@@ -5504,6 +5546,7 @@ async def startup():
 
         if settings.enable_scheduler:
             scheduler.add_job(_notify_expiring_certs, "cron", hour=2, minute=0)
+            scheduler.add_job(_auto_renew_certificates, "interval", hours=1)
             scheduler.add_job(_monthly_hc_renewal, "cron", hour=3, minute=30)
             scheduler.add_job(_process_system_digest_emails, "cron", minute=0)
             scheduler.add_job(_process_bulk_emails, "interval", minutes=5)  # Every 5 minutes
@@ -12513,9 +12556,19 @@ async def update_certificate_status(
     _ensure_certificate_feature_enabled(ev)
 
     previous_status = cert.status
-    cert.status = payload.status
-    if payload.status == CertStatus.expired:
-        cert.hosting_ends_at = datetime.now(timezone.utc)
+    previous_auto_renew = bool(getattr(cert, "auto_renew_enabled", False))
+    if payload.status is None and payload.auto_renew_enabled is None:
+        raise HTTPException(status_code=400, detail="No certificate update provided")
+
+    if payload.status is not None:
+        cert.status = payload.status
+        if payload.status == CertStatus.active:
+            hosting_ends_at = ensure_utc(getattr(cert, "hosting_ends_at", None))
+            if hosting_ends_at is None or hosting_ends_at <= datetime.now(timezone.utc):
+                cert.hosting_ends_at = compute_hosting_ends(getattr(cert, "hosting_term", None) or "yearly")
+
+    if payload.auto_renew_enabled is not None:
+        cert.auto_renew_enabled = payload.auto_renew_enabled
 
     await write_audit_log(
         db,
@@ -12527,7 +12580,9 @@ async def update_certificate_status(
             "event_id": cert.event_id,
             "public_id": cert.public_id,
             "from": previous_status.value if previous_status else None,
-            "to": payload.status.value,
+            "to": payload.status.value if payload.status else previous_status.value,
+            "auto_renew_from": previous_auto_renew,
+            "auto_renew_to": bool(getattr(cert, "auto_renew_enabled", False)),
         },
     )
     await db.commit()
