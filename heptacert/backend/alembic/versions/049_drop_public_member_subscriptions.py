@@ -1,6 +1,6 @@
 """Drop public member subscriptions.
 
-Revision ID: 049_drop_public_member_subscriptions
+Revision ID: 049_drop_pub_member_subs
 Revises: 048_certificate_auto_renew
 Create Date: 2026-05-22
 """
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "049_drop_public_member_subscriptions"
+revision = "049_drop_pub_member_subs"
 down_revision = "048_certificate_auto_renew"
 branch_labels = None
 depends_on = None
