@@ -13,6 +13,7 @@ import {
   Target,
   Gift,
   BarChart3,
+  Activity,
   Mail,
   Settings,
   Palette,
@@ -29,6 +30,7 @@ type EventAdminTab =
   | "sessions"
   | "attendees"
   | "team"
+  | "ops"
   | "checkin"
   | "tickets"
   | "gamification"
@@ -53,6 +55,7 @@ const NAV_ITEMS: NavItem[] = [
   { tab: "attendees", label: { tr: "Katılımcılar", en: "Attendees" }, icon: Users, href: (id) => `/admin/events/${id}/attendees` },
   { tab: "team", label: { tr: "Ekip", en: "Team" }, icon: UserCog, href: (id) => `/admin/events/${id}/team` },
   { tab: "tickets", label: { tr: "Biletler", en: "Tickets" }, icon: Ticket, href: (id) => `/admin/events/${id}/tickets` },
+  { tab: "ops", label: { tr: "Canlı Operasyon", en: "Live Ops" }, icon: Activity, href: (id) => `/admin/events/${id}/ops` },
   { tab: "checkin", label: { tr: "Check-in", en: "Check-in" }, icon: UserCheck, href: (id) => `/admin/events/${id}/checkin` },
   { tab: "gamification", label: { tr: "Oyunlaştırma", en: "Gamification" }, icon: Target, href: (id) => `/admin/events/${id}/gamification` },
   { tab: "raffles", label: { tr: "Çekilişler", en: "Raffles" }, icon: Gift, href: (id) => `/admin/events/${id}/raffles` },
@@ -73,6 +76,7 @@ const TAB_PERMISSIONS: Partial<Record<EventAdminTab, EventTeamPermission>> = {
   sessions: "checkin:write",
   attendees: "attendees:read",
   team: "team:manage",
+  ops: "checkin:write",
   checkin: "checkin:write",
   tickets: "checkin:write",
   gamification: "settings:write",
@@ -101,14 +105,14 @@ export function refreshEventAdminMeta(eventId?: string | number) {
 function isNavItemEnabled(item: NavItem, event: EventOut | null) {
   if (item.tab === "tickets") return event?.ticketing_enabled === true;
   if (!event) {
-    return !["certificates", "editor", "sessions", "checkin", "raffles", "gamification"].includes(item.tab);
+    return !["certificates", "editor", "sessions", "ops", "checkin", "raffles", "gamification"].includes(item.tab);
   }
   if (event.certificate_enabled === false && (item.tab === "certificates" || item.tab === "editor")) {
     return false;
   }
   if (
     event.checkin_enabled === false &&
-    (item.tab === "sessions" || item.tab === "checkin")
+    (item.tab === "sessions" || item.tab === "ops" || item.tab === "checkin")
   ) {
     return false;
   }
@@ -147,6 +151,7 @@ function getActiveFromPath(pathname: string): EventAdminTab {
   if (pathname.includes("/attendees")) return "attendees";
   if (pathname.includes("/team")) return "team";
   if (pathname.includes("/tickets")) return "tickets";
+  if (pathname.includes("/ops")) return "ops";
   if (pathname.includes("/checkin")) return "checkin";
   if (pathname.includes("/gamification")) return "gamification";
   if (pathname.includes("/raffles")) return "raffles";

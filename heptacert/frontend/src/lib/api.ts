@@ -588,6 +588,44 @@ export interface AttendanceMatrix {
   rows: AttendanceMatrixRow[];
 }
 
+export interface EventOperationCheckin {
+  id: number;
+  attendee_id: number;
+  attendee_name: string;
+  attendee_email: string;
+  session_id: number;
+  session_name: string;
+  checked_in_at: string | null;
+  ip_address?: string | null;
+}
+
+export interface EventOperationSnapshot {
+  event_id: number;
+  event_name: string;
+  generated_at: string;
+  overview: {
+    attendees: number;
+    sessions: number;
+    active_sessions: number;
+    attendance_records: number;
+    tickets_total: number;
+    tickets_used: number;
+  };
+  tickets: {
+    total: number;
+    by_status: Record<string, number>;
+  };
+  sessions: Array<{
+    id: number;
+    name: string;
+    is_active: boolean;
+    session_date: string | null;
+    session_start: string | null;
+    attendance_count: number;
+  }>;
+  recent_checkins: EventOperationCheckin[];
+}
+
 export interface EventRaffleWinnerOut {
   attendee_id: number;
   attendee_name: string;
@@ -844,6 +882,18 @@ export async function getAttendanceMatrix(eventId: number): Promise<AttendanceMa
   return res.json();
 }
 
+export async function getEventOperations(eventId: number): Promise<EventOperationSnapshot> {
+  const res = await apiFetch(`/admin/events/${eventId}/operations`);
+  return res.json();
+}
+
+export async function undoAttendanceRecord(eventId: number, recordId: number): Promise<{ ok: boolean; message: string }> {
+  const res = await apiFetch(`/admin/events/${eventId}/attendance-records/${recordId}`, {
+    method: "DELETE",
+  });
+  return res.json();
+}
+
 export async function listEventRaffles(eventId: number): Promise<EventRaffleOut[]> {
   const res = await apiFetch(`/admin/events/${eventId}/raffles`);
   return res.json();
@@ -922,7 +972,18 @@ export async function adminManualCheckin(
   eventId: number,
   sessionId: number,
   email: string
-): Promise<{ ok: boolean; message: string }> {
+): Promise<{
+  ok: boolean;
+  message: string;
+  duplicate?: boolean;
+  record_id?: number | null;
+  checked_in_at?: string | null;
+  attendee_id?: number;
+  attendee_name?: string;
+  attendee_email?: string;
+  session_id?: number;
+  session_name?: string;
+}> {
   const res = await apiFetch(`/admin/events/${eventId}/sessions/${sessionId}/checkin`, {
     method: "POST",
     body: JSON.stringify({ email }),

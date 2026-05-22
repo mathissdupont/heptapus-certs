@@ -15,6 +15,7 @@ import {
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 import {
   Camera,
+  ArrowLeft,
   CheckCircle2,
   History,
   Loader2,
@@ -93,6 +94,7 @@ export default function AdminCheckinPage() {
   const params = useParams();
   const router = useRouter();
   const eventId = Number(params?.id);
+  const [staffMode, setStaffMode] = useState(false);
 
   const [eventName, setEventName] = useState("");
   const [sessions, setSessions] = useState<SessionOut[]>([]);
@@ -138,6 +140,11 @@ export default function AdminCheckinPage() {
     if (eventId) void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setStaffMode(new URLSearchParams(window.location.search).get("staff") === "1");
+  }, []);
 
   useEffect(() => {
     if (!eventId) return;
@@ -345,9 +352,18 @@ export default function AdminCheckinPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 px-3 pb-28 pt-4 md:px-8 md:pb-8">
-      <div className="mx-auto max-w-3xl">
-        <EventAdminNav eventId={eventId} eventName={eventName} active="checkin" className="mb-6 flex flex-col gap-2" />
+    <div className={`${staffMode ? "min-h-screen bg-slate-950 px-3 pb-8 pt-3 md:px-4" : "min-h-screen bg-slate-50 px-3 pb-28 pt-4 md:px-8 md:pb-8"}`}>
+      <div className={`mx-auto ${staffMode ? "max-w-xl" : "max-w-3xl"}`}>
+        {!staffMode && <EventAdminNav eventId={eventId} eventName={eventName} active="checkin" className="mb-6 flex flex-col gap-2" />}
+        {staffMode && (
+          <div className="mb-3 flex items-center justify-between gap-3 text-white">
+            <Link href={`/admin/events/${eventId}/ops`} className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-black">
+              <ArrowLeft className="h-4 w-4" />
+              Operasyon
+            </Link>
+            <span className="rounded-xl bg-emerald-400/15 px-3 py-2 text-xs font-black text-emerald-200">Gorevli modu</span>
+          </div>
+        )}
 
         {planOk === false && (
           <div className="mb-6 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-8 text-center">

@@ -14,6 +14,7 @@ const ROUTE_PERMISSIONS: Array<{ match: string; href: (id: string) => string; pe
   { match: "/team", href: (id) => `/admin/events/${id}/team`, permission: "team:manage" },
   { match: "/attendees", href: (id) => `/admin/events/${id}/attendees`, permission: "attendees:read" },
   { match: "/tickets", href: (id) => `/admin/events/${id}/tickets`, permission: "checkin:write" },
+  { match: "/ops", href: (id) => `/admin/events/${id}/ops`, permission: "checkin:write" },
   { match: "/checkin", href: (id) => `/admin/events/${id}/checkin`, permission: "checkin:write" },
   { match: "/sessions", href: (id) => `/admin/events/${id}/sessions`, permission: "checkin:write" },
   { match: "/certificates", href: (id) => `/admin/events/${id}/certificates`, permission: "certificates:write" },

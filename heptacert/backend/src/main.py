@@ -12174,9 +12174,11 @@ async def get_branding(request: Request, db: AsyncSession = Depends(get_db)):
         if not org:
             return {"org_name": None, "brand_logo": None, "brand_color": None, "settings": {}}
         return {
+            "public_id": org.public_id,
             "org_name": org.org_name,
             "brand_logo": org.brand_logo,
             "brand_color": org.brand_color,
+            "custom_domain": org.custom_domain,
             "settings": getattr(org, "settings", {}) or {},
         }
     except Exception:
@@ -12213,6 +12215,7 @@ def _serialize_admin_organization(org: Organization) -> dict[str, Any]:
         "org_name": org.org_name,
         "brand_logo": org.brand_logo,
         "brand_color": org.brand_color,
+        "custom_domain": org.custom_domain,
         "settings": getattr(org, "settings", {}) or {},
     }
 
@@ -15106,6 +15109,39 @@ async def self_checkin(
     inserted_id = inserted_res.scalar_one_or_none()
     await db.commit()
 
+    if inserted_id is None:
+        existing_res = await db.execute(
+            select(AttendaonceRecord.id, AttendaonceRecord.checked_in_at).where(
+                AttendaonceRecord.attendee_id == attendee.id,
+                AttendaonceRecord.session_id == session_id,
+            )
+        )
+        existing = existing_res.first()
+        return {
+            "ok": False,
+            "duplicate": True,
+            "record_id": existing.id if existing else None,
+            "checked_in_at": existing.checked_in_at.isoformat() if existing and existing.checked_in_at else None,
+            "attendee_id": attendee.id,
+            "attendee_name": attendee.name,
+            "attendee_email": attendee.email,
+            "session_id": session.id,
+            "session_name": session.name,
+            "message": "Bu katilimci bu oturum icin zaten check-in yapmis.",
+        }
+
+    return {
+        "ok": True,
+        "duplicate": False,
+        "record_id": inserted_id,
+        "attendee_id": attendee.id,
+        "attendee_name": attendee.name,
+        "attendee_email": attendee.email,
+        "session_id": session.id,
+        "session_name": session.name,
+        "message": f"Check-in basarili: {attendee.name}",
+    }
+
     attended_res = await db.execute(
         select(func.count()).where(AttendaonceRecord.attendee_id == attendee.id)
     )
@@ -16138,6 +16174,167 @@ async def admin_manual_checkin(
         return {"ok": False, "message": "Bu katılımcı bu oturum icin zaten check-in yapılmış."}
 
     return {"ok": True, "message": f"Check-in başarılı: {attendee.name}"}
+
+@app.get(
+    "/api/admin/events/{event_id}/operations",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+)
+async def get_event_operations(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    ev = await _get_event_for_admin(event_id, me, db, "checkin:write")
+    _ensure_checkin_feature_enabled(ev)
+
+    attendee_count = int(
+        (await db.execute(select(func.count(Attendee.id)).where(Attendee.event_id == event_id))).scalar_one() or 0
+    )
+    session_count = int(
+        (await db.execute(select(func.count(EventSession.id)).where(EventSession.event_id == event_id))).scalar_one() or 0
+    )
+    active_session_count = int(
+        (
+            await db.execute(
+                select(func.count(EventSession.id)).where(
+                    EventSession.event_id == event_id,
+                    EventSession.is_active.is_(True),
+                )
+            )
+        ).scalar_one()
+        or 0
+    )
+    attendance_count = int(
+        (
+            await db.execute(
+                select(func.count(AttendaonceRecord.id))
+                .join(EventSession, EventSession.id == AttendaonceRecord.session_id)
+                .where(EventSession.event_id == event_id)
+            )
+        ).scalar_one()
+        or 0
+    )
+
+    session_rows = (
+        await db.execute(
+            select(EventSession, func.count(AttendaonceRecord.id).label("attendance_count"))
+            .outerjoin(AttendaonceRecord, AttendaonceRecord.session_id == EventSession.id)
+            .where(EventSession.event_id == event_id)
+            .group_by(EventSession.id)
+            .order_by(EventSession.session_date, EventSession.session_start, EventSession.id)
+        )
+    ).all()
+
+    ticket_rows = (
+        await db.execute(
+            select(EventTicket.status, func.count(EventTicket.id))
+            .where(EventTicket.event_id == event_id)
+            .group_by(EventTicket.status)
+        )
+    ).all()
+    tickets_by_status = {str(status or "unknown"): int(count or 0) for status, count in ticket_rows}
+    ticket_total = sum(tickets_by_status.values())
+
+    recent_rows = (
+        await db.execute(
+            select(AttendaonceRecord, Attendee, EventSession)
+            .join(Attendee, Attendee.id == AttendaonceRecord.attendee_id)
+            .join(EventSession, EventSession.id == AttendaonceRecord.session_id)
+            .where(EventSession.event_id == event_id)
+            .order_by(AttendaonceRecord.checked_in_at.desc(), AttendaonceRecord.id.desc())
+            .limit(40)
+        )
+    ).all()
+
+    return {
+        "event_id": event_id,
+        "event_name": ev.name,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "overview": {
+            "attendees": attendee_count,
+            "sessions": session_count,
+            "active_sessions": active_session_count,
+            "attendance_records": attendance_count,
+            "tickets_total": ticket_total,
+            "tickets_used": tickets_by_status.get("used", 0),
+        },
+        "tickets": {
+            "total": ticket_total,
+            "by_status": tickets_by_status,
+        },
+        "sessions": [
+            {
+                "id": session.id,
+                "name": session.name,
+                "is_active": session.is_active,
+                "session_date": session.session_date.isoformat() if session.session_date else None,
+                "session_start": session.session_start.isoformat() if session.session_start else None,
+                "attendance_count": int(count or 0),
+            }
+            for session, count in session_rows
+        ],
+        "recent_checkins": [
+            {
+                "id": record.id,
+                "attendee_id": attendee.id,
+                "attendee_name": attendee.name,
+                "attendee_email": attendee.email,
+                "session_id": session.id,
+                "session_name": session.name,
+                "checked_in_at": record.checked_in_at.isoformat() if record.checked_in_at else None,
+                "ip_address": record.ip_address,
+            }
+            for record, attendee, session in recent_rows
+        ],
+    }
+
+
+@app.delete(
+    "/api/admin/events/{event_id}/attendance-records/{record_id}",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+)
+async def undo_event_attendance_record(
+    event_id: int,
+    record_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    ev = await _get_event_for_admin(event_id, me, db, "checkin:write")
+    _ensure_checkin_feature_enabled(ev)
+
+    record_res = await db.execute(
+        select(AttendaonceRecord, Attendee, EventSession)
+        .join(Attendee, Attendee.id == AttendaonceRecord.attendee_id)
+        .join(EventSession, EventSession.id == AttendaonceRecord.session_id)
+        .where(AttendaonceRecord.id == record_id, EventSession.event_id == event_id)
+    )
+    row = record_res.first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Check-in kaydi bulunamadi.")
+
+    record, attendee, session = row
+    await write_audit_log(
+        db,
+        user_id=me.id,
+        action="attendance.undo",
+        resource_type="attendance_record",
+        resource_id=str(record.id),
+        extra={
+            "event_id": event_id,
+            "attendee_id": attendee.id,
+            "attendee_email": attendee.email,
+            "session_id": session.id,
+            "session_name": session.name,
+        },
+    )
+    await db.delete(record)
+    await db.commit()
+    return {
+        "ok": True,
+        "deleted_id": record_id,
+        "message": f"{attendee.name} icin {session.name} check-in kaydi geri alindi.",
+    }
+
 
 async def _get_raffle_for_admin(
     event_id: int,

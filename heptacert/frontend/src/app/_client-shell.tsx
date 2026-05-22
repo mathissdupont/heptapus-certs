@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Home, Menu, QrCode, Shield, Smartphone, Ticket, X, Plus } from "lucide-react";
+import { Activity, CalendarDays, Home, Menu, QrCode, Shield, Smartphone, Ticket, X, Plus } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { I18nProvider, LanguageToggle, useT, useI18n } from "@/lib/i18n";
 import {
@@ -401,6 +401,7 @@ function AdminMobileNav() {
   const items = eventId
     ? [
         { href: `/admin/events/${eventId}`, label: "Ozet", icon: Home },
+        { href: `/admin/events/${eventId}/ops`, label: "Canli", icon: Activity },
         { href: `/admin/events/${eventId}/checkin`, label: "Check-in", icon: QrCode },
         { href: `/admin/events/${eventId}/tickets`, label: "Bilet", icon: Ticket },
         { href: `/admin/events/${eventId}/certificates`, label: "Sertifika", icon: Shield },

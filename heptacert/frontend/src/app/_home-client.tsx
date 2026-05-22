@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Building2, CalendarDays, CheckCircle2, QrCode, Users } from "lucide-react";
+import { ArrowRight, CalendarDays, CheckCircle2, ExternalLink, Globe2, QrCode, Users } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
@@ -8,10 +8,40 @@ import { API_BASE } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 type Branding = {
+  public_id?: string | null;
   org_name?: string;
   brand_logo?: string | null;
   brand_color?: string | null;
-  settings?: { hide_heptacert_home?: boolean };
+  custom_domain?: string | null;
+  settings?: {
+    hide_heptacert_home?: boolean;
+    public_bio?: string;
+    public_website_url?: string;
+    public_linkedin_url?: string;
+    public_github_url?: string;
+    public_x_url?: string;
+    public_instagram_url?: string;
+  };
+};
+
+type OrgEvent = {
+  id: number;
+  public_id?: string | null;
+  name: string;
+  event_date?: string | null;
+  event_location?: string | null;
+};
+
+type OrgDetail = {
+  public_id: string;
+  org_name: string;
+  brand_logo?: string | null;
+  brand_color: string;
+  bio?: string | null;
+  website_url?: string | null;
+  event_count: number;
+  follower_count: number;
+  events: OrgEvent[];
 };
 
 type StatsData = {
@@ -30,6 +60,7 @@ export default function LandingPage() {
   const { lang } = useI18n();
   const [stats, setStats] = useState<StatsData | null>(null);
   const [branding, setBranding] = useState<Branding | null>(null);
+  const [orgDetail, setOrgDetail] = useState<OrgDetail | null>(null);
   const [host, setHost] = useState("");
 
   useEffect(() => {
@@ -41,6 +72,12 @@ export default function LandingPage() {
         if (!data) return;
         setBranding(data);
         if (data.brand_color) document.documentElement.style.setProperty("--site-brand-color", data.brand_color);
+        if (data.public_id) {
+          fetch(`${API_BASE}/public/organizations/${encodeURIComponent(data.public_id)}`, { cache: "no-store" })
+            .then((r) => (r.ok ? r.json() : null))
+            .then((org) => org && setOrgDetail(org))
+            .catch(() => {});
+        }
       })
       .catch(() => {});
 
@@ -58,6 +95,96 @@ export default function LandingPage() {
     [branding, host],
   );
   const showPlatformLinks = !isWhiteLabel;
+  const brandColor = branding?.brand_color || orgDetail?.brand_color || "#4f46e5";
+
+  if (isWhiteLabel) {
+    const bio = orgDetail?.bio || branding?.settings?.public_bio || "Etkinlikler, kayıtlar ve doğrulanabilir sertifikalar için kurumsal alan.";
+    const events = orgDetail?.events || [];
+    const websiteUrl = orgDetail?.website_url || branding?.settings?.public_website_url || "";
+    return (
+      <div className="flex min-h-screen flex-col bg-white text-zinc-950">
+        <section className="border-b border-zinc-200 bg-white">
+          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:py-18">
+            <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
+              <div className="max-w-3xl">
+                <div className="mb-6 flex items-center gap-4">
+                  {branding?.brand_logo ? (
+                    <img src={branding.brand_logo} alt={brandName} className="h-14 w-auto object-contain" />
+                  ) : (
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl text-xl font-black text-white" style={{ backgroundColor: brandColor }}>
+                      {brandName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-400">Kurumsal etkinlik alanı</p>
+                    <h1 className="text-3xl font-black tracking-tight text-zinc-950 sm:text-5xl">{brandName}</h1>
+                  </div>
+                </div>
+                <p className="max-w-2xl text-base leading-7 text-zinc-600 sm:text-lg">{bio}</p>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <Link href="/verify" className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold text-white transition hover:opacity-90" style={{ backgroundColor: brandColor }}>
+                    <QrCode className="h-4 w-4" />
+                    Sertifika Doğrula
+                  </Link>
+                  {orgDetail?.public_id && (
+                    <Link href={`/organizations/${orgDetail.public_id}`} className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-5 py-3 text-sm font-bold text-zinc-800 transition hover:bg-zinc-50">
+                      <Users className="h-4 w-4" />
+                      Kurum Sayfası
+                    </Link>
+                  )}
+                  {websiteUrl && (
+                    <a href={websiteUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-5 py-3 text-sm font-bold text-zinc-800 transition hover:bg-zinc-50">
+                      <ExternalLink className="h-4 w-4" />
+                      Web Sitesi
+                    </a>
+                  )}
+                </div>
+              </div>
+              <div className="w-full rounded-3xl border border-zinc-200 bg-zinc-50 p-5 md:w-[360px]">
+                <div className="rounded-2xl bg-white p-5 shadow-sm">
+                  <Globe2 className="h-6 w-6" style={{ color: brandColor }} />
+                  <p className="mt-4 text-sm font-bold text-zinc-950">Bu alan kuruma özeldir.</p>
+                  <p className="mt-2 text-sm leading-6 text-zinc-500">HeptaCert genel ana sayfası bu domainde gizlenir; doğrulama ve etkinlik akışları kurum markasıyla çalışır.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="flex-1 bg-zinc-50 py-12">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6">
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-black text-zinc-950">Etkinlikler</h2>
+                <p className="mt-1 text-sm text-zinc-500">Kurumun herkese açık etkinlikleri.</p>
+              </div>
+              <span className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-bold text-zinc-500">
+                {orgDetail?.event_count ?? events.length} etkinlik
+              </span>
+            </div>
+            {events.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {events.slice(0, 6).map((event) => (
+                  <Link key={event.public_id || event.id} href={`/events/${event.public_id || event.id}`} className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                    <CalendarDays className="h-5 w-5" style={{ color: brandColor }} />
+                    <h3 className="mt-4 text-base font-black text-zinc-950">{event.name}</h3>
+                    <p className="mt-2 text-sm text-zinc-500">
+                      {event.event_date ? new Date(event.event_date).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US") : "Tarih yakında"}
+                    </p>
+                    {event.event_location && <p className="mt-1 text-sm text-zinc-500">{event.event_location}</p>}
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-8 text-center text-sm text-zinc-500">
+                Henüz herkese açık etkinlik yayınlanmadı.
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   const copy = useMemo(
     () =>
