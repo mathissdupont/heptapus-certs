@@ -1,18 +1,92 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { listSessions, adminManualCheckin, apiFetch, getMySubscription, type SessionOut, type SubscriptionInfo } from "@/lib/api";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import {
+  apiFetch,
+  adminManualCheckin,
+  checkInEventTicket,
+  getMySubscription,
+  listSessions,
+  type SessionOut,
+  type SubscriptionInfo,
+} from "@/lib/api";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
-import { ChevronLeft, UserCheck, Loader2, CheckCircle2, XCircle, Search, Users, ToggleLeft, ToggleRight, QrCode, LockKeyhole, Hash, ShieldAlert, Sparkles } from "lucide-react";
+import {
+  Camera,
+  CheckCircle2,
+  History,
+  Loader2,
+  QrCode,
+  RotateCcw,
+  Search,
+  ShieldAlert,
+  Sparkles,
+  Smartphone,
+  Trash2,
+  UserCheck,
+  Wifi,
+  WifiOff,
+  XCircle,
+} from "lucide-react";
 
-interface CheckinEntry {
+type CheckinType = "manual" | "ticket";
+
+type CheckinEntry = {
   email: string;
-  name?: string;
+  type?: CheckinType;
   success: boolean;
   message: string;
   time: string;
+  queued?: boolean;
+};
+
+type QueueEntry = {
+  id: string;
+  eventId: number;
+  sessionId?: number | null;
+  type: CheckinType;
+  value: string;
+  createdAt: string;
+  attempts: number;
+  lastError?: string | null;
+};
+
+const queueKey = (eventId: number) => `heptacert:offline-checkin:${eventId}`;
+
+function readQueue(eventId: number): QueueEntry[] {
+  if (typeof window === "undefined" || !eventId) return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(queueKey(eventId)) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeQueue(eventId: number, entries: QueueEntry[]) {
+  if (typeof window === "undefined" || !eventId) return;
+  window.localStorage.setItem(queueKey(eventId), JSON.stringify(entries.slice(0, 300)));
+}
+
+function normalizeTicketToken(value: string) {
+  const trimmed = value.trim();
+  const match = trimmed.match(/\/tickets\/([^/?#]+)/);
+  if (match?.[1]) return decodeURIComponent(match[1]);
+  return trimmed.split("?")[0].split("#")[0];
+}
+
+function classifyScan(value: string): { type: CheckinType | "unsupported"; value: string; message?: string } {
+  const trimmed = value.trim();
+  if (!trimmed) return { type: "unsupported", value: trimmed, message: "Bos QR okundu." };
+  if (trimmed.includes("/tickets/")) return { type: "ticket", value: normalizeTicketToken(trimmed) };
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return { type: "manual", value: trimmed.toLowerCase() };
+  if (trimmed.includes("/attend/")) {
+    return { type: "unsupported", value: trimmed, message: "Bu oturum QR'i. Katilimci bileti ya da e-posta QR'i okut." };
+  }
+  if (trimmed.length >= 24 && !trimmed.includes(" ")) return { type: "ticket", value: normalizeTicketToken(trimmed) };
+  return { type: "unsupported", value: trimmed, message: "QR icerigi e-posta veya bilet token'i degil." };
 }
 
 export default function AdminCheckinPage() {
@@ -28,229 +102,418 @@ export default function AdminCheckinPage() {
   const [submitting, setSubmitting] = useState(false);
   const [log, setLog] = useState<CheckinEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const [planOk, setPlanOk] = useState<boolean | null>(null);
+  const [offlineQueue, setOfflineQueue] = useState<QueueEntry[]>([]);
+  const [isOnline, setIsOnline] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannerError, setScannerError] = useState<string | null>(null);
+
+  const inputRef = useRef<HTMLInputElement>(null);
+  const scannerRef = useRef<any>(null);
+  const scannerRegionId = `heptacert-checkin-scanner-${eventId || "new"}`;
 
   async function load() {
     try {
       const [sessRes, evRes, subInfo] = await Promise.all([
         listSessions(eventId).catch(() => []),
         apiFetch(`/admin/events/${eventId}`).then((r) => r.json()),
-        getMySubscription().catch(() => ({ active: false, plan_id: null, expires_at: null, role: null } as SubscriptionInfo)),
+        getMySubscription().catch(() => ({ active: false, plan_id: null, expires_at: null, role: null }) as SubscriptionInfo),
       ]);
       const hasPaidPlan = subInfo.role === "superadmin" || (subInfo.active && ["pro", "growth", "enterprise"].includes(subInfo.plan_id ?? ""));
       setPlanOk(hasPaidPlan);
       setSessions(sessRes);
       setEventName(evRes.name);
-      // Auto-select the first active session
-      const active = sessRes.find((s: SessionOut) => s.is_active);
+      const active = sessRes.find((s) => s.is_active);
       if (active) setSelectedSession(active.id);
       else if (sessRes.length > 0) setSelectedSession(sessRes[0].id);
     } catch (e: any) {
-      setError(e.message);
+      setError(e.message || "Check-in ekrani yuklenemedi.");
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => { if (eventId) load(); }, [eventId]);
+  useEffect(() => {
+    if (eventId) void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId]);
 
   useEffect(() => {
-    if (planOk === false) {
-      router.replace("/pricing?source=admin-premium");
-    }
+    if (!eventId) return;
+    setOfflineQueue(readQueue(eventId));
+  }, [eventId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const update = () => setIsOnline(window.navigator.onLine);
+    update();
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (planOk === false) router.replace("/pricing?source=admin-premium");
   }, [planOk, router]);
 
-  // Refocus input after each check-in
   useEffect(() => {
     if (!submitting) inputRef.current?.focus();
   }, [submitting]);
 
-  async function handleCheckin(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email.trim() || !selectedSession) return;
-    setSubmitting(true);
-    const now = new Date().toLocaleTimeString("tr-TR");
+  useEffect(() => {
+    if (isOnline && offlineQueue.length > 0 && !syncing) void syncQueue();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOnline, offlineQueue.length]);
+
+  useEffect(() => {
+    if (!scannerOpen) {
+      void stopScanner();
+      return;
+    }
+
+    let cancelled = false;
+    setScannerError(null);
+
+    async function startScanner() {
+      try {
+        const mod = await import("html5-qrcode");
+        if (cancelled) return;
+        const scanner = new mod.Html5Qrcode(scannerRegionId);
+        scannerRef.current = scanner;
+        await scanner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 240, height: 240 } },
+          (decodedText: string) => {
+            void handleScannedValue(decodedText);
+          },
+          () => undefined,
+        );
+      } catch (err: any) {
+        if (!cancelled) setScannerError(err?.message || "Kamera baslatilamadi.");
+      }
+    }
+
+    void startScanner();
+    return () => {
+      cancelled = true;
+      void stopScanner();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scannerOpen, scannerRegionId]);
+
+  async function stopScanner() {
+    const scanner = scannerRef.current;
+    scannerRef.current = null;
+    if (!scanner) return;
     try {
-      const result = await adminManualCheckin(eventId, selectedSession, email.trim());
-      setLog((prev) => [{
-        email: email.trim(),
-        success: result.ok,
-        message: result.message,
-        time: now,
-      }, ...prev.slice(0, 49)]);
-      setEmail("");
+      if (scanner.isScanning) await scanner.stop();
+      await scanner.clear();
+    } catch {}
+  }
+
+  function appendLog(entry: CheckinEntry) {
+    setLog((prev) => [entry, ...prev.slice(0, 79)]);
+  }
+
+  function queueCheckin(entry: Omit<QueueEntry, "id" | "createdAt" | "attempts">) {
+    const queued: QueueEntry = {
+      ...entry,
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      createdAt: new Date().toISOString(),
+      attempts: 0,
+      lastError: null,
+    };
+    const next = [queued, ...offlineQueue].slice(0, 300);
+    setOfflineQueue(next);
+    writeQueue(eventId, next);
+    appendLog({
+      email: entry.value,
+      type: entry.type,
+      success: true,
+      queued: true,
+      message: "Offline kuyruga alindi. Internet gelince senkronlanacak.",
+      time: new Date().toLocaleTimeString("tr-TR"),
+    });
+  }
+
+  async function performEntry(type: CheckinType, value: string, sessionId = selectedSession) {
+    if (type === "ticket") {
+      const ticket = await checkInEventTicket(eventId, normalizeTicketToken(value));
+      return { ok: true, message: `${ticket.attendee_name} bilet girisi onaylandi.` };
+    }
+    if (!sessionId) throw new Error("Once oturum sec.");
+    return adminManualCheckin(eventId, sessionId, value.trim());
+  }
+
+  async function submitValue(type: CheckinType, value: string) {
+    const clean = value.trim();
+    if (!clean) return;
+    const now = new Date().toLocaleTimeString("tr-TR");
+    if (!isOnline) {
+      queueCheckin({ eventId, sessionId: selectedSession, type, value: clean });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const result = await performEntry(type, clean);
+      appendLog({ email: clean, type, success: result.ok, message: result.message, time: now });
     } catch (e: any) {
-      setLog((prev) => [{
-        email: email.trim(),
-        success: false,
-        message: e.message || "Check-in başarısız",
-        time: now,
-      }, ...prev.slice(0, 49)]);
-      setEmail("");
+      if (!navigator.onLine) {
+        queueCheckin({ eventId, sessionId: selectedSession, type, value: clean });
+      } else {
+        appendLog({ email: clean, type, success: false, message: e.message || "Check-in basarisiz", time: now });
+      }
     } finally {
       setSubmitting(false);
     }
   }
 
+  async function handleScannedValue(rawValue: string) {
+    await stopScanner();
+    setScannerOpen(false);
+    const scan = classifyScan(rawValue);
+    if (scan.type === "unsupported") {
+      appendLog({
+        email: scan.value,
+        success: false,
+        message: scan.message || "QR okunamadi.",
+        time: new Date().toLocaleTimeString("tr-TR"),
+      });
+      return;
+    }
+    await submitValue(scan.type, scan.value);
+  }
+
+  async function syncQueue() {
+    if (!eventId || syncing || offlineQueue.length === 0 || !navigator.onLine) return;
+    setSyncing(true);
+    const failed: QueueEntry[] = [];
+    let synced = 0;
+    for (const entry of [...offlineQueue].reverse()) {
+      try {
+        await performEntry(entry.type, entry.value, entry.sessionId || selectedSession);
+        synced += 1;
+        appendLog({
+          email: entry.value,
+          type: entry.type,
+          success: true,
+          message: "Offline kayit senkronlandi.",
+          time: new Date().toLocaleTimeString("tr-TR"),
+        });
+      } catch (e: any) {
+        failed.unshift({ ...entry, attempts: entry.attempts + 1, lastError: e?.message || "Sync basarisiz" });
+      }
+    }
+    setOfflineQueue(failed);
+    writeQueue(eventId, failed);
+    if (synced > 0) {
+      appendLog({
+        email: `${synced} kayit`,
+        success: true,
+        message: "Kuyruk senkronizasyonu tamamlandi.",
+        time: new Date().toLocaleTimeString("tr-TR"),
+      });
+    }
+    setSyncing(false);
+  }
+
+  function clearQueue() {
+    setOfflineQueue([]);
+    writeQueue(eventId, []);
+  }
+
+  async function handleCheckin(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim() || !selectedSession) return;
+    await submitValue("manual", email.trim());
+    setEmail("");
+  }
+
   const selectedSessionObj = sessions.find((s) => s.id === selectedSession);
-  const todayAttendance = log.filter((l) => l.success).length;
+  const todayAttendance = log.filter((l) => l.success && !l.queued).length;
 
   if (loading) {
     return (
       <div className="flex items-center justify-center p-24">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
       </div>
     );
   }
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-slate-50 px-3 pb-28 pt-4 md:px-8 md:pb-8">
+      <div className="mx-auto max-w-3xl">
         <EventAdminNav eventId={eventId} eventName={eventName} active="checkin" className="mb-6 flex flex-col gap-2" />
 
-        {/* Plan gate */}
         {planOk === false && (
-          <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-8 text-center mb-6">
-            <ShieldAlert className="w-12 h-12 text-amber-400 mx-auto mb-3" />
-            <h2 className="text-lg font-bold text-gray-800 mb-2">Pro veya Enterprise Plan Gerekli</h2>
-            <p className="text-sm text-gray-500 mb-4 max-w-md mx-auto">
-              Manuel check-in ve yoklama sistemi sadece Pro ve Enterprise planlarında kullanılabilir.
+          <div className="mb-6 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-8 text-center">
+            <ShieldAlert className="mx-auto mb-3 h-12 w-12 text-amber-400" />
+            <h2 className="mb-2 text-lg font-bold text-gray-800">Pro veya Enterprise Plan Gerekli</h2>
+            <p className="mx-auto mb-4 max-w-md text-sm text-gray-500">
+              Manuel check-in ve yoklama sistemi sadece Pro ve Enterprise planlarinda kullanilabilir.
             </p>
-            <Link
-              href="/pricing"
-              className="inline-flex items-center gap-2 bg-amber-600 text-white font-semibold px-6 py-2.5 rounded-xl hover:bg-amber-700 transition text-sm"
-            >
-              <Sparkles className="w-4 h-4" /> Planı Yükselt
+            <Link href="/pricing" className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-700">
+              <Sparkles className="h-4 w-4" /> Plani Yukselt
             </Link>
           </div>
         )}
 
         {planOk !== false && (
           <>
-        <div className="mb-5">
-          <h1 className="text-2xl font-extrabold text-gray-900">Manuel Check-in</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{eventName}</p>
-        </div>
+            <div className="mb-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-500">Mobil operasyon</p>
+                  <h1 className="mt-1 text-2xl font-black text-gray-950">Hizli Check-in</h1>
+                  <p className="mt-1 text-sm text-gray-500">{eventName}</p>
+                </div>
+                <div className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold ${isOnline ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+                  {isOnline ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
+                  {isOnline ? "Online" : "Offline mod"}
+                </div>
+              </div>
 
-        {error && (
-          <div className="bg-red-50 text-red-700 rounded-xl px-4 py-3 text-sm mb-4">{error}</div>
-        )}
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Oturum</p>
+                  <p className="mt-1 truncate text-sm font-black text-slate-900">{selectedSessionObj?.name || "Secilmedi"}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Basarili</p>
+                  <p className="mt-1 text-sm font-black text-slate-900">{todayAttendance}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Kuyruk</p>
+                  <p className="mt-1 text-sm font-black text-slate-900">{offlineQueue.length} bekliyor</p>
+                </div>
+              </div>
+            </div>
 
-        {/* Session selector */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-4 shadow-sm">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Oturum Seçin</label>
-          <div className="space-y-2">
-            {sessions.length === 0 ? (
-              <p className="text-sm text-gray-400">
-                Henüz oturum yok.{" "}
-                <Link href={`/admin/events/${eventId}/sessions`} className="text-indigo-600 underline">
-                  Oturum ekle
-                </Link>
-              </p>
-            ) : (
-              sessions.map((s) => (
-                <label
-                  key={s.id}
-                  className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition ${selectedSession === s.id ? "border-indigo-400 bg-indigo-50" : "border-gray-200 hover:bg-gray-50"}`}
-                >
-                  <input
-                    type="radio"
-                    name="session"
-                    value={s.id}
-                    checked={selectedSession === s.id}
-                    onChange={() => setSelectedSession(s.id)}
-                    className="text-indigo-600"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <span className="font-medium text-sm text-gray-800">{s.name}</span>
-                    {s.session_date && <span className="text-xs text-gray-400 ml-2">{new Date(s.session_date).toLocaleDateString("tr-TR")}</span>}
-                    {s.session_start && <span className="text-xs text-gray-400 ml-1">{s.session_start}</span>}
+            {error && <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+
+            <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+              <label className="mb-2 block text-sm font-semibold text-gray-700">Oturum Secin</label>
+              <div className="space-y-2">
+                {sessions.length === 0 ? (
+                  <p className="text-sm text-gray-400">
+                    Henuz oturum yok.{" "}
+                    <Link href={`/admin/events/${eventId}/sessions`} className="text-indigo-600 underline">
+                      Oturum ekle
+                    </Link>
+                  </p>
+                ) : (
+                  sessions.map((s) => (
+                    <label key={s.id} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition ${selectedSession === s.id ? "border-indigo-400 bg-indigo-50" : "border-gray-200 hover:bg-gray-50"}`}>
+                      <input type="radio" name="session" value={s.id} checked={selectedSession === s.id} onChange={() => setSelectedSession(s.id)} className="text-indigo-600" />
+                      <div className="min-w-0 flex-1">
+                        <span className="text-sm font-medium text-gray-800">{s.name}</span>
+                        {s.session_date && <span className="ml-2 text-xs text-gray-400">{new Date(s.session_date).toLocaleDateString("tr-TR")}</span>}
+                        {s.session_start && <span className="ml-1 text-xs text-gray-400">{s.session_start}</span>}
+                      </div>
+                      <span className="shrink-0 text-xs font-medium text-indigo-600">{s.attendance_count} kisi</span>
+                    </label>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {selectedSession && (
+              <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                <div className="mb-4 flex flex-wrap items-center gap-2">
+                  <UserCheck className="h-5 w-5 text-indigo-500" />
+                  <h2 className="font-semibold text-gray-800">Check-in Yap</h2>
+                  <button type="button" onClick={() => setScannerOpen((v) => !v)} className="ml-auto inline-flex items-center gap-2 rounded-xl bg-gray-950 px-3 py-2 text-xs font-bold text-white">
+                    <Camera className="h-4 w-4" />
+                    {scannerOpen ? "Kamerayi kapat" : "QR okut"}
+                  </button>
+                </div>
+
+                {scannerOpen && (
+                  <div className="mb-4 overflow-hidden rounded-2xl border border-indigo-100 bg-indigo-50 p-3">
+                    <div id={scannerRegionId} className="min-h-[280px] overflow-hidden rounded-xl bg-black" />
+                    {scannerError && <p className="mt-2 text-xs font-semibold text-rose-600">{scannerError}</p>}
+                    <p className="mt-2 flex items-center gap-1 text-xs text-indigo-700">
+                      <QrCode className="h-3.5 w-3.5" />
+                      Bilet QR'i, bilet linki veya e-posta QR'i okutabilirsin.
+                    </p>
                   </div>
-                  <div className="shrink-0 flex items-center gap-1.5">
-                    <span className="text-xs text-indigo-600 font-medium">{s.attendance_count} kişi</span>
-                    {s.is_active ? (
-                      <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full font-medium">
-                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                        Açık
-                      </span>
-                    ) : (
-                      <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Kapalı</span>
-                    )}
+                )}
+
+                <form onSubmit={handleCheckin} className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    <input ref={inputRef} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Katilimci e-postasi" required autoComplete="off" className="w-full rounded-xl border border-gray-200 py-3 pl-9 pr-4 text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
                   </div>
-                </label>
-              ))
+                  <button type="submit" disabled={submitting || !email.trim()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50">
+                    {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}
+                    Check-in
+                  </button>
+                </form>
+              </div>
             )}
-          </div>
-        </div>
 
-        {/* Checkin form */}
-        {selectedSession && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm mb-4">
-            <div className="flex items-center gap-2 mb-4">
-              <UserCheck className="w-5 h-5 text-indigo-500" />
-              <h2 className="font-semibold text-gray-800">Check-in Yap</h2>
-              {todayAttendance > 0 && (
-                <span className="ml-auto text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-                  Bu oturumda: {todayAttendance} başarılı
-                </span>
+            <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <RotateCcw className={`h-4 w-4 ${syncing ? "animate-spin text-indigo-500" : "text-gray-400"}`} />
+                  <h3 className="text-sm font-black text-gray-800">Offline sync</h3>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => void syncQueue()} disabled={!isOnline || syncing || offlineQueue.length === 0} className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-700 disabled:opacity-40">
+                    Senkronla
+                  </button>
+                  <button onClick={clearQueue} disabled={offlineQueue.length === 0} className="rounded-xl border border-rose-100 px-3 py-2 text-xs font-bold text-rose-600 disabled:opacity-40">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+              {offlineQueue.length === 0 ? (
+                <p className="flex items-center gap-2 text-sm text-gray-400">
+                  <Smartphone className="h-4 w-4" />
+                  Bekleyen offline kayit yok.
+                </p>
+              ) : (
+                <div className="max-h-48 divide-y divide-gray-100 overflow-y-auto">
+                  {offlineQueue.map((item) => (
+                    <div key={item.id} className="py-2 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-gray-800">{item.type === "ticket" ? "Bilet" : "E-posta"}: {item.value}</span>
+                        <span className="text-gray-400">{item.attempts} deneme</span>
+                      </div>
+                      {item.lastError && <p className="mt-1 text-rose-500">{item.lastError}</p>}
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
-            <form onSubmit={handleCheckin} className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  ref={inputRef}
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Katılımcı e-postası"
-                  required
-                  autoComplete="off"
-                  className="w-full pl-9 pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={submitting || !email.trim()}
-                className="inline-flex items-center gap-2 bg-indigo-600 text-white font-semibold px-5 py-3 rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition text-sm"
-              >
-                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserCheck className="w-4 h-4" />}
-                Check-in
-              </button>
-            </form>
-            <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
-              <QrCode className="w-3.5 h-3.5" />
-              Katılımcılar kendi telefonlarından da QR okutarak check-in yapabilir.
-            </p>
-          </div>
-        )}
 
-        {/* Log */}
-        {log.length > 0 && (
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-            <div className="px-4 py-2.5 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Check-in Geçmişi</h3>
-              <button onClick={() => setLog([])} className="text-xs text-gray-400 hover:text-red-500 transition">Temizle</button>
-            </div>
-            <div className="divide-y divide-gray-50 max-h-96 overflow-y-auto">
-              {log.map((entry, i) => (
-                <div key={i} className={`flex items-center gap-3 px-4 py-3 ${entry.success ? "bg-green-50/30" : "bg-red-50/30"}`}>
-                  {entry.success ? (
-                    <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-                  ) : (
-                    <XCircle className="w-5 h-5 text-red-500 shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">{entry.email}</p>
-                    <p className="text-xs text-gray-400">{entry.message}</p>
-                  </div>
-                  <span className="text-xs text-gray-400 shrink-0">{entry.time}</span>
+            {log.length > 0 && (
+              <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50 px-4 py-2.5">
+                  <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    <History className="h-3.5 w-3.5" />
+                    Check-in Gecmisi
+                  </h3>
+                  <button onClick={() => setLog([])} className="text-xs text-gray-400 transition hover:text-red-500">Temizle</button>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+                <div className="max-h-96 divide-y divide-gray-50 overflow-y-auto">
+                  {log.map((entry, i) => (
+                    <div key={`${entry.time}-${i}`} className={`flex items-center gap-3 px-4 py-3 ${entry.success ? "bg-green-50/30" : "bg-red-50/30"}`}>
+                      {entry.success ? <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" /> : <XCircle className="h-5 w-5 shrink-0 text-red-500" />}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-gray-800">{entry.email}</p>
+                        <p className="text-xs text-gray-400">{entry.queued ? "Kuyrukta: " : ""}{entry.message}</p>
+                      </div>
+                      <span className="shrink-0 text-xs text-gray-400">{entry.time}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Menu, X, Plus } from "lucide-react";
+import { CalendarDays, Home, Menu, QrCode, Shield, Smartphone, Ticket, X, Plus } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { I18nProvider, LanguageToggle, useT, useI18n } from "@/lib/i18n";
 import {
@@ -346,6 +346,88 @@ function Navbar() {
   );
 }
 
+function InstallPrompt() {
+  const [promptEvent, setPromptEvent] = useState<any>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const dismissed = window.localStorage.getItem("heptacert:pwa-install-dismissed") === "1";
+    const onBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setPromptEvent(event);
+      if (!dismissed) setVisible(true);
+    };
+    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt as EventListener);
+    return () => window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt as EventListener);
+  }, []);
+
+  if (!visible || !promptEvent) return null;
+
+  async function install() {
+    await promptEvent.prompt();
+    setVisible(false);
+    setPromptEvent(null);
+  }
+
+  function dismiss() {
+    window.localStorage.setItem("heptacert:pwa-install-dismissed", "1");
+    setVisible(false);
+  }
+
+  return (
+    <div className="fixed inset-x-3 bottom-20 z-[70] rounded-2xl border border-indigo-100 bg-white p-4 shadow-2xl md:bottom-5 md:left-auto md:right-5 md:w-96">
+      <div className="flex items-start gap-3">
+        <div className="rounded-xl bg-indigo-50 p-2 text-indigo-600">
+          <Smartphone className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-black text-slate-950">HeptaCert'i ana ekrana ekle</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">Check-in ve bilet kontrolunu uygulama gibi ac.</p>
+          <div className="mt-3 flex gap-2">
+            <button type="button" onClick={install} className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white">Ekle</button>
+            <button type="button" onClick={dismiss} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600">Sonra</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminMobileNav() {
+  const pathname = usePathname() || "";
+  const eventMatch = pathname.match(/^\/admin\/events\/(\d+)/);
+  const eventId = eventMatch?.[1];
+  const items = eventId
+    ? [
+        { href: `/admin/events/${eventId}`, label: "Ozet", icon: Home },
+        { href: `/admin/events/${eventId}/checkin`, label: "Check-in", icon: QrCode },
+        { href: `/admin/events/${eventId}/tickets`, label: "Bilet", icon: Ticket },
+        { href: `/admin/events/${eventId}/certificates`, label: "Sertifika", icon: Shield },
+      ]
+    : [
+        { href: "/admin/dashboard", label: "Panel", icon: Home },
+        { href: "/admin/events", label: "Etkinlik", icon: CalendarDays },
+      ];
+
+  return (
+    <nav className="fixed inset-x-3 bottom-3 z-[60] rounded-2xl border border-slate-200 bg-white/95 p-1.5 shadow-2xl backdrop-blur md:hidden">
+      <div className="grid" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
+        {items.map((item) => {
+          const Icon = item.icon;
+          const active = pathname === item.href || (item.href !== `/admin/events/${eventId}` && pathname.startsWith(item.href));
+          return (
+            <Link key={item.href} href={item.href} className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-black ${active ? "bg-indigo-600 text-white" : "text-slate-500"}`}>
+              <Icon className="h-4 w-4" />
+              <span className="truncate">{item.label}</span>
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
 export function ClientShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith("/admin");
@@ -361,6 +443,8 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
       <I18nProvider>
         <HtmlLangSync />
         {children}
+        <InstallPrompt />
+        <AdminMobileNav />
       </I18nProvider>
     );
   }
@@ -398,6 +482,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
         >
           {children}
         </motion.main>
+        <InstallPrompt />
       </div>
     </I18nProvider>
   );
