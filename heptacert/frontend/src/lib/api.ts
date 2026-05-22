@@ -136,8 +136,8 @@ async function requestApi(
     });
   } catch (err: any) {
     clearTimeout(timeout);
-    if (err?.name === "AbortError") throw new ApiError(0, "Istek zaman asimina ugradi.");
-    throw new ApiError(0, err?.message || "Ag hatasi.");
+    if (err?.name === "AbortError") throw new ApiError(0, "İstek zaman aşımına uğradı.");
+    throw new ApiError(0, err?.message || "Ağ hatası.");
   }
   clearTimeout(timeout);
 

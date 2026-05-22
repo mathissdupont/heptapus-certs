@@ -1724,12 +1724,12 @@ EVENT_TEAM_ROLE_PERMISSIONS: Dict[str, set[str]] = {
 EVENT_TEAM_PERMISSION_LABELS: Dict[str, str] = {
     "event:view": "Etkinligi goruntuleyebilir",
     "team:manage": "Ekip uyelerini ve yetkilerini yonetebilir",
-    "attendees:read": "Katilimci listesini gorebilir",
-    "attendees:write": "Katilimci ekleyebilir, ice aktarabilir ve silebilir",
+    "attendees:read": "Katılımcı listesini görebilir",
+    "attendees:write": "Katılımcı ekleyebilir, içe aktarabilir ve silebilir",
     "checkin:write": "Check-in ve bilet kontrolu yapabilir",
     "certificates:write": "Sertifika olusturabilir ve sertifika islemleri yapabilir",
     "email:write": "E-posta sablonlari ve toplu e-posta islemlerini yonetebilir",
-    "analytics:read": "Analitik ekranlarini gorebilir",
+    "analytics:read": "Analitik ekranlarını görebilir",
     "settings:write": "Etkinlik ayarlarini degistirebilir",
 }
 
@@ -3668,10 +3668,10 @@ async def send_attendee_verification_email(*, attendee: "Attendee", event: "Even
     verify_link = build_attendee_verify_url(event_id=_get_public_event_identifier(event), token=token)
     await send_email_async(
         to=attendee.email,
-        subject=f"{event.name} etkinliği icin e-posta adresinizi doğrulayın",
+        subject=f"{event.name} etkinliği için e-posta adresinizi doğrulayın",
         html_body=f"""
         <p>Merhaba {attendee.name},</p>
-        <p>{event.name} etkinlik kaydınızı tamamlamak icin e-posta adresinizi doğrulamanız gerekiyor.</p>
+        <p>{event.name} etkinlik kaydınızı tamamlamak için e-posta adresinizi doğrulamanız gerekiyor.</p>
         <p><a href="{verify_link}">{verify_link}</a></p>
         <p>Bu bağlantıyı doğrulamadan check-in yapamaz ve cekilişlere dahil olamazsınız.</p>
         <p>Bağlantı 24 saat gecerlidir.</p>
@@ -3737,7 +3737,7 @@ async def _enforce_registration_risk_controls(
         if ip_address and log.ip_address == ip_address and log.created_at >= now - timedelta(minutes=10)
     ]
     if len(same_ip_recent) >= 5:
-        raise HTTPException(status_code=429, detail="Bu IP adresinden cok fazla etkinlik kaydi denemesi algilandi.")
+        raise HTTPException(status_code=429, detail="Bu IP adresinden çok fazla etkinlik kaydı denemesi algılandı.")
 
     same_device_logs = [
         log for log in same_event_logs
@@ -3761,7 +3761,7 @@ async def _enforce_registration_risk_controls(
         if _extra(log).get("email")
     }
     if len(distinct_ip_ua_emails) >= 4 and email_lc not in distinct_ip_ua_emails:
-        raise HTTPException(status_code=429, detail="Supheli kayit denemesi algilandi. Lutfen daha sonra tekrar deneyin.")
+        raise HTTPException(status_code=429, detail="Şüpheli kayıt denemesi algılandı. Lütfen daha sonra tekrar deneyin.")
 
 async def build_public_participant_status(
     db: AsyncSession,
@@ -7881,7 +7881,7 @@ async def validate_login_2fa(request: Request, data: TotpValidateIn, db: AsyncSe
 
     code = (data.code or "").strip()
     if not pyotp.TOTP(totp_secret.secret).verify(code, valid_window=1):
-        raise HTTPException(status_code=401, detail="Gecersiz dogrulama kodu")
+        raise HTTPException(status_code=401, detail="Geçersiz doğrulama kodu")
 
     return {
         "access_token": create_access_token(user_id=user.id, role=user.role),
@@ -10602,7 +10602,7 @@ async def delete_admin_account(
     if user.role == Role.superadmin:
         raise HTTPException(status_code=400, detail="Superadmin hesabi panelden silinemez.")
     if not verify_password(data.current_password, user.password_hash):
-        raise HTTPException(status_code=400, detail="Mevcut sifre hatali.")
+        raise HTTPException(status_code=400, detail="Mevcut şifre hatalı.")
 
     await db.delete(user)
     await db.commit()
@@ -10849,7 +10849,7 @@ async def get_event_health(
             "key": "registration",
             "label": "Kayit",
             "status": "ok" if is_public_registration_enabled(ev) else "idle",
-            "detail": f"{attendee_count} katilimci",
+            "detail": f"{attendee_count} katılımcı",
         },
         {
             "key": "attendance",
@@ -10859,7 +10859,7 @@ async def get_event_health(
             else "warning"
             if session_count == 0 or attendance_count == 0
             else "ok",
-            "detail": f"{attendance_count} kayit / {session_count} oturum",
+            "detail": f"{attendance_count} kayıt / {session_count} oturum",
         },
         {
             "key": "certificates",
@@ -11154,11 +11154,11 @@ def _event_activity_label(action: str) -> tuple[str, str]:
         "team.member.accepted": ("Ekip daveti kabul edildi", "Bir ekip uyesi daveti kabul etti."),
         "team.member.updated": ("Ekip yetkisi guncellendi", "Bir ekip uyesinin rolu, durumu veya izinleri degistirildi."),
         "team.member.removed": ("Ekip uyesi kaldirildi", "Bir kisinin etkinlik ekibi erisimi kaldirildi."),
-        "attendee.manual_add": ("Katilimci eklendi", "Etkinlige elle katilimci eklendi."),
+        "attendee.manual_add": ("Katılımcı eklendi", "Etkinliğe elle katılımcı eklendi."),
         "admin.comment.update": ("Yorum durumu degistirildi", "Etkinlik yorumlarindan birinin gorunurluk durumu guncellendi."),
         "raffle.create": ("Cekilis olusturuldu", "Etkinlik icin yeni cekilis olusturuldu."),
         "raffle.update": ("Cekilis guncellendi", "Cekilis bilgileri degistirildi."),
-        "raffle.delete": ("Cekilis silindi", "Bir cekilis etkinlikten kaldirildi."),
+        "raffle.delete": ("Çekiliş silindi", "Bir çekiliş etkinlikten kaldırıldı."),
         "raffle.draw": ("Cekilis yapildi", "Cekilis kazananlari belirlendi."),
         "raffle.redraw": ("Cekilis yenilendi", "Cekilis yeniden calistirildi."),
         "raffle.export": ("Cekilis sonucu indirildi", "Cekilis sonuc dosyasi olusturuldu."),
@@ -11181,14 +11181,14 @@ def _event_activity_detail(log: AuditLog) -> str:
             pieces.append(f"Rol: {role}")
         if status:
             pieces.append(f"Durum: {status}")
-        return " | ".join(pieces) or "Ekip kaydi guncellendi."
+        return " | ".join(pieces) or "Ekip kaydı güncellendi."
     if "attendee_email" in extra:
-        return f"Katilimci: {extra.get('attendee_email')}"
+        return f"Katılımcı: {extra.get('attendee_email')}"
     if "title" in extra:
         return f"Baslik: {extra.get('title')}"
     if "status" in extra:
         return f"Yeni durum: {extra.get('status')}"
-    return "Detay kaydi bulunmuyor."
+    return "Detay kaydı bulunmuyor."
 
 
 @app.get(
@@ -12052,7 +12052,7 @@ async def verify_watermark(
     certificate details are returned.
     """
     if not file.content_type or not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Sadece gorsel dosyalari kabul edilir (PNG veya JPEG).")
+        raise HTTPException(status_code=400, detail="Sadece görsel dosyaları kabul edilir (PNG veya JPEG).")
         raise HTTPException(status_code=400, detail="Sadece gÃƒÂ¶rsel dosyalarÃ„Â± kabul edilir (PNG, JPEG, Ã¢â‚¬Â¦)")
 
     img_bytes = await file.read()
@@ -12115,7 +12115,7 @@ async def verify_watermark(
     return WatermarkVerifyOut(
         valid=cert.status == CertStatus.active,
         message=(
-            "Bu gorsel gecerli bir HeptaCert sertifika kaydina ait."
+            "Bu görsel geçerli bir HeptaCert sertifika kaydına ait."
             if cert.status == CertStatus.active
             else f"Sertifika bulundu ancak durumu: {cert.status.value}."
         ),
@@ -14014,7 +14014,7 @@ def _make_apple_wallet_pass(ticket: EventTicket) -> bytes:
                 {"key": "event", "label": "Etkinlik", "value": event.name},
             ],
             "secondaryFields": [
-                {"key": "name", "label": "Katilimci", "value": attendee.name},
+                {"key": "name", "label": "Katılımcı", "value": attendee.name},
             ],
             "auxiliaryFields": [
                 {"key": "status", "label": "Durum", "value": ticket.status},
@@ -14714,7 +14714,7 @@ async def public_event_register(
                     "already_registered": True,
                     "email_verified": False,
                     "verification_required": True,
-                    "message": "Bu e-posta ile kayit bulundu. Devam etmek icin dogrulama e-postasini onaylayin.",
+                    "message": "Bu e-posta ile kayıt bulundu. Devam etmek için doğrulama e-postasını onaylayın.",
                     "attendee_id": existing_attendee.id,
                     "attendee_name": existing_attendee.name,
                     "attendee_email": existing_attendee.email,
@@ -14924,12 +14924,12 @@ async def verify_attendee_email(event_id: str, token: str = Query(...), db: Asyn
     except SignatureExpired:
         raise bad_request("Dogrulama baglantisinin suresi dolmus.")
     except (BadSignature, Exception):
-        raise bad_request("Gecersiz dogrulama baglantisi.")
+        raise bad_request("Geçersiz doğrulama bağlantısı.")
 
     if payload.get("action") != "attendee_verify":
         raise bad_request("Gecersiz token turu.")
     if int(payload.get("event_id") or 0) != event.id:
-        raise bad_request("Etkinlik dogrulama bilgisi eslesmiyor.")
+        raise bad_request("Etkinlik doğrulama bilgisi eşleşmiyor.")
 
     attendee_id = int(payload.get("attendee_id") or 0)
     email = str(payload.get("email") or "").lower()
@@ -14940,7 +14940,7 @@ async def verify_attendee_email(event_id: str, token: str = Query(...), db: Asyn
     )
     attendee = res.scalar_one_or_none()
     if not attendee or attendee.email.lower() != email:
-        raise HTTPException(status_code=404, detail="Katilimci bulunamadi.")
+        raise HTTPException(status_code=404, detail="Katılımcı bulunamadı.")
 
     if attendee.email_verified:
         return {
@@ -15129,7 +15129,7 @@ async def self_checkin(
             "attendee_email": attendee.email,
             "session_id": session.id,
             "session_name": session.name,
-            "message": "Bu katilimci bu oturum icin zaten check-in yapmis.",
+            "message": "Bu katılımcı bu oturum için zaten check-in yapmış.",
         }
 
     return {
@@ -15141,7 +15141,7 @@ async def self_checkin(
         "attendee_email": attendee.email,
         "session_id": session.id,
         "session_name": session.name,
-        "message": f"Check-in basarili: {attendee.name}",
+        "message": f"Check-in başarılı: {attendee.name}",
     }
 
     attended_res = await db.execute(
@@ -16173,7 +16173,7 @@ async def admin_manual_checkin(
     await db.commit()
 
     if inserted_id is None:
-        return {"ok": False, "message": "Bu katılımcı bu oturum icin zaten check-in yapılmış."}
+        return {"ok": False, "message": "Bu katılımcı bu oturum için zaten check-in yapılmış."}
 
     return {"ok": True, "message": f"Check-in başarılı: {attendee.name}"}
 
@@ -16312,7 +16312,7 @@ async def undo_event_attendance_record(
     )
     row = record_res.first()
     if not row:
-        raise HTTPException(status_code=404, detail="Check-in kaydi bulunamadi.")
+        raise HTTPException(status_code=404, detail="Check-in kaydı bulunamadı.")
 
     record, attendee, session = row
     await write_audit_log(
@@ -16334,7 +16334,7 @@ async def undo_event_attendance_record(
     return {
         "ok": True,
         "deleted_id": record_id,
-        "message": f"{attendee.name} icin {session.name} check-in kaydi geri alindi.",
+        "message": f"{attendee.name} için {session.name} check-in kaydı geri alındı.",
     }
 
 
@@ -16934,7 +16934,7 @@ async def bulk_certify_attendees(
     att_res = await db.execute(select(Attendee).where(Attendee.event_id == event_id))
     attendees = att_res.scalars().all()
     if not attendees:
-        raise HTTPException(status_code=400, detail="Katilimci listesi bos")
+        raise HTTPException(status_code=400, detail="Katılımcı listesi boş")
 
     # Determine hologram policy: only Growth/Enterprise can disable it
     billing_user_id = ev.admin_id
@@ -17154,7 +17154,7 @@ async def bulk_certify_attendees_queue(
     att_res = await db.execute(select(Attendee).where(Attendee.event_id == event_id))
     attendees = att_res.scalars().all()
     if not attendees:
-        raise HTTPException(status_code=400, detail="Katilimci listesi bos")
+        raise HTTPException(status_code=400, detail="Katılımcı listesi boş")
 
     # Count attendaonce per attendee
     rec_res = await db.execute(
@@ -17166,7 +17166,7 @@ async def bulk_certify_attendees_queue(
 
     eligible = [a for a in attendees if attend_counts.get(a.id, 0) >= ev.min_sessions_required]
     if not eligible:
-        raise HTTPException(status_code=400, detail="Esigi gecen katilimci bulunamadi")
+        raise HTTPException(status_code=400, detail="Eşiği geçen katılımcı bulunamadı")
 
     names = [a.name for a in eligible]
 

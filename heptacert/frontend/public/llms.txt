@@ -1,0 +1,39 @@
+# HeptaCert
+
+HeptaCert is a web platform for event management, QR check-in, attendance tracking, digital certificate generation, certificate hosting, and certificate verification.
+
+## Primary Pages
+
+- Home: https://cert.heptapusgroup.com/
+- Discover hub: https://cert.heptapusgroup.com/discover
+- Public events: https://cert.heptapusgroup.com/events
+- Organizations: https://cert.heptapusgroup.com/organizations
+- Certificate verification: https://cert.heptapusgroup.com/verify
+- Business pricing: https://cert.heptapusgroup.com/pricing/business
+
+## Product Summary
+
+HeptaCert helps organizations manage event registrations, run QR-based check-in, track session attendance, issue branded digital certificates, verify certificate authenticity, and operate custom-domain certificate portals.
+
+## Audience
+
+- Event organizers
+- Universities and student communities
+- Professional communities
+- Training providers
+- Companies issuing verifiable certificates
+
+## Key Capabilities
+
+- Event registration forms
+- Session-based attendance matrix
+- QR check-in and ticket verification
+- Offline-capable mobile check-in workflow
+- Digital certificate generation
+- Public certificate verification
+- Organization pages and branded custom domains
+- Turkish and English interface
+
+## Contact
+
+Use the contact page at https://cert.heptapusgroup.com/iletisim.

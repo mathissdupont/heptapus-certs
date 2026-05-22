@@ -80,14 +80,14 @@ function normalizeTicketToken(value: string) {
 
 function classifyScan(value: string): { type: CheckinType | "unsupported"; value: string; message?: string } {
   const trimmed = value.trim();
-  if (!trimmed) return { type: "unsupported", value: trimmed, message: "Bos QR okundu." };
+  if (!trimmed) return { type: "unsupported", value: trimmed, message: "Boş QR okundu." };
   if (trimmed.includes("/tickets/")) return { type: "ticket", value: normalizeTicketToken(trimmed) };
   if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return { type: "manual", value: trimmed.toLowerCase() };
   if (trimmed.includes("/attend/")) {
-    return { type: "unsupported", value: trimmed, message: "Bu oturum QR'i. Katilimci bileti ya da e-posta QR'i okut." };
+    return { type: "unsupported", value: trimmed, message: "Bu oturum QR'i. Katılımcı bileti ya da e-posta QR'i okut." };
   }
   if (trimmed.length >= 24 && !trimmed.includes(" ")) return { type: "ticket", value: normalizeTicketToken(trimmed) };
-  return { type: "unsupported", value: trimmed, message: "QR icerigi e-posta veya bilet token'i degil." };
+  return { type: "unsupported", value: trimmed, message: "QR içeriği e-posta veya bilet token'i değil." };
 }
 
 export default function AdminCheckinPage() {
@@ -242,7 +242,7 @@ export default function AdminCheckinPage() {
       type: entry.type,
       success: true,
       queued: true,
-      message: "Offline kuyruga alindi. Internet gelince senkronlanacak.",
+      message: "Offline kuyruğa alındı. İnternet gelince senkronlanacak.",
       time: new Date().toLocaleTimeString("tr-TR"),
     });
   }
@@ -252,7 +252,7 @@ export default function AdminCheckinPage() {
       const ticket = await checkInEventTicket(eventId, normalizeTicketToken(value));
       return { ok: true, message: `${ticket.attendee_name} bilet girisi onaylandi.` };
     }
-    if (!sessionId) throw new Error("Once oturum sec.");
+    if (!sessionId) throw new Error("Önce oturum seç.");
     return adminManualCheckin(eventId, sessionId, value.trim());
   }
 
@@ -272,7 +272,7 @@ export default function AdminCheckinPage() {
       if (!navigator.onLine) {
         queueCheckin({ eventId, sessionId: selectedSession, type, value: clean });
       } else {
-        appendLog({ email: clean, type, success: false, message: e.message || "Check-in basarisiz", time: now });
+        appendLog({ email: clean, type, success: false, message: e.message || "Check-in başarısız", time: now });
       }
     } finally {
       setSubmitting(false);
@@ -308,18 +308,18 @@ export default function AdminCheckinPage() {
           email: entry.value,
           type: entry.type,
           success: true,
-          message: "Offline kayit senkronlandi.",
+          message: "Offline kayıt senkronlandı.",
           time: new Date().toLocaleTimeString("tr-TR"),
         });
       } catch (e: any) {
-        failed.unshift({ ...entry, attempts: entry.attempts + 1, lastError: e?.message || "Sync basarisiz" });
+        failed.unshift({ ...entry, attempts: entry.attempts + 1, lastError: e?.message || "Sync başarısız" });
       }
     }
     setOfflineQueue(failed);
     writeQueue(eventId, failed);
     if (synced > 0) {
       appendLog({
-        email: `${synced} kayit`,
+        email: `${synced} kayıt`,
         success: true,
         message: "Kuyruk senkronizasyonu tamamlandi.",
         time: new Date().toLocaleTimeString("tr-TR"),
@@ -361,7 +361,7 @@ export default function AdminCheckinPage() {
               <ArrowLeft className="h-4 w-4" />
               Operasyon
             </Link>
-            <span className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700">Gorevli modu</span>
+            <span className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700">Görevli modu</span>
           </div>
         )}
 
@@ -416,7 +416,7 @@ export default function AdminCheckinPage() {
               <div className="space-y-2">
                 {sessions.length === 0 ? (
                   <p className="text-sm text-gray-400">
-                    Henuz oturum yok.{" "}
+                    Henüz oturum yok.{" "}
                     <Link href={`/admin/events/${eventId}/sessions`} className="text-indigo-600 underline">
                       Oturum ekle
                     </Link>
@@ -430,7 +430,7 @@ export default function AdminCheckinPage() {
                         {s.session_date && <span className="ml-2 text-xs text-gray-400">{new Date(s.session_date).toLocaleDateString("tr-TR")}</span>}
                         {s.session_start && <span className="ml-1 text-xs text-gray-400">{s.session_start}</span>}
                       </div>
-                      <span className="shrink-0 text-xs font-medium text-indigo-600">{s.attendance_count} kisi</span>
+                      <span className="shrink-0 text-xs font-medium text-indigo-600">{s.attendance_count} kişi</span>
                     </label>
                   ))
                 )}
@@ -444,7 +444,7 @@ export default function AdminCheckinPage() {
                   <h2 className="font-semibold text-gray-800">Check-in Yap</h2>
                   <button type="button" onClick={() => setScannerOpen((v) => !v)} className="ml-auto inline-flex items-center gap-2 rounded-xl bg-gray-950 px-3 py-2 text-xs font-bold text-white">
                     <Camera className="h-4 w-4" />
-                    {scannerOpen ? "Kamerayi kapat" : "QR okut"}
+                    {scannerOpen ? "Kamerayı kapat" : "QR okut"}
                   </button>
                 </div>
 
@@ -462,7 +462,7 @@ export default function AdminCheckinPage() {
                 <form onSubmit={handleCheckin} className={`grid gap-2 ${staffMode ? "" : "sm:grid-cols-[1fr_auto]"}`}>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <input ref={inputRef} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Katilimci e-postasi" required autoComplete="off" className={`${staffMode ? "py-4 text-base" : "py-3 text-sm"} w-full rounded-xl border border-gray-200 pl-9 pr-4 outline-none focus:ring-2 focus:ring-indigo-500`} />
+                    <input ref={inputRef} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Katılımcı e-postası" required autoComplete="off" className={`${staffMode ? "py-4 text-base" : "py-3 text-sm"} w-full rounded-xl border border-gray-200 pl-9 pr-4 outline-none focus:ring-2 focus:ring-indigo-500`} />
                   </div>
                   <button type="submit" disabled={submitting || !email.trim()} className={`${staffMode ? "py-4 text-base" : "py-3 text-sm"} inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50`}>
                     {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}
@@ -490,7 +490,7 @@ export default function AdminCheckinPage() {
               {offlineQueue.length === 0 ? (
                 <p className="flex items-center gap-2 text-sm text-gray-400">
                   <Smartphone className="h-4 w-4" />
-                  Bekleyen offline kayit yok.
+                  Bekleyen offline kayıt yok.
                 </p>
               ) : (
                 <div className="max-h-48 divide-y divide-gray-100 overflow-y-auto">
@@ -512,7 +512,7 @@ export default function AdminCheckinPage() {
                 <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50 px-4 py-2.5">
                   <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
                     <History className="h-3.5 w-3.5" />
-                    Check-in Gecmisi
+                    Check-in Geçmişi
                   </h3>
                   <button onClick={() => setLog([])} className="text-xs text-gray-400 transition hover:text-red-500">Temizle</button>
                 </div>

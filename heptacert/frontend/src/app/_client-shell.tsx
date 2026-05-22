@@ -300,7 +300,7 @@ function Navbar() {
                     className="block px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg"
                   >
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{memberName}</p>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{lang === "tr" ? "Profil ayarlarÄ±" : "Profile settings"}</p>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{lang === "tr" ? "Profil ayarları" : "Profile settings"}</p>
                   </Link>
                   <Link
                     href="/post/create"
@@ -424,16 +424,16 @@ function InstallPrompt() {
           </div>
           <p className="mt-1 text-xs leading-5 text-slate-500">
             {iosInstallHelp
-              ? "iPhone'da Safari paylas menusu uzerinden Ana Ekrana Ekle secenegini kullan."
-              : "Check-in ve bilet kontrolunu uygulama gibi ac."}
+              ? "iPhone'da Safari paylaş menüsü üzerinden Ana Ekrana Ekle seçeneğini kullan."
+              : "Check-in ve bilet kontrolünü uygulama gibi aç."}
           </p>
           {iosInstallHelp && (
             <div className="mt-3 rounded-xl bg-slate-50 p-3 text-xs font-semibold leading-5 text-slate-600">
               <p className="flex items-center gap-2">
                 <Share className="h-4 w-4 text-indigo-600" />
-                Safari'de Paylas'a bas
+                Safari'de Paylaş'a bas
               </p>
-              <p className="mt-1 pl-6">Sonra Ana Ekrana Ekle sec.</p>
+              <p className="mt-1 pl-6">Sonra Ana Ekrana Ekle seç.</p>
             </div>
           )}
           <div className="mt-3 flex gap-2">
@@ -452,8 +452,8 @@ function AdminMobileNav() {
   const eventId = eventMatch?.[1];
   const items = eventId
     ? [
-        { href: `/admin/events/${eventId}`, label: "Ozet", icon: Home },
-        { href: `/admin/events/${eventId}/ops`, label: "Canli", icon: Activity },
+        { href: `/admin/events/${eventId}`, label: "Özet", icon: Home },
+        { href: `/admin/events/${eventId}/ops`, label: "Canlı", icon: Activity },
         { href: `/admin/events/${eventId}/checkin`, label: "Check-in", icon: QrCode },
         { href: `/admin/events/${eventId}/tickets`, label: "Bilet", icon: Ticket },
         { href: `/admin/events/${eventId}/certificates`, label: "Sertifika", icon: Shield },

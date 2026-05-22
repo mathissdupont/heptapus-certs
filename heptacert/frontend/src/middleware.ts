@@ -26,6 +26,16 @@ const LEGACY_TOKEN_ROUTES = [
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
+  if (
+    !["GET", "HEAD", "OPTIONS"].includes(request.method) &&
+    !pathname.startsWith("/api/")
+  ) {
+    return NextResponse.json(
+      { error: "Method not allowed" },
+      { status: 405, headers: { Allow: "GET, HEAD, OPTIONS" } },
+    );
+  }
+
   for (const route of LEGACY_TOKEN_ROUTES) {
     const match = pathname.match(route.pattern);
     if (!match) continue;
@@ -39,4 +49,3 @@ export function middleware(request: NextRequest) {
 
   return NextResponse.next();
 }
-

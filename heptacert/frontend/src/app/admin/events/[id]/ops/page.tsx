@@ -81,7 +81,7 @@ export default function EventOperationsPage() {
       const data = await getEventOperations(eventId);
       setSnapshot(data);
     } catch (err: any) {
-      setError(err?.message || "Canli operasyon verisi alinamadi.");
+      setError(err?.message || "Canlı operasyon verisi alınamadı.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -96,15 +96,15 @@ export default function EventOperationsPage() {
   }, [eventId]);
 
   async function undo(record: EventOperationCheckin) {
-    if (!window.confirm(`${record.attendee_name} icin ${record.session_name} check-in kaydi geri alinsin mi?`)) return;
+    if (!window.confirm(`${record.attendee_name} için ${record.session_name} check-in kaydı geri alınsın mı?`)) return;
     setUndoingId(record.id);
     setNotice(null);
     try {
       const result = await undoAttendanceRecord(eventId, record.id);
-      setNotice(result.message || "Check-in kaydi geri alindi.");
+      setNotice(result.message || "Check-in kaydı geri alındı.");
       await load({ soft: true });
     } catch (err: any) {
-      setError(err?.message || "Check-in geri alinamadi.");
+      setError(err?.message || "Check-in geri alınamadı.");
     } finally {
       setUndoingId(null);
     }
@@ -129,14 +129,14 @@ export default function EventOperationsPage() {
 
       <div className="mb-5 flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-500">Canli operasyon</p>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-500">Canlı operasyon</p>
           <h1 className="mt-1 text-2xl font-black text-slate-950">{snapshot?.event_name || `Etkinlik #${eventId}`}</h1>
           <p className="mt-1 text-sm font-semibold text-slate-500">Son guncelleme: {formatTime(snapshot?.generated_at)}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href={`/admin/events/${eventId}/checkin?staff=1`} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white">
             <QrCode className="h-4 w-4" />
-            Gorevli Modu
+            Görevli Modu
           </Link>
           <button
             type="button"
@@ -166,8 +166,8 @@ export default function EventOperationsPage() {
       {snapshot && (
         <>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <StatCard title="Katilimci" value={snapshot.overview.attendees} note="Kayitli kisi" icon={Users} />
-            <StatCard title="Check-in" value={snapshot.overview.attendance_records} note="Toplam oturum kaydi" icon={UserCheck} />
+            <StatCard title="Katılımcı" value={snapshot.overview.attendees} note="Kayıtlı kişi" icon={Users} />
+            <StatCard title="Check-in" value={snapshot.overview.attendance_records} note="Toplam oturum kaydı" icon={UserCheck} />
             <StatCard title="Aktif Oturum" value={snapshot.overview.active_sessions} note={activeSessionNames} icon={Activity} />
             <StatCard title="Bilet" value={`${snapshot.overview.tickets_used}/${snapshot.overview.tickets_total}`} note="Kullanilan / toplam" icon={Ticket} />
           </div>
@@ -177,13 +177,13 @@ export default function EventOperationsPage() {
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-black text-slate-950">Oturum Durumu</h2>
-                  <p className="text-sm font-semibold text-slate-500">Anlik katilim sayilari</p>
+                  <p className="text-sm font-semibold text-slate-500">Anlık katılım sayıları</p>
                 </div>
                 <Clock3 className="h-5 w-5 text-slate-400" />
               </div>
               <div className="space-y-3">
                 {snapshot.sessions.length === 0 ? (
-                  <p className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">Henuz oturum yok.</p>
+                  <p className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">Henüz oturum yok.</p>
                 ) : (
                   snapshot.sessions.map((session) => (
                     <div key={session.id} className="rounded-2xl border border-slate-200 p-4">
@@ -215,7 +215,7 @@ export default function EventOperationsPage() {
               </div>
               <div className="max-h-[620px] divide-y divide-slate-100 overflow-y-auto">
                 {snapshot.recent_checkins.length === 0 ? (
-                  <p className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">Check-in kaydi yok.</p>
+                  <p className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">Check-in kaydı yok.</p>
                 ) : (
                   snapshot.recent_checkins.map((record) => (
                     <div key={record.id} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
