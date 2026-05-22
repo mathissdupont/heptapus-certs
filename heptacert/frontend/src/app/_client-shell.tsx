@@ -359,6 +359,10 @@ function InstallPrompt() {
     const isStandalone =
       window.matchMedia("(display-mode: standalone)").matches ||
       Boolean((window.navigator as any).standalone);
+    if (isStandalone) {
+      setVisible(false);
+      return;
+    }
     const isSafari = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(userAgent);
     if (isIos && isSafari && !isStandalone && !dismissed) {
       setIosInstallHelp(true);
@@ -369,8 +373,18 @@ function InstallPrompt() {
       setPromptEvent(event);
       if (!dismissed) setVisible(true);
     };
+    const onAppInstalled = () => {
+      window.localStorage.setItem("heptacert:pwa-install-dismissed", "1");
+      setVisible(false);
+      setPromptEvent(null);
+      setIosInstallHelp(false);
+    };
     window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt as EventListener);
-    return () => window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt as EventListener);
+    window.addEventListener("appinstalled", onAppInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt as EventListener);
+      window.removeEventListener("appinstalled", onAppInstalled);
+    };
   }, []);
 
   if (!visible || (!promptEvent && !iosInstallHelp)) return null;
@@ -378,6 +392,14 @@ function InstallPrompt() {
   async function install() {
     if (!promptEvent) return;
     await promptEvent.prompt();
+    try {
+      const choice = await promptEvent.userChoice;
+      if (choice?.outcome === "accepted" || choice?.outcome === "dismissed") {
+        window.localStorage.setItem("heptacert:pwa-install-dismissed", "1");
+      }
+    } catch {
+      window.localStorage.setItem("heptacert:pwa-install-dismissed", "1");
+    }
     setVisible(false);
     setPromptEvent(null);
   }
@@ -394,7 +416,12 @@ function InstallPrompt() {
           <Smartphone className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-black text-slate-950">HeptaCert'i ana ekrana ekle</p>
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-sm font-black text-slate-950">HeptaCert'i ana ekrana ekle</p>
+            <button type="button" onClick={dismiss} className="-mt-1 rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
           <p className="mt-1 text-xs leading-5 text-slate-500">
             {iosInstallHelp
               ? "iPhone'da Safari paylas menusu uzerinden Ana Ekrana Ekle secenegini kullan."

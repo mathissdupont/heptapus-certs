@@ -255,6 +255,7 @@ class Settings(BaseSettings):
     public_base_url: str = Field(default="http://localhost:8000", alias="PUBLIC_BASE_URL")
     frontend_base_url: str = Field(default="http://localhost:3000", alias="FRONTEND_BASE_URL")
     cors_origins: str = Field(default="*", alias="CORS_ORIGINS")
+    cors_allow_origin_regex: str = Field(default="", alias="CORS_ALLOW_ORIGIN_REGEX")
     redis_url: str = Field(default="", alias="REDIS_URL")
     rate_limit_storage_uri: str = Field(default="", alias="RATE_LIMIT_STORAGE_URI")
     google_oauth_client_id: str = Field(default="", alias="GOOGLE_OAUTH_CLIENT_ID")
@@ -4758,6 +4759,7 @@ else:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
+        allow_origin_regex=settings.cors_allow_origin_regex or r"https://.*",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

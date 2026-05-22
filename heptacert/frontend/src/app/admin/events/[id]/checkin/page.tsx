@@ -352,16 +352,16 @@ export default function AdminCheckinPage() {
   }
 
   return (
-    <div className={`${staffMode ? "min-h-screen bg-slate-950 px-3 pb-8 pt-3 md:px-4" : "min-h-screen bg-slate-50 px-3 pb-28 pt-4 md:px-8 md:pb-8"}`}>
+    <div className={`${staffMode ? "min-h-screen bg-zinc-100 px-3 pb-8 pt-3 md:px-4" : "min-h-screen bg-slate-50 px-3 pb-28 pt-4 md:px-8 md:pb-8"}`}>
       <div className={`mx-auto ${staffMode ? "max-w-xl" : "max-w-3xl"}`}>
         {!staffMode && <EventAdminNav eventId={eventId} eventName={eventName} active="checkin" className="mb-6 flex flex-col gap-2" />}
         {staffMode && (
-          <div className="mb-3 flex items-center justify-between gap-3 text-white">
-            <Link href={`/admin/events/${eventId}/ops`} className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-black">
+          <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white px-3 py-3 shadow-sm">
+            <Link href={`/admin/events/${eventId}/ops`} className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-black text-zinc-700">
               <ArrowLeft className="h-4 w-4" />
               Operasyon
             </Link>
-            <span className="rounded-xl bg-emerald-400/15 px-3 py-2 text-xs font-black text-emerald-200">Gorevli modu</span>
+            <span className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700">Gorevli modu</span>
           </div>
         )}
 
@@ -380,11 +380,11 @@ export default function AdminCheckinPage() {
 
         {planOk !== false && (
           <>
-            <div className="mb-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className={`mb-4 rounded-3xl border border-slate-200 bg-white shadow-sm ${staffMode ? "p-4" : "p-5"}`}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-500">Mobil operasyon</p>
-                  <h1 className="mt-1 text-2xl font-black text-gray-950">Hizli Check-in</h1>
+                  <h1 className={`${staffMode ? "mt-1 text-xl" : "mt-1 text-2xl"} font-black text-gray-950`}>Hizli Check-in</h1>
                   <p className="mt-1 text-sm text-gray-500">{eventName}</p>
                 </div>
                 <div className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold ${isOnline ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
@@ -393,7 +393,7 @@ export default function AdminCheckinPage() {
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+              <div className={`mt-4 grid gap-2 ${staffMode ? "grid-cols-3" : "sm:grid-cols-3"}`}>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
                   <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Oturum</p>
                   <p className="mt-1 truncate text-sm font-black text-slate-900">{selectedSessionObj?.name || "Secilmedi"}</p>
@@ -411,7 +411,7 @@ export default function AdminCheckinPage() {
 
             {error && <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
-            <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className={`mb-4 rounded-2xl border border-gray-200 bg-white shadow-sm ${staffMode ? "p-3" : "p-4"}`}>
               <label className="mb-2 block text-sm font-semibold text-gray-700">Oturum Secin</label>
               <div className="space-y-2">
                 {sessions.length === 0 ? (
@@ -423,7 +423,7 @@ export default function AdminCheckinPage() {
                   </p>
                 ) : (
                   sessions.map((s) => (
-                    <label key={s.id} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition ${selectedSession === s.id ? "border-indigo-400 bg-indigo-50" : "border-gray-200 hover:bg-gray-50"}`}>
+                    <label key={s.id} className={`flex cursor-pointer items-center gap-3 rounded-xl border ${staffMode ? "p-2.5" : "p-3"} transition ${selectedSession === s.id ? "border-indigo-400 bg-indigo-50" : "border-gray-200 hover:bg-gray-50"}`}>
                       <input type="radio" name="session" value={s.id} checked={selectedSession === s.id} onChange={() => setSelectedSession(s.id)} className="text-indigo-600" />
                       <div className="min-w-0 flex-1">
                         <span className="text-sm font-medium text-gray-800">{s.name}</span>
@@ -438,7 +438,7 @@ export default function AdminCheckinPage() {
             </div>
 
             {selectedSession && (
-              <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+              <div className={`mb-4 rounded-2xl border border-gray-200 bg-white shadow-sm ${staffMode ? "p-4" : "p-5"}`}>
                 <div className="mb-4 flex flex-wrap items-center gap-2">
                   <UserCheck className="h-5 w-5 text-indigo-500" />
                   <h2 className="font-semibold text-gray-800">Check-in Yap</h2>
@@ -459,12 +459,12 @@ export default function AdminCheckinPage() {
                   </div>
                 )}
 
-                <form onSubmit={handleCheckin} className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                <form onSubmit={handleCheckin} className={`grid gap-2 ${staffMode ? "" : "sm:grid-cols-[1fr_auto]"}`}>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <input ref={inputRef} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Katilimci e-postasi" required autoComplete="off" className="w-full rounded-xl border border-gray-200 py-3 pl-9 pr-4 text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
+                    <input ref={inputRef} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Katilimci e-postasi" required autoComplete="off" className={`${staffMode ? "py-4 text-base" : "py-3 text-sm"} w-full rounded-xl border border-gray-200 pl-9 pr-4 outline-none focus:ring-2 focus:ring-indigo-500`} />
                   </div>
-                  <button type="submit" disabled={submitting || !email.trim()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50">
+                  <button type="submit" disabled={submitting || !email.trim()} className={`${staffMode ? "py-4 text-base" : "py-3 text-sm"} inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50`}>
                     {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}
                     Check-in
                   </button>

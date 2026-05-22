@@ -1,5 +1,22 @@
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8765/api";
 
+const PRIMARY_APP_HOSTS = new Set([
+  "localhost",
+  "127.0.0.1",
+  "heptacert.com",
+  "www.heptacert.com",
+  "cert.heptapusgroup.com",
+]);
+
+export function getApiBase(): string {
+  if (typeof window === "undefined") return API_BASE;
+  const host = window.location.hostname;
+  if (host && !PRIMARY_APP_HOSTS.has(host)) {
+    return `${window.location.origin}/api`;
+  }
+  return API_BASE;
+}
+
 // Warn loudly in production if the API base URL is unset
 if (
   typeof process !== "undefined" &&
@@ -111,7 +128,7 @@ async function requestApi(
 
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}${path}`, {
+    res = await fetch(`${getApiBase()}${path}`, {
       ...init,
       headers,
       signal: controller.signal,
@@ -818,7 +835,7 @@ export async function toggleSession(eventId: number, sessionId: number): Promise
 
 export function getSessionQrUrl(eventId: number, sessionId: number): string {
   const token = getToken();
-  return `${API_BASE}/admin/events/${eventId}/sessions/${sessionId}/qr?token=${token}`;
+  return `${getApiBase()}/admin/events/${eventId}/sessions/${sessionId}/qr?token=${token}`;
 }
 
 export async function fetchSessionQr(eventId: number, sessionId: number): Promise<{ blob: Blob; checkinUrl: string }> {
@@ -992,7 +1009,7 @@ export async function adminManualCheckin(
 }
 
 export function getAttendanceExportUrl(eventId: number, fmt: "xlsx" | "csv" = "xlsx"): string {
-  return `${API_BASE}/admin/events/${eventId}/attendance/export?fmt=${fmt}`;
+  return `${getApiBase()}/admin/events/${eventId}/attendance/export?fmt=${fmt}`;
 }
 
 export async function exportAttendanceFile(
@@ -1003,7 +1020,7 @@ export async function exportAttendanceFile(
   const headers = new Headers();
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const res = await fetch(`${API_BASE}/admin/events/${eventId}/attendance/export?fmt=${fmt}`, {
+  const res = await fetch(`${getApiBase()}/admin/events/${eventId}/attendance/export?fmt=${fmt}`, {
     method: "GET",
     headers,
     cache: "no-store",
@@ -1037,7 +1054,7 @@ export async function exportRegistrationDocumentsZip(
   const headers = new Headers();
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const res = await fetch(`${API_BASE}/admin/events/${eventId}/registration-documents/export`, {
+  const res = await fetch(`${getApiBase()}/admin/events/${eventId}/registration-documents/export`, {
     method: "GET",
     headers,
     cache: "no-store",
@@ -1555,7 +1572,7 @@ export async function submitBuiltinSurvey(
   answers: Record<string, unknown>,
   surveyToken?: string,
 ) {
-  const res = await fetch(`${API_BASE}/surveys/${toEventRouteId(eventId)}/submit`, {
+  const res = await fetch(`${getApiBase()}/surveys/${toEventRouteId(eventId)}/submit`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -1624,7 +1641,7 @@ export async function getPublicParticipantStatus(
   surveyToken: string,
 ): Promise<PublicParticipantStatus> {
   const res = await fetch(
-    `${API_BASE}/events/${toEventRouteId(eventId)}/participant-status?token=${encodeURIComponent(surveyToken)}`,
+    `${getApiBase()}/events/${toEventRouteId(eventId)}/participant-status?token=${encodeURIComponent(surveyToken)}`,
     { cache: "no-store" },
   );
   if (!res.ok) {
@@ -1671,7 +1688,7 @@ export async function getPublicAttendeeBadges(
   email: string,
 ): Promise<{ total_badges: number; badges: PublicParticipantBadge[] }> {
   const res = await fetch(
-    `${API_BASE}/events/${toEventRouteId(eventId)}/attendees/${attendeeId}/badges?email=${encodeURIComponent(email)}`,
+    `${getApiBase()}/events/${toEventRouteId(eventId)}/attendees/${attendeeId}/badges?email=${encodeURIComponent(email)}`,
     { cache: "no-store" },
   );
   if (!res.ok) {
@@ -1682,7 +1699,7 @@ export async function getPublicAttendeeBadges(
 }
 
 export async function getCheckinSessionInfo(token: string) {
-  const res = await fetch(`${API_BASE}/attend/${token}`);
+  const res = await fetch(`${getApiBase()}/attend/${token}`);
   if (!res.ok) {
     const j = await res.json().catch(() => ({}));
     throw new Error(j?.detail || "Geçersiz QR kodu");
@@ -1691,7 +1708,7 @@ export async function getCheckinSessionInfo(token: string) {
 }
 
 export async function selfCheckin(token: string, email: string) {
-  const res = await fetch(`${API_BASE}/attend/${token}`, {
+  const res = await fetch(`${getApiBase()}/attend/${token}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email }),
