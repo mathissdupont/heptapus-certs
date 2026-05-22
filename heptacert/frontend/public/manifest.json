@@ -2,7 +2,7 @@
   "name": "HeptaCert",
   "short_name": "HeptaCert",
   "description": "Etkinlik, check-in ve sertifika yönetimi.",
-  "start_url": "/my-events",
+  "start_url": "/discover",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f8fafc",
@@ -24,9 +24,9 @@
   ],
   "shortcuts": [
     {
-      "name": "Etkinliklerim",
-      "short_name": "Etkinlikler",
-      "url": "/my-events"
+      "name": "Merkez",
+      "short_name": "Merkez",
+      "url": "/discover"
     },
     {
       "name": "Sertifika Doğrula",

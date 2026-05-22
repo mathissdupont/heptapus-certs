@@ -1,4 +1,5 @@
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8765/api";
+const HAS_CONFIGURED_API_BASE = Boolean(process.env.NEXT_PUBLIC_API_BASE);
 
 const PRIMARY_APP_HOSTS = new Set([
   "localhost",
@@ -11,7 +12,7 @@ const PRIMARY_APP_HOSTS = new Set([
 export function getApiBase(): string {
   if (typeof window === "undefined") return API_BASE;
   const host = window.location.hostname;
-  if (host && !PRIMARY_APP_HOSTS.has(host)) {
+  if (!HAS_CONFIGURED_API_BASE || (host && !PRIMARY_APP_HOSTS.has(host))) {
     return `${window.location.origin}/api`;
   }
   return API_BASE;
@@ -25,9 +26,8 @@ if (
   process.env.NEXT_PHASE !== "phase-production-build"
 ) {
   console.error(
-    "[HeptaCert] NEXT_PUBLIC_API_BASE is not set! " +
-    "Falling back to http://localhost:8765/api which will fail in production. " +
-    "Set NEXT_PUBLIC_API_BASE in your environment or .env.production file."
+    "[HeptaCert] NEXT_PUBLIC_API_BASE is not set. " +
+    "Browser requests will use the current origin /api; server-side code keeps the local development fallback."
   );
 }
 

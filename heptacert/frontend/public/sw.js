@@ -1,5 +1,5 @@
-const CACHE_NAME = "heptacert-shell-v1";
-const SHELL_URLS = ["/", "/verify", "/my-events", "/favicon.svg", "/logo.png"];
+const CACHE_NAME = "heptacert-shell-v2";
+const SHELL_URLS = ["/", "/discover", "/verify", "/favicon.svg", "/logo.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -24,7 +24,7 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === "navigate") {
-    event.respondWith(fetch(request).catch(() => caches.match("/my-events").then((cached) => cached || caches.match("/"))));
+    event.respondWith(fetch(request).catch(() => caches.match("/discover").then((cached) => cached || caches.match("/"))));
     return;
   }
 
