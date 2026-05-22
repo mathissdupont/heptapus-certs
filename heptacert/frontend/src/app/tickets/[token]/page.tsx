@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { API_BASE, getPublicTicket, type PublicTicketInfo } from "@/lib/api";
+import { apiUrl, getPublicTicket, type PublicTicketInfo } from "@/lib/api";
 import {
   CheckCircle2,
   Copy,
@@ -46,17 +46,17 @@ export default function PublicTicketPage() {
 
   const qrUrl = useMemo(() => {
     if (!token) return "";
-    return `${API_BASE}/tickets/${encodeURIComponent(String(token))}/qr`;
+    return apiUrl(`/tickets/${encodeURIComponent(String(token))}/qr`);
   }, [token]);
 
   const pngUrl = useMemo(() => {
     if (!token) return "";
-    return `${API_BASE}/tickets/${encodeURIComponent(String(token))}/png`;
+    return apiUrl(`/tickets/${encodeURIComponent(String(token))}/png`);
   }, [token]);
 
   const pdfUrl = useMemo(() => {
     if (!token) return "";
-    return `${API_BASE}/tickets/${encodeURIComponent(String(token))}/pdf`;
+    return apiUrl(`/tickets/${encodeURIComponent(String(token))}/pdf`);
   }, [token]);
 
   useEffect(() => {

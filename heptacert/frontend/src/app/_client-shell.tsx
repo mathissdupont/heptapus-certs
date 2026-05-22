@@ -12,6 +12,8 @@ import {
   clearPublicMemberToken,
   getPublicMemberMe,
   getPublicMemberToken,
+  normalizeApiAssetUrl,
+  apiUrl,
 } from "@/lib/api";
 
 const HEPTACERT_PRIMARY_HOSTS = new Set([
@@ -60,11 +62,11 @@ function Navbar() {
 
   useEffect(() => {
     let mounted = true;
-    fetch("/api/branding")
-      .then((res) => res.json())
+    fetch(apiUrl("/branding"), { credentials: "include", cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
       .then((j) => {
-        if (!mounted) return;
-        setBrandLogo(j.brand_logo || null);
+        if (!mounted || !j) return;
+        setBrandLogo(normalizeApiAssetUrl(j.brand_logo));
         setBrandColor(j.brand_color || null);
         setOrgName(j.org_name || null);
         setSettings(j.settings || null);

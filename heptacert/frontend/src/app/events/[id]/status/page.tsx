@@ -17,7 +17,7 @@ import {
   Copy,
   IdCard,
 } from "lucide-react";
-import { API_BASE, getMyPublicParticipantStatus, getPublicMemberToken, getPublicParticipantStatus, type PublicParticipantStatus } from "@/lib/api";
+import { apiUrl, getMyPublicParticipantStatus, getPublicMemberToken, getPublicParticipantStatus, normalizeApiAssetUrl, type PublicParticipantStatus } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 type BrandingData = {
@@ -198,7 +198,10 @@ export default function EventParticipantStatusPage() {
   const [ticketCopied, setTicketCopied] = useState(false);
 
   useEffect(() => {
-    fetch("/api/branding").then((r) => (r.ok ? r.json() : null)).then((data) => data && setBranding(data)).catch(() => {});
+    fetch(apiUrl("/branding"), { credentials: "include", cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => data && setBranding({ ...data, brand_logo: normalizeApiAssetUrl(data.brand_logo) }))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -390,7 +393,7 @@ export default function EventParticipantStatusPage() {
                   {ticket ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={`${API_BASE}/tickets/${encodeURIComponent(ticket.token)}/qr`}
+                      src={apiUrl(`/tickets/${encodeURIComponent(ticket.token)}/qr`)}
                       alt={copy.ticketQr}
                       className="h-36 w-36 rounded-xl object-contain"
                     />
@@ -422,7 +425,7 @@ export default function EventParticipantStatusPage() {
                         {copy.ticketShow} <ExternalLink className="h-4 w-4" />
                       </Link>
                       <a
-                        href={`${API_BASE}/tickets/${encodeURIComponent(ticket.token)}/pdf`}
+                        href={apiUrl(`/tickets/${encodeURIComponent(ticket.token)}/pdf`)}
                         className="inline-flex items-center justify-center gap-2 rounded-xl border border-sky-200 bg-white px-5 py-2.5 text-sm font-semibold text-sky-700 shadow-sm transition hover:bg-sky-50"
                       >
                         {copy.ticketDownload}

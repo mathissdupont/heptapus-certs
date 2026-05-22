@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertCircle, ArrowLeft, BadgeCheck, Calendar, CheckCircle2, Clock, Download, ExternalLink, Eye, FileCheck2, Hash, Linkedin, Loader2, ShieldOff, User, Building2 } from "lucide-react";
-import { API_BASE } from "@/lib/api";
+import { apiUrl, normalizeApiAssetUrl } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 type CertData = {
@@ -88,7 +88,7 @@ export default function VerifyPage({ params }: { params: { uuid: string } }) {
   }, [lang]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/verify/${params.uuid}`)
+    fetch(apiUrl(`/verify/${params.uuid}`), { cache: "no-store" })
       .then(async (r) => {
         if (r.status === 404) {
           setState("not_found");
@@ -100,7 +100,15 @@ export default function VerifyPage({ params }: { params: { uuid: string } }) {
           return;
         }
         const data = await r.json();
-        setCert(data);
+        setCert({
+          ...data,
+          organizer_logo: normalizeApiAssetUrl(data.organizer_logo),
+          pdf_url: normalizeApiAssetUrl(data.pdf_url),
+          png_url: normalizeApiAssetUrl(data.png_url),
+          branding: data.branding
+            ? { ...data.branding, brand_logo: normalizeApiAssetUrl(data.branding.brand_logo) }
+            : data.branding,
+        });
         setState("ok");
       })
       .catch((e) => {

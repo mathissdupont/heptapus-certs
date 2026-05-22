@@ -12170,6 +12170,20 @@ async def get_branding(request: Request, db: AsyncSession = Depends(get_db)):
     if not host:
         return {"org_name": None, "brand_logo": None, "brand_color": None, "settings": {}}
 
+    def request_origin() -> str:
+        proto = (request.headers.get("x-forwarded-proto") or request.url.scheme or "https").split(",")[0].strip()
+        forwarded_host = (request.headers.get("x-forwarded-host") or request.headers.get("host") or "").split(",")[0].strip()
+        return f"{proto}://{forwarded_host}" if forwarded_host else str(request.base_url).rstrip("/")
+
+    def host_local_file_url(value: Optional[str]) -> Optional[str]:
+        if not value:
+            return value
+        marker = "/api/files/"
+        if marker not in value:
+            return value
+        suffix = value.split(marker, 1)[1]
+        return f"{request_origin()}{marker}{suffix}"
+
     try:
         res = await db.execute(select(Organization).where(Organization.custom_domain == host))
         org = res.scalar_one_or_none()
@@ -12178,7 +12192,7 @@ async def get_branding(request: Request, db: AsyncSession = Depends(get_db)):
         return {
             "public_id": org.public_id,
             "org_name": org.org_name,
-            "brand_logo": org.brand_logo,
+            "brand_logo": host_local_file_url(org.brand_logo),
             "brand_color": org.brand_color,
             "custom_domain": org.custom_domain,
             "settings": getattr(org, "settings", {}) or {},

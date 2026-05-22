@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
-import { API_BASE, getEventCapacities, getPublicEventInfo, getPublicMemberMe, getPublicMemberToken, publicRegisterAttendee, resendPublicAttendeeVerification, uploadPublicRegistrationDocument, type RegistrationField, type RegistrationDocumentUploadOut } from "@/lib/api";
+import { apiUrl, getEventCapacities, getPublicEventInfo, getPublicMemberMe, getPublicMemberToken, normalizeApiAssetUrl, publicRegisterAttendee, resendPublicAttendeeVerification, uploadPublicRegistrationDocument, type RegistrationField, type RegistrationDocumentUploadOut } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import {
   CheckCircle2,
@@ -293,11 +293,11 @@ export default function EventRegisterPage() {
   const [memberLocked, setMemberLocked] = useState(false);
 
   useEffect(() => {
-    fetch("/api/branding")
+    fetch(apiUrl("/branding"), { credentials: "include", cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!data) return;
-        setBranding(data);
+        setBranding({ ...data, brand_logo: normalizeApiAssetUrl(data.brand_logo) });
         if (data.brand_color) {
           document.documentElement.style.setProperty("--site-brand-color", data.brand_color);
         }
@@ -727,7 +727,7 @@ export default function EventRegisterPage() {
                         <div className="grid gap-4 p-4 sm:grid-cols-[132px_minmax(0,1fr)] sm:items-center">
                           <div className="mx-auto flex h-32 w-32 shrink-0 items-center justify-center rounded-2xl bg-white p-2 shadow-lg sm:mx-0">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={`${API_BASE}/tickets/${issuedTicket.token}/qr`} alt={copy.ticketQr} className="h-full w-full object-contain" />
+                            <img src={apiUrl(`/tickets/${issuedTicket.token}/qr`)} alt={copy.ticketQr} className="h-full w-full object-contain" />
                           </div>
                           <div className="min-w-0 text-center sm:text-left">
                             <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold text-white/75">

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { apiFetch, drawEventRaffle, type EventRaffleOut } from "@/lib/api";
+import { apiFetch, apiUrl, drawEventRaffle, normalizeApiAssetUrl, type EventRaffleOut } from "@/lib/api";
 import { formatRaffleDate, formatWinnerPlan, splitRaffleRounds } from "@/lib/raffles";
 import {
   ArrowLeft,
@@ -202,11 +202,11 @@ export default function RafflePresentationPage() {
     eligibleAttendees.length > 0 ? eligibleAttendees[spotlightIndex % eligibleAttendees.length] : null;
 
   useEffect(() => {
-    fetch("/api/branding", { credentials: "include" })
+    fetch(apiUrl("/branding"), { credentials: "include", cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!data) return;
-        setBranding(data);
+        setBranding({ ...data, brand_logo: normalizeApiAssetUrl(data.brand_logo) });
       })
       .catch(() => {});
   }, []);

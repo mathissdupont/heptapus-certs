@@ -18,6 +18,41 @@ export function getApiBase(): string {
   return API_BASE;
 }
 
+export function getApiOrigin(): string {
+  const base = getApiBase();
+  return base.endsWith("/api") ? base.slice(0, -4) : base.replace(/\/api\/?$/, "");
+}
+
+export function apiUrl(path: string): string {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return `${getApiBase()}${normalized}`;
+}
+
+export function normalizeApiAssetUrl(value?: string | null): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("data:") || trimmed.startsWith("blob:")) return trimmed;
+
+  if (typeof window === "undefined") return trimmed;
+
+  if (trimmed.startsWith("/api/")) return `${window.location.origin}${trimmed}`;
+  if (trimmed.startsWith("/files/")) return `${getApiBase()}${trimmed}`;
+
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.pathname.startsWith("/api/files/")) {
+      const host = window.location.hostname;
+      if (host && !PRIMARY_APP_HOSTS.has(host)) {
+        return `${window.location.origin}${parsed.pathname}${parsed.search}`;
+      }
+    }
+    return trimmed;
+  } catch {
+    return trimmed;
+  }
+}
+
 // Warn loudly in production if the API base URL is unset
 if (
   typeof process !== "undefined" &&

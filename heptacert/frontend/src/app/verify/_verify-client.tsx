@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, CheckCircle2, ImageUp, Loader2, QrCode, Search, ShieldCheck, Upload, XCircle, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError, apiUrl, normalizeApiAssetUrl } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 type Tab = "uuid" | "image";
@@ -92,11 +92,11 @@ export default function VerifyIndexPage() {
   }, [lang]);
 
   useEffect(() => {
-    fetch("/api/branding")
+    fetch(apiUrl("/branding"), { credentials: "include", cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!data) return;
-        setBranding(data);
+        setBranding({ ...data, brand_logo: normalizeApiAssetUrl(data.brand_logo) });
         if (data.brand_color) document.documentElement.style.setProperty("--site-brand-color", data.brand_color);
       })
       .catch(() => { });

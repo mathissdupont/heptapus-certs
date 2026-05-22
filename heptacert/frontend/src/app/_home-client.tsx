@@ -4,7 +4,7 @@ import { ArrowRight, CalendarDays, CheckCircle2, ExternalLink, Globe2, QrCode, U
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import { getApiBase } from "@/lib/api";
+import { getApiBase, normalizeApiAssetUrl } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 type Branding = {
@@ -72,12 +72,12 @@ export default function LandingPage() {
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!data) return;
-        setBranding(data);
+        setBranding({ ...data, brand_logo: normalizeApiAssetUrl(data.brand_logo) });
         if (data.brand_color) document.documentElement.style.setProperty("--site-brand-color", data.brand_color);
         if (data.public_id) {
           fetch(`${apiBase}/public/organizations/${encodeURIComponent(data.public_id)}`, { cache: "no-store" })
             .then((r) => (r.ok ? r.json() : null))
-            .then((org) => org && setOrgDetail(org))
+            .then((org) => org && setOrgDetail({ ...org, brand_logo: normalizeApiAssetUrl(org.brand_logo) }))
             .catch(() => {});
         }
       })

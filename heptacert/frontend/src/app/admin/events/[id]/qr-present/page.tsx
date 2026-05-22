@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { fetchSessionQr, apiFetch } from "@/lib/api";
+import { apiFetch, apiUrl, fetchSessionQr, normalizeApiAssetUrl } from "@/lib/api";
 import Image from "next/image";
 import { QrCode } from "lucide-react";
 import HeptaCertLogoMark from "@/components/Brand/HeptaCertLogoMark";
@@ -30,11 +30,11 @@ export default function QrPresentPage() {
   const [branding, setBranding] = useState<BrandingData | null>(null);
 
   useEffect(() => {
-    fetch("/api/branding", { credentials: "include" })
+    fetch(apiUrl("/branding"), { credentials: "include", cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!data) return;
-        setBranding(data);
+        setBranding({ ...data, brand_logo: normalizeApiAssetUrl(data.brand_logo) });
 
         if (data.brand_color) {
           document.documentElement.style.setProperty("--site-brand-color", data.brand_color);

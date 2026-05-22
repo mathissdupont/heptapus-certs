@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { getCheckinSessionInfo, selfCheckin } from "@/lib/api";
+import { apiUrl, getCheckinSessionInfo, normalizeApiAssetUrl, selfCheckin } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import {
   ArrowRight,
@@ -108,11 +108,11 @@ export default function AttendCheckinPage() {
   const [result, setResult] = useState<CheckinResult | null>(null);
 
   useEffect(() => {
-    fetch("/api/branding")
+    fetch(apiUrl("/branding"), { credentials: "include", cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!data) return;
-        setBranding(data);
+        setBranding({ ...data, brand_logo: normalizeApiAssetUrl(data.brand_logo) });
         if (data.brand_color) document.documentElement.style.setProperty("--site-brand-color", data.brand_color);
       })
       .catch(() => {});
