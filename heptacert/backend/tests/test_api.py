@@ -21,7 +21,6 @@ from src.main import (
     Organization,
     OrganizationFollower,
     PublicMember,
-    PublicMemberSubscription,
     Role,
     SessionLocal,
     Subscription,
@@ -899,53 +898,6 @@ class TestSuperadminSubscriptions:
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
             resp = await ac.get("/api/superadmin/subscriptions")
         assert resp.status_code == 401
-
-    @pytest.mark.asyncio
-    async def test_superadmin_can_grant_member_subscription_and_member_can_read_it(self):
-        async with SessionLocal() as db:
-            superadmin = User(email="member-sub-superadmin@test.com", password_hash=hash_password("AdminPass123!"), role=Role.superadmin)
-            member = PublicMember(
-                public_id="mem_subscribed_member",
-                email="member-sub@test.com",
-                display_name="Subscribed Member",
-                password_hash=hash_password("MemberPass123!"),
-                is_verified=True,
-            )
-            db.add_all([superadmin, member])
-            await db.commit()
-            await db.refresh(superadmin)
-            await db.refresh(member)
-            superadmin_token = create_access_token(user_id=superadmin.id, role=Role.superadmin)
-            member_token = create_public_member_access_token(member_id=member.id)
-
-        transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            grant_resp = await ac.post(
-                "/api/superadmin/subscriptions/grant",
-                json={
-                    "target_type": "member",
-                    "user_email": "member-sub@test.com",
-                    "plan_id": "member_plus",
-                    "days": 30,
-                },
-                headers={"Authorization": f"Bearer {superadmin_token}"},
-            )
-            assert grant_resp.status_code == 201
-            assert grant_resp.json()["target_type"] == "member"
-
-            billing_resp = await ac.get(
-                "/api/public/billing/subscription",
-                headers={"Authorization": f"Bearer {member_token}"},
-            )
-            assert billing_resp.status_code == 200
-            assert billing_resp.json()["active"] is True
-            assert billing_resp.json()["plan_id"] == "member_plus"
-
-        async with SessionLocal() as db:
-            sub_count = await db.scalar(
-                select(func.count(PublicMemberSubscription.id)).where(PublicMemberSubscription.plan_id == "member_plus")
-            )
-        assert sub_count == 1
 
 
 # ── Email config endpoints ──────────────────────────────────────────────────

@@ -130,7 +130,7 @@ export default function PostCard({
           Yanıtla
         </button>
 
-        {/* Share/Extra Action (Optional but adds a premium feel) */}
+        {/* Share/extra action */}
         <button
           className="ml-auto flex items-center justify-center h-8 w-8 rounded-full text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-900"
           title="Paylaş"

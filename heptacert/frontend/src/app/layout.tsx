@@ -5,6 +5,7 @@ import { ToastProvider } from "@/components/Toast/ToastProvider";
 import { ThemeInitializer } from "./_theme-initializer";
 
 export const metadata: Metadata = {
+  manifest: "/manifest.json",
   title: {
     default: "HeptaCert",
     template: "%s | HeptaCert",
@@ -18,6 +19,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   colorScheme: "light",
+  themeColor: "#7c3aed",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -26,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <meta charSet="utf-8" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/logo.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />

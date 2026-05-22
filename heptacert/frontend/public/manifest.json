@@ -1,0 +1,42 @@
+{
+  "name": "HeptaCert",
+  "short_name": "HeptaCert",
+  "description": "Etkinlik, check-in ve sertifika yönetimi.",
+  "start_url": "/my-events",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Etkinliklerim",
+      "short_name": "Etkinlikler",
+      "url": "/my-events"
+    },
+    {
+      "name": "Sertifika Doğrula",
+      "short_name": "Doğrula",
+      "url": "/verify"
+    },
+    {
+      "name": "Admin Panel",
+      "short_name": "Admin",
+      "url": "/admin/events"
+    }
+  ]
+}

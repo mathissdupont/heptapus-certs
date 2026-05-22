@@ -241,7 +241,7 @@
   
   // ── Feed Page ────────────────────────────────────────────────────────────
   feed_eyebrow: "Topluluk",
-  feed_subtitle: "Premium toplulukların en yeni paylaşımlarını tek akışta keşfedin.",
+  feed_subtitle: "Toplulukların en yeni paylaşımlarını tek akışta keşfedin.",
   feed_empty: "Henüz yayında bir topluluk gönderisi yok.",
   feed_error: "Topluluk akışı yüklenemedi.",
   feed_login_prompt: "Yorum ve beğeni için giriş yap",
@@ -391,7 +391,6 @@
   profile_fallback_error: "Profil bilgileri yüklenemedi.",
   profile_member_plan_card: "Üyelik Planı",
   profile_member_free: "Ücretsiz üye",
-  profile_member_premium: "Aktif premium",
   profile_member_plan_features: "Özelikler",
   
   // ── Language Switcher ───────────────────────────────────────────────────────

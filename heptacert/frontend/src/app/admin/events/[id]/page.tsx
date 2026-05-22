@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
+  Activity,
   ArrowRight,
   CalendarDays,
   ClipboardList,
@@ -27,9 +28,39 @@ type EventIndexPageProps = {
   params: { id: string };
 };
 
+type EventHealthCheck = {
+  key: string;
+  label: string;
+  status: "ok" | "warning" | "error" | "idle";
+  detail: string;
+};
+
+type EventHealthOut = {
+  overview: {
+    attendees: number;
+    sessions: number;
+    attendance_records: number;
+    tickets: number;
+    used_tickets: number;
+    certificates: number;
+    active_certificates: number;
+    expired_certificates: number;
+    revoked_certificates: number;
+  };
+  checks: EventHealthCheck[];
+};
+
+function healthTone(status: EventHealthCheck["status"]) {
+  if (status === "ok") return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  if (status === "warning") return "border-amber-200 bg-amber-50 text-amber-800";
+  if (status === "error") return "border-rose-200 bg-rose-50 text-rose-800";
+  return "border-surface-200 bg-surface-50 text-surface-600";
+}
+
 export default function EventIndexPage({ params }: EventIndexPageProps) {
   const { lang } = useI18n();
   const [event, setEvent] = useState<EventOut | null>(null);
+  const [health, setHealth] = useState<EventHealthOut | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -103,10 +134,16 @@ export default function EventIndexPage({ params }: EventIndexPageProps) {
     let active = true;
     setLoading(true);
     setError(null);
-    apiFetch(`/admin/events/${params.id}`)
-      .then((response) => response.json())
-      .then((data: EventOut) => {
-        if (active) setEvent(data);
+    Promise.all([
+      apiFetch(`/admin/events/${params.id}`).then((response) => response.json()),
+      apiFetch(`/admin/events/${params.id}/health`)
+        .then((response) => response.json())
+        .catch(() => null),
+    ])
+      .then(([eventData, healthData]: [EventOut, EventHealthOut | null]) => {
+        if (!active) return;
+        setEvent(eventData);
+        setHealth(healthData);
       })
       .catch((err: any) => {
         if (active) setError(err?.message || copy.error);
@@ -260,6 +297,74 @@ export default function EventIndexPage({ params }: EventIndexPageProps) {
           </div>
         </div>
       </section>
+
+      {health && (
+        <section className="grid gap-4 xl:grid-cols-[1fr_1.4fr]">
+          <div className="card p-5">
+            <div className="w-fit rounded-lg bg-emerald-50 p-3 text-emerald-700">
+              <Activity className="h-5 w-5" />
+            </div>
+            <h2 className="mt-4 text-lg font-bold text-surface-900">
+              {lang === "tr" ? "Operasyon durumu" : "Operations health"}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-surface-600">
+              {lang === "tr"
+                ? "Katılım, sertifika, Sheets ve arka plan işlerini tek bakışta kontrol et."
+                : "Check attendance, certificates, Sheets, and background jobs at a glance."}
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-lg border border-surface-200 bg-white p-3">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-surface-400">
+                  {lang === "tr" ? "Yoklama kaydı" : "Attendance records"}
+                </p>
+                <p className="mt-1 text-2xl font-black text-surface-900">{health.overview.attendance_records}</p>
+              </div>
+              <div className="rounded-lg border border-surface-200 bg-white p-3">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-surface-400">
+                  {lang === "tr" ? "Aktif sertifika" : "Active certificates"}
+                </p>
+                <p className="mt-1 text-2xl font-black text-surface-900">{health.overview.active_certificates}</p>
+              </div>
+              <div className="rounded-lg border border-surface-200 bg-white p-3">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-surface-400">{copy.attendees}</p>
+                <p className="mt-1 text-2xl font-black text-surface-900">{health.overview.attendees}</p>
+              </div>
+              <div className="rounded-lg border border-surface-200 bg-white p-3">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-surface-400">
+                  {lang === "tr" ? "Kullanılan bilet" : "Used tickets"}
+                </p>
+                <p className="mt-1 text-2xl font-black text-surface-900">
+                  {health.overview.used_tickets}/{health.overview.tickets}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="card p-5">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {health.checks.map((item) => (
+                <div key={item.key} className={`rounded-lg border p-4 ${healthTone(item.status)}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-bold">{item.label}</h3>
+                      <p className="mt-1 text-sm opacity-80">{item.detail}</p>
+                    </div>
+                    <span className="rounded-full bg-white/70 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em]">
+                      {item.status === "ok"
+                        ? lang === "tr" ? "Sağlıklı" : "Healthy"
+                        : item.status === "warning"
+                          ? lang === "tr" ? "Bakılmalı" : "Review"
+                          : item.status === "error"
+                            ? lang === "tr" ? "Hata" : "Error"
+                            : lang === "tr" ? "Kapalı" : "Idle"}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="grid gap-4 lg:grid-cols-[0.9fr_1.6fr]">
         <div className="card p-5">

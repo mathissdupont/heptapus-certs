@@ -802,18 +802,6 @@ class Subscription(Base):
     __table_args__ = (Index("ix_sub_user", "user_id"),)
 
 
-class PublicMemberSubscription(Base):
-    __tablename__ = "public_member_subscriptions"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    public_member_id: Mapped[int] = mapped_column(Integer, ForeignKey("public_members.id", ondelete="CASCADE"))
-    plan_id: Mapped[str] = mapped_column(String(64))
-    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-
-    __table_args__ = (Index("ix_public_member_sub_member", "public_member_id"),)
-
-
 # Ã¢â€â‚¬Ã¢â€â‚¬ Enterprise DB models (created by migration 003) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 class ApiKey(Base):
@@ -10758,6 +10746,168 @@ async def get_event(event_id: int, me: CurrentUser = Depends(get_current_user), 
 
 
 @app.get(
+    "/api/admin/events/{event_id}/health",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def get_event_health(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    ev = await _get_event_for_admin(event_id, me, db, "event:view")
+    attendee_count = int(
+        (await db.execute(select(func.count()).select_from(Attendee).where(Attendee.event_id == event_id))).scalar_one()
+        or 0
+    )
+    session_count = int(
+        (await db.execute(select(func.count()).select_from(EventSession).where(EventSession.event_id == event_id))).scalar_one()
+        or 0
+    )
+    attendance_count = int(
+        (
+            await db.execute(
+                select(func.count())
+                .select_from(AttendaonceRecord)
+                .join(EventSession, AttendaonceRecord.session_id == EventSession.id)
+                .where(EventSession.event_id == event_id)
+            )
+        ).scalar_one()
+        or 0
+    )
+    ticket_count = int(
+        (await db.execute(select(func.count()).select_from(EventTicket).where(EventTicket.event_id == event_id))).scalar_one()
+        or 0
+    )
+    used_ticket_count = int(
+        (
+            await db.execute(
+                select(func.count())
+                .select_from(EventTicket)
+                .where(EventTicket.event_id == event_id, EventTicket.status == "used")
+            )
+        ).scalar_one()
+        or 0
+    )
+
+    cert_rows = (
+        await db.execute(
+            select(Certificate.status, func.count(Certificate.id))
+            .where(Certificate.event_id == event_id, Certificate.deleted_at.is_(None))
+            .group_by(Certificate.status)
+        )
+    ).all()
+    certificate_counts = {"active": 0, "expired": 0, "revoked": 0}
+    for status, count in cert_rows:
+        key = status.value if hasattr(status, "value") else str(status)
+        certificate_counts[key] = int(count or 0)
+    certificate_total = sum(certificate_counts.values())
+
+    latest_cert_job = (
+        await db.execute(
+            select(BulkCertificateJob)
+            .where(BulkCertificateJob.event_id == event_id)
+            .order_by(BulkCertificateJob.created_at.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    latest_email_job = (
+        await db.execute(
+            select(BulkEmailJob)
+            .where(BulkEmailJob.event_id == event_id)
+            .order_by(BulkEmailJob.created_at.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    sheets = await _event_sheets_status_payload(db, ev)
+
+    def job_payload(job: Any) -> Optional[Dict[str, Any]]:
+        if not job:
+            return None
+        return {
+            "id": job.id,
+            "status": job.status,
+            "created_at": job.created_at.isoformat() if job.created_at else None,
+            "completed_at": job.completed_at.isoformat() if getattr(job, "completed_at", None) else None,
+            "failed_count": int(getattr(job, "failed_count", 0) or 0),
+            "error_message": getattr(job, "error_message", None),
+        }
+
+    latest_jobs = {
+        "certificate": job_payload(latest_cert_job),
+        "email": job_payload(latest_email_job),
+    }
+    failed_job = next((job for job in latest_jobs.values() if job and job["status"] == "failed"), None)
+    running_job = next(
+        (job for job in latest_jobs.values() if job and job["status"] in {"pending", "processing", "sending", "scheduled"}),
+        None,
+    )
+
+    checks = [
+        {
+            "key": "registration",
+            "label": "Kayit",
+            "status": "ok" if is_public_registration_enabled(ev) else "idle",
+            "detail": f"{attendee_count} katilimci",
+        },
+        {
+            "key": "attendance",
+            "label": "Yoklama",
+            "status": "idle"
+            if not is_checkin_enabled(ev)
+            else "warning"
+            if session_count == 0 or attendance_count == 0
+            else "ok",
+            "detail": f"{attendance_count} kayit / {session_count} oturum",
+        },
+        {
+            "key": "certificates",
+            "label": "Sertifika",
+            "status": "idle"
+            if not is_certificate_enabled(ev)
+            else "warning"
+            if certificate_total == 0
+            else "ok",
+            "detail": f"{certificate_counts['active']} aktif / {certificate_total} toplam",
+        },
+        {
+            "key": "sheets",
+            "label": "Google Sheets",
+            "status": "idle"
+            if not sheets.enabled
+            else "ok"
+            if sheets.spreadsheet_id and sheets.last_synced_at
+            else "warning",
+            "detail": sheets.google_email or sheets.sheet_name or "Bagli degil",
+        },
+        {
+            "key": "jobs",
+            "label": "Isler",
+            "status": "error" if failed_job else "warning" if running_job else "ok",
+            "detail": failed_job["error_message"] if failed_job and failed_job["error_message"] else (running_job["status"] if running_job else "Bekleyen is yok"),
+        },
+    ]
+
+    return {
+        "event_id": ev.id,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "overview": {
+            "attendees": attendee_count,
+            "sessions": session_count,
+            "attendance_records": attendance_count,
+            "tickets": ticket_count,
+            "used_tickets": used_ticket_count,
+            "certificates": certificate_total,
+            "active_certificates": certificate_counts["active"],
+            "expired_certificates": certificate_counts["expired"],
+            "revoked_certificates": certificate_counts["revoked"],
+        },
+        "sheets": sheets.model_dump(mode="json"),
+        "latest_jobs": latest_jobs,
+        "checks": checks,
+    }
+
+
+@app.get(
     "/api/admin/events/{event_id}/team",
     response_model=list[EventTeamMemberOut],
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
@@ -11831,17 +11981,23 @@ async def verify(uuid: str, request: Request, db: AsyncSession = Depends(get_db)
     linkedin_url: Optional[str] = None
     if cert.status == CertStatus.active:
         from urllib.parse import urlencode
-        params = urlencode({
+        issue_date = ensure_utc(getattr(cert, "issued_at", None)) or ensure_utc(getattr(cert, "created_at", None)) or now
+        organization_name = organizer_name or (branding or {}).get("org_name") or "HeptaCert"
+        params = {
             "startTask": "CERTIFICATION_NAME",
             "name": ev.name,
+            "organizationName": organization_name,
+            "issueYear": str(issue_date.year),
+            "issueMonth": str(issue_date.month),
+            "certId": cert.public_id or cert.uuid,
             "certUrl": build_certificate_verify_url(
                 uuid,
                 host=host or None,
                 scheme=scheme,
                 verification_path=verification_path,
             ),
-        })
-        linkedin_url = f"https://www.linkedin.com/profile/add{params}"
+        }
+        linkedin_url = f"https://www.linkedin.com/profile/add?{urlencode(params)}"
 
     await db.commit()
 
@@ -12321,6 +12477,34 @@ async def list_certificates(
         limit=limit,
     )
 
+
+@app.get(
+    "/api/admin/events/{event_id}/certificates/cost-estimate",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def estimate_certificate_cost(
+    event_id: int,
+    count: int = Query(default=1, ge=1, le=100000),
+    asset_size_bytes: int = Query(default=0, ge=0),
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    ev = await _get_event_for_admin(event_id, me, db, "certificates:write")
+    _ensure_certificate_feature_enabled(ev)
+    monthly_units = hosting_units("monthly", asset_size_bytes)
+    yearly_units = hosting_units("yearly", asset_size_bytes)
+    return {
+        "count": count,
+        "asset_size_bytes": asset_size_bytes,
+        "issue_units_per_certificate": ISSUE_UNITS_PER_CERT,
+        "monthly_hosting_units_per_certificate": monthly_units,
+        "yearly_hosting_units_per_certificate": yearly_units,
+        "monthly_total_units": count * (ISSUE_UNITS_PER_CERT + monthly_units),
+        "yearly_total_units": count * (ISSUE_UNITS_PER_CERT + yearly_units),
+        "monthly_renewal_units": count * monthly_units,
+        "yearly_renewal_units": count * yearly_units,
+        "mb_per_coin_month": MB_PER_COIN_MONTH,
+    }
 
 
 

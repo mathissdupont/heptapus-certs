@@ -65,6 +65,18 @@ type CertificateListOut = {
   limit: number;
 };
 
+type CertificateCostEstimate = {
+  count: number;
+  asset_size_bytes: number;
+  issue_units_per_certificate: number;
+  monthly_hosting_units_per_certificate: number;
+  yearly_hosting_units_per_certificate: number;
+  monthly_total_units: number;
+  yearly_total_units: number;
+  monthly_renewal_units: number;
+  yearly_renewal_units: number;
+};
+
 function getStatusStyle(s: CertStatus) {
   if (s === "active") return {
     color: "text-emerald-700",
@@ -105,6 +117,10 @@ export default function CertificatesPage({ params }: { params: { id: string } })
   const [issueTerm, setIssueTerm] = useState<"monthly" | "yearly">("yearly");
   const [issuing, setIssuing] = useState(false);
   const [eventName, setEventName] = useState<string>("");
+  const [simCount, setSimCount] = useState(100);
+  const [simSizeMb, setSimSizeMb] = useState(2);
+  const [costEstimate, setCostEstimate] = useState<CertificateCostEstimate | null>(null);
+  const [costLoading, setCostLoading] = useState(false);
 
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -141,6 +157,14 @@ export default function CertificatesPage({ params }: { params: { id: string } })
         expiredNow: "Süresi doldu",
         days: "gün",
         costUnknown: "Dosya boyutuna göre hesaplanır",
+        costSimulator: "Maliyet simülatörü",
+        costSimulatorBody: "Basım + barındırma maliyetini aylık ve yıllık bazda gerçek formülle hesapla.",
+        certCount: "Sertifika adedi",
+        avgSize: "Ortalama PDF boyutu (MB)",
+        firstMonthTotal: "İlk ay toplam",
+        firstYearTotal: "İlk yıl toplam",
+        monthlyRenewal: "Aylık yenileme",
+        yearlyRenewal: "Yıllık yenileme",
         monthlyCost: "Aylık",
         yearlyCost: "Yıllık",
         filterTitle: "Ara ve filtrele",
@@ -189,6 +213,14 @@ export default function CertificatesPage({ params }: { params: { id: string } })
         expiredNow: "Expired",
         days: "days",
         costUnknown: "Calculated from file size",
+        costSimulator: "Cost simulator",
+        costSimulatorBody: "Calculate issue + hosting cost monthly and yearly with the exact backend formula.",
+        certCount: "Certificate count",
+        avgSize: "Average PDF size (MB)",
+        firstMonthTotal: "First month total",
+        firstYearTotal: "First year total",
+        monthlyRenewal: "Monthly renewal",
+        yearlyRenewal: "Yearly renewal",
         monthlyCost: "Monthly",
         yearlyCost: "Yearly",
         filterTitle: "Search and filter",
@@ -251,6 +283,27 @@ export default function CertificatesPage({ params }: { params: { id: string } })
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
+
+  useEffect(() => {
+    let active = true;
+    const timer = window.setTimeout(async () => {
+      setCostLoading(true);
+      try {
+        const sizeBytes = Math.max(0, Math.round(simSizeMb * 1024 * 1024));
+        const res = await apiFetch(`/admin/events/${eventId}/certificates/cost-estimate?count=${simCount}&asset_size_bytes=${sizeBytes}`);
+        const data = (await res.json()) as CertificateCostEstimate;
+        if (active) setCostEstimate(data);
+      } catch {
+        if (active) setCostEstimate(null);
+      } finally {
+        if (active) setCostLoading(false);
+      }
+    }, 250);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [eventId, simCount, simSizeMb]);
 
   async function patchStatus(certId: number, next: CertStatus) {
     setErr(null);
@@ -495,8 +548,59 @@ export default function CertificatesPage({ params }: { params: { id: string } })
         {/* LEFT */}
         <div className="flex flex-col gap-5 xl:order-2">
 
+          <motion.div initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} className="order-1 card p-6">
+            <div className="mb-3 flex items-center gap-3 font-bold text-gray-800">
+              <div className="rounded-xl bg-emerald-50 p-2"><Hash className="h-4 w-4 text-emerald-600" /></div>
+              {copy.costSimulator}
+              {costLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-surface-400" />}
+            </div>
+            <p className="mb-4 text-sm leading-6 text-surface-500">{copy.costSimulatorBody}</p>
+            <div className="grid gap-3">
+              <label className="grid gap-1.5">
+                <span className="label">{copy.certCount}</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={100000}
+                  value={simCount}
+                  onChange={(e) => setSimCount(Math.max(1, Math.min(100000, Number(e.target.value) || 1)))}
+                  className="input-field"
+                />
+              </label>
+              <label className="grid gap-1.5">
+                <span className="label">{copy.avgSize}</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.1}
+                  value={simSizeMb}
+                  onChange={(e) => setSimSizeMb(Math.max(0, Number(e.target.value) || 0))}
+                  className="input-field"
+                />
+              </label>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3">
+                  <p className="font-bold text-emerald-900">{copy.firstMonthTotal}</p>
+                  <p className="mt-1 text-lg font-black text-emerald-800">{formatHc(costEstimate?.monthly_total_units)}</p>
+                </div>
+                <div className="rounded-2xl border border-brand-100 bg-brand-50 p-3">
+                  <p className="font-bold text-brand-900">{copy.firstYearTotal}</p>
+                  <p className="mt-1 text-lg font-black text-brand-800">{formatHc(costEstimate?.yearly_total_units)}</p>
+                </div>
+                <div className="rounded-2xl border border-surface-200 bg-surface-50 p-3">
+                  <p className="font-bold text-surface-700">{copy.monthlyRenewal}</p>
+                  <p className="mt-1 text-lg font-black text-surface-900">{formatHc(costEstimate?.monthly_renewal_units)}</p>
+                </div>
+                <div className="rounded-2xl border border-surface-200 bg-surface-50 p-3">
+                  <p className="font-bold text-surface-700">{copy.yearlyRenewal}</p>
+                  <p className="mt-1 text-lg font-black text-surface-900">{formatHc(costEstimate?.yearly_renewal_units)}</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
           {/* Issue card */}
-          <motion.div initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} className="order-2 card relative overflow-hidden p-6 xl:order-1">
+          <motion.div initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} className="order-2 card relative overflow-hidden p-6">
             <div className="absolute top-0 left-0 w-1 h-full rounded-l-3xl bg-amber-400" />
             <div className="mb-3 flex items-center gap-3 text-gray-800 font-bold">
               <div className="p-2 rounded-xl bg-amber-50"><Plus className="h-4 w-4 text-amber-500" /></div>
@@ -535,7 +639,7 @@ export default function CertificatesPage({ params }: { params: { id: string } })
           </motion.div>
 
           {/* Filter card */}
-          <motion.div initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className="order-1 card p-6 xl:order-2">
+          <motion.div initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className="order-3 card p-6">
             <div className="mb-3 flex items-center gap-3 text-gray-800 font-bold">
               <div className="p-2 rounded-xl bg-brand-50"><Filter className="h-4 w-4 text-brand-600" /></div>
               {copy.filterTitle}

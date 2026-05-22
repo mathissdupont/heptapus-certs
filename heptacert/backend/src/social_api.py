@@ -147,27 +147,7 @@ async def _ensure_enabled_org(
 
 
 async def _check_public_member_can_post(db: AsyncSession, member_id: int) -> None:
-    """Check if a public member has permission to post (growth/enterprise only).
-    
-    Free tier members cannot post. This is checked at application level since
-    there's no subscription tracking for public members yet.
-    
-    TODO: If PublicMemberSubscription table is used, check it here.
-    For now, we deny all public member posts to enforce free tier limits.
-    """
-    # Future implementation when public members have subscription tiers:
-    # sub_res = await db.execute(
-    #     select(PublicMemberSubscription).where(
-    #         PublicMemberSubscription.public_member_id == member_id,
-    #         PublicMemberSubscription.is_active == True,
-    #         PublicMemberSubscription.plan_id.in_(["growth", "enterprise"]),
-    #     )
-    # )
-    # if not sub_res.scalar_one_or_none():
-    #     raise HTTPException(status_code=403, detail="Community posting requires upgrade.")
-    
-    # For now: public members cannot post to global feed
-    # Organization members (admin users) can post via /api/admin/community/posts
+    """Public member posting is allowed without a member subscription tier."""
     pass
 
 

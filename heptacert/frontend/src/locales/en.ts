@@ -243,7 +243,7 @@ export const en: Record<TranslationKey, string> = {
 
   // ── Feed Page ────────────────────────────────────────────────────────────
   feed_eyebrow: "Community",
-  feed_subtitle: "Discover the latest posts from premium communities in a single feed.",
+  feed_subtitle: "Discover the latest community posts in a single feed.",
   feed_empty: "No community posts published yet.",
   feed_error: "Failed to load community feed.",
   feed_login_prompt: "Sign in to comment and like",
@@ -393,7 +393,6 @@ export const en: Record<TranslationKey, string> = {
   profile_fallback_error: "Failed to load profile information.",
   profile_member_plan_card: "Membership Plan",
   profile_member_free: "Free member",
-  profile_member_premium: "Active premium",
   profile_member_plan_features: "Features",
 
   // ── Pricing Page ───────────────────────────────────────────────────────────

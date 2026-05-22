@@ -49,6 +49,16 @@ function Navbar() {
   }, []);
 
   useEffect(() => {
+    if (process.env.NODE_ENV !== "production") return;
+    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+    const registerServiceWorker = () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+    };
+    window.addEventListener("load", registerServiceWorker);
+    return () => window.removeEventListener("load", registerServiceWorker);
+  }, []);
+
+  useEffect(() => {
     let mounted = true;
     fetch("/api/branding")
       .then((res) => res.json())
