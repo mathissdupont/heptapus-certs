@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from typing import Optional
 import dns.resolver
 import logging
+from urllib.parse import urlparse
 
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,6 +18,7 @@ from .main import (
     require_role,
     Role,
     Organization,
+    settings,
 )
 from .domains import Domain
 
@@ -74,6 +76,26 @@ class DomainOut(BaseModel):
     status: str
     token: str
     created_at: Optional[str] = None
+    verification_host: Optional[str] = None
+    dns_target: Optional[str] = None
+
+
+def _custom_domain_dns_target() -> str:
+    parsed = urlparse(settings.frontend_base_url)
+    return (parsed.hostname or settings.frontend_base_url.replace("https://", "").replace("http://", "").split("/", 1)[0]).strip()
+
+
+def _domain_out(dom: Domain) -> DomainOut:
+    return DomainOut(
+        id=dom.id,
+        domain=dom.domain,
+        owner=dom.owner,
+        status=dom.status,
+        token=dom.token,
+        created_at=dom.created_at.isoformat() if getattr(dom, "created_at", None) else None,
+        verification_host=f"_heptacert-verify.{dom.domain}",
+        dns_target=_custom_domain_dns_target(),
+    )
 
 
 @router.post("/api/domains", response_model=DomainOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
@@ -93,28 +115,14 @@ async def create_domain(payload: DomainCreateIn, me: CurrentUser = Depends(get_c
         await db.commit()
         await db.refresh(dom)
 
-        return DomainOut(
-            id=dom.id,
-            domain=dom.domain,
-            owner=dom.owner,
-            status=dom.status,
-            token=dom.token,
-            created_at=dom.created_at.isoformat() if getattr(dom, "created_at", None) else None,
-        )
+        return _domain_out(dom)
 
 
 @router.get("/api/domains/{domain}", response_model=DomainOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
 async def get_domain(domain: str, me: CurrentUser = Depends(get_current_user)):
     async with SessionLocal() as db:
         dom = await _get_owned_domain_or_404(db, domain.strip().lower(), me.id)
-        return DomainOut(
-            id=dom.id,
-            domain=dom.domain,
-            owner=dom.owner,
-            status=dom.status,
-            token=dom.token,
-            created_at=dom.created_at.isoformat() if getattr(dom, "created_at", None) else None,
-        )
+        return _domain_out(dom)
 
 
 @router.post("/api/domains/{domain}/regenerate", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
@@ -148,14 +156,7 @@ async def list_my_domains(me: CurrentUser = Depends(get_current_user)):
         items = res.scalars().all()
         out = []
         for d in items:
-            out.append(DomainOut(
-                id=d.id,
-                domain=d.domain,
-                owner=d.owner,
-                status=d.status,
-                token=d.token,
-                created_at=d.created_at.isoformat() if getattr(d, "created_at", None) else None,
-            ))
+            out.append(_domain_out(d))
         return out
 
 

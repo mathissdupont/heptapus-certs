@@ -357,6 +357,7 @@ function CustomDomainTab() {
   const [checking, setChecking] = useState(false);
   const [createdAt, setCreatedAt] = useState<string | null>(null);
   const [existingDomain, setExistingDomain] = useState<string | null>(null);
+  const [dnsTarget, setDnsTarget] = useState("cert.heptapusgroup.com");
 
   async function refreshDomains() {
     try {
@@ -384,6 +385,7 @@ function CustomDomainTab() {
             setToken(selected.token || null);
             setStatus(selected.status || null);
             setCreatedAt(selected.created_at || null);
+            setDnsTarget(selected.dns_target || "cert.heptapusgroup.com");
           }
         }
       })
@@ -398,6 +400,7 @@ function CustomDomainTab() {
       .then(d => {
         if (d) {
           setToken(d.token || null); setStatus(d.status || null); setCreatedAt(d.created_at || null);
+          setDnsTarget(d.dns_target || "cert.heptapusgroup.com");
         }
       })
       .catch(() => {})
@@ -420,6 +423,7 @@ function CustomDomainTab() {
       const resp = await apiFetch("/domains", { method: "POST", body: JSON.stringify({ domain: dom, owner: undefined }) });
       const data = await resp.json();
       setToken(data.token || null); setStatus(data.status || null); setCreatedAt(data.created_at || null); setExistingDomain(data.domain || dom);
+      setDnsTarget(data.dns_target || "cert.heptapusgroup.com");
       setOk(true); await refreshDomains(); setTimeout(() => setOk(false), 3000);
       toast.success("Özel domain kaydedildi.", "Kurumsal Alan Adı");
     } catch (e: any) { setErr(e?.message || "Kaydedilemedi."); } finally { setSaving(false); }
@@ -469,6 +473,7 @@ function CustomDomainTab() {
   const activeDomain = (domain.trim() || existingDomain || "").trim();
   const statusMeta = getDomainStatusMeta(status);
   const dnsHost = activeDomain ? `_heptacert-verify.${activeDomain}` : "_heptacert-verify.your-domain.tld";
+  const connectionName = activeDomain || "certs.sirketiniz.com";
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
@@ -481,7 +486,7 @@ function CustomDomainTab() {
           
           <div className="mb-6 rounded-xl border border-amber-100 bg-amber-50/60 p-4">
             <p className="text-sm text-amber-800 font-medium leading-relaxed">
-              Bu özellik Growth ve Enterprise planlarına özeldir. Doğrulama için DNS sağlayıcınıza bir <code className="font-mono bg-amber-200/50 px-1.5 py-0.5 rounded text-amber-900">TXT</code> kaydı eklemeniz gerekir (detaylar sağ tarafta).
+              Bu özellik Growth ve Enterprise planlarına özeldir. TXT kaydı sadece domain sahipliğini doğrular; sitenin açılması için ayrıca CNAME kaydıyla alan adını HeptaCert altyapısına bağlamanız gerekir.
             </p>
           </div>
 
@@ -534,7 +539,7 @@ function CustomDomainTab() {
                     <div className="flex items-center gap-2 shrink-0">
                       <button type="button" className="rounded-lg bg-white border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 transition shadow-sm inline-flex items-center gap-1.5"
                         onClick={() => {
-                          setDomain(d.domain); setExistingDomain(d.domain); setToken(d.token || null); setStatus(d.status || null); setCreatedAt(d.created_at || null);
+                          setDomain(d.domain); setExistingDomain(d.domain); setToken(d.token || null); setStatus(d.status || null); setCreatedAt(d.created_at || null); setDnsTarget(d.dns_target || "cert.heptapusgroup.com");
                         }}
                       >
                         <Link2 className="h-3.5 w-3.5" /> Seç
@@ -557,11 +562,11 @@ function CustomDomainTab() {
          <div className="rounded-3xl border border-zinc-200 bg-white shadow-sm overflow-hidden sticky top-24">
            <div className="bg-zinc-50 border-b border-zinc-100 px-6 py-5">
               <h3 className="font-semibold text-zinc-900">DNS Yapılandırması</h3>
-              <p className="text-xs text-zinc-500 mt-1">Domain yöneticinizden bu kaydı ekleyin.</p>
+              <p className="text-xs text-zinc-500 mt-1">İki kayıt gerekir: doğrulama ve trafik yönlendirme.</p>
            </div>
            <div className="p-6 space-y-6">
              <div className="rounded-2xl bg-zinc-900 p-5 font-mono text-xs text-zinc-300 shadow-inner">
-                <p className="text-zinc-500 mb-3"># DNS'inize aşağıdaki TXT kaydını ekleyin:</p>
+                <p className="text-zinc-500 mb-3"># 1) Sahiplik doğrulama kaydı</p>
                 <div className="space-y-3">
                   <div>
                     <span className="text-zinc-500 block mb-1">Kayıt Türü:</span>
@@ -579,6 +584,31 @@ function CustomDomainTab() {
                     </div>
                   </div>
                 </div>
+             </div>
+
+             <div className="rounded-2xl bg-zinc-900 p-5 font-mono text-xs text-zinc-300 shadow-inner">
+                <p className="text-zinc-500 mb-3"># 2) Siteyi HeptaCert altyapısına bağlayın</p>
+                <div className="space-y-3">
+                  <div>
+                    <span className="text-zinc-500 block mb-1">Kayıt Türü:</span>
+                    <span className="text-sky-400 font-bold">CNAME</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 block mb-1">Ad / Host:</span>
+                    <span className="text-white break-all">{connectionName}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 block mb-1">Hedef / Target:</span>
+                    <div className="flex items-center justify-between gap-2 bg-zinc-800 rounded-lg p-2 mt-1">
+                      <span className="text-sky-300 break-all">{dnsTarget}</span>
+                      <CopyBtn text={dnsTarget} />
+                    </div>
+                  </div>
+                </div>
+             </div>
+
+             <div className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-xs leading-5 text-sky-800">
+               TXT doğrulama izindir; CNAME ise trafiği bize getirir. Kurumun ziyaretçisi kendi domainini görür, uygulama ise host adına göre kurum logosu ve adını gösterir.
              </div>
              
              {status && (
