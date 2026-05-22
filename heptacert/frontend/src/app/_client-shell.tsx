@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Activity, CalendarDays, Home, Menu, QrCode, Shield, Smartphone, Ticket, X, Plus } from "lucide-react";
+import { Activity, CalendarDays, Home, Menu, QrCode, Share, Shield, Smartphone, Ticket, X, Plus } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { I18nProvider, LanguageToggle, useT, useI18n } from "@/lib/i18n";
 import {
@@ -349,10 +349,21 @@ function Navbar() {
 function InstallPrompt() {
   const [promptEvent, setPromptEvent] = useState<any>(null);
   const [visible, setVisible] = useState(false);
+  const [iosInstallHelp, setIosInstallHelp] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const dismissed = window.localStorage.getItem("heptacert:pwa-install-dismissed") === "1";
+    const userAgent = window.navigator.userAgent || "";
+    const isIos = /iphone|ipad|ipod/i.test(userAgent) || (userAgent.includes("Macintosh") && "ontouchend" in document);
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      Boolean((window.navigator as any).standalone);
+    const isSafari = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(userAgent);
+    if (isIos && isSafari && !isStandalone && !dismissed) {
+      setIosInstallHelp(true);
+      setVisible(true);
+    }
     const onBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
       setPromptEvent(event);
@@ -362,9 +373,10 @@ function InstallPrompt() {
     return () => window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt as EventListener);
   }, []);
 
-  if (!visible || !promptEvent) return null;
+  if (!visible || (!promptEvent && !iosInstallHelp)) return null;
 
   async function install() {
+    if (!promptEvent) return;
     await promptEvent.prompt();
     setVisible(false);
     setPromptEvent(null);
@@ -383,9 +395,22 @@ function InstallPrompt() {
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-black text-slate-950">HeptaCert'i ana ekrana ekle</p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">Check-in ve bilet kontrolunu uygulama gibi ac.</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            {iosInstallHelp
+              ? "iPhone'da Safari paylas menusu uzerinden Ana Ekrana Ekle secenegini kullan."
+              : "Check-in ve bilet kontrolunu uygulama gibi ac."}
+          </p>
+          {iosInstallHelp && (
+            <div className="mt-3 rounded-xl bg-slate-50 p-3 text-xs font-semibold leading-5 text-slate-600">
+              <p className="flex items-center gap-2">
+                <Share className="h-4 w-4 text-indigo-600" />
+                Safari'de Paylas'a bas
+              </p>
+              <p className="mt-1 pl-6">Sonra Ana Ekrana Ekle sec.</p>
+            </div>
+          )}
           <div className="mt-3 flex gap-2">
-            <button type="button" onClick={install} className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white">Ekle</button>
+            {promptEvent && <button type="button" onClick={install} className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white">Ekle</button>}
             <button type="button" onClick={dismiss} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600">Sonra</button>
           </div>
         </div>

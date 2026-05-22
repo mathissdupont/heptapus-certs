@@ -6,6 +6,14 @@ import { ThemeInitializer } from "./_theme-initializer";
 
 export const metadata: Metadata = {
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "HeptaCert",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   title: {
     default: "HeptaCert",
     template: "%s | HeptaCert",
@@ -27,8 +35,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="tr" className="scroll-smooth" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-title" content="HeptaCert" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/logo.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/logo.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
