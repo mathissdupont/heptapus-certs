@@ -21,7 +21,7 @@ export default function NewEventPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 pb-20">
+    <div data-theme="light" className="flex flex-col gap-6 pb-20">
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}

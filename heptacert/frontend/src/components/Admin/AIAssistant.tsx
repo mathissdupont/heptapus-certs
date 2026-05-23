@@ -350,6 +350,16 @@ function buildSmartRegistrationFields(eventType: string): SuggestedRegistrationF
     ],
   };
 
+  // Validate draft before creating
+  function validateDraft(draft: EventDraft, lang: string): string[] {
+    const errs: string[] = [];
+    if (!draft.name || !draft.name.trim()) errs.push(lang === "tr" ? "Etkinlik adı gerekli" : "Event name is required");
+    if (draft.registrationQuotaEnabled && draft.registrationQuota && isNaN(Number(draft.registrationQuota))) errs.push(lang === "tr" ? "Kontenjan sayısal olmalı" : "Quota must be numeric");
+    if (draft.dataControllerContactEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(draft.dataControllerContactEmail)) errs.push(lang === "tr" ? "Geçersiz e-posta adresi" : "Invalid data controller email");
+    if (draft.eventDate && !/^\d{4}-\d{2}-\d{2}$/.test(draft.eventDate)) errs.push(lang === "tr" ? "Tarih YYYY-MM-DD formatında olmalı" : "Date must be YYYY-MM-DD");
+    return errs;
+  }
+
   const normalizedKey = (eventType || "certificate_event").trim();
   return presets[normalizedKey] ?? presets.certificate_event;
 }
@@ -961,7 +971,7 @@ const FAQ_DATABASE = {
   ]
 };
 
-export default function AIAssistant() {
+export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
   const { lang } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -972,6 +982,7 @@ export default function AIAssistant() {
     }
   ]);
   const [input, setInput] = useState("");
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -1005,8 +1016,22 @@ export default function AIAssistant() {
       }
     };
     window.addEventListener("ai-assistant-clear", clearHandler as EventListener);
-    return () => window.removeEventListener("ai-assistant-insert", handler as EventListener);
-  }, []);
+    return () => {
+      window.removeEventListener("ai-assistant-insert", handler as EventListener);
+      window.removeEventListener("ai-assistant-clear", clearHandler as EventListener);
+    };
+  }, [lang]);
+
+  // Edit last message (basic): set input to message and remove that user message
+  const startEditingUserMessage = (idx: number) => {
+    const msg = messages[idx];
+    if (!msg || msg.role !== "user") return;
+    setInput(msg.message);
+    setEditingIndex(idx);
+    // remove the message so the edited send will replace it
+    setMessages((prev) => prev.filter((_, i) => i !== idx));
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
   const [showSupportForm, setShowSupportForm] = useState(false);
   const [supportSubject, setSupportSubject] = useState("");
   const [supportMessage, setSupportMessage] = useState("");
@@ -1083,6 +1108,21 @@ export default function AIAssistant() {
       createDraft = { ...createDraft, name: derived };
     }
     const registrationFields = draft.registrationFields.length > 0 ? draft.registrationFields : buildSmartRegistrationFields(draft.eventType);
+
+    // Validate after applying fallback name (local validator)
+    const localValidate = (d: EventDraft): string[] => {
+      const errs: string[] = [];
+      if (!d.name || !d.name.trim()) errs.push(lang === "tr" ? "Etkinlik adı gerekli" : "Event name is required");
+      if (d.registrationQuotaEnabled && d.registrationQuota && isNaN(Number(d.registrationQuota))) errs.push(lang === "tr" ? "Kontenjan sayısal olmalı" : "Quota must be numeric");
+      if (d.dataControllerContactEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.dataControllerContactEmail)) errs.push(lang === "tr" ? "Geçersiz e-posta adresi" : "Invalid data controller email");
+      if (d.eventDate && !/^\d{4}-\d{2}-\d{2}$/.test(d.eventDate)) errs.push(lang === "tr" ? "Tarih YYYY-MM-DD formatında olmalı" : "Date must be YYYY-MM-DD");
+      return errs;
+    };
+    const validationErrors = localValidate(createDraft);
+    if (validationErrors.length > 0) {
+      pushAssistantMessage((lang === "tr" ? "Doğrulama hataları: " : "Validation errors: ") + validationErrors.join("; "));
+      return null;
+    }
     const createResponse = await apiFetch("/admin/events", {
       method: "POST",
       body: JSON.stringify({
@@ -1114,9 +1154,20 @@ export default function AIAssistant() {
       }),
     });
 
-    const created = await createResponse.json();
+    const createJson = await createResponse.json();
+    if (!createResponse.ok) {
+      const errDetail = createJson?.detail || createJson?.message || JSON.stringify(createJson);
+      if (/body\.name|name.*required|name.*field required/i.test(String(errDetail))) {
+        pushAssistantMessage(lang === "tr" ? "Hata: Etkinlik adı zorunlu. Lütfen bir ad girin ve tekrar deneyin." : "Error: Event name is required. Please provide a name and try again.");
+        return null;
+      }
+      pushAssistantMessage(lang === "tr" ? `Etkinlik oluşturulamadı: ${String(errDetail)}` : `Failed to create event: ${String(errDetail)}`);
+      return null;
+    }
+    const created = createJson;
 
     const patchPayload: Record<string, any> = {
+      name: createDraft.name,
       event_date: draft.eventDate || null,
       event_location: draft.eventLocation || null,
       event_description: draft.eventDescription || null,
@@ -1203,6 +1254,12 @@ export default function AIAssistant() {
       setLoading(true);
       try {
         const created = await submitEventDraft(eventDraft);
+        if (!created) {
+          pushAssistantMessage(lang === "tr" ? "Etkinlik oluşturulamadı. Lütfen eksik alanları düzeltip tekrar deneyin." : "Event creation failed. Please fix the missing fields and try again.");
+          setLoading(false);
+          return true;
+        }
+
         pushAssistantMessage(
           lang === "tr"
             ? `✅ Etkinlik oluşturuldu: ${created.name} (ID: ${created.id}). İsterseniz şimdi detaylarını geliştirebiliriz.`
@@ -1384,25 +1441,49 @@ export default function AIAssistant() {
     if (!answer) {
       setLoading(true);
       try {
+        // Include richer context: event config + recent history (last 20 msgs)
+        const eventId = getCurrentEventId();
+        let eventConfig: Record<string, any> | null = null;
+        if (eventId) {
+          try {
+            const er = await apiFetch(`/admin/events/${eventId}`);
+            if (er.ok) {
+              const ev = await er.json();
+              eventConfig = ev?.config && typeof ev.config === "object" ? ev.config : null;
+            }
+          } catch {}
+        }
+
         const response = await apiFetch("/admin/ai/event-assistant", {
           method: "POST",
           body: JSON.stringify({
             message: currentInput,
             language: lang,
-            event_id: getCurrentEventId(),
-            history: messages.slice(-6),
+            event_id: eventId,
+            event_config: eventConfig,
+            history: messages.slice(-20),
           }),
         });
         const data = await response.json();
-        const assistantMsg: Message = {
-          role: "assistant",
-          message: formatAiAnswer(
-            data?.answer || (lang === "tr" ? "Bir taslak uretemedim, biraz daha detay verebilir misiniz?" : "I could not draft that yet. Can you add a bit more detail?"),
-            data?.suggestions
-          ),
-          timestamp: new Date().toISOString()
-        };
-        setMessages(prev => [...prev, assistantMsg]);
+        const rawAnswer = String(data?.answer || "").trim();
+        const lowQuality = !rawAnswer || rawAnswer.length < 30 || /could not|couldn't|could not draft|i could not|anlayamadım|anlayamadım/i.test(rawAnswer.toLowerCase());
+        if (lowQuality) {
+          pushAssistantMessage(
+            lang === "tr"
+              ? "Bu konuda yeterli taslak üretemedim — lütfen tarih, konum veya beklenen katılımcı sayısı gibi biraz daha ayrıntı verin."
+              : "I couldn't produce a solid draft. Please provide more details (date, location, expected attendees)."
+          );
+          if (data?.suggestions && Object.keys(data.suggestions).length > 0) {
+            pushAssistantMessage(formatAiAnswer("", data.suggestions));
+          }
+        } else {
+          const assistantMsg: Message = {
+            role: "assistant",
+            message: formatAiAnswer(rawAnswer, data?.suggestions),
+            timestamp: new Date().toISOString()
+          };
+          setMessages(prev => [...prev, assistantMsg]);
+        }
       } catch (error: any) {
         const assistantMsg: Message = {
           role: "assistant",
@@ -1501,6 +1582,64 @@ export default function AIAssistant() {
     }
   };
 
+  if (pageMode) {
+    return (
+      <div data-theme="light" className="flex w-full gap-6">
+        <div className="flex w-full max-w-4xl flex-col overflow-hidden rounded-lg border border-surface-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between bg-brand-600 px-6 py-4 text-white">
+            <div className="flex items-center gap-2">
+              <Lightbulb className="h-5 w-5" />
+              <h3 className="font-semibold">{lang === "tr" ? "HeptaCert AI Asistan" : "HeptaCert AI Assistant"}</h3>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-6">
+            {messages.map((msg, idx) => (
+              <div key={idx} className={`mb-4 flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-2xl px-4 py-2.5 rounded-lg text-sm ${msg.role === "user" ? "bg-brand-600 text-white" : "bg-white text-surface-900 border border-surface-200"}`}>
+                  {msg.message}
+                </div>
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="border-t border-surface-200 p-4">
+            <div className="flex gap-3">
+              <input
+                type="text"
+                placeholder={lang === "tr" ? "Sorunuzu sorun..." : "Ask your question..."}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !loading && handleSendMessage()}
+                ref={inputRef}
+                className="input-field flex-1 py-2"
+                disabled={loading}
+              />
+              <button onClick={handleSendMessage} disabled={!input.trim() || loading} className="btn-primary px-4">
+                {loading ? (lang === "tr" ? "Gönderiliyor..." : "Sending...") : (lang === "tr" ? "Gönder" : "Send")}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <aside className="w-80 shrink-0 rounded-lg border border-surface-200 bg-white p-4 shadow-sm">
+          <h4 className="mb-2 font-semibold">{lang === "tr" ? "Hızlı Yönlendirmeler" : "Quick Prompts"}</h4>
+          <div className="space-y-2">
+            <button onClick={() => { window.dispatchEvent(new CustomEvent('ai-assistant-insert', { detail: 'Yeni webinar, 2026-06-30, online' })); }} className="w-full rounded-md border px-3 py-2 text-sm">{lang === "tr" ? "Webinar Önerisi" : "Webinar Prompt"}</button>
+            <button onClick={() => { window.dispatchEvent(new CustomEvent('ai-assistant-insert', { detail: 'Workshop: Hands-on, 1 gün, İstanbul' })); }} className="w-full rounded-md border px-3 py-2 text-sm">{lang === "tr" ? "Workshop Önerisi" : "Workshop Prompt"}</button>
+            <button onClick={() => { window.dispatchEvent(new CustomEvent('ai-assistant-insert', { detail: 'Kayıt formu için KVKK metni önerisi' })); }} className="w-full rounded-md border px-3 py-2 text-sm">{lang === "tr" ? "KVKK Önerisi" : "KVKK Prompt"}</button>
+          </div>
+
+          <div className="mt-4 border-t pt-3">
+            <h5 className="mb-2 font-medium">{lang === "tr" ? "Komut Paleti" : "Command Palette"}</h5>
+            <p className="text-sm text-surface-600">{lang === "tr" ? "Klavye ile açmak için CMD/CTRL+K" : "Open with CMD/CTRL+K"}</p>
+          </div>
+        </aside>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* Floating Button */}
@@ -1516,7 +1655,7 @@ export default function AIAssistant() {
 
       {/* Chat Widget */}
       {isOpen && (
-        <div className="fixed bottom-6 right-4 z-50 flex h-[min(600px,calc(100vh-3rem))] w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-lg border border-surface-200 bg-white shadow-modal sm:right-6 sm:w-96">
+        <div data-theme="light" className="fixed bottom-6 right-4 z-50 flex h-[min(600px,calc(100vh-3rem))] w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-lg border border-surface-200 bg-white shadow-modal sm:right-6 sm:w-96">
           {/* Header */}
           <div className="flex items-center justify-between bg-brand-600 px-6 py-4 text-white">
             <div className="flex items-center gap-2">
