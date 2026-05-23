@@ -11,6 +11,839 @@ interface Message {
   timestamp: string;
 }
 
+type EventWizardStep =
+  | "idle"
+  | "name"
+  | "date"
+  | "location"
+  | "description"
+  | "type"
+  | "features"
+  | "confirm";
+
+interface EventDraft {
+  name: string;
+  eventDate: string;
+  eventStartTime: string;
+  eventEndTime: string;
+  eventLocation: string;
+  eventDescription: string;
+  eventType: string;
+  visibility: "private" | "unlisted" | "public";
+  registrationClosed: boolean;
+  requireEmailVerification: boolean;
+  registrationQuotaEnabled: boolean;
+  registrationQuota: string;
+  requiresApproval: boolean;
+  scheduleHint: string;
+  registrationFields: SuggestedRegistrationField[];
+  certificateEnabled: boolean;
+  checkinEnabled: boolean;
+  ticketingEnabled: boolean;
+  registrationEnabled: boolean;
+  rafflesEnabled: boolean;
+  gamificationEnabled: boolean;
+  organizerPrivacyNoticeEnabled: boolean;
+  organizerPrivacyNoticeText: string;
+  showCrossBorderTransferNotice: boolean;
+  requireCrossBorderTransferConsent: boolean;
+  dataControllerName: string;
+  dataControllerContactEmail: string;
+  dataRetentionNote: string;
+  kvkkConsentRequired: boolean;
+  kvkkConsentText: string;
+}
+
+interface SuggestedRegistrationField {
+  id: string;
+  label: string;
+  type: "text" | "textarea" | "number" | "tel" | "select" | "date" | "file";
+  required: boolean;
+  placeholder?: string;
+  helper_text?: string;
+  options?: Array<{ label: string; capacity?: number | null }>;
+  selection_mode?: "single" | "multiple";
+}
+
+const EMPTY_EVENT_DRAFT: EventDraft = {
+  name: "",
+  eventDate: "",
+  eventStartTime: "",
+  eventEndTime: "",
+  eventLocation: "",
+  eventDescription: "",
+  eventType: "certificate_event",
+  visibility: "unlisted",
+  registrationClosed: false,
+  requireEmailVerification: true,
+  registrationQuotaEnabled: false,
+  registrationQuota: "",
+  requiresApproval: false,
+  scheduleHint: "",
+  registrationFields: [],
+  certificateEnabled: true,
+  checkinEnabled: true,
+  ticketingEnabled: false,
+  registrationEnabled: true,
+  rafflesEnabled: false,
+  gamificationEnabled: false,
+  organizerPrivacyNoticeEnabled: false,
+  organizerPrivacyNoticeText: "",
+  showCrossBorderTransferNotice: true,
+  requireCrossBorderTransferConsent: true,
+  dataControllerName: "",
+  dataControllerContactEmail: "",
+  dataRetentionNote: "",
+  kvkkConsentRequired: false,
+  kvkkConsentText: "",
+};
+
+const CREATE_EVENT_INTENT_PATTERNS = [
+  /\b(etkinlik|event)\s*(olustur\w*|create|add|yeni)\b/i,
+  /\b(yeni)\s*(etkinlik|event)\b/i,
+  /\bcreate\s*(an|a)?\s*event\b/i,
+  /\bnew\s*event\b/i,
+];
+
+const NEGATION_PATTERNS = /\b(no|not|dont|don't|never|hayir|yok|istemiyorum|istemem|olmasin|kapali)\b/i;
+
+function normalizePromptText(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function isCreateEventIntent(value: string): boolean {
+  const normalized = normalizePromptText(value);
+  return CREATE_EVENT_INTENT_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
+function isAffirmative(value: string): boolean {
+  const normalized = normalizePromptText(value);
+  return /\b(ev|evet|yes|yeah|ok|okay|tamam|onay|olustur|create|go|devam)\b/i.test(normalized);
+}
+
+function isNegative(value: string): boolean {
+  const normalized = normalizePromptText(value);
+  return /\b(hayir|no|iptal|cancel|geri|dur|stop)\b/i.test(normalized);
+}
+
+function isSkipValue(value: string): boolean {
+  const normalized = normalizePromptText(value);
+  return /\b(atla|skip|gec|bilmiyorum|sonra|default|varsayilan)\b/i.test(normalized);
+}
+
+function compactText(value: string): string {
+  return normalizePromptText(value).replace(/[^a-z0-9\s-]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function singularizeWord(value: string): string {
+  const word = compactText(value).split(/\s+/)[0] || "";
+  if (!word) return "";
+  return word.replace(/(?:lar|ler|lari|leri|lari|leri)$/i, "").trim();
+}
+
+function tokenize(value: string): string[] {
+  return compactText(value)
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
+function levenshteinDistance(left: string, right: string): number {
+  if (left === right) return 0;
+  if (!left.length) return right.length;
+  if (!right.length) return left.length;
+
+  const previousRow = new Array(right.length + 1).fill(0).map((_, index) => index);
+  for (let rowIndex = 1; rowIndex <= left.length; rowIndex += 1) {
+    const currentRow = [rowIndex];
+    for (let columnIndex = 1; columnIndex <= right.length; columnIndex += 1) {
+      const insertCost = currentRow[columnIndex - 1] + 1;
+      const deleteCost = previousRow[columnIndex] + 1;
+      const replaceCost = previousRow[columnIndex - 1] + (left[rowIndex - 1] === right[columnIndex - 1] ? 0 : 1);
+      currentRow.push(Math.min(insertCost, deleteCost, replaceCost));
+    }
+    for (let columnIndex = 0; columnIndex < previousRow.length; columnIndex += 1) {
+      previousRow[columnIndex] = currentRow[columnIndex];
+    }
+  }
+  return previousRow[right.length];
+}
+
+function fuzzyIncludes(text: string, keyword: string): boolean {
+  const normalizedText = compactText(text);
+  const normalizedKeyword = compactText(keyword);
+  if (!normalizedText || !normalizedKeyword) return false;
+  if (normalizedText.includes(normalizedKeyword)) return true;
+
+  const tokens = tokenize(normalizedText);
+  return tokens.some((token) => {
+    if (token === normalizedKeyword) return true;
+    if (token.startsWith(normalizedKeyword) || normalizedKeyword.startsWith(token)) return true;
+    const maxDistance = Math.max(1, Math.floor(Math.min(token.length, normalizedKeyword.length) / 3));
+    return levenshteinDistance(token, normalizedKeyword) <= maxDistance;
+  });
+}
+
+function fuzzyAny(text: string, keywords: string[]): boolean {
+  return keywords.some((keyword) => fuzzyIncludes(text, keyword));
+}
+
+const TURKISH_MONTHS: Array<[string, number]> = [
+  ["ocak", 0],
+  ["subat", 1],
+  ["mart", 2],
+  ["nisan", 3],
+  ["mayis", 4],
+  ["haziran", 5],
+  ["temmuz", 6],
+  ["agustos", 7],
+  ["eylul", 8],
+  ["ekim", 9],
+  ["kasim", 10],
+  ["aralik", 11],
+];
+
+function parseTurkishMonthDate(value: string): string {
+  const normalized = compactText(value);
+  const match = normalized.match(/\b(\d{1,2})\s+([a-z]+)\s+(\d{4})\b/);
+  if (!match) return "";
+  const day = Number(match[1]);
+  const year = Number(match[3]);
+  const month = TURKISH_MONTHS.find(([name]) => fuzzyIncludes(match[2], name))?.[1];
+  if (month === undefined || !Number.isFinite(day) || !Number.isFinite(year)) return "";
+  const candidate = new Date(Date.UTC(year, month, day));
+  if (candidate.getUTCDate() !== day || candidate.getUTCMonth() !== month || candidate.getUTCFullYear() !== year) {
+    return "";
+  }
+  return candidate.toISOString().slice(0, 10);
+}
+
+function extractDateRange(text: string): { date: string; startTime: string; endTime: string; hint: string } {
+  const normalized = compactText(text);
+  const date = normalizeEventDate(text) || parseTurkishMonthDate(text);
+  const timeMatches = Array.from(normalized.matchAll(/\b(\d{1,2})(?::|\.|\s)(\d{2})\b/g)).map((match) => `${String(match[1]).padStart(2, "0")}:${match[2]}`);
+  const rangeMatch = normalized.match(/\b(\d{1,2})(?::|\.|\s)(\d{2})\s*[-–to]{1,3}\s*(\d{1,2})(?::|\.|\s)(\d{2})\b/i);
+  const startTime = rangeMatch ? `${String(rangeMatch[1]).padStart(2, "0")}:${rangeMatch[2]}` : (timeMatches[0] || "");
+  const endTime = rangeMatch ? `${String(rangeMatch[3]).padStart(2, "0")}:${rangeMatch[4]}` : (timeMatches[1] || "");
+  const hintParts: string[] = [];
+  if (date) hintParts.push(date);
+  if (startTime && endTime) hintParts.push(`${startTime}-${endTime}`);
+  else if (startTime) hintParts.push(startTime);
+  return { date, startTime, endTime, hint: hintParts.join(" ").trim() };
+}
+
+function extractLocation(text: string): string {
+  const normalized = compactText(text);
+  const locationMarkers = ["ankara", "istanbul", "izmir", "bursa", "antalya", "adana", "eskişehir", "eskisehir", "konya", "trabzon", "online", "zoom", "teams", "meet", "hybrid"];
+  const directHit = locationMarkers.find((marker) => fuzzyIncludes(normalized, marker));
+  if (directHit) return directHit;
+
+  const atMatch = normalized.match(/\b(?:in|at|@)\s+([a-z0-9\s-]{2,40})/i);
+  if (atMatch) {
+    return atMatch[1].trim().split(/\s+/).slice(0, 4).join(" ");
+  }
+
+  return "";
+}
+
+function isLikelyEventText(value: string): boolean {
+  const normalized = compactText(value);
+  return fuzzyAny(normalized, ["etkinlik", "event", "oluştur", "olustur", "create", "yeni", "kayıt", "kayit", "konferans", "seminar", "workshop", "eğitim", "egitim", "webinar", "online", "konser", "kulüp", "kulup", "club"]) || /\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b/.test(normalized) || /\b\d{1,2}\s+[a-zçğıöşü]+\s+\d{4}\b/.test(normalized);
+}
+
+function extractType(text: string): string {
+  const normalized = compactText(text);
+  if (fuzzyAny(normalized, ["workshop", "atolye"])) return "workshop";
+  if (fuzzyAny(normalized, ["training", "egitim", "kurs"])) return "training";
+  if (fuzzyAny(normalized, ["seminar", "panel", "soylesi", "talk"])) return "seminar";
+  if (fuzzyAny(normalized, ["webinar", "online", "canli", "zoom", "teams", "virtual"])) return "online_event";
+  if (fuzzyAny(normalized, ["conference", "konferans", "zirve", "summit"])) return "conference";
+  if (fuzzyAny(normalized, ["concert", "konser", "müzik", "muzik", "sahne", "festival"])) return "concert";
+  if (fuzzyAny(normalized, ["club", "kulup", "topluluk", "community", "sosyal"])) return "club_event";
+  if (fuzzyAny(normalized, ["custom", "ozel", "özel", "special"])) return "custom";
+  if (fuzzyAny(normalized, ["meetup", "topluluk", "community"])) return "club_event";
+  return "certificate_event";
+}
+
+function applyEventTypePreset(draft: EventDraft, sourceText: string): EventDraft {
+  const normalized = compactText(sourceText);
+  const next = { ...draft };
+  const mentions = (keywords: string[]) => fuzzyAny(normalized, keywords);
+
+  if (draft.eventType === "online_event") {
+    if (!mentions(["certificate", "sertifika"])) next.certificateEnabled = false;
+    if (!mentions(["checkin", "check-in", "qr", "yoklama"])) next.checkinEnabled = false;
+    if (!mentions(["ticket", "bilet", "odeme", "payment", "ucret"])) next.ticketingEnabled = false;
+    if (!mentions(["approval", "onay", "approve"])) next.requiresApproval = false;
+  }
+
+  if (draft.eventType === "concert" || draft.eventType === "club_event") {
+    if (!mentions(["certificate", "sertifika"])) next.certificateEnabled = false;
+    if (!mentions(["ticket", "bilet", "odeme", "payment", "ucret"])) next.ticketingEnabled = true;
+    if (!mentions(["checkin", "check-in", "qr", "yoklama"])) next.checkinEnabled = true;
+  }
+
+  if (draft.eventType === "workshop" || draft.eventType === "training") {
+    if (!mentions(["certificate", "sertifika"])) next.certificateEnabled = true;
+    if (!mentions(["checkin", "check-in", "qr", "yoklama"])) next.checkinEnabled = true;
+    if (!mentions(["registration_closed", "kayıt kapalı", "kayit kapali"])) next.registrationEnabled = true;
+  }
+
+  if (draft.eventType === "seminar" || draft.eventType === "conference") {
+    if (!mentions(["certificate", "sertifika"])) next.certificateEnabled = true;
+    if (!mentions(["checkin", "check-in", "qr", "yoklama"])) next.checkinEnabled = true;
+  }
+
+  return next;
+}
+
+function buildSmartRegistrationFields(eventType: string): SuggestedRegistrationField[] {
+  const presets: Record<string, SuggestedRegistrationField[]> = {
+    workshop: [
+      { id: "company", label: "Şirket / Kurum", type: "text", required: false, placeholder: "Kurum adını yazın" },
+      { id: "role", label: "Unvan", type: "text", required: false, placeholder: "Örn. Yazılım geliştirici" },
+      { id: "experience", label: "Deneyim Seviyesi", type: "select", required: false, options: [{ label: "Başlangıç" }, { label: "Orta" }, { label: "İleri" }], selection_mode: "single" },
+      { id: "device", label: "Cihaz İhtiyacı", type: "select", required: false, options: [{ label: "Laptop" }, { label: "Tablet" }, { label: "Yok" }], selection_mode: "single" },
+    ],
+    training: [
+      { id: "company", label: "Şirket / Kurum", type: "text", required: false },
+      { id: "department", label: "Departman", type: "text", required: false },
+      { id: "experience", label: "Seviye", type: "select", required: false, options: [{ label: "Yeni başlayan" }, { label: "Orta" }, { label: "İleri" }], selection_mode: "single" },
+      { id: "needs", label: "Beklenti / İhtiyaç", type: "textarea", required: false },
+    ],
+    seminar: [
+      { id: "company", label: "Şirket / Kurum", type: "text", required: false },
+      { id: "title", label: "Görev / Unvan", type: "text", required: false },
+      { id: "interest", label: "İlgi Alanı", type: "text", required: false },
+    ],
+    conference: [
+      { id: "company", label: "Şirket / Kurum", type: "text", required: false },
+      { id: "title", label: "Unvan", type: "text", required: false },
+      { id: "topic", label: "En İlgi Çeken Oturum", type: "text", required: false },
+      { id: "linkedin", label: "LinkedIn Profil URL", type: "text", required: false },
+    ],
+    online_event: [
+      { id: "timezone", label: "Saat Dilimi", type: "text", required: false, placeholder: "Örn. Europe/Istanbul" },
+      { id: "platform", label: "Platform Tercihi", type: "select", required: false, options: [{ label: "Zoom" }, { label: "Teams" }, { label: "Meet" }, { label: "Diğer" }], selection_mode: "single" },
+      { id: "device", label: "Katılacağınız Cihaz", type: "select", required: false, options: [{ label: "Masaüstü" }, { label: "Mobil" }, { label: "Tablet" }], selection_mode: "single" },
+    ],
+    concert: [
+      { id: "ticket_type", label: "Bilet Türü", type: "select", required: false, options: [{ label: "Standart" }, { label: "VIP" }, { label: "Öğrenci" }], selection_mode: "single" },
+      { id: "company", label: "Şirket / Kurum", type: "text", required: false },
+      { id: "note", label: "Özel İstek", type: "textarea", required: false },
+    ],
+    club_event: [
+      { id: "member_type", label: "Üyelik Tipi", type: "select", required: false, options: [{ label: "Üye" }, { label: "Misafir" }, { label: "Konuk" }], selection_mode: "single" },
+      { id: "company", label: "Şirket / Kurum", type: "text", required: false },
+      { id: "note", label: "Not", type: "textarea", required: false },
+    ],
+    custom: [
+      { id: "company", label: "Şirket / Kurum", type: "text", required: false },
+      { id: "purpose", label: "Etkinlik Amacı", type: "textarea", required: false },
+    ],
+    certificate_event: [
+      { id: "company", label: "Şirket / Kurum", type: "text", required: false },
+      { id: "title", label: "Görev / Unvan", type: "text", required: false },
+    ],
+  };
+
+  const normalizedKey = (eventType || "certificate_event").trim();
+  return presets[normalizedKey] ?? presets.certificate_event;
+}
+
+function buildComplianceSuggestions(draft: EventDraft, lang: string): string[] {
+  const suggestions: string[] = [];
+  const privacyNeeded = draft.registrationEnabled || draft.requireEmailVerification || draft.registrationQuotaEnabled;
+
+  if (privacyNeeded) {
+    suggestions.push(
+      lang === "tr"
+        ? "KVKK/aydınlatma metni ekleyin"
+        : "Add a KVKK/privacy notice"
+    );
+    suggestions.push(
+      lang === "tr"
+        ? "Kayıt formuna açık rıza kutusu ekleyin"
+        : "Add a consent checkbox to the registration form"
+    );
+    suggestions.push(
+      lang === "tr"
+        ? "Veri işleme amacı ve saklama süresini belirtin"
+        : "State the purpose of processing and retention period"
+    );
+  }
+
+  if (draft.visibility === "public" || draft.visibility === "unlisted") {
+    suggestions.push(
+      lang === "tr"
+        ? "Gizlilik politikası / şartlar bağlantısı ekleyin"
+        : "Add a privacy policy / terms link"
+    );
+  }
+
+  if (draft.eventType === "online_event" || draft.eventType === "conference" || draft.eventType === "workshop") {
+    suggestions.push(
+      lang === "tr"
+        ? "İletişim ve bilgilendirme onaylarını ayrı tutun"
+        : "Keep contact and information consent separate"
+    );
+  }
+
+  return Array.from(new Set(suggestions));
+}
+
+function extractVisibility(text: string): EventDraft["visibility"] | "" {
+  const normalized = compactText(text);
+  if (fuzzyAny(normalized, ["public", "acik", "herkese acik", "gozukecek", "listelensin"])) return "public";
+  if (fuzzyAny(normalized, ["private", "ozel", "gizli", "sadece ben", "hidden"])) return "private";
+  if (fuzzyAny(normalized, ["unlisted", "liste disi", "linkle", "direk link", "link ile"])) return "unlisted";
+  return "";
+}
+
+function extractRegistrationQuota(text: string): string {
+  const normalized = compactText(text);
+  const patterns = [
+    /\b(?:kota|kontenjan|limit|kapasite|capacity)\D{0,10}(\d{1,6})\b/i,
+    /\b(\d{1,6})\D{0,10}(?:kisi|kişi|katilimci|katılımcı|kontenjan|kota|limit)\b/i,
+  ];
+  for (const pattern of patterns) {
+    const match = normalized.match(pattern);
+    if (match?.[1]) return match[1];
+  }
+  return "";
+}
+
+function extractScheduleHint(text: string): string {
+  const range = extractDateRange(text);
+  return range.hint;
+}
+
+function extractRegistrationClosed(text: string): boolean | null {
+  const normalized = compactText(text);
+  if (fuzzyAny(normalized, ["kayıt kapalı", "kayit kapali", "registration closed", "basvuru kapali", "başvuru kapalı"])) return true;
+  if (fuzzyAny(normalized, ["kayıt açık", "kayit acik", "registration open", "basvuru acik", "başvuru açık"])) return false;
+  return null;
+}
+
+function extractRequireEmailVerification(text: string): boolean | null {
+  const normalized = compactText(text);
+  if (fuzzyAny(normalized, ["email verification", "mail dogrulama", "e-posta dogrulama", "dogrulama gerekli", "verification required"])) return true;
+  if (fuzzyAny(normalized, ["email verification kapali", "dogrulama isteme", "no verification", "verification off", "dogrulama kapali"])) return false;
+  return null;
+}
+
+function extractRequiresApproval(text: string): boolean | null {
+  const normalized = compactText(text);
+  if (fuzzyAny(normalized, ["onayli", "approval", "approve", "manuel onay", "moderation", "beklemede onay"])) return true;
+  if (fuzzyAny(normalized, ["onaysiz", "approval off", "otomatik onay", "no approval"])) return false;
+  return null;
+}
+
+function extractFeatureFlags(text: string, current: EventDraft): EventDraft {
+  const normalized = compactText(text);
+  const next = { ...current };
+
+  const setByKeywords = (target: keyof EventDraft, keywords: string[], defaultValue: boolean) => {
+    if (!fuzzyAny(normalized, keywords)) return;
+    (next[target] as boolean) = !NEGATION_PATTERNS.test(normalized) ? true : false;
+    if (!fuzzyAny(normalized, ["yes", "evet", "tabi", "tabii", "lazim", "gerekli", "gerek"])) {
+      (next[target] as boolean) = !NEGATION_PATTERNS.test(normalized) ? true : defaultValue;
+    }
+  };
+
+  setByKeywords("certificateEnabled", ["certificate", "sertifika", "sertifikali"], current.certificateEnabled);
+  setByKeywords("checkinEnabled", ["checkin", "check-in", "qr", "yoklama", "giris"], current.checkinEnabled);
+  setByKeywords("ticketingEnabled", ["ticket", "bilet", "odeme", "payment", "ucret"], current.ticketingEnabled);
+  setByKeywords("registrationEnabled", ["registration", "register", "kayit"], current.registrationEnabled);
+  setByKeywords("rafflesEnabled", ["raffle", "cekilis", "draw", "odul"], current.rafflesEnabled);
+  setByKeywords("gamificationEnabled", ["gamification", "rozet", "badge", "puan", "leaderboard"], current.gamificationEnabled);
+
+  return next;
+}
+
+function extractEventHints(text: string, current: EventDraft = EMPTY_EVENT_DRAFT): EventDraft {
+  const normalized = compactText(text);
+  const next = { ...current };
+  const range = extractDateRange(text);
+  const date = range.date;
+  const location = extractLocation(text);
+  const eventType = extractType(text);
+  const visibility = extractVisibility(text);
+  const quota = extractRegistrationQuota(text);
+  const registrationClosed = extractRegistrationClosed(text);
+  const requireEmailVerification = extractRequireEmailVerification(text);
+  const requiresApproval = extractRequiresApproval(text);
+  const scheduleHint = extractScheduleHint(text);
+
+  if (date) next.eventDate = date;
+  if (range.startTime) next.eventStartTime = range.startTime;
+  if (range.endTime) next.eventEndTime = range.endTime;
+  if (location) next.eventLocation = location;
+  if (eventType) next.eventType = eventType;
+  if (visibility) next.visibility = visibility;
+  if (quota) {
+    next.registrationQuota = quota;
+    next.registrationQuotaEnabled = true;
+  }
+  if (scheduleHint) next.scheduleHint = scheduleHint;
+  if (registrationClosed !== null) next.registrationClosed = registrationClosed;
+  if (requireEmailVerification !== null) next.requireEmailVerification = requireEmailVerification;
+  if (requiresApproval !== null) next.requiresApproval = requiresApproval;
+  const withTypePresets = applyEventTypePreset(next, normalized);
+  const withFeatures = extractFeatureFlags(normalized, withTypePresets);
+  if (withFeatures.registrationFields.length === 0) {
+    withFeatures.registrationFields = buildSmartRegistrationFields(withFeatures.eventType);
+  }
+  return withFeatures;
+}
+
+function shouldTreatTextAsWizardSeed(text: string): boolean {
+  const normalized = compactText(text);
+  return fuzzyAny(normalized, ["event", "etkinlik", "olustur", "oluştur", "create", "yeni", "kur", "planla", "hazirla", "setup", "register", "kayıt", "kayit", "konferans", "workshop", "webinar", "seminar", "eğitim", "egitim"])
+    || /\b\d{1,2}\s+[a-zçğıöşü]+\s+\d{4}\b/i.test(normalized)
+    || /\b\d{4}-\d{2}-\d{2}\b/i.test(normalized)
+    || fuzzyAny(normalized, ["ankara", "istanbul", "izmir", "online", "zoom", "teams", "kontenjan", "kota", "gizli", "public", "private", "unlisted", "sertifika", "checkin", "bilet"]);
+}
+
+function nextWizardStepFromDraft(draft: EventDraft): EventWizardStep {
+  if (!draft.name.trim()) return "name";
+  if (!draft.eventDate.trim()) return "date";
+  if (!draft.eventLocation.trim()) return "location";
+  if (!draft.eventDescription.trim()) return "description";
+  if (!draft.eventType.trim()) return "type";
+  return "features";
+}
+
+function getMissingWizardFields(draft: EventDraft): EventWizardStep[] {
+  const missing: EventWizardStep[] = [];
+  if (!draft.name.trim()) missing.push("name");
+  if (!draft.eventDate.trim()) missing.push("date");
+  if (!draft.eventLocation.trim()) missing.push("location");
+  if (!draft.eventDescription.trim()) missing.push("description");
+  if (!draft.eventType.trim()) missing.push("type");
+  if (!draft.visibility.trim()) missing.push("features");
+  return missing;
+}
+
+function formatInferredDraftSummary(draft: EventDraft, lang: string): string {
+  const inferred: string[] = [];
+  if (draft.name.trim()) inferred.push(lang === "tr" ? `Ad: ${draft.name}` : `Name: ${draft.name}`);
+  if (draft.eventDate.trim()) inferred.push(lang === "tr" ? `Tarih: ${draft.eventDate}` : `Date: ${draft.eventDate}`);
+  if (draft.eventStartTime.trim() || draft.eventEndTime.trim()) {
+    inferred.push(lang === "tr" ? `Saat: ${draft.eventStartTime || "?"}${draft.eventEndTime ? `-${draft.eventEndTime}` : ""}` : `Time: ${draft.eventStartTime || "?"}${draft.eventEndTime ? `-${draft.eventEndTime}` : ""}`);
+  }
+  if (draft.eventLocation.trim()) inferred.push(lang === "tr" ? `Konum: ${draft.eventLocation}` : `Location: ${draft.eventLocation}`);
+  if (draft.eventType.trim()) inferred.push(lang === "tr" ? `Tip: ${draft.eventType}` : `Type: ${draft.eventType}`);
+  if (draft.visibility.trim()) inferred.push(lang === "tr" ? `Görünürlük: ${draft.visibility}` : `Visibility: ${draft.visibility}`);
+  if (draft.registrationQuotaEnabled && draft.registrationQuota.trim()) {
+    inferred.push(lang === "tr" ? `Kontenjan: ${draft.registrationQuota}` : `Quota: ${draft.registrationQuota}`);
+  }
+  if (draft.registrationClosed) inferred.push(lang === "tr" ? "Kayıt kapalı" : "Registration closed");
+  if (!draft.requireEmailVerification) inferred.push(lang === "tr" ? "E-posta doğrulama kapalı" : "Email verification off");
+  if (draft.requiresApproval) inferred.push(lang === "tr" ? "Onay gerekiyor" : "Approval required");
+  if (draft.registrationFields.length > 0) inferred.push(lang === "tr" ? `Önerilen form alanları: ${draft.registrationFields.length}` : `Suggested form fields: ${draft.registrationFields.length}`);
+  return inferred.length > 0
+    ? inferred.join(", ")
+    : lang === "tr"
+      ? "Henüz net bir alan yakalayamadım."
+      : "I haven't inferred any clear fields yet.";
+}
+
+function formatMissingFieldsList(missing: EventWizardStep[], lang: string): string {
+  const labels: Record<EventWizardStep, string> = {
+    idle: "",
+    name: lang === "tr" ? "ad" : "name",
+    date: lang === "tr" ? "tarih" : "date",
+    location: lang === "tr" ? "konum" : "location",
+    description: lang === "tr" ? "açıklama" : "description",
+    type: lang === "tr" ? "etkinlik tipi" : "event type",
+    features: lang === "tr" ? "özellikler" : "features",
+    confirm: lang === "tr" ? "onay" : "confirmation",
+  };
+  const readable = missing.map((step) => labels[step]).filter(Boolean);
+  if (!readable.length) {
+    return lang === "tr" ? "Eksik alan kalmadı." : "No fields are missing.";
+  }
+  return lang === "tr"
+    ? `Eksik kalanlar: ${readable.join(", ")}.`
+    : `Still missing: ${readable.join(", ")}.`;
+}
+
+function formatSuggestedFormFields(fields: SuggestedRegistrationField[], lang: string): string {
+  if (!fields.length) {
+    return lang === "tr" ? "Önerilen kayıt formu alanı yok." : "No suggested registration fields.";
+  }
+  const names = fields.slice(0, 4).map((field) => field.label);
+  const suffix = fields.length > 4 ? (lang === "tr" ? ` ve ${fields.length - 4} alan daha` : ` and ${fields.length - 4} more`) : "";
+  return lang === "tr"
+    ? `Önerilen kayıt formu alanları: ${names.join(", ")}${suffix}.`
+    : `Suggested registration fields: ${names.join(", ")}${suffix}.`;
+}
+
+function formatComplianceSuggestions(draft: EventDraft, lang: string): string {
+  const suggestions = buildComplianceSuggestions(draft, lang);
+  if (!suggestions.length) {
+    return lang === "tr" ? "KVKK için ek öneri yok." : "No extra compliance suggestions.";
+  }
+  return lang === "tr"
+    ? `KVKK / gizlilik önerileri: ${suggestions.join(", ")}.`
+    : `Compliance suggestions: ${suggestions.join(", ")}.`;
+}
+
+function buildWizardProgressMessage(draft: EventDraft, lang: string): string {
+  const missing = getMissingWizardFields(draft);
+  const inferredSummary = formatInferredDraftSummary(draft, lang);
+  const missingSummary = formatMissingFieldsList(missing, lang);
+  const formSummary = formatSuggestedFormFields(draft.registrationFields, lang);
+  const complianceSummary = formatComplianceSuggestions(draft, lang);
+
+  const header = lang === "tr"
+    ? `Şunları anladım: ${inferredSummary}`
+    : `I understood: ${inferredSummary}`;
+
+  const footer = missing.length === 0
+    ? (lang === "tr"
+      ? "Taslak tamamlandı. Onaylarsanız oluşturacağım."
+      : "The draft is complete. I will create it once you confirm.")
+    : missingSummary;
+
+  return `${header}\n${formSummary}\n${complianceSummary}\n${footer}`;
+}
+
+function summarizeMissingFields(step: EventWizardStep, lang: string): string {
+  switch (step) {
+    case "name":
+      return lang === "tr" ? "Etkinlik adı eksik." : "Event name is missing.";
+    case "date":
+      return lang === "tr" ? "Tarih eksik." : "Date is missing.";
+    case "location":
+      return lang === "tr" ? "Konum eksik." : "Location is missing.";
+    case "description":
+      return lang === "tr" ? "Açıklama eksik." : "Description is missing.";
+    case "type":
+      return lang === "tr" ? "Etkinlik tipi eksik." : "Event type is missing.";
+    default:
+      return lang === "tr" ? "Özellikler gözden geçirilmeli." : "Features should be reviewed.";
+  }
+}
+
+function deriveEventName(text: string): string {
+  const normalized = compactText(text);
+  const cleaned = normalized
+    .replace(/\b(etkinlik|event|create|olustur\w*|yeni|new|setup|planla|hazirla|kur)\b/g, " ")
+    .replace(/\b(certificate|sertifika|checkin|check-in|qr|ticket|bilet|payment|odeme|registration|register|kayit|quota|kota|kontenjan|limit|capacity|workshop|atolye|training|egitim|webinar|conference|konferans|zirve|summit|community|topluluk|raffle|cekilis|draw|gamification|rozet|badge|puan|leaderboard|seminar|panel|soylesi|talk|concert|konser|festival|online|zoom|teams|virtual|private|public|unlisted|acik|gizli|ozel|özel)\b/g, " ")
+    .replace(/\b(ocak|subat|mart|nisan|mayis|haziran|temmuz|agustos|eylul|ekim|kasim|aralik)\b/g, " ")
+    .replace(/\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b/g, " ")
+    .replace(/\b\d{4}-\d{2}-\d{2}\b/g, " ")
+    .replace(/\b\d{1,6}\s*(?:kisi|kişi|katilimci|katılımcı|kontenjan|kota|limit)\b/g, " ")
+    .replace(/\b(?:in|at|@)\s+[a-z0-9\s-]{2,40}\b/g, " ")
+    .replace(/\b[a-z0-9\s-]{2,40}\s+(?:sehrinde|şehrinde|ilinde|ilcesinde|ilçesinde|city|şehirde)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!cleaned || cleaned.length < 3) {
+    return "";
+  }
+
+  if (/^(etkinlik|event|new event|yeni etkinlik)$/i.test(cleaned)) {
+    return "";
+  }
+
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+}
+
+function seedEventDraftFromText(text: string, fallback: EventDraft = EMPTY_EVENT_DRAFT): EventDraft {
+  const hinted = extractEventHints(text, fallback);
+  const derivedName = deriveEventName(text);
+  return {
+    ...hinted,
+    name: hinted.name.trim() || derivedName,
+  };
+}
+
+async function seedEventDraftFromCurrentEvent(eventId: number): Promise<EventDraft | null> {
+  try {
+    const response = await apiFetch(`/admin/events/${eventId}`);
+    const event = await response.json();
+    const config = event?.config && typeof event.config === "object" ? event.config : {};
+    const registrationFields = Array.isArray((config as any).registration_fields) ? (config as any).registration_fields : [];
+    const derivedName = `${String(event?.name || "Etkinlik").trim()} Kopyası`;
+    return {
+      ...createInitialDraft(),
+      name: derivedName,
+      eventDate: String(event?.event_date || ""),
+      eventStartTime: "",
+      eventEndTime: "",
+      eventLocation: String(event?.event_location || ""),
+      eventDescription: String(event?.event_description || ""),
+      eventType: String(event?.event_type || "certificate_event"),
+      visibility: (config as any).visibility || "unlisted",
+      registrationClosed: Boolean(event?.registration_closed ?? (config as any).registration_closed ?? false),
+      requireEmailVerification: Boolean(event?.require_email_verification ?? (config as any).require_email_verification ?? true),
+      registrationQuotaEnabled: Boolean(event?.registration_quota_enabled ?? (config as any).registration_quota_enabled ?? ((event?.registration_quota ?? (config as any).registration_quota) != null)),
+      registrationQuota: String(event?.registration_quota ?? (config as any).registration_quota ?? ""),
+      requiresApproval: Boolean(event?.requires_approval ?? false),
+      scheduleHint: "",
+      registrationFields,
+      certificateEnabled: Boolean(event?.certificate_enabled ?? true),
+      checkinEnabled: Boolean(event?.checkin_enabled ?? true),
+      ticketingEnabled: Boolean(event?.ticketing_enabled ?? false),
+      registrationEnabled: Boolean(event?.registration_enabled ?? true),
+      rafflesEnabled: Boolean(event?.raffles_enabled ?? false),
+      gamificationEnabled: Boolean(event?.gamification_enabled ?? false),
+      organizerPrivacyNoticeEnabled: Boolean((config as any).organizer_privacy_notice_enabled ?? event?.organizer_privacy_notice_enabled ?? false),
+      organizerPrivacyNoticeText: String((config as any).organizer_privacy_notice_text ?? event?.organizer_privacy_notice_text ?? ""),
+      showCrossBorderTransferNotice: Boolean((config as any).show_cross_border_transfer_notice ?? event?.show_cross_border_transfer_notice ?? true),
+      requireCrossBorderTransferConsent: Boolean((config as any).require_cross_border_transfer_consent ?? event?.require_cross_border_transfer_consent ?? true),
+      dataControllerName: String((config as any).data_controller_name ?? event?.data_controller_name ?? ""),
+      dataControllerContactEmail: String((config as any).data_controller_contact_email ?? event?.data_controller_contact_email ?? ""),
+      dataRetentionNote: String((config as any).data_retention_note ?? event?.data_retention_note ?? ""),
+      kvkkConsentRequired: Boolean((config as any).kvkk_consent_required ?? event?.kvkk_consent_required ?? false),
+      kvkkConsentText: String((config as any).kvkk_consent_text ?? event?.kvkk_consent_text ?? ""),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function normalizeEventDate(value: string): string {
+  const input = value.trim();
+  if (!input || isSkipValue(input)) return "";
+
+  const isoMatch = input.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+  if (isoMatch) {
+    return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  }
+
+  const dottedMatch = input.match(/\b(\d{2})[./-](\d{2})[./-](\d{4})\b/);
+  if (dottedMatch) {
+    return `${dottedMatch[3]}-${dottedMatch[2]}-${dottedMatch[1]}`;
+  }
+
+  const parsed = new Date(input);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toISOString().slice(0, 10);
+  }
+
+  return input;
+}
+
+function normalizeEventType(value: string): string {
+  const text = normalizePromptText(value);
+  if (/\b(workshop|atolye)\b/i.test(text)) return "workshop";
+  if (/\b(training|egitim)\b/i.test(text)) return "training";
+  if (/\b(webinar|online|canli|zoom|teams|virtual)\b/i.test(text)) return "online_event";
+  if (/\b(conference|konferans|zirve|summit)\b/i.test(text)) return "conference";
+  if (/\b(community|topluluk|meetup)\b/i.test(text)) return "club_event";
+  if (/\b(seminar|panel|soylesi|talk)\b/i.test(text)) return "seminar";
+  if (/\b(concert|konser|festival|sahne|muzik)\b/i.test(text)) return "concert";
+  if (/\b(ozel|özel|custom|special)\b/i.test(text)) return "custom";
+  return "certificate_event";
+}
+
+function normalizeFeatureFlags(value: string, fallback: EventDraft = EMPTY_EVENT_DRAFT): EventDraft {
+  const text = normalizePromptText(value);
+  if (isSkipValue(text)) {
+    return { ...fallback };
+  }
+
+  const matches = (keywords: string[]): boolean => keywords.some((keyword) => text.includes(keyword));
+  const enabled = (keywords: string[], defaultValue: boolean): boolean => {
+    if (matches(keywords)) {
+      return !NEGATION_PATTERNS.test(text);
+    }
+    return defaultValue;
+  };
+
+  return {
+    ...fallback,
+    certificateEnabled: enabled(["certificate", "sertifika"], fallback.certificateEnabled),
+    checkinEnabled: enabled(["checkin", "check-in", "qr", "giris"], fallback.checkinEnabled),
+    ticketingEnabled: enabled(["ticket", "bilet", "payment", "odeme"], fallback.ticketingEnabled),
+    registrationEnabled: enabled(["registration", "register", "kayit"], fallback.registrationEnabled),
+    rafflesEnabled: enabled(["raffle", "cekilis", "draw"], fallback.rafflesEnabled),
+    gamificationEnabled: enabled(["gamification", "rozet", "badge", "puan", "leaderboard"], fallback.gamificationEnabled),
+  };
+}
+
+function buildFeatureSummary(draft: EventDraft, lang: string): string {
+  const features = [
+    ["certificateEnabled", lang === "tr" ? "Sertifika" : "Certificate"],
+    ["checkinEnabled", lang === "tr" ? "Check-in" : "Check-in"],
+    ["registrationEnabled", lang === "tr" ? "Kayıt" : "Registration"],
+    ["ticketingEnabled", lang === "tr" ? "Biletleme" : "Ticketing"],
+    ["rafflesEnabled", lang === "tr" ? "Çekiliş" : "Raffle"],
+    ["gamificationEnabled", lang === "tr" ? "Oyunlaştırma" : "Gamification"],
+  ]
+    .filter(([key]) => draft[key as keyof EventDraft])
+    .map(([, label]) => label);
+
+  return features.length > 0
+    ? features.join(", ")
+    : lang === "tr"
+      ? "Varsayılan özellikler"
+      : "Default features";
+}
+
+function createInitialDraft(): EventDraft {
+  return { ...EMPTY_EVENT_DRAFT };
+}
+
+function formatDraftSummary(draft: EventDraft, lang: string): string {
+  const lines = [lang === "tr" ? `Ad: ${draft.name}` : `Name: ${draft.name}`];
+  if (draft.eventDate) lines.push(lang === "tr" ? `Tarih: ${draft.eventDate}` : `Date: ${draft.eventDate}`);
+  if (draft.eventLocation) lines.push(lang === "tr" ? `Konum: ${draft.eventLocation}` : `Location: ${draft.eventLocation}`);
+  if (draft.eventDescription) lines.push(lang === "tr" ? `Açıklama: ${draft.eventDescription}` : `Description: ${draft.eventDescription}`);
+  lines.push(lang === "tr" ? `Tip: ${draft.eventType}` : `Type: ${draft.eventType}`);
+  lines.push(lang === "tr" ? `Görünürlük: ${draft.visibility}` : `Visibility: ${draft.visibility}`);
+  if (draft.registrationQuotaEnabled && draft.registrationQuota) {
+    lines.push(lang === "tr" ? `Kontenjan: ${draft.registrationQuota}` : `Quota: ${draft.registrationQuota}`);
+  }
+  lines.push(lang === "tr" ? `Kayıt kapalı: ${draft.registrationClosed ? "Evet" : "Hayır"}` : `Registration closed: ${draft.registrationClosed ? "Yes" : "No"}`);
+  lines.push(lang === "tr" ? `E-posta doğrulama: ${draft.requireEmailVerification ? "Zorunlu" : "Kapalı"}` : `Email verification: ${draft.requireEmailVerification ? "Required" : "Off"}`);
+  lines.push(lang === "tr" ? `Onay gereksinimi: ${draft.requiresApproval ? "Evet" : "Hayır"}` : `Requires approval: ${draft.requiresApproval ? "Yes" : "No"}`);
+  lines.push(lang === "tr" ? `Özellikler: ${buildFeatureSummary(draft, lang)}` : `Features: ${buildFeatureSummary(draft, lang)}`);
+  return lines.join("\n");
+}
+
+function getEventPromptForStep(step: EventWizardStep, draft: EventDraft, lang: string): string {
+  switch (step) {
+    case "name":
+      return lang === "tr"
+        ? "Etkinliğin adını yazın."
+        : "Write the event name.";
+    case "date":
+      return lang === "tr"
+        ? "Tarihi YYYY-MM-DD formatında yazın ya da atlamak için 'atla' yazın."
+        : "Write the date in YYYY-MM-DD format, or type 'skip' to leave it blank.";
+    case "location":
+      return lang === "tr"
+        ? "Etkinlik nerede yapılacak? İsterseniz 'atla' yazabilirsiniz."
+        : "Where will the event take place? You can type 'skip' if you want.";
+    case "description":
+      return lang === "tr"
+        ? "Kısa bir açıklama yazın. İsterseniz 'atla' yazabilirsiniz."
+        : "Write a short description. You can type 'skip' if you want.";
+    case "type":
+      return lang === "tr"
+        ? "Etkinlik tipi ne olsun? Konferans, workshop, eğitim, webinar veya başka bir şey yazabilirsiniz."
+        : "What type should it be? You can write conference, workshop, training, webinar, or something else.";
+    case "features":
+      return lang === "tr"
+        ? "Hangi özellikler açık olsun? Sertifika, check-in, kayıt, biletleme, çekiliş, oyunlaştırma yazabilirsiniz. İsterseniz 'varsayılan' yazın."
+        : "Which features should be enabled? You can mention certificate, check-in, registration, ticketing, raffle, or gamification. Type 'default' if you want the usual setup.";
+    case "confirm":
+      return lang === "tr"
+        ? `Taslak hazır. Onaylıyor musunuz?\n\n${formatDraftSummary(draft, lang)}\n\nEvet için 'evet', vazgeçmek için 'hayır' yazın.`
+        : `Draft ready. Do you approve it?\n\n${formatDraftSummary(draft, lang)}\n\nType 'yes' to create it, or 'no' to cancel.`;
+    default:
+      return "";
+  }
+}
+
 // FAQ Bilgi Tabanı
 const FAQ_DATABASE = {
   tr: [
@@ -23,6 +856,7 @@ const FAQ_DATABASE = {
     { keywords: ["session", "oturum", "schedule", "timetable", "program"], answer: "Oturumları Oturumlar sayfasından ekleyebilirsiniz. Her oturumun tarihini, saatini, başlığını ve konuşmacısını belirleyebilirsiniz. Check-in sistemi otomatik olarak oturumlara göre çalışır. Katılımcılar etkinlik sayfasından oturumlara kaydolabilir." },
     { keywords: ["analytics", "istatistik", "report", "data", "grafik"], answer: "Analytics bölümünde etkinliğinizin kapsamlı istatistiklerini görebilirsiniz. Kayıt sayıları, katılımcı dağılımı, sertifika durumu, cinsiyete göre dağılım ve daha fazlasını analiz edebilirsiniz. Raporları Excel olarak dışa aktarabilirsiniz." },
     { keywords: ["domain", "custom", "özel", "alan adı", "url"], answer: "Etkinliğinize özel bir domain atamak için Etkinlik Ayarları > Domain bölümüne gidin. Kendi alan adınızı bağlayabilir veya HeptaCert tarafından sağlanan alt domain'i kullanabilirsiniz. Domain değişikliği DNS ayarlarından sonra yayına alınabilir." },
+    { keywords: ["kvkk", "gizlilik metni", "aydınlatma metni", "açık rıza", "veri işleme", "privacy policy"], answer: "KVKK için Etkinlik Ayarları > Kayıt Formu bölümünde aydınlatma metni, açık rıza kutusu ve gizlilik bağlantısı eklemenizi öneririz. Toplanan verilerin amacı, saklama süresi ve veri sorumlusu bilgisini net yazın. Gerekirse yasal metni destek ekibiyle birlikte özelleştirin." },
     { keywords: ["checkin", "check-in", "giriş", "kontrol"], answer: "Check-in sistemi etkinlik günü katılımcı kaydını hızlandırır. QR kod veya kontrol listesi kullanarak katılımcıları işaretleyebilirsiniz. Check-in panelinden katılımcı durumunu gerçek zamanlı takip edebilirsiniz." },
     { keywords: ["gamification", "badge", "rozet", "puan", "leaderboard"], answer: "Oyunlaştırma özelliğini etkinleştirerek katılımcıları rozetler, puanlar ve liderlik tablosuyla motive edebilirsiniz. Farklı aktivitelere (oturum katılımı, anket cevaplama, vb.) puan atayabilirsiniz." },
     { keywords: ["branding", "tema", "renk", "logo", "görünüm"], answer: "Etkinlik Ayarları > Branding bölümünde kurumsal kimliğinizi ayarlayabilirsiniz. Logo, tema renkleri ve yazı tiplerini özelleştirebilirsiniz. Mobil ve masaüstü uyumluluğunu otomatik olarak sağlanır." },
@@ -138,10 +972,30 @@ export default function AIAssistant() {
     }
   ]);
   const [input, setInput] = useState("");
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      try {
+        const detail = (e as CustomEvent)?.detail;
+        const text = detail == null ? "" : String(detail);
+        if (!text) return;
+        setInput((prev) => (prev && prev.trim() ? `${prev} ${text}` : text));
+        // focus input
+        setTimeout(() => inputRef.current?.focus(), 50);
+      } catch (err) {
+        // ignore
+      }
+    };
+    window.addEventListener("ai-assistant-insert", handler as EventListener);
+    return () => window.removeEventListener("ai-assistant-insert", handler as EventListener);
+  }, []);
   const [showSupportForm, setShowSupportForm] = useState(false);
   const [supportSubject, setSupportSubject] = useState("");
   const [supportMessage, setSupportMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [eventWizardStep, setEventWizardStep] = useState<EventWizardStep>("idle");
+  const [eventDraft, setEventDraft] = useState<EventDraft>(createInitialDraft());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -151,6 +1005,263 @@ export default function AIAssistant() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const pushAssistantMessage = (message: string) => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        message,
+        timestamp: new Date().toISOString(),
+      },
+    ]);
+  };
+
+  const resetEventWizard = () => {
+    setEventWizardStep("idle");
+    setEventDraft(createInitialDraft());
+  };
+
+  const startEventWizard = async (seedText = "") => {
+    setShowSupportForm(false);
+    const normalizedSeed = compactText(seedText);
+    let nextDraft = seedText ? seedEventDraftFromText(seedText) : createInitialDraft();
+
+    if (seedText && fuzzyAny(normalizedSeed, ["copy", "clone", "duplicate", "kopyala", "kopya", "çoğalt", "cogalt", "aynısı", "ayni si", "bu etkinlik"])) {
+      const currentEventId = getCurrentEventId();
+      if (currentEventId) {
+        const cloned = await seedEventDraftFromCurrentEvent(currentEventId);
+        if (cloned) {
+          nextDraft = cloned;
+          nextDraft.name = `${nextDraft.name || "Etkinlik"} - Kopya`;
+        }
+      }
+    }
+
+    setEventDraft(nextDraft);
+    const nextStep = nextWizardStepFromDraft(nextDraft);
+    setEventWizardStep(nextStep);
+    if (seedText) {
+      pushAssistantMessage(buildWizardProgressMessage(nextDraft, lang));
+    }
+    if (nextStep === "confirm") {
+      pushAssistantMessage(getEventPromptForStep("confirm", nextDraft, lang));
+      return;
+    }
+    pushAssistantMessage(getEventPromptForStep(nextStep, nextDraft, lang));
+  };
+
+  const submitEventDraft = async (draft: EventDraft) => {
+    const scheduleHint = draft.scheduleHint.trim() || [draft.eventDate, draft.eventStartTime, draft.eventEndTime].filter(Boolean).join(" ").trim();
+    const registrationFields = draft.registrationFields.length > 0 ? draft.registrationFields : buildSmartRegistrationFields(draft.eventType);
+    const createResponse = await apiFetch("/admin/events", {
+      method: "POST",
+      body: JSON.stringify({
+        name: draft.name,
+        template_image_url: "placeholder",
+        config: {
+          visibility: draft.visibility,
+          ai_assistant_schedule_hint: scheduleHint || undefined,
+          registration_fields: registrationFields,
+          organizer_privacy_notice_enabled: draft.organizerPrivacyNoticeEnabled,
+          organizer_privacy_notice_text: draft.organizerPrivacyNoticeText || undefined,
+          show_cross_border_transfer_notice: draft.showCrossBorderTransferNotice,
+          require_cross_border_transfer_consent: draft.requireCrossBorderTransferConsent,
+          data_controller_name: draft.dataControllerName || undefined,
+          data_controller_contact_email: draft.dataControllerContactEmail || undefined,
+          data_retention_note: draft.dataRetentionNote || undefined,
+          kvkk_consent_required: draft.kvkkConsentRequired,
+          kvkk_consent_text: draft.kvkkConsentText || undefined,
+          ai_assistant_populated_kvkk: true,
+        },
+        event_type: draft.eventType,
+        certificate_enabled: draft.certificateEnabled,
+        checkin_enabled: draft.checkinEnabled,
+        ticketing_enabled: draft.ticketingEnabled,
+        registration_enabled: draft.registrationEnabled,
+        raffles_enabled: draft.rafflesEnabled,
+        gamification_enabled: draft.gamificationEnabled,
+        requires_approval: draft.requiresApproval,
+      }),
+    });
+
+    const created = await createResponse.json();
+
+    const patchPayload: Record<string, any> = {
+      event_date: draft.eventDate || null,
+      event_location: draft.eventLocation || null,
+      event_description: draft.eventDescription || null,
+      visibility: draft.visibility,
+      require_email_verification: draft.requireEmailVerification,
+      registration_closed: draft.registrationClosed,
+      registration_quota_enabled: draft.registrationQuotaEnabled,
+      registration_quota: draft.registrationQuotaEnabled && draft.registrationQuota.trim() ? Number(draft.registrationQuota) : null,
+      requires_approval: draft.requiresApproval,
+      event_banner_url: null,
+    };
+
+    if (draft.eventType && draft.eventType !== "certificate_event") {
+      patchPayload.event_type = draft.eventType;
+    }
+
+    if (patchPayload.event_date || patchPayload.event_location || patchPayload.event_description || patchPayload.event_type) {
+      await apiFetch(`/admin/events/${created.id}`, {
+        method: "PATCH",
+        body: JSON.stringify(patchPayload),
+      });
+    }
+
+    await apiFetch(`/admin/events/${created.id}/config`, {
+      method: "PUT",
+      body: JSON.stringify({
+        visibility: draft.visibility,
+        ai_assistant_schedule_hint: scheduleHint || undefined,
+        registration_fields: registrationFields,
+        registration_quota_enabled: draft.registrationQuotaEnabled,
+        registration_quota: draft.registrationQuotaEnabled && draft.registrationQuota.trim() ? Number(draft.registrationQuota) : undefined,
+        registration_closed: draft.registrationClosed,
+        require_email_verification: draft.requireEmailVerification,
+        requires_approval: draft.requiresApproval,
+        organizer_privacy_notice_enabled: draft.organizerPrivacyNoticeEnabled,
+        organizer_privacy_notice_text: draft.organizerPrivacyNoticeText || undefined,
+        show_cross_border_transfer_notice: draft.showCrossBorderTransferNotice,
+        require_cross_border_transfer_consent: draft.requireCrossBorderTransferConsent,
+        data_controller_name: draft.dataControllerName || undefined,
+        data_controller_contact_email: draft.dataControllerContactEmail || undefined,
+        data_retention_note: draft.dataRetentionNote || undefined,
+        kvkk_consent_required: draft.kvkkConsentRequired,
+        kvkk_consent_text: draft.kvkkConsentText || undefined,
+        ai_assistant_populated_kvkk: true,
+      }),
+    });
+
+    return created;
+  };
+
+  const handleEventWizardInput = async (currentInput: string) => {
+    const value = currentInput.trim();
+    const hintedDraft = seedEventDraftFromText(currentInput, eventDraft);
+
+    if (eventWizardStep === "name" && hintedDraft.name.trim()) {
+      const nextStep = nextWizardStepFromDraft(hintedDraft);
+      setEventDraft(hintedDraft);
+      setEventWizardStep(nextStep);
+      pushAssistantMessage(buildWizardProgressMessage(hintedDraft, lang));
+      if (nextStep === "confirm") {
+        pushAssistantMessage(getEventPromptForStep("confirm", hintedDraft, lang));
+      } else {
+        pushAssistantMessage(getEventPromptForStep(nextStep, hintedDraft, lang));
+      }
+      return true;
+    }
+
+    if (eventWizardStep === "idle") {
+      return false;
+    }
+
+    if (isNegative(value) && eventWizardStep === "confirm") {
+      pushAssistantMessage(lang === "tr" ? "Tamam, etkinlik oluşturmayı iptal ettim. İsterseniz yeniden başlayabiliriz." : "Okay, I canceled the event creation. We can start again anytime.");
+      resetEventWizard();
+      return true;
+    }
+
+    if (eventWizardStep === "confirm") {
+      if (!isAffirmative(value)) {
+        pushAssistantMessage(lang === "tr" ? "Onay için 'evet' yazın, iptal etmek için 'hayır' yazın." : "Type 'yes' to create it, or 'no' to cancel.");
+        return true;
+      }
+
+      setLoading(true);
+      try {
+        const created = await submitEventDraft(eventDraft);
+        pushAssistantMessage(
+          lang === "tr"
+            ? `✅ Etkinlik oluşturuldu: ${created.name} (ID: ${created.id}). İsterseniz şimdi detaylarını geliştirebiliriz.`
+            : `✅ Event created: ${created.name} (ID: ${created.id}). We can refine the details next if you want.`
+        );
+        resetEventWizard();
+      } catch (error: any) {
+        pushAssistantMessage(error?.message || (lang === "tr" ? "Etkinlik oluşturulamadı. Lütfen tekrar deneyin." : "I couldn't create the event. Please try again."));
+      } finally {
+        setLoading(false);
+      }
+      return true;
+    }
+
+    if (!value) {
+      pushAssistantMessage(getEventPromptForStep(eventWizardStep, eventDraft, lang));
+      return true;
+    }
+
+    if (eventWizardStep === "name") {
+      const nextDraft = { ...hintedDraft, name: hintedDraft.name.trim() || value };
+      setEventDraft(nextDraft);
+      const nextStep = nextWizardStepFromDraft(nextDraft);
+      setEventWizardStep(nextStep);
+      pushAssistantMessage(buildWizardProgressMessage(nextDraft, lang));
+      pushAssistantMessage(getEventPromptForStep(nextStep, nextDraft, lang));
+      return true;
+    }
+
+    if (eventWizardStep === "date") {
+      const normalizedDate = normalizeEventDate(value);
+      const altDate = parseTurkishMonthDate(value);
+      const finalDate = normalizedDate || altDate;
+      if (finalDate && !/^\d{4}-\d{2}-\d{2}$/.test(finalDate)) {
+        pushAssistantMessage(lang === "tr" ? "Tarihi anlayamadım. Lütfen YYYY-MM-DD formatında yazın ya da 'atla' yazın." : "I couldn't parse the date. Please use YYYY-MM-DD or type 'skip'.");
+        return true;
+      }
+
+      const nextDraft = { ...hintedDraft, eventDate: finalDate };
+      setEventDraft(nextDraft);
+      const nextStep = nextWizardStepFromDraft(nextDraft);
+      setEventWizardStep(nextStep);
+      pushAssistantMessage(buildWizardProgressMessage(nextDraft, lang));
+      pushAssistantMessage(getEventPromptForStep(nextStep, nextDraft, lang));
+      return true;
+    }
+
+    if (eventWizardStep === "location") {
+      const nextDraft = { ...hintedDraft, eventLocation: isSkipValue(value) ? "" : (extractLocation(value) || value) };
+      setEventDraft(nextDraft);
+      const nextStep = nextWizardStepFromDraft(nextDraft);
+      setEventWizardStep(nextStep);
+      pushAssistantMessage(buildWizardProgressMessage(nextDraft, lang));
+      pushAssistantMessage(getEventPromptForStep(nextStep, nextDraft, lang));
+      return true;
+    }
+
+    if (eventWizardStep === "description") {
+      const nextDraft = { ...hintedDraft, eventDescription: isSkipValue(value) ? "" : value };
+      setEventDraft(nextDraft);
+      const nextStep = nextWizardStepFromDraft(nextDraft);
+      setEventWizardStep(nextStep);
+      pushAssistantMessage(buildWizardProgressMessage(nextDraft, lang));
+      pushAssistantMessage(getEventPromptForStep(nextStep, nextDraft, lang));
+      return true;
+    }
+
+    if (eventWizardStep === "type") {
+      const nextDraft = { ...hintedDraft, eventType: extractType(value) || normalizeEventType(value) };
+      setEventDraft(nextDraft);
+      const nextStep = nextWizardStepFromDraft(nextDraft);
+      setEventWizardStep(nextStep);
+      pushAssistantMessage(buildWizardProgressMessage(nextDraft, lang));
+      pushAssistantMessage(getEventPromptForStep(nextStep, nextDraft, lang));
+      return true;
+    }
+
+    if (eventWizardStep === "features") {
+      const nextDraft = extractFeatureFlags(value, hintedDraft);
+      setEventDraft(nextDraft);
+      setEventWizardStep("confirm");
+      pushAssistantMessage(buildWizardProgressMessage(nextDraft, lang));
+      pushAssistantMessage(getEventPromptForStep("confirm", nextDraft, lang));
+      return true;
+    }
+
+    return false;
+  };
 
   const findAnswer = (userMessage: string): string | null => {
     const faqDb = FAQ_DATABASE[lang as keyof typeof FAQ_DATABASE];
@@ -176,6 +1287,7 @@ export default function AIAssistant() {
     const eventUpdate = suggestions.event_update || {};
     const fields = Array.isArray(suggestions.registration_fields) ? suggestions.registration_fields : [];
     const sessions = Array.isArray(suggestions.sessions) ? suggestions.sessions : [];
+    const compliance = Array.isArray(suggestions.compliance) ? suggestions.compliance : [];
 
     if (Object.keys(eventUpdate).length > 0) {
       parts.push(
@@ -198,12 +1310,21 @@ export default function AIAssistant() {
           : `\n\nSession draft: ${sessions.map((session: any) => session.title || session.name).join(", ")}`
       );
     }
+    if (compliance.length > 0) {
+      parts.push(
+        lang === "tr"
+          ? `\n\nKVKK / uyumluluk onerileri: ${compliance.map((item: any) => item.label || item.text || item).join(", ")}`
+          : `\n\nCompliance suggestions: ${compliance.map((item: any) => item.label || item.text || item).join(", ")}`
+      );
+    }
     return parts.join("");
   };
 
   const handleSendMessage = async () => {
     if (!input.trim()) return;
     const currentInput = input;
+
+    if (loading) return;
 
     // Add user message
     const userMsg: Message = {
@@ -213,6 +1334,21 @@ export default function AIAssistant() {
     };
     setMessages(prev => [...prev, userMsg]);
     setInput("");
+
+    if (eventWizardStep !== "idle") {
+      const handled = await handleEventWizardInput(currentInput);
+      if (handled) return;
+    }
+
+    if (isCreateEventIntent(currentInput)) {
+      void startEventWizard(currentInput);
+      return;
+    }
+
+    if (eventWizardStep === "idle" && shouldTreatTextAsWizardSeed(currentInput)) {
+      void startEventWizard(currentInput);
+      return;
+    }
 
     // Find answer
     const answer = findAnswer(currentInput);
@@ -389,6 +1525,33 @@ export default function AIAssistant() {
             <div ref={messagesEndRef} />
           </div>
 
+          {eventWizardStep !== "idle" && (
+            <div className="border-t border-surface-200 bg-brand-50 px-4 py-3 text-sm text-surface-700">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-brand-700">
+                    {lang === "tr" ? "Etkinlik oluşturma modu aktif" : "Event creation mode is active"}
+                  </p>
+                  <p className="mt-1 text-surface-600">
+                    {lang === "tr"
+                      ? "Soruları sırayla cevaplayın; son adımda siz onay verince etkinlik oluşturulacak."
+                      : "Answer the prompts in order; the event will be created only after your final approval."}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    resetEventWizard();
+                    pushAssistantMessage(lang === "tr" ? "Tamam, etkinlik taslağını iptal ettim." : "Okay, I canceled the event draft.");
+                  }}
+                  className="rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-semibold text-brand-700 transition hover:bg-brand-100"
+                  disabled={loading}
+                >
+                  {lang === "tr" ? "İptal Et" : "Cancel"}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Support Form */}
           {showSupportForm && (
             <div className="border-t border-surface-200 p-4 space-y-3 bg-amber-50">
@@ -453,7 +1616,8 @@ export default function AIAssistant() {
                     placeholder={lang === "tr" ? "Sorunuzu sorun..." : "Ask your question..."}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    onKeyPress={(e) => e.key === "Enter" && !loading && handleSendMessage()}
+                    onKeyDown={(e) => e.key === "Enter" && !loading && handleSendMessage()}
+                    ref={inputRef}
                     className="input-field flex-1 py-2"
                     disabled={loading}
                   />
@@ -465,15 +1629,34 @@ export default function AIAssistant() {
                     {loading ? <div className="h-4 w-4 rounded-full bg-white animate-pulse" /> : <Send className="h-4 w-4" />}
                   </button>
                 </div>
-                <button
-                  onClick={() => setShowSupportForm(true)}
-                  className="w-full rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-900 shadow-sm transition hover:bg-amber-100"
-                >
-                  <span className="flex items-center justify-center gap-2">
-                    <AlertCircle className="h-4 w-4" />
-                    {lang === "tr" ? "Destek Talebi Oluştur" : "Create Support Ticket"}
-                  </span>
-                </button>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <button
+                    onClick={() => {
+                      if (eventWizardStep !== "idle") {
+                        resetEventWizard();
+                        pushAssistantMessage(lang === "tr" ? "Etkinlik taslağını iptal ettim." : "I canceled the event draft.");
+                        return;
+                      }
+                      void startEventWizard(input);
+                    }}
+                    className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm font-semibold text-brand-800 shadow-sm transition hover:bg-brand-100"
+                    disabled={loading}
+                  >
+                    {eventWizardStep !== "idle"
+                      ? (lang === "tr" ? "Etkinlik Taslağını İptal Et" : "Cancel Event Draft")
+                      : (lang === "tr" ? "Yeni Etkinlik Oluştur" : "Create New Event")}
+                  </button>
+                  <button
+                    onClick={() => setShowSupportForm(true)}
+                    className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-900 shadow-sm transition hover:bg-amber-100"
+                    disabled={loading}
+                  >
+                    <span className="flex items-center justify-center gap-2">
+                      <AlertCircle className="h-4 w-4" />
+                      {lang === "tr" ? "Destek Talebi Oluştur" : "Create Support Ticket"}
+                    </span>
+                  </button>
+                </div>
               </>
             ) : null}
           </div>

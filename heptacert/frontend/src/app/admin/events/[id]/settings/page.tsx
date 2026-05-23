@@ -978,6 +978,43 @@ export default function EventSettingsPage() {
         }
       />
 
+      {/* AI assistant KVKK banner */}
+      {(event?.config as any)?.ai_assistant_populated_kvkk ? (
+        <div className="mb-4 rounded-md border p-3 bg-yellow-50 border-yellow-200">
+          <div className="flex items-start gap-3">
+            <ShieldAlert className="text-yellow-700" />
+            <div>
+              <div className="font-semibold">Otomatik eklenmiş KVKK / Gizlilik öğeleri</div>
+              <div className="text-sm text-slate-700">AI Asistanı bu etkinlik için KVKK/gizlilik öğelerini otomatik ekledi. Lütfen gözden geçirip kaydedin.</div>
+              <div className="mt-2">
+                <button
+                  className="inline-flex items-center gap-2 rounded bg-yellow-600 px-3 py-1 text-white"
+                  onClick={() => {
+                    if (!event) return;
+                    const cfg = (event.config as any) || {};
+                    setFormData((current) => ({
+                      ...(current ?? ({} as FormState)),
+                      organizer_privacy_notice_enabled: Boolean(cfg.organizer_privacy_notice_enabled ?? current?.organizer_privacy_notice_enabled ?? false),
+                      organizer_privacy_notice_text: String(cfg.organizer_privacy_notice_text ?? current?.organizer_privacy_notice_text ?? ""),
+                      show_cross_border_transfer_notice: Boolean(cfg.show_cross_border_transfer_notice ?? current?.show_cross_border_transfer_notice ?? true),
+                      require_cross_border_transfer_consent: Boolean(cfg.require_cross_border_transfer_consent ?? current?.require_cross_border_transfer_consent ?? true),
+                      data_controller_name: String(cfg.data_controller_name ?? current?.data_controller_name ?? ""),
+                      data_controller_contact_email: String(cfg.data_controller_contact_email ?? current?.data_controller_contact_email ?? ""),
+                      data_retention_note: String(cfg.data_retention_note ?? current?.data_retention_note ?? ""),
+                    }));
+                    // clear the flag visually by refreshing event
+                    refreshEventAdminMeta(eventId);
+                    void loadData();
+                  }}
+                >
+                  Prefill ve İncele
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {error && (
         <div className="error-banner">
           <AlertCircle className="h-4 w-4 shrink-0" />
