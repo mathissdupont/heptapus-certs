@@ -94,16 +94,35 @@ export function createInitialDraft(): EventDraft {
 // normalize date: accept YYYY-MM-DD, DD.MM.YYYY, DD/MM/YYYY, or parseable strings
 export function normalizeEventDate(value: string): string {
   const input = String(value || "").trim();
-  if (!input || isSkipValue(input)) return "";
-  const isoMatch = input.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
-  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
-  const dottedMatch = input.match(/\b(\d{2})[./-](\d{2})[./-](\d{4})\b/);
-  if (dottedMatch) return `${dottedMatch[3]}-${dottedMatch[2]}-${dottedMatch[1]}`;
-  const parsed = new Date(input);
-  if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
-  return input;
-}
 
+  if (!input || isSkipValue(input)) return "";
+
+  const isoMatch = input.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+  if (isoMatch) {
+    return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  }
+
+  const dottedMatch = input.match(/\b(\d{1,2})[./-](\d{1,2})[./-](\d{4})\b/);
+  if (dottedMatch) {
+    const day = dottedMatch[1].padStart(2, "0");
+    const month = dottedMatch[2].padStart(2, "0");
+    const year = dottedMatch[3];
+
+    const candidate = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+
+    if (
+      candidate.getUTCFullYear() === Number(year) &&
+      candidate.getUTCMonth() === Number(month) - 1 &&
+      candidate.getUTCDate() === Number(day)
+    ) {
+      return `${year}-${month}-${day}`;
+    }
+
+    return "";
+  }
+
+  return "";
+}
 const TURKISH_MONTHS: Array<[string, number]> = [
   ["ocak", 0],
   ["subat", 1],
@@ -136,7 +155,7 @@ export function parseTurkishMonthDate(value: string): string {
 
 export function extractDateRange(text: string): { date: string; startTime: string; endTime: string; hint: string } {
   const normalized = compactText(text);
-  const date = normalizeEventDate(text) || parseTurkishMonthDate(text);
+  const date = parseTurkishMonthDate(text) || normalizeEventDate(text);
   const timeMatches = Array.from(normalized.matchAll(/\b(\d{1,2})(?::|\.|\s)(\d{2})\b/g)).map((m) => `${String(m[1]).padStart(2, "0")}:${m[2]}`);
   const rangeMatch = normalized.match(/\b(\d{1,2})(?::|\.|\s)(\d{2})\s*[-–to]{1,3}\s*(\d{1,2})(?::|\.|\s)(\d{2})\b/i);
   const startTime = rangeMatch ? `${String(rangeMatch[1]).padStart(2, "0")}:${rangeMatch[2]}` : (timeMatches[0] || "");
@@ -277,10 +296,27 @@ export function buildComplianceSuggestions(draft: EventDraft, lang = "tr"): stri
 
 export function validateDraft(draft: EventDraft, lang = "tr"): string[] {
   const errs: string[] = [];
-  if (!draft.name || !draft.name.trim()) errs.push(lang === "tr" ? "Etkinlik adı gerekli" : "Event name is required");
-  if (draft.registrationQuotaEnabled && draft.registrationQuota && isNaN(Number(draft.registrationQuota))) errs.push(lang === "tr" ? "Kontenjan sayısal olmalı" : "Quota must be numeric");
-  if (draft.dataControllerContactEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(draft.dataControllerContactEmail)) errs.push(lang === "tr" ? "Geçersiz e-posta adresi" : "Invalid data controller email");
-  if (draft.eventDate && !/^\d{4}-\d{2}-\d{2}$/.test(draft.eventDate)) errs.push(lang === "tr" ? "Tarih YYYY-MM-DD formatında olmalı" : "Date must be YYYY-MM-DD");
+
+  if (!draft.name || !draft.name.trim()) {
+    errs.push(lang === "tr" ? "Etkinlik adı gerekli" : "Event name is required");
+  }
+
+  if (!draft.eventDate || !draft.eventDate.trim()) {
+    errs.push(lang === "tr" ? "Etkinlik tarihi gerekli" : "Event date is required");
+  }
+
+  if (draft.eventDate && !/^\d{4}-\d{2}-\d{2}$/.test(draft.eventDate)) {
+    errs.push(lang === "tr" ? "Tarih YYYY-MM-DD formatında olmalı" : "Date must be YYYY-MM-DD");
+  }
+
+  if (draft.registrationQuotaEnabled && draft.registrationQuota && isNaN(Number(draft.registrationQuota))) {
+    errs.push(lang === "tr" ? "Kontenjan sayısal olmalı" : "Quota must be numeric");
+  }
+
+  if (draft.dataControllerContactEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(draft.dataControllerContactEmail)) {
+    errs.push(lang === "tr" ? "Geçersiz e-posta adresi" : "Invalid data controller email");
+  }
+
   return errs;
 }
 

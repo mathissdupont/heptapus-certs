@@ -13,17 +13,12 @@ interface Message {
   message: string;
   timestamp: string;
 }
+import type { EventDraft, EventWizardStep } from "@/lib/assistant/eventDraft";
 import {
-  EventDraft,
-  EventWizardStep,
-  EMPTY_EVENT_DRAFT,
   createInitialDraft,
   seedEventDraftFromText,
-  validateDraft,
-  formatDraftSummary,
   buildWizardProgressMessage,
   nextWizardStepFromDraft,
-  getMissingWizardFields,
   buildSmartRegistrationFields,
   deriveEventName,
   normalizeEventDate,
@@ -259,17 +254,48 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
 
     const localValidate = (d: EventDraft): string[] => {
       const errs: string[] = [];
-      if (!d.name || !d.name.trim()) errs.push(lang === "tr" ? "Etkinlik adı gerekli" : "Event name is required");
-      if (d.registrationQuotaEnabled && d.registrationQuota && isNaN(Number(d.registrationQuota))) errs.push(lang === "tr" ? "Kontenjan sayısal olmalı" : "Quota must be numeric");
-      if (d.dataControllerContactEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.dataControllerContactEmail)) errs.push(lang === "tr" ? "Geçersiz e-posta adresi" : "Invalid data controller email");
-      if (d.eventDate && !/^\d{4}-\d{2}-\d{2}$/.test(d.eventDate)) errs.push(lang === "tr" ? "Tarih YYYY-MM-DD formatında olmalı" : "Date must be YYYY-MM-DD");
+
+      if (!d.name || !d.name.trim()) {
+        errs.push(lang === "tr" ? "Etkinlik adı gerekli" : "Event name is required");
+      }
+
+      if (!d.eventDate || !d.eventDate.trim()) {
+        errs.push(lang === "tr" ? "Etkinlik tarihi gerekli" : "Event date is required");
+      }
+
+      if (d.eventDate && !/^\d{4}-\d{2}-\d{2}$/.test(d.eventDate)) {
+        errs.push(lang === "tr" ? "Tarih YYYY-MM-DD formatında olmalı" : "Date must be YYYY-MM-DD");
+      }
+
+      if (d.registrationQuotaEnabled && d.registrationQuota && isNaN(Number(d.registrationQuota))) {
+        errs.push(lang === "tr" ? "Kontenjan sayısal olmalı" : "Quota must be numeric");
+      }
+
+      if (d.dataControllerContactEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.dataControllerContactEmail)) {
+        errs.push(lang === "tr" ? "Geçersiz e-posta adresi" : "Invalid data controller email");
+      }
+
       return errs;
     };
     const validationErrors = localValidate(createDraft);
     if (validationErrors.length > 0) {
-      pushAssistantMessage((lang === "tr" ? "Doğrulama hataları: " : "Validation errors: ") + validationErrors.join("; "));
+      pushAssistantMessage(
+        (lang === "tr" ? "Doğrulama hataları: " : "Validation errors: ") +
+          validationErrors.join("; ")
+      );
+
+      if (!createDraft.eventDate || !/^\d{4}-\d{2}-\d{2}$/.test(createDraft.eventDate)) {
+        setEventWizardStep("date");
+        pushAssistantMessage(
+          lang === "tr"
+            ? "Etkinlik tarihini YYYY-MM-DD formatında yazar mısınız? Örnek: 2026-06-25"
+            : "Please enter the event date in YYYY-MM-DD format. Example: 2026-06-25"
+        );
+      }
+
       return null;
     }
+
     
     const createResponse = await apiFetch("/admin/events", {
       method: "POST",
@@ -635,137 +661,221 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
       setLoading(false);
     }
   };
-
-  // ----------------------------------------------------
-  // RENDER: PAGE MODE (Tam Ekran Dahsboard Düzeni)
+    // ----------------------------------------------------
+  // RENDER: PAGE MODE
   // ----------------------------------------------------
   if (pageMode) {
     return (
-      <div data-theme="light" className="flex w-full h-[calc(100vh-10rem)] gap-6 bg-[#fafafa] antialiased">
-        {/* Ana Sohbet Konteyneri */}
-        <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-[#e5e5e5] bg-white shadow-sm">
-          
-          {/* Mesaj Alanı */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-[#fcfcfc]">
+      <div
+        data-theme="light"
+        className="flex h-[calc(100dvh-7rem)] w-full flex-col gap-4 overflow-hidden bg-[#fafafa] antialiased lg:h-[calc(100vh-10rem)] lg:flex-row lg:gap-6"
+      >
+        {/* Main Chat Container */}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#e5e5e5] bg-white shadow-sm">
+          {/* Header */}
+          <div className="flex shrink-0 items-center justify-between border-b border-[#e5e5e5] bg-white px-4 py-3 sm:px-6">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#171717] text-white shadow-sm">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="truncate text-sm font-semibold text-[#171717]">
+                  {lang === "tr" ? "HeptaCert Asistan" : "HeptaCert Assistant"}
+                </h3>
+                <p className="truncate text-xs text-[#737373]">
+                  {lang === "tr"
+                    ? "Etkinlik, kayıt, sertifika ve destek işlemleri"
+                    : "Events, registration, certificates and support"}
+                </p>
+              </div>
+            </div>
+
+            {eventWizardStep !== "idle" && (
+              <span className="hidden rounded-full border border-[#e5e5e5] bg-[#fafafa] px-3 py-1 text-[11px] font-medium text-[#525252] sm:inline-flex">
+                {lang === "tr" ? "Sihirbaz aktif" : "Wizard active"}
+              </span>
+            )}
+          </div>
+
+          {/* Messages */}
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-[#fcfcfc] p-3 sm:p-4 lg:p-6">
             {messages.map((msg, idx) => (
-              <div key={idx} className={`flex w-full ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`flex gap-3 max-w-[80%] ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
-                  
-                  {/* Avatar */}
-                  <div className={`flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-lg border text-xs font-medium shadow-sm
-                    ${msg.role === "user" ? "bg-[#171717] text-white border-[#171717]" : "bg-white text-[#171717] border-[#e5e5e5]"}`}
+              <div
+                key={idx}
+                className={`flex w-full ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className={`flex max-w-[94%] gap-2 sm:max-w-[86%] sm:gap-3 lg:max-w-[78%] ${
+                    msg.role === "user" ? "flex-row-reverse" : "flex-row"
+                  }`}
+                >
+                  <div
+                    className={`hidden h-8 w-8 shrink-0 select-none items-center justify-center rounded-xl border text-xs font-medium shadow-sm sm:flex ${
+                      msg.role === "user"
+                        ? "border-[#171717] bg-[#171717] text-white"
+                        : "border-[#e5e5e5] bg-white text-[#171717]"
+                    }`}
                   >
-                    {msg.role === "user" ? <User className="h-4 w-4" /> : <Sparkles className="h-4 w-4 text-[#737373]" />}
+                    {msg.role === "user" ? (
+                      <User className="h-4 w-4" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 text-[#737373]" />
+                    )}
                   </div>
 
-                  {/* Mesaj Balonu */}
-                  <div 
+                  <div
                     onClick={() => msg.role === "user" && startEditingUserMessage(idx)}
                     style={{ whiteSpace: "pre-wrap" }}
-                    className={`rounded-xl px-4 py-2.5 text-sm leading-relaxed shadow-sm transition-all duration-150
-                      ${msg.role === "user" 
-                        ? "bg-[#171717] text-white font-normal hover:bg-[#262626] cursor-pointer" 
-                        : "bg-white text-[#171717] border border-[#e5e5e5]"}`}
+                    className={`rounded-2xl px-3 py-2 text-xs leading-relaxed shadow-sm transition-all duration-150 sm:px-4 sm:py-2.5 sm:text-sm ${
+                      msg.role === "user"
+                        ? "cursor-pointer rounded-tr-md bg-[#171717] text-white hover:bg-[#262626]"
+                        : "rounded-tl-md border border-[#e5e5e5] bg-white text-[#171717]"
+                    }`}
                   >
                     {msg.message}
                   </div>
                 </div>
               </div>
             ))}
-            
+
             {loading && (
               <div className="flex w-full justify-start">
-                <div className="flex items-center gap-3 bg-white border border-[#e5e5e5] rounded-xl px-4 py-3 shadow-sm text-xs text-[#737373]">
-                  <div className="h-4 w-4 border-2 border-t-transparent border-[#171717] rounded-full animate-spin" />
-                  <span>Hepta AI işlem yapıyor...</span>
+                <div className="flex items-center gap-3 rounded-2xl border border-[#e5e5e5] bg-white px-4 py-3 text-xs text-[#737373] shadow-sm">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#171717] border-t-transparent" />
+                  <span>{lang === "tr" ? "Hepta AI işlem yapıyor..." : "Hepta AI is working..."}</span>
                 </div>
               </div>
             )}
+
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Sihirbaz Bilgi Çubuğu (Wizard Aktifken) */}
+          {/* Wizard Info Bar */}
           {eventWizardStep !== "idle" && (
-            <div className="flex items-center justify-between border-t border-[#e5e5e5] bg-[#fbfbfb] px-6 py-3 text-xs border-l-2 border-l-[#171717]">
-              <div className="flex items-center gap-2 text-[#737373]">
-                <AlertCircle className="h-4 w-4 text-[#171717]" />
-                <span>
-                  <strong>Etkinlik Sihirbazı Aktif:</strong> {summarizeMissingFields(eventWizardStep, lang)} Son onay adımına kadar formu doldurun.
+            <div className="flex shrink-0 flex-col gap-2 border-t border-l-2 border-l-[#171717] border-t-[#e5e5e5] bg-[#fbfbfb] px-3 py-3 text-xs sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <div className="flex min-w-0 items-start gap-2 text-[#737373]">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#171717]" />
+                <span className="leading-relaxed">
+                  <strong className="text-[#171717]">
+                    {lang === "tr" ? "Etkinlik Sihirbazı:" : "Event Wizard:"}
+                  </strong>{" "}
+                  {summarizeMissingFields(eventWizardStep, lang)}
                 </span>
               </div>
-              <button 
-                onClick={() => { resetEventWizard(); pushAssistantMessage(lang === "tr" ? "Etkinlik sihirbazı iptal edildi." : "Event wizard canceled."); }} 
-                className="text-xs font-semibold text-red-500 hover:underline"
+
+              <button
+                onClick={() => {
+                  resetEventWizard();
+                  pushAssistantMessage(
+                    lang === "tr" ? "Etkinlik sihirbazı iptal edildi." : "Event wizard canceled."
+                  );
+                }}
+                className="self-start rounded-lg px-2 py-1 text-xs font-semibold text-red-500 hover:bg-red-50 sm:self-auto"
               >
                 {lang === "tr" ? "Sihirbazı Kapat" : "Close Wizard"}
               </button>
             </div>
           )}
 
-          {/* Destek Formu */}
+          {/* Support Form */}
           {showSupportForm && (
-            <div className="border-t border-[#e5e5e5] p-5 space-y-3 bg-[#fafafa]">
-              <div className="flex items-start gap-2.5 rounded-lg border border-[#e5e5e5] bg-white p-4 text-xs text-[#737373] shadow-sm">
-                <AlertCircle className="h-4 w-4 text-[#171717] shrink-0 mt-0.5" />
-                <p>{lang === "tr" ? "Sorunu detaylandırıp gönderdiğinizde teknik ekibimiz sistem üzerinden çözüme başlayacaktır." : "Once submitted, our team will look into your request instantly."}</p>
+            <div className="shrink-0 space-y-3 border-t border-[#e5e5e5] bg-[#fafafa] p-4 sm:p-5">
+              <div className="flex items-start gap-2.5 rounded-xl border border-[#e5e5e5] bg-white p-3 text-xs text-[#737373] shadow-sm sm:p-4">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#171717]" />
+                <p className="leading-relaxed">
+                  {lang === "tr"
+                    ? "Sorunu detaylandırıp gönderdiğinizde teknik ekibimiz sistem üzerinden çözüme başlayacaktır."
+                    : "Once submitted, our team will look into your request instantly."}
+                </p>
               </div>
+
               <input
                 type="text"
                 placeholder={lang === "tr" ? "Talep Konusu..." : "Ticket Subject..."}
                 value={supportSubject}
                 onChange={(e) => setSupportSubject(e.target.value)}
-                className="w-full rounded-lg border border-[#e5e5e5] px-4 py-2 text-sm outline-none focus:border-[#171717] transition shadow-inner"
+                className="w-full rounded-xl border border-[#e5e5e5] px-4 py-2 text-sm outline-none transition focus:border-[#171717]"
               />
+
               <textarea
                 placeholder={lang === "tr" ? "Açıklamanız veya hata kaydı detayları..." : "Your detailed explanation..."}
                 value={supportMessage}
                 onChange={(e) => setSupportMessage(e.target.value)}
                 rows={3}
-                className="w-full rounded-lg border border-[#e5e5e5] px-4 py-2 text-sm outline-none focus:border-[#171717] transition shadow-inner resize-none"
+                className="w-full resize-none rounded-xl border border-[#e5e5e5] px-4 py-2 text-sm outline-none transition focus:border-[#171717]"
               />
-              <div className="flex gap-2 justify-end">
-                <button onClick={() => setShowSupportForm(false)} className="rounded-lg border border-[#e5e5e5] bg-white px-4 py-2 text-xs font-medium text-[#171717] hover:bg-[#fafafa] transition">
+
+              <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <button
+                  onClick={() => setShowSupportForm(false)}
+                  className="rounded-xl border border-[#e5e5e5] bg-white px-4 py-2 text-xs font-medium text-[#171717] transition hover:bg-[#fafafa]"
+                >
                   {lang === "tr" ? "Vazgeç" : "Cancel"}
                 </button>
-                <button onClick={handleCreateSupport} disabled={!supportSubject.trim() || !supportMessage.trim() || loading} className="rounded-lg bg-[#171717] px-4 py-2 text-xs font-medium text-white hover:bg-[#262626] transition disabled:opacity-40">
+
+                <button
+                  onClick={handleCreateSupport}
+                  disabled={!supportSubject.trim() || !supportMessage.trim() || loading}
+                  className="rounded-xl bg-[#171717] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#262626] disabled:opacity-40"
+                >
                   {lang === "tr" ? "Talebi Gönder" : "Send Ticket"}
                 </button>
               </div>
             </div>
           )}
 
-          {/* Alt Kontrol ve Input Alanı */}
+          {/* Input Area */}
           {!showSupportForm && (
-            <div className="border-t border-[#e5e5e5] p-4 bg-white flex flex-col gap-3">
-              <div className="flex gap-3">
+            <div className="shrink-0 border-t border-[#e5e5e5] bg-white p-3 sm:p-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
                 <input
                   ref={inputRef}
                   type="text"
-                  placeholder={lang === "tr" ? "Sorunuzu sorun veya 'yeni etkinlik planla' yazın..." : "Ask a question or type 'create an event'..."}
+                  placeholder={
+                    lang === "tr"
+                      ? "Sorunuzu sorun veya 'yeni etkinlik planla' yazın..."
+                      : "Ask a question or type 'create an event'..."
+                  }
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                  className="flex-1 rounded-lg border border-[#e5e5e5] px-4 py-2.5 text-sm outline-none focus:border-[#171717] transition shadow-inner"
+                  className="min-w-0 flex-1 rounded-xl border border-[#e5e5e5] px-4 py-2.5 text-sm outline-none transition focus:border-[#171717]"
                   disabled={loading}
                 />
-                <button 
-                  onClick={handleSendMessage} 
+
+                <button
+                  onClick={handleSendMessage}
                   disabled={!input.trim() || loading}
-                  className="inline-flex h-10 items-center justify-center rounded-lg bg-[#171717] px-4 text-sm font-medium text-white hover:bg-[#262626] transition disabled:opacity-30 shadow-sm"
+                  className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-[#171717] px-4 text-sm font-medium text-white shadow-sm transition hover:bg-[#262626] disabled:opacity-30 sm:w-auto"
                 >
                   <Send className="h-4 w-4" />
                 </button>
               </div>
-              <div className="flex gap-2">
+
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                 <button
-                  onClick={() => { if (eventWizardStep !== "idle") { resetEventWizard(); pushAssistantMessage(lang === "tr" ? "Taslak iptal edildi." : "Draft canceled."); } else { void startEventWizard(input); } }}
-                  className="rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-1.5 text-xs font-medium text-[#171717] hover:bg-[#f4f4f5] transition shadow-sm"
+                  onClick={() => {
+                    if (eventWizardStep !== "idle") {
+                      resetEventWizard();
+                      pushAssistantMessage(lang === "tr" ? "Taslak iptal edildi." : "Draft canceled.");
+                    } else {
+                      void startEventWizard(input);
+                    }
+                  }}
+                  className="rounded-xl border border-[#e5e5e5] bg-[#fafafa] px-3 py-2 text-xs font-medium text-[#171717] shadow-sm transition hover:bg-[#f4f4f5]"
                 >
-                  {eventWizardStep !== "idle" ? (lang === "tr" ? "Taslağı İptal Et" : "Cancel Draft") : (lang === "tr" ? "✨ Yeni Etkinlik Sihirbazı" : "✨ New Event Wizard")}
+                  {eventWizardStep !== "idle"
+                    ? lang === "tr"
+                      ? "Taslağı İptal Et"
+                      : "Cancel Draft"
+                    : lang === "tr"
+                      ? "✨ Yeni Etkinlik Sihirbazı"
+                      : "✨ New Event Wizard"}
                 </button>
+
                 <button
                   onClick={() => setShowSupportForm(true)}
-                  className="rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-1.5 text-xs font-medium text-[#737373] hover:bg-[#f4f4f5] transition shadow-sm"
+                  className="rounded-xl border border-[#e5e5e5] bg-[#fafafa] px-3 py-2 text-xs font-medium text-[#737373] shadow-sm transition hover:bg-[#f4f4f5]"
                 >
                   {lang === "tr" ? "🛠️ Destek Talebi Aç" : "🛠️ Open Support Ticket"}
                 </button>
@@ -774,36 +884,62 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
           )}
         </div>
 
-        {/* Sağ Panel: Yardımcı Bilgiler ve Hazır Tetikleyiciler */}
-        <aside className="w-80 shrink-0 flex flex-col gap-4 rounded-xl border border-[#e5e5e5] bg-white p-5 shadow-sm overflow-y-auto">
+        {/* Right / Bottom Panel */}
+        <aside className="flex max-h-64 w-full shrink-0 flex-col gap-4 overflow-y-auto rounded-2xl border border-[#e5e5e5] bg-white p-4 shadow-sm lg:max-h-none lg:w-80 lg:p-5">
           <div>
-            <div className="flex items-center gap-2 text-[#171717] mb-2">
+            <div className="mb-2 flex items-center gap-2 text-[#171717]">
               <Lightbulb className="h-4 w-4" />
-              <h4 className="text-sm font-semibold tracking-tight">{lang === "tr" ? "Hızlı Yönlendirmeler" : "Quick Prompts"}</h4>
+              <h4 className="text-sm font-semibold tracking-tight">
+                {lang === "tr" ? "Hızlı Yönlendirmeler" : "Quick Prompts"}
+              </h4>
             </div>
-            <p className="text-xs text-[#737373] mb-4 leading-relaxed">
-              Sistemi hızlı yönetmek için aşağıdaki akıllı şablon girdilerini asistan satırına gönderebilirsiniz.
+
+            <p className="mb-4 text-xs leading-relaxed text-[#737373]">
+              {lang === "tr"
+                ? "Sistemi hızlı yönetmek için aşağıdaki şablonları asistan satırına ekleyebilirsiniz."
+                : "Use these templates to quickly guide the assistant."}
             </p>
-            <div className="space-y-2">
-              <button onClick={() => { window.dispatchEvent(new CustomEvent('ai-assistant-insert', { detail: 'Yeni webinar, 2026-06-30, online' })); }} className="w-full text-left rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2 text-xs text-[#171717] hover:bg-[#f4f4f5] transition font-medium">
+
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-1">
+              <button
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent("ai-assistant-insert", { detail: "Yeni webinar, 2026-06-30, online" }));
+                }}
+                className="w-full rounded-xl border border-[#e5e5e5] bg-[#fafafa] px-3 py-2 text-left text-xs font-medium text-[#171717] transition hover:bg-[#f4f4f5]"
+              >
                 {lang === "tr" ? "Webinar Önerisi" : "Webinar Prompt"}
               </button>
-              <button onClick={() => { window.dispatchEvent(new CustomEvent('ai-assistant-insert', { detail: 'Workshop: Hands-on, 1 gün, İstanbul' })); }} className="w-full text-left rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2 text-xs text-[#171717] hover:bg-[#f4f4f5] transition font-medium">
+
+              <button
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent("ai-assistant-insert", { detail: "Workshop: Hands-on, 1 gün, İstanbul" }));
+                }}
+                className="w-full rounded-xl border border-[#e5e5e5] bg-[#fafafa] px-3 py-2 text-left text-xs font-medium text-[#171717] transition hover:bg-[#f4f4f5]"
+              >
                 {lang === "tr" ? "Workshop Önerisi" : "Workshop Prompt"}
               </button>
-              <button onClick={() => { window.dispatchEvent(new CustomEvent('ai-assistant-insert', { detail: 'Kayıt formu için KVKK metni önerisi' })); }} className="w-full text-left rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2 text-xs text-[#171717] hover:bg-[#f4f4f5] transition font-medium">
+
+              <button
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent("ai-assistant-insert", { detail: "Kayıt formu için KVKK metni önerisi" }));
+                }}
+                className="w-full rounded-xl border border-[#e5e5e5] bg-[#fafafa] px-3 py-2 text-left text-xs font-medium text-[#171717] transition hover:bg-[#f4f4f5]"
+              >
                 {lang === "tr" ? "KVKK Önerisi" : "KVKK Prompt"}
               </button>
             </div>
           </div>
 
-          <div className="mt-auto pt-4 border-t border-[#e5e5e5]">
+          <div className="mt-auto border-t border-[#e5e5e5] pt-4">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-[#171717]">
               <Command className="h-3.5 w-3.5" />
               <h5>{lang === "tr" ? "Komut Paleti" : "Command Palette"}</h5>
             </div>
-            <p className="text-[11px] text-[#737373] mt-1 leading-normal">
-              {lang === "tr" ? "Sistem genelinde CMD/CTRL+K tuş kombinasyonuyla hızlı yönetim aksiyonlarını çağırabilirsiniz." : "Open everywhere with CMD/CTRL+K shortcut keys."}
+
+            <p className="mt-1 text-[11px] leading-normal text-[#737373]">
+              {lang === "tr"
+                ? "CMD/CTRL+K ile hızlı yönetim aksiyonlarını çağırabilirsiniz."
+                : "Open quick management actions with CMD/CTRL+K."}
             </p>
           </div>
         </aside>
@@ -812,108 +948,142 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
   }
 
   // ----------------------------------------------------
-  // RENDER: FLOATING WIDGET MODE (Kayan Pencere Düzeni)
+  // RENDER: FLOATING WIDGET MODE
   // ----------------------------------------------------
   return (
     <>
-      {/* Kayan Tetikleyici Buton */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#171717] text-white shadow-lg transition-transform duration-200 hover:scale-105"
+          className="fixed bottom-4 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#171717] text-white shadow-lg transition-transform duration-200 hover:scale-105 sm:bottom-6 sm:right-6"
           title={lang === "tr" ? "AI Asistan" : "AI Assistant"}
         >
           <MessageCircle className="h-6 w-6" />
         </button>
       )}
 
-      {/* Sohbet Penceresi */}
       {isOpen && (
-        <div data-theme="light" className="fixed bottom-6 right-4 z-50 flex h-[min(600px,calc(100vh-3rem))] w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-xl border border-[#e5e5e5] bg-white shadow-xl sm:right-6 sm:w-96 antialiased">
-          
-          {/* Başlık Çubuğu */}
-          <div className="flex h-14 items-center justify-between border-b border-[#e5e5e5] bg-white px-5">
-            <div className="flex items-center gap-2">
-              <Lightbulb className="h-4 w-4 text-[#171717]" />
-              <h3 className="text-sm font-semibold text-[#171717]">
-                {lang === "tr" ? "HeptaCert AI Asistan" : "HeptaCert AI Assistant"}
-              </h3>
+        <div
+          data-theme="light"
+          className="fixed inset-x-2 bottom-2 z-50 flex h-[calc(100dvh-1rem)] max-h-[720px] flex-col overflow-hidden rounded-2xl border border-[#e5e5e5] bg-white shadow-2xl antialiased sm:inset-x-auto sm:bottom-6 sm:right-6 sm:h-[min(600px,calc(100vh-3rem))] sm:w-96"
+        >
+          {/* Header */}
+          <div className="flex h-14 shrink-0 items-center justify-between border-b border-[#e5e5e5] bg-white px-4 sm:px-5">
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#171717] text-white">
+                <Sparkles className="h-4 w-4" />
+              </div>
+
+              <div className="min-w-0">
+                <h3 className="truncate text-sm font-semibold text-[#171717]">
+                  {lang === "tr" ? "HeptaCert Asistan" : "HeptaCert Assistant"}
+                </h3>
+                <p className="truncate text-[11px] text-[#737373]">
+                  {lang === "tr" ? "Akıllı yardım paneli" : "Smart help panel"}
+                </p>
+              </div>
             </div>
-            <button onClick={() => setIsOpen(false)} className="text-[#737373] hover:text-[#171717] transition p-1 rounded-lg">
+
+            <button
+              onClick={() => setIsOpen(false)}
+              className="rounded-lg p-1 text-[#737373] transition hover:bg-[#fafafa] hover:text-[#171717]"
+            >
               <X className="h-4 w-4" />
             </button>
           </div>
 
-          {/* Mesaj Akışı */}
-          <div className="flex-1 space-y-3 overflow-y-auto bg-[#fafafa] p-4">
+          {/* Messages */}
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[#fafafa] p-3 sm:p-4">
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div 
+                <div
                   onClick={() => msg.role === "user" && startEditingUserMessage(idx)}
                   style={{ whiteSpace: "pre-wrap" }}
-                  className={`max-w-[85%] px-3.5 py-2 rounded-xl text-xs leading-relaxed shadow-sm transition-all duration-150
-                    ${msg.role === "user"
-                      ? "bg-[#171717] text-white rounded-tr-none hover:bg-[#262626] cursor-pointer"
-                      : "bg-white text-[#171717] border border-[#e5e5e5] rounded-tl-none"}`}
+                  className={`max-w-[90%] rounded-2xl px-3.5 py-2 text-xs leading-relaxed shadow-sm transition-all duration-150 sm:max-w-[85%] ${
+                    msg.role === "user"
+                      ? "cursor-pointer rounded-tr-md bg-[#171717] text-white hover:bg-[#262626]"
+                      : "rounded-tl-md border border-[#e5e5e5] bg-white text-[#171717]"
+                  }`}
                 >
                   {msg.message}
                 </div>
               </div>
             ))}
+
             {loading && (
               <div className="flex justify-start">
-                <div className="flex items-center gap-2 bg-white border border-[#e5e5e5] rounded-xl px-3 py-2 shadow-sm text-[11px] text-[#737373]">
-                  <div className="h-3 w-3 border-2 border-t-transparent border-[#171717] rounded-full animate-spin" />
-                  <span>Düşünüyor...</span>
+                <div className="flex items-center gap-2 rounded-2xl border border-[#e5e5e5] bg-white px-3 py-2 text-[11px] text-[#737373] shadow-sm">
+                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-[#171717] border-t-transparent" />
+                  <span>{lang === "tr" ? "Düşünüyor..." : "Thinking..."}</span>
                 </div>
               </div>
             )}
+
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Sihirbaz Bildirim Katmanı */}
+          {/* Wizard Notice */}
           {eventWizardStep !== "idle" && (
-            <div className="border-t border-[#e5e5e5] bg-[#fbfbfb] px-4 py-2.5 text-[11px] text-[#737373] border-l-2 border-l-[#171717]">
+            <div className="shrink-0 border-t border-l-2 border-l-[#171717] border-t-[#e5e5e5] bg-[#fbfbfb] px-4 py-2.5 text-[11px] text-[#737373]">
               <div className="flex items-center justify-between gap-2">
-                <span><strong>Sihirbaz Modu:</strong> {summarizeMissingFields(eventWizardStep, lang)}</span>
-                <button onClick={resetEventWizard} className="font-semibold text-red-500 hover:underline shrink-0">
+                <span className="min-w-0 leading-relaxed">
+                  <strong className="text-[#171717]">
+                    {lang === "tr" ? "Sihirbaz:" : "Wizard:"}
+                  </strong>{" "}
+                  {summarizeMissingFields(eventWizardStep, lang)}
+                </span>
+
+                <button
+                  onClick={resetEventWizard}
+                  className="shrink-0 rounded-md px-2 py-1 font-semibold text-red-500 hover:bg-red-50"
+                >
                   {lang === "tr" ? "İptal" : "Cancel"}
                 </button>
               </div>
             </div>
           )}
 
-          {/* Destek Formu Katmanı */}
+          {/* Support Form */}
           {showSupportForm && (
-            <div className="border-t border-[#e5e5e5] p-4 space-y-2 bg-[#fcfcfc]">
+            <div className="shrink-0 space-y-2 border-t border-[#e5e5e5] bg-[#fcfcfc] p-3 sm:p-4">
               <input
                 type="text"
                 placeholder={lang === "tr" ? "Konu..." : "Subject..."}
                 value={supportSubject}
                 onChange={(e) => setSupportSubject(e.target.value)}
-                className="w-full rounded-lg border border-[#e5e5e5] px-3 py-1.5 text-xs outline-none focus:border-[#171717] shadow-inner"
+                className="w-full rounded-xl border border-[#e5e5e5] px-3 py-2 text-xs outline-none transition focus:border-[#171717]"
               />
+
               <textarea
                 placeholder={lang === "tr" ? "Mesajınız..." : "Message..."}
                 value={supportMessage}
                 onChange={(e) => setSupportMessage(e.target.value)}
                 rows={2}
-                className="w-full rounded-lg border border-[#e5e5e5] px-3 py-1.5 text-xs outline-none focus:border-[#171717] shadow-inner resize-none"
+                className="w-full resize-none rounded-xl border border-[#e5e5e5] px-3 py-2 text-xs outline-none transition focus:border-[#171717]"
               />
-              <div className="flex gap-2 justify-end">
-                <button onClick={() => setShowSupportForm(false)} className="rounded-md border border-[#e5e5e5] bg-white px-3 py-1 text-[11px] text-[#171717] hover:bg-[#fafafa]">
+
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setShowSupportForm(false)}
+                  className="rounded-lg border border-[#e5e5e5] bg-white px-3 py-1.5 text-[11px] text-[#171717] hover:bg-[#fafafa]"
+                >
                   {lang === "tr" ? "Kapat" : "Close"}
                 </button>
-                <button onClick={handleCreateSupport} disabled={!supportSubject.trim() || !supportMessage.trim() || loading} className="rounded-md bg-[#171717] px-3 py-1 text-[11px] text-white hover:bg-[#262626] disabled:opacity-40">
+
+                <button
+                  onClick={handleCreateSupport}
+                  disabled={!supportSubject.trim() || !supportMessage.trim() || loading}
+                  className="rounded-lg bg-[#171717] px-3 py-1.5 text-[11px] text-white hover:bg-[#262626] disabled:opacity-40"
+                >
                   {lang === "tr" ? "Gönder" : "Send"}
                 </button>
               </div>
             </div>
           )}
 
-          {/* Girdi Giriş Paneli */}
+          {/* Input */}
           {!showSupportForm && (
-            <div className="border-t border-[#e5e5e5] p-3 bg-white flex flex-col gap-2">
+            <div className="shrink-0 border-t border-[#e5e5e5] bg-white p-3">
               <div className="flex gap-2">
                 <input
                   ref={inputRef}
@@ -922,27 +1092,42 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                  className="flex-1 rounded-lg border border-[#e5e5e5] px-3 py-1.5 text-xs outline-none focus:border-[#171717] shadow-inner"
+                  className="min-w-0 flex-1 rounded-xl border border-[#e5e5e5] px-3 py-2 text-xs outline-none transition focus:border-[#171717]"
                   disabled={loading}
                 />
-                <button 
-                  onClick={handleSendMessage} 
+
+                <button
+                  onClick={handleSendMessage}
                   disabled={!input.trim() || loading}
-                  className="rounded-lg bg-[#171717] p-2 text-white hover:bg-[#262626] disabled:opacity-40 shadow-sm transition"
+                  className="rounded-xl bg-[#171717] p-2.5 text-white shadow-sm transition hover:bg-[#262626] disabled:opacity-40"
                 >
                   <Send className="h-3.5 w-3.5" />
                 </button>
               </div>
-              <div className="flex gap-1.5">
+
+              <div className="mt-2 grid grid-cols-2 gap-2">
                 <button
-                  onClick={() => { if (eventWizardStep !== "idle") { resetEventWizard(); } else { void startEventWizard(input); } }}
-                  className="flex-1 rounded-md border border-[#e5e5e5] bg-[#fafafa] py-1 text-[10px] font-semibold text-[#171717] hover:bg-[#f4f4f5] transition shadow-sm"
+                  onClick={() => {
+                    if (eventWizardStep !== "idle") {
+                      resetEventWizard();
+                    } else {
+                      void startEventWizard(input);
+                    }
+                  }}
+                  className="rounded-lg border border-[#e5e5e5] bg-[#fafafa] py-2 text-[10px] font-semibold text-[#171717] shadow-sm transition hover:bg-[#f4f4f5]"
                 >
-                  {eventWizardStep !== "idle" ? (lang === "tr" ? "İptal Et" : "Cancel") : (lang === "tr" ? "Etkinlik Sihirbazı" : "Event Wizard")}
+                  {eventWizardStep !== "idle"
+                    ? lang === "tr"
+                      ? "İptal Et"
+                      : "Cancel"
+                    : lang === "tr"
+                      ? "Etkinlik Sihirbazı"
+                      : "Event Wizard"}
                 </button>
+
                 <button
                   onClick={() => setShowSupportForm(true)}
-                  className="flex-1 rounded-md border border-[#e5e5e5] bg-[#fafafa] py-1 text-[10px] font-semibold text-[#737373] hover:bg-[#f4f4f5] transition shadow-sm"
+                  className="rounded-lg border border-[#e5e5e5] bg-[#fafafa] py-2 text-[10px] font-semibold text-[#737373] shadow-sm transition hover:bg-[#f4f4f5]"
                 >
                   {lang === "tr" ? "Destek Talebi" : "Support Ticket"}
                 </button>
