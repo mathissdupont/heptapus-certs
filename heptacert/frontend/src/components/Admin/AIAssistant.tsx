@@ -1,142 +1,39 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, AlertCircle, Lightbulb } from "lucide-react";
+import { MessageCircle, X, Send, AlertCircle, Lightbulb, User, Sparkles, Command } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { apiFetch, getToken } from "@/lib/api";
+import { detectIntent, shouldStartCreateEventWizard } from "@/lib/assistant/intent";
+import { findFaqAnswer } from "@/lib/assistant/faq";
+import { getWizardQuestion, buildReviewMessage } from "@/lib/assistant/wizard";
 
 interface Message {
   role: "user" | "assistant";
   message: string;
   timestamp: string;
 }
-
-type EventWizardStep =
-  | "idle"
-  | "name"
-  | "date"
-  | "location"
-  | "description"
-  | "type"
-  | "features"
-  | "confirm";
-
-interface EventDraft {
-  name: string;
-  eventDate: string;
-  eventStartTime: string;
-  eventEndTime: string;
-  eventLocation: string;
-  eventDescription: string;
-  eventType: string;
-  visibility: "private" | "unlisted" | "public";
-  registrationClosed: boolean;
-  requireEmailVerification: boolean;
-  registrationQuotaEnabled: boolean;
-  registrationQuota: string;
-  requiresApproval: boolean;
-  scheduleHint: string;
-  registrationFields: SuggestedRegistrationField[];
-  certificateEnabled: boolean;
-  checkinEnabled: boolean;
-  ticketingEnabled: boolean;
-  registrationEnabled: boolean;
-  rafflesEnabled: boolean;
-  gamificationEnabled: boolean;
-  organizerPrivacyNoticeEnabled: boolean;
-  organizerPrivacyNoticeText: string;
-  showCrossBorderTransferNotice: boolean;
-  requireCrossBorderTransferConsent: boolean;
-  dataControllerName: string;
-  dataControllerContactEmail: string;
-  dataRetentionNote: string;
-  kvkkConsentRequired: boolean;
-  kvkkConsentText: string;
-}
-
-interface SuggestedRegistrationField {
-  id: string;
-  label: string;
-  type: "text" | "textarea" | "number" | "tel" | "select" | "date" | "file";
-  required: boolean;
-  placeholder?: string;
-  helper_text?: string;
-  options?: Array<{ label: string; capacity?: number | null }>;
-  selection_mode?: "single" | "multiple";
-}
-
-const EMPTY_EVENT_DRAFT: EventDraft = {
-  name: "",
-  eventDate: "",
-  eventStartTime: "",
-  eventEndTime: "",
-  eventLocation: "",
-  eventDescription: "",
-  eventType: "certificate_event",
-  visibility: "unlisted",
-  registrationClosed: false,
-  requireEmailVerification: true,
-  registrationQuotaEnabled: false,
-  registrationQuota: "",
-  requiresApproval: false,
-  scheduleHint: "",
-  registrationFields: [],
-  certificateEnabled: true,
-  checkinEnabled: true,
-  ticketingEnabled: false,
-  registrationEnabled: true,
-  rafflesEnabled: false,
-  gamificationEnabled: false,
-  organizerPrivacyNoticeEnabled: false,
-  organizerPrivacyNoticeText: "",
-  showCrossBorderTransferNotice: true,
-  requireCrossBorderTransferConsent: true,
-  dataControllerName: "",
-  dataControllerContactEmail: "",
-  dataRetentionNote: "",
-  kvkkConsentRequired: false,
-  kvkkConsentText: "",
-};
-
-const CREATE_EVENT_INTENT_PATTERNS = [
-  /\b(etkinlik|event)\s*(olustur\w*|create|add|yeni)\b/i,
-  /\b(yeni)\s*(etkinlik|event)\b/i,
-  /\bcreate\s*(an|a)?\s*event\b/i,
-  /\bnew\s*event\b/i,
-];
-
-const NEGATION_PATTERNS = /\b(no|not|dont|don't|never|hayir|yok|istemiyorum|istemem|olmasin|kapali)\b/i;
-
-function normalizePromptText(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
-
-function isCreateEventIntent(value: string): boolean {
-  const normalized = normalizePromptText(value);
-  return CREATE_EVENT_INTENT_PATTERNS.some((pattern) => pattern.test(normalized));
-}
-
-function isAffirmative(value: string): boolean {
-  const normalized = normalizePromptText(value);
-  return /\b(ev|evet|yes|yeah|ok|okay|tamam|onay|olustur|create|go|devam)\b/i.test(normalized);
-}
-
-function isNegative(value: string): boolean {
-  const normalized = normalizePromptText(value);
-  return /\b(hayir|no|iptal|cancel|geri|dur|stop)\b/i.test(normalized);
-}
-
-function isSkipValue(value: string): boolean {
-  const normalized = normalizePromptText(value);
-  return /\b(atla|skip|gec|bilmiyorum|sonra|default|varsayilan)\b/i.test(normalized);
-}
-
-function compactText(value: string): string {
-  return normalizePromptText(value).replace(/[^a-z0-9\s-]/g, " ").replace(/\s+/g, " ").trim();
-}
+import {
+  EventDraft,
+  EventWizardStep,
+  EMPTY_EVENT_DRAFT,
+  createInitialDraft,
+  seedEventDraftFromText,
+  validateDraft,
+  formatDraftSummary,
+  buildWizardProgressMessage,
+  nextWizardStepFromDraft,
+  getMissingWizardFields,
+  buildSmartRegistrationFields,
+  deriveEventName,
+  normalizeEventDate,
+  parseTurkishMonthDate,
+  extractLocation,
+  extractType,
+  normalizeEventType,
+  extractFeatureFlags,
+} from "@/lib/assistant/eventDraft";
+import { compactText, fuzzyAny, isAffirmative, isNegative, isSkipValue } from "@/lib/assistant/text";
 
 function singularizeWord(value: string): string {
   const word = compactText(value).split(/\s+/)[0] || "";
@@ -151,528 +48,24 @@ function tokenize(value: string): string[] {
     .filter(Boolean);
 }
 
-function levenshteinDistance(left: string, right: string): number {
-  if (left === right) return 0;
-  if (!left.length) return right.length;
-  if (!right.length) return left.length;
+// Helper parsing and formatting logic moved to src/lib/assistant/eventDraft.ts
 
-  const previousRow = new Array(right.length + 1).fill(0).map((_, index) => index);
-  for (let rowIndex = 1; rowIndex <= left.length; rowIndex += 1) {
-    const currentRow = [rowIndex];
-    for (let columnIndex = 1; columnIndex <= right.length; columnIndex += 1) {
-      const insertCost = currentRow[columnIndex - 1] + 1;
-      const deleteCost = previousRow[columnIndex] + 1;
-      const replaceCost = previousRow[columnIndex - 1] + (left[rowIndex - 1] === right[columnIndex - 1] ? 0 : 1);
-      currentRow.push(Math.min(insertCost, deleteCost, replaceCost));
-    }
-    for (let columnIndex = 0; columnIndex < previousRow.length; columnIndex += 1) {
-      previousRow[columnIndex] = currentRow[columnIndex];
-    }
-  }
-  return previousRow[right.length];
-}
-
-function fuzzyIncludes(text: string, keyword: string): boolean {
-  const normalizedText = compactText(text);
-  const normalizedKeyword = compactText(keyword);
-  if (!normalizedText || !normalizedKeyword) return false;
-  if (normalizedText.includes(normalizedKeyword)) return true;
-
-  const tokens = tokenize(normalizedText);
-  return tokens.some((token) => {
-    if (token === normalizedKeyword) return true;
-    if (token.startsWith(normalizedKeyword) || normalizedKeyword.startsWith(token)) return true;
-    const maxDistance = Math.max(1, Math.floor(Math.min(token.length, normalizedKeyword.length) / 3));
-    return levenshteinDistance(token, normalizedKeyword) <= maxDistance;
-  });
-}
-
-function fuzzyAny(text: string, keywords: string[]): boolean {
-  return keywords.some((keyword) => fuzzyIncludes(text, keyword));
-}
-
-const TURKISH_MONTHS: Array<[string, number]> = [
-  ["ocak", 0],
-  ["subat", 1],
-  ["mart", 2],
-  ["nisan", 3],
-  ["mayis", 4],
-  ["haziran", 5],
-  ["temmuz", 6],
-  ["agustos", 7],
-  ["eylul", 8],
-  ["ekim", 9],
-  ["kasim", 10],
-  ["aralik", 11],
-];
-
-function parseTurkishMonthDate(value: string): string {
-  const normalized = compactText(value);
-  const match = normalized.match(/\b(\d{1,2})\s+([a-z]+)\s+(\d{4})\b/);
-  if (!match) return "";
-  const day = Number(match[1]);
-  const year = Number(match[3]);
-  const month = TURKISH_MONTHS.find(([name]) => fuzzyIncludes(match[2], name))?.[1];
-  if (month === undefined || !Number.isFinite(day) || !Number.isFinite(year)) return "";
-  const candidate = new Date(Date.UTC(year, month, day));
-  if (candidate.getUTCDate() !== day || candidate.getUTCMonth() !== month || candidate.getUTCFullYear() !== year) {
-    return "";
-  }
-  return candidate.toISOString().slice(0, 10);
-}
-
-function extractDateRange(text: string): { date: string; startTime: string; endTime: string; hint: string } {
-  const normalized = compactText(text);
-  const date = normalizeEventDate(text) || parseTurkishMonthDate(text);
-  const timeMatches = Array.from(normalized.matchAll(/\b(\d{1,2})(?::|\.|\s)(\d{2})\b/g)).map((match) => `${String(match[1]).padStart(2, "0")}:${match[2]}`);
-  const rangeMatch = normalized.match(/\b(\d{1,2})(?::|\.|\s)(\d{2})\s*[-–to]{1,3}\s*(\d{1,2})(?::|\.|\s)(\d{2})\b/i);
-  const startTime = rangeMatch ? `${String(rangeMatch[1]).padStart(2, "0")}:${rangeMatch[2]}` : (timeMatches[0] || "");
-  const endTime = rangeMatch ? `${String(rangeMatch[3]).padStart(2, "0")}:${rangeMatch[4]}` : (timeMatches[1] || "");
-  const hintParts: string[] = [];
-  if (date) hintParts.push(date);
-  if (startTime && endTime) hintParts.push(`${startTime}-${endTime}`);
-  else if (startTime) hintParts.push(startTime);
-  return { date, startTime, endTime, hint: hintParts.join(" ").trim() };
-}
-
-function extractLocation(text: string): string {
-  const normalized = compactText(text);
-  const locationMarkers = ["ankara", "istanbul", "izmir", "bursa", "antalya", "adana", "eskişehir", "eskisehir", "konya", "trabzon", "online", "zoom", "teams", "meet", "hybrid"];
-  const directHit = locationMarkers.find((marker) => fuzzyIncludes(normalized, marker));
-  if (directHit) return directHit;
-
-  const atMatch = normalized.match(/\b(?:in|at|@)\s+([a-z0-9\s-]{2,40})/i);
-  if (atMatch) {
-    return atMatch[1].trim().split(/\s+/).slice(0, 4).join(" ");
-  }
-
-  return "";
-}
-
-function isLikelyEventText(value: string): boolean {
-  const normalized = compactText(value);
-  return fuzzyAny(normalized, ["etkinlik", "event", "oluştur", "olustur", "create", "yeni", "kayıt", "kayit", "konferans", "seminar", "workshop", "eğitim", "egitim", "webinar", "online", "konser", "kulüp", "kulup", "club"]) || /\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b/.test(normalized) || /\b\d{1,2}\s+[a-zçğıöşü]+\s+\d{4}\b/.test(normalized);
-}
-
-function extractType(text: string): string {
-  const normalized = compactText(text);
-  if (fuzzyAny(normalized, ["workshop", "atolye"])) return "workshop";
-  if (fuzzyAny(normalized, ["training", "egitim", "kurs"])) return "training";
-  if (fuzzyAny(normalized, ["seminar", "panel", "soylesi", "talk"])) return "seminar";
-  if (fuzzyAny(normalized, ["webinar", "online", "canli", "zoom", "teams", "virtual"])) return "online_event";
-  if (fuzzyAny(normalized, ["conference", "konferans", "zirve", "summit"])) return "conference";
-  if (fuzzyAny(normalized, ["concert", "konser", "müzik", "muzik", "sahne", "festival"])) return "concert";
-  if (fuzzyAny(normalized, ["club", "kulup", "topluluk", "community", "sosyal"])) return "club_event";
-  if (fuzzyAny(normalized, ["custom", "ozel", "özel", "special"])) return "custom";
-  if (fuzzyAny(normalized, ["meetup", "topluluk", "community"])) return "club_event";
-  return "certificate_event";
-}
-
-function applyEventTypePreset(draft: EventDraft, sourceText: string): EventDraft {
-  const normalized = compactText(sourceText);
-  const next = { ...draft };
-  const mentions = (keywords: string[]) => fuzzyAny(normalized, keywords);
-
-  if (draft.eventType === "online_event") {
-    if (!mentions(["certificate", "sertifika"])) next.certificateEnabled = false;
-    if (!mentions(["checkin", "check-in", "qr", "yoklama"])) next.checkinEnabled = false;
-    if (!mentions(["ticket", "bilet", "odeme", "payment", "ucret"])) next.ticketingEnabled = false;
-    if (!mentions(["approval", "onay", "approve"])) next.requiresApproval = false;
-  }
-
-  if (draft.eventType === "concert" || draft.eventType === "club_event") {
-    if (!mentions(["certificate", "sertifika"])) next.certificateEnabled = false;
-    if (!mentions(["ticket", "bilet", "odeme", "payment", "ucret"])) next.ticketingEnabled = true;
-    if (!mentions(["checkin", "check-in", "qr", "yoklama"])) next.checkinEnabled = true;
-  }
-
-  if (draft.eventType === "workshop" || draft.eventType === "training") {
-    if (!mentions(["certificate", "sertifika"])) next.certificateEnabled = true;
-    if (!mentions(["checkin", "check-in", "qr", "yoklama"])) next.checkinEnabled = true;
-    if (!mentions(["registration_closed", "kayıt kapalı", "kayit kapali"])) next.registrationEnabled = true;
-  }
-
-  if (draft.eventType === "seminar" || draft.eventType === "conference") {
-    if (!mentions(["certificate", "sertifika"])) next.certificateEnabled = true;
-    if (!mentions(["checkin", "check-in", "qr", "yoklama"])) next.checkinEnabled = true;
-  }
-
-  return next;
-}
-
-function buildSmartRegistrationFields(eventType: string): SuggestedRegistrationField[] {
-  const presets: Record<string, SuggestedRegistrationField[]> = {
-    workshop: [
-      { id: "company", label: "Şirket / Kurum", type: "text", required: false, placeholder: "Kurum adını yazın" },
-      { id: "role", label: "Unvan", type: "text", required: false, placeholder: "Örn. Yazılım geliştirici" },
-      { id: "experience", label: "Deneyim Seviyesi", type: "select", required: false, options: [{ label: "Başlangıç" }, { label: "Orta" }, { label: "İleri" }], selection_mode: "single" },
-      { id: "device", label: "Cihaz İhtiyacı", type: "select", required: false, options: [{ label: "Laptop" }, { label: "Tablet" }, { label: "Yok" }], selection_mode: "single" },
-    ],
-    training: [
-      { id: "company", label: "Şirket / Kurum", type: "text", required: false },
-      { id: "department", label: "Departman", type: "text", required: false },
-      { id: "experience", label: "Seviye", type: "select", required: false, options: [{ label: "Yeni başlayan" }, { label: "Orta" }, { label: "İleri" }], selection_mode: "single" },
-      { id: "needs", label: "Beklenti / İhtiyaç", type: "textarea", required: false },
-    ],
-    seminar: [
-      { id: "company", label: "Şirket / Kurum", type: "text", required: false },
-      { id: "title", label: "Görev / Unvan", type: "text", required: false },
-      { id: "interest", label: "İlgi Alanı", type: "text", required: false },
-    ],
-    conference: [
-      { id: "company", label: "Şirket / Kurum", type: "text", required: false },
-      { id: "title", label: "Unvan", type: "text", required: false },
-      { id: "topic", label: "En İlgi Çeken Oturum", type: "text", required: false },
-      { id: "linkedin", label: "LinkedIn Profil URL", type: "text", required: false },
-    ],
-    online_event: [
-      { id: "timezone", label: "Saat Dilimi", type: "text", required: false, placeholder: "Örn. Europe/Istanbul" },
-      { id: "platform", label: "Platform Tercihi", type: "select", required: false, options: [{ label: "Zoom" }, { label: "Teams" }, { label: "Meet" }, { label: "Diğer" }], selection_mode: "single" },
-      { id: "device", label: "Katılacağınız Cihaz", type: "select", required: false, options: [{ label: "Masaüstü" }, { label: "Mobil" }, { label: "Tablet" }], selection_mode: "single" },
-    ],
-    concert: [
-      { id: "ticket_type", label: "Bilet Türü", type: "select", required: false, options: [{ label: "Standart" }, { label: "VIP" }, { label: "Öğrenci" }], selection_mode: "single" },
-      { id: "company", label: "Şirket / Kurum", type: "text", required: false },
-      { id: "note", label: "Özel İstek", type: "textarea", required: false },
-    ],
-    club_event: [
-      { id: "member_type", label: "Üyelik Tipi", type: "select", required: false, options: [{ label: "Üye" }, { label: "Misafir" }, { label: "Konuk" }], selection_mode: "single" },
-      { id: "company", label: "Şirket / Kurum", type: "text", required: false },
-      { id: "note", label: "Not", type: "textarea", required: false },
-    ],
-    custom: [
-      { id: "company", label: "Şirket / Kurum", type: "text", required: false },
-      { id: "purpose", label: "Etkinlik Amacı", type: "textarea", required: false },
-    ],
-    certificate_event: [
-      { id: "company", label: "Şirket / Kurum", type: "text", required: false },
-      { id: "title", label: "Görev / Unvan", type: "text", required: false },
-    ],
-  };
-
-  // Validate draft before creating
-  function validateDraft(draft: EventDraft, lang: string): string[] {
-    const errs: string[] = [];
-    if (!draft.name || !draft.name.trim()) errs.push(lang === "tr" ? "Etkinlik adı gerekli" : "Event name is required");
-    if (draft.registrationQuotaEnabled && draft.registrationQuota && isNaN(Number(draft.registrationQuota))) errs.push(lang === "tr" ? "Kontenjan sayısal olmalı" : "Quota must be numeric");
-    if (draft.dataControllerContactEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(draft.dataControllerContactEmail)) errs.push(lang === "tr" ? "Geçersiz e-posta adresi" : "Invalid data controller email");
-    if (draft.eventDate && !/^\d{4}-\d{2}-\d{2}$/.test(draft.eventDate)) errs.push(lang === "tr" ? "Tarih YYYY-MM-DD formatında olmalı" : "Date must be YYYY-MM-DD");
-    return errs;
-  }
-
-  const normalizedKey = (eventType || "certificate_event").trim();
-  return presets[normalizedKey] ?? presets.certificate_event;
-}
-
-function buildComplianceSuggestions(draft: EventDraft, lang: string): string[] {
-  const suggestions: string[] = [];
-  const privacyNeeded = draft.registrationEnabled || draft.requireEmailVerification || draft.registrationQuotaEnabled;
-
-  if (privacyNeeded) {
-    suggestions.push(
-      lang === "tr"
-        ? "KVKK/aydınlatma metni ekleyin"
-        : "Add a KVKK/privacy notice"
-    );
-    suggestions.push(
-      lang === "tr"
-        ? "Kayıt formuna açık rıza kutusu ekleyin"
-        : "Add a consent checkbox to the registration form"
-    );
-    suggestions.push(
-      lang === "tr"
-        ? "Veri işleme amacı ve saklama süresini belirtin"
-        : "State the purpose of processing and retention period"
-    );
-  }
-
-  if (draft.visibility === "public" || draft.visibility === "unlisted") {
-    suggestions.push(
-      lang === "tr"
-        ? "Gizlilik politikası / şartlar bağlantısı ekleyin"
-        : "Add a privacy policy / terms link"
-    );
-  }
-
-  if (draft.eventType === "online_event" || draft.eventType === "conference" || draft.eventType === "workshop") {
-    suggestions.push(
-      lang === "tr"
-        ? "İletişim ve bilgilendirme onaylarını ayrı tutun"
-        : "Keep contact and information consent separate"
-    );
-  }
-
-  return Array.from(new Set(suggestions));
-}
-
-function extractVisibility(text: string): EventDraft["visibility"] | "" {
-  const normalized = compactText(text);
-  if (fuzzyAny(normalized, ["public", "acik", "herkese acik", "gozukecek", "listelensin"])) return "public";
-  if (fuzzyAny(normalized, ["private", "ozel", "gizli", "sadece ben", "hidden"])) return "private";
-  if (fuzzyAny(normalized, ["unlisted", "liste disi", "linkle", "direk link", "link ile"])) return "unlisted";
-  return "";
-}
-
-function extractRegistrationQuota(text: string): string {
-  const normalized = compactText(text);
-  const patterns = [
-    /\b(?:kota|kontenjan|limit|kapasite|capacity)\D{0,10}(\d{1,6})\b/i,
-    /\b(\d{1,6})\D{0,10}(?:kisi|kişi|katilimci|katılımcı|kontenjan|kota|limit)\b/i,
-  ];
-  for (const pattern of patterns) {
-    const match = normalized.match(pattern);
-    if (match?.[1]) return match[1];
-  }
-  return "";
-}
-
-function extractScheduleHint(text: string): string {
-  const range = extractDateRange(text);
-  return range.hint;
-}
-
-function extractRegistrationClosed(text: string): boolean | null {
-  const normalized = compactText(text);
-  if (fuzzyAny(normalized, ["kayıt kapalı", "kayit kapali", "registration closed", "basvuru kapali", "başvuru kapalı"])) return true;
-  if (fuzzyAny(normalized, ["kayıt açık", "kayit acik", "registration open", "basvuru acik", "başvuru açık"])) return false;
-  return null;
-}
-
-function extractRequireEmailVerification(text: string): boolean | null {
-  const normalized = compactText(text);
-  if (fuzzyAny(normalized, ["email verification", "mail dogrulama", "e-posta dogrulama", "dogrulama gerekli", "verification required"])) return true;
-  if (fuzzyAny(normalized, ["email verification kapali", "dogrulama isteme", "no verification", "verification off", "dogrulama kapali"])) return false;
-  return null;
-}
-
-function extractRequiresApproval(text: string): boolean | null {
-  const normalized = compactText(text);
-  if (fuzzyAny(normalized, ["onayli", "approval", "approve", "manuel onay", "moderation", "beklemede onay"])) return true;
-  if (fuzzyAny(normalized, ["onaysiz", "approval off", "otomatik onay", "no approval"])) return false;
-  return null;
-}
-
-function extractFeatureFlags(text: string, current: EventDraft): EventDraft {
-  const normalized = compactText(text);
-  const next = { ...current };
-
-  const setByKeywords = (target: keyof EventDraft, keywords: string[], defaultValue: boolean) => {
-    if (!fuzzyAny(normalized, keywords)) return;
-    (next[target] as boolean) = !NEGATION_PATTERNS.test(normalized) ? true : false;
-    if (!fuzzyAny(normalized, ["yes", "evet", "tabi", "tabii", "lazim", "gerekli", "gerek"])) {
-      (next[target] as boolean) = !NEGATION_PATTERNS.test(normalized) ? true : defaultValue;
-    }
-  };
-
-  setByKeywords("certificateEnabled", ["certificate", "sertifika", "sertifikali"], current.certificateEnabled);
-  setByKeywords("checkinEnabled", ["checkin", "check-in", "qr", "yoklama", "giris"], current.checkinEnabled);
-  setByKeywords("ticketingEnabled", ["ticket", "bilet", "odeme", "payment", "ucret"], current.ticketingEnabled);
-  setByKeywords("registrationEnabled", ["registration", "register", "kayit"], current.registrationEnabled);
-  setByKeywords("rafflesEnabled", ["raffle", "cekilis", "draw", "odul"], current.rafflesEnabled);
-  setByKeywords("gamificationEnabled", ["gamification", "rozet", "badge", "puan", "leaderboard"], current.gamificationEnabled);
-
-  return next;
-}
-
-function extractEventHints(text: string, current: EventDraft = EMPTY_EVENT_DRAFT): EventDraft {
-  const normalized = compactText(text);
-  const next = { ...current };
-  const range = extractDateRange(text);
-  const date = range.date;
-  const location = extractLocation(text);
-  const eventType = extractType(text);
-  const visibility = extractVisibility(text);
-  const quota = extractRegistrationQuota(text);
-  const registrationClosed = extractRegistrationClosed(text);
-  const requireEmailVerification = extractRequireEmailVerification(text);
-  const requiresApproval = extractRequiresApproval(text);
-  const scheduleHint = extractScheduleHint(text);
-
-  if (date) next.eventDate = date;
-  if (range.startTime) next.eventStartTime = range.startTime;
-  if (range.endTime) next.eventEndTime = range.endTime;
-  if (location) next.eventLocation = location;
-  if (eventType) next.eventType = eventType;
-  if (visibility) next.visibility = visibility;
-  if (quota) {
-    next.registrationQuota = quota;
-    next.registrationQuotaEnabled = true;
-  }
-  if (scheduleHint) next.scheduleHint = scheduleHint;
-  if (registrationClosed !== null) next.registrationClosed = registrationClosed;
-  if (requireEmailVerification !== null) next.requireEmailVerification = requireEmailVerification;
-  if (requiresApproval !== null) next.requiresApproval = requiresApproval;
-  const withTypePresets = applyEventTypePreset(next, normalized);
-  const withFeatures = extractFeatureFlags(normalized, withTypePresets);
-  if (withFeatures.registrationFields.length === 0) {
-    withFeatures.registrationFields = buildSmartRegistrationFields(withFeatures.eventType);
-  }
-  return withFeatures;
-}
-
-function shouldTreatTextAsWizardSeed(text: string): boolean {
-  const normalized = compactText(text);
-  return fuzzyAny(normalized, ["event", "etkinlik", "olustur", "oluştur", "create", "yeni", "kur", "planla", "hazirla", "setup", "register", "kayıt", "kayit", "konferans", "workshop", "webinar", "seminar", "eğitim", "egitim"])
-    || /\b\d{1,2}\s+[a-zçğıöşü]+\s+\d{4}\b/i.test(normalized)
-    || /\b\d{4}-\d{2}-\d{2}\b/i.test(normalized)
-    || fuzzyAny(normalized, ["ankara", "istanbul", "izmir", "online", "zoom", "teams", "kontenjan", "kota", "gizli", "public", "private", "unlisted", "sertifika", "checkin", "bilet"]);
-}
-
-function nextWizardStepFromDraft(draft: EventDraft): EventWizardStep {
-  if (!draft.name.trim()) return "name";
-  if (!draft.eventDate.trim()) return "date";
-  if (!draft.eventLocation.trim()) return "location";
-  if (!draft.eventDescription.trim()) return "description";
-  if (!draft.eventType.trim()) return "type";
-  return "features";
-}
-
-function getMissingWizardFields(draft: EventDraft): EventWizardStep[] {
-  const missing: EventWizardStep[] = [];
-  if (!draft.name.trim()) missing.push("name");
-  if (!draft.eventDate.trim()) missing.push("date");
-  if (!draft.eventLocation.trim()) missing.push("location");
-  if (!draft.eventDescription.trim()) missing.push("description");
-  if (!draft.eventType.trim()) missing.push("type");
-  if (!draft.visibility.trim()) missing.push("features");
-  return missing;
-}
-
-function formatInferredDraftSummary(draft: EventDraft, lang: string): string {
-  const inferred: string[] = [];
-  if (draft.name.trim()) inferred.push(lang === "tr" ? `Ad: ${draft.name}` : `Name: ${draft.name}`);
-  if (draft.eventDate.trim()) inferred.push(lang === "tr" ? `Tarih: ${draft.eventDate}` : `Date: ${draft.eventDate}`);
-  if (draft.eventStartTime.trim() || draft.eventEndTime.trim()) {
-    inferred.push(lang === "tr" ? `Saat: ${draft.eventStartTime || "?"}${draft.eventEndTime ? `-${draft.eventEndTime}` : ""}` : `Time: ${draft.eventStartTime || "?"}${draft.eventEndTime ? `-${draft.eventEndTime}` : ""}`);
-  }
-  if (draft.eventLocation.trim()) inferred.push(lang === "tr" ? `Konum: ${draft.eventLocation}` : `Location: ${draft.eventLocation}`);
-  if (draft.eventType.trim()) inferred.push(lang === "tr" ? `Tip: ${draft.eventType}` : `Type: ${draft.eventType}`);
-  if (draft.visibility.trim()) inferred.push(lang === "tr" ? `Görünürlük: ${draft.visibility}` : `Visibility: ${draft.visibility}`);
-  if (draft.registrationQuotaEnabled && draft.registrationQuota.trim()) {
-    inferred.push(lang === "tr" ? `Kontenjan: ${draft.registrationQuota}` : `Quota: ${draft.registrationQuota}`);
-  }
-  if (draft.registrationClosed) inferred.push(lang === "tr" ? "Kayıt kapalı" : "Registration closed");
-  if (!draft.requireEmailVerification) inferred.push(lang === "tr" ? "E-posta doğrulama kapalı" : "Email verification off");
-  if (draft.requiresApproval) inferred.push(lang === "tr" ? "Onay gerekiyor" : "Approval required");
-  if (draft.registrationFields.length > 0) inferred.push(lang === "tr" ? `Önerilen form alanları: ${draft.registrationFields.length}` : `Suggested form fields: ${draft.registrationFields.length}`);
-  return inferred.length > 0
-    ? inferred.join(", ")
-    : lang === "tr"
-      ? "Henüz net bir alan yakalayamadım."
-      : "I haven't inferred any clear fields yet.";
-}
-
-function formatMissingFieldsList(missing: EventWizardStep[], lang: string): string {
-  const labels: Record<EventWizardStep, string> = {
-    idle: "",
-    name: lang === "tr" ? "ad" : "name",
-    date: lang === "tr" ? "tarih" : "date",
-    location: lang === "tr" ? "konum" : "location",
-    description: lang === "tr" ? "açıklama" : "description",
-    type: lang === "tr" ? "etkinlik tipi" : "event type",
-    features: lang === "tr" ? "özellikler" : "features",
-    confirm: lang === "tr" ? "onay" : "confirmation",
-  };
-  const readable = missing.map((step) => labels[step]).filter(Boolean);
-  if (!readable.length) {
-    return lang === "tr" ? "Eksik alan kalmadı." : "No fields are missing.";
-  }
-  return lang === "tr"
-    ? `Eksik kalanlar: ${readable.join(", ")}.`
-    : `Still missing: ${readable.join(", ")}.`;
-}
-
-function formatSuggestedFormFields(fields: SuggestedRegistrationField[], lang: string): string {
-  if (!fields.length) {
-    return lang === "tr" ? "Önerilen kayıt formu alanı yok." : "No suggested registration fields.";
-  }
-  const names = fields.slice(0, 4).map((field) => field.label);
-  const suffix = fields.length > 4 ? (lang === "tr" ? ` ve ${fields.length - 4} alan daha` : ` and ${fields.length - 4} more`) : "";
-  return lang === "tr"
-    ? `Önerilen kayıt formu alanları: ${names.join(", ")}${suffix}.`
-    : `Suggested registration fields: ${names.join(", ")}${suffix}.`;
-}
-
-function formatComplianceSuggestions(draft: EventDraft, lang: string): string {
-  const suggestions = buildComplianceSuggestions(draft, lang);
-  if (!suggestions.length) {
-    return lang === "tr" ? "KVKK için ek öneri yok." : "No extra compliance suggestions.";
-  }
-  return lang === "tr"
-    ? `KVKK / gizlilik önerileri: ${suggestions.join(", ")}.`
-    : `Compliance suggestions: ${suggestions.join(", ")}.`;
-}
-
-function buildWizardProgressMessage(draft: EventDraft, lang: string): string {
-  const missing = getMissingWizardFields(draft);
-  const inferredSummary = formatInferredDraftSummary(draft, lang);
-  const missingSummary = formatMissingFieldsList(missing, lang);
-  const formSummary = formatSuggestedFormFields(draft.registrationFields, lang);
-  const complianceSummary = formatComplianceSuggestions(draft, lang);
-
-  const header = lang === "tr"
-    ? `Şunları anladım: ${inferredSummary}`
-    : `I understood: ${inferredSummary}`;
-
-  const footer = missing.length === 0
-    ? (lang === "tr"
-      ? "Taslak tamamlandı. Onaylarsanız oluşturacağım."
-      : "The draft is complete. I will create it once you confirm.")
-    : missingSummary;
-
-  return `${header}\n${formSummary}\n${complianceSummary}\n${footer}`;
-}
+// Use centralized wizard helpers from lib/assistant/eventDraft.ts
 
 function summarizeMissingFields(step: EventWizardStep, lang: string): string {
   switch (step) {
-    case "name":
-      return lang === "tr" ? "Etkinlik adı eksik." : "Event name is missing.";
-    case "date":
-      return lang === "tr" ? "Tarih eksik." : "Date is missing.";
-    case "location":
-      return lang === "tr" ? "Konum eksik." : "Location is missing.";
-    case "description":
-      return lang === "tr" ? "Açıklama eksik." : "Description is missing.";
-    case "type":
-      return lang === "tr" ? "Etkinlik tipi eksik." : "Event type is missing.";
-    default:
-      return lang === "tr" ? "Özellikler gözden geçirilmeli." : "Features should be reviewed.";
+    case "name": return lang === "tr" ? "Etkinlik adı eksik." : "Event name is missing.";
+    case "date": return lang === "tr" ? "Tarih eksik." : "Date is missing.";
+    case "location": return lang === "tr" ? "Konum eksik." : "Location is missing.";
+    case "description": return lang === "tr" ? "Açıklama eksik." : "Description is missing.";
+    case "type": return lang === "tr" ? "Etkinlik tipi eksik." : "Event type is missing.";
+    default: return lang === "tr" ? "Özellikler gözden geçirilmeli." : "Features should be reviewed.";
   }
 }
 
-function deriveEventName(text: string): string {
-  const normalized = compactText(text);
-  const cleaned = normalized
-    .replace(/\b(etkinlik|event|create|olustur\w*|yeni|new|setup|planla|hazirla|kur)\b/g, " ")
-    .replace(/\b(certificate|sertifika|checkin|check-in|qr|ticket|bilet|payment|odeme|registration|register|kayit|quota|kota|kontenjan|limit|capacity|workshop|atolye|training|egitim|webinar|conference|konferans|zirve|summit|community|topluluk|raffle|cekilis|draw|gamification|rozet|badge|puan|leaderboard|seminar|panel|soylesi|talk|concert|konser|festival|online|zoom|teams|virtual|private|public|unlisted|acik|gizli|ozel|özel)\b/g, " ")
-    .replace(/\b(ocak|subat|mart|nisan|mayis|haziran|temmuz|agustos|eylul|ekim|kasim|aralik)\b/g, " ")
-    .replace(/\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b/g, " ")
-    .replace(/\b\d{4}-\d{2}-\d{2}\b/g, " ")
-    .replace(/\b\d{1,6}\s*(?:kisi|kişi|katilimci|katılımcı|kontenjan|kota|limit)\b/g, " ")
-    .replace(/\b(?:in|at|@)\s+[a-z0-9\s-]{2,40}\b/g, " ")
-    .replace(/\b[a-z0-9\s-]{2,40}\s+(?:sehrinde|şehrinde|ilinde|ilcesinde|ilçesinde|city|şehirde)\b/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+// deriveEventName is implemented in lib/assistant/eventDraft.ts
 
-  if (!cleaned || cleaned.length < 3) {
-    return "";
-  }
-
-  if (/^(etkinlik|event|new event|yeni etkinlik)$/i.test(cleaned)) {
-    return "";
-  }
-
-  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
-}
-
-function seedEventDraftFromText(text: string, fallback: EventDraft = EMPTY_EVENT_DRAFT): EventDraft {
-  const hinted = extractEventHints(text, fallback);
-  const derivedName = deriveEventName(text);
-  return {
-    ...hinted,
-    name: hinted.name.trim() || derivedName,
-  };
-}
+// seedEventDraftFromText provided by lib/assistant/eventDraft.ts
 
 async function seedEventDraftFromCurrentEvent(eventId: number): Promise<EventDraft | null> {
   try {
@@ -719,257 +112,18 @@ async function seedEventDraftFromCurrentEvent(eventId: number): Promise<EventDra
   }
 }
 
-function normalizeEventDate(value: string): string {
-  const input = value.trim();
-  if (!input || isSkipValue(input)) return "";
+// normalizeEventDate moved to lib/assistant/eventDraft.ts
 
-  const isoMatch = input.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
-  if (isoMatch) {
-    return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
-  }
+// normalizeEventType moved to lib/assistant/eventDraft.ts
 
-  const dottedMatch = input.match(/\b(\d{2})[./-](\d{2})[./-](\d{4})\b/);
-  if (dottedMatch) {
-    return `${dottedMatch[3]}-${dottedMatch[2]}-${dottedMatch[1]}`;
-  }
+// feature parsing moved to lib/assistant/eventDraft.ts
 
-  const parsed = new Date(input);
-  if (!Number.isNaN(parsed.getTime())) {
-    return parsed.toISOString().slice(0, 10);
-  }
+// buildFeatureSummary kept local
 
-  return input;
-}
+// createInitialDraft provided by lib/assistant/eventDraft.ts
 
-function normalizeEventType(value: string): string {
-  const text = normalizePromptText(value);
-  if (/\b(workshop|atolye)\b/i.test(text)) return "workshop";
-  if (/\b(training|egitim)\b/i.test(text)) return "training";
-  if (/\b(webinar|online|canli|zoom|teams|virtual)\b/i.test(text)) return "online_event";
-  if (/\b(conference|konferans|zirve|summit)\b/i.test(text)) return "conference";
-  if (/\b(community|topluluk|meetup)\b/i.test(text)) return "club_event";
-  if (/\b(seminar|panel|soylesi|talk)\b/i.test(text)) return "seminar";
-  if (/\b(concert|konser|festival|sahne|muzik)\b/i.test(text)) return "concert";
-  if (/\b(ozel|özel|custom|special)\b/i.test(text)) return "custom";
-  return "certificate_event";
-}
+// formatDraftSummary provided by lib/assistant/eventDraft.ts
 
-function normalizeFeatureFlags(value: string, fallback: EventDraft = EMPTY_EVENT_DRAFT): EventDraft {
-  const text = normalizePromptText(value);
-  if (isSkipValue(text)) {
-    return { ...fallback };
-  }
-
-  const matches = (keywords: string[]): boolean => keywords.some((keyword) => text.includes(keyword));
-  const enabled = (keywords: string[], defaultValue: boolean): boolean => {
-    if (matches(keywords)) {
-      return !NEGATION_PATTERNS.test(text);
-    }
-    return defaultValue;
-  };
-
-  return {
-    ...fallback,
-    certificateEnabled: enabled(["certificate", "sertifika"], fallback.certificateEnabled),
-    checkinEnabled: enabled(["checkin", "check-in", "qr", "giris"], fallback.checkinEnabled),
-    ticketingEnabled: enabled(["ticket", "bilet", "payment", "odeme"], fallback.ticketingEnabled),
-    registrationEnabled: enabled(["registration", "register", "kayit"], fallback.registrationEnabled),
-    rafflesEnabled: enabled(["raffle", "cekilis", "draw"], fallback.rafflesEnabled),
-    gamificationEnabled: enabled(["gamification", "rozet", "badge", "puan", "leaderboard"], fallback.gamificationEnabled),
-  };
-}
-
-function buildFeatureSummary(draft: EventDraft, lang: string): string {
-  const features = [
-    ["certificateEnabled", lang === "tr" ? "Sertifika" : "Certificate"],
-    ["checkinEnabled", lang === "tr" ? "Check-in" : "Check-in"],
-    ["registrationEnabled", lang === "tr" ? "Kayıt" : "Registration"],
-    ["ticketingEnabled", lang === "tr" ? "Biletleme" : "Ticketing"],
-    ["rafflesEnabled", lang === "tr" ? "Çekiliş" : "Raffle"],
-    ["gamificationEnabled", lang === "tr" ? "Oyunlaştırma" : "Gamification"],
-  ]
-    .filter(([key]) => draft[key as keyof EventDraft])
-    .map(([, label]) => label);
-
-  return features.length > 0
-    ? features.join(", ")
-    : lang === "tr"
-      ? "Varsayılan özellikler"
-      : "Default features";
-}
-
-function createInitialDraft(): EventDraft {
-  return { ...EMPTY_EVENT_DRAFT };
-}
-
-function formatDraftSummary(draft: EventDraft, lang: string): string {
-  const lines = [lang === "tr" ? `Ad: ${draft.name}` : `Name: ${draft.name}`];
-  if (draft.eventDate) lines.push(lang === "tr" ? `Tarih: ${draft.eventDate}` : `Date: ${draft.eventDate}`);
-  if (draft.eventLocation) lines.push(lang === "tr" ? `Konum: ${draft.eventLocation}` : `Location: ${draft.eventLocation}`);
-  if (draft.eventDescription) lines.push(lang === "tr" ? `Açıklama: ${draft.eventDescription}` : `Description: ${draft.eventDescription}`);
-  lines.push(lang === "tr" ? `Tip: ${draft.eventType}` : `Type: ${draft.eventType}`);
-  lines.push(lang === "tr" ? `Görünürlük: ${draft.visibility}` : `Visibility: ${draft.visibility}`);
-  if (draft.registrationQuotaEnabled && draft.registrationQuota) {
-    lines.push(lang === "tr" ? `Kontenjan: ${draft.registrationQuota}` : `Quota: ${draft.registrationQuota}`);
-  }
-  lines.push(lang === "tr" ? `Kayıt kapalı: ${draft.registrationClosed ? "Evet" : "Hayır"}` : `Registration closed: ${draft.registrationClosed ? "Yes" : "No"}`);
-  lines.push(lang === "tr" ? `E-posta doğrulama: ${draft.requireEmailVerification ? "Zorunlu" : "Kapalı"}` : `Email verification: ${draft.requireEmailVerification ? "Required" : "Off"}`);
-  lines.push(lang === "tr" ? `Onay gereksinimi: ${draft.requiresApproval ? "Evet" : "Hayır"}` : `Requires approval: ${draft.requiresApproval ? "Yes" : "No"}`);
-  lines.push(lang === "tr" ? `Özellikler: ${buildFeatureSummary(draft, lang)}` : `Features: ${buildFeatureSummary(draft, lang)}`);
-  return lines.join("\n");
-}
-
-function getEventPromptForStep(step: EventWizardStep, draft: EventDraft, lang: string): string {
-  switch (step) {
-    case "name":
-      return lang === "tr"
-        ? "Etkinliğin adını yazın."
-        : "Write the event name.";
-    case "date":
-      return lang === "tr"
-        ? "Tarihi YYYY-MM-DD formatında yazın ya da atlamak için 'atla' yazın."
-        : "Write the date in YYYY-MM-DD format, or type 'skip' to leave it blank.";
-    case "location":
-      return lang === "tr"
-        ? "Etkinlik nerede yapılacak? İsterseniz 'atla' yazabilirsiniz."
-        : "Where will the event take place? You can type 'skip' if you want.";
-    case "description":
-      return lang === "tr"
-        ? "Kısa bir açıklama yazın. İsterseniz 'atla' yazabilirsiniz."
-        : "Write a short description. You can type 'skip' if you want.";
-    case "type":
-      return lang === "tr"
-        ? "Etkinlik tipi ne olsun? Konferans, workshop, eğitim, webinar veya başka bir şey yazabilirsiniz."
-        : "What type should it be? You can write conference, workshop, training, webinar, or something else.";
-    case "features":
-      return lang === "tr"
-        ? "Hangi özellikler açık olsun? Sertifika, check-in, kayıt, biletleme, çekiliş, oyunlaştırma yazabilirsiniz. İsterseniz 'varsayılan' yazın."
-        : "Which features should be enabled? You can mention certificate, check-in, registration, ticketing, raffle, or gamification. Type 'default' if you want the usual setup.";
-    case "confirm":
-      return lang === "tr"
-        ? `Taslak hazır. Onaylıyor musunuz?\n\n${formatDraftSummary(draft, lang)}\n\nEvet için 'evet', vazgeçmek için 'hayır' yazın.`
-        : `Draft ready. Do you approve it?\n\n${formatDraftSummary(draft, lang)}\n\nType 'yes' to create it, or 'no' to cancel.`;
-    default:
-      return "";
-  }
-}
-
-// FAQ Bilgi Tabanı
-const FAQ_DATABASE = {
-  tr: [
-    { keywords: ["form", "alan", "registration", "field", "kayıt"], answer: "Form alanlarını eklemek için Etkinlik Ayarları > Kayıt Formu bölümüne gidin. '+Alan Ekle' butonunu tıklayarak yeni alanlar oluşturabilirsiniz. Her alan için türünü (metin, e-posta, tarih vb.), etiketini ve yardımcı metni belirleyebilirsiniz. Alan tipleri: Kısa Metin, E-posta, Telefon, Sayı, Tarih, Çoktan Seçmeli, Dosya Yükleme gibi seçenekler bulunmaktadır." },
-    { keywords: ["sertifika", "certificate", "template", "şablon"], answer: "Sertifika şablonlarını Editor sayfasında özelleştirebilirsiniz. Şablonlara arka plan, logoları, metinleri ve tarzları ekleyebilirsiniz. Önizleme alanında değişiklikleri hemen görebilirsiniz. Sertifika yayınlanmadan önce test katılımcılarla kontrol edebilirsiniz." },
-    { keywords: ["attendee", "katılımcı", "participant", "member", "üye"], answer: "Katılımcılar bölümünde etkinliğinize kayıtlı tüm üyeleri görebilirsiniz. Katılımcı durumunu (kayıtlı, geldimi, gelmedi) değiştirebilir, sertifika verişini yönetebilir veya toplu işlemler yapabilirsiniz. Ayrıca katılımcı bilgilerini dışa aktarabilirsiniz." },
-    { keywords: ["email", "posta", "notification", "bildirim", "smtp"], answer: "E-posta ayarlarını Etkinlik Ayarları > E-posta bölümünde yapılandırabılırsinız. Otomatik sertifika e-postalarını özelleştirebilir, SMTP ayarlarını belirleyebilirsiniz. E-posta şablonlarını kişiselleştirebilir ve zamanlama seçeneklerini ayarlayabilirsiniz." },
-    { keywords: ["raffle", "çekiliş", "draw", "prize", "ödül"], answer: "Çekiliş oluşturmak için Çekiliş sayfasına gidin. Ödüller ekleyin, katılımcı kurallarını belirleyin (kayıt yapanlar, sertifika alanlar, vb.) ve otomatik olarak kazananları seçtirebilirsiniz. Çekiliş tarihi ve saatini önceden planlayabilirsiniz." },
-    { keywords: ["survey", "anket", "question", "soru"], answer: "Anketleri Etkinlik Ayarları > Anket bölümünde oluşturabilirsiniz. Soruları ekleyin, türlerini seçin (metin, çoktan seçme, çoklu seçim, vb.) ve katılımcılar tarafından cevaplanmasını sağlayabilirsiniz. Anket sonuçlarını detaylı olarak analiz edebilirsiniz." },
-    { keywords: ["session", "oturum", "schedule", "timetable", "program"], answer: "Oturumları Oturumlar sayfasından ekleyebilirsiniz. Her oturumun tarihini, saatini, başlığını ve konuşmacısını belirleyebilirsiniz. Check-in sistemi otomatik olarak oturumlara göre çalışır. Katılımcılar etkinlik sayfasından oturumlara kaydolabilir." },
-    { keywords: ["analytics", "istatistik", "report", "data", "grafik"], answer: "Analytics bölümünde etkinliğinizin kapsamlı istatistiklerini görebilirsiniz. Kayıt sayıları, katılımcı dağılımı, sertifika durumu, cinsiyete göre dağılım ve daha fazlasını analiz edebilirsiniz. Raporları Excel olarak dışa aktarabilirsiniz." },
-    { keywords: ["domain", "custom", "özel", "alan adı", "url"], answer: "Etkinliğinize özel bir domain atamak için Etkinlik Ayarları > Domain bölümüne gidin. Kendi alan adınızı bağlayabilir veya HeptaCert tarafından sağlanan alt domain'i kullanabilirsiniz. Domain değişikliği DNS ayarlarından sonra yayına alınabilir." },
-    { keywords: ["kvkk", "gizlilik metni", "aydınlatma metni", "açık rıza", "veri işleme", "privacy policy"], answer: "KVKK için Etkinlik Ayarları > Kayıt Formu bölümünde aydınlatma metni, açık rıza kutusu ve gizlilik bağlantısı eklemenizi öneririz. Toplanan verilerin amacı, saklama süresi ve veri sorumlusu bilgisini net yazın. Gerekirse yasal metni destek ekibiyle birlikte özelleştirin." },
-    { keywords: ["checkin", "check-in", "giriş", "kontrol"], answer: "Check-in sistemi etkinlik günü katılımcı kaydını hızlandırır. QR kod veya kontrol listesi kullanarak katılımcıları işaretleyebilirsiniz. Check-in panelinden katılımcı durumunu gerçek zamanlı takip edebilirsiniz." },
-    { keywords: ["gamification", "badge", "rozet", "puan", "leaderboard"], answer: "Oyunlaştırma özelliğini etkinleştirerek katılımcıları rozetler, puanlar ve liderlik tablosuyla motive edebilirsiniz. Farklı aktivitelere (oturum katılımı, anket cevaplama, vb.) puan atayabilirsiniz." },
-    { keywords: ["branding", "tema", "renk", "logo", "görünüm"], answer: "Etkinlik Ayarları > Branding bölümünde kurumsal kimliğinizi ayarlayabilirsiniz. Logo, tema renkleri ve yazı tiplerini özelleştirebilirsiniz. Mobil ve masaüstü uyumluluğunu otomatik olarak sağlanır." },
-    { keywords: ["payment", "ödeme", "ticket", "bilet", "fiyat"], answer: "Etkinliğiniz için ödeme sistemi kurmak için Etkinlik Ayarları > Ödeme bölümüne gidin. Bilet fiyatlandırması, erken kuş indirimi ve grup indirimlerini ayarlayabilirsiniz. Stripe ve diğer ödeme yöntemiyle entegredir." },
-    { keywords: ["yorum", "comment", "moderasyon", "moderation"], answer: "Etkinlik sayfasına gelen yorumları yönetmek için Ayarlar > Yorumlar sekmesine gidin. Yorumları onaylayabilir, gizleyebilir veya raporlanmış olanları inceleyebilirsiniz. Her yorum için üye bilgisini ve tarihini görebilirsiniz." },
-    { keywords: ["görünürlük", "visibility", "private", "public", "gizli"], answer: "Etkinliğin görünürlüğünü Ayarlar > Genel bölümünde değiştirebilirsiniz. Özel: Listede görünmez. Liste dışı: Sadece doğrudan bağlantı. Herkese açık: Keşif ekranında görünür. Mevcut kayıt linkleriniz etkilenmez." },
-    { keywords: ["banner", "görsel", "image", "kapak", "cover"], answer: "Etkinlik bannerını Ayarlar > Banner sekmesinden yükleyebilirsiniz. Önerilen boyut: 1200×400 piksel. JPG, PNG veya WebP formatları desteklenmektedir. Banner, kayıt sayfasında ve etkinlik başlığında görüntülenir." },
-    { keywords: ["toplu", "bulk", "export", "dışa", "aktarma"], answer: "Katılımcı listesini, sertifikaları ve anket sonuçlarını Excel formatında dışa aktarabilirsiniz. Katılımcılar bölümünden 'Dışa Aktar' butonunu kullanabilirsiniz. Toplu e-posta göndermek için E-posta bölümüne gidin." },
-    { keywords: ["qr", "kod", "kodu", "tarama", "scan"], answer: "Check-in sırasında QR kod taratarak katılımcıları hızlıca işaretleyebilirsiniz. Her katılımcının benzersiz QR kodu vardır. Check-in sayfasında mobil cihazınızı kamera olarak kullanabilir veya kodu manuel olarak girebilirsiniz." },
-    { keywords: ["hata", "error", "sorun", "problem", "bug"], answer: "Bir sorunla karşılaştıysanız, tarayıcı konsolunu (F12) açarak hata mesajlarını görebilirsiniz. Sayfayı yenileyin ve işlemi tekrarlayın. Sorun devam ederse, AI Asistan'dan 'Destek Talebi Aç' butonuyla destek ekibimize ulaşabilirsiniz." },
-    { keywords: ["oturum", "session", "login", "logout", "giriş"], answer: "Oturum açmak için e-posta ve şifrenizi girebilir veya magic link kullanabilirsiniz. İki faktörlü kimlik doğrulama aktif ise, doğrulama kodunuzu girmeniz gerekir. Oturum otomatik olarak belirli süre sonra kapanabilir - sayfayı yenileyerek tekrar giriş yapabilirsiniz." },
-    { keywords: ["sertifika", "certificate", "verme", "issue", "teslim"], answer: "Katılımcılara sertifika vermek için Sertifikalar bölümüne gidin. Katılımcıları seçin ve 'Sertifika Ver' butonunu tıklayın. Toplu olarak birden fazla katılımcıya sertifika verebilirsiniz. Otomatik e-posta göndermesini Ayarlar > E-posta'da ayarlayabilirsiniz." },
-    { keywords: ["analiz", "analysis", "istatistik", "statistics", "dashboard"], answer: "İleri Analitik sayfasında etkinliğinizin detaylı verilerini görebilirsiniz. Kayıt trendi, cinsiyet dağılımı, zaman dilimine göre katılımcılar ve daha fazla grafikleri görüntüleyebilirsiniz. Raporları tarih aralığına göre filtreleyebilirsiniz." },
-    { keywords: ["destek", "support", "yardım", "help", "asistan"], answer: "Sorularınız için bu AI Asistan'ı kullanabilirsiniz. Eğer cevap bulamazsanız 'Destek Talebi Aç' butonuyla destek ekibimize doğrudan yazabilirsiniz. Talebiniz oluşturulduktan sonra ekip sizi en kısa sürede çözüme ulaştıracaktır." },
-    { keywords: ["webhook", "webhook setup", "integration", "api"], answer: "Webhook'ları Admin Ayarları > Webhook'lar bölümünde yönetebilirsiniz. Etkinlik tamamlandığında veya katılımcı kaydı yapıldığında otomatik olarak harici sistemlere veri gönderebilirsiniz. Webhook'ların test etmek için 'Test' butonunu kullanabilirsiniz." },
-    { keywords: ["api", "api key", "geliştirici", "developer"], answer: "API anahtarlarını Admin > API Anahtarları'ndan oluşturabilirsiniz. Programlı olarak etkinlik verilerine erişmek için kullanabilirsiniz. Her API anahtarı için izinleri belirleyebilir ve manuel olarak iptal edebilirsiniz. API dokümantasyonu belgelerimizde mevcuttur." },
-    { keywords: ["csv", "import", "içe aktarma", "yükleme"], answer: "Katılımcıları toplu olarak CSV dosyasından içe aktarabilirsiniz. Katılımcılar bölümünde 'CSV İçe Aktar' butonunu kullanın. CSV dosyası e-posta, ad, telefon gibi alanları içermelidir. Satırda hata varsa düzeltip tekrar yüklemeyi deneyin." },
-    { keywords: ["sosyal", "social", "twitter", "facebook", "linkedin"], answer: "Etkinliğinizi sosyal medyada paylaşmak için Ayarlar > Sosyal Medya bölümüne gidin. Sosyal medya hesaplarınızı bağlayabilir ve otomatik paylaşım ayarlarını yapabilirsiniz. Paylaşım sırasında özel mesaj ve hashtag ekleyebilirsiniz." },
-    { keywords: ["profil", "member profile", "üye profili", "hesap"], answer: "Üye profil sayfasında kişi bilgileri, rozetler, katıldığı etkinlikler ve indirilen sertifikalar gösterilir. Profili özelleştirmek için Profilim bölümüne gidin. Şifre, iki faktörlü kimlik doğrulama ve e-posta tercihlerini buradan yönetebilirsiniz." },
-    { keywords: ["organizasyon", "organization", "şirket", "kurumsal"], answer: "Organizasyon ayarlarını Organizasyon Ayarları bölümünde yapılandırabilirsiniz. Logo, işletme adı, vergi numarası ve iletişim bilgilerini buradan güncelleyebilirsiniz. Organizasyonunuza kullanıcı ekleyebilir ve rolleri belirleyebilirsiniz." },
-    { keywords: ["izin", "permission", "role", "yetki", "admin"], answer: "Kullanıcıların rollerini Organizasyon > Kullanıcılar'da belirleyebilirsiniz. Admin, Editor, Viewer gibi roller vardır. Her rol farklı izinlere sahiptir. Etkinlik düzeyinde de ayrıca izin ayarlaması yapabilirsiniz." },
-    { keywords: ["mobilyapp", "mobile", "telefon", "uygulama"], answer: "HeptaCert mobil uygulaması iOS ve Android'de kullanılabilir. Check-in, katılımcı yönetimi ve hızlı raporlama için mobil uygulamayı kullanabilirsiniz. Masaüstü sürümüyle tüm verileriniz senkronize olur." },
-    { keywords: ["cache", "hız", "performance", "optimize"], answer: "Uygulamanın performansını optimize etmek için tarayıcı cache'ini temizleyebilirsiniz. Ekran sayfada saygın olan veriler otomatik olarak cache'lenir. Çok yavaş hissediyorsanız, tarayıcı ayarlarından cache ve cookie'leri temizleyin." },
-    { keywords: ["sso", "single sign-on", "oauth", "login"], answer: "Kurumsal SSO (Single Sign-On) desteğimiz bulunmaktadır. SAML veya OAuth 2.0 ile entegrasyon yapabilirsiniz. Bu özellik kurumsal planlarla sunulmaktadır. Detaylı bilgi için destek talebinde bulunabilirsiniz." },
-    { keywords: ["white label", "beyaz etiket", "kendi markanız"], answer: "White Label (beyaz etiket) özelliğiyle tüm uygulamayı kendi markanız altında sunabilirsiniz. Domain, renk, logo ve e-posta tasarımını özelleştirebilirsiniz. Bu özellik Premium + planla mevcut olacaktır." },
-    { keywords: ["gdpr", "privacy", "gizlilik", "privacy policy"], answer: "Uygulamada GDPR uyumluluğu sağlanmıştır. Katılımcıların verilerini silebilir ve ihraç edebilirsiniz. Gizlilik politikasını ve hizmet şartlarını özelleştirebilirsiniz. Detaylı bilgi için yasal dokümantasyona bakabilirsiniz." },
-    { keywords: ["backup", "yedek", "veri tabanı", "recovery"], answer: "Verileriniz günlük olarak otomatik yedeklenir. İhtiyaç durumunda veri recovery talebinde bulunabilirsiniz. Eski sürümlere geri dönmek için destek ekibine başvurabilirsiniz." },
-    { keywords: ["sms", "kısa mesaj", "telefon", "sms bildirimi"], answer: "SMS bildirimleri seçim etkinlikler için etkinleştirilebilir. Katılımcılara SMS ile check-in ve sertifika bildirimlerini gönderebilirsiniz. SMS kredi satın almak için faturalandırma bölümüne gidin." },
-    { keywords: ["timezone", "saat dilimi", "zaman", "bölge"], answer: "Etkinlik saat dilimini Ayarlar > Genel bölümünde belirleyebilirsiniz. Tüm zamanlar seçilen saat dilimine göre gösterilir. Katılımcılar kendi saat dilimlerinde bildirimleri alırlar." },
-    { keywords: ["calendar", "takvim", "google calendar", "sync"], answer: "Google Calendar ile sinkronizasyon yapabilirsiniz. Etkinlik ve oturumlar otomatik olarak takvime eklenir. Katılımcılarınız sertifikalar için geri sayım bildirimleri alabilir." },
-    { keywords: ["slack", "discord", "telegram", "notification"], answer: "Slack, Discord ve Telegram'a bildirimler gönderebilirsiniz. Webhook ayarlarından notification kanalını seçebilirsiniz. Yeni kayıt, sertifika verme vs. olaylar otomatik olarak bildirilir." },
-    { keywords: ["rate limit", "hız sınırı", "api limit"], answer: "API requests için hız sınırları uygulanmaktadır. Free plan: 100 req/min, Pro: 1000 req/min, Enterprise: özel limit. Rate limit'e ulaştıysanız, bir dakika bekleyin veya plannızı yükseltin." },
-    { keywords: ["custom field", "özel alan", "alan ekleme"], answer: "Kayıt formunda istediğiniz kadar özel alan ekleyebilirsiniz. Alan türü, doğrulama kuralı ve bağımlılık ayarlarını belirleyebilirsiniz. Özel alanlar katılımcı profil sayfasında da görüntülenir." },
-    { keywords: ["audience", "segment", "hedef", "segmentasyon"], answer: "Katılımcıları farklı özelliklere göre segmente edebilirsiniz. Segments'e göre farklı e-posta ve bildirim gönderebilirsiniz. Check-in ve sertifika verme işlemlerini segment bazında yapabilirsiniz." },
-    { keywords: ["filter", "ara", "arama", "filtreleme"], answer: "Katılımcı listesinde ad, e-posta, telefon ve özel alan değerlerine göre arama yapabilirsiniz. Duruma göre filtreleme (kayıtlı, geldimi, gelmedi) da yapabilirsiniz. Filtreler kaydedilir ve sonraki oturumlarda erişilir." },
-    { keywords: ["duplicate", "kopya", "etkinlik kopyası", "klonlama"], answer: "Etkinlik kopyalamak için etkinlik listesinde sağ tıklayıp 'Kopyala' seçeneğini kullanın. Tüm ayarları, form alanlarını ve şablonları kopyalayabilirsiniz. Katılımcılar kopyalanmaz, sadece ayarlar aktarılır." },
-    { keywords: ["notification", "bildirim", "uyarı", "alert"], answer: "Bildirim tercihlerini Profil > Bildirimler'de ayarlayabilirsiniz. E-posta, push ve SMS bildirimlerini açıp kapatabilirsiniz. Hangi olaylar için bildirim almak istediğinizi seçebilirsiniz." },
-    { keywords: ["language", "dil", "çoklu dil", "localization"], answer: "Uygulamaya kayıtlı katılımcılar tercih ettikleri dilde bildirimleri alırlar. Türkçe ve İngilizce'nin yanı sıra diğer dillerle genişlemeyi planlıyoruz. Admin paneli şu anda Türkçe ve İngilizce'de mevcuttur." },
-    { keywords: ["2fa", "iki faktör", "authenticator", "google authenticator"], answer: "İki faktörlü kimlik doğrulamayı Profil > Güvenlik'te etkinleştirebilirsiniz. Google Authenticator veya SMS ile doğrulama yapabilirsiniz. Yedek kodları güvenli bir yerde saklayın, oturum açamayabilirsiniz." },
-    { keywords: ["veri silme", "veri dışa aktarma", "export data", "gdpr"], answer: "Kişisel verilerinizi istediğiniz zaman dışa aktarabilir veya silebilirsiniz. Dışa aktarma işlemi ZIP dosyasıyla yapılır. Silme işlemini 30 gün sonra geri alamazsınız, lütfen emin olun." },
-    { keywords: ["sertifika linksi", "sertifika url", "sertifika paylaş"], answer: "Sertifika URL'sini paylaşarak başkalarını gösterebilirsiniz. Sertifika linkinden doğrulama kodu ile gerçekliği kontrol edilebilir. Sertifika paylaşımını Ayarlar'da açıp kapatabilirsiniz." },
-    { keywords: ["template library", "şablon kütüphanesi", "tasarım"], answer: "Hazır sertifika şablonları kütüphanesinden seçip kullanabilirsiniz. Her şablon tamamen özelleştirilebilir durumdadır. Sık kullanılan şablonları favoriler'e ekleyebilirsiniz." },
-    { keywords: ["css", "özel css", "custom css", "styling"], answer: "Gelişmiş CSS özelleştirmesi için özel CSS bölümünü kullanabilirsiniz. Etkinlik sayfasının görünümünü tamamen değiştirebilirsiniz. CSS bilgisi gereklidir, hatalı CSS sayfayı bozabilir." },
-    { keywords: ["dark mode", "karanlık mod", "tema"], answer: "Admin paneli temayı sistem ayarlarınızdan seçer. Karanlık mod desteklenmekte olup otomatik aktif olur. Sayfanın belirli kısımlarında açık tema kullanılabilir." },
-    { keywords: ["responsive", "mobil uyumlu", "ekran boyutu"], answer: "Tüm sayfalar mobil uyumlu olarak tasarlanmıştır. Telefon, tablet ve bilgisayarlarda düzgün göründüğü kontrol edilmiştir. Açılış hızını optimize etmek için modern teknolojiler kullanılmaktadır." }
-  ],
-  en: [
-    { keywords: ["form", "field", "registration", "input"], answer: "To add form fields, go to Event Settings > Registration Form. Click '+Add Field' to create new fields. You can set the field type (text, email, date, etc.), label, and helper text. Available types: Short Text, Email, Phone, Number, Date, Multiple Choice, File Upload and more." },
-    { keywords: ["certificate", "template", "cert"], answer: "Customize certificate templates in the Editor page. Add backgrounds, logos, text, and styling. See changes in real-time in the preview area. Test certificates with sample attendees before publishing." },
-    { keywords: ["attendee", "participant", "member", "user"], answer: "View all registered members in the Attendees section. Change status (registered, attended, no-show), manage certificates, or perform bulk operations. Export attendee data to Excel format." },
-    { keywords: ["email", "mail", "notification", "smtp"], answer: "Configure email settings in Event Settings > Email. Customize automatic certificate emails and SMTP configuration. Personalize email templates and adjust scheduling options." },
-    { keywords: ["raffle", "draw", "prize", "winner"], answer: "Create raffles in the Raffles page. Add prizes, set participant rules, and automatically select winners. Schedule raffle draws in advance." },
-    { keywords: ["survey", "questionnaire", "question", "poll"], answer: "Create surveys in Event Settings > Survey. Add questions, choose types (text, multiple choice, etc.), and analyze results. Survey data is securely stored." },
-    { keywords: ["session", "schedule", "timetable", "timing"], answer: "Add sessions from the Sessions page. Set date, time, title, and speaker. Check-in works based on sessions. Participants can register for sessions." },
-    { keywords: ["analytics", "statistics", "report", "data", "metrics"], answer: "View comprehensive statistics in the Analytics section. Analyze registration trends, demographics, certificate status, and more. Export reports to Excel." },
-    { keywords: ["domain", "custom", "url"], answer: "Assign a custom domain in Event Settings > Domain. Connect your own domain or use HeptaCert subdomain. Changes take effect after DNS settings." },
-    { keywords: ["checkin", "check-in", "attendance"], answer: "The check-in system speeds up participant registration. Check in using QR codes or a checklist. Track participant status in real-time." },
-    { keywords: ["gamification", "badge", "points", "leaderboard"], answer: "Enable gamification to motivate participants with badges and points. Assign points to different activities." },
-    { keywords: ["branding", "theme", "color", "logo"], answer: "Customize brand identity in Event Settings > Branding. Personalize logo, colors, and typography. Mobile and desktop compatibility ensured." },
-    { keywords: ["payment", "ticket", "pricing"], answer: "Set up payments in Event Settings > Payment. Configure pricing, early bird discounts, and group discounts. Integrated with Stripe and other methods." },
-    { keywords: ["comment", "moderasyon", "moderation"], answer: "Manage comments in Settings > Comments. Approve, hide, or review reported comments. View member info and timestamps for each comment." },
-    { keywords: ["visibility", "private", "public"], answer: "Control event visibility in Settings > General. Private: Not listed. Unlisted: Direct link only. Public: Listed in discover. Current links still work." },
-    { keywords: ["banner", "image", "cover"], answer: "Upload banner in Settings > Banner. Recommended: 1200×400 pixels. JPG, PNG, WebP supported. Banner shows on registration and event pages." },
-    { keywords: ["bulk", "export", "data"], answer: "Export attendees, certificates, and survey results to Excel. Use 'Export' button in Attendees section. Bulk email from Email section." },
-    { keywords: ["qr", "code", "scan"], answer: "Scan QR codes during check-in to mark attendees. Each has a unique code. Use camera or enter manually on check-in page." },
-    { keywords: ["error", "problem", "issue", "troubleshooting"], answer: "Open browser console (F12) to see error messages. Refresh page and retry. If problem persists, create support ticket for help." },
-    { keywords: ["login", "logout", "authentication"], answer: "Sign in with email/password or magic link. If 2FA enabled, enter verification code. Session may auto-expire - refresh to sign in again." },
-    { keywords: ["certificate", "issuance", "certificate award"], answer: "Issue certificates in Certificates section. Select attendees and click 'Award'. Bulk award multiple attendees. Configure auto-email in Email settings." },
-    { keywords: ["advanced analytics", "detailed", "insights"], answer: "View detailed analytics on Advanced Analytics page. See registration trends, demographics, and custom metrics. Filter by date range and export." },
-    { keywords: ["support", "help", "questions"], answer: "Use this AI Assistant for questions. If not answered, create support ticket. Our team responds as soon as possible." },
-    { keywords: ["webhook", "integration", "api"], answer: "Manage webhooks in Admin > Webhooks. Send data to external systems on events. Test webhooks in the interface." },
-    { keywords: ["api key", "developer", "access"], answer: "Create API keys in Admin > API Keys. Use to access event data programmatically. Set permissions per key. Revoke anytime. See documentation for details." },
-    { keywords: ["csv", "import", "bulk import"], answer: "Import attendees from CSV in Attendees section. Click 'CSV Import'. File should contain email, name, phone, etc. Fix errors and retry if needed." },
-    { keywords: ["social", "twitter", "facebook", "sharing"], answer: "Share events on social media in Settings > Social Media. Connect accounts and set auto-sharing. Add custom messages and hashtags." },
-    { keywords: ["profile", "account", "personal"], answer: "View profile with badges, events, and certificates. Customize in My Profile. Manage password, 2FA, and notification preferences." },
-    { keywords: ["organization", "company", "account"], answer: "Configure organization in Organization Settings. Update logo, name, tax ID, and contact info. Add users and set roles." },
-    { keywords: ["permission", "role", "admin"], answer: "Set user roles in Organization > Users. Roles: Admin, Editor, Viewer with different permissions. Also set event-level permissions." },
-    { keywords: ["mobile", "app", "smartphone"], answer: "HeptaCert mobile app available on iOS and Android. Use for check-in, attendee management, and quick reports. Syncs with desktop." },
-    { keywords: ["performance", "speed", "optimization"], answer: "Clear browser cache for optimal performance. Data automatically cached. If slow, clear cache and cookies." },
-    { keywords: ["sso", "oauth", "enterprise"], answer: "Enterprise SSO support available via SAML or OAuth 2.0. Available in enterprise plans. Contact support for setup." },
-    { keywords: ["white label", "branding", "customization"], answer: "White label feature allows your branding throughout. Customize domain, colors, logo, email design. Available in Premium+ plans." },
-    { keywords: ["gdpr", "privacy", "data"], answer: "GDPR compliant. Delete or export participant data anytime. Customize privacy and terms. See legal docs for details." },
-    { keywords: ["backup", "disaster", "recovery"], answer: "Data automatically backed up daily. Request recovery if needed. Can restore to previous versions. Contact support." },
-    { keywords: ["sms", "text", "notification"], answer: "Enable SMS notifications for select events. Send check-in and certificate notifications. Buy SMS credits in billing." },
-    { keywords: ["timezone", "time", "schedule"], answer: "Set event timezone in Settings > General. All times shown in this timezone. Participants get notifications in their timezone." },
-    { keywords: ["calendar", "sync", "google"], answer: "Sync with Google Calendar. Events and sessions auto-added. Participants get countdown reminders for certificates." },
-    { keywords: ["slack", "discord", "chat"], answer: "Send notifications to Slack, Discord, Telegram via webhooks. Choose notification channel. Auto-notify on registrations, certificates, etc." },
-    { keywords: ["rate limit", "api", "usage"], answer: "API rate limits: Free 100/min, Pro 1000/min, Enterprise custom. Hit limit? Wait a minute or upgrade plan." },
-    { keywords: ["custom field", "field"], answer: "Add unlimited custom fields to registration. Set type, validation, and dependencies. Fields appear on participant profile." },
-    { keywords: ["audience", "segment", "group"], answer: "Segment attendees by properties. Send emails/notifications by segment. Perform check-in and certificates per segment." },
-    { keywords: ["filter", "search", "find"], answer: "Search attendees by name, email, phone, custom fields. Filter by status (registered, attended, no-show). Saved filters." },
-    { keywords: ["duplicate", "clone", "copy"], answer: "Copy event via right-click menu. All settings and fields copied. Attendees not copied, only structure." },
-    { keywords: ["notification", "alert", "setting"], answer: "Configure notifications in Profile > Notifications. Enable/disable email, push, SMS. Choose which events trigger notifications." },
-    { keywords: ["language", "localization", "translation"], answer: "Interface available in Turkish and English. Admin panel in both languages. Participants get notifications in preferred language." },
-    { keywords: ["2fa", "authenticator", "security"], answer: "Enable 2FA in Profile > Security. Use Google Authenticator or SMS. Save backup codes in safe place." },
-    { keywords: ["data delete", "export", "download"], answer: "Export or delete personal data anytime. Export as ZIP file. Deletion permanent after 30 days, non-reversible." },
-    { keywords: ["certificate link", "share"], answer: "Share certificate URL with others. Can verify authenticity with verification code. Control sharing in Settings." },
-    { keywords: ["template", "design", "library"], answer: "Choose from certificate template library. Each fully customizable. Save favorites for quick access." },
-    { keywords: ["custom css", "styling"], answer: "Use custom CSS for advanced styling. Fully customize event pages. Requires CSS knowledge - errors can break layout." },
-    { keywords: ["dark mode", "theme"], answer: "Admin follows system theme. Dark mode auto-enabled if set. Certain page areas use light theme." },
-    { keywords: ["responsive", "mobile", "tablet"], answer: "All pages mobile responsive. Works perfectly on phones, tablets, and desktops. Optimized for speed on all devices." }
-  ]
-};
 
 export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
   const { lang } = useI18n();
@@ -984,54 +138,6 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
   const [input, setInput] = useState("");
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      try {
-        const detail = (e as CustomEvent)?.detail;
-        const text = detail == null ? "" : String(detail);
-        if (!text) return;
-        setInput((prev) => (prev && prev.trim() ? `${prev} ${text}` : text));
-        // focus input
-        setTimeout(() => inputRef.current?.focus(), 50);
-      } catch (err) {
-        // ignore
-      }
-    };
-    window.addEventListener("ai-assistant-insert", handler as EventListener);
-    const clearHandler = (e: Event) => {
-      try {
-        // Reset messages to initial assistant greeting and clear wizard
-        setMessages([
-          {
-            role: "assistant",
-            message: lang === "tr" ? "Merhaba! Size etkinlik oluşturma ve yönetiminde yardımcı olmak için buradayım. Ne sorunuz var?" : "Hello! I'm here to help you with event creation and management. What questions do you have?",
-            timestamp: new Date().toISOString(),
-          },
-        ]);
-        resetEventWizard();
-        setInput("");
-      } catch {
-        // ignore
-      }
-    };
-    window.addEventListener("ai-assistant-clear", clearHandler as EventListener);
-    return () => {
-      window.removeEventListener("ai-assistant-insert", handler as EventListener);
-      window.removeEventListener("ai-assistant-clear", clearHandler as EventListener);
-    };
-  }, [lang]);
-
-  // Edit last message (basic): set input to message and remove that user message
-  const startEditingUserMessage = (idx: number) => {
-    const msg = messages[idx];
-    if (!msg || msg.role !== "user") return;
-    setInput(msg.message);
-    setEditingIndex(idx);
-    // remove the message so the edited send will replace it
-    setMessages((prev) => prev.filter((_, i) => i !== idx));
-    setTimeout(() => inputRef.current?.focus(), 50);
-  };
   const [showSupportForm, setShowSupportForm] = useState(false);
   const [supportSubject, setSupportSubject] = useState("");
   const [supportMessage, setSupportMessage] = useState("");
@@ -1046,7 +152,49 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, loading, showSupportForm]);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      try {
+        const detail = (e as CustomEvent)?.detail;
+        const text = detail == null ? "" : String(detail);
+        if (!text) return;
+        setInput((prev) => (prev && prev.trim() ? `${prev} ${text}` : text));
+        setTimeout(() => inputRef.current?.focus(), 50);
+      } catch (err) {}
+    };
+    window.addEventListener("ai-assistant-insert", handler as EventListener);
+    
+    const clearHandler = (e: Event) => {
+      try {
+        setMessages([
+          {
+            role: "assistant",
+            message: lang === "tr" ? "Merhaba! Size etkinlik oluşturma ve yönetiminde yardımcı olmak için buradayım. Ne sorunuz var?" : "Hello! I'm here to help you with event creation and management. What questions do you have?",
+            timestamp: new Date().toISOString(),
+          },
+        ]);
+        resetEventWizard();
+        setInput("");
+      } catch {}
+    };
+    window.addEventListener("ai-assistant-clear", clearHandler as EventListener);
+    
+    return () => {
+      window.removeEventListener("ai-assistant-insert", handler as EventListener);
+      window.removeEventListener("ai-assistant-clear", clearHandler as EventListener);
+    };
+  }, [lang]);
+
+  const startEditingUserMessage = (idx: number) => {
+    const msg = messages[idx];
+    if (!msg || msg.role !== "user") return;
+    setInput(msg.message);
+    setEditingIndex(idx);
+    setMessages((prev) => prev.filter((_, i) => i !== idx));
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
 
   const pushAssistantMessage = (message: string) => {
     setMessages((prev) => [
@@ -1109,7 +257,6 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
     }
     const registrationFields = draft.registrationFields.length > 0 ? draft.registrationFields : buildSmartRegistrationFields(draft.eventType);
 
-    // Validate after applying fallback name (local validator)
     const localValidate = (d: EventDraft): string[] => {
       const errs: string[] = [];
       if (!d.name || !d.name.trim()) errs.push(lang === "tr" ? "Etkinlik adı gerekli" : "Event name is required");
@@ -1123,6 +270,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
       pushAssistantMessage((lang === "tr" ? "Doğrulama hataları: " : "Validation errors: ") + validationErrors.join("; "));
       return null;
     }
+    
     const createResponse = await apiFetch("/admin/events", {
       method: "POST",
       body: JSON.stringify({
@@ -1235,9 +383,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
       return true;
     }
 
-    if (eventWizardStep === "idle") {
-      return false;
-    }
+    if (eventWizardStep === "idle") return false;
 
     if (isNegative(value) && eventWizardStep === "confirm") {
       pushAssistantMessage(lang === "tr" ? "Tamam, etkinlik oluşturmayı iptal ettim. İsterseniz yeniden başlayabiliriz." : "Okay, I canceled the event creation. We can start again anytime.");
@@ -1349,17 +495,6 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
     return false;
   };
 
-  const findAnswer = (userMessage: string): string | null => {
-    const faqDb = FAQ_DATABASE[lang as keyof typeof FAQ_DATABASE];
-    const lowerMsg = userMessage.toLowerCase();
-
-    for (const faq of faqDb) {
-      if (faq.keywords.some(keyword => lowerMsg.includes(keyword))) {
-        return faq.answer;
-      }
-    }
-    return null;
-  };
 
   const getCurrentEventId = (): number | null => {
     if (typeof window === "undefined") return null;
@@ -1407,106 +542,52 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
   };
 
   const handleSendMessage = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || loading) return;
     const currentInput = input;
 
-    if (loading) return;
-
-    // Add user message
-    const userMsg: Message = {
-      role: "user",
-      message: currentInput,
-      timestamp: new Date().toISOString()
-    };
-    setMessages(prev => [...prev, userMsg]);
+    const userMsg: Message = { role: "user", message: currentInput, timestamp: new Date().toISOString() };
+    setMessages((prev) => [...prev, userMsg]);
     setInput("");
 
+    // If wizard already active, let existing wizard handler process the input
     if (eventWizardStep !== "idle") {
       const handled = await handleEventWizardInput(currentInput);
       if (handled) return;
     }
 
-    if (isCreateEventIntent(currentInput)) {
+    // Detect intent using deterministic rules
+    const intent = detectIntent(currentInput, eventWizardStep !== "idle");
+
+    // Start strict create-event flow only when both event+action words are present
+    if (intent.intent === "create_event" && intent.confidence >= 0.8 && shouldStartCreateEventWizard(currentInput)) {
       void startEventWizard(currentInput);
       return;
     }
 
-    if (eventWizardStep === "idle" && shouldTreatTextAsWizardSeed(currentInput)) {
-      void startEventWizard(currentInput);
-      return;
-    }
-
-    // Find answer
-    const answer = findAnswer(currentInput);
-    if (!answer) {
-      setLoading(true);
-      try {
-        // Include richer context: event config + recent history (last 20 msgs)
-        const eventId = getCurrentEventId();
-        let eventConfig: Record<string, any> | null = null;
-        if (eventId) {
-          try {
-            const er = await apiFetch(`/admin/events/${eventId}`);
-            if (er.ok) {
-              const ev = await er.json();
-              eventConfig = ev?.config && typeof ev.config === "object" ? ev.config : null;
-            }
-          } catch {}
-        }
-
-        const response = await apiFetch("/admin/ai/event-assistant", {
-          method: "POST",
-          body: JSON.stringify({
-            message: currentInput,
-            language: lang,
-            event_id: eventId,
-            event_config: eventConfig,
-            history: messages.slice(-20),
-          }),
-        });
-        const data = await response.json();
-        const rawAnswer = String(data?.answer || "").trim();
-        const lowQuality = !rawAnswer || rawAnswer.length < 30 || /could not|couldn't|could not draft|i could not|anlayamadım|anlayamadım/i.test(rawAnswer.toLowerCase());
-        if (lowQuality) {
-          pushAssistantMessage(
-            lang === "tr"
-              ? "Bu konuda yeterli taslak üretemedim — lütfen tarih, konum veya beklenen katılımcı sayısı gibi biraz daha ayrıntı verin."
-              : "I couldn't produce a solid draft. Please provide more details (date, location, expected attendees)."
-          );
-          if (data?.suggestions && Object.keys(data.suggestions).length > 0) {
-            pushAssistantMessage(formatAiAnswer("", data.suggestions));
-          }
-        } else {
-          const assistantMsg: Message = {
-            role: "assistant",
-            message: formatAiAnswer(rawAnswer, data?.suggestions),
-            timestamp: new Date().toISOString()
-          };
-          setMessages(prev => [...prev, assistantMsg]);
-        }
-      } catch (error: any) {
-        const assistantMsg: Message = {
-          role: "assistant",
-          message: error?.message || (lang === "tr" ? "AI asistana ulasilamadi. Lutfen tekrar deneyin." : "The AI assistant is unavailable. Please try again."),
-          timestamp: new Date().toISOString()
-        };
-        setMessages(prev => [...prev, assistantMsg]);
-      } finally {
-        setLoading(false);
+    // FAQ handling
+    if (intent.intent === "faq") {
+      const answer = findFaqAnswer(currentInput, lang);
+      if (answer) {
+        pushAssistantMessage(answer);
+      } else {
+        pushAssistantMessage(
+          lang === "tr"
+            ? "Bunu tam anlayamadım. Etkinlik oluşturmak mı yoksa ayarlar hakkında bilgi almak mı istiyorsunuz?"
+            : "I could not understand that clearly. Do you want to create an event or ask about settings?"
+        );
       }
       return;
     }
+
+    // Unknown / helpful suggestions
+    pushAssistantMessage(
+      lang === "tr"
+        ? "Şunu yapabilirim: yeni etkinlik oluşturma, kayıt formu/sertifika/check-in ayarlarını açıklama, KVKK önerileri sunma. Ne yapmak istiyorsunuz?"
+        : "I can: create a new event (guided), explain registration/certificate/check-in settings, or suggest privacy (KVKK) texts. Which would you like?"
+    );
+    return;
     
-    // Add assistant response
-    const assistantMsg: Message = {
-      role: "assistant",
-      message: answer || (lang === "tr" ? "Maalesef bu soruya yanıt bulamadım. Lütfen 'Destek Talebi Aç' butonunu kullanarak detaylı açıklamayı yapınız." : "Sorry, I couldn't find an answer to this question. Please use 'Create Support Ticket' button for more details."),
-      timestamp: new Date().toISOString()
-    };
-    
-    setTimeout(() => {
-      setMessages(prev => [...prev, assistantMsg]);
-    }, 300);
+    return;
   };
 
   const handleCreateSupport = async () => {
@@ -1515,14 +596,8 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
     setLoading(true);
     try {
       const token = getToken();
-      
       if (!token) {
-        const assistantMsg: Message = {
-          role: "assistant",
-          message: lang === "tr" ? "❌ Oturum hatası. Lütfen sayfayı yenileyin ve tekrar deneyin." : "❌ Session error. Please refresh and try again.",
-          timestamp: new Date().toISOString()
-        };
-        setMessages(prev => [...prev, assistantMsg]);
+        pushAssistantMessage(lang === "tr" ? "❌ Oturum hatası. Lütfen sayfayı yenileyin ve tekrar deneyin." : "❌ Session error. Please refresh and try again.");
         setLoading(false);
         return;
       }
@@ -1540,13 +615,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
       });
 
       if (response.ok) {
-        // Success
-        const assistantMsg: Message = {
-          role: "assistant",
-          message: lang === "tr" ? "✅ Destek talebiniz başarıyla oluşturuldu! Destek Ekibimiz en kısa sürede size ulaşacak. Email adresinizdeki güncellemeleri takip edin." : "✅ Your support ticket created! Our team will reach out soon. Check your email for updates.",
-          timestamp: new Date().toISOString()
-        };
-        setMessages(prev => [...prev, assistantMsg]);
+        pushAssistantMessage(lang === "tr" ? "✅ Destek talebiniz başarıyla oluşturuldu! Destek Ekibimiz en kısa sürede size ulaşacak. Email adresinizdeki güncellemeleri takip edin." : "✅ Your support ticket created! Our team will reach out soon. Check your email for updates.");
         setSupportSubject("");
         setSupportMessage("");
         setShowSupportForm(false);
@@ -1554,282 +623,339 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
         try {
           const error = await response.json();
           const errorDetail = error?.detail || error?.message || (lang === "tr" ? "Destek talebini oluşturmada hata oluştu" : "Failed to create support ticket");
-          const assistantMsg: Message = {
-            role: "assistant",
-            message: lang === "tr" ? `❌ Hata: ${errorDetail}` : `❌ Error: ${errorDetail}`,
-            timestamp: new Date().toISOString()
-          };
-          setMessages(prev => [...prev, assistantMsg]);
+          pushAssistantMessage(lang === "tr" ? `❌ Hata: ${errorDetail}` : `❌ Error: ${errorDetail}`);
         } catch {
-          const assistantMsg: Message = {
-            role: "assistant",
-            message: lang === "tr" ? "❌ Hata: Destek talebini oluşturmada hata oluştu" : "❌ Error: Failed to create support ticket",
-            timestamp: new Date().toISOString()
-          };
-          setMessages(prev => [...prev, assistantMsg]);
+          pushAssistantMessage(lang === "tr" ? "❌ Hata: Destek talebini oluşturmada hata oluştu" : "❌ Error: Failed to create support ticket");
         }
       }
     } catch (error: any) {
       const errorMsg = error?.message || (lang === "tr" ? "Bağlantı hatası" : "Connection error");
-      const assistantMsg: Message = {
-        role: "assistant",
-        message: lang === "tr" ? `❌ ${errorMsg}. Lütfen daha sonra tekrar deneyin.` : `❌ ${errorMsg}. Please try again later.`,
-        timestamp: new Date().toISOString()
-      };
-      setMessages(prev => [...prev, assistantMsg]);
+      pushAssistantMessage(lang === "tr" ? `❌ ${errorMsg}. Lütfen daha sonra tekrar deneyin.` : `❌ ${errorMsg}. Please try again later.`);
     } finally {
       setLoading(false);
     }
   };
 
+  // ----------------------------------------------------
+  // RENDER: PAGE MODE (Tam Ekran Dahsboard Düzeni)
+  // ----------------------------------------------------
   if (pageMode) {
     return (
-      <div data-theme="light" className="flex w-full gap-6">
-        <div className="flex w-full max-w-4xl flex-col overflow-hidden rounded-lg border border-surface-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between bg-brand-600 px-6 py-4 text-white">
-            <div className="flex items-center gap-2">
-              <Lightbulb className="h-5 w-5" />
-              <h3 className="font-semibold">{lang === "tr" ? "HeptaCert AI Asistan" : "HeptaCert AI Assistant"}</h3>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-6">
+      <div data-theme="light" className="flex w-full h-[calc(100vh-10rem)] gap-6 bg-[#fafafa] antialiased">
+        {/* Ana Sohbet Konteyneri */}
+        <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-[#e5e5e5] bg-white shadow-sm">
+          
+          {/* Mesaj Alanı */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-[#fcfcfc]">
             {messages.map((msg, idx) => (
-              <div key={idx} className={`mb-4 flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-2xl px-4 py-2.5 rounded-lg text-sm ${msg.role === "user" ? "bg-brand-600 text-white" : "bg-white text-surface-900 border border-surface-200"}`}>
-                  {msg.message}
+              <div key={idx} className={`flex w-full ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`flex gap-3 max-w-[80%] ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
+                  
+                  {/* Avatar */}
+                  <div className={`flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-lg border text-xs font-medium shadow-sm
+                    ${msg.role === "user" ? "bg-[#171717] text-white border-[#171717]" : "bg-white text-[#171717] border-[#e5e5e5]"}`}
+                  >
+                    {msg.role === "user" ? <User className="h-4 w-4" /> : <Sparkles className="h-4 w-4 text-[#737373]" />}
+                  </div>
+
+                  {/* Mesaj Balonu */}
+                  <div 
+                    onClick={() => msg.role === "user" && startEditingUserMessage(idx)}
+                    style={{ whiteSpace: "pre-wrap" }}
+                    className={`rounded-xl px-4 py-2.5 text-sm leading-relaxed shadow-sm transition-all duration-150
+                      ${msg.role === "user" 
+                        ? "bg-[#171717] text-white font-normal hover:bg-[#262626] cursor-pointer" 
+                        : "bg-white text-[#171717] border border-[#e5e5e5]"}`}
+                  >
+                    {msg.message}
+                  </div>
                 </div>
               </div>
             ))}
+            
+            {loading && (
+              <div className="flex w-full justify-start">
+                <div className="flex items-center gap-3 bg-white border border-[#e5e5e5] rounded-xl px-4 py-3 shadow-sm text-xs text-[#737373]">
+                  <div className="h-4 w-4 border-2 border-t-transparent border-[#171717] rounded-full animate-spin" />
+                  <span>Hepta AI işlem yapıyor...</span>
+                </div>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="border-t border-surface-200 p-4">
-            <div className="flex gap-3">
+          {/* Sihirbaz Bilgi Çubuğu (Wizard Aktifken) */}
+          {eventWizardStep !== "idle" && (
+            <div className="flex items-center justify-between border-t border-[#e5e5e5] bg-[#fbfbfb] px-6 py-3 text-xs border-l-2 border-l-[#171717]">
+              <div className="flex items-center gap-2 text-[#737373]">
+                <AlertCircle className="h-4 w-4 text-[#171717]" />
+                <span>
+                  <strong>Etkinlik Sihirbazı Aktif:</strong> {summarizeMissingFields(eventWizardStep, lang)} Son onay adımına kadar formu doldurun.
+                </span>
+              </div>
+              <button 
+                onClick={() => { resetEventWizard(); pushAssistantMessage(lang === "tr" ? "Etkinlik sihirbazı iptal edildi." : "Event wizard canceled."); }} 
+                className="text-xs font-semibold text-red-500 hover:underline"
+              >
+                {lang === "tr" ? "Sihirbazı Kapat" : "Close Wizard"}
+              </button>
+            </div>
+          )}
+
+          {/* Destek Formu */}
+          {showSupportForm && (
+            <div className="border-t border-[#e5e5e5] p-5 space-y-3 bg-[#fafafa]">
+              <div className="flex items-start gap-2.5 rounded-lg border border-[#e5e5e5] bg-white p-4 text-xs text-[#737373] shadow-sm">
+                <AlertCircle className="h-4 w-4 text-[#171717] shrink-0 mt-0.5" />
+                <p>{lang === "tr" ? "Sorunu detaylandırıp gönderdiğinizde teknik ekibimiz sistem üzerinden çözüme başlayacaktır." : "Once submitted, our team will look into your request instantly."}</p>
+              </div>
               <input
                 type="text"
-                placeholder={lang === "tr" ? "Sorunuzu sorun..." : "Ask your question..."}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && !loading && handleSendMessage()}
-                ref={inputRef}
-                className="input-field flex-1 py-2"
-                disabled={loading}
+                placeholder={lang === "tr" ? "Talep Konusu..." : "Ticket Subject..."}
+                value={supportSubject}
+                onChange={(e) => setSupportSubject(e.target.value)}
+                className="w-full rounded-lg border border-[#e5e5e5] px-4 py-2 text-sm outline-none focus:border-[#171717] transition shadow-inner"
               />
-              <button onClick={handleSendMessage} disabled={!input.trim() || loading} className="btn-primary px-4">
-                {loading ? (lang === "tr" ? "Gönderiliyor..." : "Sending...") : (lang === "tr" ? "Gönder" : "Send")}
+              <textarea
+                placeholder={lang === "tr" ? "Açıklamanız veya hata kaydı detayları..." : "Your detailed explanation..."}
+                value={supportMessage}
+                onChange={(e) => setSupportMessage(e.target.value)}
+                rows={3}
+                className="w-full rounded-lg border border-[#e5e5e5] px-4 py-2 text-sm outline-none focus:border-[#171717] transition shadow-inner resize-none"
+              />
+              <div className="flex gap-2 justify-end">
+                <button onClick={() => setShowSupportForm(false)} className="rounded-lg border border-[#e5e5e5] bg-white px-4 py-2 text-xs font-medium text-[#171717] hover:bg-[#fafafa] transition">
+                  {lang === "tr" ? "Vazgeç" : "Cancel"}
+                </button>
+                <button onClick={handleCreateSupport} disabled={!supportSubject.trim() || !supportMessage.trim() || loading} className="rounded-lg bg-[#171717] px-4 py-2 text-xs font-medium text-white hover:bg-[#262626] transition disabled:opacity-40">
+                  {lang === "tr" ? "Talebi Gönder" : "Send Ticket"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Alt Kontrol ve Input Alanı */}
+          {!showSupportForm && (
+            <div className="border-t border-[#e5e5e5] p-4 bg-white flex flex-col gap-3">
+              <div className="flex gap-3">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  placeholder={lang === "tr" ? "Sorunuzu sorun veya 'yeni etkinlik planla' yazın..." : "Ask a question or type 'create an event'..."}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                  className="flex-1 rounded-lg border border-[#e5e5e5] px-4 py-2.5 text-sm outline-none focus:border-[#171717] transition shadow-inner"
+                  disabled={loading}
+                />
+                <button 
+                  onClick={handleSendMessage} 
+                  disabled={!input.trim() || loading}
+                  className="inline-flex h-10 items-center justify-center rounded-lg bg-[#171717] px-4 text-sm font-medium text-white hover:bg-[#262626] transition disabled:opacity-30 shadow-sm"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { if (eventWizardStep !== "idle") { resetEventWizard(); pushAssistantMessage(lang === "tr" ? "Taslak iptal edildi." : "Draft canceled."); } else { void startEventWizard(input); } }}
+                  className="rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-1.5 text-xs font-medium text-[#171717] hover:bg-[#f4f4f5] transition shadow-sm"
+                >
+                  {eventWizardStep !== "idle" ? (lang === "tr" ? "Taslağı İptal Et" : "Cancel Draft") : (lang === "tr" ? "✨ Yeni Etkinlik Sihirbazı" : "✨ New Event Wizard")}
+                </button>
+                <button
+                  onClick={() => setShowSupportForm(true)}
+                  className="rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-1.5 text-xs font-medium text-[#737373] hover:bg-[#f4f4f5] transition shadow-sm"
+                >
+                  {lang === "tr" ? "🛠️ Destek Talebi Aç" : "🛠️ Open Support Ticket"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Sağ Panel: Yardımcı Bilgiler ve Hazır Tetikleyiciler */}
+        <aside className="w-80 shrink-0 flex flex-col gap-4 rounded-xl border border-[#e5e5e5] bg-white p-5 shadow-sm overflow-y-auto">
+          <div>
+            <div className="flex items-center gap-2 text-[#171717] mb-2">
+              <Lightbulb className="h-4 w-4" />
+              <h4 className="text-sm font-semibold tracking-tight">{lang === "tr" ? "Hızlı Yönlendirmeler" : "Quick Prompts"}</h4>
+            </div>
+            <p className="text-xs text-[#737373] mb-4 leading-relaxed">
+              Sistemi hızlı yönetmek için aşağıdaki akıllı şablon girdilerini asistan satırına gönderebilirsiniz.
+            </p>
+            <div className="space-y-2">
+              <button onClick={() => { window.dispatchEvent(new CustomEvent('ai-assistant-insert', { detail: 'Yeni webinar, 2026-06-30, online' })); }} className="w-full text-left rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2 text-xs text-[#171717] hover:bg-[#f4f4f5] transition font-medium">
+                {lang === "tr" ? "Webinar Önerisi" : "Webinar Prompt"}
+              </button>
+              <button onClick={() => { window.dispatchEvent(new CustomEvent('ai-assistant-insert', { detail: 'Workshop: Hands-on, 1 gün, İstanbul' })); }} className="w-full text-left rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2 text-xs text-[#171717] hover:bg-[#f4f4f5] transition font-medium">
+                {lang === "tr" ? "Workshop Önerisi" : "Workshop Prompt"}
+              </button>
+              <button onClick={() => { window.dispatchEvent(new CustomEvent('ai-assistant-insert', { detail: 'Kayıt formu için KVKK metni önerisi' })); }} className="w-full text-left rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2 text-xs text-[#171717] hover:bg-[#f4f4f5] transition font-medium">
+                {lang === "tr" ? "KVKK Önerisi" : "KVKK Prompt"}
               </button>
             </div>
           </div>
-        </div>
 
-        <aside className="w-80 shrink-0 rounded-lg border border-surface-200 bg-white p-4 shadow-sm">
-          <h4 className="mb-2 font-semibold">{lang === "tr" ? "Hızlı Yönlendirmeler" : "Quick Prompts"}</h4>
-          <div className="space-y-2">
-            <button onClick={() => { window.dispatchEvent(new CustomEvent('ai-assistant-insert', { detail: 'Yeni webinar, 2026-06-30, online' })); }} className="w-full rounded-md border px-3 py-2 text-sm">{lang === "tr" ? "Webinar Önerisi" : "Webinar Prompt"}</button>
-            <button onClick={() => { window.dispatchEvent(new CustomEvent('ai-assistant-insert', { detail: 'Workshop: Hands-on, 1 gün, İstanbul' })); }} className="w-full rounded-md border px-3 py-2 text-sm">{lang === "tr" ? "Workshop Önerisi" : "Workshop Prompt"}</button>
-            <button onClick={() => { window.dispatchEvent(new CustomEvent('ai-assistant-insert', { detail: 'Kayıt formu için KVKK metni önerisi' })); }} className="w-full rounded-md border px-3 py-2 text-sm">{lang === "tr" ? "KVKK Önerisi" : "KVKK Prompt"}</button>
-          </div>
-
-          <div className="mt-4 border-t pt-3">
-            <h5 className="mb-2 font-medium">{lang === "tr" ? "Komut Paleti" : "Command Palette"}</h5>
-            <p className="text-sm text-surface-600">{lang === "tr" ? "Klavye ile açmak için CMD/CTRL+K" : "Open with CMD/CTRL+K"}</p>
+          <div className="mt-auto pt-4 border-t border-[#e5e5e5]">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-[#171717]">
+              <Command className="h-3.5 w-3.5" />
+              <h5>{lang === "tr" ? "Komut Paleti" : "Command Palette"}</h5>
+            </div>
+            <p className="text-[11px] text-[#737373] mt-1 leading-normal">
+              {lang === "tr" ? "Sistem genelinde CMD/CTRL+K tuş kombinasyonuyla hızlı yönetim aksiyonlarını çağırabilirsiniz." : "Open everywhere with CMD/CTRL+K shortcut keys."}
+            </p>
           </div>
         </aside>
       </div>
     );
   }
 
+  // ----------------------------------------------------
+  // RENDER: FLOATING WIDGET MODE (Kayan Pencere Düzeni)
+  // ----------------------------------------------------
   return (
     <>
-      {/* Floating Button */}
+      {/* Kayan Tetikleyici Buton */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-brand transition hover:bg-brand-700"
+          className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#171717] text-white shadow-lg transition-transform duration-200 hover:scale-105"
           title={lang === "tr" ? "AI Asistan" : "AI Assistant"}
         >
           <MessageCircle className="h-6 w-6" />
         </button>
       )}
 
-      {/* Chat Widget */}
+      {/* Sohbet Penceresi */}
       {isOpen && (
-        <div data-theme="light" className="fixed bottom-6 right-4 z-50 flex h-[min(600px,calc(100vh-3rem))] w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-lg border border-surface-200 bg-white shadow-modal sm:right-6 sm:w-96">
-          {/* Header */}
-          <div className="flex items-center justify-between bg-brand-600 px-6 py-4 text-white">
+        <div data-theme="light" className="fixed bottom-6 right-4 z-50 flex h-[min(600px,calc(100vh-3rem))] w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-xl border border-[#e5e5e5] bg-white shadow-xl sm:right-6 sm:w-96 antialiased">
+          
+          {/* Başlık Çubuğu */}
+          <div className="flex h-14 items-center justify-between border-b border-[#e5e5e5] bg-white px-5">
             <div className="flex items-center gap-2">
-              <Lightbulb className="h-5 w-5" />
-              <h3 className="font-semibold">
+              <Lightbulb className="h-4 w-4 text-[#171717]" />
+              <h3 className="text-sm font-semibold text-[#171717]">
                 {lang === "tr" ? "HeptaCert AI Asistan" : "HeptaCert AI Assistant"}
               </h3>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-white hover:bg-brand-700 p-1 rounded-lg transition"
-            >
-              <X className="h-5 w-5" />
+            <button onClick={() => setIsOpen(false)} className="text-[#737373] hover:text-[#171717] transition p-1 rounded-lg">
+              <X className="h-4 w-4" />
             </button>
           </div>
 
-          {/* Messages Area */}
-          <div className="scrollbar-polished flex-1 space-y-4 overflow-y-auto bg-surface-50 p-4">
+          {/* Mesaj Akışı */}
+          <div className="flex-1 space-y-3 overflow-y-auto bg-[#fafafa] p-4">
             {messages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-xs px-4 py-2.5 rounded-lg text-sm ${
-                    msg.role === "user"
-                      ? "bg-brand-600 text-white rounded-br-none"
-                      : "bg-white text-surface-900 border border-surface-200 rounded-bl-none"
-                  }`}
+              <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div 
+                  onClick={() => msg.role === "user" && startEditingUserMessage(idx)}
+                  style={{ whiteSpace: "pre-wrap" }}
+                  className={`max-w-[85%] px-3.5 py-2 rounded-xl text-xs leading-relaxed shadow-sm transition-all duration-150
+                    ${msg.role === "user"
+                      ? "bg-[#171717] text-white rounded-tr-none hover:bg-[#262626] cursor-pointer"
+                      : "bg-white text-[#171717] border border-[#e5e5e5] rounded-tl-none"}`}
                 >
                   {msg.message}
                 </div>
               </div>
             ))}
+            {loading && (
+              <div className="flex justify-start">
+                <div className="flex items-center gap-2 bg-white border border-[#e5e5e5] rounded-xl px-3 py-2 shadow-sm text-[11px] text-[#737373]">
+                  <div className="h-3 w-3 border-2 border-t-transparent border-[#171717] rounded-full animate-spin" />
+                  <span>Düşünüyor...</span>
+                </div>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Sihirbaz Bildirim Katmanı */}
           {eventWizardStep !== "idle" && (
-            <div className="border-t border-surface-200 bg-brand-50 px-4 py-3 text-sm text-surface-700">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-brand-700">
-                    {lang === "tr" ? "Etkinlik oluşturma modu aktif" : "Event creation mode is active"}
-                  </p>
-                  <p className="mt-1 text-surface-600">
-                    {lang === "tr"
-                      ? "Soruları sırayla cevaplayın; son adımda siz onay verince etkinlik oluşturulacak."
-                      : "Answer the prompts in order; the event will be created only after your final approval."}
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    resetEventWizard();
-                    pushAssistantMessage(lang === "tr" ? "Tamam, etkinlik taslağını iptal ettim." : "Okay, I canceled the event draft.");
-                  }}
-                  className="rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-semibold text-brand-700 transition hover:bg-brand-100"
-                  disabled={loading}
-                >
-                  {lang === "tr" ? "İptal Et" : "Cancel"}
+            <div className="border-t border-[#e5e5e5] bg-[#fbfbfb] px-4 py-2.5 text-[11px] text-[#737373] border-l-2 border-l-[#171717]">
+              <div className="flex items-center justify-between gap-2">
+                <span><strong>Sihirbaz Modu:</strong> {summarizeMissingFields(eventWizardStep, lang)}</span>
+                <button onClick={resetEventWizard} className="font-semibold text-red-500 hover:underline shrink-0">
+                  {lang === "tr" ? "İptal" : "Cancel"}
                 </button>
               </div>
             </div>
           )}
 
-          {/* Support Form */}
+          {/* Destek Formu Katmanı */}
           {showSupportForm && (
-            <div className="border-t border-surface-200 p-4 space-y-3 bg-amber-50">
-              <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0 text-amber-600" />
-                <p className="font-medium">
-                  {lang === "tr"
-                    ? "Sorununuzu detaylı açıklayın. Destek Ekibimiz kısa sürede yanıtlayacak."
-                    : "Describe your issue in detail. Our support team will respond shortly."}
-                </p>
-              </div>
-              
+            <div className="border-t border-[#e5e5e5] p-4 space-y-2 bg-[#fcfcfc]">
               <input
                 type="text"
                 placeholder={lang === "tr" ? "Konu..." : "Subject..."}
                 value={supportSubject}
                 onChange={(e) => setSupportSubject(e.target.value)}
-                className="input-field py-2"
-                disabled={loading}
+                className="w-full rounded-lg border border-[#e5e5e5] px-3 py-1.5 text-xs outline-none focus:border-[#171717] shadow-inner"
               />
-              
               <textarea
-                placeholder={lang === "tr" ? "Mesajınız..." : "Your message..."}
+                placeholder={lang === "tr" ? "Mesajınız..." : "Message..."}
                 value={supportMessage}
                 onChange={(e) => setSupportMessage(e.target.value)}
-                rows={3}
-                className="input-field resize-none py-2"
-                disabled={loading}
+                rows={2}
+                className="w-full rounded-lg border border-[#e5e5e5] px-3 py-1.5 text-xs outline-none focus:border-[#171717] shadow-inner resize-none"
               />
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowSupportForm(false)}
-                  className="btn-secondary min-h-0 flex-1 px-3 py-2.5 text-sm"
-                  disabled={loading}
-                >
-                  {lang === "tr" ? "İptal" : "Cancel"}
+              <div className="flex gap-2 justify-end">
+                <button onClick={() => setShowSupportForm(false)} className="rounded-md border border-[#e5e5e5] bg-white px-3 py-1 text-[11px] text-[#171717] hover:bg-[#fafafa]">
+                  {lang === "tr" ? "Kapat" : "Close"}
                 </button>
-                <button
-                  onClick={handleCreateSupport}
-                  className="btn-primary min-h-0 flex-1 px-3 py-2.5 text-sm"
-                  disabled={loading || !supportSubject.trim() || !supportMessage.trim()}
-                >
-                  {loading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <div className="h-3 w-3 rounded-full bg-white animate-pulse" />
-                      {lang === "tr" ? "Gönderiliyor..." : "Sending..."}
-                    </span>
-                  ) : (lang === "tr" ? "Talep Oluştur" : "Create Ticket")}
+                <button onClick={handleCreateSupport} disabled={!supportSubject.trim() || !supportMessage.trim() || loading} className="rounded-md bg-[#171717] px-3 py-1 text-[11px] text-white hover:bg-[#262626] disabled:opacity-40">
+                  {lang === "tr" ? "Gönder" : "Send"}
                 </button>
               </div>
             </div>
           )}
 
-          {/* Input Area */}
-          <div className="border-t border-surface-200 p-4 space-y-2">
-            {!showSupportForm ? (
-              <>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder={lang === "tr" ? "Sorunuzu sorun..." : "Ask your question..."}
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && !loading && handleSendMessage()}
-                    ref={inputRef}
-                    className="input-field flex-1 py-2"
-                    disabled={loading}
-                  />
-                  <button
-                    onClick={handleSendMessage}
-                    disabled={!input.trim() || loading}
-                    className="rounded-lg bg-brand-600 p-2 text-white transition hover:bg-brand-700 disabled:opacity-50"
-                  >
-                    {loading ? <div className="h-4 w-4 rounded-full bg-white animate-pulse" /> : <Send className="h-4 w-4" />}
-                  </button>
-                </div>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <button
-                    onClick={() => {
-                      if (eventWizardStep !== "idle") {
-                        resetEventWizard();
-                        pushAssistantMessage(lang === "tr" ? "Etkinlik taslağını iptal ettim." : "I canceled the event draft.");
-                        return;
-                      }
-                      void startEventWizard(input);
-                    }}
-                    className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm font-semibold text-brand-800 shadow-sm transition hover:bg-brand-100"
-                    disabled={loading}
-                  >
-                    {eventWizardStep !== "idle"
-                      ? (lang === "tr" ? "Etkinlik Taslağını İptal Et" : "Cancel Event Draft")
-                      : (lang === "tr" ? "Yeni Etkinlik Oluştur" : "Create New Event")}
-                  </button>
-                  <button
-                    onClick={() => setShowSupportForm(true)}
-                    className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-900 shadow-sm transition hover:bg-amber-100"
-                    disabled={loading}
-                  >
-                    <span className="flex items-center justify-center gap-2">
-                      <AlertCircle className="h-4 w-4" />
-                      {lang === "tr" ? "Destek Talebi Oluştur" : "Create Support Ticket"}
-                    </span>
-                  </button>
-                </div>
-              </>
-            ) : null}
-          </div>
+          {/* Girdi Giriş Paneli */}
+          {!showSupportForm && (
+            <div className="border-t border-[#e5e5e5] p-3 bg-white flex flex-col gap-2">
+              <div className="flex gap-2">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  placeholder={lang === "tr" ? "Sorunuzu yazın..." : "Type question..."}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                  className="flex-1 rounded-lg border border-[#e5e5e5] px-3 py-1.5 text-xs outline-none focus:border-[#171717] shadow-inner"
+                  disabled={loading}
+                />
+                <button 
+                  onClick={handleSendMessage} 
+                  disabled={!input.trim() || loading}
+                  className="rounded-lg bg-[#171717] p-2 text-white hover:bg-[#262626] disabled:opacity-40 shadow-sm transition"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => { if (eventWizardStep !== "idle") { resetEventWizard(); } else { void startEventWizard(input); } }}
+                  className="flex-1 rounded-md border border-[#e5e5e5] bg-[#fafafa] py-1 text-[10px] font-semibold text-[#171717] hover:bg-[#f4f4f5] transition shadow-sm"
+                >
+                  {eventWizardStep !== "idle" ? (lang === "tr" ? "İptal Et" : "Cancel") : (lang === "tr" ? "Etkinlik Sihirbazı" : "Event Wizard")}
+                </button>
+                <button
+                  onClick={() => setShowSupportForm(true)}
+                  className="flex-1 rounded-md border border-[#e5e5e5] bg-[#fafafa] py-1 text-[10px] font-semibold text-[#737373] hover:bg-[#f4f4f5] transition shadow-sm"
+                >
+                  {lang === "tr" ? "Destek Talebi" : "Support Ticket"}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </>
   );
+}
+
+function getEventPromptForStep(step: EventWizardStep, draft: EventDraft, lang: string): string {
+  if (step === "confirm") return buildReviewMessage(draft, lang);
+  return getWizardQuestion(step, draft, lang);
 }
