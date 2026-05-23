@@ -47,6 +47,8 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-noreply@heptapus.com}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
       # Payments
       PAYMENT_ENABLED: ${PAYMENT_ENABLED:-false}
       ACTIVE_PAYMENT_PROVIDER: ${ACTIVE_PAYMENT_PROVIDER:-iyzico}
@@ -108,6 +110,8 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-noreply@heptapus.com}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
       PAYMENT_ENABLED: ${PAYMENT_ENABLED:-false}
       ACTIVE_PAYMENT_PROVIDER: ${ACTIVE_PAYMENT_PROVIDER:-iyzico}
       IYZICO_API_KEY: ${IYZICO_API_KEY:-}

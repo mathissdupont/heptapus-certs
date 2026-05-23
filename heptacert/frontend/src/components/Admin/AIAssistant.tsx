@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send, AlertCircle, Lightbulb } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
-import { getToken } from "@/lib/api";
+import { apiFetch, getToken } from "@/lib/api";
 
 interface Message {
   role: "user" | "assistant";
@@ -164,20 +164,92 @@ export default function AIAssistant() {
     return null;
   };
 
-  const handleSendMessage = () => {
+  const getCurrentEventId = (): number | null => {
+    if (typeof window === "undefined") return null;
+    const match = window.location.pathname.match(/\/admin\/events\/(\d+)/);
+    return match ? Number(match[1]) : null;
+  };
+
+  const formatAiAnswer = (answer: string, suggestions?: Record<string, any>): string => {
+    if (!suggestions || Object.keys(suggestions).length === 0) return answer;
+    const parts = [answer];
+    const eventUpdate = suggestions.event_update || {};
+    const fields = Array.isArray(suggestions.registration_fields) ? suggestions.registration_fields : [];
+    const sessions = Array.isArray(suggestions.sessions) ? suggestions.sessions : [];
+
+    if (Object.keys(eventUpdate).length > 0) {
+      parts.push(
+        lang === "tr"
+          ? `\n\nEtkinlik ayari taslagi: ${Object.entries(eventUpdate).map(([key, value]) => `${key}: ${value}`).join(", ")}`
+          : `\n\nEvent settings draft: ${Object.entries(eventUpdate).map(([key, value]) => `${key}: ${value}`).join(", ")}`
+      );
+    }
+    if (fields.length > 0) {
+      parts.push(
+        lang === "tr"
+          ? `\n\nKayit formu onerisi: ${fields.map((field: any) => field.label || field.key).join(", ")}`
+          : `\n\nRegistration fields: ${fields.map((field: any) => field.label || field.key).join(", ")}`
+      );
+    }
+    if (sessions.length > 0) {
+      parts.push(
+        lang === "tr"
+          ? `\n\nOturum taslagi: ${sessions.map((session: any) => session.title || session.name).join(", ")}`
+          : `\n\nSession draft: ${sessions.map((session: any) => session.title || session.name).join(", ")}`
+      );
+    }
+    return parts.join("");
+  };
+
+  const handleSendMessage = async () => {
     if (!input.trim()) return;
+    const currentInput = input;
 
     // Add user message
     const userMsg: Message = {
       role: "user",
-      message: input,
+      message: currentInput,
       timestamp: new Date().toISOString()
     };
     setMessages(prev => [...prev, userMsg]);
     setInput("");
 
     // Find answer
-    const answer = findAnswer(input);
+    const answer = findAnswer(currentInput);
+    if (!answer) {
+      setLoading(true);
+      try {
+        const response = await apiFetch("/admin/ai/event-assistant", {
+          method: "POST",
+          body: JSON.stringify({
+            message: currentInput,
+            language: lang,
+            event_id: getCurrentEventId(),
+            history: messages.slice(-6),
+          }),
+        });
+        const data = await response.json();
+        const assistantMsg: Message = {
+          role: "assistant",
+          message: formatAiAnswer(
+            data?.answer || (lang === "tr" ? "Bir taslak uretemedim, biraz daha detay verebilir misiniz?" : "I could not draft that yet. Can you add a bit more detail?"),
+            data?.suggestions
+          ),
+          timestamp: new Date().toISOString()
+        };
+        setMessages(prev => [...prev, assistantMsg]);
+      } catch (error: any) {
+        const assistantMsg: Message = {
+          role: "assistant",
+          message: error?.message || (lang === "tr" ? "AI asistana ulasilamadi. Lutfen tekrar deneyin." : "The AI assistant is unavailable. Please try again."),
+          timestamp: new Date().toISOString()
+        };
+        setMessages(prev => [...prev, assistantMsg]);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
     
     // Add assistant response
     const assistantMsg: Message = {
@@ -381,15 +453,16 @@ export default function AIAssistant() {
                     placeholder={lang === "tr" ? "Sorunuzu sorun..." : "Ask your question..."}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                    onKeyPress={(e) => e.key === "Enter" && !loading && handleSendMessage()}
                     className="input-field flex-1 py-2"
+                    disabled={loading}
                   />
                   <button
                     onClick={handleSendMessage}
-                    disabled={!input.trim()}
+                    disabled={!input.trim() || loading}
                     className="rounded-lg bg-brand-600 p-2 text-white transition hover:bg-brand-700 disabled:opacity-50"
                   >
-                    <Send className="h-4 w-4" />
+                    {loading ? <div className="h-4 w-4 rounded-full bg-white animate-pulse" /> : <Send className="h-4 w-4" />}
                   </button>
                 </div>
                 <button

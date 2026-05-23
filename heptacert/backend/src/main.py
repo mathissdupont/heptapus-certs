@@ -298,6 +298,8 @@ class Settings(BaseSettings):
     stripe_publishable_key: str = Field(default="", alias="STRIPE_PUBLISHABLE_KEY")
 
     enable_scheduler: bool = Field(default=True, alias="ENABLE_SCHEDULER")
+    openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
+    openai_model: str = Field(default="gpt-4.1-mini", alias="OPENAI_MODEL")
 
 
 settings = Settings()
@@ -1681,6 +1683,25 @@ class EventConfigIn(BaseModel):
         if not v.startswith("#"):
             raise ValueError("cert_id_color must be hex like #94A3B8")
         return v
+
+
+class AIAssistantMessage(BaseModel):
+    role: str = Field(max_length=20)
+    message: str = Field(max_length=4000)
+
+
+class AIAssistantIn(BaseModel):
+    message: str = Field(min_length=2, max_length=4000)
+    language: str = Field(default="tr", max_length=8)
+    event_id: Optional[int] = Field(default=None, ge=1)
+    history: List[AIAssistantMessage] = Field(default_factory=list, max_length=8)
+
+
+class AIAssistantOut(BaseModel):
+    answer: str
+    mode: str = "suggestion"
+    provider: str = "local"
+    suggestions: Dict[str, Any] = Field(default_factory=dict)
 
 
 class EventOut(BaseModel):
@@ -10697,6 +10718,178 @@ def _event_to_out(ev: Event) -> EventOut:
         gamification_enabled=normalize_feature_bool(getattr(ev, "gamification_enabled", None), default=FEATURE_DEFAULTS["gamification_enabled"]),
         requires_approval=normalize_feature_bool(getattr(ev, "requires_approval", None), default=FEATURE_DEFAULTS["requires_approval"]),
     )
+
+
+def _build_local_ai_assistant_response(payload: AIAssistantIn, event: Optional[Event]) -> AIAssistantOut:
+    text = payload.message.lower()
+    lang = (payload.language or "tr").lower()
+    is_tr = lang.startswith("tr")
+    event_name = event.name if event else ("etkinlik" if is_tr else "event")
+
+    registration_fields = [
+        {"key": "full_name", "label": "Ad Soyad", "type": "text", "required": True},
+        {"key": "email", "label": "E-posta", "type": "email", "required": True},
+    ]
+    if any(word in text for word in ["sirket", "firma", "company", "kurum"]):
+        registration_fields.append({"key": "company", "label": "Sirket/Kurum", "type": "text", "required": False})
+    if any(word in text for word in ["unvan", "title", "pozisyon", "position"]):
+        registration_fields.append({"key": "job_title", "label": "Unvan", "type": "text", "required": False})
+    if any(word in text for word in ["telefon", "phone", "sms"]):
+        registration_fields.append({"key": "phone", "label": "Telefon", "type": "phone", "required": False})
+
+    event_update: Dict[str, Any] = {}
+    if any(word in text for word in ["konferans", "conference", "zirve", "summit"]):
+        event_update["event_type"] = "conference"
+    elif any(word in text for word in ["workshop", "atolye"]):
+        event_update["event_type"] = "workshop"
+    elif any(word in text for word in ["egitim", "training"]):
+        event_update["event_type"] = "training"
+
+    event_update["certificate_enabled"] = any(word in text for word in ["sertifika", "certificate"])
+    event_update["checkin_enabled"] = any(word in text for word in ["qr", "check-in", "checkin", "katilim"])
+    event_update["registration_enabled"] = True
+
+    sessions = []
+    if any(word in text for word in ["oturum", "session", "program", "gun", "gün"]):
+        sessions = [
+            {"title": "Acilis ve Tanisma", "duration_minutes": 30},
+            {"title": "Ana Oturum", "duration_minutes": 60},
+            {"title": "Soru-Cevap ve Kapanis", "duration_minutes": 30},
+        ]
+
+    if is_tr:
+        answer = (
+            f"{event_name} icin bunu taslak olarak kurabiliriz. Onerim: kayit formunu temel bilgilerle acmak, "
+            "QR check-in ve sertifikayi istekte geciyorsa aktif etmek, oturum varsa kisa bir program taslagi "
+            "olusturmak. Su an otomatik kaydetmiyorum; asagidaki alanlari onay ekranina tasiyabiliriz."
+        )
+    else:
+        answer = (
+            f"For {event_name}, I would draft the event with core registration fields, enable QR check-in "
+            "and certificates when requested, and prepare a short session outline. I am not saving anything yet."
+        )
+
+    return AIAssistantOut(
+        answer=answer,
+        provider="local",
+        suggestions={
+            "event_update": event_update,
+            "registration_fields": registration_fields,
+            "sessions": sessions,
+        },
+    )
+
+
+def _extract_openai_response_text(data: Dict[str, Any]) -> str:
+    output_text = data.get("output_text")
+    if isinstance(output_text, str) and output_text.strip():
+        return output_text.strip()
+    parts: List[str] = []
+    for item in data.get("output") or []:
+        if not isinstance(item, dict):
+            continue
+        for content in item.get("content") or []:
+            if isinstance(content, dict):
+                text = content.get("text")
+                if isinstance(text, str):
+                    parts.append(text)
+    return "\n".join(parts).strip()
+
+
+async def _call_openai_ai_assistant(payload: AIAssistantIn, event: Optional[Event]) -> AIAssistantOut:
+    system_prompt = (
+        "You are HeptaCert's admin AI assistant. Help event organizers in Turkish or English. "
+        "You can suggest event descriptions, emails, surveys, registration fields, certificate/check-in settings, "
+        "and draft smart event builder plans. Never claim changes were saved. Keep answers concise. "
+        "Return practical suggestions, and when useful include sections for event_update, registration_fields, and sessions."
+    )
+    event_context = {}
+    if event:
+        event_context = {
+            "id": event.id,
+            "name": event.name,
+            "event_type": getattr(event, "event_type", None),
+            "event_date": event.event_date.isoformat() if event.event_date else None,
+            "event_location": event.event_location,
+            "certificate_enabled": bool(getattr(event, "certificate_enabled", False)),
+            "checkin_enabled": bool(getattr(event, "checkin_enabled", False)),
+            "ticketing_enabled": bool(getattr(event, "ticketing_enabled", False)),
+            "registration_enabled": bool(getattr(event, "registration_enabled", False)),
+            "config": event.config if isinstance(event.config, dict) else {},
+        }
+
+    input_text = json.dumps(
+        {
+            "language": payload.language,
+            "event_context": event_context,
+            "history": [m.model_dump() for m in payload.history[-6:]],
+            "user_message": payload.message,
+        },
+        ensure_ascii=False,
+    )
+    body = {
+        "model": settings.openai_model,
+        "instructions": system_prompt,
+        "input": input_text,
+        "max_output_tokens": 900,
+    }
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        resp = await client.post(
+            "https://api.openai.com/v1/responses",
+            headers={
+                "Authorization": f"Bearer {settings.openai_api_key}",
+                "Content-Type": "application/json",
+            },
+            json=body,
+        )
+    if resp.status_code >= 400:
+        logger.warning("OpenAI assistant call failed status=%s body=%s", resp.status_code, resp.text[:500])
+        return _build_local_ai_assistant_response(payload, event)
+    answer = _extract_openai_response_text(resp.json())
+    if not answer:
+        return _build_local_ai_assistant_response(payload, event)
+    return AIAssistantOut(answer=answer, provider="openai", suggestions={})
+
+
+async def _get_optional_ai_event_context(event_id: Optional[int], me: CurrentUser, db: AsyncSession) -> Optional[Event]:
+    if not event_id:
+        return None
+    res = await db.execute(select(Event).where(Event.id == event_id))
+    event = res.scalar_one_or_none()
+    if not event:
+        return None
+    if me.role == Role.superadmin or event.admin_id == me.id:
+        return event
+    normalized_email = str(me.email).strip().lower()
+    member_res = await db.execute(
+        select(EventTeamMember).where(
+            EventTeamMember.event_id == event.id,
+            EventTeamMember.status == "active",
+            or_(
+                EventTeamMember.user_id == me.id,
+                func.lower(func.trim(EventTeamMember.email)) == normalized_email,
+            ),
+        )
+    )
+    return event if member_res.scalar_one_or_none() else None
+
+
+@app.post(
+    "/api/admin/ai/event-assistant",
+    response_model=AIAssistantOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+@limiter.limit("20/minute")
+async def ai_event_assistant(
+    request: Request,
+    payload: AIAssistantIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    event = await _get_optional_ai_event_context(payload.event_id, me, db)
+    if not settings.openai_api_key.strip():
+        return _build_local_ai_assistant_response(payload, event)
+    return await _call_openai_ai_assistant(payload, event)
 
 
 def _event_team_invite_url(token: str) -> str:
