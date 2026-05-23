@@ -53,8 +53,13 @@ export default function NewEventPage() {
                 <button
                   className="btn-ghost"
                   onClick={() => {
-                    // Quick page reload to clear a conversation (simple fallback)
-                    if (confirm(lang === "tr" ? "Konuşmayı temizlemek istediğine emin misin?" : "Clear the conversation?")) window.location.reload();
+                    if (confirm(lang === "tr" ? "Konuşmayı temizlemek istediğine emin misin?" : "Clear the conversation?")) {
+                      try {
+                        window.dispatchEvent(new CustomEvent("ai-assistant-clear"));
+                      } catch {
+                        window.location.reload();
+                      }
+                    }
                   }}
                 >
                   Clear
@@ -93,8 +98,9 @@ export default function NewEventPage() {
                   className="w-full rounded border px-3 py-2 text-left text-sm hover:bg-surface-50"
                   onClick={async () => {
                     try {
+                      try { window.dispatchEvent(new CustomEvent("ai-assistant-insert", { detail: p })); } catch {}
                       await navigator.clipboard.writeText(p);
-                      toast.success(lang === "tr" ? "Kopyalandı: yapıştırmak için sohbet girişine yapıştırın" : "Copied — paste into the chat input.");
+                      toast.success(lang === "tr" ? "Komut eklendi ve kopyalandı — sohbet girişine yapıştırıldı." : "Prompt inserted and copied — paste into the chat input.");
                     } catch {
                       alert(p);
                     }

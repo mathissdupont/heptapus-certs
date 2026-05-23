@@ -988,6 +988,23 @@ export default function AIAssistant() {
       }
     };
     window.addEventListener("ai-assistant-insert", handler as EventListener);
+    const clearHandler = (e: Event) => {
+      try {
+        // Reset messages to initial assistant greeting and clear wizard
+        setMessages([
+          {
+            role: "assistant",
+            message: lang === "tr" ? "Merhaba! Size etkinlik oluşturma ve yönetiminde yardımcı olmak için buradayım. Ne sorunuz var?" : "Hello! I'm here to help you with event creation and management. What questions do you have?",
+            timestamp: new Date().toISOString(),
+          },
+        ]);
+        resetEventWizard();
+        setInput("");
+      } catch {
+        // ignore
+      }
+    };
+    window.addEventListener("ai-assistant-clear", clearHandler as EventListener);
     return () => window.removeEventListener("ai-assistant-insert", handler as EventListener);
   }, []);
   const [showSupportForm, setShowSupportForm] = useState(false);
@@ -1052,12 +1069,24 @@ export default function AIAssistant() {
   };
 
   const submitEventDraft = async (draft: EventDraft) => {
+    let createDraft = { ...draft };
     const scheduleHint = draft.scheduleHint.trim() || [draft.eventDate, draft.eventStartTime, draft.eventEndTime].filter(Boolean).join(" ").trim();
+
+    if (!createDraft.name || !createDraft.name.trim()) {
+      const lastUser = messages.slice().reverse().find((m) => m.role === "user")?.message || "";
+      const derived = deriveEventName(lastUser) || `Yeni Etkinlik ${new Date().toISOString().slice(0, 10)}`;
+      pushAssistantMessage(
+        lang === "tr"
+          ? `Uyarı: Etkinlik adı eksik olduğu için "${derived}" olarak kullanılacak. İsterseniz iptal edip yeni bir ad girin.`
+          : `Warning: event name missing, using "${derived}" as fallback. Cancel if you want to set a different name.`
+      );
+      createDraft = { ...createDraft, name: derived };
+    }
     const registrationFields = draft.registrationFields.length > 0 ? draft.registrationFields : buildSmartRegistrationFields(draft.eventType);
     const createResponse = await apiFetch("/admin/events", {
       method: "POST",
       body: JSON.stringify({
-        name: draft.name,
+        name: createDraft.name,
         template_image_url: "placeholder",
         config: {
           visibility: draft.visibility,
@@ -1074,14 +1103,14 @@ export default function AIAssistant() {
           kvkk_consent_text: draft.kvkkConsentText || undefined,
           ai_assistant_populated_kvkk: true,
         },
-        event_type: draft.eventType,
-        certificate_enabled: draft.certificateEnabled,
-        checkin_enabled: draft.checkinEnabled,
-        ticketing_enabled: draft.ticketingEnabled,
-        registration_enabled: draft.registrationEnabled,
-        raffles_enabled: draft.rafflesEnabled,
-        gamification_enabled: draft.gamificationEnabled,
-        requires_approval: draft.requiresApproval,
+        event_type: createDraft.eventType,
+        certificate_enabled: createDraft.certificateEnabled,
+        checkin_enabled: createDraft.checkinEnabled,
+        ticketing_enabled: createDraft.ticketingEnabled,
+        registration_enabled: createDraft.registrationEnabled,
+        raffles_enabled: createDraft.rafflesEnabled,
+        gamification_enabled: createDraft.gamificationEnabled,
+        requires_approval: createDraft.requiresApproval,
       }),
     });
 

@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarCheck2,
   ChartNoAxesCombined,
+  MessageCircle,
   CreditCard,
   Gauge,
   KeyRound,
@@ -53,6 +54,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/admin/email-dashboard", label: { tr: "Email Merkezi", en: "Email Center" }, icon: Mail },
       { href: "/admin/email-analytics", label: { tr: "Email Analitik", en: "Email Analytics" }, icon: ChartNoAxesCombined },
+      { href: "/admin/assistant", label: { tr: "Asistan", en: "Assistant" }, icon: MessageCircle },
     ],
   },
   {
