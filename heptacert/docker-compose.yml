@@ -7,6 +7,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
     volumes:
       - ${POSTGRES_DATA_DIR:-/mnt/HC_Volume_105029103/heptacert-data/postgres}:/var/lib/postgresql/data
+      - pg_socket:/var/run/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U heptacert -d heptacert"]
       interval: 5s
@@ -25,6 +26,30 @@ services:
       timeout: 3s
       retries: 20
     restart: unless-stopped
+
+  db_password_sync:
+    image: postgres:16-alpine
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-heptacert}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+    user: postgres
+    volumes:
+      - pg_socket:/var/run/postgresql
+    entrypoint:
+      - sh
+      - -lc
+      - |
+        cat > /tmp/rotate-password.sql <<'SQL'
+        ALTER USER :"dbuser" WITH PASSWORD :'dbpass';
+        SQL
+        psql -v ON_ERROR_STOP=1 -U postgres -d postgres \
+          -v dbuser="${POSTGRES_USER:-heptacert}" \
+          -v dbpass="${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}" \
+          -f /tmp/rotate-password.sql
+    restart: "no"
 
   backend:
     build:
@@ -86,6 +111,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      db_password_sync:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
     networks:
@@ -140,6 +167,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      db_password_sync:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
       backend:
@@ -213,3 +242,4 @@ networks:
 
 volumes:
   redis_data:
+  pg_socket:
