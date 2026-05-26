@@ -1,6 +1,6 @@
 """Add organization members and venue reservations.
 
-Revision ID: 051_organization_access_reservations
+Revision ID: 051_org_access_reservations
 Revises: 050_organization_venues
 Create Date: 2026-05-26
 """
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB
 
 
-revision = "051_organization_access_reservations"
+revision = "051_org_access_reservations"
 down_revision = "050_organization_venues"
 branch_labels = None
 depends_on = None
