@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   listAttendees, importAttendees, createManualAttendee, deleteAttendee, getAdminAttendeeSurveyLink,
   getAttendanceMatrix, bulkCertifyQueue, getBulkGenerateJob,
-  exportAttendanceFile, exportRegistrationDocumentsZip, apiFetch, getMySubscription, setToken,
+  exportAttendanceFile, exportRegistrationDocumentsZip, downloadRegistrationDocument, apiFetch, consumeOAuthBridgeToken, getMySubscription, setToken,
   type AttendeeOut, type AttendanceMatrix, type RegistrationField, type SubscriptionInfo
 } from "@/lib/api";
 import Link from "next/link";
@@ -193,19 +193,25 @@ export default function AdminAttendeesPage() {
   }
 
   useEffect(() => {
-    const bridgeToken =
-      typeof window !== "undefined"
-        ? new URLSearchParams(window.location.search).get("admin_token")
-        : null;
-    if (bridgeToken) {
-      setToken(bridgeToken);
-      if (typeof window !== "undefined") {
-        const url = new URL(window.location.href);
-        url.searchParams.delete("admin_token");
-        window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
-      }
+    let cancelled = false;
+    const hasBridge = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("oauth_bridge") === "1";
+    const finish = () => {
+      if (!cancelled) setAuthBridgeReady(true);
+    };
+    if (!hasBridge) {
+      finish();
+      return () => { cancelled = true; };
     }
-    setAuthBridgeReady(true);
+    void consumeOAuthBridgeToken()
+      .then(({ access_token, mode }) => {
+        if (cancelled || mode !== "admin") return;
+        setToken(access_token);
+        const url = new URL(window.location.href);
+        url.searchParams.delete("oauth_bridge");
+        window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+      })
+      .finally(finish);
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -374,6 +380,23 @@ export default function AdminAttendeesPage() {
       setListError(e?.message || "Google Sheets bağlantısı başlatılamadı.");
     } finally {
       setSheetsAction(null);
+    }
+  }
+
+  async function handleDownloadRegistrationDocument(path: string, fallbackName: string) {
+    setListError(null);
+    try {
+      const { blob, filename } = await downloadRegistrationDocument(eventId, path);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename || fallbackName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      setListError(e.message || "Belge indirilemedi.");
     }
   }
 
@@ -1358,16 +1381,15 @@ export default function AdminAttendeesPage() {
                                   );
                                 }
                                 return (
-                                  <a
+                                  <button
                                     key={`${field.id}-doc-${index}`}
-                                    href={`/api/files/${encodeURI(docPath)}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="block truncate text-sm font-semibold text-indigo-700 underline-offset-2 hover:underline"
+                                    type="button"
+                                    onClick={() => void handleDownloadRegistrationDocument(docPath, docName)}
+                                    className="block max-w-full truncate text-left text-sm font-semibold text-indigo-700 underline-offset-2 hover:underline"
                                     title={docName}
                                   >
                                     {docName}
-                                  </a>
+                                  </button>
                                 );
                               })}
                             </div>

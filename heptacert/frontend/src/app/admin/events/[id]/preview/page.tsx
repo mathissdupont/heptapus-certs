@@ -176,9 +176,11 @@ export default function EmailTemplatePreviewPage() {
 
                   {/* Email Body */}
                   <div className="p-8 border-t border-gray-200">
-                    <div
-                      className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: preview.body_html }}
+                    <iframe
+                      title="Email önizleme"
+                      sandbox=""
+                      className="min-h-[420px] w-full rounded border border-gray-200 bg-white"
+                      srcDoc={preview.body_html}
                     />
                   </div>
 

@@ -105,6 +105,36 @@ class TestHealthEndpoint:
         assert resp.json() == {"status": "ok"}
 
 
+class TestAssistantSupportTickets:
+    @pytest.mark.asyncio
+    async def test_admin_without_organization_can_create_support_ticket(self):
+        async with SessionLocal() as db:
+            admin = User(
+                email="assistant-support-admin@test.com",
+                password_hash=hash_password("AdminPass123!"),
+                role=Role.admin,
+            )
+            db.add(admin)
+            await db.commit()
+            await db.refresh(admin)
+            token = create_access_token(user_id=admin.id, role=Role.admin)
+            admin_id = admin.id
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.post(
+                "/api/admin/support-tickets",
+                headers={"Authorization": f"Bearer {token}"},
+                json={"subject": "Yardim gerekli", "message": "Asistan talebimi ekibe iletsin."},
+            )
+
+        assert resp.status_code == 200
+        assert resp.json()["subject"] == "Yardim gerekli"
+        async with SessionLocal() as db:
+            org = (await db.execute(select(Organization).where(Organization.user_id == admin_id))).scalar_one()
+            assert resp.json()["organization_id"] == org.id
+
+
 # ── Auth endpoints ───────────────────────────────────────────────────────────
 
 class TestAuthEndpoints:

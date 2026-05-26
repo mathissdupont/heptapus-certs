@@ -48,7 +48,8 @@ try:
     import qrcode.image.pil
 except ImportError:
     qrcode = None  # type: ignore
-from jose import jwt, JWTError
+import jwt
+from jwt import InvalidTokenError as JWTError
 from passlib.context import CryptContext
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from pydantic_settings import BaseSettings
@@ -246,7 +247,7 @@ class Settings(BaseSettings):
     db_pool_max_overflow: int = Field(default=20, alias="DB_POOL_MAX_OVERFLOW")
     db_pool_timeout: int = Field(default=15, alias="DB_POOL_TIMEOUT")
     db_pool_recycle: int = Field(default=1800, alias="DB_POOL_RECYCLE")
-    jwt_secret: str = Field(alias="JWT_SECRET")
+    jwt_secret: str = Field(min_length=32, alias="JWT_SECRET")
     jwt_expires_minutes: int = Field(default=1440, alias="JWT_EXPIRES_MINUTES")
 
     bootstrap_superadmin_email: EmailStr = Field(alias="BOOTSTRAP_SUPERADMIN_EMAIL")
@@ -256,6 +257,7 @@ class Settings(BaseSettings):
     frontend_base_url: str = Field(default="http://localhost:3000", alias="FRONTEND_BASE_URL")
     cors_origins: str = Field(default="*", alias="CORS_ORIGINS")
     cors_allow_origin_regex: str = Field(default="", alias="CORS_ALLOW_ORIGIN_REGEX")
+    trusted_proxy_networks: str = Field(default="", alias="TRUSTED_PROXY_NETWORKS")
     redis_url: str = Field(default="", alias="REDIS_URL")
     rate_limit_storage_uri: str = Field(default="", alias="RATE_LIMIT_STORAGE_URI")
     google_oauth_client_id: str = Field(default="", alias="GOOGLE_OAUTH_CLIENT_ID")
@@ -279,7 +281,7 @@ class Settings(BaseSettings):
     smtp_password: str = Field(default="", alias="SMTP_PASSWORD")
     smtp_from: str = Field(default="noreply@heptapus.com", alias="SMTP_FROM")
 
-    email_token_secret: str = Field(alias="EMAIL_TOKEN_SECRET")
+    email_token_secret: str = Field(min_length=32, alias="EMAIL_TOKEN_SECRET")
 
     # Ã¢â€â‚¬Ã¢â€â‚¬ Payment (feature-flagged Ã¢â‚¬â€ off by default until vergi levhasÃ„Â±) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     payment_enabled: bool = Field(default=False, alias="PAYMENT_ENABLED")
@@ -306,14 +308,15 @@ settings = Settings()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 _startup_time: float = time.time()
 
-engine = create_async_engine(
-    settings.database_url,
-    pool_pre_ping=True,
-    pool_size=max(1, settings.db_pool_size),
-    max_overflow=max(0, settings.db_pool_max_overflow),
-    pool_timeout=max(1, settings.db_pool_timeout),
-    pool_recycle=max(60, settings.db_pool_recycle),
-)
+engine_options: Dict[str, Any] = {"pool_pre_ping": True}
+if not settings.database_url.lower().startswith("sqlite"):
+    engine_options.update(
+        pool_size=max(1, settings.db_pool_size),
+        max_overflow=max(0, settings.db_pool_max_overflow),
+        pool_timeout=max(1, settings.db_pool_timeout),
+        pool_recycle=max(60, settings.db_pool_recycle),
+    )
+engine = create_async_engine(settings.database_url, **engine_options)
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 bulk_cert_job_lock = asyncio.Lock()
 superadmin_bulk_email_tasks_lock = asyncio.Lock()
@@ -1383,6 +1386,10 @@ class AttendaonceRecord(Base):
 
 
 # Ã¢â€â‚¬Ã¢â€â‚¬ Gamification: Badge Rules & Participant Badges Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+
+# Keep the correctly spelled public model name without changing the existing table mapping.
+AttendanceRecord = AttendaonceRecord
+
 
 class BadgeRule(Base):
     __tablename__ = "badge_rules"
@@ -2469,12 +2476,12 @@ class WebhookEndpointIn(BaseModel):
     @field_validator("url")
     @classmethod
     def validate_webhook_url(cls, v: str) -> str:
-        """Prevent SSRF: reject private/internal IPs and require HTTPS."""
+        """Prevent SSRF and plaintext delivery for outbound webhook targets."""
         import ipaddress
         from urllib.parse import urlparse
         parsed = urlparse(v)
-        if parsed.scheme not in ("https", "http"):
-            raise ValueError("Webhook URL must use HTTPS or HTTP scheme")
+        if parsed.scheme != "https":
+            raise ValueError("Webhook URL must use HTTPS")
         hostname = parsed.hostname or ""
         # Block private/reserved IP ranges
         try:
@@ -2518,6 +2525,16 @@ class OrgIn(BaseModel):
     custom_domain: Optional[str] = Field(default=None, max_length=253)
     brand_logo: Optional[str] = None
     brand_color: str = Field(default="#6366f1", pattern=r"^#[0-9a-fA-F]{6}$")
+
+    @field_validator("custom_domain")
+    @classmethod
+    def validate_custom_domain(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        domain = value.strip().lower().rstrip(".")
+        if not re.fullmatch(r"(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", domain):
+            raise ValueError("Custom domain must be a valid hostname")
+        return domain
 
 
 class OrgOut(BaseModel):
@@ -2789,6 +2806,11 @@ class WebhookSubscriptionIn(BaseModel):
     event_type: str
     url: str
     secret: Optional[str] = None
+
+    @field_validator("url")
+    @classmethod
+    def validate_url(cls, value: str) -> str:
+        return WebhookEndpointIn(url=value, events=[]).url
 
 
 class EmailDeliveryLogOut(BaseModel):
@@ -4293,6 +4315,7 @@ async def trigger_webhooks(
     async with httpx.AsyncClient(timeout=10.0) as client:
         for webhook in webhooks:
             try:
+                WebhookEndpointIn(url=webhook.url, events=[])
                 # Create HMAC signature
                 signature = ""
                 if webhook.secret:
@@ -4665,20 +4688,27 @@ def ensure_dirs():
 
 
 def local_path_from_url(url_or_path: str) -> Path:
-    """Convert a stored URL or relative path â†’ absolute local filesystem path."""
+    """Convert a public stored asset URL or relative path to a local path."""
+    storage_root = Path(settings.local_storage_dir).resolve()
     if url_or_path.startswith(("http://", "https://")):
         # Extract relative part after /api/files/
         marker = "/api/files/"
         idx = url_or_path.find(marker)
         if idx != -1:
             rel = url_or_path[idx + len(marker):]
-            return Path(settings.local_storage_dir) / rel
-        # fallback: use everything after last /
-        return Path(settings.local_storage_dir) / url_or_path.rsplit("/", 1)[-1]
-    p = Path(url_or_path)
-    if p.is_absolute():
-        return p
-    return Path(settings.local_storage_dir) / p
+            candidate = storage_root / rel
+        else:
+            candidate = storage_root / url_or_path.rsplit("/", 1)[-1]
+    else:
+        p = Path(url_or_path)
+        candidate = p if p.is_absolute() else storage_root / p
+    resolved = candidate.resolve()
+    if not resolved.is_relative_to(storage_root):
+        raise ValueError("Stored asset path is outside local storage")
+    top_level = resolved.relative_to(storage_root).parts[0].lower() if resolved != storage_root else ""
+    if top_level in {"registration_docs", "zips"}:
+        raise ValueError("Private storage object cannot be used as a public asset")
+    return resolved
 
 
 def build_public_pdf_url(rel_path: str) -> str:
@@ -4703,7 +4733,7 @@ def build_certificate_verify_url(
 
 app = FastAPI(title="HeptaCert API", version="2.0.0")
 
-# Prefer the first X-Forwarded-For IP when behind reverse proxies.
+# Prefer X-Forwarded-For only when the immediate peer is explicitly configured.
 def _client_ip_for_rate_limit(request: Request) -> str:
     peer_host = request.client.host if request.client and request.client.host else None
     xff = request.headers.get("X-Forwarded-For")
@@ -4722,8 +4752,17 @@ def _is_trusted_proxy_peer(peer_host: Optional[str]) -> bool:
     try:
         ip = ipaddress.ip_address(peer_host)
     except ValueError:
-        return peer_host in {"localhost"}
-    return ip.is_loopback or ip.is_private or ip.is_link_local
+        return False
+    for raw_network in (settings.trusted_proxy_networks or "").split(","):
+        network = raw_network.strip()
+        if not network:
+            continue
+        try:
+            if ip in ipaddress.ip_network(network, strict=False):
+                return True
+        except ValueError:
+            logger.warning("Ignoring invalid TRUSTED_PROXY_NETWORKS entry: %s", network)
+    return False
 
 
 def _get_registration_device_id(request: Request) -> tuple[str, bool]:
@@ -4780,7 +4819,7 @@ else:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
-        allow_origin_regex=settings.cors_allow_origin_regex or r"https://.*",
+        allow_origin_regex=settings.cors_allow_origin_regex or None,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -4797,6 +4836,20 @@ _AUDIT_SKIP_PREFIXES = (
     "/api/admin/google/sheets/callback",
     "/docs", "/openapi", "/redoc",
 )
+
+
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    if settings.public_base_url.lower().startswith("https://"):
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    return response
+
+
 @app.middleware("http")
 async def organization_middleware(request: Request, call_next):
     """Resolve organization by Host header (if set) and attach lightweight info to request.state.organization.
@@ -4871,9 +4924,7 @@ async def organization_middleware(request: Request, call_next):
         if len(parts) >= 4:
             resource_id = parts[3]
 
-        ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else None)
-        if ip and "," in ip:
-            ip = ip.split(",")[0].strip()
+        ip = _client_ip_for_rate_limit(request)
 
         async with SessionLocal() as db:
             try:
@@ -5580,6 +5631,35 @@ def bad_request(msg: str) -> HTTPException:
     return HTTPException(status_code=400, detail=msg)
 
 
+_SAFE_RASTER_CONTENT_TYPES = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+}
+
+
+async def _read_safe_raster_upload(file: UploadFile, max_size: int = 10 * 1024 * 1024) -> Tuple[bytes, str]:
+    content_type = str(file.content_type or "").lower().strip()
+    ext = _SAFE_RASTER_CONTENT_TYPES.get(content_type)
+    if not ext:
+        raise bad_request("Only PNG, JPEG or WEBP image uploads are allowed")
+    data = await file.read()
+    if not data:
+        raise bad_request("Image file is empty")
+    if len(data) > max_size:
+        raise HTTPException(status_code=413, detail="Image exceeds size limit")
+    if PILImage is None:
+        raise HTTPException(status_code=503, detail="Image validation is unavailable")
+    try:
+        image = PILImage.open(io.BytesIO(data))
+        image.verify()
+        if str(image.format or "").upper() not in {"PNG", "JPEG", "WEBP"}:
+            raise ValueError("Unsupported raster format")
+    except Exception as exc:
+        raise bad_request("Invalid image file") from exc
+    return data, ext
+
+
 REGISTRATION_FIELD_TYPES = {"text", "textarea", "number", "tel", "select", "date", "file"}
 EVENT_VISIBILITY_VALUES = {"private", "unlisted", "public"}
 CERT_TEMPLATE_CONFIG_KEYS = {
@@ -5662,11 +5742,10 @@ def _validate_registration_fields_for_write(raw_fields: Any, *, existing_fields:
         helper_text_raw = item.get("helper_text")
         helper_text = None
         if helper_text_raw is not None:
-            helper_text = str(helper_text_raw).strip()
-            if len(helper_text) > 5000:
+            helper_text_input = str(helper_text_raw).strip()
+            if len(helper_text_input) > 5000:
                 raise bad_request(f"{_ctx(index, item)}.helper_text is too long.")
-            if not helper_text:
-                helper_text = None
+            helper_text = sanitize_event_description_html(helper_text_input)
 
         raw_options = item.get("options")
         options: List[Dict[str, Any]] = []
@@ -5777,7 +5856,7 @@ def _normalize_registration_fields(raw_fields: Any) -> List[Dict[str, Any]]:
             field_type = "text"
 
         placeholder = str(item.get("placeholder") or "").strip()[:200] or None
-        helper_text = str(item.get("helper_text") or "").strip()[:5000] or None
+        helper_text = sanitize_event_description_html(str(item.get("helper_text") or "").strip()[:5000])
         required = bool(item.get("required"))
         required_when_field_id = str(item.get("required_when_field_id") or "").strip()[:64]
         required_when_equals = str(item.get("required_when_equals") or "").strip()[:120]
@@ -5954,14 +6033,14 @@ def _get_event_organizer_privacy_notice_text(event: Event) -> str:
     config = event.config or {}
     custom = str(config.get("organizer_privacy_notice_text") or "").strip()
     if custom:
-        return custom
-    return (
+        return sanitize_event_description_html(custom) or ""
+    return sanitize_event_description_html(
         "ORGANIZATOR AYDINLATMA METNI\n\n"
         "Bu etkinlik kaydi kapsaminda paylastiginiz ad-soyad, iletisim bilgileri, TC kimlik no, pasaport no, "
         "ogrenci no, dogum tarihi, adres ve benzeri etkinlige ozel veriler organizator tarafindan kayit, katilim "
         "takibi, sertifika ve etkinlik yonetimi amaclariyla islenebilir. Bu alanlarin hangi hukuki sebebe dayandigi, "
         "saklama suresi ve paylasim kapsamı organizatorun sorumlulugundadir."
-    )
+    ) or ""
 
 
 def _is_event_cross_border_transfer_notice_enabled(event: Event) -> bool:
@@ -8026,6 +8105,44 @@ def _normalize_oauth_frontend_origin(origin: Optional[str]) -> str:
     return configured_origin
 
 
+OAUTH_BRIDGE_COOKIE = "heptacert_oauth_bridge"
+OAUTH_BRIDGE_PATH = "/api/auth/oauth/bridge/exchange"
+
+
+def _oauth_bridge_redirect(redirect_target: str, *, token: str, mode: str) -> RedirectResponse:
+    bridge_value = make_email_token({"action": "oauth_bridge", "mode": mode, "token": token})
+    response = RedirectResponse(redirect_target)
+    response.set_cookie(
+        key=OAUTH_BRIDGE_COOKIE,
+        value=bridge_value,
+        max_age=60,
+        httponly=True,
+        secure=settings.public_base_url.lower().startswith("https://"),
+        samesite="lax",
+        path=OAUTH_BRIDGE_PATH,
+    )
+    return response
+
+
+@app.post("/api/auth/oauth/bridge/exchange")
+async def oauth_bridge_exchange(request: Request):
+    raw_bridge = request.cookies.get(OAUTH_BRIDGE_COOKIE)
+    if not raw_bridge:
+        raise HTTPException(status_code=401, detail="OAuth bridge session missing.")
+    try:
+        payload = verify_email_token(raw_bridge, max_age=60)
+    except Exception:
+        raise HTTPException(status_code=401, detail="OAuth bridge session invalid or expired.")
+    if payload.get("action") != "oauth_bridge" or not payload.get("token"):
+        raise HTTPException(status_code=401, detail="OAuth bridge session invalid.")
+    response = JSONResponse({
+        "mode": "admin" if payload.get("mode") == "admin" else "member",
+        "access_token": str(payload["token"]),
+    })
+    response.delete_cookie(OAUTH_BRIDGE_COOKIE, path=OAUTH_BRIDGE_PATH)
+    return response
+
+
 def _google_oauth_redirect_uri() -> str:
     return f"{settings.public_base_url.rstrip('/')}/api/auth/google/callback"
 
@@ -8155,8 +8272,12 @@ async def google_oauth_callback(
                 await db.commit()
         token = create_public_member_access_token(member_id=member.id)
 
-    params = urlencode({"mode": mode, "token": token, "next": next_url})
-    return RedirectResponse(f"{settings.frontend_base_url.rstrip('/')}/auth/google/callback?{params}")
+    params = urlencode({"mode": mode, "bridge": "1", "next": next_url})
+    return _oauth_bridge_redirect(
+        f"{settings.frontend_base_url.rstrip('/')}/auth/google/callback?{params}",
+        token=token,
+        mode=mode,
+    )
 
 
 @app.get(
@@ -8275,9 +8396,9 @@ async def google_sheets_auth_callback(
         raise HTTPException(status_code=404, detail="Google Sheets OAuth user not found.")
     bridge_params = urlencode({
         "google_sheets": sheet_status,
-        "admin_token": create_access_token(user_id=user.id, role=user.role),
+        "oauth_bridge": "1",
     })
-    separator = "&" if "" in next_url else ""
+    separator = "&" if "?" in next_url else "?"
     redirect_target = f"{frontend_origin}{next_url}{separator}{bridge_params}"
     logger.info(
         "Google Sheets OAuth connected for user_id=%s; redirecting to frontend_origin=%s next=%s",
@@ -8285,7 +8406,11 @@ async def google_sheets_auth_callback(
         frontend_origin,
         next_url,
     )
-    return RedirectResponse(redirect_target)
+    return _oauth_bridge_redirect(
+        redirect_target,
+        token=create_access_token(user_id=user.id, role=user.role),
+        mode="admin",
+    )
 
 
 @app.get(
@@ -8403,9 +8528,9 @@ async def microsoft_excel_auth_callback(
         raise HTTPException(status_code=404, detail="Microsoft Excel OAuth user not found.")
     bridge_params = urlencode({
         "ms365_excel": excel_status,
-        "admin_token": create_access_token(user_id=user.id, role=user.role),
+        "oauth_bridge": "1",
     })
-    separator = "&" if "" in next_url else ""
+    separator = "&" if "?" in next_url else "?"
     redirect_target = f"{frontend_origin}{next_url}{separator}{bridge_params}"
     logger.info(
         "Microsoft Excel OAuth connected for user_id=%s; redirecting to frontend_origin=%s next=%s",
@@ -8413,7 +8538,11 @@ async def microsoft_excel_auth_callback(
         frontend_origin,
         next_url,
     )
-    return RedirectResponse(redirect_target)
+    return _oauth_bridge_redirect(
+        redirect_target,
+        token=create_access_token(user_id=user.id, role=user.role),
+        mode="admin",
+    )
 
 
 @app.post("/api/public/auth/register", status_code=201)
@@ -9630,9 +9759,10 @@ async def update_webhook(
     if "is_active" in payload:
         webhook.is_active = payload["is_active"]
     if "url" in payload:
-        if not payload["url"].startswith("https://"):
-            raise HTTPException(status_code=400, detail="URL must be HTTPS")
-        webhook.url = payload["url"]
+        try:
+            webhook.url = WebhookEndpointIn(url=str(payload["url"]), events=[]).url
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
     
     db.add(webhook)
     await db.commit()
@@ -10152,26 +10282,41 @@ async def payment_webhook(
     headers = dict(request.headers)
 
     try:
-        notification = provider.verify_webhook(raw_body, headers)
+        notification = await provider.verify_webhook(raw_body, headers)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
     order_id_raw = notification.get("order_id")
-    if not order_id_raw:
+    provider_ref = str(notification.get("provider_ref") or "").strip()
+    order_id: Optional[int] = None
+    if order_id_raw:
+        try:
+            order_id = int(order_id_raw)
+        except (ValueError, TypeError):
+            order_id = None
+    if order_id is not None:
+        res = await db.execute(select(Order).where(Order.id == order_id).with_for_update())
+    elif provider_ref:
+        res = await db.execute(select(Order).where(Order.provider_ref == provider_ref).with_for_update())
+    else:
         return {"ok": True}
-
-    try:
-        order_id = int(order_id_raw)
-    except (ValueError, TypeError):
-        return {"ok": True}
-
-    res = await db.execute(select(Order).where(Order.id == order_id))
     order = res.scalar_one_or_none()
     if order is None:
         return {"ok": True}
+    if order.provider != provider.name:
+        raise HTTPException(status_code=400, detail="Payment provider does not match order.")
+    if provider.name in {"iyzico", "stripe"} and order.provider_ref and not hmac.compare_digest(order.provider_ref, provider_ref):
+        raise HTTPException(status_code=400, detail="Payment reference does not match order.")
+
+    verified_amount = notification.get("amount_cents")
+    verified_currency = str(notification.get("currency") or "").upper()
+    if verified_amount is not None and int(verified_amount) != order.amount_cents:
+        raise HTTPException(status_code=400, detail="Payment amount does not match order.")
+    if verified_currency and verified_currency != order.currency.upper():
+        raise HTTPException(status_code=400, detail="Payment currency does not match order.")
 
     status = notification.get("status", "failed")
-    order.provider_ref = notification.get("provider_ref", order.provider_ref)
+    order.provider_ref = provider_ref or order.provider_ref
 
     if status == "paid" and order.status != OrderStatus.paid:
         order.status = OrderStatus.paid
@@ -10209,7 +10354,7 @@ async def payment_webhook(
                     user_id=usr_pay.id, amount=hc_quota_pay, type=TxType.credit,
                     description=f"Plan {('aktivasyonu' if not existing_sub else 'yenileme')}: {order.plan_id} ({period})",
                 ))
-    elif status == "failed":
+    elif status == "failed" and order.status == OrderStatus.pending:
         order.status = OrderStatus.failed
     elif status == "refunded":
         order.status = OrderStatus.refunded
@@ -10421,14 +10566,10 @@ async def upload_public_member_avatar(
     db_member = res.scalar_one_or_none()
     if not db_member:
         raise HTTPException(status_code=404, detail="Member not found.")
-    if not file.content_type or not file.content_type.startswith("image/"):
-        raise bad_request("Only image uploads allowed")
-
-    ext = Path(file.filename or "avatar.jpg").suffix.lower() or ".jpg"
+    data, ext = await _read_safe_raster_upload(file)
     safe_name = f"member-avatars/member_{member.id}/avatar{ext}"
     dest = Path(settings.local_storage_dir) / safe_name
     dest.parent.mkdir(parents=True, exist_ok=True)
-    data = await file.read()
     dest.write_bytes(data)
 
     db_member.avatar_url = f"{settings.public_base_url}/api/files/{safe_name}"
@@ -10833,19 +10974,27 @@ async def _call_openai_ai_assistant(payload: AIAssistantIn, event: Optional[Even
         "input": input_text,
         "max_output_tokens": 900,
     }
-    async with httpx.AsyncClient(timeout=20.0) as client:
-        resp = await client.post(
-            "https://api.openai.com/v1/responses",
-            headers={
-                "Authorization": f"Bearer {settings.openai_api_key}",
-                "Content-Type": "application/json",
-            },
-            json=body,
-        )
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            resp = await client.post(
+                "https://api.openai.com/v1/responses",
+                headers={
+                    "Authorization": f"Bearer {settings.openai_api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=body,
+            )
+    except httpx.HTTPError as exc:
+        logger.warning("OpenAI assistant request failed: %s", exc)
+        return _build_local_ai_assistant_response(payload, event)
     if resp.status_code >= 400:
         logger.warning("OpenAI assistant call failed status=%s body=%s", resp.status_code, resp.text[:500])
         return _build_local_ai_assistant_response(payload, event)
-    answer = _extract_openai_response_text(resp.json())
+    try:
+        answer = _extract_openai_response_text(resp.json())
+    except ValueError:
+        logger.warning("OpenAI assistant returned invalid JSON")
+        return _build_local_ai_assistant_response(payload, event)
     if not answer:
         return _build_local_ai_assistant_response(payload, event)
     return AIAssistantOut(answer=answer, provider="openai", suggestions={})
@@ -11679,7 +11828,7 @@ async def rename_event(
         if payload.organizer_privacy_notice_text is None:
             next_config.pop("organizer_privacy_notice_text", None)
         else:
-            next_config["organizer_privacy_notice_text"] = payload.organizer_privacy_notice_text.strip()
+            next_config["organizer_privacy_notice_text"] = sanitize_event_description_html(payload.organizer_privacy_notice_text)
         config_dirty = True
     if "show_cross_border_transfer_notice" in payload.model_fields_set:
         next_config["show_cross_border_transfer_notice"] = bool(payload.show_cross_border_transfer_notice)
@@ -11767,14 +11916,10 @@ async def upload_template(
     ev = await _get_event_for_admin(event_id, me, db, "certificates:write")
     _ensure_certificate_feature_enabled(ev)
 
-    if not file.content_type or not file.content_type.startswith("image/"):
-        raise bad_request("Only image uploads allowed")
-
-    ext = Path(file.filename or "template.png").suffix.lower() or ".png"
+    data, ext = await _read_safe_raster_upload(file)
     safe_name = f"templates/event_{event_id}_{secrets.token_hex(8)}{ext}"
     dest = Path(settings.local_storage_dir) / safe_name
 
-    data = await file.read()
     dest.parent.mkdir(parents=True, exist_ok=True)
 
     # Remove old template file from disk before overwriting
@@ -11820,13 +11965,10 @@ async def upload_event_banner(
     db: AsyncSession = Depends(get_db),
 ):
     ev = await _get_event_for_admin(event_id, me, db, "settings:write")
-    if not file.content_type or not file.content_type.startswith("image/"):
-        raise bad_request("Only image uploads allowed")
-    ext = Path(file.filename or "banner.jpg").suffix.lower() or ".jpg"
+    data, ext = await _read_safe_raster_upload(file)
     safe_name = f"banners/event_{event_id}/banner{ext}"
     dest = Path(settings.local_storage_dir) / safe_name
     dest.parent.mkdir(parents=True, exist_ok=True)
-    data = await file.read()
     dest.write_bytes(data)
     pub_url = f"{settings.public_base_url}/api/files/{safe_name}"
     ev.event_banner_url = pub_url
@@ -11857,7 +11999,10 @@ async def save_event_config(
     for key, value in payload.items():
         if key == "registration_fields":
             continue
-        next_config[key] = value
+        if key == "organizer_privacy_notice_text":
+            next_config[key] = sanitize_event_description_html(str(value)) if value is not None else None
+        else:
+            next_config[key] = value
 
     # Save config snapshot before merging the new payload
     snap = EventTemplateSnapshot(
@@ -12342,10 +12487,12 @@ async def serve_file(path: str):
     path = path.lstrip("/")
     if ".." in path or path.startswith("/") or "\\" in path:
         raise HTTPException(status_code=400, detail="Invalid path")
+    if path.split("/", 1)[0].lower() in {"registration_docs", "zips"}:
+        raise HTTPException(status_code=404, detail="File not found")
     storage_root = Path(settings.local_storage_dir).resolve()
     abs_path = (storage_root / path).resolve()
     # Ensure the resolved path is still within the storage directory
-    if not str(abs_path).startswith(str(storage_root)):
+    if not abs_path.is_relative_to(storage_root):
         raise HTTPException(status_code=403, detail="Access denied")
     if not abs_path.exists() or not abs_path.is_file():
         raise HTTPException(status_code=404, detail="File not found")
@@ -12363,11 +12510,6 @@ async def get_branding(request: Request, db: AsyncSession = Depends(get_db)):
     if not host:
         return {"org_name": None, "brand_logo": None, "brand_color": None, "settings": {}}
 
-    def request_origin() -> str:
-        proto = (request.headers.get("x-forwarded-proto") or request.url.scheme or "https").split(",")[0].strip()
-        forwarded_host = (request.headers.get("x-forwarded-host") or request.headers.get("host") or "").split(",")[0].strip()
-        return f"{proto}://{forwarded_host}" if forwarded_host else str(request.base_url).rstrip("/")
-
     def host_local_file_url(value: Optional[str]) -> Optional[str]:
         if not value:
             return value
@@ -12375,7 +12517,7 @@ async def get_branding(request: Request, db: AsyncSession = Depends(get_db)):
         if marker not in value:
             return value
         suffix = value.split(marker, 1)[1]
-        return f"{request_origin()}{marker}{suffix}"
+        return f"https://{host}{marker}{suffix}"
 
     try:
         res = await db.execute(select(Organization).where(Organization.custom_domain == host))
@@ -12482,14 +12624,10 @@ async def upload_admin_organization_logo(
     db: AsyncSession = Depends(get_db),
 ):
     org = await _get_or_create_admin_organization(db, me.id)
-    if not file.content_type or not file.content_type.startswith("image/"):
-        raise bad_request("Only image uploads allowed")
-
-    ext = Path(file.filename or "logo.png").suffix.lower() or ".png"
+    data, ext = await _read_safe_raster_upload(file)
     safe_name = f"org-logos/org_{org.id}/logo{ext}"
     dest = Path(settings.local_storage_dir) / safe_name
     dest.parent.mkdir(parents=True, exist_ok=True)
-    data = await file.read()
     dest.write_bytes(data)
 
     org.brand_logo = f"{settings.public_base_url}/api/files/{safe_name}"
@@ -14061,17 +14199,15 @@ def _make_ticket_image(ticket: 'EventTicket') -> bytes:
     cx = width // 2
     draw.ellipse((cx - icon_radius, icon_top, cx + icon_radius, icon_top + icon_radius * 2), fill="#f4f4f5")
 
-    # Try to use a brand logo if available (URL or path), otherwise fallback to text
+    # Use only locally stored logos; fetching arbitrary URLs here would enable SSRF.
     logo_used = False
     logo_source = getattr(ticket.event, "brand_logo", None)
     if logo_source:
         try:
-            # lazy import to avoid adding dependency when unused
-            import httpx
-
-            resp = httpx.get(logo_source, timeout=5.0)
-            if resp.status_code == 200 and resp.content:
-                logo_img = PILImage.open(io.BytesIO(resp.content)).convert("RGBA")
+            storage_root = Path(settings.local_storage_dir).resolve()
+            logo_path = local_path_from_url(str(logo_source)).resolve()
+            if logo_path.is_relative_to(storage_root) and logo_path.is_file():
+                logo_img = PILImage.open(logo_path).convert("RGBA")
                 # fit inside circle with slight padding
                 target_size = (icon_radius * 2 - 12, icon_radius * 2 - 12)
                 logo_img = logo_img.resize(target_size, PILImage.LANCZOS)
@@ -14718,9 +14854,7 @@ async def upload_public_registration_document(
     if len(raw) > max_size:
         raise HTTPException(status_code=413, detail="Document exceeds 2 MB limit")
 
-    ext = Path(file.filename or "").suffix.lower().strip()
-    if not ext:
-        ext = allowed_content_types[ctype]
+    ext = allowed_content_types[ctype]
 
     safe_name = f"registration_docs/event_{ev.id}/{secrets.token_hex(16)}{ext}"
     dest = Path(settings.local_storage_dir) / safe_name
@@ -14821,7 +14955,7 @@ async def public_event_register(
             if not rel_path or not rel_path.startswith(expected_prefix):
                 raise bad_request("Invalid registration document path")
             abs_path = (storage_root / rel_path).resolve()
-            if not str(abs_path).startswith(str(storage_root)) or not abs_path.exists() or not abs_path.is_file():
+            if not abs_path.is_relative_to(storage_root) or not abs_path.exists() or not abs_path.is_file():
                 raise bad_request("Registration document not found")
             stat_info = abs_path.stat()
             if stat_info.st_size > 2 * 1024 * 1024:
@@ -15303,7 +15437,7 @@ async def self_checkin(
             detail="Bu e-posta ile etkinlikte kayıtlı değilsiniz. Lutfen once kayıt olun.",
         )
 
-    ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else None)
+    ip = _client_ip_for_rate_limit(request)
     insert_stmt = (
         _pg_insert(AttendaonceRecord.__table__)
         .values(
@@ -15381,20 +15515,19 @@ async def self_checkin(
 # SUPPORT TICKETS - AI Assistant Escalation
 # ============================================================================
 
-async def send_ticket_notification_email(ticket: SupportTicket, user_email: str, db: AsyncSession):
+async def send_ticket_notification_email(ticket: SupportTicket, user_email: str):
     """Send email notification to superadmins when a support ticket is created"""
     try:
-        # Get all superadmins
-        superadmins_res = await db.execute(
-            select(User).where(User.role == Role.superadmin)
-        )
-        superadmins = superadmins_res.scalars().all()
-        
-        # Get organization details
-        org_res = await db.execute(
-            select(Organization).where(Organization.id == ticket.organization_id)
-        )
-        org = org_res.scalar_one_or_none()
+        async with SessionLocal() as notification_db:
+            superadmins_res = await notification_db.execute(
+                select(User).where(User.role == Role.superadmin)
+            )
+            superadmins = superadmins_res.scalars().all()
+
+            org_res = await notification_db.execute(
+                select(Organization).where(Organization.id == ticket.organization_id)
+            )
+            org = org_res.scalar_one_or_none()
         
         for superadmin in superadmins:
             # Create email
@@ -15446,13 +15579,8 @@ async def create_support_ticket(
     if me.role not in (Role.admin, Role.superadmin):
         raise HTTPException(status_code=403, detail="Only admins can create support tickets")
     
-    # Get user's organization
-    org_res = await db.execute(
-        select(Organization).where(Organization.user_id == me.id)
-    )
-    org = org_res.scalar_one_or_none()
-    if not org:
-        raise HTTPException(status_code=404, detail="Organization not found")
+    # New admins can need support before they have visited organization settings.
+    org = await _get_or_create_admin_organization(db, me.id)
     
     # Create ticket
     ticket = SupportTicket(
@@ -15472,7 +15600,7 @@ async def create_support_ticket(
     await db.refresh(ticket)
     
     # Send notification email to superadmins (non-blocking)
-    asyncio.create_task(send_ticket_notification_email(ticket, me.email, db))
+    asyncio.create_task(send_ticket_notification_email(ticket, me.email))
     
     return ticket
 
@@ -15668,7 +15796,6 @@ async def toggle_session_checkin(
 async def get_session_qr(
     event_id: int,
     session_id: int,
-    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -15692,19 +15819,8 @@ async def get_session_qr(
     org = org_res.scalar_one_or_none()
 
     # Ã–oncelik: organization custom domain
-    # fallback: request host
-    # en son: settings.frontend_base_url
-    host = None
-
     if org and org.custom_domain:
-        host = org.custom_domain
-    else:
-        req_host = (request.headers.get("host") or "").split(":")[0].strip().lower()
-        if req_host:
-            host = req_host
-
-    if host:
-        checkin_url = f"https://{host}/attend/{session.checkin_token}"
+        checkin_url = f"https://{org.custom_domain}/attend/{session.checkin_token}"
     else:
         checkin_url = f"{settings.frontend_base_url.rstrip('/')}/attend/{session.checkin_token}"
 
@@ -15909,6 +16025,33 @@ async def export_attendaonce(
 
 
 @app.get(
+    "/api/admin/events/{event_id}/registration-documents/file",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+)
+async def download_registration_document(
+    event_id: int,
+    path: str,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_event_for_admin(event_id, me, db, "attendees:read")
+    rel_path = path.strip().lstrip("/")
+    expected_prefix = f"registration_docs/event_{event_id}/"
+    if not rel_path.startswith(expected_prefix):
+        raise HTTPException(status_code=404, detail="Document not found")
+    storage_root = Path(settings.local_storage_dir).resolve()
+    abs_path = (storage_root / rel_path).resolve()
+    if not abs_path.is_relative_to(storage_root) or not abs_path.is_file():
+        raise HTTPException(status_code=404, detail="Document not found")
+    filename = _safe_registration_document_name(abs_path.name)
+    return FileResponse(
+        abs_path,
+        filename=filename,
+        media_type="application/octet-stream",
+    )
+
+
+@app.get(
     "/api/admin/events/{event_id}/registration-documents/export",
     dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
 )
@@ -15962,7 +16105,7 @@ async def export_registration_documents_grouped(
                     continue
 
                 abs_path = (storage_root / rel_path).resolve()
-                if not str(abs_path).startswith(str(storage_root)) or not abs_path.exists() or not abs_path.is_file():
+                if not abs_path.is_relative_to(storage_root) or not abs_path.exists() or not abs_path.is_file():
                     continue
 
                 field_id = str(doc.get("field_id") or "").strip()
@@ -16364,7 +16507,7 @@ async def admin_manual_checkin(
             detail="Bu e-posta ile etkinlikte kayıtlı katılımcı bulunamadı.",
         )
 
-    ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else None)
+    ip = _client_ip_for_rate_limit(request)
     insert_stmt = (
         _pg_insert(AttendaonceRecord.__table__)
         .values(

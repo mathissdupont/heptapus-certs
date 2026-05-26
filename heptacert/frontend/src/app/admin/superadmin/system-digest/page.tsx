@@ -127,8 +127,10 @@ export default function SuperadminSystemDigestPage() {
               const win = window.open("about:blank", "_blank");
               if (win) {
                 win.document.open();
-                win.document.write(j.body_html);
+                win.document.write('<!doctype html><html><head><title>Email preview</title><style>html,body,iframe{height:100%;width:100%;margin:0;border:0}</style></head><body><iframe id="email-preview" sandbox=""></iframe></body></html>');
                 win.document.close();
+                const frame = win.document.getElementById("email-preview") as HTMLIFrameElement | null;
+                if (frame) frame.srcdoc = String(j.body_html || "");
               } else {
                 alert("Could not open preview window");
               }

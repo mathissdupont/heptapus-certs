@@ -179,7 +179,6 @@ function AccountTab({ me }: { me: { email: string; role?: string } | null }) {
 // ─── 2FA Tab ─────────────────────────────────────────────────────────────────
 function TwoFATab() {
   const [status, setStatus] = useState<"loading" | "disabled" | "setup" | "enabled">("loading");
-  const [otpauthUrl, setOtpauthUrl] = useState("");
   const [secret, setSecret] = useState("");
   const [code, setCode] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -198,7 +197,7 @@ function TwoFATab() {
     try {
       const r = await apiFetch("/auth/2fa/setup", { method: "POST" });
       const data = await r.json();
-      setOtpauthUrl(data.otpauth_url); setSecret(data.secret); setStatus("setup");
+      setSecret(data.secret); setStatus("setup");
     } catch (e: any) { setErr(e?.message || "Kurulum başlatılamadı."); } finally { setLoading(false); }
   }
 
@@ -217,8 +216,6 @@ function TwoFATab() {
       setStatus("disabled"); setCode("");
     } catch (e: any) { setErr(e?.message || "Devre dışı bırakılamadı."); } finally { setLoading(false); }
   }
-
-  const qrUrl = otpauthUrl ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(otpauthUrl)}` : "";
 
   if (status === "loading") return <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-zinc-400" /></div>;
 
@@ -242,10 +239,9 @@ function TwoFATab() {
         <div className="space-y-6">
           <div className="rounded-2xl bg-zinc-50 p-4 text-sm text-zinc-600 leading-relaxed">
             1. Telefonunuzda Google Authenticator veya Authy'yi açın.<br/>
-            2. Aşağıdaki QR kodu okutun veya gizli anahtarı girin.<br/>
+            2. Gizli anahtarı uygulamanıza elle girin.<br/>
             3. Üretilen 6 haneli kodu aşağıya yazın.
           </div>
-          {qrUrl && <div className="flex justify-center"><img src={qrUrl} alt="2FA QR" className="rounded-2xl border border-zinc-200 p-3 bg-white shadow-sm" /></div>}
           <div className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
             <code className="flex-1 font-mono text-sm text-zinc-800 break-all">{showSecret ? secret : "••••••••••••••••••••••••••••"}</code>
             <button type="button" onClick={() => setShowSecret(!showSecret)} className="text-zinc-400 hover:text-zinc-700">{showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>

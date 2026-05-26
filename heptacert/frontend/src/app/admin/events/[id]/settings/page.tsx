@@ -38,7 +38,7 @@ import {
   RefreshCw,
   Unplug,
 } from "lucide-react";
-import { apiFetch, getMySubscription, listAdminEventComments, setToken, updateAdminEventComment, type RegistrationField, type SubscriptionInfo, type PublicEventComment } from "@/lib/api";
+import { apiFetch, consumeOAuthBridgeToken, getMySubscription, listAdminEventComments, setToken, updateAdminEventComment, type RegistrationField, type SubscriptionInfo, type PublicEventComment } from "@/lib/api";
 import EventAdminNav, { refreshEventAdminMeta } from "@/components/Admin/EventAdminNav";
 import PageHeader from "@/components/Admin/PageHeader";
 import DateField from "@/components/Admin/DateField";
@@ -503,19 +503,25 @@ export default function EventSettingsPage() {
   );
 
   useEffect(() => {
-    const bridgeToken =
-      typeof window !== "undefined"
-        ? new URLSearchParams(window.location.search).get("admin_token")
-        : null;
-    if (bridgeToken) {
-      setToken(bridgeToken);
-      if (typeof window !== "undefined") {
-        const url = new URL(window.location.href);
-        url.searchParams.delete("admin_token");
-        window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
-      }
+    let cancelled = false;
+    const hasBridge = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("oauth_bridge") === "1";
+    const finish = () => {
+      if (!cancelled) setAuthBridgeReady(true);
+    };
+    if (!hasBridge) {
+      finish();
+      return () => { cancelled = true; };
     }
-    setAuthBridgeReady(true);
+    void consumeOAuthBridgeToken()
+      .then(({ access_token, mode }) => {
+        if (cancelled || mode !== "admin") return;
+        setToken(access_token);
+        const url = new URL(window.location.href);
+        url.searchParams.delete("oauth_bridge");
+        window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+      })
+      .finally(finish);
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {

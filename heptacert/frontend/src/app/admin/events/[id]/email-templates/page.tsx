@@ -563,17 +563,16 @@ export default function EmailTemplatesPage() {
                       {previewLang === "tr" ? previewTemplate.subject_tr : previewTemplate.subject_en}
                     </p>
                   </div>
-                  <div className="prose prose-sm mt-5 max-w-none text-surface-700">
-                    <div
-                      dangerouslySetInnerHTML={{
-                        __html: previewTemplate.body_html
-                          .replace(/{{recipient_name}}/g, copy.sampleName)
-                          .replace(/{{event_name}}/g, copy.sampleEvent)
-                          .replace(/{{certificate_link}}/g, "#")
-                          .replace(/{{event_date}}/g, copy.sampleDate),
-                      }}
-                    />
-                  </div>
+                  <iframe
+                    title={copy.previewTitle}
+                    sandbox=""
+                    className="mt-5 min-h-[320px] w-full rounded-xl border border-surface-200 bg-white"
+                    srcDoc={previewTemplate.body_html
+                      .replace(/{{recipient_name}}/g, copy.sampleName)
+                      .replace(/{{event_name}}/g, copy.sampleEvent)
+                      .replace(/{{certificate_link}}/g, "#")
+                      .replace(/{{event_date}}/g, copy.sampleDate)}
+                  />
                 </div>
               </div>
             </motion.div>

@@ -11,7 +11,7 @@ import pytest_asyncio
 # ── Set test env vars BEFORE any app imports ──────────────────────────────────
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///")
 os.environ.setdefault("JWT_SECRET", "test-jwt-secret-32chars-minimum!!")
-os.environ.setdefault("EMAIL_TOKEN_SECRET", "test-email-token-secret")
+os.environ.setdefault("EMAIL_TOKEN_SECRET", "test-email-token-secret-32chars!!")
 os.environ.setdefault("BOOTSTRAP_SUPERADMIN_EMAIL", "super@test.com")
 os.environ.setdefault("BOOTSTRAP_SUPERADMIN_PASSWORD", "SuperPass123!")
 os.environ.setdefault("PUBLIC_BASE_URL", "http://localhost:8000")

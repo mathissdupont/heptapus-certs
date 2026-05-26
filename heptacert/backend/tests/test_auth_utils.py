@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytest
-from jose import jwt
+import jwt
 from itsdangerous import SignatureExpired, BadSignature
 
 
@@ -257,10 +257,11 @@ class TestWebhookURLValidation:
         wh = WebhookEndpointIn(url="https://example.com/webhook", events=["cert.issued"])
         assert wh.url == "https://example.com/webhook"
 
-    def test_valid_http_url(self):
+    def test_reject_plaintext_http_url(self):
         from src.main import WebhookEndpointIn
-        wh = WebhookEndpointIn(url="http://example.com/webhook", events=["cert.issued"])
-        assert wh.url == "http://example.com/webhook"
+        from pydantic import ValidationError
+        with pytest.raises(ValidationError):
+            WebhookEndpointIn(url="http://example.com/webhook", events=["cert.issued"])
 
     def test_reject_localhost(self):
         from src.main import WebhookEndpointIn

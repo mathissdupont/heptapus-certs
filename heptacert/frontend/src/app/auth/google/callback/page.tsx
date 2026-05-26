@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { setPublicMemberToken, setToken } from "@/lib/api";
+import { consumeOAuthBridgeToken, setPublicMemberToken, setToken } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 function GoogleCallbackContent() {
@@ -29,19 +29,27 @@ function GoogleCallbackContent() {
   );
 
   useEffect(() => {
-    const token = searchParams.get("token");
+    let cancelled = false;
     const mode = searchParams.get("mode");
     const next = searchParams.get("next") || (mode === "admin" ? "/admin/events" : "/events");
-    if (!token) {
-      setError(copy.error);
-      return;
-    }
-    if (mode === "admin") {
-      setToken(token);
-    } else {
-      setPublicMemberToken(token);
-    }
-    router.replace(next.startsWith("/") && !next.startsWith("//") ? next : "/events");
+    void consumeOAuthBridgeToken()
+      .then(({ access_token: token, mode: exchangedMode }) => {
+        if (cancelled) return;
+        if (mode === "admin" && exchangedMode === "admin") {
+          setToken(token);
+        } else if (mode !== "admin" && exchangedMode === "member") {
+          setPublicMemberToken(token);
+        } else {
+          throw new Error("OAuth mode mismatch");
+        }
+        router.replace(next.startsWith("/") && !next.startsWith("//") ? next : "/events");
+      })
+      .catch(() => {
+        if (!cancelled) setError(copy.error);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [copy.error, router, searchParams]);
 
   return (

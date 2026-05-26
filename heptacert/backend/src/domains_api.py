@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import secrets
+import re
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional
 import dns.resolver
 import logging
@@ -68,6 +69,14 @@ class DomainCreateIn(BaseModel):
     domain: str
     owner: Optional[str] = None
 
+    @field_validator("domain")
+    @classmethod
+    def validate_domain(cls, value: str) -> str:
+        domain = value.strip().lower().rstrip(".")
+        if not re.fullmatch(r"(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", domain):
+            raise ValueError("Domain must be a valid hostname")
+        return domain
+
 
 class DomainOut(BaseModel):
     id: int
@@ -106,8 +115,7 @@ async def create_domain(payload: DomainCreateIn, me: CurrentUser = Depends(get_c
         if exists:
             raise HTTPException(status_code=409, detail="Domain already exists")
 
-        owner = payload.owner or str(me.id)
-        dom = await Domain.create(db, normalized_domain, owner=owner)
+        dom = await Domain.create(db, normalized_domain, owner=str(me.id))
 
         org = await _get_or_create_org(db, me.id)
         org.custom_domain = normalized_domain

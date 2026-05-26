@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import base64
 import json
 import logging
 import random
@@ -61,7 +62,7 @@ class PaymentProvider(ABC):
         ...
 
     @abstractmethod
-    def verify_webhook(self, payload: bytes, headers: Dict[str, str]) -> Dict[str, Any]:
+    async def verify_webhook(self, payload: bytes, headers: Dict[str, str]) -> Dict[str, Any]:
         """
         Verify and parse an incoming webhook notification.
         Returns dict with at least: { "order_id", "status": "paid"|"failed"|"refunded" }
@@ -94,13 +95,18 @@ class IyzicoProvider(PaymentProvider):
     def name(self) -> str:
         return "iyzico"
 
-    def _sign(self, random_str: str, body_str: str) -> str:
-        raw = self.api_key + random_str + self.secret_key + body_str
-        return hashlib.sha1(raw.encode("utf-8")).hexdigest()
+    def _sign(self, random_str: str, uri_path: str, body_str: str) -> str:
+        raw = f"{random_str}{uri_path}{body_str}"
+        return hmac.new(
+            self.secret_key.encode("utf-8"),
+            raw.encode("utf-8"),
+            hashlib.sha256,
+        ).hexdigest()
 
     def _auth_header(self, random_str: str, sig: str) -> str:
-        # iyzico uses a custom Authorization header
-        return f"IYZWSv2 apiKey:{self.api_key}&randomKey:{random_str}&signature:{sig}"
+        raw = f"apiKey:{self.api_key}&randomKey:{random_str}&signature:{sig}"
+        encoded = base64.b64encode(raw.encode("utf-8")).decode("ascii")
+        return f"IYZWSv2 {encoded}"
 
     async def create_payment(self, req: PaymentRequest) -> PaymentResult:
         random_str = "".join(random.choices(string.ascii_letters + string.digits, k=8))
@@ -114,7 +120,7 @@ class IyzicoProvider(PaymentProvider):
             "currency": req.currency,
             "basketId": req.order_id,
             "paymentGroup": "PRODUCT",
-            "callbackUrl": req.success_url,
+            "callbackUrl": req.webhook_url,
             "enabledInstallments": [1, 2, 3, 6, 9, 12],
             "buyer": {
                 "id": req.order_id,
@@ -139,12 +145,13 @@ class IyzicoProvider(PaymentProvider):
             }],
         }
         body_str = json.dumps(body, ensure_ascii=False, separators=(",", ":"))
-        sig = self._sign(random_str, body_str)
+        uri_path = "/payment/iyzipos/checkoutform/initialize/auth/ecom"
+        sig = self._sign(random_str, uri_path, body_str)
 
         try:
             async with httpx.AsyncClient(timeout=15) as client:
                 resp = await client.post(
-                    f"{self.base_url}/payment/iyzipos/checkoutform/initialize/auth/ecom",
+                    f"{self.base_url}{uri_path}",
                     content=body_str,
                     headers={
                         "Content-Type": "application/json",
@@ -164,17 +171,57 @@ class IyzicoProvider(PaymentProvider):
             logger.exception("iyzico create_payment error")
             return PaymentResult(success=False, error=str(e))
 
-    def verify_webhook(self, payload: bytes, headers: Dict[str, str]) -> Dict[str, Any]:
-        """iyzico sends a checkout form result callback (POST form data)."""
+    async def verify_webhook(self, payload: bytes, headers: Dict[str, str]) -> Dict[str, Any]:
+        """Retrieve the checkout result from iyzico before accepting a callback."""
         from urllib.parse import parse_qs
         data = parse_qs(payload.decode("utf-8"))
         token = data.get("token", [None])[0]
-        status = data.get("status", ["failure"])[0]
-        order_id = data.get("conversationId", [None])[0]
+        if not token:
+            raise ValueError("iyzico callback token missing")
+
+        callback_order_id = data.get("conversationId", [None])[0]
+        request_body: Dict[str, str] = {"locale": "tr", "token": token}
+        if callback_order_id:
+            request_body["conversationId"] = callback_order_id
+        body_str = json.dumps(request_body, ensure_ascii=False, separators=(",", ":"))
+        uri_path = "/payment/iyzipos/checkoutform/auth/ecom/detail"
+        random_str = "".join(random.choices(string.ascii_letters + string.digits, k=16))
+        sig = self._sign(random_str, uri_path, body_str)
+
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                resp = await client.post(
+                    f"{self.base_url}{uri_path}",
+                    content=body_str,
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": self._auth_header(random_str, sig),
+                        "x-iyzi-rnd": random_str,
+                    },
+                )
+        except Exception as exc:
+            logger.exception("iyzico payment verification request failed")
+            raise ValueError("iyzico payment verification failed") from exc
+
+        if resp.status_code >= 400:
+            raise ValueError("iyzico payment verification rejected")
+        details = resp.json()
+        if details.get("token") and not hmac.compare_digest(str(details["token"]), token):
+            raise ValueError("iyzico token mismatch")
+
+        provider_status = str(details.get("paymentStatus") or "").upper()
+        fraud_status = details.get("fraudStatus")
+        paid = (
+            details.get("status") == "success"
+            and provider_status == "SUCCESS"
+            and str(fraud_status) == "1"
+        )
         return {
-            "order_id": order_id,
+            "order_id": details.get("basketId") or details.get("conversationId") or callback_order_id,
             "provider_ref": token,
-            "status": "paid" if status == "success" else "failed",
+            "amount_cents": int(round(float(details.get("price", 0)) * 100)) if details.get("price") is not None else None,
+            "currency": details.get("currency"),
+            "status": "paid" if paid else "failed",
         }
 
 
@@ -244,7 +291,7 @@ class PayTRProvider(PaymentProvider):
             logger.exception("PayTR create_payment error")
             return PaymentResult(success=False, error=str(e))
 
-    def verify_webhook(self, payload: bytes, headers: Dict[str, str]) -> Dict[str, Any]:
+    async def verify_webhook(self, payload: bytes, headers: Dict[str, str]) -> Dict[str, Any]:
         from urllib.parse import parse_qs
         data = parse_qs(payload.decode("utf-8"))
         order_id  = data.get("merchant_oid", [None])[0]
@@ -261,6 +308,8 @@ class PayTRProvider(PaymentProvider):
         return {
             "order_id":     order_id,
             "provider_ref": order_id,
+            "amount_cents": int(total),
+            "currency": "TRY",
             "status": "paid" if status == "success" else "failed",
         }
 
@@ -314,12 +363,18 @@ class StripeProvider(PaymentProvider):
             logger.exception("Stripe create_payment error")
             return PaymentResult(success=False, error=str(e))
 
-    def verify_webhook(self, payload: bytes, headers: Dict[str, str]) -> Dict[str, Any]:
+    async def verify_webhook(self, payload: bytes, headers: Dict[str, str]) -> Dict[str, Any]:
         sig_header = headers.get("stripe-signature", "")
         # Parse t= and v1= from sig header
         parts = {k: v for k, v in (p.split("=", 1) for p in sig_header.split(",") if "=" in p)}
         timestamp = parts.get("t", "")
         v1 = parts.get("v1", "")
+        try:
+            signed_at = int(timestamp)
+        except ValueError as exc:
+            raise ValueError("Stripe webhook timestamp invalid") from exc
+        if abs(int(time.time()) - signed_at) > 300:
+            raise ValueError("Stripe webhook timestamp expired")
 
         signed = f"{timestamp}.{payload.decode('utf-8')}"
         expected = hmac.new(
@@ -343,7 +398,13 @@ class StripeProvider(PaymentProvider):
         else:
             status = "unknown"
 
-        return {"order_id": order_id, "provider_ref": provider_ref, "status": status}
+        return {
+            "order_id": order_id,
+            "provider_ref": provider_ref,
+            "amount_cents": session.get("amount_total"),
+            "currency": str(session.get("currency") or "").upper() or None,
+            "status": status,
+        }
 
 
 # ── Factory ───────────────────────────────────────────────────────────────────

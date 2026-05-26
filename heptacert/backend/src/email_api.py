@@ -773,14 +773,22 @@ async def log_email_delivery(
     db: AsyncSession = Depends(get_db),
 ):
     """Log email delivery status for tracking (internal API for background workers)."""
-    # Simple validation - in production, this should have a secret token
     j_res = await db.execute(select(BulkEmailJob).where(BulkEmailJob.id == job_id))
     job = j_res.scalar_one_or_none()
     if not job:
         raise HTTPException(status_code=404, detail="Job bulunamadÃ„Â±")
-    
+    await _get_event_for_admin(job.event_id, me, db, "email:write")
+
     attendee_id = payload.get("attendee_id")
-    status = payload.get("status", "sent")
+    status = str(payload.get("status", "sent")).strip().lower()
+    if status not in {"sent", "failed", "bounced"}:
+        raise HTTPException(status_code=400, detail="Invalid delivery status.")
+    if attendee_id is not None:
+        attendee_res = await db.execute(
+            select(Attendee).where(Attendee.id == attendee_id, Attendee.event_id == job.event_id)
+        )
+        if attendee_res.scalar_one_or_none() is None:
+            raise HTTPException(status_code=400, detail="Attendee does not belong to this email job event.")
     reason = payload.get("reason")
     
     log_entry = EmailDeliveryLog(

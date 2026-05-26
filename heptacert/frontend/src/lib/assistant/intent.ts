@@ -1,12 +1,14 @@
 import { compactText, fuzzyAny, isAffirmative, isNegative } from "./text";
 
-export type Intent = "create_event" | "faq" | "edit_draft" | "confirm_create" | "cancel" | "unknown";
+export type Intent = "create_event" | "support_ticket" | "faq" | "edit_draft" | "confirm_create" | "cancel" | "unknown";
 
 export type IntentResult = { intent: Intent; confidence: number };
 
 const EVENT_WORDS = ["etkinlik", "event", "workshop", "seminar", "konferans", "webinar", "konser", "eğitim", "egitim"];
 const CREATE_WORDS = ["oluştur", "olustur", "create", "yeni", "kur", "hazırla", "hazirla", "planla", "prepare"];
 const FAQ_WORDS = ["nasıl", "nasil", "nereden", "ne işe", "ne ise", "help", "yardım", "yardim", "where", "how"];
+const SUPPORT_WORDS = ["destek", "support", "ticket", "talep"];
+const SUPPORT_ACTION_WORDS = ["aç", "ac", "oluştur", "olustur", "create", "open", "gönder", "gonder"];
 
 export function shouldStartCreateEventWizard(text: string): boolean {
   const t = compactText(text);
@@ -17,6 +19,9 @@ export function shouldStartCreateEventWizard(text: string): boolean {
 
 export function detectIntent(text: string, wizardActive: boolean): IntentResult {
   const t = compactText(text);
+  if (fuzzyAny(t, SUPPORT_WORDS) && fuzzyAny(t, SUPPORT_ACTION_WORDS)) {
+    return { intent: "support_ticket", confidence: 0.98 };
+  }
   if (wizardActive) {
     if (isAffirmative(t)) return { intent: "confirm_create", confidence: 0.98 };
     if (isNegative(t)) return { intent: "cancel", confidence: 0.99 };

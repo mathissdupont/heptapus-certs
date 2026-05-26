@@ -101,6 +101,19 @@ export function clearPublicMemberToken() {
   emitPublicMemberTokenChange();
 }
 
+export async function consumeOAuthBridgeToken(): Promise<{ mode: "admin" | "member"; access_token: string }> {
+  const res = await fetch(apiUrl("/auth/oauth/bridge/exchange"), {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new ApiError(res.status, "OAuth oturumu alınamadı veya süresi doldu.");
+  }
+  return res.json();
+}
+
 export function getRoleFromToken(): string | null {
   const token = getToken();
   if (!token) return null;
@@ -868,11 +881,6 @@ export async function toggleSession(eventId: number, sessionId: number): Promise
   return res.json();
 }
 
-export function getSessionQrUrl(eventId: number, sessionId: number): string {
-  const token = getToken();
-  return `${getApiBase()}/admin/events/${eventId}/sessions/${sessionId}/qr?token=${token}`;
-}
-
 export async function fetchSessionQr(eventId: number, sessionId: number): Promise<{ blob: Blob; checkinUrl: string }> {
   const res = await apiFetch(`/admin/events/${eventId}/sessions/${sessionId}/qr`);
   const blob = await res.blob();
@@ -1113,6 +1121,29 @@ export async function exportRegistrationDocumentsZip(
   return {
     blob,
     filename: filenameMatch?.[1] || `registration-documents-event-${eventId}.zip`,
+  };
+}
+
+export async function downloadRegistrationDocument(
+  eventId: number,
+  path: string,
+): Promise<{ blob: Blob; filename: string }> {
+  const token = getToken();
+  const headers = new Headers();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  const res = await fetch(
+    `${getApiBase()}/admin/events/${eventId}/registration-documents/file?path=${encodeURIComponent(path)}`,
+    { method: "GET", headers, cache: "no-store" },
+  );
+  if (!res.ok) {
+    throw new ApiError(res.status, `Document download failed (${res.status})`);
+  }
+  const disposition = res.headers.get("content-disposition") || "";
+  const filenameMatch = disposition.match(/filename=\"?([^"]+)\"?/i);
+  return {
+    blob: await res.blob(),
+    filename: filenameMatch?.[1] || path.split("/").pop() || "document",
   };
 }
 

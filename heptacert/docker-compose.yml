@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: heptacert
       POSTGRES_USER: heptacert
-      POSTGRES_PASSWORD: heptacert
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
     volumes:
       - ${POSTGRES_DATA_DIR:-/mnt/HC_Volume_105029103/heptacert-data/postgres}:/var/lib/postgresql/data
     healthcheck:
@@ -32,16 +32,19 @@ services:
     env_file:
       - ./.env
     environment:
-      DATABASE_URL: postgresql+asyncpg://heptacert:heptacert@db:5432/heptacert
-      ALEMBIC_DATABASE_URL: postgresql+psycopg://heptacert:heptacert@db:5432/heptacert
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL must be set}
+      ALEMBIC_DATABASE_URL: ${ALEMBIC_DATABASE_URL:?ALEMBIC_DATABASE_URL must be set}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8765}
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3030}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3030}
+      TRUSTED_PROXY_NETWORKS: ${TRUSTED_PROXY_NETWORKS:-}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       RATE_LIMIT_STORAGE_URI: ${RATE_LIMIT_STORAGE_URI:-redis://redis:6379/0}
       STORAGE_MODE: local
       LOCAL_STORAGE_DIR: /data
       # Email / SMTP — .env dosyasından alınır
-      EMAIL_TOKEN_SECRET: ${EMAIL_TOKEN_SECRET:-change-me}
+      EMAIL_TOKEN_SECRET: ${EMAIL_TOKEN_SECRET:?EMAIL_TOKEN_SECRET must be set}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
@@ -96,15 +99,18 @@ services:
     env_file:
       - ./.env
     environment:
-      DATABASE_URL: postgresql+asyncpg://heptacert:heptacert@db:5432/heptacert
-      ALEMBIC_DATABASE_URL: postgresql+psycopg://heptacert:heptacert@db:5432/heptacert
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL must be set}
+      ALEMBIC_DATABASE_URL: ${ALEMBIC_DATABASE_URL:?ALEMBIC_DATABASE_URL must be set}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8765}
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3030}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3030}
+      TRUSTED_PROXY_NETWORKS: ${TRUSTED_PROXY_NETWORKS:-}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       RATE_LIMIT_STORAGE_URI: ${RATE_LIMIT_STORAGE_URI:-redis://redis:6379/0}
       STORAGE_MODE: local
       LOCAL_STORAGE_DIR: /data
-      EMAIL_TOKEN_SECRET: ${EMAIL_TOKEN_SECRET:-change-me}
+      EMAIL_TOKEN_SECRET: ${EMAIL_TOKEN_SECRET:?EMAIL_TOKEN_SECRET must be set}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
@@ -168,16 +174,16 @@ services:
       db:
         condition: service_healthy
     environment:
-      PGPASSWORD: heptacert
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
     volumes:
       - ./backend/migrations:/migrations:ro
     entrypoint: >
       sh -lc "
-      until pg_isready -h db -U heptacert; do sleep 1; done;
-      psql -h db -U heptacert -d heptacert -f /migrations/001_add_cert_fields.sql || true;
-      psql -h db -U heptacert -d heptacert -f /migrations/002_add_user_auth_fields.sql || true;
-      psql -h db -U heptacert -d heptacert -f /migrations/002_add_payments.sql || true;
-      psql -h db -U heptacert -d heptacert -f /migrations/003_enterprise.sql || true;
+      until pg_isready -h db -U ${POSTGRES_USER:-heptacert}; do sleep 1; done;
+      psql -h db -U ${POSTGRES_USER:-heptacert} -d ${POSTGRES_DB:-heptacert} -f /migrations/001_add_cert_fields.sql || true;
+      psql -h db -U ${POSTGRES_USER:-heptacert} -d ${POSTGRES_DB:-heptacert} -f /migrations/002_add_user_auth_fields.sql || true;
+      psql -h db -U ${POSTGRES_USER:-heptacert} -d ${POSTGRES_DB:-heptacert} -f /migrations/002_add_payments.sql || true;
+      psql -h db -U ${POSTGRES_USER:-heptacert} -d ${POSTGRES_DB:-heptacert} -f /migrations/003_enterprise.sql || true;
       echo 'db_init done';
       "
     restart: "no"
@@ -189,13 +195,13 @@ services:
       db:
         condition: service_healthy
     environment:
-      PGPASSWORD: heptacert
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
     volumes:
       - ${HEPTACERT_BACKUP_DIR:-/mnt/HC_Volume_105029103/heptacert-data/backups}:/backups
     entrypoint: >
       sh -c "
         apk add --no-cache dcron && \
-        echo '0 3 * * * pg_dump -h db -U heptacert -d heptacert | gzip > /backups/heptacert_\$(date +\%Y\%m\%d_\%H\%M).sql.gz && find /backups -name \"*.sql.gz\" -mtime +7 -delete' > /etc/crontabs/root && \
+        echo '0 3 * * * pg_dump -h db -U ${POSTGRES_USER:-heptacert} -d ${POSTGRES_DB:-heptacert} | gzip > /backups/heptacert_\$(date +\%Y\%m\%d_\%H\%M).sql.gz && find /backups -name \"*.sql.gz\" -mtime +7 -delete' > /etc/crontabs/root && \
         crond -f -l 2
       "
     restart: unless-stopped

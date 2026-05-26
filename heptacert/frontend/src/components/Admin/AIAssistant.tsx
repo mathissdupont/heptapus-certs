@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send, AlertCircle, Lightbulb, User, Sparkles, Command } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
-import { apiFetch, getToken } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { detectIntent, shouldStartCreateEventWizard } from "@/lib/assistant/intent";
 import { findFaqAnswer } from "@/lib/assistant/faq";
 import { getWizardQuestion, buildReviewMessage } from "@/lib/assistant/wizard";
@@ -12,6 +12,11 @@ interface Message {
   role: "user" | "assistant";
   message: string;
   timestamp: string;
+}
+
+interface AssistantResponse {
+  answer?: string;
+  suggestions?: Record<string, unknown>;
 }
 import type { EventDraft, EventWizardStep } from "@/lib/assistant/eventDraft";
 import {
@@ -539,32 +544,64 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
     if (Object.keys(eventUpdate).length > 0) {
       parts.push(
         lang === "tr"
-          ? `\n\nEtkinlik ayari taslagi: ${Object.entries(eventUpdate).map(([key, value]) => `${key}: ${value}`).join(", ")}`
-          : `\n\nEvent settings draft: ${Object.entries(eventUpdate).map(([key, value]) => `${key}: ${value}`).join(", ")}`
+          ? `\n\nEtkinlik ayarı taslağı: ${Object.entries(eventUpdate).map(([key, value]) => `${key}: ${formatDisplayValue(value)}`).join(", ")}`
+          : `\n\nEvent settings draft: ${Object.entries(eventUpdate).map(([key, value]) => `${key}: ${formatDisplayValue(value)}`).join(", ")}`
       );
     }
     if (fields.length > 0) {
       parts.push(
         lang === "tr"
-          ? `\n\nKayit formu onerisi: ${fields.map((field: any) => field.label || field.key).join(", ")}`
-          : `\n\nRegistration fields: ${fields.map((field: any) => field.label || field.key).join(", ")}`
+          ? `\n\nKayıt formu önerisi: ${fields.map((field: any) => formatDisplayValue(field.label || field.key || field)).join(", ")}`
+          : `\n\nRegistration fields: ${fields.map((field: any) => formatDisplayValue(field.label || field.key || field)).join(", ")}`
       );
     }
     if (sessions.length > 0) {
       parts.push(
         lang === "tr"
-          ? `\n\nOturum taslagi: ${sessions.map((session: any) => session.title || session.name).join(", ")}`
-          : `\n\nSession draft: ${sessions.map((session: any) => session.title || session.name).join(", ")}`
+          ? `\n\nOturum taslağı: ${sessions.map((session: any) => formatDisplayValue(session.title || session.name || session)).join(", ")}`
+          : `\n\nSession draft: ${sessions.map((session: any) => formatDisplayValue(session.title || session.name || session)).join(", ")}`
       );
     }
     if (compliance.length > 0) {
       parts.push(
         lang === "tr"
-          ? `\n\nKVKK / uyumluluk onerileri: ${compliance.map((item: any) => item.label || item.text || item).join(", ")}`
-          : `\n\nCompliance suggestions: ${compliance.map((item: any) => item.label || item.text || item).join(", ")}`
+          ? `\n\nKVKK / uyumluluk önerileri: ${compliance.map((item: any) => formatDisplayValue(item)).join(", ")}`
+          : `\n\nCompliance suggestions: ${compliance.map((item: any) => formatDisplayValue(item)).join(", ")}`
       );
     }
     return parts.join("");
+  };
+
+  const requestAiAnswer = async (currentInput: string) => {
+    if (currentInput.trim().length < 2) {
+      pushAssistantMessage(lang === "tr" ? "Biraz daha ayrıntı yazar mısınız?" : "Could you add a little more detail?");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await apiFetch("/admin/ai/event-assistant", {
+        method: "POST",
+        body: JSON.stringify({
+          message: currentInput.trim(),
+          language: lang,
+          event_id: getCurrentEventId(),
+          history: messages.slice(-8).map(({ role, message }) => ({ role, message })),
+        }),
+      });
+      const result = (await response.json()) as AssistantResponse;
+      const answer = typeof result.answer === "string" ? result.answer.trim() : "";
+      if (!answer) throw new Error(lang === "tr" ? "Asistan boş yanıt döndürdü." : "The assistant returned an empty response.");
+      pushAssistantMessage(formatAiAnswer(answer, result.suggestions));
+    } catch (error: any) {
+      pushAssistantMessage(
+        lang === "tr"
+          ? `Şu anda yanıtı hazırlayamadım: ${error?.message || "Bağlantı hatası"}. Destek talebi açarak ekibe iletebilirsiniz.`
+          : `I could not prepare a response right now: ${error?.message || "Connection error"}. You can open a support ticket for the team.`
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSendMessage = async () => {
@@ -575,14 +612,22 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
 
+    const intent = detectIntent(currentInput, eventWizardStep !== "idle");
+    if (intent.intent === "support_ticket") {
+      setShowSupportForm(true);
+      pushAssistantMessage(
+        lang === "tr"
+          ? "Destek talebi formunu açtım. Konuyu en az 5, açıklamayı en az 10 karakter olacak şekilde doldurup gönderebilirsiniz."
+          : "I opened the support ticket form. Please provide a subject of at least 5 characters and a message of at least 10 characters."
+      );
+      return;
+    }
+
     // If wizard already active, let existing wizard handler process the input
     if (eventWizardStep !== "idle") {
       const handled = await handleEventWizardInput(currentInput);
       if (handled) return;
     }
-
-    // Detect intent using deterministic rules
-    const intent = detectIntent(currentInput, eventWizardStep !== "idle");
 
     // Start strict create-event flow only when both event+action words are present
     if (intent.intent === "create_event" && intent.confidence >= 0.8 && shouldStartCreateEventWizard(currentInput)) {
@@ -595,68 +640,43 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
       const answer = findFaqAnswer(currentInput, lang);
       if (answer) {
         pushAssistantMessage(answer);
-      } else {
-        pushAssistantMessage(
-          lang === "tr"
-            ? "Bunu tam anlayamadım. Etkinlik oluşturmak mı yoksa ayarlar hakkında bilgi almak mı istiyorsunuz?"
-            : "I could not understand that clearly. Do you want to create an event or ask about settings?"
-        );
+        return;
       }
-      return;
     }
 
-    // Unknown / helpful suggestions
-    pushAssistantMessage(
-      lang === "tr"
-        ? "Şunu yapabilirim: yeni etkinlik oluşturma, kayıt formu/sertifika/check-in ayarlarını açıklama, KVKK önerileri sunma. Ne yapmak istiyorsunuz?"
-        : "I can: create a new event (guided), explain registration/certificate/check-in settings, or suggest privacy (KVKK) texts. Which would you like?"
-    );
-    return;
-    
+    await requestAiAnswer(currentInput);
     return;
   };
 
   const handleCreateSupport = async () => {
-    if (!supportSubject.trim() || !supportMessage.trim()) return;
+    const subject = supportSubject.trim();
+    const message = supportMessage.trim();
+    if (subject.length < 5 || message.length < 10) {
+      pushAssistantMessage(
+        lang === "tr"
+          ? "Destek talebi için konu en az 5, açıklama en az 10 karakter olmalıdır."
+          : "A support ticket requires a subject of at least 5 characters and a message of at least 10 characters."
+      );
+      return;
+    }
 
     setLoading(true);
     try {
-      const token = getToken();
-      if (!token) {
-        pushAssistantMessage(lang === "tr" ? "❌ Oturum hatası. Lütfen sayfayı yenileyin ve tekrar deneyin." : "❌ Session error. Please refresh and try again.");
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch("/api/admin/support-tickets", {
+      await apiFetch("/admin/support-tickets", {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
         body: JSON.stringify({
-          subject: supportSubject,
-          message: supportMessage
-        })
+          subject,
+          message,
+        }),
       });
 
-      if (response.ok) {
-        pushAssistantMessage(lang === "tr" ? "✅ Destek talebiniz başarıyla oluşturuldu! Destek Ekibimiz en kısa sürede size ulaşacak. Email adresinizdeki güncellemeleri takip edin." : "✅ Your support ticket created! Our team will reach out soon. Check your email for updates.");
-        setSupportSubject("");
-        setSupportMessage("");
-        setShowSupportForm(false);
-      } else {
-        try {
-          const error = await response.json();
-          const errorDetail = error?.detail || error?.message || (lang === "tr" ? "Destek talebini oluşturmada hata oluştu" : "Failed to create support ticket");
-          pushAssistantMessage(lang === "tr" ? `❌ Hata: ${errorDetail}` : `❌ Error: ${errorDetail}`);
-        } catch {
-          pushAssistantMessage(lang === "tr" ? "❌ Hata: Destek talebini oluşturmada hata oluştu" : "❌ Error: Failed to create support ticket");
-        }
-      }
+      pushAssistantMessage(lang === "tr" ? "Destek talebiniz başarıyla oluşturuldu. Destek ekibimiz en kısa sürede size ulaşacak." : "Your support ticket was created successfully. Our team will reach out soon.");
+      setSupportSubject("");
+      setSupportMessage("");
+      setShowSupportForm(false);
     } catch (error: any) {
       const errorMsg = error?.message || (lang === "tr" ? "Bağlantı hatası" : "Connection error");
-      pushAssistantMessage(lang === "tr" ? `❌ ${errorMsg}. Lütfen daha sonra tekrar deneyin.` : `❌ ${errorMsg}. Please try again later.`);
+      pushAssistantMessage(lang === "tr" ? `Destek talebi oluşturulamadı: ${errorMsg}` : `Failed to create support ticket: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
@@ -1143,4 +1163,17 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
 function getEventPromptForStep(step: EventWizardStep, draft: EventDraft, lang: string): string {
   if (step === "confirm") return buildReviewMessage(draft, lang);
   return getWizardQuestion(step, draft, lang);
+}
+
+function formatDisplayValue(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  if (Array.isArray(value)) return value.map(formatDisplayValue).filter(Boolean).join(", ");
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return formatDisplayValue(record.label ?? record.text ?? record.message ?? record.name) || JSON.stringify(value);
+  }
+  return String(value);
 }

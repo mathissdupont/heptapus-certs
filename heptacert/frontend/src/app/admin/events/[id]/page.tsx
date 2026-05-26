@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import {
   Activity,
   ArrowRight,
@@ -23,10 +24,6 @@ import {
 } from "lucide-react";
 import { apiFetch, type EventOut } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
-
-type EventIndexPageProps = {
-  params: { id: string };
-};
 
 type EventHealthCheck = {
   key: string;
@@ -57,7 +54,8 @@ function healthTone(status: EventHealthCheck["status"]) {
   return "border-surface-200 bg-surface-50 text-surface-600";
 }
 
-export default function EventIndexPage({ params }: EventIndexPageProps) {
+export default function EventIndexPage() {
+  const params = useParams<{ id: string }>();
   const { lang } = useI18n();
   const [event, setEvent] = useState<EventOut | null>(null);
   const [health, setHealth] = useState<EventHealthOut | null>(null);

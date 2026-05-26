@@ -77,7 +77,7 @@ async def deliver_webhook(
     Writes delivery records to webhook_deliveries.
     Import done inline to avoid circular deps.
     """
-    from .main import WebhookEndpoint, WebhookDelivery  # noqa: PLC0415
+    from .main import WebhookEndpoint, WebhookDelivery, WebhookEndpointIn  # noqa: PLC0415
 
     event_str = event_type.value if isinstance(event_type, WebhookEvent) else event_type
 
@@ -107,6 +107,22 @@ async def deliver_webhook(
         http_status = None
         response_body = ""
         last_attempt = 1
+
+        try:
+            WebhookEndpointIn(url=endpoint.url, events=[])
+        except ValueError:
+            response_body = "Webhook target rejected by outbound URL policy"
+            delivery = WebhookDelivery(
+                endpoint_id=endpoint.id,
+                event_type=event_str,
+                payload=full_payload,
+                status="failed",
+                http_status=None,
+                response_body=response_body,
+                attempt=0,
+            )
+            db.add(delivery)
+            continue
 
         for attempt in range(1, 4):  # max 3 attempts
             last_attempt = attempt

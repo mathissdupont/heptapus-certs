@@ -118,7 +118,7 @@ function CheckoutContent() {
             <Link href="/pricing" className="mt-6 inline-flex text-sm font-medium text-slate-400 transition hover:text-slate-700">{copy.cancel}</Link>
           </div>
           <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-lifted">
-            <iframe srcDoc={checkoutHtml} sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation" className="w-full border-0" style={{ height: "720px", minHeight: "720px" }} title="Payment Checkout" />
+            <iframe srcDoc={checkoutHtml} sandbox="allow-scripts allow-forms allow-popups allow-top-navigation" className="w-full border-0" style={{ height: "720px", minHeight: "720px" }} title="Payment Checkout" />
           </div>
         </div>
       </div>

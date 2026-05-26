@@ -6,6 +6,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import Draggable from "react-draggable";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft,
@@ -322,7 +323,8 @@ function FieldPanel({ label, field, onChange }: {
 }
 
 /* ─── Main ───────────────────────────────────────────────── */
-export default function EditorPage({ params }: { params: { id: string } }) {
+export default function EditorPage() {
+  const params = useParams<{ id: string }>();
   const eventId = Number(params.id);
   const t = useT();
 

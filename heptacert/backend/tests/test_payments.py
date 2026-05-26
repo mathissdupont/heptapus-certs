@@ -5,6 +5,8 @@ Tests factory pattern, signature verification, and data models.
 import hashlib
 import hmac
 import json
+import time
+import base64
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -115,16 +117,52 @@ class TestGetProvider:
 class TestIyzicoProvider:
     def test_sign_method(self):
         p = IyzicoProvider(api_key="api_key", secret_key="secret_key", base_url="https://sandbox")
-        sig = p._sign("random123", '{"test":"body"}')
-        raw = "api_key" + "random123" + "secret_key" + '{"test":"body"}'
-        expected = hashlib.sha1(raw.encode("utf-8")).hexdigest()
+        sig = p._sign("random123", "/payment/detail", '{"test":"body"}')
+        raw = 'random123/payment/detail{"test":"body"}'
+        expected = hmac.new(b"secret_key", raw.encode("utf-8"), hashlib.sha256).hexdigest()
         assert sig == expected
+
+    def test_auth_header_uses_iyzwsv2_base64_format(self):
+        p = IyzicoProvider(api_key="api_key", secret_key="secret_key", base_url="https://sandbox")
+        header = p._auth_header("random123", "signature123")
+        encoded = header.removeprefix("IYZWSv2 ")
+        assert base64.b64decode(encoded).decode() == "apiKey:api_key&randomKey:random123&signature:signature123"
+
+    @pytest.mark.asyncio
+    async def test_callback_is_verified_by_retrieving_provider_result(self):
+        p = IyzicoProvider(api_key="api_key", secret_key="secret_key", base_url="https://sandbox")
+        response = SimpleNamespace(
+            status_code=200,
+            json=lambda: {
+                "status": "success",
+                "paymentStatus": "SUCCESS",
+                "fraudStatus": 1,
+                "basketId": "12",
+                "token": "provider-token",
+                "price": 99.0,
+                "currency": "TRY",
+            },
+        )
+        client = AsyncMock()
+        client.post.return_value = response
+        context = AsyncMock()
+        context.__aenter__.return_value = client
+        with patch("src.payments.httpx.AsyncClient", return_value=context):
+            result = await p.verify_webhook(b"token=provider-token", {})
+        assert result == {
+            "order_id": "12",
+            "provider_ref": "provider-token",
+            "amount_cents": 9900,
+            "currency": "TRY",
+            "status": "paid",
+        }
 
 
 # ── Stripe webhook verification ──────────────────────────────────────────────
 
 class TestStripeWebhook:
-    def test_valid_signature(self):
+    @pytest.mark.asyncio
+    async def test_valid_signature(self):
         webhook_secret = "whsec_test123"
         p = StripeProvider(secret_key="sk_test", webhook_secret=webhook_secret)
 
@@ -133,7 +171,7 @@ class TestStripeWebhook:
             "data": {"object": {"id": "cs_123", "client_reference_id": "ORD-001"}},
         }).encode()
 
-        timestamp = "1234567890"
+        timestamp = str(int(time.time()))
         signed = f"{timestamp}.{payload.decode('utf-8')}"
         v1 = hmac.new(
             webhook_secret.encode("utf-8"),
@@ -142,23 +180,34 @@ class TestStripeWebhook:
         ).hexdigest()
 
         headers = {"stripe-signature": f"t={timestamp},v1={v1}"}
-        result = p.verify_webhook(payload, headers)
+        result = await p.verify_webhook(payload, headers)
         assert result["status"] == "paid"
         assert result["order_id"] == "ORD-001"
         assert result["provider_ref"] == "cs_123"
 
-    def test_invalid_signature_raises(self):
+    @pytest.mark.asyncio
+    async def test_invalid_signature_raises(self):
         p = StripeProvider(secret_key="sk_test", webhook_secret="whsec_real")
         payload = b'{"type":"checkout.session.completed"}'
-        headers = {"stripe-signature": "t=123,v1=fakesignature"}
+        headers = {"stripe-signature": f"t={int(time.time())},v1=fakesignature"}
         with pytest.raises(ValueError, match="signature mismatch"):
-            p.verify_webhook(payload, headers)
+            await p.verify_webhook(payload, headers)
+
+    @pytest.mark.asyncio
+    async def test_expired_signature_raises(self):
+        p = StripeProvider(secret_key="sk_test", webhook_secret="whsec_real")
+        with pytest.raises(ValueError, match="timestamp expired"):
+            await p.verify_webhook(
+                b'{"type":"checkout.session.completed"}',
+                {"stripe-signature": "t=123,v1=fakesignature"},
+            )
 
 
 # ── PayTR webhook verification ───────────────────────────────────────────────
 
 class TestPayTRWebhook:
-    def test_valid_hash(self):
+    @pytest.mark.asyncio
+    async def test_valid_hash(self):
         p = PayTRProvider(merchant_id="mid", merchant_key="mkey", merchant_salt="msalt")
 
         order_id = "ORD-001"
@@ -168,12 +217,13 @@ class TestPayTRWebhook:
         expected_hash = hmac.new("mkey".encode("utf-8"), msg, hashlib.sha256).digest().hex()
 
         payload = f"merchant_oid={order_id}&status={status}&total_amount={total}&hash={expected_hash}".encode()
-        result = p.verify_webhook(payload, {})
+        result = await p.verify_webhook(payload, {})
         assert result["status"] == "paid"
         assert result["order_id"] == order_id
 
-    def test_invalid_hash_raises(self):
+    @pytest.mark.asyncio
+    async def test_invalid_hash_raises(self):
         p = PayTRProvider(merchant_id="mid", merchant_key="mkey", merchant_salt="msalt")
         payload = b"merchant_oid=ORD-001&status=success&total_amount=100&hash=fakehash"
         with pytest.raises(ValueError, match="signature mismatch"):
-            p.verify_webhook(payload, {})
+            await p.verify_webhook(payload, {})

@@ -3,9 +3,10 @@ import { EventAdminLayoutShell } from "./_event-admin-layout-shell";
 
 type EventLayoutProps = {
   children: ReactNode;
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
-export default function EventLayout({ children, params }: EventLayoutProps) {
-  return <EventAdminLayoutShell eventId={params.id}>{children}</EventAdminLayoutShell>;
+export default async function EventLayout({ children, params }: EventLayoutProps) {
+  const { id } = await params;
+  return <EventAdminLayoutShell eventId={id}>{children}</EventAdminLayoutShell>;
 }

@@ -2,6 +2,7 @@
 
 import { apiFetch, API_BASE, getToken } from "@/lib/api";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -98,7 +99,8 @@ function getStatusStyle(s: CertStatus) {
   };
 }
 
-export default function CertificatesPage({ params }: { params: { id: string } }) {
+export default function CertificatesPage() {
+  const params = useParams<{ id: string }>();
   const eventId = Number(params.id);
   const t = useT();
   const { lang } = useI18n();

@@ -24,6 +24,7 @@ from .main import (
     _ensure_ticketing_feature_enabled,
     _get_event_for_admin,
     _get_public_event_identifier,
+    _client_ip_for_rate_limit,
     _make_apple_wallet_pass,
     _make_ticket_image,
     _record_ticket_attendaonce,
@@ -218,7 +219,7 @@ async def check_in_event_ticket(
         raise HTTPException(status_code=404, detail="Ticket not found")
     if ticket.status in {"cancelled", "revoked"}:
         raise HTTPException(status_code=409, detail="Ticket is cancelled")
-    ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else None)
+    ip = _client_ip_for_rate_limit(request)
     if ticket.status == "used":
         await _record_ticket_attendaonce(db, event=ev, ticket=ticket, ip_address=ip)
         await db.commit()
