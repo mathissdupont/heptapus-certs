@@ -3772,12 +3772,18 @@ async def _enforce_registration_risk_controls(
     def _extra(log: AuditLog) -> Dict[str, Any]:
         return log.extra or {}
 
+    def _utc_created_at(log: AuditLog) -> datetime:
+        created_at = log.created_at
+        if created_at.tzinfo is None:
+            return created_at.replace(tzinfo=timezone.utc)
+        return created_at.astimezone(timezone.utc)
+
     same_event_logs = [log for log in recent_logs if str(_extra(log).get("event_id")) == str(event_id)]
     email_lc = email.lower()
 
     same_ip_recent = [
         log for log in same_event_logs
-        if ip_address and log.ip_address == ip_address and log.created_at >= now - timedelta(minutes=10)
+        if ip_address and log.ip_address == ip_address and _utc_created_at(log) >= now - timedelta(minutes=10)
     ]
     if len(same_ip_recent) >= 5:
         raise HTTPException(status_code=429, detail="Bu IP adresinden çok fazla etkinlik kaydı denemesi algılandı.")
@@ -6637,6 +6643,13 @@ async def _process_bulk_certificate_jobs() -> None:
 
 # Ã¢â€â‚¬Ã¢â€â‚¬ Badge Management Endpoints Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
+async def _can_manage_organization_event(db: AsyncSession, me: CurrentUser, owner_user_id: int) -> bool:
+    if me.role == Role.superadmin or owner_user_id == me.id:
+        return True
+    from .organization_access_api import user_can_manage_owner_organization
+    return await user_can_manage_owner_organization(db, me, owner_user_id, "events:manage")
+
+
 @app.post("/api/admin/events/{event_id}/badge-rules", response_model=BadgeRulesOut)
 async def create_or_update_badge_rules(
     event_id: int,
@@ -6651,7 +6664,7 @@ async def create_or_update_badge_rules(
     if not event:
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
     
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+    if not await _can_manage_organization_event(db, current_user, event.admin_id):
         raise HTTPException(status_code=403, detail="Unauthorized")
 
     if not is_gamification_enabled(event):
@@ -6694,7 +6707,7 @@ async def get_badge_rules(
     if not event:
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+    if not await _can_manage_organization_event(db, current_user, event.admin_id):
         raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     if not is_gamification_enabled(event):
@@ -6721,7 +6734,7 @@ async def award_badge_manually(
     if not event:
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+    if not await _can_manage_organization_event(db, current_user, event.admin_id):
         raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     if not is_gamification_enabled(event):
@@ -6827,7 +6840,7 @@ async def list_badges(
     if not event:
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+    if not await _can_manage_organization_event(db, current_user, event.admin_id):
         raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     if not is_gamification_enabled(event):
@@ -7029,7 +7042,7 @@ async def trigger_automatic_badge_calculation(
     if not event:
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+    if not await _can_manage_organization_event(db, current_user, event.admin_id):
         raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     if not is_gamification_enabled(event):
@@ -7175,7 +7188,7 @@ async def create_or_update_tier_rules(
     if not event:
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+    if not await _can_manage_organization_event(db, current_user, event.admin_id):
         raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     # Check if rules exist
@@ -7213,7 +7226,7 @@ async def get_tier_rules(
     if not event:
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+    if not await _can_manage_organization_event(db, current_user, event.admin_id):
         raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     ctr_res = await db.execute(
@@ -7236,7 +7249,7 @@ async def assign_certificate_tiers(
     if not event:
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+    if not await _can_manage_organization_event(db, current_user, event.admin_id):
         raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     # Get tier rules
@@ -7290,7 +7303,7 @@ async def get_tier_summary(
     if not event:
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+    if not await _can_manage_organization_event(db, current_user, event.admin_id):
         raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     # Get tier distribution
@@ -7334,7 +7347,7 @@ async def configure_event_survey(
     if not event:
         raise HTTPException(status_code=404, detail="Etkinlik bulunamad")
 
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+    if not await _can_manage_organization_event(db, current_user, event.admin_id):
         raise HTTPException(status_code=403, detail="Yetkisiz eriim")
 
     if survey_in.survey_type not in {"disabled", "builtin", "external", "both"}:
@@ -7404,7 +7417,7 @@ async def get_event_survey(
     if not event:
         raise HTTPException(status_code=404, detail="Etkinlik bulunamad")
 
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+    if not await _can_manage_organization_event(db, current_user, event.admin_id):
         raise HTTPException(status_code=403, detail="Yetkisiz eriim")
 
     es_res = await db.execute(select(EventSurvey).where(EventSurvey.event_id == event_id))
@@ -7607,7 +7620,7 @@ async def get_survey_responses(
     if not event:
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+    if not await _can_manage_organization_event(db, current_user, event.admin_id):
         raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     sr_res = await db.execute(
@@ -7662,7 +7675,7 @@ async def create_sponsor_slot(
     if not event:
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+    if not await _can_manage_organization_event(db, current_user, event.admin_id):
         raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     # Create sponsor slot
@@ -7694,7 +7707,7 @@ async def list_sponsors(
     if not event:
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+    if not await _can_manage_organization_event(db, current_user, event.admin_id):
         raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     ss_res = await db.execute(
@@ -7726,7 +7739,7 @@ async def update_sponsor_slot(
     if not event:
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+    if not await _can_manage_organization_event(db, current_user, event.admin_id):
         raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     # Get sponsor slot
@@ -7768,7 +7781,7 @@ async def delete_sponsor_slot(
     if not event:
         raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
 
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+    if not await _can_manage_organization_event(db, current_user, event.admin_id):
         raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
     # Get sponsor slot
@@ -10773,13 +10786,31 @@ async def delete_admin_account(
 
 @app.get("/api/admin/events", response_model=list[EventOut], dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
 async def list_events(me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    from .organization_access_api import OrganizationMember, member_allows
+
     normalized_email = str(me.email).strip().lower()
+    org_memberships = await db.execute(
+        select(Organization.user_id, OrganizationMember)
+        .join(OrganizationMember, OrganizationMember.organization_id == Organization.id)
+        .where(
+            OrganizationMember.status == "active",
+            or_(
+                OrganizationMember.user_id == me.id,
+                func.lower(func.trim(OrganizationMember.email)) == normalized_email,
+            ),
+        )
+    )
+    managed_owner_ids = [
+        owner_id for owner_id, membership in org_memberships.all()
+        if member_allows(membership, "events:manage")
+    ]
     res = await db.execute(
         select(Event)
         .outerjoin(EventTeamMember, EventTeamMember.event_id == Event.id)
         .where(
             or_(
                 Event.admin_id == me.id,
+                Event.admin_id.in_(managed_owner_ids),
                 and_(
                     EventTeamMember.status == "active",
                     or_(
@@ -12584,13 +12615,15 @@ def _serialize_admin_organization(org: Organization) -> dict[str, Any]:
 
 @app.get("/api/admin/organization/settings", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
 async def get_admin_organization_settings(me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    org = await _get_or_create_admin_organization(db, me.id)
+    from .organization_access_api import get_organization_for_access
+    org = await get_organization_for_access(db, me, "organization:view")
     return _serialize_admin_organization(org)
 
 
 @app.patch("/api/admin/organization/settings", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
 async def update_admin_organization_settings(payload: dict[str, Any], me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    org = await _get_or_create_admin_organization(db, me.id)
+    from .organization_access_api import get_organization_for_access
+    org = await get_organization_for_access(db, me, "organization:profile_write")
 
     settings_data = dict(getattr(org, "settings", {}) or {})
     for key in (
@@ -12634,7 +12667,8 @@ async def upload_admin_organization_logo(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_or_create_admin_organization(db, me.id)
+    from .organization_access_api import get_organization_for_access
+    org = await get_organization_for_access(db, me, "organization:profile_write")
     data, ext = await _read_safe_raster_upload(file)
     safe_name = f"org-logos/org_{org.id}/logo{ext}"
     dest = Path(settings.local_storage_dir) / safe_name
@@ -13913,6 +13947,9 @@ async def _get_event_for_admin(
         return ev
     membership = await _get_event_team_membership(event_id, me, db)
     if membership and _event_team_member_allows(membership, required_permission):
+        return ev
+    from .organization_access_api import user_can_manage_owner_organization
+    if await user_can_manage_owner_organization(db, me, ev.admin_id, "events:manage"):
         return ev
     raise HTTPException(status_code=404, detail="Event not found")
 
@@ -17808,7 +17845,13 @@ app.include_router(_analytics_api.router)
 from . import tickets_api as _tickets_api
 app.include_router(_tickets_api.router)
 
+from . import organization_access_api as _organization_access_api
+app.include_router(_organization_access_api.router)
+
 from . import venues_api as _venues_api
 app.include_router(_venues_api.router)
+
+from . import venue_reservations_api as _venue_reservations_api
+app.include_router(_venue_reservations_api.router)
 
 

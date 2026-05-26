@@ -10,7 +10,8 @@ import {
   ShieldCheck, Loader2, Check,
   History, TrendingUp, TrendingDown, Globe, Settings,
   Building2, Sparkles, RefreshCcw, Trash2,
-  BadgeCheck, Link2, UploadCloud, MonitorSmartphone
+  BadgeCheck, Link2, UploadCloud, MonitorSmartphone,
+  UserCog, CalendarDays, Download
 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
 import { useToast } from "@/hooks/useToast";
@@ -22,6 +23,7 @@ const TABS = [
   { id: "2fa", label: "2FA Güvenlik", description: "Kimlik koruması", icon: ShieldCheck },
   { id: "transactions", label: "Bakiye", description: "Harcama geçmişi", icon: History },
   { id: "domain", label: "Özel Domain", description: "DNS ayarları", icon: Globe },
+  { id: "team", label: "Çalışanlar", description: "Kurum yetkileri", icon: UserCog },
   { id: "venues", label: "Salonlar", description: "Kapasite yönetimi", icon: Building2 },
   { id: "branding", label: "Kurumsal", description: "Marka kimliği", icon: Sparkles },
 ];
@@ -638,6 +640,136 @@ function CustomDomainTab() {
   );
 }
 
+type OrganizationMember = {
+  id: number;
+  email: string;
+  role: string;
+  permissions: string[];
+  status: string;
+};
+
+const ORGANIZATION_ROLES = [
+  { value: "manager", label: "Kurum yöneticisi", detail: "Tüm kurum alanlarını yönetir" },
+  { value: "venue_manager", label: "Salon ve rezervasyon", detail: "Salonlar ile rezervasyon takvimini yönetir" },
+  { value: "event_manager", label: "Etkinlik yöneticisi", detail: "Kurum etkinliklerini yönetir" },
+  { value: "profile_manager", label: "Profil yöneticisi", detail: "Kurum profilini yönetir" },
+  { value: "viewer", label: "Görüntüleyici", detail: "Salon ve takvimi görüntüler" },
+];
+
+function OrganizationTeamTab() {
+  const toast = useToast();
+  const [members, setMembers] = useState<OrganizationMember[]>([]);
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("venue_manager");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  async function loadMembers() {
+    setLoading(true);
+    try {
+      setMembers(await (await apiFetch("/admin/organization/team")).json());
+    } catch (error: any) {
+      toast.error(error?.message || "Çalışan listesi yüklenemedi.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadMembers();
+  }, []);
+
+  async function submitMember(event: React.FormEvent) {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      await apiFetch("/admin/organization/team", {
+        method: "POST",
+        body: JSON.stringify({ email, role }),
+      });
+      toast.success("Çalışan yetkilendirildi.");
+      setEmail("");
+      await loadMembers();
+    } catch (error: any) {
+      toast.error(error?.message || "Çalışan eklenemedi.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function changeMember(member: OrganizationMember, updates: Record<string, string>) {
+    try {
+      await apiFetch(`/admin/organization/team/${member.id}`, {
+        method: "PATCH",
+        body: JSON.stringify(updates),
+      });
+      toast.success("Yetki güncellendi.");
+      await loadMembers();
+    } catch (error: any) {
+      toast.error(error?.message || "Yetki güncellenemedi.");
+    }
+  }
+
+  async function removeMember(member: OrganizationMember) {
+    if (!window.confirm(`${member.email} çalışanını kurum ekibinden kaldırmak istediğinize emin misiniz?`)) return;
+    try {
+      await apiFetch(`/admin/organization/team/${member.id}`, { method: "DELETE" });
+      toast.success("Çalışan kaldırıldı.");
+      await loadMembers();
+    } catch (error: any) {
+      toast.error(error?.message || "Çalışan kaldırılamadı.");
+    }
+  }
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+      <form onSubmit={submitMember} className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="mb-5 flex items-center gap-3">
+          <div className="rounded-2xl bg-indigo-50 p-3 text-indigo-600"><UserCog className="h-5 w-5" /></div>
+          <div><h2 className="font-semibold text-zinc-900">Çalışan ekle</h2><p className="text-sm text-zinc-500">Modül bazlı kurum yetkisi</p></div>
+        </div>
+        <div className="space-y-4">
+          <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">E-posta</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none focus:border-zinc-900 focus:bg-white" placeholder="calisan@kurum.com" /></div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-zinc-700">Rol</label>
+            <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none focus:border-zinc-900 focus:bg-white">
+              {ORGANIZATION_ROLES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+            <p className="mt-2 text-xs text-zinc-500">{ORGANIZATION_ROLES.find((option) => option.value === role)?.detail}</p>
+          </div>
+          <button disabled={saving} className="w-full rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{saving ? "Ekleniyor..." : "Çalışan ekle"}</button>
+        </div>
+      </form>
+      <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="mb-5 flex items-center justify-between">
+          <div><h2 className="text-lg font-semibold text-zinc-900">Kurum ekibi</h2><p className="text-sm text-zinc-500">Çalışanların erişebildiği iş alanları</p></div>
+          <button type="button" onClick={() => void loadMembers()} className="rounded-xl border border-zinc-200 p-2 text-zinc-500 hover:text-zinc-900"><RefreshCcw className="h-4 w-4" /></button>
+        </div>
+        {loading ? <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-zinc-400" /></div> : members.length === 0 ? (
+          <div className="rounded-2xl bg-zinc-50 p-8 text-center text-sm text-zinc-500">Henüz çalışan yetkilendirilmedi.</div>
+        ) : (
+          <div className="space-y-3">
+            {members.map((member) => (
+              <article key={member.id} className="rounded-2xl border border-zinc-100 p-4">
+                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                  <div><p className="font-semibold text-zinc-900">{member.email}</p><p className="mt-1 text-xs text-zinc-500">{member.permissions.join(" · ")}</p></div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select value={member.role} onChange={(e) => void changeMember(member, { role: e.target.value })} className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm">
+                      {ORGANIZATION_ROLES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </select>
+                    <button type="button" onClick={() => void changeMember(member, { status: member.status === "active" ? "disabled" : "active" })} className="rounded-xl border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700">{member.status === "active" ? "Pasifleştir" : "Aktifleştir"}</button>
+                    <button type="button" onClick={() => void removeMember(member)} className="rounded-xl border border-rose-100 px-3 py-2 text-sm font-medium text-rose-600">Sil</button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
 type OrganizationVenue = {
   id: number;
   name: string;
@@ -721,7 +853,8 @@ function VenuesTab() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+    <div className="space-y-6">
+      <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
       <form onSubmit={submitVenue} className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
         <div className="mb-5 flex items-center gap-3">
           <div className="rounded-2xl bg-indigo-50 p-3 text-indigo-600"><Building2 className="h-5 w-5" /></div>
@@ -770,7 +903,137 @@ function VenuesTab() {
           </div>
         )}
       </section>
+      </div>
+      <ReservationsPanel venues={venues} />
     </div>
+  );
+}
+
+type VenueReservation = {
+  id: number;
+  venue_id: number;
+  title: string;
+  description: string | null;
+  start_at: string;
+  end_at: string;
+};
+
+function ReservationsPanel({ venues }: { venues: OrganizationVenue[] }) {
+  const toast = useToast();
+  const [reservations, setReservations] = useState<VenueReservation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ venue_id: "", title: "", start_at: "", end_at: "", description: "" });
+
+  async function loadReservations() {
+    setLoading(true);
+    try {
+      setReservations(await (await apiFetch("/admin/organization/venue-reservations")).json());
+    } catch (error: any) {
+      toast.error(error?.message || "Rezervasyonlar yüklenemedi.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadReservations();
+  }, []);
+
+  async function submitReservation(event: React.FormEvent) {
+    event.preventDefault();
+    if (!form.venue_id) return;
+    setSaving(true);
+    try {
+      await apiFetch("/admin/organization/venue-reservations", {
+        method: "POST",
+        body: JSON.stringify({
+          venue_id: Number(form.venue_id),
+          title: form.title,
+          start_at: new Date(form.start_at).toISOString(),
+          end_at: new Date(form.end_at).toISOString(),
+          description: form.description,
+        }),
+      });
+      toast.success("Rezervasyon takvime eklendi.");
+      setForm({ venue_id: "", title: "", start_at: "", end_at: "", description: "" });
+      await loadReservations();
+    } catch (error: any) {
+      toast.error(error?.message || "Rezervasyon kaydedilemedi. Seçilen saatler dolu olabilir.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function cancelReservation(reservation: VenueReservation) {
+    if (!window.confirm(`${reservation.title} rezervasyonunu iptal etmek istediğinize emin misiniz?`)) return;
+    try {
+      await apiFetch(`/admin/organization/venue-reservations/${reservation.id}`, { method: "DELETE" });
+      toast.success("Rezervasyon iptal edildi.");
+      await loadReservations();
+    } catch (error: any) {
+      toast.error(error?.message || "Rezervasyon iptal edilemedi.");
+    }
+  }
+
+  async function exportCalendar() {
+    try {
+      const response = await apiFetch("/admin/organization/venue-reservations/calendar.ics");
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "salon-rezervasyonlari.ics";
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success("Takvim dosyası hazır. Google Calendar'a içe aktarabilirsiniz.");
+    } catch (error: any) {
+      toast.error(error?.message || "Takvim dışa aktarılamadı.");
+    }
+  }
+
+  function venueName(venueId: number) {
+    return venues.find((venue) => venue.id === venueId)?.name || "Salon";
+  }
+
+  return (
+    <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-3">
+          <div className="rounded-2xl bg-indigo-50 p-3 text-indigo-600"><CalendarDays className="h-5 w-5" /></div>
+          <div><h2 className="text-lg font-semibold text-zinc-900">Rezervasyon takvimi</h2><p className="text-sm text-zinc-500">Salon çakışmalarını engeller ve takvime aktarır</p></div>
+        </div>
+        <button type="button" onClick={() => void exportCalendar()} className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-3 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"><Download className="h-4 w-4" /> Google Calendar'a aktar (.ics)</button>
+      </div>
+      <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+        <form onSubmit={submitReservation} className="space-y-3 rounded-2xl bg-zinc-50 p-4">
+          <select required value={form.venue_id} onChange={(e) => setForm({ ...form, venue_id: e.target.value })} className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm">
+            <option value="">Salon seçin</option>
+            {venues.filter((venue) => venue.is_active).map((venue) => <option key={venue.id} value={venue.id}>{venue.name}</option>)}
+          </select>
+          <input required minLength={2} maxLength={200} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Rezervasyon başlığı" className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm" />
+          <div><label className="mb-1 block text-xs font-medium text-zinc-500">Başlangıç</label><input type="datetime-local" required value={form.start_at} onChange={(e) => setForm({ ...form, start_at: e.target.value })} className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm" /></div>
+          <div><label className="mb-1 block text-xs font-medium text-zinc-500">Bitiş</label><input type="datetime-local" required value={form.end_at} onChange={(e) => setForm({ ...form, end_at: e.target.value })} className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm" /></div>
+          <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} maxLength={2000} rows={2} placeholder="Açıklama (isteğe bağlı)" className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm" />
+          <button disabled={saving || venues.length === 0} className="w-full rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{saving ? "Ekleniyor..." : "Takvime ekle"}</button>
+        </form>
+        {loading ? <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-zinc-400" /></div> : reservations.length === 0 ? (
+          <div className="rounded-2xl bg-zinc-50 p-8 text-center text-sm text-zinc-500">Henüz rezervasyon bulunmuyor.</div>
+        ) : (
+          <div className="space-y-3">
+            {reservations.map((reservation) => (
+              <article key={reservation.id} className="flex flex-col justify-between gap-3 rounded-2xl border border-zinc-100 p-4 sm:flex-row sm:items-center">
+                <div>
+                  <p className="font-semibold text-zinc-900">{reservation.title}</p>
+                  <p className="mt-1 text-sm text-indigo-600">{venueName(reservation.venue_id)}</p>
+                  <p className="text-sm text-zinc-500">{fmtDate(reservation.start_at)} - {fmtDate(reservation.end_at)}</p>
+                </div>
+                <button type="button" onClick={() => void cancelReservation(reservation)} className="rounded-xl border border-rose-100 px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50">İptal et</button>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -1171,6 +1434,7 @@ export default function AdminSettingsPage() {
             {activeTab === "2fa" && <TwoFATab />}
             {activeTab === "transactions" && <TransactionsTab />}
             {activeTab === "domain" && <CustomDomainTab />}
+            {activeTab === "team" && <OrganizationTeamTab />}
             {activeTab === "venues" && <VenuesTab />}
             {activeTab === "branding" && <BrandingTab />}
           </motion.div>

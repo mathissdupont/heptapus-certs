@@ -7,7 +7,8 @@ from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, Uni
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .main import Base, CurrentUser, Organization, Role, _get_or_create_admin_organization, get_current_user, get_db, require_role, write_audit_log
+from .main import Base, CurrentUser, Organization, Role, get_current_user, get_db, require_role, write_audit_log
+from .organization_access_api import get_organization_for_access
 
 
 router = APIRouter()
@@ -66,12 +67,12 @@ class VenueOut(BaseModel):
     updated_at: datetime
 
 
-async def _organization_for_user(db: AsyncSession, user_id: int) -> Organization:
-    return await _get_or_create_admin_organization(db, user_id)
+async def _organization_for_user(db: AsyncSession, me: CurrentUser, permission: str) -> Organization:
+    return await get_organization_for_access(db, me, permission)
 
 
-async def _venue_owned_by_user(db: AsyncSession, user_id: int, venue_id: int) -> OrganizationVenue:
-    organization = await _organization_for_user(db, user_id)
+async def _venue_owned_by_user(db: AsyncSession, me: CurrentUser, venue_id: int, permission: str) -> OrganizationVenue:
+    organization = await _organization_for_user(db, me, permission)
     result = await db.execute(
         select(OrganizationVenue).where(
             OrganizationVenue.id == venue_id,
@@ -106,7 +107,7 @@ async def _ensure_unique_name(
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
 )
 async def list_venues(me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    organization = await _organization_for_user(db, me.id)
+    organization = await _organization_for_user(db, me, "venues:read")
     result = await db.execute(
         select(OrganizationVenue)
         .where(OrganizationVenue.organization_id == organization.id)
@@ -122,7 +123,7 @@ async def list_venues(me: CurrentUser = Depends(get_current_user), db: AsyncSess
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
 )
 async def create_venue(payload: VenueIn, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    organization = await _organization_for_user(db, me.id)
+    organization = await _organization_for_user(db, me, "venues:write")
     await _ensure_unique_name(db, organization.id, payload.name)
     venue = OrganizationVenue(organization_id=organization.id, **payload.model_dump())
     db.add(venue)
@@ -151,7 +152,7 @@ async def update_venue(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    venue = await _venue_owned_by_user(db, me.id, venue_id)
+    venue = await _venue_owned_by_user(db, me, venue_id, "venues:write")
     await _ensure_unique_name(db, venue.organization_id, payload.name, exclude_id=venue.id)
     for key, value in payload.model_dump().items():
         setattr(venue, key, value)
@@ -173,7 +174,7 @@ async def update_venue(
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
 )
 async def delete_venue(venue_id: int, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    venue = await _venue_owned_by_user(db, me.id, venue_id)
+    venue = await _venue_owned_by_user(db, me, venue_id, "venues:write")
     await write_audit_log(
         db,
         user_id=me.id,

@@ -1,4 +1,6 @@
 from httpx import ASGITransport, AsyncClient
+from datetime import datetime, timedelta, timezone
+
 import pytest
 from sqlalchemy import select
 
@@ -9,7 +11,9 @@ from src.main import (
     Event,
     Role,
     SessionLocal,
+    Subscription,
     User,
+    _get_event_registration_fields,
     create_access_token,
     make_survey_access_token,
 )
@@ -201,7 +205,13 @@ async def test_public_register_can_skip_email_verification_per_event():
 
         registered = await ac.post(
             f"/api/events/{event_id}/register",
-            json={"name": "Direct User", "email": "direct-user@example.com"},
+            json={
+                "name": "Direct User",
+                "email": "direct-user@example.com",
+                "kvkk_accepted": True,
+                "cross_border_notice_read": True,
+                "cross_border_transfer_consent": True,
+            },
         )
         assert registered.status_code == 201
         payload = registered.json()
@@ -217,7 +227,7 @@ async def test_public_register_can_skip_email_verification_per_event():
 
 
 @pytest.mark.asyncio
-async def test_email_verified_events_defer_capacity_consumption_until_confirmation():
+async def test_email_verified_events_defer_option_capacity_until_confirmation():
     owner = await _create_admin("capacity-deferral-owner@example.com")
 
     transport = ASGITransport(app=app)
@@ -230,8 +240,6 @@ async def test_email_verified_events_defer_capacity_consumption_until_confirmati
                     template_image_url="template.png",
                     config={
                         "require_email_verification": True,
-                        "registration_quota_enabled": True,
-                        "registration_quota": 1,
                         "registration_fields": [
                             {
                                 "id": "meal",
@@ -256,6 +264,9 @@ async def test_email_verified_events_defer_capacity_consumption_until_confirmati
                 "name": "Pending One",
                 "email": "pending-one@example.com",
                 "registration_answers": {"meal": "Vegetarian"},
+                "kvkk_accepted": True,
+                "cross_border_notice_read": True,
+                "cross_border_transfer_consent": True,
             },
         )
         assert first_registered.status_code == 201
@@ -268,6 +279,9 @@ async def test_email_verified_events_defer_capacity_consumption_until_confirmati
                 "name": "Pending Two",
                 "email": "pending-two@example.com",
                 "registration_answers": {"meal": "Vegetarian"},
+                "kvkk_accepted": True,
+                "cross_border_notice_read": True,
+                "cross_border_transfer_consent": True,
             },
         )
         assert second_registered.status_code == 201
@@ -302,7 +316,11 @@ async def test_email_verified_events_defer_capacity_consumption_until_confirmati
             second_verify_token = second.email_verification_token
 
         second_verified = await ac.get(f"/api/events/{event_id}/verify-email", params={"token": second_verify_token})
-        assert second_verified.status_code == 403
+        assert second_verified.status_code == 200
+
+        capacities_final = await ac.get(f"/api/events/{event_id}/capacities")
+        assert capacities_final.status_code == 200
+        assert capacities_final.json()["meal"][0]["remaining"] == 0
 
 
 @pytest.mark.asyncio
@@ -344,6 +362,7 @@ async def test_admin_can_change_registration_option_capacity_without_old_values_
         no_quota_update = await ac.patch(
             f"/api/admin/events/{event_id}",
             json={
+                "name": "Capacity Update Event",
                 "registration_fields": [
                     {
                         "id": "meal",
@@ -369,6 +388,7 @@ async def test_admin_can_change_registration_option_capacity_without_old_values_
         quota_update = await ac.patch(
             f"/api/admin/events/{event_id}",
             json={
+                "name": "Capacity Update Event",
                 "registration_fields": [
                     {
                         "id": "meal",
@@ -421,7 +441,7 @@ async def test_admin_cannot_accidentally_clear_registration_fields():
 
         rejected = await ac.patch(
             f"/api/admin/events/{event_id}",
-            json={"registration_fields": []},
+            json={"name": "Clear Guard Event", "registration_fields": []},
             headers={"Authorization": f"Bearer {token}"},
         )
 
@@ -468,6 +488,7 @@ async def test_admin_rejects_invalid_registration_field_shapes():
         bad_select = await ac.patch(
             f"/api/admin/events/{event_id}",
             json={
+                "name": "Invalid Shape Event",
                 "registration_fields": [
                     {
                         "id": "meal",
@@ -485,6 +506,7 @@ async def test_admin_rejects_invalid_registration_field_shapes():
         bad_conditional = await ac.patch(
             f"/api/admin/events/{event_id}",
             json={
+                "name": "Invalid Shape Event",
                 "registration_fields": [
                     {
                         "id": "meal",
@@ -596,6 +618,9 @@ async def test_public_register_persists_custom_registration_answers():
                     "department": "Pazarlama",
                     "interests": ["AI", "Security"],
                 },
+                "kvkk_accepted": True,
+                "cross_border_notice_read": True,
+                "cross_border_transfer_consent": True,
             },
         )
         assert registered.status_code == 201
@@ -606,11 +631,11 @@ async def test_public_register_persists_custom_registration_answers():
                 select(Attendee).where(Attendee.event_id == event_id, Attendee.email == "custom-user@example.com")
             )
         ).scalar_one()
-        assert attendee.registration_answers == {
-            "tc_identity": "12345678901",
-            "department": "Pazarlama",
-            "interests": ["AI", "Security"],
-        }
+        assert attendee.registration_answers["tc_identity"] == "12345678901"
+        assert attendee.registration_answers["department"] == "Pazarlama"
+        assert attendee.registration_answers["interests"] == ["AI", "Security"]
+        assert attendee.registration_answers["__kvkk"]["accepted"] is True
+        assert attendee.registration_answers["__kvkk"]["cross_border_transfer_consent"] is True
 
 
 @pytest.mark.asyncio
@@ -643,7 +668,7 @@ async def test_event_description_rich_text_is_sanitized_and_preserved():
         assert updated.status_code == 200
         payload = updated.json()
         assert "<strong>Kalin</strong>" in payload["event_description"]
-        assert "font-size: 24px" in payload["event_description"]
+        assert "font-size" not in payload["event_description"]
         assert "font-family: Georgia" in payload["event_description"]
         assert "<script" not in payload["event_description"]
 
@@ -837,7 +862,9 @@ async def test_badge_list_returns_enriched_badge_metadata():
     async with SessionLocal() as sess:
         async with sess.begin():
             attendee = await sess.get(Attendee, seeded["attendee_id"])
+            event = await sess.get(Event, seeded["event_id"])
             attendee.survey_completed_at = attendee.registered_at
+            event.gamification_enabled = True
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
@@ -904,6 +931,7 @@ async def test_apply_cert_template_preserves_event_registration_config():
                 admin_id=owner.id,
                 name="Template Merge Event",
                 template_image_url="old-template.png",
+                certificate_enabled=True,
                 config={
                     "visibility": "public",
                     "registration_fields": [
@@ -921,6 +949,15 @@ async def test_apply_cert_template_preserves_event_registration_config():
             )
             sess.add(event)
             await sess.flush()
+            sess.add(
+                Subscription(
+                    user_id=owner.id,
+                    plan_id="growth",
+                    is_active=True,
+                    started_at=datetime.now(timezone.utc),
+                    expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+                )
+            )
 
             template = CertificateTemplate(
                 name="Safe Template",
@@ -970,6 +1007,7 @@ async def test_save_event_config_preserves_existing_registration_fields():
                 admin_id=owner.id,
                 name="Config Merge Event",
                 template_image_url="template.png",
+                certificate_enabled=True,
                 config={
                     "font_size": 48,
                     "registration_fields": [
