@@ -127,7 +127,7 @@ export default function CertificatesPage() {
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
-  const [bulkTarget, setBulkTarget] = useState<"revoke" | "expire" | "delete" | null>(null);
+  const [bulkTarget, setBulkTarget] = useState<"revoke" | "expire" | "delete" | "enable_auto_renew" | "disable_auto_renew" | null>(null);
 
   // Single delete confirmation
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
@@ -188,9 +188,13 @@ export default function CertificatesPage() {
         bulkDeleteTitle: "Toplu sil",
         bulkRevokeTitle: "Toplu iptal",
         bulkExpireTitle: "Toplu süre bitir",
+        bulkEnableRenewTitle: "Toplu oto-yenileme aç",
+        bulkDisableRenewTitle: "Toplu oto-yenileme kapat",
         bulkDeleteBody: (count: number) => `Seçili ${count} sertifikayı kalıcı olarak silmek istediğinize emin misiniz?`,
         bulkRevokeBody: (count: number) => `Seçili ${count} sertifikayı iptal etmek istediğinize emin misiniz?`,
         bulkExpireBody: (count: number) => `Seçili ${count} sertifikayı süresi dolmuş olarak işaretlemek istediğinize emin misiniz?`,
+        bulkEnableRenewBody: (count: number) => `Seçili ${count} sertifika için oto-yenilemeyi açmak istediğinize emin misiniz?`,
+        bulkDisableRenewBody: (count: number) => `Seçili ${count} sertifika için oto-yenilemeyi kapatmak istediğinize emin misiniz?`,
       }
     : {
         pageTitle: "Certificates",
@@ -244,9 +248,13 @@ export default function CertificatesPage() {
         bulkDeleteTitle: "Bulk delete",
         bulkRevokeTitle: "Bulk revoke",
         bulkExpireTitle: "Bulk expire",
+        bulkEnableRenewTitle: "Enable auto-renew in bulk",
+        bulkDisableRenewTitle: "Disable auto-renew in bulk",
         bulkDeleteBody: (count: number) => `Are you sure you want to permanently delete ${count} selected certificates?`,
         bulkRevokeBody: (count: number) => `Are you sure you want to revoke ${count} selected certificates?`,
         bulkExpireBody: (count: number) => `Are you sure you want to mark ${count} selected certificates as expired?`,
+        bulkEnableRenewBody: (count: number) => `Are you sure you want to enable auto-renew for ${count} selected certificates?`,
+        bulkDisableRenewBody: (count: number) => `Are you sure you want to disable auto-renew for ${count} selected certificates?`,
       };
 
   const query = useMemo(() => {
@@ -529,7 +537,13 @@ export default function CertificatesPage() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="mt-4 grid grid-cols-3 gap-2">
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+              <button onClick={() => setBulkTarget("enable_auto_renew")} disabled={bulkLoading} className="flex items-center justify-center gap-1.5 rounded-2xl bg-emerald-600 px-3 py-2.5 text-xs font-bold transition-colors hover:bg-emerald-700 disabled:opacity-50">
+                <RefreshCcw className="h-3.5 w-3.5" /> {copy.autoRenewEnable}
+              </button>
+              <button onClick={() => setBulkTarget("disable_auto_renew")} disabled={bulkLoading} className="flex items-center justify-center gap-1.5 rounded-2xl bg-slate-700 px-3 py-2.5 text-xs font-bold transition-colors hover:bg-slate-800 disabled:opacity-50">
+                <RefreshCcw className="h-3.5 w-3.5" /> {copy.autoRenewDisable}
+              </button>
               <button onClick={() => setBulkTarget("revoke")} disabled={bulkLoading} className="flex items-center justify-center gap-1.5 rounded-2xl bg-rose-600 px-3 py-2.5 text-xs font-bold transition-colors hover:bg-rose-700 disabled:opacity-50">
                 <ShieldOff className="h-3.5 w-3.5" /> {copy.revokeAction}
               </button>
@@ -809,8 +823,8 @@ export default function CertificatesPage() {
       />
       <ConfirmModal
         open={bulkTarget !== null}
-        title={bulkTarget === "delete" ? copy.bulkDeleteTitle : bulkTarget === "revoke" ? copy.bulkRevokeTitle : copy.bulkExpireTitle}
-        description={bulkTarget === "delete" ? copy.bulkDeleteBody(selectedIds.size) : bulkTarget === "revoke" ? copy.bulkRevokeBody(selectedIds.size) : copy.bulkExpireBody(selectedIds.size)}
+        title={bulkTarget === "delete" ? copy.bulkDeleteTitle : bulkTarget === "revoke" ? copy.bulkRevokeTitle : bulkTarget === "expire" ? copy.bulkExpireTitle : bulkTarget === "enable_auto_renew" ? copy.bulkEnableRenewTitle : copy.bulkDisableRenewTitle}
+        description={bulkTarget === "delete" ? copy.bulkDeleteBody(selectedIds.size) : bulkTarget === "revoke" ? copy.bulkRevokeBody(selectedIds.size) : bulkTarget === "expire" ? copy.bulkExpireBody(selectedIds.size) : bulkTarget === "enable_auto_renew" ? copy.bulkEnableRenewBody(selectedIds.size) : copy.bulkDisableRenewBody(selectedIds.size)}
         danger={bulkTarget === "delete"}
         loading={bulkLoading}
         onConfirm={executeBulkAction}

@@ -47,14 +47,14 @@ function StatCard({
   icon: ElementType;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">{title}</p>
-          <p className="mt-1 text-2xl font-black text-slate-950">{value}</p>
-          {note && <p className="mt-1 text-xs font-semibold text-slate-500">{note}</p>}
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 sm:text-xs sm:tracking-[0.16em]">{title}</p>
+          <p className="mt-1 text-xl font-black text-slate-950 sm:text-2xl">{value}</p>
+          {note && <p className="mt-1 truncate text-[11px] font-semibold text-slate-500 sm:text-xs">{note}</p>}
         </div>
-        <div className="rounded-2xl bg-indigo-50 p-3 text-indigo-600">
+        <div className="hidden rounded-2xl bg-indigo-50 p-3 text-indigo-600 sm:block">
           <Icon className="h-5 w-5" />
         </div>
       </div>
@@ -127,13 +127,13 @@ export default function EventOperationsPage() {
     <div className="pb-28 md:pb-8">
       <EventAdminNav eventId={eventId} eventName={snapshot?.event_name} active="ops" className="mb-6 flex flex-col gap-2" />
 
-      <div className="mb-5 flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-        <div>
+      <div className="mb-4 flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:mb-5 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-500">Canlı operasyon</p>
-          <h1 className="mt-1 text-2xl font-black text-slate-950">{snapshot?.event_name || `Etkinlik #${eventId}`}</h1>
+          <h1 className="mt-1 truncate text-xl font-black text-slate-950 sm:text-2xl">{snapshot?.event_name || `Etkinlik #${eventId}`}</h1>
           <p className="mt-1 text-sm font-semibold text-slate-500">Son guncelleme: {formatTime(snapshot?.generated_at)}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="hidden flex-wrap gap-2 sm:flex">
           <Link href={`/admin/events/${eventId}/checkin?staff=1`} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white">
             <QrCode className="h-4 w-4" />
             Görevli Modu
@@ -165,15 +165,15 @@ export default function EventOperationsPage() {
 
       {snapshot && (
         <>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
             <StatCard title="Katılımcı" value={snapshot.overview.attendees} note="Kayıtlı kişi" icon={Users} />
             <StatCard title="Check-in" value={snapshot.overview.attendance_records} note="Toplam oturum kaydı" icon={UserCheck} />
             <StatCard title="Aktif Oturum" value={snapshot.overview.active_sessions} note={activeSessionNames} icon={Activity} />
             <StatCard title="Bilet" value={`${snapshot.overview.tickets_used}/${snapshot.overview.tickets_total}`} note="Kullanilan / toplam" icon={Ticket} />
           </div>
 
-          <div className="mt-5 grid gap-5 xl:grid-cols-[0.85fr_1.15fr]">
-            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mt-4 grid gap-4 sm:mt-5 sm:gap-5 xl:grid-cols-[0.85fr_1.15fr]">
+            <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-black text-slate-950">Oturum Durumu</h2>
@@ -205,7 +205,7 @@ export default function EventOperationsPage() {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-black text-slate-950">Son Check-in'ler</h2>
@@ -243,6 +243,21 @@ export default function EventOperationsPage() {
           </div>
         </>
       )}
+      <div className="fixed bottom-3 left-3 right-3 z-40 grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-xl backdrop-blur md:hidden">
+        <Link href={`/admin/events/${eventId}/checkin?staff=1`} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-3 py-3 text-sm font-black text-white">
+          <QrCode className="h-4 w-4" />
+          Görevli Modu
+        </Link>
+        <button
+          type="button"
+          onClick={() => void load({ soft: true })}
+          disabled={refreshing}
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-3 text-sm font-black text-slate-700 disabled:opacity-50"
+        >
+          {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          Yenile
+        </button>
+      </div>
     </div>
   );
 }

@@ -22,6 +22,7 @@ const TABS = [
   { id: "2fa", label: "2FA Güvenlik", description: "Kimlik koruması", icon: ShieldCheck },
   { id: "transactions", label: "Bakiye", description: "Harcama geçmişi", icon: History },
   { id: "domain", label: "Özel Domain", description: "DNS ayarları", icon: Globe },
+  { id: "venues", label: "Salonlar", description: "Kapasite yönetimi", icon: Building2 },
   { id: "branding", label: "Kurumsal", description: "Marka kimliği", icon: Sparkles },
 ];
 
@@ -637,6 +638,142 @@ function CustomDomainTab() {
   );
 }
 
+type OrganizationVenue = {
+  id: number;
+  name: string;
+  capacity: number;
+  location: string | null;
+  notes: string | null;
+  is_active: boolean;
+};
+
+const EMPTY_VENUE = { name: "", capacity: 1, location: "", notes: "", is_active: true };
+
+function VenuesTab() {
+  const toast = useToast();
+  const [venues, setVenues] = useState<OrganizationVenue[]>([]);
+  const [form, setForm] = useState(EMPTY_VENUE);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  async function loadVenues() {
+    setLoading(true);
+    try {
+      const response = await apiFetch("/admin/organization/venues");
+      setVenues(await response.json());
+    } catch (error: any) {
+      toast.error(error?.message || "Salonlar yüklenemedi.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadVenues();
+  }, []);
+
+  function resetForm() {
+    setForm(EMPTY_VENUE);
+    setEditingId(null);
+  }
+
+  async function submitVenue(event: React.FormEvent) {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      const path = editingId ? `/admin/organization/venues/${editingId}` : "/admin/organization/venues";
+      await apiFetch(path, {
+        method: editingId ? "PATCH" : "POST",
+        body: JSON.stringify(form),
+      });
+      toast.success(editingId ? "Salon güncellendi." : "Salon eklendi.");
+      resetForm();
+      await loadVenues();
+    } catch (error: any) {
+      toast.error(error?.message || "Salon kaydedilemedi.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function startEdit(venue: OrganizationVenue) {
+    setEditingId(venue.id);
+    setForm({
+      name: venue.name,
+      capacity: venue.capacity,
+      location: venue.location || "",
+      notes: venue.notes || "",
+      is_active: venue.is_active,
+    });
+  }
+
+  async function removeVenue(venue: OrganizationVenue) {
+    if (!window.confirm(`${venue.name} salonunu silmek istediğinize emin misiniz?`)) return;
+    try {
+      await apiFetch(`/admin/organization/venues/${venue.id}`, { method: "DELETE" });
+      toast.success("Salon silindi.");
+      if (editingId === venue.id) resetForm();
+      await loadVenues();
+    } catch (error: any) {
+      toast.error(error?.message || "Salon silinemedi.");
+    }
+  }
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+      <form onSubmit={submitVenue} className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="mb-5 flex items-center gap-3">
+          <div className="rounded-2xl bg-indigo-50 p-3 text-indigo-600"><Building2 className="h-5 w-5" /></div>
+          <div>
+            <h2 className="font-semibold text-zinc-900">{editingId ? "Salonu düzenle" : "Yeni salon"}</h2>
+            <p className="text-sm text-zinc-500">Etkinlik alanı ve kapasite bilgisi</p>
+          </div>
+        </div>
+        <div className="space-y-4">
+          <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">Salon adı</label><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required minLength={2} maxLength={150} className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none focus:border-zinc-900 focus:bg-white" placeholder="Konferans Salonu A" /></div>
+          <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">Kapasite</label><input type="number" value={form.capacity} onChange={(e) => setForm({ ...form, capacity: Number(e.target.value) })} required min={1} max={1000000} className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none focus:border-zinc-900 focus:bg-white" /></div>
+          <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">Konum</label><input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} maxLength={300} className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none focus:border-zinc-900 focus:bg-white" placeholder="2. kat" /></div>
+          <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">Not</label><textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} maxLength={1000} rows={3} className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none focus:border-zinc-900 focus:bg-white" placeholder="Sahne, erişilebilirlik, teknik ekipman..." /></div>
+          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700"><input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} className="h-4 w-4 rounded border-zinc-300" /> Kullanıma açık</label>
+          <div className="flex gap-2 pt-2">
+            <button disabled={saving} className="flex-1 rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{saving ? "Kaydediliyor..." : editingId ? "Güncelle" : "Salon ekle"}</button>
+            {editingId && <button type="button" onClick={resetForm} className="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-700">Vazgeç</button>}
+          </div>
+        </div>
+      </form>
+
+      <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="mb-5 flex items-center justify-between">
+          <div><h2 className="text-lg font-semibold text-zinc-900">Kayıtlı salonlar</h2><p className="text-sm text-zinc-500">Kurumunuzun etkinlik alanları</p></div>
+          <button type="button" onClick={() => void loadVenues()} className="rounded-xl border border-zinc-200 p-2 text-zinc-500 hover:text-zinc-900"><RefreshCcw className="h-4 w-4" /></button>
+        </div>
+        {loading ? (
+          <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-zinc-400" /></div>
+        ) : venues.length === 0 ? (
+          <div className="rounded-2xl bg-zinc-50 p-8 text-center text-sm text-zinc-500">Henüz salon tanımlanmadı.</div>
+        ) : (
+          <div className="space-y-3">
+            {venues.map((venue) => (
+              <article key={venue.id} className="flex flex-col gap-3 rounded-2xl border border-zinc-100 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold text-zinc-900">{venue.name}</h3><span className={`rounded-full px-2 py-0.5 text-xs font-medium ${venue.is_active ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>{venue.is_active ? "Aktif" : "Kapalı"}</span></div>
+                  <p className="mt-1 text-sm font-medium text-indigo-600">{venue.capacity.toLocaleString("tr-TR")} kişi kapasite</p>
+                  {venue.location && <p className="text-sm text-zinc-500">{venue.location}</p>}
+                </div>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => startEdit(venue)} className="rounded-xl border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">Düzenle</button>
+                  <button type="button" onClick={() => void removeVenue(venue)} className="rounded-xl border border-rose-100 px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50">Sil</button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
 // ─── Branding Tab ────────────────────────────────────────────────────────────
 function BrandingTab() {
   const toast = useToast();
@@ -1034,6 +1171,7 @@ export default function AdminSettingsPage() {
             {activeTab === "2fa" && <TwoFATab />}
             {activeTab === "transactions" && <TransactionsTab />}
             {activeTab === "domain" && <CustomDomainTab />}
+            {activeTab === "venues" && <VenuesTab />}
             {activeTab === "branding" && <BrandingTab />}
           </motion.div>
         </AnimatePresence>

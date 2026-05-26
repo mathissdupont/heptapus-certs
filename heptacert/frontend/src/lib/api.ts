@@ -2300,12 +2300,12 @@ export async function getEmailJobDetails(eventId: number, jobId: number): Promis
 
 export async function bulkCertificateAction(
   eventId: number,
-  action: "revoke" | "expire" | "delete",
+  action: "revoke" | "expire" | "delete" | "enable_auto_renew" | "disable_auto_renew",
   certificateIds: number[]
-): Promise<{ success: boolean; count: number }> {
+): Promise<{ ok: boolean; processed: number; action: string }> {
   const res = await apiFetch(`/admin/events/${eventId}/certificates/bulk-action`, {
     method: "POST",
-    body: JSON.stringify({ action, certificate_ids: certificateIds }),
+    body: JSON.stringify({ action, cert_ids: certificateIds }),
   });
   return res.json();
 }

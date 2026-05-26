@@ -111,7 +111,7 @@ async def test_public_register_requires_email_verification_before_survey_access(
                     admin_id=owner.id,
                     name="Survey Token Event",
                     template_image_url="template.png",
-                    config={},
+                    config={"visibility": "public"},
                 )
                 sess.add(event)
                 await sess.flush()
@@ -137,9 +137,15 @@ async def test_public_register_requires_email_verification_before_survey_access(
 
         registered = await ac.post(
             f"/api/events/{event_id}/register",
-            json={"name": "Token User", "email": "token-user@example.com"},
+            json={
+                "name": "Token User",
+                "email": "token-user@example.com",
+                "kvkk_accepted": True,
+                "cross_border_notice_read": True,
+                "cross_border_transfer_consent": True,
+            },
         )
-        assert registered.status_code == 201
+        assert registered.status_code == 201, registered.text
         registration_payload = registered.json()
         assert registration_payload["verification_required"] is True
         assert registration_payload["email_verified"] is False

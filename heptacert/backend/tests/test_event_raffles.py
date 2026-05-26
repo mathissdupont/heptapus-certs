@@ -50,6 +50,7 @@ async def _seed_event_for_raffles(owner: User) -> dict:
                 name="Raffle Event",
                 template_image_url="template.png",
                 config={},
+                raffles_enabled=True,
             )
             sess.add(event)
             await sess.flush()

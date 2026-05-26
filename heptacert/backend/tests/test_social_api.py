@@ -61,7 +61,7 @@ async def _create_public_member(email: str, public_id: str, password: str = "Mem
         )
         db.add(member)
         await db.commit()
-        return member.id, create_public_member_access_token(public_member_id=member.id)
+        return member.id, create_public_member_access_token(member_id=member.id)
 
 
 async def _create_organization(user_id: int, org_name: str, public_id: str) -> int:
@@ -301,7 +301,7 @@ class TestSeparateCommentSystems:
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
             # Comment on event page
             comment_resp = await ac.post(
-                f"/api/public/events/{event_id}/comments",
+                "/api/public/events/evt_separate_comments/comments",
                 json={"body": "This is an event page comment"},
                 headers={"Authorization": f"Bearer {member_token}"},
             )

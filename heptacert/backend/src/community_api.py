@@ -13,6 +13,7 @@ from .main import (
     PublicEventListItemOut,
     PublicOrganizationDetailOut,
     PublicOrganizationListItemOut,
+    Role,
     SessionLocal,
     Subscription,
     User,
@@ -35,7 +36,7 @@ async def _load_community_enabled_user_ids(db: AsyncSession, user_ids: list[int]
         return set()
 
     user_rows = await db.execute(select(User.id, User.role).where(User.id.in_(user_ids)))
-    enabled_user_ids = {int(row.id) for row in user_rows.all() if str(row.role) == "superadmin"}
+    enabled_user_ids = {int(row.id) for row in user_rows.all() if row.role == Role.superadmin}
 
     sub_rows = await db.execute(
         select(Subscription.user_id).where(

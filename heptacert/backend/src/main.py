@@ -2183,7 +2183,7 @@ class UpdateCertificateStatusIn(BaseModel):
 
 class BulkActionIn(BaseModel):
     cert_ids: List[int] = Field(min_length=1, max_length=500)
-    action: str = Field(pattern="^(revoke|expire|delete)$")
+    action: str = Field(pattern="^(revoke|expire|delete|enable_auto_renew|disable_auto_renew)$")
 
 
 class MagicLinkIn(BaseModel):
@@ -10799,6 +10799,7 @@ async def list_events(me: CurrentUser = Depends(get_current_user), db: AsyncSess
 @app.post("/api/admin/events", response_model=EventOut, status_code=201, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
 async def create_event(
     payload: EventCreateIn,
+    background_tasks: BackgroundTasks,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -10827,6 +10828,10 @@ async def create_event(
     db.add(ev)
     await db.commit()
     await db.refresh(ev)
+    if _get_event_visibility(ev) == "public":
+        from .community_notifications import send_public_event_announcement_to_followers
+
+        background_tasks.add_task(send_public_event_announcement_to_followers, ev.id)
     return _event_to_out(ev)
 
 
@@ -11762,10 +11767,12 @@ async def disconnect_event_ms365_excel(
 async def rename_event(
     event_id: int,
     payload: EventRenameIn,
+    background_tasks: BackgroundTasks,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     ev = await _get_event_for_admin(event_id, me, db, "settings:write")
+    was_public = _get_event_visibility(ev) == "public"
     existing_registration_fields = _get_event_registration_fields(ev)
     ev.name = payload.name
     if payload.event_date is not None:
@@ -11884,6 +11891,10 @@ async def rename_event(
                 raise HTTPException(status_code=404, detail="Email template not found")
             ev.cert_email_template_id = template.id
     await db.commit()
+    if not was_public and _get_event_visibility(ev) == "public":
+        from .community_notifications import send_public_event_announcement_to_followers
+
+        background_tasks.add_task(send_public_event_announcement_to_followers, ev.id)
     return _event_to_out(ev)
 
 
@@ -13178,6 +13189,10 @@ async def bulk_certificate_action(
                     logger.warning("Bulk revoke PDF cleanup failed for cert %s: %s", cert.id, exc)
         elif payload.action == "expire":
             cert.status = CertStatus.expired
+        elif payload.action == "enable_auto_renew":
+            cert.auto_renew_enabled = True
+        elif payload.action == "disable_auto_renew":
+            cert.auto_renew_enabled = False
         processed += 1
 
     await write_audit_log(
@@ -17148,6 +17163,7 @@ async def reset_event_raffle(
 
 @app.get("/api/admin/events/{event_id}/attendance", dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)])
 @app.get("/api/admin/events/{event_id}/attendaonce", dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)])
+@app.get("/api/admin/events/{event_id}/attendance/export", dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)])
 async def get_attendaonce_matrix(
     event_id: int,
     me: CurrentUser = Depends(get_current_user),
@@ -17219,10 +17235,18 @@ async def get_attendaonce_matrix(
     # Excel/CSV format
     rows = []
     for a in attendees:
+        registered_at = a.registered_at
+        if registered_at:
+            if registered_at.tzinfo is None:
+                registered_at = registered_at.replace(tzinfo=timezone.utc)
+            registered_at_text = registered_at.astimezone(timezone.utc).strftime("%d.%m.%Y %H:%M:%S UTC")
+        else:
+            registered_at_text = ""
         row = {
             "Ad Soyad": a.name,
             "E-posta": a.email,
             "Kaynak": a.source,
+            "Kayit Tarihi": registered_at_text,
         }
         for s in sessions:
             row[s.name] = "Evet" if (a.id, s.id) in rec_set else "Hayir"
@@ -17239,14 +17263,14 @@ async def get_attendaonce_matrix(
     if fmt == "csv":
         df.to_csv(buf, index=False)
         buf.seek(0)
-        return StreamingResponse(buf, media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="attendaonce_{event_id}.csv"'})
+        return StreamingResponse(buf, media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="attendance_{event_id}.csv"'})
     else:
         df.to_excel(buf, index=False)
         buf.seek(0)
         return StreamingResponse(
             buf,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f'attachment; filename="attendaonce_{event_id}.xlsx"'},
+            headers={"Content-Disposition": f'attachment; filename="attendance_{event_id}.xlsx"'},
         )
 
 
@@ -17783,5 +17807,8 @@ app.include_router(_analytics_api.router)
 
 from . import tickets_api as _tickets_api
 app.include_router(_tickets_api.router)
+
+from . import venues_api as _venues_api
+app.include_router(_venues_api.router)
 
 

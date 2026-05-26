@@ -89,6 +89,14 @@ class DomainOut(BaseModel):
     dns_target: Optional[str] = None
 
 
+class OrganizationDomainOut(BaseModel):
+    custom_domain: Optional[str] = None
+
+
+class OrganizationDomainUpdateIn(BaseModel):
+    custom_domain: Optional[str] = None
+
+
 def _custom_domain_dns_target() -> str:
     parsed = urlparse(settings.frontend_base_url)
     return (parsed.hostname or settings.frontend_base_url.replace("https://", "").replace("http://", "").split("/", 1)[0]).strip()
@@ -166,6 +174,36 @@ async def list_my_domains(me: CurrentUser = Depends(get_current_user)):
         for d in items:
             out.append(_domain_out(d))
         return out
+
+
+@router.get(
+    "/api/admin/organization/domain",
+    response_model=OrganizationDomainOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def get_organization_domain(me: CurrentUser = Depends(get_current_user)):
+    async with SessionLocal() as db:
+        org = await _get_or_create_org(db, me.id)
+        await db.commit()
+        return OrganizationDomainOut(custom_domain=org.custom_domain)
+
+
+@router.put(
+    "/api/admin/organization/domain",
+    response_model=OrganizationDomainOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def update_organization_domain(payload: OrganizationDomainUpdateIn, me: CurrentUser = Depends(get_current_user)):
+    async with SessionLocal() as db:
+        org = await _get_or_create_org(db, me.id)
+        next_domain = payload.custom_domain.strip().lower().rstrip(".") if payload.custom_domain else None
+        if next_domain:
+            domain = await _get_owned_domain_or_404(db, next_domain, me.id)
+            org.custom_domain = domain.domain
+        else:
+            org.custom_domain = None
+        await db.commit()
+        return OrganizationDomainOut(custom_domain=org.custom_domain)
 
 
 @router.get("/api/domains/{domain}/check")
