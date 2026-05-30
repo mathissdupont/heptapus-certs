@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { listPublicEvents, type PublicEventListItem } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { stripRichTextToPlainText } from "@/lib/richText";
-import PublicNav from "@/components/Public/PublicNav";
 
 function formatDate(value: string | null | undefined, lang: "tr" | "en") {
   if (!value) return null;
@@ -133,8 +132,6 @@ export default function PublicEventsPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 selection:bg-zinc-200 pb-24">
-      <PublicNav />
-
       {/* HERO SECTION (Clean & Typographic) */}
       <section className="relative px-6 pt-16 pb-12 sm:px-10 lg:pt-24 lg:pb-16 text-center">
         <div className="mx-auto max-w-3xl">

@@ -6,7 +6,6 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { getApiBase, normalizeApiAssetUrl } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
-import PublicNav from "@/components/Public/PublicNav";
 
 type Branding = {
   public_id?: string | null;
@@ -261,7 +260,6 @@ export default function LandingPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 text-zinc-950">
-      {showPlatformLinks && <PublicNav />}
       <section className="border-b border-zinc-200 bg-white">
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:py-20">
           <div>

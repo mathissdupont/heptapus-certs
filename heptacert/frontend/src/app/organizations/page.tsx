@@ -6,7 +6,6 @@ import { ArrowRight, Building2, Globe, Search, Users, Calendar } from "lucide-re
 import { motion } from "framer-motion";
 import { listPublicOrganizations, type PublicOrganizationListItem } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
-import PublicNav from "@/components/Public/PublicNav";
 
 export default function PublicOrganizationsPage() {
   const { lang } = useI18n();
@@ -80,7 +79,6 @@ export default function PublicOrganizationsPage() {
 
   return (
     <div className="min-h-screen bg-zinc-50 pb-20 text-zinc-950">
-      <PublicNav />
       <main className="px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
       {/* Hero Section */}
       <section className="mx-auto max-w-3xl text-center mb-10 sm:mb-12">

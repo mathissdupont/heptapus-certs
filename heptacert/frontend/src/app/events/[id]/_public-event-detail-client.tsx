@@ -454,16 +454,11 @@ export default function PublicEventDetailClient() {
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
                       <h3 className="text-sm font-semibold text-gray-900">{field.label}</h3>
-                      <div className="flex gap-2">
-                        <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600">
-                          {field.type}
+                      {field.required && (
+                        <span className="inline-flex items-center rounded-md bg-rose-50 px-2 py-1 text-[11px] font-medium text-rose-600 border border-rose-100">
+                          {copy.required}
                         </span>
-                        {field.required && (
-                          <span className="inline-flex items-center rounded-md bg-rose-50 px-2 py-1 text-[11px] font-medium text-rose-600 border border-rose-100">
-                            {copy.required}
-                          </span>
-                        )}
-                      </div>
+                      )}
                     </div>
                     {field.helper_text && (
                       <p className="text-xs text-gray-500">{field.helper_text}</p>
