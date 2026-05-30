@@ -2,6 +2,7 @@
 
 import { Clock, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 type TimeFieldProps = {
   value: string;
@@ -22,16 +23,41 @@ function normalizeTime(value: string) {
 
 export default function TimeField({ value, onChange, label, placeholder = "Saat seçin", className = "" }: TimeFieldProps) {
   const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState({ left: 0, top: 0, width: 320 });
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const popupRef = useRef<HTMLDivElement | null>(null);
   const { hour, minute } = normalizeTime(value);
 
   useEffect(() => {
     function onPointerDown(event: MouseEvent) {
-      if (!wrapperRef.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (wrapperRef.current?.contains(target) || popupRef.current?.contains(target)) return;
+      setOpen(false);
     }
     document.addEventListener("mousedown", onPointerDown);
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    function updatePosition() {
+      const rect = wrapperRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const desiredWidth = Math.min(320, window.innerWidth - 24);
+      setPosition({
+        left: Math.max(12, Math.min(rect.left, window.innerWidth - desiredWidth - 12)),
+        top: Math.min(rect.bottom + 8, window.innerHeight - 360),
+        width: desiredWidth,
+      });
+    }
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open]);
 
   function setPart(nextHour: string, nextMinute: string) {
     onChange(`${nextHour}:${nextMinute}`);
@@ -48,8 +74,12 @@ export default function TimeField({ value, onChange, label, placeholder = "Saat 
         <span className={value ? "text-surface-900" : "text-surface-400"}>{value || placeholder}</span>
         <Clock className="h-4 w-4 shrink-0 text-surface-400" />
       </button>
-      {open && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-surface-200 bg-white p-3 shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
+      {open && typeof document !== "undefined" && createPortal(
+        <div
+          ref={popupRef}
+          style={{ left: position.left, top: position.top, width: position.width }}
+          className="fixed z-[9999] rounded-lg border border-surface-200 bg-white p-3 shadow-[0_24px_70px_rgba(15,23,42,0.16)]"
+        >
           <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-3">
             <div>
               <p className="mb-2 text-xs font-bold uppercase text-surface-400">Saat</p>
@@ -103,7 +133,8 @@ export default function TimeField({ value, onChange, label, placeholder = "Saat 
               Tamam
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

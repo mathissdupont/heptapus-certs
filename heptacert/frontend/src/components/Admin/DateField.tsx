@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
 
 type DateFieldProps = {
@@ -34,7 +35,9 @@ export default function DateField({ value, onChange, label, placeholder = "Selec
   const selectedDate = parseDate(value);
   const [open, setOpen] = useState(false);
   const [visibleMonth, setVisibleMonth] = useState(() => selectedDate ?? new Date());
+  const [position, setPosition] = useState({ left: 0, top: 0, width: 352 });
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const popupRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (selectedDate) setVisibleMonth(selectedDate);
@@ -42,11 +45,34 @@ export default function DateField({ value, onChange, label, placeholder = "Selec
 
   useEffect(() => {
     function onPointerDown(event: MouseEvent) {
-      if (!wrapperRef.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (wrapperRef.current?.contains(target) || popupRef.current?.contains(target)) return;
+      setOpen(false);
     }
     document.addEventListener("mousedown", onPointerDown);
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    function updatePosition() {
+      const rect = wrapperRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const desiredWidth = Math.min(352, window.innerWidth - 24);
+      setPosition({
+        left: Math.max(12, Math.min(rect.left, window.innerWidth - desiredWidth - 12)),
+        top: Math.min(rect.bottom + 8, window.innerHeight - 420),
+        width: desiredWidth,
+      });
+    }
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open]);
 
   const weeks = useMemo(() => {
     const first = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
@@ -86,8 +112,12 @@ export default function DateField({ value, onChange, label, placeholder = "Selec
         </span>
         <CalendarDays className="h-4 w-4 shrink-0 text-surface-400" />
       </button>
-      {open && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-lg border border-surface-200 bg-white p-3 shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
+      {open && typeof document !== "undefined" && createPortal(
+        <div
+          ref={popupRef}
+          style={{ left: position.left, top: position.top, width: position.width }}
+          className="fixed z-[9999] rounded-lg border border-surface-200 bg-white p-3 shadow-[0_24px_70px_rgba(15,23,42,0.16)]"
+        >
           <div className="mb-3 flex items-center justify-between gap-2">
             <button type="button" onClick={() => moveMonth(-1)} className="btn-ghost h-9 w-9 p-0" aria-label="Previous month">
               <ChevronLeft className="h-4 w-4" />
@@ -150,7 +180,8 @@ export default function DateField({ value, onChange, label, placeholder = "Selec
               Today
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

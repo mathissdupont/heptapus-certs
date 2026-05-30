@@ -11559,13 +11559,31 @@ async def get_event_access(
             permission_labels=EVENT_TEAM_PERMISSION_LABELS,
         )
     membership = await _get_event_team_membership(event_id, me, db)
-    permissions = _effective_event_team_permissions(membership) if membership else []
+    if membership:
+        permissions = _effective_event_team_permissions(membership)
+        return EventAccessOut(
+            event_id=event_id,
+            is_owner=False,
+            role=membership.role,
+            permissions=permissions,
+            permission_labels={key: EVENT_TEAM_PERMISSION_LABELS[key] for key in permissions if key in EVENT_TEAM_PERMISSION_LABELS},
+        )
+    from .organization_access_api import user_can_manage_owner_organization
+    if await user_can_manage_owner_organization(db, me, event.admin_id, "events:manage"):
+        permissions = sorted(EVENT_TEAM_ROLE_PERMISSIONS["manager"] - {"team:manage"})
+        return EventAccessOut(
+            event_id=event_id,
+            is_owner=False,
+            role="organization_event_manager",
+            permissions=permissions,
+            permission_labels={key: EVENT_TEAM_PERMISSION_LABELS[key] for key in permissions if key in EVENT_TEAM_PERMISSION_LABELS},
+        )
     return EventAccessOut(
         event_id=event_id,
         is_owner=False,
-        role=membership.role if membership else "none",
-        permissions=permissions,
-        permission_labels={key: EVENT_TEAM_PERMISSION_LABELS[key] for key in permissions if key in EVENT_TEAM_PERMISSION_LABELS},
+        role="none",
+        permissions=[],
+        permission_labels={},
     )
 
 
