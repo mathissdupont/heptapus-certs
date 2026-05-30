@@ -6,6 +6,7 @@ import { ArrowRight, Building2, Globe, Search, Users, Calendar } from "lucide-re
 import { motion } from "framer-motion";
 import { listPublicOrganizations, type PublicOrganizationListItem } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import PublicNav from "@/components/Public/PublicNav";
 
 export default function PublicOrganizationsPage() {
   const { lang } = useI18n();
@@ -78,7 +79,9 @@ export default function PublicOrganizationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] dark:bg-gray-950 px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24 overflow-hidden">
+    <div className="min-h-screen bg-zinc-50 pb-20 text-zinc-950">
+      <PublicNav />
+      <main className="px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
       {/* Hero Section */}
       <section className="mx-auto max-w-3xl text-center mb-10 sm:mb-12">
         <motion.div 
@@ -118,14 +121,14 @@ export default function PublicOrganizationsPage() {
           className="relative group"
         >
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+            <Search className="h-5 w-5 text-gray-400 group-focus-within:text-zinc-700 transition-colors" />
           </div>
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={copy.searchPlaceholder}
-            className="block w-full pl-11 pr-4 py-3.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm sm:text-base outline-none"
+            className="block w-full rounded-2xl border border-zinc-200 bg-white py-3.5 pl-11 pr-4 text-sm text-zinc-950 shadow-sm outline-none placeholder:text-zinc-400 transition-all focus:border-zinc-400 focus:ring-4 focus:ring-zinc-950/5 sm:text-base"
           />
         </motion.div>
       </section>
@@ -163,7 +166,7 @@ export default function PublicOrganizationsPage() {
                   {/* Subtle Brand Color Accent Top Border */}
                   <div 
                     className="absolute top-0 left-0 right-0 h-1 opacity-80" 
-                    style={{ backgroundColor: item.brand_color || '#3b82f6' }}
+                    style={{ backgroundColor: item.brand_color || '#1c1917' }}
                   />
 
                   {/* Mobilde biraz daha dar (p-5), masaüstünde ferah (sm:p-6) iç boşluk */}
@@ -188,7 +191,7 @@ export default function PublicOrganizationsPage() {
                       
                       {/* min-w-0 EKLEDİK: Flexbox taşma sorununun ana çözümü */}
                       <div className="min-w-0 flex-1 pt-0.5 sm:pt-1">
-                        <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white truncate group-hover:text-zinc-700 transition-colors">
                           {item.org_name}
                         </h2>
                         
@@ -220,7 +223,7 @@ export default function PublicOrganizationsPage() {
                         </div>
                       </div>
 
-                      <div className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex-shrink-0 pl-2">
+                      <div className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-semibold text-gray-900 dark:text-white group-hover:text-zinc-700 transition-colors flex-shrink-0 pl-2">
                         <span className="hidden xs:inline">{copy.details}</span>
                         <ArrowRight className="h-3.5 w-3.5 transform group-hover:translate-x-0.5 transition-transform" />
                       </div>
@@ -233,6 +236,7 @@ export default function PublicOrganizationsPage() {
           </motion.div>
         )}
       </section>
+      </main>
     </div>
   );
 }

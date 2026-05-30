@@ -54,6 +54,10 @@ export default function TermsPage() {
           "Şirket hizmeti makul teknik özenle sunar; ancak internet altyapısı, üçüncü taraf servisler, bakım çalışmaları, mücbir sebep ve kullanıcı kaynaklı nedenlerle kesinti/performans değişiklikleri yaşanabilir.",
         ],
         [
+          "11.a Google Calendar Entegrasyonu",
+          "Kullanıcı veya organizasyon yetkilisi tarafından Google Calendar entegrasyonu etkinleştirildiğinde HeptaCert, yalnızca salon rezervasyonu, etkinlik takvimi, uygunluk kontrolü ve çift yönlü senkronizasyon amaçlarıyla ilgili takvim kayıtlarını oluşturabilir, güncelleyebilir veya silebilir. Kullanıcı, Google hesabına verilen yetkileri Google hesap ayarlarından veya platformdaki entegrasyon ayarlarından kaldırabilir. Google servislerindeki kesinti, kota, yetki değişikliği, kullanıcının takvim içeriğini değiştirmesi veya harici senkronizasyon gecikmeleri nedeniyle oluşabilecek takvim uyuşmazlıklarından Şirket makul teknik özen dışında sorumlu değildir.",
+        ],
+        [
           "12. Sorumluluğun Sınırlandırılması",
           "Şirket; mevzuatın izin verdiği ölçüde dolaylı zarar, kar kaybı ve itibar kaybından sorumlu tutulamaz. Ancak kast, ağır kusur ve emredici tüketici mevzuatından doğan sorumluluk halleri saklıdır. Kullanıcı kaynaklı içerik ve kullanım amaçlarına ilişkin birincil sorumluluk kullanıcıya aittir.",
         ],
@@ -122,6 +126,10 @@ export default function TermsPage() {
         [
           "11. Service Availability and Technical Limits",
           "The Company provides service with reasonable care; however interruptions or performance changes may occur due to internet infrastructure, third-party services, maintenance, force majeure, or user-side causes.",
+        ],
+        [
+          "11.a Google Calendar Integration",
+          "When Google Calendar integration is enabled by the User or an authorized organization representative, HeptaCert may create, update, or delete relevant calendar records only for venue reservation, event scheduling, availability checks, and two-way synchronization purposes. The User may revoke Google permissions from Google account settings or from the platform's integration settings. The Company is not responsible beyond reasonable technical care for calendar mismatches caused by Google service outages, quotas, permission changes, user-side calendar edits, or external synchronization delays.",
         ],
         [
           "12. Limitation of Liability",

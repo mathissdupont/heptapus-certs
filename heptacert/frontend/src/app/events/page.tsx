@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { listPublicEvents, type PublicEventListItem } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { stripRichTextToPlainText } from "@/lib/richText";
+import PublicNav from "@/components/Public/PublicNav";
 
 function formatDate(value: string | null | undefined, lang: "tr" | "en") {
   if (!value) return null;
@@ -131,43 +132,44 @@ export default function PublicEventsPage() {
   }, [copy.error, search]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 selection:bg-slate-200 pb-24">
+    <div className="flex min-h-screen flex-col bg-zinc-50 selection:bg-zinc-200 pb-24">
+      <PublicNav />
 
       {/* HERO SECTION (Clean & Typographic) */}
       <section className="relative px-6 pt-16 pb-12 sm:px-10 lg:pt-24 lg:pb-16 text-center">
         <div className="mx-auto max-w-3xl">
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-slate-500 shadow-sm">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-zinc-500 shadow-sm">
             <Search className="h-3.5 w-3.5" />
             {copy.eyebrow}
           </motion.div>
-          <motion.h1 initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mt-6 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+          <motion.h1 initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mt-6 text-4xl font-extrabold tracking-tight text-zinc-950 sm:text-5xl lg:text-6xl">
             {copy.title}
           </motion.h1>
-          <motion.p initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-slate-600">
+          <motion.p initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-zinc-600">
             {copy.subtitle}
           </motion.p>
         </div>
 
         {/* SEARCH BAR (Elevated & Prominent) */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mx-auto mt-10 max-w-2xl relative z-10">
-          <div className="relative flex items-center shadow-xl shadow-slate-200/50 rounded-2xl bg-white focus-within:ring-2 focus-within:ring-slate-900 transition-all">
-            <Search className="absolute left-5 h-5 w-5 text-slate-400" />
+          <div className="relative flex items-center rounded-2xl border border-zinc-200 bg-white shadow-sm transition-all focus-within:border-zinc-400 focus-within:ring-4 focus-within:ring-zinc-950/5">
+            <Search className="absolute left-5 h-5 w-5 text-zinc-400" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={copy.searchPlaceholder}
-              className="w-full rounded-2xl border-none bg-transparent py-4 pl-14 pr-6 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0"
+              className="w-full rounded-2xl border-none bg-transparent py-4 pl-14 pr-6 text-base text-zinc-950 placeholder:text-zinc-400 focus:outline-none focus:ring-0"
             />
             {search && (
-              <button onClick={() => setSearch("")} className="absolute right-5 text-xs font-bold text-slate-400 hover:text-slate-700 uppercase tracking-wide">
+              <button onClick={() => setSearch("")} className="absolute right-5 text-xs font-bold text-zinc-400 hover:text-zinc-700 uppercase tracking-wide">
                 {copy.clear}
               </button>
             )}
           </div>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <Link href="/organizations" className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:text-slate-950">
+          <Link href="/organizations" className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-950">
             <Building2 className="h-4 w-4" />
             {copy.communities}
           </Link>
@@ -177,7 +179,7 @@ export default function PublicEventsPage() {
             <button
               type="button"
               onClick={() => setTypeFilter("all")}
-              className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${typeFilter === "all" ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-600 hover:text-slate-950"}`}
+              className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${typeFilter === "all" ? "border-zinc-950 bg-zinc-950 text-white" : "border-zinc-200 bg-white text-zinc-600 hover:text-zinc-950"}`}
             >
               {copy.allTypes}
             </button>
@@ -186,7 +188,7 @@ export default function PublicEventsPage() {
                 key={type}
                 type="button"
                 onClick={() => setTypeFilter(type)}
-                className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${typeFilter === type ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-600 hover:text-slate-950"}`}
+                className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${typeFilter === type ? "border-zinc-950 bg-zinc-950 text-white" : "border-zinc-200 bg-white text-zinc-600 hover:text-zinc-950"}`}
               >
                 {EVENT_TYPE_LABELS[type]?.[lang] || type}
               </button>
