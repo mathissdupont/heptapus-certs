@@ -1,7 +1,7 @@
 ﻿export const tr = {
   nav_features: "Özellikler",
   nav_pricing: "Fiyatlandırma",
-  nav_verify: "Sertifika Sorgula",
+  nav_verify: "Doğrula",
   nav_login: "Giriş Yap",
   nav_start_free: "Ücretsiz Başla",
 
@@ -11,7 +11,7 @@
   home_hero_title_3: "ve belgeleyin",
   home_hero_subtitle: "Etkinlik oluşturun, oturumlar planlayın, katılımcıları takip edin ve QR doğrulamalı sertifikalar üretin; hepsi tek platformda.",
   home_cta_register: "Ücretsiz Hesap Oluştur",
-  home_cta_verify: "Sertifika Sorgula",
+  home_cta_verify: "Doğrula",
   home_cta_demo: "Demoyu İncele",
   home_hero_sub: "Kredi kartı gerekmez · 100 HC hediye bakiye ile başlayın",
 
