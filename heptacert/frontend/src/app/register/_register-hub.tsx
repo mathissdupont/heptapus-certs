@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Building2, CheckCircle2, Eye, EyeOff, Lock, Mail, ShieldCheck, UserRound } from "lucide-react";
-import { API_BASE, apiFetch, registerPublicMember, resendOrganizerVerification, resendPublicMemberVerification } from "@/lib/api";
+import { API_BASE, apiFetch, logLegalDocumentEvent, registerPublicMember, resendOrganizerVerification, resendPublicMemberVerification } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 type RegisterMode = "organizer" | "member";
@@ -24,6 +24,15 @@ export default function RegisterHub() {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
+
+  function recordLegalClick(document: "kvkk" | "privacy" | "explicit_consent") {
+    logLegalDocumentEvent({
+      document,
+      event_type: "click",
+      context: `account_registration_${mode}`,
+      source_path: typeof window !== "undefined" ? window.location.pathname : undefined,
+    });
+  }
   const [resendMessage, setResendMessage] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
 
@@ -376,16 +385,16 @@ export default function RegisterHub() {
                 {copy.termsLink}
               </Link>{" "}
               {copy.termsMiddle}{" "}
-              <Link href="/gizlilik" className="font-semibold text-brand-600 hover:text-brand-700">
+              <Link href="/gizlilik" onClick={() => recordLegalClick("privacy")} className="font-semibold text-brand-600 hover:text-brand-700">
                 {copy.privacyLink}
               </Link>{" "}
               {copy.termsSuffix}
             </span>
           </label>
           <div className="flex flex-wrap gap-3 text-xs text-slate-500">
-            <Link href="/kvkk" className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "KVKK Aydınlatma Metni" : "Privacy Notice"}</Link>
-            <Link href="/gizlilik" className="font-semibold text-brand-600 hover:text-brand-700">{copy.privacyLink}</Link>
-            <Link href="/acik-riza" className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Açık Rıza Metni" : "Explicit Consent Text"}</Link>
+            <Link href="/kvkk" onClick={() => recordLegalClick("kvkk")} className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "KVKK Aydınlatma Metni" : "Privacy Notice"}</Link>
+            <Link href="/gizlilik" onClick={() => recordLegalClick("privacy")} className="font-semibold text-brand-600 hover:text-brand-700">{copy.privacyLink}</Link>
+            <Link href="/acik-riza" onClick={() => recordLegalClick("explicit_consent")} className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Açık Rıza Metni" : "Explicit Consent Text"}</Link>
           </div>
 
           <AnimatePresence mode="wait">

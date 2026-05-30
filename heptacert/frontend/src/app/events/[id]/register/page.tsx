@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
-import { apiUrl, getEventCapacities, getPublicEventInfo, getPublicMemberMe, getPublicMemberToken, normalizeApiAssetUrl, publicRegisterAttendee, resendPublicAttendeeVerification, uploadPublicRegistrationDocument, type RegistrationField, type RegistrationDocumentUploadOut } from "@/lib/api";
+import { apiUrl, getEventCapacities, getPublicEventInfo, getPublicMemberMe, getPublicMemberToken, logLegalDocumentEvent, normalizeApiAssetUrl, publicRegisterAttendee, resendPublicAttendeeVerification, uploadPublicRegistrationDocument, type RegistrationField, type RegistrationDocumentUploadOut } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import {
   CheckCircle2,
@@ -405,6 +405,27 @@ export default function EventRegisterPage() {
     }),
     [brandColor]
   );
+
+  function recordLegalClick(document: "kvkk" | "privacy" | "explicit_consent" | "organizer_notice" | "cross_border_notice") {
+    logLegalDocumentEvent({
+      document,
+      event_type: "click",
+      event_id: eventId,
+      context: "event_registration",
+      source_path: typeof window !== "undefined" ? window.location.pathname : undefined,
+    });
+  }
+
+  function openKvkkModal() {
+    logLegalDocumentEvent({
+      document: "organizer_notice",
+      event_type: "view",
+      event_id: eventId,
+      context: "event_registration_modal",
+      source_path: typeof window !== "undefined" ? window.location.pathname : undefined,
+    });
+    setShowKvkkModal(true);
+  }
 
   const inputFocusStyle = useMemo(
     () => ({
@@ -1014,7 +1035,7 @@ export default function EventRegisterPage() {
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{copy.kvkkTitle}</p>
                       <button
                         type="button"
-                        onClick={() => setShowKvkkModal(true)}
+                        onClick={openKvkkModal}
                         className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
                       >
                         {copy.kvkkRead}
@@ -1035,9 +1056,9 @@ export default function EventRegisterPage() {
                       </label>
 
                       <div className="flex flex-wrap gap-3 text-xs text-gray-500">
-                        <Link href="/kvkk" className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "KVKK Aydınlatma Metni" : "Privacy Notice"}</Link>
-                        <Link href="/gizlilik" className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Gizlilik Politikası" : "Privacy Policy"}</Link>
-                        <Link href="/acik-riza" className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Açık Rıza Metni" : "Explicit Consent Text"}</Link>
+                        <Link href="/kvkk" onClick={() => recordLegalClick("kvkk")} className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "KVKK Aydınlatma Metni" : "Privacy Notice"}</Link>
+                        <Link href="/gizlilik" onClick={() => recordLegalClick("privacy")} className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Gizlilik Politikası" : "Privacy Policy"}</Link>
+                        <Link href="/acik-riza" onClick={() => recordLegalClick("explicit_consent")} className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Açık Rıza Metni" : "Explicit Consent Text"}</Link>
                       </div>
 
                         {crossBorderConsentRequired && (
@@ -1139,11 +1160,11 @@ export default function EventRegisterPage() {
 
       <footer className="border-t border-white/5 py-8">
         <div className="mx-auto max-w-6xl px-4 text-center md:px-6">
-          <div className="inline-flex items-center gap-2 text-xs font-medium text-white/55">
+              <div className="inline-flex items-center gap-2 text-xs font-medium text-white/55">
               <div className="flex flex-wrap gap-3 text-xs text-gray-500">
-                <Link href="/kvkk" className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "KVKK Aydınlatma Metni" : "Privacy Notice"}</Link>
-                <Link href="/gizlilik" className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Gizlilik Politikası" : "Privacy Policy"}</Link>
-                <Link href="/acik-riza" className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Açık Rıza Metni" : "Explicit Consent Text"}</Link>
+                <Link href="/kvkk" onClick={() => recordLegalClick("kvkk")} className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "KVKK Aydınlatma Metni" : "Privacy Notice"}</Link>
+                <Link href="/gizlilik" onClick={() => recordLegalClick("privacy")} className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Gizlilik Politikası" : "Privacy Policy"}</Link>
+                <Link href="/acik-riza" onClick={() => recordLegalClick("explicit_consent")} className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Açık Rıza Metni" : "Explicit Consent Text"}</Link>
               </div>
             <ShieldCheck className="h-3.5 w-3.5" style={{ color: brandColor }} />
             {copy.securePowered}

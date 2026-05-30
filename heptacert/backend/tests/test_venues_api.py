@@ -73,6 +73,13 @@ async def test_venue_manager_can_reserve_but_cannot_manage_organization_team():
         assert member_response.status_code == 201
         assert "reservations:write" in member_response.json()["permissions"]
 
+        contexts = await client.get("/api/admin/organization/contexts", headers=employee_headers)
+        assert contexts.status_code == 200
+        context_items = contexts.json()
+        assert len(context_items) >= 2
+        owner_context = next(item for item in context_items if not item["owned"])
+        employee_headers = {**employee_headers, "X-Organization-Id": str(owner_context["id"])}
+
         employee_venues = await client.get("/api/admin/organization/venues", headers=employee_headers)
         assert employee_venues.status_code == 200
         assert employee_venues.json()[0]["id"] == venue_id
@@ -105,6 +112,68 @@ async def test_venue_manager_can_reserve_but_cannot_manage_organization_team():
         assert calendar.status_code == 200
         assert "BEGIN:VCALENDAR" in calendar.text
         assert "SUMMARY:Board Meeting" in calendar.text
+
+
+@pytest.mark.asyncio
+async def test_event_creation_can_auto_reserve_selected_organization_venue():
+    async with SessionLocal() as db:
+        owner = User(email="event-reserve-owner@test.com", password_hash=hash_password("AdminPass123!"), role=Role.admin)
+        db.add(owner)
+        await db.commit()
+        await db.refresh(owner)
+        headers = {"Authorization": f"Bearer {create_access_token(user_id=owner.id, role=Role.admin)}"}
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        contexts = await client.get("/api/admin/organization/contexts", headers=headers)
+        assert contexts.status_code == 200
+        organization_id = contexts.json()[0]["id"]
+        headers = {**headers, "X-Organization-Id": str(organization_id)}
+
+        venue_response = await client.post(
+            "/api/admin/organization/venues",
+            headers=headers,
+            json={"name": "Launch Hall", "capacity": 180, "location": "HQ", "notes": "", "is_active": True},
+        )
+        assert venue_response.status_code == 201
+        venue_id = venue_response.json()["id"]
+
+        created = await client.post(
+            "/api/admin/events",
+            headers=headers,
+            json={
+                "name": "Launch Day",
+                "template_image_url": "placeholder",
+                "config": {"visibility": "unlisted"},
+                "organization_venue_id": venue_id,
+                "auto_reserve_venue": True,
+                "venue_reservation_start_at": "2026-06-03T09:00:00+03:00",
+                "venue_reservation_end_at": "2026-06-03T11:00:00+03:00",
+            },
+        )
+        assert created.status_code == 201
+        created_body = created.json()
+        assert created_body["organization_venue_id"] == venue_id
+        assert created_body["venue_reservation_id"]
+
+        reservations = await client.get("/api/admin/organization/venue-reservations", headers=headers)
+        assert reservations.status_code == 200
+        assert reservations.json()[0]["title"] == "Launch Day"
+
+        overlapping = await client.post(
+            "/api/admin/events",
+            headers=headers,
+            json={
+                "name": "Overlapping Launch",
+                "template_image_url": "placeholder",
+                "config": {"visibility": "unlisted"},
+                "organization_venue_id": venue_id,
+                "auto_reserve_venue": True,
+                "venue_reservation_start_at": "2026-06-03T10:00:00+03:00",
+                "venue_reservation_end_at": "2026-06-03T12:00:00+03:00",
+            },
+        )
+        assert overlapping.status_code == 409
 
 
 @pytest.mark.asyncio

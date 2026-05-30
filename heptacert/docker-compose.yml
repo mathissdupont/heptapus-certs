@@ -26,6 +26,20 @@ services:
       retries: 20
     restart: unless-stopped
 
+  clamav:
+    image: clamav/clamav:stable
+    environment:
+      CLAMD_STARTUP_TIMEOUT: 180
+    volumes:
+      - clamav_data:/var/lib/clamav
+    healthcheck:
+      test: ["CMD-SHELL", "clamdscan --ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
@@ -39,6 +53,9 @@ services:
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3030}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3030}
       TRUSTED_PROXY_NETWORKS: ${TRUSTED_PROXY_NETWORKS:-}
+      CLAMAV_ENABLED: ${CLAMAV_ENABLED:-false}
+      CLAMAV_HOST: ${CLAMAV_HOST:-clamav}
+      CLAMAV_PORT: ${CLAMAV_PORT:-3310}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       RATE_LIMIT_STORAGE_URI: ${RATE_LIMIT_STORAGE_URI:-redis://redis:6379/0}
       STORAGE_MODE: local
@@ -106,6 +123,9 @@ services:
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3030}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3030}
       TRUSTED_PROXY_NETWORKS: ${TRUSTED_PROXY_NETWORKS:-}
+      CLAMAV_ENABLED: ${CLAMAV_ENABLED:-false}
+      CLAMAV_HOST: ${CLAMAV_HOST:-clamav}
+      CLAMAV_PORT: ${CLAMAV_PORT:-3310}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       RATE_LIMIT_STORAGE_URI: ${RATE_LIMIT_STORAGE_URI:-redis://redis:6379/0}
       STORAGE_MODE: local
@@ -213,3 +233,4 @@ networks:
 
 volumes:
   redis_data:
+  clamav_data:

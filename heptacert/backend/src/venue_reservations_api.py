@@ -1,14 +1,14 @@
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .main import Base, CurrentUser, Role, get_current_user, get_db, require_role, write_audit_log
-from .organization_access_api import get_organization_for_access
+from .organization_access_api import get_organization_for_access, organization_id_from_request
 from .venues_api import OrganizationVenue
 
 
@@ -118,10 +118,11 @@ async def _ensure_no_conflict(
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
 )
 async def list_reservations(
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    organization = await get_organization_for_access(db, me, "reservations:read")
+    organization = await get_organization_for_access(db, me, "reservations:read", organization_id_from_request(request))
     result = await db.execute(
         select(VenueReservation)
         .where(
@@ -141,10 +142,11 @@ async def list_reservations(
 )
 async def create_reservation(
     payload: ReservationIn,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    organization = await get_organization_for_access(db, me, "reservations:write")
+    organization = await get_organization_for_access(db, me, "reservations:write", organization_id_from_request(request))
     await _venue_for_organization(db, organization.id, payload.venue_id)
     await _ensure_no_conflict(db, organization.id, payload)
     reservation = VenueReservation(
@@ -175,10 +177,11 @@ async def create_reservation(
 async def update_reservation(
     reservation_id: int,
     payload: ReservationIn,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    organization = await get_organization_for_access(db, me, "reservations:write")
+    organization = await get_organization_for_access(db, me, "reservations:write", organization_id_from_request(request))
     reservation = await _reservation_for_organization(db, organization.id, reservation_id)
     await _venue_for_organization(db, organization.id, payload.venue_id)
     await _ensure_no_conflict(db, organization.id, payload, exclude_id=reservation.id)
@@ -204,10 +207,11 @@ async def update_reservation(
 )
 async def cancel_reservation(
     reservation_id: int,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    organization = await get_organization_for_access(db, me, "reservations:write")
+    organization = await get_organization_for_access(db, me, "reservations:write", organization_id_from_request(request))
     reservation = await _reservation_for_organization(db, organization.id, reservation_id)
     reservation.status = "cancelled"
     reservation.updated_by = me.id
@@ -238,10 +242,11 @@ def _ics_time(value: datetime) -> str:
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
 )
 async def export_reservation_calendar(
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    organization = await get_organization_for_access(db, me, "reservations:read")
+    organization = await get_organization_for_access(db, me, "reservations:read", organization_id_from_request(request))
     result = await db.execute(
         select(VenueReservation, OrganizationVenue)
         .join(OrganizationVenue, OrganizationVenue.id == VenueReservation.venue_id)

@@ -13,6 +13,7 @@ import time
 import zipfile
 import asyncio
 import re
+import textwrap
 from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -22,7 +23,7 @@ from enum import Enum
 from html import escape
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Any, Dict, Optional, List, Tuple
+from typing import Any, Dict, Optional, List, Tuple, Literal
 from urllib.parse import urlencode, quote, urlparse
 from pydantic import field_validator
 import uuid as _uuid_module
@@ -257,6 +258,9 @@ class Settings(BaseSettings):
     frontend_base_url: str = Field(default="http://localhost:3000", alias="FRONTEND_BASE_URL")
     cors_origins: str = Field(default="*", alias="CORS_ORIGINS")
     cors_allow_origin_regex: str = Field(default="", alias="CORS_ALLOW_ORIGIN_REGEX")
+    clamav_enabled: bool = Field(default=False, alias="CLAMAV_ENABLED")
+    clamav_host: str = Field(default="127.0.0.1", alias="CLAMAV_HOST")
+    clamav_port: int = Field(default=3310, alias="CLAMAV_PORT")
     trusted_proxy_networks: str = Field(default="", alias="TRUSTED_PROXY_NETWORKS")
     redis_url: str = Field(default="", alias="REDIS_URL")
     rate_limit_storage_uri: str = Field(default="", alias="RATE_LIMIT_STORAGE_URI")
@@ -1640,6 +1644,10 @@ class EventRenameIn(BaseModel):
     data_controller_name: Optional[str] = Field(default=None, max_length=255)
     data_controller_contact_email: Optional[EmailStr] = Field(default=None)
     data_retention_note: Optional[str] = Field(default=None, max_length=4000)
+    organization_venue_id: Optional[int] = Field(default=None, ge=1)
+    auto_reserve_venue: Optional[bool] = Field(default=None)
+    venue_reservation_start_at: Optional[datetime] = None
+    venue_reservation_end_at: Optional[datetime] = None
 
 
 class CreditCoinsIn(BaseModel):
@@ -1659,6 +1667,10 @@ class EventCreateIn(BaseModel):
     raffles_enabled: Optional[bool] = Field(default=None)
     gamification_enabled: Optional[bool] = Field(default=None)
     requires_approval: Optional[bool] = Field(default=None)
+    organization_venue_id: Optional[int] = Field(default=None, ge=1)
+    auto_reserve_venue: Optional[bool] = Field(default=None)
+    venue_reservation_start_at: Optional[datetime] = None
+    venue_reservation_end_at: Optional[datetime] = None
 
 
 class EventConfigIn(BaseModel):
@@ -1737,6 +1749,10 @@ class EventOut(BaseModel):
     raffles_enabled: bool = False
     gamification_enabled: bool = False
     requires_approval: bool = False
+    organization_venue_id: Optional[int] = None
+    venue_reservation_id: Optional[int] = None
+    venue_reservation_start_at: Optional[str] = None
+    venue_reservation_end_at: Optional[str] = None
 
 
 EVENT_TEAM_ROLES = {"manager", "checkin", "certificate", "email", "analytics", "viewer"}
@@ -3207,6 +3223,17 @@ GOOGLE_SHEETS_REQUIRED_SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
 ]
 
+GOOGLE_CALENDAR_SCOPES = [
+    "openid",
+    "email",
+    "profile",
+    "https://www.googleapis.com/auth/calendar.events",
+]
+
+GOOGLE_CALENDAR_REQUIRED_SCOPES = [
+    "https://www.googleapis.com/auth/calendar.events",
+]
+
 
 def _google_sheets_redirect_uri() -> str:
     return f"{settings.public_base_url.rstrip('/')}/api/admin/google/sheets/callback"
@@ -3224,6 +3251,11 @@ def _google_sheets_missing_scopes(scopes: Any) -> List[str]:
     present = set(_normalize_google_scopes(scopes))
     required = set(GOOGLE_SHEETS_REQUIRED_SCOPES)
     return [scope for scope in GOOGLE_SHEETS_REQUIRED_SCOPES if scope in required and scope not in present]
+
+
+def _google_calendar_missing_scopes(scopes: Any) -> List[str]:
+    present = set(_normalize_google_scopes(scopes))
+    return [scope for scope in GOOGLE_CALENDAR_REQUIRED_SCOPES if scope not in present]
 
 
 def _get_event_google_sheets_config(event: "Event") -> Dict[str, Any]:
@@ -3274,10 +3306,14 @@ async def _google_get_profile(access_token: str) -> Dict[str, Any]:
     return userinfo_res.json()
 
 
-async def _get_google_access_token_for_sheets(db: AsyncSession, user_id: int) -> str:
+async def _get_google_access_token_for_scopes(db: AsyncSession, user_id: int, required_scopes: List[str], label: str) -> str:
     integration = await _get_user_google_integration(db, user_id)
     if not integration or not integration.refresh_token:
-        raise HTTPException(status_code=409, detail="Google Sheets connection is not ready.")
+        raise HTTPException(status_code=409, detail=f"Google {label} connection is not ready.")
+    present_scopes = set(_normalize_google_scopes(integration.scopes))
+    missing = [scope for scope in required_scopes if scope not in present_scopes]
+    if missing:
+        raise HTTPException(status_code=409, detail=f"Google {label} authorization is missing required scopes.")
 
     now = datetime.now(timezone.utc)
     expires_at = ensure_utc(integration.token_expires_at)
@@ -3300,7 +3336,7 @@ async def _get_google_access_token_for_sheets(db: AsyncSession, user_id: int) ->
             },
         )
     if token_res.status_code >= 400:
-        raise HTTPException(status_code=409, detail="Google Sheets authorization has expired. Please connect again.")
+        raise HTTPException(status_code=409, detail=f"Google {label} authorization has expired. Please connect again.")
 
     token_data = token_res.json()
     access_token = str(token_data.get("access_token") or "")
@@ -3313,6 +3349,14 @@ async def _get_google_access_token_for_sheets(db: AsyncSession, user_id: int) ->
     db.add(integration)
     await db.commit()
     return access_token
+
+
+async def _get_google_access_token_for_sheets(db: AsyncSession, user_id: int) -> str:
+    return await _get_google_access_token_for_scopes(db, user_id, GOOGLE_SHEETS_REQUIRED_SCOPES, "Sheets")
+
+
+async def _get_google_access_token_for_calendar(db: AsyncSession, user_id: int) -> str:
+    return await _get_google_access_token_for_scopes(db, user_id, GOOGLE_CALENDAR_REQUIRED_SCOPES, "Calendar")
 
 
 async def _google_json_request(
@@ -3328,9 +3372,9 @@ async def _google_json_request(
             url,
             headers={"Authorization": f"Bearer {access_token}"},
             json=json_body,
-        )
+    )
     if res.status_code >= 400:
-        detail = "Google Sheets request failed."
+        detail = "Google request failed."
         try:
             detail = res.json().get("error", {}).get("message") or detail
         except Exception:
@@ -4780,6 +4824,21 @@ def _get_registration_device_id(request: Request) -> tuple[str, bool]:
 
 async def _heptacert_rate_limit_handler(request: Request, exc: RateLimitExceeded):
     detail = str(exc.detail or "Too many requests")
+    try:
+        async with SessionLocal() as db:
+            await write_audit_log(
+                db,
+                user_id=None,
+                action="security.rate_limit",
+                resource_type="request",
+                resource_id=request.url.path,
+                ip_address=_client_ip_for_rate_limit(request),
+                user_agent=request.headers.get("User-Agent"),
+                extra={"detail": detail, "method": request.method},
+            )
+            await db.commit()
+    except Exception as audit_error:
+        logger.debug("Rate-limit audit log write failed: %s", audit_error)
     # Preserve legacy `error` key while adding standard `detail` for frontend handlers.
     return JSONResponse(
         status_code=429,
@@ -7902,9 +7961,31 @@ async def login(request: Request, data: LoginIn, db: AsyncSession = Depends(get_
     res = await db.execute(select(User).where(User.email == str(data.email)))
     user = res.scalar_one_or_none()
     if not user or not verify_password(data.password, user.password_hash):
+        await write_audit_log(
+            db,
+            user_id=user.id if user else None,
+            action="security.login_failed",
+            resource_type="auth",
+            resource_id=str(data.email),
+            ip_address=_client_ip_for_rate_limit(request),
+            user_agent=request.headers.get("User-Agent"),
+            extra={"email": str(data.email)},
+        )
+        await db.commit()
         raise HTTPException(status_code=401, detail="E-posta veya şifre hatalı.")
         raise HTTPException(status_code=401, detail="GeÃ§ersiz e-posta veya ÅŸifre.")
     if not user.is_verified:
+        await write_audit_log(
+            db,
+            user_id=user.id,
+            action="security.login_unverified_blocked",
+            resource_type="auth",
+            resource_id=str(user.id),
+            ip_address=_client_ip_for_rate_limit(request),
+            user_agent=request.headers.get("User-Agent"),
+            extra={"email": user.email},
+        )
+        await db.commit()
         raise HTTPException(status_code=403, detail="E-posta adresinizi doğrulamanız gerekiyor. Lütfen gelen kutunuzu kontrol edin.")
         raise HTTPException(status_code=403, detail="E-posta adresinizi doÃ„Å¸rulamanÃ„Â±z gerekiyor. LÃƒÂ¼tfen gelen kutunuzu kontrol edin.")
 
@@ -7913,6 +7994,16 @@ async def login(request: Request, data: LoginIn, db: AsyncSession = Depends(get_
     totp = totp_res.scalar_one_or_none()
     if totp:
         partial = create_partial_token(user_id=user.id)
+        await write_audit_log(
+            db,
+            user_id=user.id,
+            action="security.login_2fa_required",
+            resource_type="auth",
+            resource_id=str(user.id),
+            ip_address=_client_ip_for_rate_limit(request),
+            user_agent=request.headers.get("User-Agent"),
+        )
+        await db.commit()
         return LoginWith2FAOut(requires_2fa=True, partial_token=partial)
     # Enforce host-scoped organization access: if request resolved to an organization
     # (via organization_middleware), only allow login from users that either
@@ -7961,6 +8052,16 @@ async def login(request: Request, data: LoginIn, db: AsyncSession = Depends(get_
         # If DB check fails for some reason, fail closed to be safe.
         raise HTTPException(status_code=500, detail="Alan adÃ„Â± eriÃ…Å¸imi doÃ„Å¸rulanamadÃ„Â±.")
 
+    await write_audit_log(
+        db,
+        user_id=user.id,
+        action="security.login_success",
+        resource_type="auth",
+        resource_id=str(user.id),
+        ip_address=_client_ip_for_rate_limit(request),
+        user_agent=request.headers.get("User-Agent"),
+    )
+    await db.commit()
     return LoginWith2FAOut(
         requires_2fa=False,
         access_token=create_access_token(user_id=user.id, role=user.role),
@@ -8362,8 +8463,9 @@ async def google_sheets_auth_callback(
         state_payload = verify_email_token(state, max_age=600)
     except Exception:
         raise bad_request("Google Sheets OAuth state is invalid or expired.")
-    if state_payload.get("action") != "google_sheets_oauth":
-        raise bad_request("Invalid Google Sheets OAuth state.")
+    oauth_action = state_payload.get("action")
+    if oauth_action not in {"google_sheets_oauth", "google_calendar_oauth"}:
+        raise bad_request("Invalid Google OAuth state.")
 
     user_id = int(state_payload.get("user_id") or 0)
     if user_id <= 0:
@@ -8393,7 +8495,7 @@ async def google_sheets_auth_callback(
     frontend_origin = _normalize_oauth_frontend_origin(str(state_payload.get("frontend_origin") or ""))
     sheet_status = "connected"
     event_id = int(state_payload.get("event_id") or 0)
-    if event_id > 0:
+    if oauth_action == "google_sheets_oauth" and event_id > 0:
         event_res = await db.execute(select(Event).where(Event.id == event_id, Event.admin_id == user_id))
         event = event_res.scalar_one_or_none()
         if event:
@@ -8407,10 +8509,12 @@ async def google_sheets_auth_callback(
     user = user_res.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="Google Sheets OAuth user not found.")
-    bridge_params = urlencode({
-        "google_sheets": sheet_status,
-        "oauth_bridge": "1",
-    })
+    bridge_payload = {"oauth_bridge": "1"}
+    if oauth_action == "google_sheets_oauth":
+        bridge_payload["google_sheets"] = sheet_status
+    if oauth_action == "google_calendar_oauth":
+        bridge_payload["google_calendar"] = "connected"
+    bridge_params = urlencode(bridge_payload)
     separator = "&" if "?" in next_url else "?"
     redirect_target = f"{frontend_origin}{next_url}{separator}{bridge_params}"
     logger.info(
@@ -10785,10 +10889,16 @@ async def delete_admin_account(
 
 
 @app.get("/api/admin/events", response_model=list[EventOut], dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
-async def list_events(me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def list_events(request: Request, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     from .organization_access_api import OrganizationMember, member_allows
+    from .organization_access_api import get_organization_for_access, organization_id_from_request
 
     normalized_email = str(me.email).strip().lower()
+    selected_organization_id = organization_id_from_request(request)
+    if selected_organization_id is not None:
+        selected_org = await get_organization_for_access(db, me, "events:manage", selected_organization_id)
+        res = await db.execute(select(Event).where(Event.admin_id == selected_org.user_id).order_by(Event.created_at.desc()))
+        return [_event_to_out(e) for e in res.scalars().all()]
     org_memberships = await db.execute(
         select(Organization.user_id, OrganizationMember)
         .join(OrganizationMember, OrganizationMember.organization_id == Organization.id)
@@ -10827,13 +10937,119 @@ async def list_events(me: CurrentUser = Depends(get_current_user), db: AsyncSess
     return [_event_to_out(e) for e in items]
 
 
+def _event_reservation_window(ev: Event, start_at: Optional[datetime], end_at: Optional[datetime]) -> tuple[datetime, datetime]:
+    if start_at and end_at:
+        start = start_at if start_at.tzinfo else start_at.replace(tzinfo=timezone.utc)
+        end = end_at if end_at.tzinfo else end_at.replace(tzinfo=timezone.utc)
+    elif ev.event_date:
+        start = datetime.combine(ev.event_date, datetime.min.time(), tzinfo=timezone.utc)
+        end = start + timedelta(days=1)
+    else:
+        raise HTTPException(status_code=400, detail="Venue reservation time range is required")
+    if end <= start:
+        raise HTTPException(status_code=400, detail="Venue reservation end must be after start")
+    return start, end
+
+
+def _parse_event_reservation_datetime(value: Any) -> Optional[datetime]:
+    if isinstance(value, datetime):
+        return value
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value))
+    except ValueError:
+        return None
+
+
+async def _sync_event_venue_reservation(
+    db: AsyncSession,
+    ev: Event,
+    me: CurrentUser,
+    organization_id: Optional[int],
+    venue_id: Optional[int],
+    auto_reserve: Optional[bool],
+    start_at: Optional[datetime],
+    end_at: Optional[datetime],
+) -> None:
+    if auto_reserve is False:
+        return
+    config = dict(ev.config or {})
+    if venue_id is None:
+        if "organization_venue_id" in config:
+            config.pop("organization_venue_id", None)
+            config.pop("venue_reservation_start_at", None)
+            config.pop("venue_reservation_end_at", None)
+            reservation_id = config.pop("venue_reservation_id", None)
+            if reservation_id:
+                from .venue_reservations_api import VenueReservation
+                reservation = await db.get(VenueReservation, int(reservation_id))
+                if reservation:
+                    reservation.status = "cancelled"
+                    reservation.updated_by = me.id
+            ev.config = config
+        return
+    from .organization_access_api import get_organization_for_access
+    from .venue_reservations_api import ReservationIn, VenueReservation, _ensure_no_conflict, _venue_for_organization
+
+    organization = await get_organization_for_access(db, me, "reservations:write", organization_id)
+    if organization.user_id != ev.admin_id:
+        raise HTTPException(status_code=403, detail="Venue must belong to the event organization")
+    await _venue_for_organization(db, organization.id, venue_id)
+    start, end = _event_reservation_window(ev, start_at, end_at)
+    payload = ReservationIn(
+        venue_id=venue_id,
+        title=ev.name,
+        description=f"Etkinlik rezervasyonu: {ev.name}",
+        start_at=start,
+        end_at=end,
+    )
+    existing_id = config.get("venue_reservation_id")
+    reservation: Optional[VenueReservation] = None
+    if existing_id:
+        reservation = await db.get(VenueReservation, int(existing_id))
+        if reservation and reservation.organization_id != organization.id:
+            reservation = None
+    await _ensure_no_conflict(db, organization.id, payload, exclude_id=reservation.id if reservation else None)
+    if reservation:
+        reservation.venue_id = venue_id
+        reservation.title = ev.name
+        reservation.description = payload.description
+        reservation.start_at = start
+        reservation.end_at = end
+        reservation.status = "confirmed"
+        reservation.updated_by = me.id
+    else:
+        reservation = VenueReservation(
+            organization_id=organization.id,
+            venue_id=venue_id,
+            title=ev.name,
+            description=payload.description,
+            start_at=start,
+            end_at=end,
+            created_by=me.id,
+        )
+        db.add(reservation)
+        await db.flush()
+    config["organization_venue_id"] = venue_id
+    config["venue_reservation_id"] = reservation.id
+    config["venue_reservation_start_at"] = start.isoformat()
+    config["venue_reservation_end_at"] = end.isoformat()
+    ev.config = config
+
+
 @app.post("/api/admin/events", response_model=EventOut, status_code=201, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
 async def create_event(
     payload: EventCreateIn,
     background_tasks: BackgroundTasks,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    from .organization_access_api import get_organization_for_access, organization_id_from_request
+
+    selected_organization_id = organization_id_from_request(request)
+    organization = await get_organization_for_access(db, me, "events:manage", selected_organization_id)
     next_config = dict(payload.config or {})
     if "registration_fields" in next_config:
         next_config["registration_fields"] = _validate_registration_fields_for_write(next_config.get("registration_fields"))
@@ -10843,7 +11059,7 @@ async def create_event(
     public_id = await _generate_event_public_id(db)
     ev = Event(
         public_id=public_id,
-        admin_id=me.id,
+        admin_id=organization.user_id,
         name=payload.name,
         template_image_url=payload.template_image_url or "placeholder",
         config=next_config,
@@ -10857,6 +11073,17 @@ async def create_event(
         requires_approval=normalize_feature_bool(payload.requires_approval, default=FEATURE_DEFAULTS["requires_approval"]),
     )
     db.add(ev)
+    await db.flush()
+    await _sync_event_venue_reservation(
+        db,
+        ev,
+        me,
+        organization.id,
+        payload.organization_venue_id,
+        payload.auto_reserve_venue,
+        payload.venue_reservation_start_at,
+        payload.venue_reservation_end_at,
+    )
     await db.commit()
     await db.refresh(ev)
     if _get_event_visibility(ev) == "public":
@@ -10894,6 +11121,10 @@ def _event_to_out(ev: Event) -> EventOut:
         raffles_enabled=normalize_feature_bool(getattr(ev, "raffles_enabled", None), default=FEATURE_DEFAULTS["raffles_enabled"]),
         gamification_enabled=normalize_feature_bool(getattr(ev, "gamification_enabled", None), default=FEATURE_DEFAULTS["gamification_enabled"]),
         requires_approval=normalize_feature_bool(getattr(ev, "requires_approval", None), default=FEATURE_DEFAULTS["requires_approval"]),
+        organization_venue_id=config.get("organization_venue_id"),
+        venue_reservation_id=config.get("venue_reservation_id"),
+        venue_reservation_start_at=config.get("venue_reservation_start_at"),
+        venue_reservation_end_at=config.get("venue_reservation_end_at"),
     )
 
 
@@ -11799,9 +12030,12 @@ async def rename_event(
     event_id: int,
     payload: EventRenameIn,
     background_tasks: BackgroundTasks,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    from .organization_access_api import organization_id_from_request
+
     ev = await _get_event_for_admin(event_id, me, db, "settings:write")
     was_public = _get_event_visibility(ev) == "public"
     existing_registration_fields = _get_event_registration_fields(ev)
@@ -11901,9 +12135,45 @@ async def rename_event(
             next_config["registration_closed"] = True
             config_dirty = True
     if config_dirty:
-        ev.config = next_config
+        ev.config = _stamp_event_legal_versions(next_config)
         if "registration_fields" in payload.model_fields_set:
             await _sync_registration_option_capacities(db, ev)
+    venue_fields_present = any(
+        field in payload.model_fields_set
+        for field in (
+            "organization_venue_id",
+            "auto_reserve_venue",
+            "venue_reservation_start_at",
+            "venue_reservation_end_at",
+        )
+    )
+    current_config = dict(ev.config or {})
+    if venue_fields_present or current_config.get("organization_venue_id"):
+        venue_id = (
+            payload.organization_venue_id
+            if "organization_venue_id" in payload.model_fields_set
+            else current_config.get("organization_venue_id")
+        )
+        start_at = (
+            payload.venue_reservation_start_at
+            if "venue_reservation_start_at" in payload.model_fields_set
+            else _parse_event_reservation_datetime(current_config.get("venue_reservation_start_at"))
+        )
+        end_at = (
+            payload.venue_reservation_end_at
+            if "venue_reservation_end_at" in payload.model_fields_set
+            else _parse_event_reservation_datetime(current_config.get("venue_reservation_end_at"))
+        )
+        await _sync_event_venue_reservation(
+            db,
+            ev,
+            me,
+            organization_id_from_request(request),
+            int(venue_id) if venue_id is not None else None,
+            payload.auto_reserve_venue,
+            start_at,
+            end_at,
+        )
     if "auto_email_on_cert" in payload.model_fields_set:
         ev.auto_email_on_cert = bool(payload.auto_email_on_cert)
     if "cert_email_template_id" in payload.model_fields_set:
@@ -12614,16 +12884,16 @@ def _serialize_admin_organization(org: Organization) -> dict[str, Any]:
 
 
 @app.get("/api/admin/organization/settings", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
-async def get_admin_organization_settings(me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    from .organization_access_api import get_organization_for_access
-    org = await get_organization_for_access(db, me, "organization:view")
+async def get_admin_organization_settings(request: Request, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    from .organization_access_api import get_organization_for_access, organization_id_from_request
+    org = await get_organization_for_access(db, me, "organization:view", organization_id_from_request(request))
     return _serialize_admin_organization(org)
 
 
 @app.patch("/api/admin/organization/settings", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
-async def update_admin_organization_settings(payload: dict[str, Any], me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    from .organization_access_api import get_organization_for_access
-    org = await get_organization_for_access(db, me, "organization:profile_write")
+async def update_admin_organization_settings(payload: dict[str, Any], request: Request, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    from .organization_access_api import get_organization_for_access, organization_id_from_request
+    org = await get_organization_for_access(db, me, "organization:profile_write", organization_id_from_request(request))
 
     settings_data = dict(getattr(org, "settings", {}) or {})
     for key in (
@@ -12663,12 +12933,13 @@ async def update_admin_organization_settings(payload: dict[str, Any], me: Curren
 
 @app.post("/api/admin/organization/logo", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
 async def upload_admin_organization_logo(
+    request: Request,
     file: UploadFile = File(...),
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    from .organization_access_api import get_organization_for_access
-    org = await get_organization_for_access(db, me, "organization:profile_write")
+    from .organization_access_api import get_organization_for_access, organization_id_from_request
+    org = await get_organization_for_access(db, me, "organization:profile_write", organization_id_from_request(request))
     data, ext = await _read_safe_raster_upload(file)
     safe_name = f"org-logos/org_{org.id}/logo{ext}"
     dest = Path(settings.local_storage_dir) / safe_name
@@ -13782,6 +14053,104 @@ class SelfRegisterIn(BaseModel):
     registration_documents: List[Dict[str, Any]] = Field(default_factory=list)
 
 
+class LegalDocumentEventIn(BaseModel):
+    document: Literal["kvkk", "privacy", "explicit_consent", "organizer_notice", "cross_border_notice"]
+    event_type: Literal["click", "view"] = "click"
+    event_id: Optional[str] = Field(default=None, max_length=128)
+    context: Optional[str] = Field(default=None, max_length=128)
+    source_path: Optional[str] = Field(default=None, max_length=512)
+
+
+LEGAL_DOCUMENT_VERSION = "2026-05-30"
+
+
+def _legal_text_hash(value: Optional[str]) -> str:
+    normalized = re.sub(r"\s+", " ", (value or "").strip())
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def _cross_border_notice_text_for_audit(lang: str = "tr") -> str:
+    if lang == "en":
+        return (
+            "Some services used by HeptaCert may be delivered through servers located outside the country. "
+            "Personal data may be processed by overseas infrastructure services for service delivery, security, "
+            "backup, and continuity purposes."
+        )
+    return (
+        "HeptaCert altyapisinda kullanilan bazi hizmetler yurt disinda bulunan sunucular uzerinden saglanabilir. "
+        "Kisisel veriler hizmetin sunulmasi, guvenlik, yedekleme ve sistem surekliligi amaclariyla yurt disindaki "
+        "altyapi hizmetlerinde islenebilir."
+    )
+
+
+def _stamp_event_legal_versions(config: Dict[str, Any]) -> Dict[str, Any]:
+    next_config = dict(config or {})
+    current = dict(next_config.get("legal_versions") or {})
+    changed = False
+    tracked = {
+        "kvkk_consent_text": str(next_config.get("kvkk_consent_text") or ""),
+        "organizer_privacy_notice_text": str(next_config.get("organizer_privacy_notice_text") or ""),
+        "cross_border_notice_text": _cross_border_notice_text_for_audit(),
+    }
+    for key, text in tracked.items():
+        digest = _legal_text_hash(text)
+        existing = dict(current.get(key) or {})
+        if existing.get("hash") != digest:
+            current[key] = {
+                "hash": digest,
+                "version": int(existing.get("version") or 0) + 1,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+            changed = True
+    if changed:
+        next_config["legal_versions"] = current
+    return next_config
+
+
+async def _write_attendee_consent_audit(
+    db: AsyncSession,
+    *,
+    event: Event,
+    attendee: Attendee,
+    payload: SelfRegisterIn,
+    member: Optional[CurrentPublicMember],
+    client_ip: Optional[str],
+    user_agent: Optional[str],
+    device_id: str,
+    result: str,
+) -> None:
+    await write_audit_log(
+        db,
+        user_id=None,
+        action="legal.consent.accept",
+        resource_type="legal_consent",
+        resource_id=str(attendee.id),
+        ip_address=client_ip,
+        user_agent=user_agent,
+        extra={
+            "event_id": event.id,
+            "event_public_id": _get_public_event_identifier(event),
+            "attendee_id": attendee.id,
+            "email": attendee.email.lower(),
+            "public_member_id": member.id if member else None,
+            "device_id": device_id,
+            "result": result,
+            "legal_document_version": LEGAL_DOCUMENT_VERSION,
+            "kvkk_required": _is_event_kvkk_consent_required(event),
+            "kvkk_accepted": bool(payload.kvkk_accepted),
+            "kvkk_text_hash": _legal_text_hash(_get_event_kvkk_consent_text(event)),
+            "organizer_notice_required": _is_event_organizer_privacy_notice_enabled(event),
+            "organizer_notice_accepted": bool(payload.organizer_notice_accepted),
+            "organizer_notice_text_hash": _legal_text_hash(_get_event_organizer_privacy_notice_text(event)),
+            "cross_border_notice_required": _is_event_cross_border_transfer_notice_enabled(event),
+            "cross_border_notice_read": bool(payload.cross_border_notice_read),
+            "cross_border_notice_text_hash": _legal_text_hash(_cross_border_notice_text_for_audit()),
+            "cross_border_transfer_consent_required": _is_event_cross_border_transfer_consent_required(event),
+            "cross_border_transfer_consent": bool(payload.cross_border_transfer_consent),
+        },
+    )
+
+
 class CheckinIn(BaseModel):
     email: EmailStr
 
@@ -14873,6 +15242,73 @@ async def public_event_info(event_id: str, db: AsyncSession = Depends(get_db)):
     return _build_public_event_detail(ev, sess_res.scalars().all(), survey_res.scalar_one_or_none()).model_dump()
 
 
+@app.post("/api/legal/document-events")
+@limiter.limit("60/minute")
+async def log_legal_document_event(
+    request: Request,
+    payload: LegalDocumentEventIn,
+    db: AsyncSession = Depends(get_db),
+    member: Optional[CurrentPublicMember] = Depends(get_optional_public_member),
+):
+    event_db_id: Optional[int] = None
+    event_public_id: Optional[str] = None
+    if payload.event_id:
+        ev = await _resolve_public_event(db, payload.event_id)
+        if ev:
+            event_db_id = ev.id
+            event_public_id = _get_public_event_identifier(ev)
+
+    await write_audit_log(
+        db,
+        user_id=None,
+        action=f"legal.document.{payload.event_type}",
+        resource_type="legal_document",
+        resource_id=payload.document,
+        ip_address=_client_ip_for_rate_limit(request),
+        user_agent=request.headers.get("User-Agent"),
+        extra={
+            "document": payload.document,
+            "event_id": event_db_id,
+            "event_public_id": event_public_id,
+            "public_member_id": member.id if member else None,
+            "context": payload.context,
+            "source_path": payload.source_path,
+            "legal_document_version": LEGAL_DOCUMENT_VERSION,
+        },
+    )
+    await db.commit()
+    return {"ok": True}
+
+
+async def _scan_upload_with_clamav(raw: bytes) -> None:
+    if not settings.clamav_enabled:
+        return
+    try:
+        reader, writer = await asyncio.open_connection(settings.clamav_host, settings.clamav_port)
+        writer.write(b"zINSTREAM\0")
+        await writer.drain()
+        chunk_size = 1024 * 1024
+        for idx in range(0, len(raw), chunk_size):
+            chunk = raw[idx:idx + chunk_size]
+            writer.write(len(chunk).to_bytes(4, "big") + chunk)
+            await writer.drain()
+        writer.write((0).to_bytes(4, "big"))
+        await writer.drain()
+        response = await asyncio.wait_for(reader.read(4096), timeout=15)
+        writer.close()
+        await writer.wait_closed()
+        verdict = response.decode("utf-8", errors="ignore")
+        if "FOUND" in verdict:
+            raise HTTPException(status_code=400, detail="Uploaded file failed antivirus scan")
+        if "OK" not in verdict:
+            raise HTTPException(status_code=502, detail="Antivirus scan did not return a clean result")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.warning("ClamAV scan failed: %s", exc)
+        raise HTTPException(status_code=502, detail="Antivirus scan is temporarily unavailable")
+
+
 @app.post("/api/events/{event_id}/registration-document")
 @limiter.limit("10/minute")
 async def upload_public_registration_document(
@@ -14907,6 +15343,26 @@ async def upload_public_registration_document(
         raise HTTPException(status_code=413, detail="Document exceeds 2 MB limit")
 
     ext = allowed_content_types[ctype]
+    if ctype == "application/pdf":
+        if not raw.startswith(b"%PDF-"):
+            raise bad_request("Invalid PDF file")
+    else:
+        signatures = {
+            "image/jpeg": (b"\xff\xd8\xff",),
+            "image/png": (b"\x89PNG\r\n\x1a\n",),
+            "image/webp": (b"RIFF",),
+        }
+        if not any(raw.startswith(prefix) for prefix in signatures.get(ctype, ())):
+            raise bad_request("Invalid image file")
+        if ctype == "image/webp" and raw[8:12] != b"WEBP":
+            raise bad_request("Invalid WEBP file")
+        if PILImage is not None:
+            try:
+                image = PILImage.open(io.BytesIO(raw))
+                image.verify()
+            except Exception:
+                raise bad_request("Invalid image file")
+    await _scan_upload_with_clamav(raw)
 
     safe_name = f"registration_docs/event_{ev.id}/{secrets.token_hex(16)}{ext}"
     dest = Path(settings.local_storage_dir) / safe_name
@@ -15073,6 +15529,17 @@ async def public_event_register(
                     "email": existing_attendee.email.lower(),
                 }
             )
+            await _write_attendee_consent_audit(
+                db,
+                event=ev,
+                attendee=existing_attendee,
+                payload=payload,
+                member=member,
+                client_ip=client_ip,
+                user_agent=user_agent,
+                device_id=device_id,
+                result="existing_unverified",
+            )
             await write_audit_log(
                 db,
                 user_id=None,
@@ -15134,6 +15601,18 @@ async def public_event_register(
             email=existing_attendee.email,
         )
         ticket = await _issue_event_ticket_if_needed(db, ev, existing_attendee)
+        consent_result = "existing_verified" if existing_attendee.email_verified else "existing_auto_verified"
+        await _write_attendee_consent_audit(
+            db,
+            event=ev,
+            attendee=existing_attendee,
+            payload=payload,
+            member=member,
+            client_ip=client_ip,
+            user_agent=user_agent,
+            device_id=device_id,
+            result=consent_result,
+        )
         await write_audit_log(
             db,
             user_id=None,
@@ -15222,6 +15701,18 @@ async def public_event_register(
         attendee.email_verification_token = None
         attendee.email_verified_at = datetime.now(timezone.utc)
         await _issue_event_ticket_if_needed(db, ev, attendee)
+    consent_result = "created_unverified" if require_email_verification else "created_verified"
+    await _write_attendee_consent_audit(
+        db,
+        event=ev,
+        attendee=attendee,
+        payload=payload,
+        member=member,
+        client_ip=client_ip,
+        user_agent=user_agent,
+        device_id=device_id,
+        result=consent_result,
+    )
     await write_audit_log(
         db,
         user_id=None,
@@ -17648,46 +18139,408 @@ async def list_my_transactions_paginated(
 
 # ═════ SUPERADMIN: AUDIT LOGS ═════
 
+def _audit_category_filter(q: Any, category: Optional[str]) -> Any:
+    if category == "legal":
+        return q.where(or_(AuditLog.action.like("legal.%"), AuditLog.resource_type == "legal_consent"))
+    if category == "security":
+        return q.where(or_(AuditLog.action.like("security.%"), AuditLog.action.ilike("%login%"), AuditLog.action.ilike("%rate_limit%")))
+    return q
+
+
+def _audit_row_payload(log: AuditLog, user_email: Optional[str] = None) -> Dict[str, Any]:
+    extra = log.extra or {}
+    details = extra.get("detail") or extra.get("result") or extra.get("context") or extra.get("status_code")
+    return {
+        "id": log.id,
+        "user_id": log.user_id,
+        "user_email": user_email,
+        "action": log.action,
+        "resource_type": log.resource_type,
+        "resource_id": log.resource_id,
+        "ip_address": str(log.ip_address) if log.ip_address else None,
+        "user_agent": log.user_agent[:300] if log.user_agent else None,
+        "details": str(details) if details is not None else None,
+        "extra": extra,
+        "created_at": log.created_at.isoformat() if log.created_at else None,
+    }
+
+
+def _audit_csv_response(rows: List[Dict[str, Any]], filename: str) -> StreamingResponse:
+    buffer = io.StringIO()
+    fieldnames = ["id", "created_at", "user_email", "action", "resource_type", "resource_id", "ip_address", "details", "extra"]
+    writer = csv.DictWriter(buffer, fieldnames=fieldnames)
+    writer.writeheader()
+    for row in rows:
+        writer.writerow({key: json.dumps(row.get(key), ensure_ascii=False) if key == "extra" else row.get(key, "") for key in fieldnames})
+    buffer.seek(0)
+    return StreamingResponse(
+        iter([buffer.getvalue().encode("utf-8-sig")]),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+def _pdf_escape_text(value: Any) -> str:
+    text = str(value if value is not None else "")
+    return text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+
+def _minimal_pdf_response(rows: List[Dict[str, Any]], title: str, filename: str) -> Response:
+    lines = [title, f"Generated at: {datetime.now(timezone.utc).isoformat()}", ""]
+    for row in rows[:120]:
+        summary = (
+            f"#{row.get('id')} | {row.get('created_at')} | {row.get('user_email') or 'system'} | "
+            f"{row.get('action')} | {row.get('resource_type') or '-'}:{row.get('resource_id') or '-'}"
+        )
+        lines.extend(textwrap.wrap(summary, width=96) or [""])
+        details = row.get("details")
+        if details:
+            lines.extend(textwrap.wrap(f"Details: {details}", width=96))
+        lines.append("")
+    if len(rows) > 120:
+        lines.append(f"... {len(rows) - 120} more rows available in CSV export.")
+
+    content_lines = ["BT", "/F1 9 Tf", "40 800 Td", "13 TL"]
+    for line in lines[:56]:
+        content_lines.append(f"({_pdf_escape_text(line)}) Tj")
+        content_lines.append("T*")
+    content_lines.append("ET")
+    stream = "\n".join(content_lines).encode("utf-8")
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        b"<< /Length " + str(len(stream)).encode("ascii") + b" >>\nstream\n" + stream + b"\nendstream",
+    ]
+    pdf = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
+    offsets = [0]
+    for idx, obj in enumerate(objects, start=1):
+        offsets.append(len(pdf))
+        pdf.extend(f"{idx} 0 obj\n".encode("ascii"))
+        pdf.extend(obj)
+        pdf.extend(b"\nendobj\n")
+    xref_offset = len(pdf)
+    pdf.extend(f"xref\n0 {len(objects) + 1}\n".encode("ascii"))
+    pdf.extend(b"0000000000 65535 f \n")
+    for offset in offsets[1:]:
+        pdf.extend(f"{offset:010d} 00000 n \n".encode("ascii"))
+    pdf.extend(
+        f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref_offset}\n%%EOF\n".encode("ascii")
+    )
+    return Response(
+        bytes(pdf),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @app.get("/api/superadmin/audit-logs", dependencies=[Depends(require_role(Role.superadmin))])
 async def get_audit_logs(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=50, le=500),
     action: Optional[str] = Query(None),
     resource_type: Optional[str] = Query(None),
+    category: Optional[str] = Query(default=None, pattern="^(legal|security)$"),
+    from_date: Optional[datetime] = Query(default=None),
+    to_date: Optional[datetime] = Query(default=None),
     db: AsyncSession = Depends(get_db),
 ):
     """Get paginated audit logs - superadmin only."""
-    q = select(AuditLog)
+    q = select(AuditLog, User.email).outerjoin(User, User.id == AuditLog.user_id)
     if action:
         q = q.where(AuditLog.action.ilike(f"%{action}%"))
     if resource_type:
         q = q.where(AuditLog.resource_type == resource_type)
+    if from_date:
+        q = q.where(AuditLog.created_at >= from_date)
+    if to_date:
+        q = q.where(AuditLog.created_at <= to_date)
+    q = _audit_category_filter(q, category)
     
     total_res = await db.execute(select(func.count()).select_from(q.subquery()))
     total = int(total_res.scalar_one() or 0)
     
     q = q.order_by(AuditLog.created_at.desc()).offset((page - 1) * limit).limit(limit)
     res = await db.execute(q)
-    logs = res.scalars().all()
+    rows = res.all()
     
     return {
         "total": total,
         "page": page,
         "limit": limit,
-        "items": [
-            {
-                "id": log.id,
-                "user_id": log.user_id,
-                "action": log.action,
-                "resource_type": log.resource_type,
-                "resource_id": log.resource_id,
-                "ip_address": log.ip_address,
-                "user_agent": log.user_agent[:100] if log.user_agent else None,
-                "created_at": log.created_at.isoformat() if log.created_at else None,
-            }
-            for log in logs
-        ]
+        "items": [_audit_row_payload(log, email) for log, email in rows],
     }
+
+
+@app.get("/api/superadmin/audit-logs/export", dependencies=[Depends(require_role(Role.superadmin))])
+async def export_audit_logs(
+    format: str = Query(default="csv", pattern="^(csv|pdf)$"),
+    category: Optional[str] = Query(default=None, pattern="^(legal|security)$"),
+    action: Optional[str] = Query(None),
+    resource_type: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+):
+    q = select(AuditLog, User.email).outerjoin(User, User.id == AuditLog.user_id)
+    if action:
+        q = q.where(AuditLog.action.ilike(f"%{action}%"))
+    if resource_type:
+        q = q.where(AuditLog.resource_type == resource_type)
+    q = _audit_category_filter(q, category)
+    q = q.order_by(AuditLog.created_at.desc()).limit(5000)
+    rows = [_audit_row_payload(log, email) for log, email in (await db.execute(q)).all()]
+    suffix = category or "all"
+    if format == "pdf":
+        return _minimal_pdf_response(rows, "HeptaCert Audit Logs", f"audit-logs-{suffix}.pdf")
+    return _audit_csv_response(rows, f"audit-logs-{suffix}.csv")
+
+
+@app.get("/api/admin/organization/legal-consents/export", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def export_organization_legal_consents(
+    request: Request,
+    format: str = Query(default="csv", pattern="^(csv|pdf)$"),
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from .organization_access_api import get_organization_for_access, organization_id_from_request
+
+    organization = await get_organization_for_access(db, me, "organization:view", organization_id_from_request(request))
+    event_ids = set((await db.execute(select(Event.id).where(Event.admin_id == organization.user_id))).scalars().all())
+    rows: List[Dict[str, Any]] = []
+    if event_ids:
+        q = (
+            select(AuditLog, User.email)
+            .outerjoin(User, User.id == AuditLog.user_id)
+            .where(AuditLog.action.in_(["legal.consent.accept", "legal.document.click", "legal.document.view"]))
+            .order_by(AuditLog.created_at.desc())
+            .limit(10000)
+        )
+        for log, email in (await db.execute(q)).all():
+            extra = log.extra if isinstance(log.extra, dict) else {}
+            try:
+                log_event_id = int(extra.get("event_id") or 0)
+            except (TypeError, ValueError):
+                log_event_id = 0
+            if log_event_id in event_ids:
+                rows.append(_audit_row_payload(log, email))
+    await write_audit_log(
+        db,
+        user_id=me.id,
+        action="organization.legal_consents.export",
+        resource_type="organization",
+        resource_id=str(organization.id),
+        extra={"format": format, "row_count": len(rows)},
+    )
+    await db.commit()
+    if format == "pdf":
+        return _minimal_pdf_response(rows, "Organization Consent Logs", f"organization-consent-logs-{organization.id}.pdf")
+    return _audit_csv_response(rows, f"organization-consent-logs-{organization.id}.csv")
+
+
+@app.get("/api/superadmin/security-events", dependencies=[Depends(require_role(Role.superadmin))])
+async def get_security_events(db: AsyncSession = Depends(get_db)):
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    q = _audit_category_filter(select(AuditLog), "security").where(AuditLog.created_at >= cutoff)
+    logs = (await db.execute(q.order_by(AuditLog.created_at.desc()).limit(500))).scalars().all()
+    by_action: Dict[str, int] = {}
+    by_ip: Dict[str, int] = {}
+    for log in logs:
+        by_action[log.action] = by_action.get(log.action, 0) + 1
+        if log.ip_address:
+            by_ip[str(log.ip_address)] = by_ip.get(str(log.ip_address), 0) + 1
+    return {
+        "total_24h": len(logs),
+        "by_action": by_action,
+        "suspicious_ips": [{"ip": ip, "count": count} for ip, count in sorted(by_ip.items(), key=lambda item: item[1], reverse=True)[:20] if count >= 3],
+        "items": [_audit_row_payload(log) for log in logs[:100]],
+    }
+
+
+@app.get("/api/admin/organization/venue-reservations/google-calendar/status", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def organization_google_calendar_status(
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from .organization_access_api import get_organization_for_access, organization_id_from_request
+
+    await get_organization_for_access(db, me, "reservations:read", organization_id_from_request(request))
+    integration = await _get_user_google_integration(db, me.id)
+    scopes = _normalize_google_scopes(integration.scopes if integration else [])
+    missing_scopes = _google_calendar_missing_scopes(scopes) if integration else GOOGLE_CALENDAR_REQUIRED_SCOPES
+    return {
+        "configured": bool(settings.google_oauth_client_id and settings.google_oauth_client_secret),
+        "connected": bool(integration and integration.refresh_token and not missing_scopes),
+        "google_email": integration.google_email if integration else None,
+        "missing_scopes": missing_scopes,
+    }
+
+
+@app.get("/api/admin/organization/venue-reservations/google-calendar/start", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def organization_google_calendar_start(
+    request: Request,
+    next: Optional[str] = Query(default="/admin/settings?tab=venues"),
+    frontend_origin: Optional[str] = Query(default=None),
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from .organization_access_api import get_organization_for_access, organization_id_from_request
+
+    await get_organization_for_access(db, me, "reservations:write", organization_id_from_request(request))
+    if not settings.google_oauth_client_id or not settings.google_oauth_client_secret:
+        raise HTTPException(status_code=503, detail="Google OAuth is not configured.")
+    state = make_email_token({
+        "action": "google_calendar_oauth",
+        "user_id": me.id,
+        "next": _normalize_oauth_next(next, "/admin/settings?tab=venues"),
+        "frontend_origin": _normalize_oauth_frontend_origin(frontend_origin),
+    })
+    params = {
+        "client_id": settings.google_oauth_client_id,
+        "redirect_uri": _google_sheets_redirect_uri(),
+        "response_type": "code",
+        "scope": " ".join(GOOGLE_CALENDAR_SCOPES),
+        "state": state,
+        "access_type": "offline",
+        "prompt": "consent select_account",
+        "include_granted_scopes": "true",
+    }
+    return {"authorization_url": f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"}
+
+
+def _google_calendar_event_datetime(value: Dict[str, Any]) -> Optional[datetime]:
+    raw = value.get("dateTime") or value.get("date")
+    if not raw:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+async def _pull_google_calendar_reservations(
+    db: AsyncSession,
+    access_token: str,
+    organization_id: int,
+    reservations_by_id: Dict[int, Any],
+) -> int:
+    if not reservations_by_id:
+        return 0
+    params = urlencode(
+        {
+            "singleEvents": "true",
+            "showDeleted": "false",
+            "maxResults": "250",
+            "privateExtendedProperty": "heptacert_source=venue_reservation",
+        }
+    )
+    payload = await _google_json_request(
+        access_token,
+        "GET",
+        f"https://www.googleapis.com/calendar/v3/calendars/primary/events?{params}",
+    )
+    pulled = 0
+    for item in payload.get("items") or []:
+        private = ((item.get("extendedProperties") or {}).get("private") or {})
+        if str(private.get("heptacert_organization_id") or "") != str(organization_id):
+            continue
+        try:
+            reservation_id = int(private.get("heptacert_reservation_id") or 0)
+        except (TypeError, ValueError):
+            continue
+        reservation = reservations_by_id.get(reservation_id)
+        if not reservation or reservation.external_event_id != item.get("id"):
+            continue
+        start_at = _google_calendar_event_datetime(item.get("start") or {})
+        end_at = _google_calendar_event_datetime(item.get("end") or {})
+        if not start_at or not end_at or end_at <= start_at:
+            continue
+        reservation.title = str(item.get("summary") or reservation.title)[:200]
+        reservation.description = str(item.get("description") or "")[:2000] or None
+        reservation.start_at = start_at
+        reservation.end_at = end_at
+        pulled += 1
+    return pulled
+
+
+async def _sync_organization_reservations_with_google_calendar(db: AsyncSession, organization_id: int, calendar_user_id: int) -> Dict[str, int]:
+    from .venue_reservations_api import VenueReservation
+    from .venues_api import OrganizationVenue
+
+    access_token = await _get_google_access_token_for_calendar(db, calendar_user_id)
+    res = await db.execute(
+        select(VenueReservation, OrganizationVenue)
+        .join(OrganizationVenue, OrganizationVenue.id == VenueReservation.venue_id)
+        .where(VenueReservation.organization_id == organization_id, VenueReservation.status == "confirmed")
+        .order_by(VenueReservation.start_at.asc())
+    )
+    rows = res.all()
+    reservations_by_id = {reservation.id: reservation for reservation, _venue in rows}
+    pulled = await _pull_google_calendar_reservations(db, access_token, organization_id, reservations_by_id)
+    await db.flush()
+
+    pushed = 0
+    updated = 0
+    for reservation, venue in rows:
+        body = {
+            "summary": reservation.title,
+            "description": reservation.description or "",
+            "location": f"{venue.name}{' - ' + venue.location if venue.location else ''}",
+            "start": {"dateTime": ensure_utc(reservation.start_at).isoformat()},
+            "end": {"dateTime": ensure_utc(reservation.end_at).isoformat()},
+            "extendedProperties": {
+                "private": {
+                    "heptacert_source": "venue_reservation",
+                    "heptacert_reservation_id": str(reservation.id),
+                    "heptacert_organization_id": str(organization_id),
+                }
+            },
+        }
+        if reservation.external_event_id:
+            await _google_json_request(
+                access_token,
+                "PATCH",
+                f"https://www.googleapis.com/calendar/v3/calendars/primary/events/{quote(reservation.external_event_id, safe='')}",
+                json_body=body,
+            )
+            updated += 1
+        else:
+            created = await _google_json_request(
+                access_token,
+                "POST",
+                "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+                json_body=body,
+            )
+            reservation.calendar_provider = "google"
+            reservation.external_event_id = str(created.get("id") or "")
+            pushed += 1
+    await db.commit()
+    return {"pulled": pulled, "pushed": pushed, "updated": updated}
+
+
+@app.post("/api/admin/organization/venue-reservations/google-calendar/sync", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def organization_google_calendar_sync(
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from .organization_access_api import get_organization_for_access, organization_id_from_request
+
+    organization = await get_organization_for_access(db, me, "reservations:write", organization_id_from_request(request))
+    result = await _sync_organization_reservations_with_google_calendar(db, organization.id, me.id)
+    await write_audit_log(
+        db,
+        user_id=me.id,
+        action="organization.reservation.google_calendar_sync",
+        resource_type="organization",
+        resource_id=str(organization.id),
+        extra=result,
+    )
+    await db.commit()
+    return {"ok": True, **result}
 
 
 # ═════ SUPERADMIN: ORGANIZATIONS ═════

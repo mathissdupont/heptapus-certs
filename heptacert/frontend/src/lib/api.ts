@@ -79,6 +79,22 @@ export function clearToken() {
   localStorage.removeItem("heptacert_token");
 }
 
+export function getSelectedOrganizationId(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("heptacert_organization_id");
+}
+
+export function setSelectedOrganizationId(id: string | number | null) {
+  if (typeof window === "undefined") return;
+  if (id === null || id === "") {
+    localStorage.removeItem("heptacert_organization_id");
+    window.dispatchEvent(new CustomEvent("heptacert:organization-context-change"));
+    return;
+  }
+  localStorage.setItem("heptacert_organization_id", String(id));
+  window.dispatchEvent(new CustomEvent("heptacert:organization-context-change"));
+}
+
 export function getPublicMemberToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("heptacert_public_member_token");
@@ -170,6 +186,10 @@ async function requestApi(
     headers.set("Content-Type", "application/json");
   }
   if (token) headers.set("Authorization", `Bearer ${token}`);
+  const selectedOrganizationId = getSelectedOrganizationId();
+  if (token && selectedOrganizationId && !headers.has("X-Organization-Id")) {
+    headers.set("X-Organization-Id", selectedOrganizationId);
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30_000);
@@ -1131,6 +1151,10 @@ export async function downloadRegistrationDocument(
   const token = getToken();
   const headers = new Headers();
   if (token) headers.set("Authorization", `Bearer ${token}`);
+  const selectedOrganizationId = getSelectedOrganizationId();
+  if (token && selectedOrganizationId && !headers.has("X-Organization-Id")) {
+    headers.set("X-Organization-Id", selectedOrganizationId);
+  }
 
   const res = await fetch(
     `${getApiBase()}/admin/events/${eventId}/registration-documents/file?path=${encodeURIComponent(path)}`,
@@ -1554,6 +1578,31 @@ export async function publicRegisterAttendee(
     body: JSON.stringify(data),
   });
   return res.json();
+}
+
+export function logLegalDocumentEvent(data: {
+  document: "kvkk" | "privacy" | "explicit_consent" | "organizer_notice" | "cross_border_notice";
+  event_type?: "click" | "view";
+  event_id?: EventRouteId;
+  context?: string;
+  source_path?: string;
+}) {
+  const payload = JSON.stringify({
+    document: data.document,
+    event_type: data.event_type || "click",
+    event_id: data.event_id != null ? toEventRouteId(data.event_id) : undefined,
+    context: data.context,
+    source_path: data.source_path,
+  });
+  const url = `${getApiBase()}/legal/document-events`;
+  if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
+    const blob = new Blob([payload], { type: "application/json" });
+    if (navigator.sendBeacon(url, blob)) return;
+  }
+  publicApiFetch("/legal/document-events", {
+    method: "POST",
+    body: payload,
+  }).catch(() => undefined);
 }
 
 export async function uploadPublicRegistrationDocument(
@@ -2148,6 +2197,8 @@ export async function creditSuperAdminCoins(data: { admin_user_id: number; amoun
 export async function listAuditLogs(params?: {
   user_id?: number;
   action?: string;
+  resource_type?: string;
+  category?: "legal" | "security";
   from_date?: string;
   to_date?: string;
   page?: number;
@@ -2156,6 +2207,8 @@ export async function listAuditLogs(params?: {
   const qs = new URLSearchParams();
   if (params?.user_id) qs.set("user_id", String(params.user_id));
   if (params?.action) qs.set("action", params.action);
+  if (params?.resource_type) qs.set("resource_type", params.resource_type);
+  if (params?.category) qs.set("category", params.category);
   if (params?.from_date) qs.set("from_date", params.from_date);
   if (params?.to_date) qs.set("to_date", params.to_date);
   if (params?.page) qs.set("page", String(params.page));
@@ -2165,6 +2218,66 @@ export async function listAuditLogs(params?: {
   const data = await res.json();
   const items = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
   return { items, total: typeof data?.total === "number" ? data.total : items.length };
+}
+
+export interface SecurityEventsOut {
+  total_24h: number;
+  by_action: Record<string, number>;
+  suspicious_ips: Array<{ ip: string; count: number }>;
+  items: AuditLogOut[];
+}
+
+export async function getSecurityEvents(): Promise<SecurityEventsOut> {
+  const res = await apiFetch("/superadmin/security-events");
+  return res.json();
+}
+
+export async function downloadAuditLogExport(format: "csv" | "pdf", category?: "legal" | "security") {
+  const qs = new URLSearchParams({ format });
+  if (category) qs.set("category", category);
+  const res = await apiFetch(`/superadmin/audit-logs/export?${qs}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `audit-logs-${category || "all"}.${format}`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function downloadOrganizationConsentLogs(format: "csv" | "pdf") {
+  const res = await apiFetch(`/admin/organization/legal-consents/export?format=${format}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `organization-consent-logs.${format}`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+export interface GoogleCalendarReservationStatus {
+  configured: boolean;
+  connected: boolean;
+  google_email?: string | null;
+  missing_scopes: string[];
+}
+
+export async function getReservationGoogleCalendarStatus(): Promise<GoogleCalendarReservationStatus> {
+  const res = await apiFetch("/admin/organization/venue-reservations/google-calendar/status");
+  return res.json();
+}
+
+export async function startReservationGoogleCalendarOAuth(next = "/admin/settings?tab=venues"): Promise<{ authorization_url: string }> {
+  const params = new URLSearchParams({ next });
+  if (typeof window !== "undefined") params.set("frontend_origin", window.location.origin);
+  const res = await apiFetch(`/admin/organization/venue-reservations/google-calendar/start?${params}`);
+  return res.json();
+}
+
+export async function syncReservationGoogleCalendar(): Promise<{ ok: boolean; pulled: number; pushed: number; updated: number }> {
+  const res = await apiFetch("/admin/organization/venue-reservations/google-calendar/sync", { method: "POST" });
+  return res.json();
 }
 
 export async function getSuperAdminStats(): Promise<SuperAdminLandingStatsConfig> {

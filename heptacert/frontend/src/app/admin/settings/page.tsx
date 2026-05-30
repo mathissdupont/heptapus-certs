@@ -2,7 +2,18 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { apiFetch, clearToken, deleteAdminAccount } from "@/lib/api";
+import {
+  apiFetch,
+  clearToken,
+  deleteAdminAccount,
+  downloadOrganizationConsentLogs,
+  getReservationGoogleCalendarStatus,
+  getSelectedOrganizationId,
+  setSelectedOrganizationId,
+  startReservationGoogleCalendarOAuth,
+  syncReservationGoogleCalendar,
+  type GoogleCalendarReservationStatus,
+} from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -11,7 +22,7 @@ import {
   History, TrendingUp, TrendingDown, Globe, Settings,
   Building2, Sparkles, RefreshCcw, Trash2,
   BadgeCheck, Link2, UploadCloud, MonitorSmartphone,
-  UserCog, CalendarDays, Download
+  UserCog, CalendarDays, Download, FileText
 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
 import { useToast } from "@/hooks/useToast";
@@ -22,11 +33,20 @@ const TABS = [
   { id: "account", label: "Hesap", description: "Şifre ve e-posta", icon: Lock },
   { id: "2fa", label: "2FA Güvenlik", description: "Kimlik koruması", icon: ShieldCheck },
   { id: "transactions", label: "Bakiye", description: "Harcama geçmişi", icon: History },
-  { id: "domain", label: "Özel Domain", description: "DNS ayarları", icon: Globe },
-  { id: "team", label: "Çalışanlar", description: "Kurum yetkileri", icon: UserCog },
-  { id: "venues", label: "Salonlar", description: "Kapasite yönetimi", icon: Building2 },
-  { id: "branding", label: "Kurumsal", description: "Marka kimliği", icon: Sparkles },
+  { id: "domain", label: "Özel Domain", description: "DNS ayarları", icon: Globe, permission: "organization:profile_write" },
+  { id: "team", label: "Çalışanlar", description: "Kurum yetkileri", icon: UserCog, permission: "organization:team_manage" },
+  { id: "venues", label: "Salonlar", description: "Kapasite yönetimi", icon: Building2, permission: "venues:read" },
+  { id: "compliance", label: "Uyumluluk", description: "Rıza logları", icon: FileText, permission: "organization:view" },
+  { id: "branding", label: "Kurumsal", description: "Marka kimliği", icon: Sparkles, permission: "organization:profile_write" },
 ];
+
+type OrganizationContext = {
+  id: number;
+  org_name: string;
+  role: string;
+  owned: boolean;
+  permissions: string[];
+};
 
 function fmtDate(s: string | null) {
   if (!s) return "-";
@@ -921,14 +941,21 @@ type VenueReservation = {
 function ReservationsPanel({ venues }: { venues: OrganizationVenue[] }) {
   const toast = useToast();
   const [reservations, setReservations] = useState<VenueReservation[]>([]);
+  const [calendarStatus, setCalendarStatus] = useState<GoogleCalendarReservationStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [form, setForm] = useState({ venue_id: "", title: "", start_at: "", end_at: "", description: "" });
 
   async function loadReservations() {
     setLoading(true);
     try {
-      setReservations(await (await apiFetch("/admin/organization/venue-reservations")).json());
+      const [reservationData, statusData] = await Promise.all([
+        (await apiFetch("/admin/organization/venue-reservations")).json(),
+        getReservationGoogleCalendarStatus().catch(() => null),
+      ]);
+      setReservations(reservationData);
+      setCalendarStatus(statusData);
     } catch (error: any) {
       toast.error(error?.message || "Rezervasyonlar yüklenemedi.");
     } finally {
@@ -991,6 +1018,28 @@ function ReservationsPanel({ venues }: { venues: OrganizationVenue[] }) {
     }
   }
 
+  async function connectGoogleCalendar() {
+    try {
+      const { authorization_url } = await startReservationGoogleCalendarOAuth("/admin/settings?tab=venues");
+      window.location.href = authorization_url;
+    } catch (error: any) {
+      toast.error(error?.message || "Google Calendar bağlantısı başlatılamadı.");
+    }
+  }
+
+  async function syncGoogleCalendar() {
+    setSyncing(true);
+    try {
+      const result = await syncReservationGoogleCalendar();
+      toast.success(`Google Calendar senkronlandı. Çekilen: ${result.pulled}, yeni: ${result.pushed}, güncellenen: ${result.updated}.`);
+      await loadReservations();
+    } catch (error: any) {
+      toast.error(error?.message || "Google Calendar senkronu tamamlanamadı.");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   function venueName(venueId: number) {
     return venues.find((venue) => venue.id === venueId)?.name || "Salon";
   }
@@ -1002,7 +1051,20 @@ function ReservationsPanel({ venues }: { venues: OrganizationVenue[] }) {
           <div className="rounded-2xl bg-indigo-50 p-3 text-indigo-600"><CalendarDays className="h-5 w-5" /></div>
           <div><h2 className="text-lg font-semibold text-zinc-900">Rezervasyon takvimi</h2><p className="text-sm text-zinc-500">Salon çakışmalarını engeller ve takvime aktarır</p></div>
         </div>
-        <button type="button" onClick={() => void exportCalendar()} className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-3 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"><Download className="h-4 w-4" /> Google Calendar'a aktar (.ics)</button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => void exportCalendar()} className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-3 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"><Download className="h-4 w-4" /> .ics indir</button>
+          {calendarStatus?.connected ? (
+            <button type="button" onClick={() => void syncGoogleCalendar()} disabled={syncing} className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">
+              {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+              Google çift yönlü sync
+            </button>
+          ) : (
+            <button type="button" onClick={() => void connectGoogleCalendar()} disabled={calendarStatus?.configured === false} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">
+              <Link2 className="h-4 w-4" />
+              Google Calendar bağla
+            </button>
+          )}
+        </div>
       </div>
       <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
         <form onSubmit={submitReservation} className="space-y-3 rounded-2xl bg-zinc-50 p-4">
@@ -1368,28 +1430,108 @@ function BrandingTab() {
   );
 }
 
+function ComplianceTab() {
+  const toast = useToast();
+  const [downloading, setDownloading] = useState<"csv" | "pdf" | null>(null);
+
+  async function download(format: "csv" | "pdf") {
+    setDownloading(format);
+    try {
+      await downloadOrganizationConsentLogs(format);
+      toast.success(format === "csv" ? "Rıza logları CSV olarak hazır." : "Rıza logları PDF olarak hazır.");
+    } catch (error: any) {
+      toast.error(error?.message || "Rıza logları indirilemedi.");
+    } finally {
+      setDownloading(null);
+    }
+  }
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+      <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="mb-6 flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600"><FileText className="h-5 w-5" /></div>
+          <div>
+            <h2 className="text-lg font-semibold text-zinc-900">KVKK ve açık rıza kayıtları</h2>
+            <p className="text-sm text-zinc-500">Kendi organizasyonunuzun etkinliklerindeki rıza, metin görüntüleme ve doküman tıklama loglarını indirin.</p>
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <button type="button" onClick={() => void download("csv")} disabled={!!downloading} className="rounded-2xl border border-zinc-200 px-4 py-4 text-left transition hover:bg-zinc-50 disabled:opacity-60">
+            <p className="font-semibold text-zinc-900">CSV export</p>
+            <p className="mt-1 text-sm text-zinc-500">Excel ve arşivleme için detaylı kayıt.</p>
+          </button>
+          <button type="button" onClick={() => void download("pdf")} disabled={!!downloading} className="rounded-2xl border border-zinc-200 px-4 py-4 text-left transition hover:bg-zinc-50 disabled:opacity-60">
+            <p className="font-semibold text-zinc-900">PDF özet</p>
+            <p className="mt-1 text-sm text-zinc-500">Denetim paylaşımı için okunabilir özet.</p>
+          </button>
+        </div>
+      </section>
+      <aside className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
+        <p className="font-bold">Kayıt altına alınan olaylar</p>
+        <ul className="mt-3 list-disc space-y-2 pl-5">
+          <li>Açık rıza onayı</li>
+          <li>KVKK / aydınlatma metni görüntüleme</li>
+          <li>Hukuki doküman tıklamaları</li>
+          <li>Metin versiyonu ve zaman damgası</li>
+        </ul>
+      </aside>
+    </div>
+  );
+}
+
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function AdminSettingsPage() {
   const router = useRouter();
   const [me, setMe] = useState<{ email: string; role?: string } | null>(null);
   const [activeTab, setActiveTab] = useState("account");
+  const [organizationContexts, setOrganizationContexts] = useState<OrganizationContext[]>([]);
+  const [selectedOrganizationId, setSelectedOrganizationIdState] = useState<string>("");
 
   useEffect(() => {
     apiFetch("/me", { method: "GET" }).then(r => r.json()).then(d => setMe(d)).catch(() => router.push("/admin/login"));
   }, [router]);
 
   useEffect(() => {
+    apiFetch("/admin/organization/contexts", { method: "GET" })
+      .then((r) => r.json())
+      .then((items: OrganizationContext[]) => {
+        const contexts = items || [];
+        setOrganizationContexts(contexts);
+        const stored = getSelectedOrganizationId();
+        const selected = contexts.find((ctx) => String(ctx.id) === stored) || contexts[0];
+        if (selected) {
+          setSelectedOrganizationIdState(String(selected.id));
+          setSelectedOrganizationId(selected.id);
+        }
+      })
+      .catch(() => null);
+  }, []);
+
+  const selectedContext = organizationContexts.find((ctx) => String(ctx.id) === selectedOrganizationId);
+  const availableTabs = TABS.filter((tab) => !tab.permission || selectedContext?.permissions?.includes(tab.permission));
+
+  useEffect(() => {
+    if (!availableTabs.length) return;
+    if (!availableTabs.some((tab) => tab.id === activeTab)) {
+      const fallback = availableTabs.find((tab) => tab.id === "account") || availableTabs[0];
+      setActiveTab(fallback.id);
+      router.replace(`/admin/settings?tab=${fallback.id}`);
+    }
+  }, [activeTab, availableTabs, router]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     const syncTabFromLocation = () => {
       const tabFromQuery = new URLSearchParams(window.location.search).get("tab")?.trim() || "";
-      const isValidTab = TABS.some((tab) => tab.id === tabFromQuery);
+      const isValidTab = availableTabs.some((tab) => tab.id === tabFromQuery);
       if (!isValidTab) return;
       setActiveTab((prev) => (prev === tabFromQuery ? prev : tabFromQuery));
     };
     syncTabFromLocation();
     window.addEventListener("popstate", syncTabFromLocation);
     return () => window.removeEventListener("popstate", syncTabFromLocation);
-  }, []);
+  }, [availableTabs]);
 
   function handleTabChange(nextTab: string) {
     setActiveTab(nextTab);
@@ -1401,13 +1543,36 @@ export default function AdminSettingsPage() {
       {/* Orijinal PageHeader componenti duruyor, dilersen kullanabilirsin diye ama yeni hali çok daha Apple-vari oldu. */}
       {/* <PageHeader title="Ayarlar" subtitle="..." icon={<Settings />} /> */}
       
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Ayarlar</h1>
-        <p className="text-base text-zinc-500">Hesap, güvenlik, faturalandırma ve kurumsal kimlik yönetimi.</p>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Ayarlar</h1>
+          <p className="text-base text-zinc-500">Hesap, güvenlik, faturalandırma ve kurumsal kimlik yönetimi.</p>
+        </div>
+        {organizationContexts.length > 0 && (
+          <div className="w-full rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm lg:w-80">
+            <label className="mb-1 block text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">Organizasyon</label>
+            <select
+              value={selectedOrganizationId}
+              onChange={(event) => {
+                const nextId = event.target.value;
+                setSelectedOrganizationIdState(nextId);
+                setSelectedOrganizationId(nextId || null);
+                window.location.reload();
+              }}
+              className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-semibold text-zinc-800 outline-none transition focus:border-zinc-900 focus:bg-white"
+            >
+              {organizationContexts.map((ctx) => (
+                <option key={ctx.id} value={ctx.id}>
+                  {ctx.org_name} {ctx.owned ? "(kendi kurumum)" : `(${ctx.role})`}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2 rounded-2xl bg-zinc-50 p-2 border border-zinc-100">
-        {TABS.map((tab) => {
+        {availableTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           return (
@@ -1436,6 +1601,7 @@ export default function AdminSettingsPage() {
             {activeTab === "domain" && <CustomDomainTab />}
             {activeTab === "team" && <OrganizationTeamTab />}
             {activeTab === "venues" && <VenuesTab />}
+            {activeTab === "compliance" && <ComplianceTab />}
             {activeTab === "branding" && <BrandingTab />}
           </motion.div>
         </AnimatePresence>

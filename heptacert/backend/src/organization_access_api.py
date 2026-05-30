@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -149,6 +149,15 @@ class OrganizationMemberOut(BaseModel):
     updated_at: datetime
 
 
+class OrganizationContextOut(BaseModel):
+    id: int
+    public_id: str
+    org_name: str
+    role: str
+    owned: bool
+    permissions: list[str]
+
+
 def _member_out(member: OrganizationMember) -> OrganizationMemberOut:
     return OrganizationMemberOut(
         id=member.id,
@@ -194,7 +203,19 @@ async def get_organization_for_access(
     db: AsyncSession,
     me: CurrentUser,
     required_permission: Optional[str] = "organization:view",
+    organization_id: Optional[int] = None,
 ) -> Organization:
+    if organization_id is not None:
+        selected = await db.get(Organization, organization_id)
+        if selected is None:
+            raise HTTPException(status_code=404, detail="Organization not found")
+        if selected.user_id == me.id or me.role == Role.superadmin:
+            return selected
+        member = await _active_member_for_org(db, selected.id, me)
+        if member and member_allows(member, required_permission):
+            return selected
+        raise HTTPException(status_code=403, detail="Organization permission denied")
+
     result = await db.execute(select(Organization).where(Organization.user_id == me.id))
     owned = result.scalar_one_or_none()
     if owned:
@@ -231,12 +252,63 @@ async def get_organization_for_access(
     return owner_org
 
 
+def organization_id_from_request(request: Request) -> Optional[int]:
+    raw = request.headers.get("X-Organization-Id") or request.query_params.get("organization_id")
+    if raw is None or str(raw).strip() == "":
+        return None
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Invalid organization context")
+
+
+async def get_accessible_organization_contexts(db: AsyncSession, me: CurrentUser) -> list[OrganizationContextOut]:
+    owned = await _get_or_create_admin_organization(db, me.id)
+    contexts: dict[int, OrganizationContextOut] = {
+        owned.id: OrganizationContextOut(
+            id=owned.id,
+            public_id=owned.public_id,
+            org_name=owned.org_name or "Kendi organizasyonum",
+            role="owner",
+            owned=True,
+            permissions=sorted(ORGANIZATION_PERMISSION_LABELS.keys()),
+        )
+    }
+    normalized_email = (me.email or "").strip().lower()
+    result = await db.execute(
+        select(Organization, OrganizationMember)
+        .join(OrganizationMember, OrganizationMember.organization_id == Organization.id)
+        .where(
+            OrganizationMember.status == "active",
+            or_(
+                OrganizationMember.user_id == me.id,
+                func.lower(func.trim(OrganizationMember.email)) == normalized_email,
+            ),
+        )
+        .order_by(OrganizationMember.created_at.asc())
+    )
+    for organization, member in result.all():
+        contexts.setdefault(
+            organization.id,
+            OrganizationContextOut(
+                id=organization.id,
+                public_id=organization.public_id,
+                org_name=organization.org_name or "Organizasyon",
+                role=member.role,
+                owned=False,
+                permissions=effective_organization_permissions(member),
+            ),
+        )
+    return list(contexts.values())
+
+
 async def _member_in_manageable_organization(
     db: AsyncSession,
     me: CurrentUser,
     member_id: int,
+    organization_id: Optional[int] = None,
 ) -> tuple[Organization, OrganizationMember]:
-    organization = await get_organization_for_access(db, me, "organization:team_manage")
+    organization = await get_organization_for_access(db, me, "organization:team_manage", organization_id)
     result = await db.execute(
         select(OrganizationMember).where(
             OrganizationMember.id == member_id,
@@ -250,12 +322,21 @@ async def _member_in_manageable_organization(
 
 
 @router.get(
+    "/api/admin/organization/contexts",
+    response_model=list[OrganizationContextOut],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def list_organization_contexts(me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    return await get_accessible_organization_contexts(db, me)
+
+
+@router.get(
     "/api/admin/organization/team",
     response_model=list[OrganizationMemberOut],
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
 )
-async def list_organization_members(me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    organization = await get_organization_for_access(db, me, "organization:team_manage")
+async def list_organization_members(request: Request, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    organization = await get_organization_for_access(db, me, "organization:team_manage", organization_id_from_request(request))
     result = await db.execute(
         select(OrganizationMember)
         .where(OrganizationMember.organization_id == organization.id)
@@ -272,10 +353,11 @@ async def list_organization_members(me: CurrentUser = Depends(get_current_user),
 )
 async def create_organization_member(
     payload: OrganizationMemberIn,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    organization = await get_organization_for_access(db, me, "organization:team_manage")
+    organization = await get_organization_for_access(db, me, "organization:team_manage", organization_id_from_request(request))
     normalized_email = str(payload.email).strip().lower()
     if normalized_email == (me.email or "").strip().lower():
         raise HTTPException(status_code=409, detail="Organization owner cannot be added as a member")
@@ -320,10 +402,11 @@ async def create_organization_member(
 async def update_organization_member(
     member_id: int,
     payload: OrganizationMemberUpdateIn,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    organization, member = await _member_in_manageable_organization(db, me, member_id)
+    organization, member = await _member_in_manageable_organization(db, me, member_id, organization_id_from_request(request))
     updates = payload.model_dump(exclude_unset=True)
     for key, value in updates.items():
         setattr(member, key, value)
@@ -346,10 +429,11 @@ async def update_organization_member(
 )
 async def delete_organization_member(
     member_id: int,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    organization, member = await _member_in_manageable_organization(db, me, member_id)
+    organization, member = await _member_in_manageable_organization(db, me, member_id, organization_id_from_request(request))
     await write_audit_log(
         db,
         user_id=me.id,

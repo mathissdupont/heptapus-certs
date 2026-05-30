@@ -37,6 +37,7 @@ import {
   ShieldAlert,
   RefreshCw,
   Unplug,
+  Building2,
 } from "lucide-react";
 import { apiFetch, consumeOAuthBridgeToken, getMySubscription, listAdminEventComments, setToken, updateAdminEventComment, type RegistrationField, type SubscriptionInfo, type PublicEventComment } from "@/lib/api";
 import EventAdminNav, { refreshEventAdminMeta } from "@/components/Admin/EventAdminNav";
@@ -76,6 +77,10 @@ type EventOut = {
   raffles_enabled?: boolean;
   gamification_enabled?: boolean;
   requires_approval?: boolean;
+  organization_venue_id?: number | null;
+  venue_reservation_id?: number | null;
+  venue_reservation_start_at?: string | null;
+  venue_reservation_end_at?: string | null;
 };
 
 type EmailTemplate = {
@@ -139,6 +144,18 @@ type FormState = {
   data_controller_name: string;
   data_controller_contact_email: string;
   data_retention_note: string;
+  organization_venue_id: string;
+  auto_reserve_venue: boolean;
+  venue_reservation_start_at: string;
+  venue_reservation_end_at: string;
+};
+
+type OrganizationVenue = {
+  id: number;
+  name: string;
+  capacity?: number | null;
+  location?: string | null;
+  is_active: boolean;
 };
 
 type EventType =
@@ -245,6 +262,14 @@ function createRegistrationField(): RegistrationField {
     options: [],
     selection_mode: "single",
   };
+}
+
+function toDateTimeLocal(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const offsetMs = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
 }
 
 export default function EventSettingsPage() {
@@ -439,6 +464,7 @@ export default function EventSettingsPage() {
   const [customEmailTemplates, setCustomEmailTemplates] = useState<EmailTemplate[]>([]);
   const [systemEmailTemplates, setSystemEmailTemplates] = useState<EmailTemplate[]>([]);
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
+  const [venues, setVenues] = useState<OrganizationVenue[]>([]);
   const [formData, setFormData] = useState<FormState>({
     name: "",
     event_date: "",
@@ -468,6 +494,10 @@ export default function EventSettingsPage() {
     data_controller_name: "",
     data_controller_contact_email: "",
     data_retention_note: "",
+    organization_venue_id: "",
+    auto_reserve_venue: false,
+    venue_reservation_start_at: "",
+    venue_reservation_end_at: "",
   });
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
@@ -533,11 +563,12 @@ export default function EventSettingsPage() {
     setLoading(true);
     setError(null);
     try {
-      const [eventRes, customRes, systemRes, subRes] = await Promise.all([
+      const [eventRes, customRes, systemRes, subRes, venuesRes] = await Promise.all([
         apiFetch(`/admin/events/${eventId}`),
         apiFetch(`/admin/events/${eventId}/email-templates`),
         apiFetch("/system/email-templates"),
         getMySubscription(),
+        apiFetch("/admin/organization/venues").catch(() => null),
       ]);
 
       const eventData = (await eventRes.json()) as EventOut;
@@ -548,6 +579,12 @@ export default function EventSettingsPage() {
       setCustomEmailTemplates(customData || []);
       setSystemEmailTemplates(systemData || []);
       setSubscription(subRes);
+      if (venuesRes) {
+        const venueItems = (await venuesRes.json()) as OrganizationVenue[];
+        setVenues((venueItems || []).filter((venue) => venue.is_active));
+      } else {
+        setVenues([]);
+      }
       void loadSheetsStatus();
       setFormData({
         name: eventData.name || "",
@@ -598,6 +635,10 @@ export default function EventSettingsPage() {
         data_controller_name: String(eventData.config?.data_controller_name || ""),
         data_controller_contact_email: String(eventData.config?.data_controller_contact_email || ""),
         data_retention_note: String(eventData.config?.data_retention_note || ""),
+        organization_venue_id: eventData.organization_venue_id ? String(eventData.organization_venue_id) : "",
+        auto_reserve_venue: Boolean(eventData.venue_reservation_id || eventData.organization_venue_id),
+        venue_reservation_start_at: toDateTimeLocal(eventData.venue_reservation_start_at),
+        venue_reservation_end_at: toDateTimeLocal(eventData.venue_reservation_end_at),
       });
     } catch (e: any) {
       setError(e?.message || copy.loadingError);
@@ -919,6 +960,10 @@ export default function EventSettingsPage() {
         data_controller_name: formData.data_controller_name.trim() || null,
         data_controller_contact_email: formData.data_controller_contact_email.trim() || null,
         data_retention_note: formData.data_retention_note.trim() || null,
+        organization_venue_id: formData.organization_venue_id ? Number(formData.organization_venue_id) : null,
+        auto_reserve_venue: Boolean(formData.auto_reserve_venue && formData.organization_venue_id),
+        venue_reservation_start_at: formData.venue_reservation_start_at ? new Date(formData.venue_reservation_start_at).toISOString() : null,
+        venue_reservation_end_at: formData.venue_reservation_end_at ? new Date(formData.venue_reservation_end_at).toISOString() : null,
       };
 
       if (hasGrowthPlan) {
@@ -1115,6 +1160,84 @@ export default function EventSettingsPage() {
                 </div>
               </div>
             </section>
+
+            {venues.length > 0 && (
+              <section className="card p-6 sm:p-7">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-lg bg-emerald-50 p-3 text-emerald-600">
+                    <Building2 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-surface-900">
+                      {lang === "tr" ? "Salon ve rezervasyon" : "Venue and reservation"}
+                    </h2>
+                    <p className="mt-1 text-sm text-surface-500">
+                      {lang === "tr"
+                        ? "Kurum salonlarından birini seçip uygunluk varsa rezervasyonu otomatik oluşturabilir veya güncelleyebilirsiniz."
+                        : "Choose an organization venue and automatically create or update the reservation when it is available."}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_190px_190px]">
+                  <div>
+                    <label className="label">{lang === "tr" ? "Salon" : "Venue"}</label>
+                    <select
+                      value={formData.organization_venue_id}
+                      onChange={(event) =>
+                        setFormData((current) => ({
+                          ...current,
+                          organization_venue_id: event.target.value,
+                          auto_reserve_venue: event.target.value ? current.auto_reserve_venue : false,
+                        }))
+                      }
+                      className="input-field"
+                    >
+                      <option value="">{lang === "tr" ? "Salon seçme" : "No venue"}</option>
+                      {venues.map((venue) => (
+                        <option key={venue.id} value={venue.id}>
+                          {venue.name}{venue.capacity ? ` - ${venue.capacity} kişi` : ""}{venue.location ? ` - ${venue.location}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">{lang === "tr" ? "Rezervasyon başlangıcı" : "Reservation start"}</label>
+                    <input
+                      type="datetime-local"
+                      value={formData.venue_reservation_start_at}
+                      onChange={(event) => setFormData((current) => ({ ...current, venue_reservation_start_at: event.target.value }))}
+                      disabled={!formData.organization_venue_id}
+                      className="input-field"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">{lang === "tr" ? "Rezervasyon bitişi" : "Reservation end"}</label>
+                    <input
+                      type="datetime-local"
+                      value={formData.venue_reservation_end_at}
+                      onChange={(event) => setFormData((current) => ({ ...current, venue_reservation_end_at: event.target.value }))}
+                      disabled={!formData.organization_venue_id}
+                      className="input-field"
+                    />
+                  </div>
+                </div>
+                <label className="mt-4 flex items-start gap-2 rounded-xl border border-surface-200 bg-surface-50 p-4 text-sm font-semibold text-surface-700">
+                  <input
+                    type="checkbox"
+                    checked={formData.auto_reserve_venue}
+                    disabled={!formData.organization_venue_id}
+                    onChange={(event) => setFormData((current) => ({ ...current, auto_reserve_venue: event.target.checked }))}
+                    className="mt-1 h-4 w-4 accent-brand-600"
+                  />
+                  <span>
+                    {lang === "tr"
+                      ? "Salon uygunsa rezervasyonu otomatik oluştur veya mevcut rezervasyonu güncelle"
+                      : "Create or update the reservation automatically if the venue is available"}
+                  </span>
+                </label>
+              </section>
+            )}
 
             {/* Event Type & Features */}
             <section className="card p-6 sm:p-7">

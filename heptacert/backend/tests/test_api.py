@@ -11,6 +11,7 @@ from src.main import (
     app,
     Attendee,
     AttendanceRecord,
+    AuditLog,
     Certificate,
     CommunityPost,
     CommunityPostComment,
@@ -505,6 +506,78 @@ class TestPublicSocialAndEventControls:
             )
             assert admin_resp.status_code == 200
             assert admin_resp.json()["email"] == "manual-disabled@test.com"
+
+    @pytest.mark.asyncio
+    async def test_legal_document_clicks_and_consent_acceptance_are_audited(self):
+        async with SessionLocal() as db:
+            admin = User(email="legal-audit-admin@test.com", password_hash=hash_password("AdminPass123!"), role=Role.admin)
+            db.add(admin)
+            await db.flush()
+            event = Event(
+                admin_id=admin.id,
+                public_id="evt_legal_audit",
+                name="Legal Audit Event",
+                template_image_url="placeholder",
+                config={
+                    "visibility": "public",
+                    "kvkk_consent_required": True,
+                    "kvkk_consent_text": "Etkinlik KVKK metni",
+                    "organizer_privacy_notice_enabled": True,
+                    "organizer_privacy_notice_text": "Organizator aydinlatma metni",
+                    "show_cross_border_transfer_notice": True,
+                    "require_cross_border_transfer_consent": True,
+                },
+                registration_enabled=True,
+                require_email_verification=False,
+            )
+            db.add(event)
+            await db.commit()
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            clicked = await ac.post(
+                "/api/legal/document-events",
+                json={
+                    "document": "explicit_consent",
+                    "event_type": "click",
+                    "event_id": "evt_legal_audit",
+                    "context": "event_registration",
+                    "source_path": "/events/evt_legal_audit/register",
+                },
+            )
+            assert clicked.status_code == 200
+
+            registered = await ac.post(
+                "/api/events/evt_legal_audit/register",
+                json={
+                    "name": "Legal User",
+                    "email": "legal-user@test.com",
+                    "registration_answers": {},
+                    "kvkk_accepted": True,
+                    "organizer_notice_accepted": True,
+                    "cross_border_notice_read": True,
+                    "cross_border_transfer_consent": True,
+                },
+            )
+            assert registered.status_code == 201
+
+        async with SessionLocal() as db:
+            click_res = await db.execute(
+                select(AuditLog).where(AuditLog.action == "legal.document.click", AuditLog.resource_id == "explicit_consent")
+            )
+            click_log = click_res.scalar_one_or_none()
+            assert click_log is not None
+            assert click_log.extra["context"] == "event_registration"
+
+            consent_res = await db.execute(
+                select(AuditLog).where(AuditLog.action == "legal.consent.accept")
+            )
+            consent_log = consent_res.scalar_one_or_none()
+            assert consent_log is not None
+            assert consent_log.extra["kvkk_accepted"] is True
+            assert consent_log.extra["organizer_notice_accepted"] is True
+            assert consent_log.extra["cross_border_transfer_consent"] is True
+            assert consent_log.extra["kvkk_text_hash"]
 
     @pytest.mark.asyncio
     async def test_ticket_checkin_writes_and_clears_only_ticket_attendance(self):

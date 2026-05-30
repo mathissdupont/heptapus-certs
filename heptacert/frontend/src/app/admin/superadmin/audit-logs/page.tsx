@@ -11,9 +11,10 @@ import {
   RefreshCw,
   Search,
   ShieldAlert,
+  ShieldCheck,
   Trash2,
 } from "lucide-react";
-import { listAuditLogs, AuditLogOut } from "@/lib/api";
+import { downloadAuditLogExport, getSecurityEvents, listAuditLogs, AuditLogOut, type SecurityEventsOut } from "@/lib/api";
 import PageHeader from "@/components/Admin/PageHeader";
 import EmptyState from "@/components/Admin/EmptyState";
 import { useToast } from "@/hooks/useToast";
@@ -44,6 +45,8 @@ export default function AuditLogsPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
+  const [category, setCategory] = useState<"all" | "legal" | "security">("all");
+  const [security, setSecurity] = useState<SecurityEventsOut | null>(null);
 
   const copy = lang === "tr"
     ? {
@@ -51,6 +54,12 @@ export default function AuditLogsPage() {
         subtitle: "Platformdaki kritik değişiklikleri, erişim hareketlerini ve sistem olaylarını izleyin",
         loadFailed: "Denetim kayıtları yüklenemedi",
         refresh: "Yenile",
+        exportCsv: "CSV indir",
+        exportPdf: "PDF indir",
+        allLogs: "Tümü",
+        legalLogs: "KVKK / Rıza",
+        securityLogs: "Güvenlik olayları",
+        suspiciousIps: "Şüpheli IP",
         totalLogs: "Toplam kayıt",
         uniqueUsers: "Etkilenen kullanıcı",
         recentChanges: "Son 24 saat",
@@ -74,6 +83,12 @@ export default function AuditLogsPage() {
         subtitle: "Track critical platform changes, access activity, and system events in one place",
         loadFailed: "Failed to load audit logs",
         refresh: "Refresh",
+        exportCsv: "Export CSV",
+        exportPdf: "Export PDF",
+        allLogs: "All",
+        legalLogs: "KVKK / Consent",
+        securityLogs: "Security events",
+        suspiciousIps: "Suspicious IPs",
         totalLogs: "Total logs",
         uniqueUsers: "Affected users",
         recentChanges: "Last 24 hours",
@@ -98,8 +113,9 @@ export default function AuditLogsPage() {
       if (mode === "load") setLoading(true);
       if (mode === "refresh") setRefreshing(true);
       setError(null);
-      const result = await listAuditLogs({ page: 1, limit: 500 });
+      const result = await listAuditLogs({ page: 1, limit: 500, category: category === "all" ? undefined : category });
       setLogs(result.items);
+      if (category === "security") setSecurity(await getSecurityEvents());
     } catch (e: any) {
       const message = e?.message || copy.loadFailed;
       setError(message);
@@ -113,7 +129,7 @@ export default function AuditLogsPage() {
   useEffect(() => {
     fetchLogs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lang]);
+  }, [lang, category]);
 
   const actions = useMemo(() => Array.from(new Set(logs.map((log) => log.action))).sort(), [logs]);
 
@@ -144,25 +160,13 @@ export default function AuditLogsPage() {
     [lang]
   );
 
-  const exportVisibleLogs = () => {
-    const headers = ["id", "created_at", "user_email", "action", "resource_type", "resource_id", "details"];
-    const rows = filteredLogs.map((log) => [
-      log.id,
-      new Date(log.created_at).toLocaleString(copy.locale),
-      log.user_email || "",
-      log.action,
-      log.resource_type || "",
-      log.resource_id || "",
-      (log.details || "").replaceAll('"', '""'),
-    ]);
-    const csv = [headers.join(","), ...rows.map((row) => row.map((value) => `"${String(value)}"`).join(","))].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+  const exportLogs = async (format: "csv" | "pdf") => {
+    try {
+      await downloadAuditLogExport(format, category === "all" ? undefined : category);
+      toast.success(format === "csv" ? "CSV hazır." : "PDF hazır.");
+    } catch (e: any) {
+      toast.error(e?.message || "Dışa aktarım başarısız.");
+    }
   };
 
   const formatRelative = (value: string) => {
@@ -192,9 +196,13 @@ export default function AuditLogsPage() {
         icon={<ShieldAlert className="h-5 w-5" />}
         actions={
           <div className="flex gap-2">
-            <button onClick={exportVisibleLogs} className="btn-secondary gap-2 text-xs">
+            <button onClick={() => void exportLogs("csv")} className="btn-secondary gap-2 text-xs">
               <FileText className="h-3.5 w-3.5" />
-              CSV
+              {copy.exportCsv}
+            </button>
+            <button onClick={() => void exportLogs("pdf")} className="btn-secondary gap-2 text-xs">
+              <FileText className="h-3.5 w-3.5" />
+              {copy.exportPdf}
             </button>
             <button onClick={() => fetchLogs("refresh")} disabled={refreshing} className="btn-secondary gap-2 text-xs">
               {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
@@ -210,6 +218,24 @@ export default function AuditLogsPage() {
           {error}
         </div>
       )}
+
+      <div className="flex flex-wrap gap-2">
+        {([
+          ["all", copy.allLogs],
+          ["legal", copy.legalLogs],
+          ["security", copy.securityLogs],
+        ] as const).map(([value, label]) => (
+          <button
+            key={value}
+            onClick={() => setCategory(value)}
+            className={`rounded-2xl border px-4 py-2 text-sm font-semibold transition ${
+              category === value ? "border-brand-200 bg-brand-50 text-brand-700" : "border-surface-200 bg-white text-surface-600 hover:bg-surface-50"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <div className="card p-5">
@@ -233,6 +259,29 @@ export default function AuditLogsPage() {
           <p className="mt-1 text-sm text-surface-500">{copy.records}</p>
         </div>
       </div>
+
+      {category === "security" && security && (
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="card p-5">
+            <div className="flex items-center gap-2 text-rose-700">
+              <ShieldCheck className="h-4 w-4" />
+              <p className="text-sm font-bold">{copy.securityLogs}</p>
+            </div>
+            <p className="mt-3 text-3xl font-black text-surface-900">{security.total_24h}</p>
+            <p className="text-sm text-surface-500">{copy.last24Hours}</p>
+          </div>
+          <div className="card p-5 lg:col-span-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-surface-400">{copy.suspiciousIps}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {security.suspicious_ips.length === 0 ? (
+                <span className="text-sm text-surface-500">Eşik üstü IP yok.</span>
+              ) : security.suspicious_ips.map((item) => (
+                <span key={item.ip} className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">{item.ip} · {item.count}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="card p-4 sm:p-5">
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">

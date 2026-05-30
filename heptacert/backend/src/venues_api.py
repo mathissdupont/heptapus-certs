@@ -1,14 +1,14 @@
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .main import Base, CurrentUser, Organization, Role, get_current_user, get_db, require_role, write_audit_log
-from .organization_access_api import get_organization_for_access
+from .organization_access_api import get_organization_for_access, organization_id_from_request
 
 
 router = APIRouter()
@@ -67,12 +67,12 @@ class VenueOut(BaseModel):
     updated_at: datetime
 
 
-async def _organization_for_user(db: AsyncSession, me: CurrentUser, permission: str) -> Organization:
-    return await get_organization_for_access(db, me, permission)
+async def _organization_for_user(db: AsyncSession, me: CurrentUser, permission: str, organization_id: Optional[int] = None) -> Organization:
+    return await get_organization_for_access(db, me, permission, organization_id)
 
 
-async def _venue_owned_by_user(db: AsyncSession, me: CurrentUser, venue_id: int, permission: str) -> OrganizationVenue:
-    organization = await _organization_for_user(db, me, permission)
+async def _venue_owned_by_user(db: AsyncSession, me: CurrentUser, venue_id: int, permission: str, organization_id: Optional[int] = None) -> OrganizationVenue:
+    organization = await _organization_for_user(db, me, permission, organization_id)
     result = await db.execute(
         select(OrganizationVenue).where(
             OrganizationVenue.id == venue_id,
@@ -106,8 +106,8 @@ async def _ensure_unique_name(
     response_model=list[VenueOut],
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
 )
-async def list_venues(me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    organization = await _organization_for_user(db, me, "venues:read")
+async def list_venues(request: Request, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    organization = await _organization_for_user(db, me, "venues:read", organization_id_from_request(request))
     result = await db.execute(
         select(OrganizationVenue)
         .where(OrganizationVenue.organization_id == organization.id)
@@ -122,8 +122,8 @@ async def list_venues(me: CurrentUser = Depends(get_current_user), db: AsyncSess
     status_code=201,
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
 )
-async def create_venue(payload: VenueIn, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    organization = await _organization_for_user(db, me, "venues:write")
+async def create_venue(payload: VenueIn, request: Request, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    organization = await _organization_for_user(db, me, "venues:write", organization_id_from_request(request))
     await _ensure_unique_name(db, organization.id, payload.name)
     venue = OrganizationVenue(organization_id=organization.id, **payload.model_dump())
     db.add(venue)
@@ -149,10 +149,11 @@ async def create_venue(payload: VenueIn, me: CurrentUser = Depends(get_current_u
 async def update_venue(
     venue_id: int,
     payload: VenueIn,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    venue = await _venue_owned_by_user(db, me, venue_id, "venues:write")
+    venue = await _venue_owned_by_user(db, me, venue_id, "venues:write", organization_id_from_request(request))
     await _ensure_unique_name(db, venue.organization_id, payload.name, exclude_id=venue.id)
     for key, value in payload.model_dump().items():
         setattr(venue, key, value)
@@ -173,8 +174,8 @@ async def update_venue(
     "/api/admin/organization/venues/{venue_id}",
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
 )
-async def delete_venue(venue_id: int, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    venue = await _venue_owned_by_user(db, me, venue_id, "venues:write")
+async def delete_venue(venue_id: int, request: Request, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    venue = await _venue_owned_by_user(db, me, venue_id, "venues:write", organization_id_from_request(request))
     await write_audit_log(
         db,
         user_id=me.id,

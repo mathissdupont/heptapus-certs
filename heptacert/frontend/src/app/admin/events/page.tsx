@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { apiFetch, getMySubscription } from "@/lib/api";
+import { apiFetch, getMySubscription, getSelectedOrganizationId, setSelectedOrganizationId } from "@/lib/api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -51,6 +51,8 @@ type EventOut = {
 type MeOut = { id: number; email: string; role: "admin" | "superadmin"; heptacoin_balance: number };
 type EventStat = { event_id: number; active: number; total: number };
 type EventType = "certificate_event" | "seminar" | "workshop" | "conference" | "concert" | "training" | "club_event" | "online_event" | "custom";
+type OrganizationContext = { id: number; org_name: string; role: string; owned: boolean; permissions: string[] };
+type OrganizationVenue = { id: number; name: string; capacity?: number | null; location?: string | null; is_active: boolean };
 
 const EVENT_TYPE_OPTIONS: Array<{ value: EventType; label: string }> = [
   { value: "certificate_event", label: "Sertifikalı etkinlik" },
@@ -102,6 +104,13 @@ export default function AdminEvents() {
   const [registrationEnabled, setRegistrationEnabled] = useState(true);
   const [rafflesEnabled, setRafflesEnabled] = useState(false);
   const [gamificationEnabled, setGamificationEnabled] = useState(false);
+  const [organizationContexts, setOrganizationContexts] = useState<OrganizationContext[]>([]);
+  const [selectedOrganizationId, setSelectedOrganizationIdState] = useState("");
+  const [venues, setVenues] = useState<OrganizationVenue[]>([]);
+  const [selectedVenueId, setSelectedVenueId] = useState("");
+  const [reserveVenue, setReserveVenue] = useState(false);
+  const [reservationStartAt, setReservationStartAt] = useState("");
+  const [reservationEndAt, setReservationEndAt] = useState("");
 
   const copy = {
     tr: {
@@ -253,13 +262,31 @@ export default function AdminEvents() {
   async function load() {
     setErr(null);
     try {
-      const [eventsRes, meRes] = await Promise.all([
+      const [eventsRes, meRes, contextsRes, venuesRes] = await Promise.all([
         apiFetch("/admin/events", { method: "GET" }),
         apiFetch("/me", { method: "GET" }),
+        apiFetch("/admin/organization/contexts", { method: "GET" }).catch(() => null),
+        apiFetch("/admin/organization/venues", { method: "GET" }).catch(() => null),
       ]);
       setEvents(await eventsRes.json());
       const meData = (await meRes.json()) as MeOut;
       setMe(meData);
+      if (contextsRes) {
+        const contexts = (await contextsRes.json()) as OrganizationContext[];
+        setOrganizationContexts(contexts || []);
+        const stored = getSelectedOrganizationId();
+        const selected = (contexts || []).find((ctx) => String(ctx.id) === stored) || contexts?.[0];
+        if (selected) {
+          setSelectedOrganizationIdState(String(selected.id));
+          setSelectedOrganizationId(selected.id);
+        }
+      }
+      if (venuesRes) {
+        const venueItems = (await venuesRes.json()) as OrganizationVenue[];
+        setVenues((venueItems || []).filter((venue) => venue.is_active));
+      } else {
+        setVenues([]);
+      }
       apiFetch("/admin/dashboard/stats")
         .then((r) => r.json())
         .then((d: { events_with_stats?: EventStat[] }) => {
@@ -294,6 +321,10 @@ export default function AdminEvents() {
 
   async function createEvent() {
     if (!name.trim()) return;
+    if (reserveVenue && selectedVenueId && (!reservationStartAt || !reservationEndAt)) {
+      setErr(lang === "tr" ? "Salon rezervasyonu için başlangıç ve bitiş zamanı gerekir." : "Start and end time are required for venue reservations.");
+      return;
+    }
     setErr(null);
     setCreating(true);
     try {
@@ -310,10 +341,18 @@ export default function AdminEvents() {
           registration_enabled: registrationEnabled,
           raffles_enabled: rafflesEnabled,
           gamification_enabled: gamificationEnabled,
+          organization_venue_id: selectedVenueId ? Number(selectedVenueId) : null,
+          auto_reserve_venue: Boolean(reserveVenue && selectedVenueId),
+          venue_reservation_start_at: reservationStartAt ? new Date(reservationStartAt).toISOString() : null,
+          venue_reservation_end_at: reservationEndAt ? new Date(reservationEndAt).toISOString() : null,
         }),
       });
       const created = await res.json();
       setName("");
+      setSelectedVenueId("");
+      setReserveVenue(false);
+      setReservationStartAt("");
+      setReservationEndAt("");
       toast.success(copy.created(created.name));
       await load();
       router.push(`/admin/events/${created.id}`);
@@ -402,6 +441,33 @@ export default function AdminEvents() {
         }
       />
 
+      {organizationContexts.length > 0 && (
+        <div className="surface-panel flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-surface-400">Organizasyon</p>
+            <p className="mt-1 text-sm text-surface-500">
+              {lang === "tr" ? "Etkinlikleri hangi kurum adına yönettiğini seç." : "Choose which organization owns these events."}
+            </p>
+          </div>
+          <select
+            value={selectedOrganizationId}
+            onChange={(event) => {
+              const nextId = event.target.value;
+              setSelectedOrganizationIdState(nextId);
+              setSelectedOrganizationId(nextId || null);
+              window.location.reload();
+            }}
+            className="input-field sm:max-w-xs"
+          >
+            {organizationContexts.map((ctx) => (
+              <option key={ctx.id} value={ctx.id}>
+                {ctx.org_name} {ctx.owned ? "(kendi kurumum)" : `(${ctx.role})`}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard label={copy.totalEvents} value={events.length} icon={<CalendarRange className="h-5 w-5 text-brand-600" />} />
         <StatCard label={copy.totalCertificates} value={totalCertificates} icon={<ListChecks className="h-5 w-5 text-emerald-600" />} iconBg="bg-emerald-50 text-emerald-600" />
@@ -472,6 +538,47 @@ export default function AdminEvents() {
                 );
               })}
             </div>
+            {venues.length > 0 && (
+              <div className="mt-4 rounded-xl border border-surface-200 bg-white/80 p-4">
+                <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_170px_170px]">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.16em] text-surface-400">
+                      {lang === "tr" ? "Salon" : "Venue"}
+                    </label>
+                    <select value={selectedVenueId} onChange={(event) => setSelectedVenueId(event.target.value)} className="input-field">
+                      <option value="">{lang === "tr" ? "Salon seçme" : "No venue"}</option>
+                      {venues.map((venue) => (
+                        <option key={venue.id} value={venue.id}>
+                          {venue.name}{venue.capacity ? ` - ${venue.capacity} kişi` : ""}{venue.location ? ` - ${venue.location}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.16em] text-surface-400">
+                      {lang === "tr" ? "Başlangıç" : "Start"}
+                    </label>
+                    <input type="datetime-local" value={reservationStartAt} onChange={(event) => setReservationStartAt(event.target.value)} className="input-field" disabled={!selectedVenueId} />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.16em] text-surface-400">
+                      {lang === "tr" ? "Bitiş" : "End"}
+                    </label>
+                    <input type="datetime-local" value={reservationEndAt} onChange={(event) => setReservationEndAt(event.target.value)} className="input-field" disabled={!selectedVenueId} />
+                  </div>
+                </div>
+                <label className="mt-3 flex items-start gap-2 text-sm font-semibold text-surface-700">
+                  <input
+                    type="checkbox"
+                    checked={reserveVenue}
+                    onChange={(event) => setReserveVenue(event.target.checked)}
+                    disabled={!selectedVenueId}
+                    className="mt-1 h-4 w-4 accent-brand-600"
+                  />
+                  <span>{lang === "tr" ? "Salon uygunsa otomatik rezervasyon oluştur" : "Automatically reserve this venue if available"}</span>
+                </label>
+              </div>
+            )}
             <div className="mt-3 flex justify-end">
               <button onClick={createEvent} disabled={!name.trim() || creating} className="btn-primary gap-2 px-6">
                 {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}

@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useMemo, useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, logLegalDocumentEvent } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -77,6 +77,15 @@ export default function RegisterPage() {
   const [err, setErr] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  function recordLegalClick(document: "kvkk" | "privacy" | "explicit_consent") {
+    logLegalDocumentEvent({
+      document,
+      event_type: "click",
+      context: "account_registration",
+      source_path: typeof window !== "undefined" ? window.location.pathname : undefined,
+    });
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -212,16 +221,16 @@ export default function RegisterPage() {
                 {copy.termsLink}
               </Link>{" "}
               {copy.termsMiddle}{" "}
-              <Link href="/gizlilik" className="font-semibold text-brand-600 hover:text-brand-700">
+              <Link href="/gizlilik" onClick={() => recordLegalClick("privacy")} className="font-semibold text-brand-600 hover:text-brand-700">
                 {copy.privacyLink}
               </Link>
               {" "}{copy.termsSuffix}
             </span>
           </label>
           <div className="flex flex-wrap gap-3 text-xs text-slate-500">
-            <Link href="/kvkk" className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "KVKK Aydınlatma Metni" : "Privacy Notice"}</Link>
-            <Link href="/gizlilik" className="font-semibold text-brand-600 hover:text-brand-700">{copy.privacyLink}</Link>
-            <Link href="/acik-riza" className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Açık Rıza Metni" : "Explicit Consent Text"}</Link>
+            <Link href="/kvkk" onClick={() => recordLegalClick("kvkk")} className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "KVKK Aydınlatma Metni" : "Privacy Notice"}</Link>
+            <Link href="/gizlilik" onClick={() => recordLegalClick("privacy")} className="font-semibold text-brand-600 hover:text-brand-700">{copy.privacyLink}</Link>
+            <Link href="/acik-riza" onClick={() => recordLegalClick("explicit_consent")} className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Açık Rıza Metni" : "Explicit Consent Text"}</Link>
           </div>
 
           <AnimatePresence mode="wait">
