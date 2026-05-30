@@ -1,0 +1,79 @@
+HeptaCert Proprietary Restricted Use License
+
+Copyright (c) 2026 HeptaCert
+
+All rights reserved.
+
+NOTICE OF RESTRICTIONS
+
+This document is a proprietary license notice and not an open-source license. Except to the limited extent expressly permitted in a written agreement signed by the copyright holder, no rights are granted by implication, estoppel, exhaustion, or otherwise under copyright, patent, trademark, trade secret, moral rights, or any other intellectual property right.
+
+1. Definitions
+
+For purposes of this license:
+
+- "Software" means this repository, all source code, object code, documentation, assets, configuration files, build artifacts, and any related materials made available with it.
+- "Use" means to access, execute, run, install, load, copy, modify, adapt, translate, host, deploy, distribute, publish, transmit, sell, sublicense, or otherwise exploit the Software, whether directly or indirectly.
+- "You" means any individual, partnership, corporation, limited liability company, association, institution, government entity, or other legal person.
+- "Written Permission" means a separate written agreement signed by the copyright holder that expressly authorizes a specific use.
+
+2. No Grant of Rights
+
+No license or other permission is granted by possession, viewing, downloading, cloning, or receiving the Software. Any right not expressly granted in a signed written agreement is reserved by the copyright holder.
+
+3. Express Prohibitions
+
+Without prior Written Permission, You must not, directly or indirectly:
+
+- use the Software for personal, educational, academic, commercial, enterprise, internal business, governmental, production, testing, hosting, SaaS, service-bureau, or benchmarking purposes;
+- copy, reproduce, mirror, archive, republish, sublicense, distribute, or otherwise make the Software available to any third party;
+- modify, adapt, merge, port, localize, translate, decompile, disassemble, reverse engineer, or create derivative works from the Software, except where such restriction is prohibited by applicable law;
+- remove, alter, or obscure proprietary notices, attribution notices, copyright notices, or license notices;
+- use the Software in competition with the copyright holder or in connection with a competing product or service;
+- use the Software in any environment where a third party may access, rely on, or benefit from it;
+- claim ownership of, register, or attempt to secure rights in the Software or any confusingly similar mark, name, or derivative work;
+- use the Software in violation of any applicable law or regulation.
+
+4. Limited Review Access
+
+If the copyright holder has made the Software available for evaluation, demonstration, or review, that access is strictly limited to non-use review and does not authorize deployment, commercial exploitation, or redistribution. Any broader use requires Written Permission.
+
+5. Ownership and Reservation of Rights
+
+The Software, including all intellectual property rights in and to it, remains the exclusive property of the copyright holder and its licensors. No title or ownership interest is transferred to You.
+
+6. Confidentiality
+
+If the Software is disclosed to You in a non-public context, You shall keep it confidential, use reasonable measures to prevent unauthorized disclosure, and not disclose it to any third party without prior Written Permission.
+
+7. No Warranty
+
+THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTY OF ANY KIND, WHETHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, INCLUDING WITHOUT LIMITATION ANY WARRANTY OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, NON-INFRINGEMENT, OR QUIET ENJOYMENT.
+
+8. Limitation of Liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL THE COPYRIGHT HOLDER OR ITS LICENSORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE DAMAGES, OR ANY LOSS OF DATA, PROFITS, REVENUE, BUSINESS, GOODWILL, OR USE, ARISING OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THIS LICENSE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+9. Termination
+
+Any unauthorized use automatically terminates any permission that may have been granted. Upon termination, You must immediately cease all use of the Software and delete or destroy all copies in Your possession or control.
+
+10. Enforcement and Injunctive Relief
+
+You acknowledge that unauthorized use may cause irreparable harm for which monetary damages may be an insufficient remedy, and that the copyright holder may seek injunctive or equitable relief in addition to any other remedies available at law or in equity.
+
+11. Severability
+
+If any provision of this license is held invalid or unenforceable, the remaining provisions shall remain in full force and effect to the maximum extent permitted by law.
+
+12. Governing Law
+
+This license shall be interpreted and enforced in accordance with the law selected by the copyright holder in a separate written agreement, or if no such agreement exists, the law of the jurisdiction where the copyright holder is established.
+
+13. Entire Agreement
+
+This license, together with any separate written agreement signed by the copyright holder, constitutes the entire agreement concerning the Software and supersedes any prior or contemporaneous oral or written understandings on the same subject matter.
+
+14. Contact
+
+All requests for authorization must be made in writing to the copyright holder. No oral statement, email, or informal communication shall amend this license unless confirmed in a separate signed written agreement.
