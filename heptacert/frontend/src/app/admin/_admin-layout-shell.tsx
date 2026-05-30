@@ -139,7 +139,7 @@ function SidebarContent({
         {!collapsed && (
           <>
             <span className="text-sm font-bold tracking-tight text-surface-900">HeptaCert</span>
-            <span className="ml-auto rounded-md bg-brand-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-600">Admin</span>
+            <span className="ml-auto rounded-md bg-surface-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-surface-600">Admin</span>
           </>
         )}
       </div>
@@ -170,7 +170,7 @@ function SidebarContent({
                         title={label}
                         className={`flex items-center justify-center rounded-lg p-2.5 transition-all ${
                           active
-                            ? "border border-brand-200 bg-brand-50 text-surface-900 shadow-soft"
+                            ? "border border-surface-300 bg-white text-surface-900 shadow-soft"
                             : "text-surface-500 hover:bg-sidebar-hover hover:text-surface-900"
                         }`}
                       >
@@ -263,7 +263,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
       )}
 
       <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(15,118,110,0.10),transparent_22%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.10),transparent_18%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.74),rgba(250,250,249,0.42))]" />
         <header className="relative z-20 flex shrink-0 items-center gap-3 border-b border-surface-200 bg-white/90 px-4 py-3 shadow-soft backdrop-blur lg:px-6">
           <button
             onClick={() => setMobileOpen(true)}
@@ -297,7 +297,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
                 <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-400">{topbarText.workspace}</div>
                 <div className="text-sm font-semibold text-surface-800">{currentSection}</div>
               </div>
-              <div className="rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-semibold text-surface-700">
+              <div className="rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-xs font-semibold text-surface-700">
                 {topbarText.live}
               </div>
             </div>

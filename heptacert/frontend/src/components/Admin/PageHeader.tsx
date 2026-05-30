@@ -21,7 +21,7 @@ export function PageHeader({
   icon,
   actions,
   breadcrumbs,
-  iconBg = "bg-brand-50 text-brand-600",
+  iconBg = "bg-surface-100 text-surface-700",
 }: PageHeaderProps) {
   return (
     <div className="mb-7">
@@ -38,7 +38,7 @@ export function PageHeader({
                   {crumb.label}
                 </Link>
               ) : (
-                <span className="rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1 font-semibold text-surface-700">
+                <span className="rounded-full border border-surface-200 bg-white px-2.5 py-1 font-semibold text-surface-700">
                   {crumb.label}
                 </span>
               )}
@@ -46,13 +46,12 @@ export function PageHeader({
           ))}
         </nav>
       )}
-      <div className="relative overflow-hidden rounded-lg border border-surface-200 bg-white/95 p-5 shadow-soft backdrop-blur sm:p-6">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-500 via-emerald-500 to-sky-500 opacity-80" />
+      <div className="relative overflow-hidden rounded-2xl border border-surface-200 bg-white/95 p-5 shadow-soft backdrop-blur sm:p-6">
         <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 items-start gap-4">
             {icon && (
               <div
-                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg shadow-soft ${iconBg}`}
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-soft ${iconBg}`}
               >
                 {icon}
               </div>

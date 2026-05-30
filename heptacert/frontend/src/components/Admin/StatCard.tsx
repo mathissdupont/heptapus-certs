@@ -18,7 +18,7 @@ export function StatCard({
   label,
   value,
   icon,
-  iconBg = "bg-brand-50 text-brand-500",
+  iconBg = "bg-surface-100 text-surface-600",
   trend,
   footer,
   delay = 0,
@@ -31,7 +31,6 @@ export function StatCard({
       transition={{ delay, duration: 0.3, ease: "easeOut" }}
       className={`card group relative overflow-hidden p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card ${className}`}
     >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-400/70 via-brand-500/80 to-emerald-400/70 opacity-80" />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-surface-400 truncate">
@@ -50,9 +49,7 @@ export function StatCard({
           )}
         </div>
         {icon && (
-          <div
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg shadow-soft ${iconBg}`}
-          >
+          <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl shadow-soft ${iconBg}`}>
             {icon}
           </div>
         )}

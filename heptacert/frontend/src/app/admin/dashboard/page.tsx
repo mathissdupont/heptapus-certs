@@ -190,9 +190,9 @@ export default function DashboardPage() {
       description: copy.quickCreateDesc,
       href: "/admin/events",
       icon: Plus,
-      color: "bg-brand-50 text-brand-600 group-hover:bg-brand-100",
-      hover: "hover:border-brand-400 hover:bg-brand-50",
-      arrow: "group-hover:text-brand-500",
+      color: "bg-surface-100 text-surface-700 group-hover:bg-surface-200",
+      hover: "hover:border-surface-300 hover:bg-surface-50",
+      arrow: "group-hover:text-surface-700",
     },
     {
       title: copy.quickCertificates,
@@ -200,7 +200,7 @@ export default function DashboardPage() {
       href: "/admin/events",
       icon: CheckCircle2,
       color: "bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100",
-      hover: "hover:border-emerald-400 hover:bg-emerald-50",
+      hover: "hover:border-emerald-200 hover:bg-emerald-50/60",
       arrow: "group-hover:text-emerald-500",
     },
     {
@@ -208,27 +208,27 @@ export default function DashboardPage() {
       description: copy.quickEmailDesc,
       href: "/admin/email-dashboard",
       icon: Send,
-      color: "bg-blue-50 text-blue-600 group-hover:bg-blue-100",
-      hover: "hover:border-blue-400 hover:bg-blue-50",
-      arrow: "group-hover:text-blue-500",
+      color: "bg-surface-100 text-surface-700 group-hover:bg-surface-200",
+      hover: "hover:border-surface-300 hover:bg-surface-50",
+      arrow: "group-hover:text-surface-700",
     },
     {
       title: copy.quickSettings,
       description: copy.quickSettingsDesc,
       href: "/admin/settings",
       icon: Settings,
-      color: "bg-purple-50 text-purple-600 group-hover:bg-purple-100",
-      hover: "hover:border-purple-400 hover:bg-purple-50",
-      arrow: "group-hover:text-purple-500",
+      color: "bg-surface-100 text-surface-700 group-hover:bg-surface-200",
+      hover: "hover:border-surface-300 hover:bg-surface-50",
+      arrow: "group-hover:text-surface-700",
     },
     {
       title: copy.quickOrgSocial || "Topluluk Profili",
       description: copy.quickOrgSocialDesc || "Sosyal ağları yönet",
       href: "/admin/organization-social",
       icon: Users,
-      color: "bg-orange-50 text-orange-600 group-hover:bg-orange-100",
-      hover: "hover:border-orange-400 hover:bg-orange-50",
-      arrow: "group-hover:text-orange-500",
+      color: "bg-surface-100 text-surface-700 group-hover:bg-surface-200",
+      hover: "hover:border-surface-300 hover:bg-surface-50",
+      arrow: "group-hover:text-surface-700",
     },
   ];
 
@@ -237,7 +237,7 @@ export default function DashboardPage() {
       <PageHeader
         title="Dashboard"
         subtitle={copy.subtitle}
-        icon={<BarChart3 className="h-5 w-5" />}
+        icon={<BarChart3 className="h-5 w-5 text-surface-700" />}
         actions={
           <>
             <Link href="/admin/events" className="btn-secondary">
@@ -251,8 +251,8 @@ export default function DashboardPage() {
       />
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">
-        <StatCard label={copy.totalEvents} value={stats.total_events} icon={<Calendar className="h-5 w-5 text-purple-600" />} iconBg="bg-purple-50 text-purple-600" delay={0} />
-        <StatCard label={copy.totalCertificates} value={stats.total_certs} icon={<Award className="h-5 w-5 text-brand-600" />} iconBg="bg-brand-50 text-brand-600" delay={0.05} />
+        <StatCard label={copy.totalEvents} value={stats.total_events} icon={<Calendar className="h-5 w-5 text-surface-600" />} delay={0} />
+        <StatCard label={copy.totalCertificates} value={stats.total_certs} icon={<Award className="h-5 w-5 text-surface-600" />} delay={0.05} />
         <StatCard label={copy.active} value={stats.active_certs} icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />} iconBg="bg-emerald-50 text-emerald-600" delay={0.1} />
         <StatCard label={copy.revoked} value={stats.revoked_certs} icon={<ShieldOff className="h-5 w-5 text-rose-600" />} iconBg="bg-rose-50 text-rose-600" delay={0.15} />
         <StatCard label={copy.expired} value={stats.expired_certs} icon={<Clock className="h-5 w-5 text-amber-600" />} iconBg="bg-amber-50 text-amber-600" delay={0.2} />
@@ -264,13 +264,13 @@ export default function DashboardPage() {
           <h2 className="mt-2 text-2xl font-black tracking-tight text-surface-900">{copy.organizerTitle}</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-surface-500">{copy.organizerBody}</p>
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            <Link href="/admin/events" className="rounded-2xl border border-surface-200 bg-surface-50 p-4 text-sm font-bold text-surface-700 transition hover:border-brand-200 hover:bg-brand-50">
+            <Link href="/admin/events" className="rounded-2xl border border-surface-200 bg-surface-50 p-4 text-sm font-bold text-surface-700 transition hover:border-surface-300 hover:bg-white">
               {copy.eventsViewAll}
             </Link>
             <Link href="/admin/events" className="rounded-2xl border border-surface-200 bg-surface-50 p-4 text-sm font-bold text-surface-700 transition hover:border-emerald-200 hover:bg-emerald-50">
               {copy.reviewCertificates}
             </Link>
-            <Link href="/admin/email-dashboard" className="rounded-2xl border border-surface-200 bg-surface-50 p-4 text-sm font-bold text-surface-700 transition hover:border-blue-200 hover:bg-blue-50">
+            <Link href="/admin/email-dashboard" className="rounded-2xl border border-surface-200 bg-surface-50 p-4 text-sm font-bold text-surface-700 transition hover:border-surface-300 hover:bg-white">
               {copy.quickEmail}
             </Link>
           </div>
@@ -318,7 +318,7 @@ export default function DashboardPage() {
         <motion.aside initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }} className="card p-6 sm:p-7">
           <div className="flex items-center justify-between gap-3">
             <p className="flex items-center gap-2 text-sm font-bold text-surface-700">
-              <TrendingUp className="h-4 w-4 text-brand-500" /> {copy.activeRate}
+              <TrendingUp className="h-4 w-4 text-surface-500" /> {copy.activeRate}
             </p>
             <span className="text-lg font-extrabold text-emerald-600">{activePercent}%</span>
           </div>
@@ -414,7 +414,7 @@ export default function DashboardPage() {
                   <div className="flex flex-col gap-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <Link href={`/admin/events/${ev.event_id}`} className="block truncate text-base font-bold text-surface-900 transition-colors hover:text-brand-600">
+                        <Link href={`/admin/events/${ev.event_id}`} className="block truncate text-base font-bold text-surface-900 transition-colors hover:text-surface-700">
                           {ev.event_name || (ev as any).name || copy.eventFallback(ev.event_id)}
                         </Link>
                         <p className="mt-1 text-sm text-surface-500">{copy.recentEvents}</p>
