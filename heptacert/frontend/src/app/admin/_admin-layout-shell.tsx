@@ -9,6 +9,7 @@ import { LanguageToggle, useI18n } from "@/lib/i18n";
 import InAppTourGuide from "@/components/Admin/InAppTourGuide";
 import AIAssistant from "@/components/Admin/AIAssistant";
 import HeptaCertLogoMark from "@/components/Brand/HeptaCertLogoMark";
+import CommandPalette from "@/components/Admin/CommandPalette";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarCheck2,
@@ -289,6 +290,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
           </div>
 
           <div className="ml-auto flex min-w-0 items-center gap-3">
+            <CommandPalette />
             <LanguageToggle className="inline-flex items-center gap-2 rounded-lg border border-surface-200 bg-white px-3 py-1.5 text-xs font-bold text-surface-700 shadow-sm transition-colors hover:bg-surface-50 hover:text-surface-900" />
             <div className="hidden min-w-0 items-center gap-3 lg:flex">
               <div className="text-right">

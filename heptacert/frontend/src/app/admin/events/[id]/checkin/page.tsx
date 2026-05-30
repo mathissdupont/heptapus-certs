@@ -352,8 +352,8 @@ export default function AdminCheckinPage() {
   }
 
   return (
-    <div className={`${staffMode ? "min-h-screen bg-zinc-100 px-3 pb-8 pt-3 md:px-4" : "min-h-screen bg-slate-50 px-3 pb-28 pt-4 md:px-8 md:pb-8"}`}>
-      <div className={`mx-auto ${staffMode ? "max-w-xl" : "max-w-3xl"}`}>
+    <div className={`${staffMode ? "min-h-screen bg-zinc-100 px-3 pb-8 pt-3 md:px-4" : "mx-auto max-w-6xl space-y-6 pb-10"}`}>
+      <div className={`mx-auto ${staffMode ? "max-w-xl" : "max-w-6xl"}`}>
         {!staffMode && <EventAdminNav eventId={eventId} eventName={eventName} active="checkin" className="mb-6 flex flex-col gap-2" />}
         {staffMode && (
           <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white px-3 py-3 shadow-sm">
@@ -380,12 +380,12 @@ export default function AdminCheckinPage() {
 
         {planOk !== false && (
           <>
-            <div className={`mb-4 rounded-3xl border border-slate-200 bg-white shadow-sm ${staffMode ? "p-4" : "p-5"}`}>
+            <div className={`surface-panel ${staffMode ? "p-4" : "p-5 sm:p-6"}`}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-500">Mobil operasyon</p>
-                  <h1 className={`${staffMode ? "mt-1 text-xl" : "mt-1 text-2xl"} font-black text-gray-950`}>Hizli Check-in</h1>
-                  <p className="mt-1 text-sm text-gray-500">{eventName}</p>
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-brand-500">Mobil operasyon</p>
+                  <h1 className={`${staffMode ? "mt-1 text-xl" : "mt-2 text-2xl"} font-black text-surface-950`}>Hizli Check-in</h1>
+                  <p className="mt-1 text-sm text-surface-500">{eventName}</p>
                 </div>
                 <div className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold ${isOnline ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
                   {isOnline ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
@@ -394,24 +394,24 @@ export default function AdminCheckinPage() {
               </div>
 
               <div className={`mt-4 grid gap-2 ${staffMode ? "grid-cols-3" : "sm:grid-cols-3"}`}>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Oturum</p>
-                  <p className="mt-1 truncate text-sm font-black text-slate-900">{selectedSessionObj?.name || "Secilmedi"}</p>
+                <div className="rounded-2xl border border-surface-200 bg-surface-50 p-3">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-surface-400">Oturum</p>
+                  <p className="mt-1 truncate text-sm font-black text-surface-900">{selectedSessionObj?.name || "Secilmedi"}</p>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Basarili</p>
-                  <p className="mt-1 text-sm font-black text-slate-900">{todayAttendance}</p>
+                <div className="rounded-2xl border border-surface-200 bg-surface-50 p-3">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-surface-400">Basarili</p>
+                  <p className="mt-1 text-sm font-black text-surface-900">{todayAttendance}</p>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Kuyruk</p>
-                  <p className="mt-1 text-sm font-black text-slate-900">{offlineQueue.length} bekliyor</p>
+                <div className="rounded-2xl border border-surface-200 bg-surface-50 p-3">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-surface-400">Kuyruk</p>
+                  <p className="mt-1 text-sm font-black text-surface-900">{offlineQueue.length} bekliyor</p>
                 </div>
               </div>
             </div>
 
             {error && <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
-            <div className={`mb-4 rounded-2xl border border-gray-200 bg-white shadow-sm ${staffMode ? "p-3" : "p-4"}`}>
+            <div className={`card ${staffMode ? "p-3" : "p-4"}`}>
               <label className="mb-2 block text-sm font-semibold text-gray-700">Oturum Secin</label>
               <div className="space-y-2">
                 {sessions.length === 0 ? (
@@ -423,7 +423,7 @@ export default function AdminCheckinPage() {
                   </p>
                 ) : (
                   sessions.map((s) => (
-                    <label key={s.id} className={`flex cursor-pointer items-center gap-3 rounded-xl border ${staffMode ? "p-2.5" : "p-3"} transition ${selectedSession === s.id ? "border-indigo-400 bg-indigo-50" : "border-gray-200 hover:bg-gray-50"}`}>
+                    <label key={s.id} className={`flex cursor-pointer items-center gap-3 rounded-xl border ${staffMode ? "p-2.5" : "p-3"} transition ${selectedSession === s.id ? "border-brand-300 bg-brand-50" : "border-surface-200 hover:bg-surface-50"}`}>
                       <input type="radio" name="session" value={s.id} checked={selectedSession === s.id} onChange={() => setSelectedSession(s.id)} className="text-indigo-600" />
                       <div className="min-w-0 flex-1">
                         <span className="text-sm font-medium text-gray-800">{s.name}</span>
@@ -438,11 +438,11 @@ export default function AdminCheckinPage() {
             </div>
 
             {selectedSession && (
-              <div className={`mb-4 rounded-2xl border border-gray-200 bg-white shadow-sm ${staffMode ? "p-4" : "p-5"}`}>
+              <div className={`card ${staffMode ? "p-4" : "p-5"}`}>
                 <div className="mb-4 flex flex-wrap items-center gap-2">
                   <UserCheck className="h-5 w-5 text-indigo-500" />
                   <h2 className="font-semibold text-gray-800">Check-in Yap</h2>
-                  <button type="button" onClick={() => setScannerOpen((v) => !v)} className="ml-auto inline-flex items-center gap-2 rounded-xl bg-gray-950 px-3 py-2 text-xs font-bold text-white">
+                  <button type="button" onClick={() => setScannerOpen((v) => !v)} className="btn-primary ml-auto min-h-0 px-3 py-2 text-xs">
                     <Camera className="h-4 w-4" />
                     {scannerOpen ? "Kamerayı kapat" : "QR okut"}
                   </button>
@@ -472,7 +472,7 @@ export default function AdminCheckinPage() {
               </div>
             )}
 
-            <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="card p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <RotateCcw className={`h-4 w-4 ${syncing ? "animate-spin text-indigo-500" : "text-gray-400"}`} />
@@ -508,7 +508,7 @@ export default function AdminCheckinPage() {
             </div>
 
             {log.length > 0 && (
-              <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+              <div className="card overflow-hidden p-0">
                 <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50 px-4 py-2.5">
                   <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
                     <History className="h-3.5 w-3.5" />

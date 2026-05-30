@@ -252,10 +252,10 @@ export default function EventTicketsPage() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-8">
+    <main className="mx-auto max-w-7xl space-y-6 pb-10">
       <EventAdminNav eventId={eventId} active="tickets" className="mb-6 flex flex-col gap-2" />
 
-      <section className="mb-6 overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-sm">
+      <section className="surface-panel overflow-hidden p-0">
         <div className="border-b border-surface-100 px-5 py-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -299,8 +299,8 @@ export default function EventTicketsPage() {
         </div>
       </section>
 
-      <section className="mb-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm">
+      <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="card p-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
               <ScanLine className="h-5 w-5" />
@@ -407,7 +407,7 @@ export default function EventTicketsPage() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm">
+        <div className="card p-5">
           <h2 className="font-bold text-surface-900">Liste Kontrolü</h2>
           <div className="mt-4">
             <div className="relative">
@@ -444,7 +444,7 @@ export default function EventTicketsPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-surface-200 bg-white shadow-sm">
+      <section className="card overflow-hidden p-0">
         {loading ? (
           <div className="flex items-center justify-center gap-2 p-10 text-sm text-surface-500">
             <Loader2 className="h-4 w-4 animate-spin" />

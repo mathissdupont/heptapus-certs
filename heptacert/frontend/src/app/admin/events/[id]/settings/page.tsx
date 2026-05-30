@@ -43,9 +43,12 @@ import { apiFetch, consumeOAuthBridgeToken, getMySubscription, listAdminEventCom
 import EventAdminNav, { refreshEventAdminMeta } from "@/components/Admin/EventAdminNav";
 import PageHeader from "@/components/Admin/PageHeader";
 import DateField from "@/components/Admin/DateField";
+import DateTimeField from "@/components/Admin/DateTimeField";
 import RichTextEditor from "@/components/RichTextEditor";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/useToast";
+import useKeyboardShortcut from "@/hooks/useKeyboardShortcut";
+import useUnsavedChanges from "@/hooks/useUnsavedChanges";
 
 type EventOut = {
   id: number;
@@ -499,12 +502,16 @@ export default function EventSettingsPage() {
     venue_reservation_start_at: "",
     venue_reservation_end_at: "",
   });
+  const [savedFormSnapshot, setSavedFormSnapshot] = useState("");
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const isDirty = savedFormSnapshot !== "" && JSON.stringify(formData) !== savedFormSnapshot;
+  useUnsavedChanges(isDirty && !saving, lang === "tr" ? "Kaydedilmemiş etkinlik ayarları var." : "You have unsaved event settings.");
+  useKeyboardShortcut("s", () => void handleSave(), { meta: true, enabled: !saving });
   const [activeTab, setActiveTab] = useState<"general" | "registration" | "banner" | "email" | "comments">("general");
   const [comments, setComments] = useState<PublicEventComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -586,7 +593,7 @@ export default function EventSettingsPage() {
         setVenues([]);
       }
       void loadSheetsStatus();
-      setFormData({
+      const nextFormData: FormState = {
         name: eventData.name || "",
         event_date: eventData.event_date || "",
         event_description: eventData.event_description || "",
@@ -639,7 +646,9 @@ export default function EventSettingsPage() {
         auto_reserve_venue: Boolean(eventData.venue_reservation_id || eventData.organization_venue_id),
         venue_reservation_start_at: toDateTimeLocal(eventData.venue_reservation_start_at),
         venue_reservation_end_at: toDateTimeLocal(eventData.venue_reservation_end_at),
-      });
+      };
+      setFormData(nextFormData);
+      setSavedFormSnapshot(JSON.stringify(nextFormData));
     } catch (e: any) {
       setError(e?.message || copy.loadingError);
     } finally {
@@ -1179,7 +1188,7 @@ export default function EventSettingsPage() {
                   </div>
                 </div>
 
-                <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_190px_190px]">
+                <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
                   <div>
                     <label className="label">{lang === "tr" ? "Salon" : "Venue"}</label>
                     <select
@@ -1201,26 +1210,20 @@ export default function EventSettingsPage() {
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <label className="label">{lang === "tr" ? "Rezervasyon başlangıcı" : "Reservation start"}</label>
-                    <input
-                      type="datetime-local"
-                      value={formData.venue_reservation_start_at}
-                      onChange={(event) => setFormData((current) => ({ ...current, venue_reservation_start_at: event.target.value }))}
-                      disabled={!formData.organization_venue_id}
-                      className="input-field"
-                    />
-                  </div>
-                  <div>
-                    <label className="label">{lang === "tr" ? "Rezervasyon bitişi" : "Reservation end"}</label>
-                    <input
-                      type="datetime-local"
-                      value={formData.venue_reservation_end_at}
-                      onChange={(event) => setFormData((current) => ({ ...current, venue_reservation_end_at: event.target.value }))}
-                      disabled={!formData.organization_venue_id}
-                      className="input-field"
-                    />
-                  </div>
+                  <DateTimeField
+                    value={formData.venue_reservation_start_at}
+                    onChange={(value) => setFormData((current) => ({ ...current, venue_reservation_start_at: value }))}
+                    label={lang === "tr" ? "Rezervasyon başlangıcı" : "Reservation start"}
+                    disabled={!formData.organization_venue_id}
+                    locale={lang === "tr" ? "tr-TR" : "en-US"}
+                  />
+                  <DateTimeField
+                    value={formData.venue_reservation_end_at}
+                    onChange={(value) => setFormData((current) => ({ ...current, venue_reservation_end_at: value }))}
+                    label={lang === "tr" ? "Rezervasyon bitişi" : "Reservation end"}
+                    disabled={!formData.organization_venue_id}
+                    locale={lang === "tr" ? "tr-TR" : "en-US"}
+                  />
                 </div>
                 <label className="mt-4 flex items-start gap-2 rounded-xl border border-surface-200 bg-surface-50 p-4 text-sm font-semibold text-surface-700">
                   <input
@@ -2344,6 +2347,11 @@ export default function EventSettingsPage() {
 
         {/* Floating Action Buttons - Bottom Center */}
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex flex-col gap-3 items-center">
+          {isDirty && !saving && (
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-bold text-amber-800 shadow-soft">
+              {lang === "tr" ? "Kaydedilmemiş değişiklikler var · Ctrl/⌘+S" : "Unsaved changes · Ctrl/⌘+S"}
+            </span>
+          )}
           {/* Add Field Button - Only on registration tab */}
           {activeTab === "registration" && (
             <button

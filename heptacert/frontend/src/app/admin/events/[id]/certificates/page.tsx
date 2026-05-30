@@ -26,7 +26,6 @@ import {
   FileDown,
   CheckSquare,
   Square,
-  X,
   QrCode,
   Users,
 } from "lucide-react";
@@ -36,6 +35,7 @@ import { useToast } from "@/hooks/useToast";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 import ConfirmModal from "@/components/Admin/ConfirmModal";
 import PageHeader from "@/components/Admin/PageHeader";
+import BulkActionBar from "@/components/Admin/BulkActionBar";
 
 type CertStatus = "active" | "revoked" | "expired";
 
@@ -522,40 +522,29 @@ export default function CertificatesPage() {
       {/* Bulk action floating bar */}
       <AnimatePresence>
         {selectedIds.size > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-20 left-3 right-3 z-50 rounded-3xl bg-gray-950 p-4 text-white shadow-2xl sm:bottom-6 sm:left-1/2 sm:right-auto sm:min-w-[560px] sm:-translate-x-1/2"
+          <BulkActionBar
+            selectedCount={selectedIds.size}
+            title={copy.selectionTitle}
+            description={copy.selectedCount(selectedIds.size)}
+            onClear={() => setSelectedIds(new Set())}
+            loading={bulkLoading ? <Loader2 className="mt-3 h-4 w-4 animate-spin" /> : null}
           >
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.selectionTitle}</p>
-                <p className="mt-1 text-sm font-bold">{copy.selectedCount(selectedIds.size)}</p>
-              </div>
-              <button onClick={() => setSelectedIds(new Set())} className="rounded-2xl border border-white/10 p-2 text-gray-400 transition-colors hover:text-white">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
-              <button onClick={() => setBulkTarget("enable_auto_renew")} disabled={bulkLoading} className="flex items-center justify-center gap-1.5 rounded-2xl bg-emerald-600 px-3 py-2.5 text-xs font-bold transition-colors hover:bg-emerald-700 disabled:opacity-50">
-                <RefreshCcw className="h-3.5 w-3.5" /> {copy.autoRenewEnable}
-              </button>
-              <button onClick={() => setBulkTarget("disable_auto_renew")} disabled={bulkLoading} className="flex items-center justify-center gap-1.5 rounded-2xl bg-slate-700 px-3 py-2.5 text-xs font-bold transition-colors hover:bg-slate-800 disabled:opacity-50">
-                <RefreshCcw className="h-3.5 w-3.5" /> {copy.autoRenewDisable}
-              </button>
-              <button onClick={() => setBulkTarget("revoke")} disabled={bulkLoading} className="flex items-center justify-center gap-1.5 rounded-2xl bg-rose-600 px-3 py-2.5 text-xs font-bold transition-colors hover:bg-rose-700 disabled:opacity-50">
-                <ShieldOff className="h-3.5 w-3.5" /> {copy.revokeAction}
-              </button>
-              <button onClick={() => setBulkTarget("expire")} disabled={bulkLoading} className="flex items-center justify-center gap-1.5 rounded-2xl bg-amber-600 px-3 py-2.5 text-xs font-bold transition-colors hover:bg-amber-700 disabled:opacity-50">
-                <Clock className="h-3.5 w-3.5" /> {copy.expireAction}
-              </button>
-              <button onClick={() => setBulkTarget("delete")} disabled={bulkLoading} className="flex items-center justify-center gap-1.5 rounded-2xl bg-red-700 px-3 py-2.5 text-xs font-bold transition-colors hover:bg-red-800 disabled:opacity-50">
-                <Trash2 className="h-3.5 w-3.5" /> {copy.deleteAction}
-              </button>
-            </div>
-            {bulkLoading && <Loader2 className="mt-3 h-4 w-4 animate-spin" />}
-          </motion.div>
+            <button onClick={() => setBulkTarget("enable_auto_renew")} disabled={bulkLoading} className="flex items-center justify-center gap-1.5 rounded-2xl bg-emerald-600 px-3 py-2.5 text-xs font-bold transition-colors hover:bg-emerald-700 disabled:opacity-50">
+              <RefreshCcw className="h-3.5 w-3.5" /> {copy.autoRenewEnable}
+            </button>
+            <button onClick={() => setBulkTarget("disable_auto_renew")} disabled={bulkLoading} className="flex items-center justify-center gap-1.5 rounded-2xl bg-slate-700 px-3 py-2.5 text-xs font-bold transition-colors hover:bg-slate-800 disabled:opacity-50">
+              <RefreshCcw className="h-3.5 w-3.5" /> {copy.autoRenewDisable}
+            </button>
+            <button onClick={() => setBulkTarget("revoke")} disabled={bulkLoading} className="flex items-center justify-center gap-1.5 rounded-2xl bg-rose-600 px-3 py-2.5 text-xs font-bold transition-colors hover:bg-rose-700 disabled:opacity-50">
+              <ShieldOff className="h-3.5 w-3.5" /> {copy.revokeAction}
+            </button>
+            <button onClick={() => setBulkTarget("expire")} disabled={bulkLoading} className="flex items-center justify-center gap-1.5 rounded-2xl bg-amber-600 px-3 py-2.5 text-xs font-bold transition-colors hover:bg-amber-700 disabled:opacity-50">
+              <Clock className="h-3.5 w-3.5" /> {copy.expireAction}
+            </button>
+            <button onClick={() => setBulkTarget("delete")} disabled={bulkLoading} className="flex items-center justify-center gap-1.5 rounded-2xl bg-red-700 px-3 py-2.5 text-xs font-bold transition-colors hover:bg-red-800 disabled:opacity-50">
+              <Trash2 className="h-3.5 w-3.5" /> {copy.deleteAction}
+            </button>
+          </BulkActionBar>
         )}
       </AnimatePresence>
 

@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import PageHeader from "@/components/Admin/PageHeader";
+import DateTimeField from "@/components/Admin/DateTimeField";
 import ConfirmModal from "@/components/Admin/ConfirmModal";
 import EmptyState from "@/components/Admin/EmptyState";
 import { StatCard } from "@/components/Admin/StatCard";
@@ -540,7 +541,7 @@ export default function AdminEvents() {
             </div>
             {venues.length > 0 && (
               <div className="mt-4 rounded-xl border border-surface-200 bg-white/80 p-4">
-                <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_170px_170px]">
+                <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
                   <div>
                     <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.16em] text-surface-400">
                       {lang === "tr" ? "Salon" : "Venue"}
@@ -554,18 +555,20 @@ export default function AdminEvents() {
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.16em] text-surface-400">
-                      {lang === "tr" ? "Başlangıç" : "Start"}
-                    </label>
-                    <input type="datetime-local" value={reservationStartAt} onChange={(event) => setReservationStartAt(event.target.value)} className="input-field" disabled={!selectedVenueId} />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.16em] text-surface-400">
-                      {lang === "tr" ? "Bitiş" : "End"}
-                    </label>
-                    <input type="datetime-local" value={reservationEndAt} onChange={(event) => setReservationEndAt(event.target.value)} className="input-field" disabled={!selectedVenueId} />
-                  </div>
+                  <DateTimeField
+                    value={reservationStartAt}
+                    onChange={setReservationStartAt}
+                    label={lang === "tr" ? "Başlangıç" : "Start"}
+                    disabled={!selectedVenueId}
+                    locale={lang === "tr" ? "tr-TR" : "en-US"}
+                  />
+                  <DateTimeField
+                    value={reservationEndAt}
+                    onChange={setReservationEndAt}
+                    label={lang === "tr" ? "Bitiş" : "End"}
+                    disabled={!selectedVenueId}
+                    locale={lang === "tr" ? "tr-TR" : "en-US"}
+                  />
                 </div>
                 <label className="mt-3 flex items-start gap-2 text-sm font-semibold text-surface-700">
                   <input

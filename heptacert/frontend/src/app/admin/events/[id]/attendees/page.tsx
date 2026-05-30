@@ -11,6 +11,8 @@ import {
 import Link from "next/link";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 import ConfirmModal from "@/components/Admin/ConfirmModal";
+import FilterActionBar from "@/components/Admin/FilterActionBar";
+import { AdminEmptyState } from "@/components/Admin/AdminState";
 import {
   Users, Upload, Search, Trash2, Loader2, ChevronLeft, Download,
   Award, BarChart3, CheckSquare, XSquare, RefreshCw, AlertCircle,
@@ -603,7 +605,7 @@ export default function AdminAttendeesPage() {
     : [];
 
   return (
-    <div className="flex flex-col gap-6 pb-20">
+    <div className="mx-auto flex max-w-7xl flex-col gap-6 pb-20">
         <EventAdminNav eventId={eventId} eventName={eventName} active="attendees" className="mb-6 flex flex-col gap-2" />
 
         {/* Plan gate */}
@@ -625,17 +627,18 @@ export default function AdminAttendeesPage() {
 
         {planOk !== false && (
           <>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="surface-panel flex flex-col gap-4 p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-2xl font-extrabold text-gray-900">Katılımcı Yönetimi</h1>
-            <p className="text-sm text-gray-500 mt-0.5">{eventName} - Min. {minSessions} oturum</p>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-brand-500">Kayıt ve katılım</p>
+            <h1 className="mt-2 text-2xl font-black text-surface-950">Katılımcı Yönetimi</h1>
+            <p className="mt-1 text-sm text-surface-500">{eventName} - Min. {minSessions} oturum</p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
               <button
                 type="button"
                 onClick={() => void handleExportAttendance("xlsx")}
                 disabled={exporting}
-                className="inline-flex items-center justify-center gap-2 border border-gray-200 bg-white text-gray-700 text-sm font-semibold px-4 py-2 rounded-xl hover:bg-gray-50 transition"
+                className="btn-secondary justify-center"
               >
                 {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} Excel İndir
               </button>
@@ -644,21 +647,21 @@ export default function AdminAttendeesPage() {
                   type="button"
                   onClick={() => void handleExportRegistrationDocuments()}
                   disabled={exportingDocuments}
-                  className="inline-flex items-center justify-center gap-2 border border-gray-200 bg-white text-gray-700 text-sm font-semibold px-4 py-2 rounded-xl hover:bg-gray-50 transition"
+                  className="btn-secondary justify-center"
                 >
                   {exportingDocuments ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} Belgeleri İndir (ZIP)
                 </button>
               )}
             <Link
               href={`/admin/events/${eventId}/checkin`}
-              className="inline-flex items-center justify-center gap-2 border border-indigo-300 bg-indigo-50 text-indigo-700 text-sm font-semibold px-4 py-2 rounded-xl hover:bg-indigo-100 transition"
+              className="btn-secondary justify-center border-brand-200 bg-brand-50 text-brand-700 hover:bg-brand-100"
             >
               <UserCheck className="w-4 h-4" /> Manuel Check-in
             </Link>
             <button
               onClick={handleBulkCertify}
               disabled={certifying}
-              className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold px-4 py-2 rounded-xl hover:opacity-90 disabled:opacity-50 transition text-sm"
+              className="btn-primary justify-center disabled:opacity-50"
             >
               {certifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Award className="w-4 h-4" />}
               Sertifika Üret
@@ -670,7 +673,7 @@ export default function AdminAttendeesPage() {
           <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 text-sm text-indigo-800 mb-4">{certResult}</div>
         )}
 
-        <div className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm">
+        <div className="card border-emerald-200 p-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex items-start gap-3">
               <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600">
@@ -765,7 +768,7 @@ export default function AdminAttendeesPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-sky-200 bg-white p-4 shadow-sm">
+        <div className="card border-sky-200 p-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex items-start gap-3">
               <div className="rounded-xl bg-sky-50 p-3 text-sky-600">
@@ -798,22 +801,22 @@ export default function AdminAttendeesPage() {
         </div>
 
         {/* Tabs */}
-        <div className="mb-5 w-full overflow-x-auto"><div className="flex w-max min-w-full gap-1 rounded-xl bg-gray-100 p-1 sm:min-w-0 sm:w-fit">
+        <div className="w-full overflow-x-auto"><div className="flex w-max min-w-full gap-1 rounded-2xl border border-surface-200 bg-surface-50 p-1.5 sm:min-w-0 sm:w-fit">
           <button
             onClick={() => setTab("list")}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${tab === "list" ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${tab === "list" ? "bg-white text-surface-900 shadow-soft" : "text-surface-500 hover:bg-white hover:text-surface-700"}`}
           >
             <span className="flex items-center gap-2"><Users className="w-4 h-4" /> Katılımcı Listesi</span>
           </button>
           <button
             onClick={() => setTab("matrix")}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${tab === "matrix" ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${tab === "matrix" ? "bg-white text-surface-900 shadow-soft" : "text-surface-500 hover:bg-white hover:text-surface-700"}`}
           >
             <span className="flex items-center gap-2"><BarChart3 className="w-4 h-4" /> Yoklama Matrisi</span>
           </button>
           <button
             onClick={() => setTab("answers")}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${tab === "answers" ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${tab === "answers" ? "bg-white text-surface-900 shadow-soft" : "text-surface-500 hover:bg-white hover:text-surface-700"}`}
           >
             <span className="flex items-center gap-2"><ClipboardList className="w-4 h-4" /> Soru Bazlı Cevaplar</span>
           </button>
@@ -822,7 +825,7 @@ export default function AdminAttendeesPage() {
 
         {tab === "list" && (
           <>
-            <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-5 shadow-sm">
+            <div className="card p-4">
               <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                 <UserPlus className="w-4 h-4 text-emerald-500" /> Manuel Katılımcı Ekle
               </h2>
@@ -832,26 +835,26 @@ export default function AdminAttendeesPage() {
                   value={manualEmail}
                   onChange={(e) => setManualEmail(e.target.value)}
                   placeholder="ornek@mail.com"
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="input-field"
                 />
                 <input
                   type="text"
                   value={manualFirstName}
                   onChange={(e) => setManualFirstName(e.target.value)}
                   placeholder="Ad"
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="input-field"
                 />
                 <input
                   type="text"
                   value={manualLastName}
                   onChange={(e) => setManualLastName(e.target.value)}
                   placeholder="Soyad"
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="input-field"
                 />
                 <button
                   type="submit"
                   disabled={addingManual}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+                  className="btn-primary justify-center disabled:opacity-50"
                 >
                   {addingManual ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
                   Ekle
@@ -861,7 +864,7 @@ export default function AdminAttendeesPage() {
             </div>
 
             {/* Import */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-5 shadow-sm">
+            <div className="card p-4">
               <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                 <Upload className="w-4 h-4 text-indigo-500" /> Excel/CSV İçe Aktar
               </h2>
@@ -878,7 +881,7 @@ export default function AdminAttendeesPage() {
                 <button
                   onClick={handleImport}
                   disabled={!importFile || importing}
-                  className="inline-flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-4 py-1.5 rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition shrink-0"
+                  className="btn-primary shrink-0 disabled:opacity-50"
                 >
                   {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                   Yükle
@@ -893,20 +896,16 @@ export default function AdminAttendeesPage() {
             </div>
 
             {/* Search */}
-            <form onSubmit={handleSearchSubmit} className="mb-4 flex flex-col gap-2 sm:flex-row">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Ad veya e-posta ara..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                />
-              </div>
-              <button type="submit" className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition sm:min-w-[96px]">
-                Ara
-              </button>
+            <form onSubmit={handleSearchSubmit}>
+              <FilterActionBar
+                className="mb-4"
+                search={search}
+                onSearchChange={setSearch}
+                searchPlaceholder="Ad veya e-posta ara..."
+                hasActiveFilters={Boolean(search.trim())}
+                onClear={() => setSearch("")}
+                actions={<button type="submit" className="btn-secondary justify-center sm:min-w-[96px]">Ara</button>}
+              />
             </form>
 
             {listError && (
@@ -918,14 +917,20 @@ export default function AdminAttendeesPage() {
                 <Loader2 className="w-7 h-7 animate-spin text-indigo-500" />
               </div>
             ) : attendees.length === 0 ? (
-              <div className="text-center py-16 text-gray-400">
-                <Users className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                <p className="font-medium">Katılımcı bulunamadı</p>
-              </div>
+              <AdminEmptyState
+                icon={<Users className="h-7 w-7" />}
+                title="Katılımcı bulunamadı"
+                description={
+                  search.trim()
+                    ? "Bu aramada eşleşen katılımcı yok. Filtreyi temizleyip tekrar deneyebilirsin."
+                    : "İlk kayıt geldiğinde burada görünecek. İstersen Excel/Sheets aktarımı veya manuel ekleme ile başlayabilirsin."
+                }
+                className="border-surface-200 bg-white"
+              />
             ) : (
               <>
                 <p className="text-xs text-gray-400 mb-2">{total} katılımcı</p>
-                <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
+                <div className="card overflow-x-auto p-0">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 border-b border-gray-100">
                       <tr>

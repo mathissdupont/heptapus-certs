@@ -24,6 +24,9 @@ import {
 } from "lucide-react";
 import { apiFetch, type EventOut } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import { AdminErrorState, AdminLoadingState } from "@/components/Admin/AdminState";
+import EventSetupChecklist from "@/components/Admin/EventSetupChecklist";
+import EventActivityTimeline from "@/components/Admin/EventActivityTimeline";
 
 type EventHealthCheck = {
   key: string;
@@ -245,16 +248,11 @@ export default function EventIndexPage() {
   }
 
   if (loading) {
-    return (
-      <div className="surface-panel flex items-center gap-3 p-6 text-sm font-semibold text-surface-500">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        {copy.loading}
-      </div>
-    );
+    return <AdminLoadingState label={copy.loading} />;
   }
 
   if (error || !event) {
-    return <div className="error-banner">{error || copy.error}</div>;
+    return <AdminErrorState title={copy.error} description={error || undefined} />;
   }
 
   return (
@@ -365,17 +363,7 @@ export default function EventIndexPage() {
       )}
 
       <section className="grid gap-4 lg:grid-cols-[0.9fr_1.6fr]">
-        <div className="card p-5">
-          <div className="rounded-lg bg-brand-50 p-3 text-brand-700 w-fit">
-            <ClipboardList className="h-5 w-5" />
-          </div>
-          <h2 className="mt-4 text-lg font-bold text-surface-900">{copy.quickSetup}</h2>
-          <p className="mt-2 text-sm leading-6 text-surface-600">{copy.quickSetupBody}</p>
-          <Link href={`/admin/events/${event.id}/settings`} className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-brand-700 hover:text-brand-800">
-            {copy.settings}
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
+        <EventSetupChecklist event={event} overview={health?.overview} lang={lang} />
 
         <div className="card p-5">
           <div className="mb-4 flex items-center justify-between gap-3">
@@ -406,6 +394,8 @@ export default function EventIndexPage() {
           </div>
         </div>
       </section>
+
+      <EventActivityTimeline eventId={event.id} />
     </div>
   );
 }

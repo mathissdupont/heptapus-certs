@@ -29,7 +29,7 @@ function RegisterLinkBanner({ eventId }: { eventId: string }) {
   }
 
   return (
-    <div className="mb-6 flex flex-col items-stretch gap-3 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 sm:flex-row sm:items-center">
+    <div className="flex flex-col items-stretch gap-3 rounded-3xl border border-brand-100 bg-brand-50/70 px-4 py-3 sm:flex-row sm:items-center">
       <Link2 className="w-4 h-4 text-sky-500 shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="text-xs font-semibold text-sky-700 mb-0.5">Katılımcı Kayıt Linki</p>
@@ -215,8 +215,8 @@ export default function AdminSessionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-6xl space-y-6 pb-10">
+      <div className="space-y-6">
         <EventAdminNav eventId={eventId} eventName={eventName} active="sessions" className="mb-6 flex flex-col gap-2" />
 
         {/* Plan gate */}
@@ -238,36 +238,39 @@ export default function AdminSessionsPage() {
 
         {planOk !== false && (
           <>
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="surface-panel p-5 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-extrabold text-gray-900">Oturum Yönetimi</h1>
-            <p className="text-sm text-gray-500 mt-0.5">{eventName}</p>
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-500">Check-in altyapısı</p>
+            <h1 className="mt-2 text-2xl font-black text-surface-950">Oturum Yönetimi</h1>
+            <p className="mt-1 text-sm text-surface-500">{eventName}</p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <Link
               href={`/admin/events/${eventId}/attendees`}
-              className="btn-secondary justify-center text-sm px-4 py-2 rounded-xl font-semibold"
+              className="btn-secondary justify-center text-sm"
             >
               Katılımcılar
             </Link>
             <button
               onClick={openCreate}
-              className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm transition"
+              className="btn-primary justify-center text-sm"
             >
               <Plus className="w-4 h-4" /> Oturum Ekle
             </button>
           </div>
+        </div>
         </div>
 
         {/* Registration link banner */}
       <RegisterLinkBanner eventId={eventPublicId || String(eventId)} />
 
         {/* Min sessions required setting */}
-        <div className="mb-5 flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm sm:flex-row sm:items-center">
-          <Hash className="w-5 h-5 text-indigo-500 shrink-0" />
+        <div className="card flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
+          <Hash className="w-5 h-5 text-brand-500 shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-gray-800">Sertifika İçin Gereken Minimum Oturum Sayısı</p>
-            <p className="text-xs text-gray-400 mt-0.5">Katılımcının sertifika alabilmesi için katılması gereken minimum oturum adedi</p>
+            <p className="text-sm font-bold text-surface-900">Sertifika İçin Gereken Minimum Oturum Sayısı</p>
+            <p className="mt-0.5 text-xs text-surface-500">Katılımcının sertifika alabilmesi için katılması gereken minimum oturum adedi</p>
           </div>
           <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
             <input
@@ -277,7 +280,7 @@ export default function AdminSessionsPage() {
               value={minSessions}
               onChange={(e) => setMinSessions(Math.max(1, +e.target.value || 1))}
               onBlur={(e) => handleSaveMinSessions(+e.target.value || 1)}
-              className="w-20 px-3 py-2 border border-gray-200 rounded-xl text-sm font-semibold text-center focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400"
+              className="input-field w-24 text-center font-semibold"
             />
             {savingMin && <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />}
           </div>
@@ -289,8 +292,8 @@ export default function AdminSessionsPage() {
 
         {/* Form */}
         {showForm && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 mb-5">
-            <h2 className="font-semibold text-gray-800 mb-4">
+          <div className="card p-5">
+            <h2 className="mb-4 font-semibold text-surface-900">
               {editingSession ? "Oturumu Düzenle" : "Yeni Oturum"}
             </h2>
             <form onSubmit={handleSaveSession} className="space-y-3">
@@ -301,7 +304,7 @@ export default function AdminSessionsPage() {
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder="örn. Açılış Töreni"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  className="input-field"
                   required
                 />
               </div>
@@ -327,18 +330,18 @@ export default function AdminSessionsPage() {
                   value={formLocation}
                   onChange={(e) => setFormLocation(e.target.value)}
                   placeholder="Salon A"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  className="input-field"
                 />
               </div>
               {formError && <p className="text-xs text-red-600">{formError}</p>}
               <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:justify-end">
-                <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-sm rounded-xl border hover:bg-gray-50 transition">
+                <button type="button" onClick={() => setShowForm(false)} className="btn-secondary justify-center">
                   İptal
                 </button>
                 <button
                   type="submit"
                   disabled={saving || !formName.trim()}
-                  className="inline-flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-5 py-2 rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition"
+                  className="btn-primary justify-center disabled:opacity-50"
                 >
                   {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                   {editingSession ? "Kaydet" : "Ekle"}
@@ -350,18 +353,18 @@ export default function AdminSessionsPage() {
 
         {/* Sessions list */}
         {sessions.length === 0 && !showForm ? (
-          <div className="text-center py-16 text-gray-400">
+          <div className="card border-dashed p-12 text-center text-surface-500">
             <QrCode className="w-12 h-12 mx-auto mb-3 opacity-40" />
             <p className="font-medium">Henüz oturum yok</p>
             <p className="text-sm mt-1">İlk oturumu ekleyerek QR ile yoklama almaya başlayın.</p>
-            <button onClick={openCreate} className="mt-4 inline-flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition">
+            <button onClick={openCreate} className="btn-primary mx-auto mt-4">
               <Plus className="w-4 h-4" /> Oturum Ekle
             </button>
           </div>
         ) : (
           <div className="space-y-3">
             {sessions.map((s) => (
-              <div key={s.id} className={`bg-white rounded-2xl border p-4 shadow-sm ${s.is_active ? "border-green-300" : "border-gray-200"}`}>
+              <div key={s.id} className={`card p-4 ${s.is_active ? "border-emerald-200 bg-emerald-50/30" : ""}`}>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">

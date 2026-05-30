@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/useToast";
 import { StatCard, StatCardSkeleton } from "@/components/Admin/StatCard";
 import PageHeader from "@/components/Admin/PageHeader";
 import { useI18n } from "@/lib/i18n";
+import { AdminEmptyState } from "@/components/Admin/AdminState";
 
 type EventStat = {
   event_id: number;
@@ -89,6 +90,9 @@ export default function DashboardPage() {
       workspaceLabel: "Calisma Alani",
       actionHubTitle: "Hizli Aksiyonlar",
       overviewLabel: "Genel Gorunum",
+      organizerTitle: "Organizatör Dashboard",
+      organizerBody: "Bugünkü önceliği hızlıca seç: etkinlik akışı, sertifika sağlığı veya e-posta iletişimi.",
+      commandHint: "Her yerden Ctrl/⌘ + K ile komut paletini açabilirsin.",
     },
     en: {
       subtitle: "Overall certificate metrics and quick actions",
@@ -122,6 +126,9 @@ export default function DashboardPage() {
       workspaceLabel: "Workspace",
       actionHubTitle: "Action Hub",
       overviewLabel: "Overview",
+      organizerTitle: "Organizer Dashboard",
+      organizerBody: "Pick today's priority quickly: event flow, certificate health, or email communication.",
+      commandHint: "Open the command palette anywhere with Ctrl/⌘ + K.",
     },
   }[lang];
 
@@ -251,6 +258,32 @@ export default function DashboardPage() {
         <StatCard label={copy.expired} value={stats.expired_certs} icon={<Clock className="h-5 w-5 text-amber-600" />} iconBg="bg-amber-50 text-amber-600" delay={0.2} />
       </div>
 
+      <section className="grid gap-4 lg:grid-cols-[1fr_360px]">
+        <div className="card p-5 sm:p-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.workspaceLabel}</p>
+          <h2 className="mt-2 text-2xl font-black tracking-tight text-surface-900">{copy.organizerTitle}</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-surface-500">{copy.organizerBody}</p>
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <Link href="/admin/events" className="rounded-2xl border border-surface-200 bg-surface-50 p-4 text-sm font-bold text-surface-700 transition hover:border-brand-200 hover:bg-brand-50">
+              {copy.eventsViewAll}
+            </Link>
+            <Link href="/admin/events" className="rounded-2xl border border-surface-200 bg-surface-50 p-4 text-sm font-bold text-surface-700 transition hover:border-emerald-200 hover:bg-emerald-50">
+              {copy.reviewCertificates}
+            </Link>
+            <Link href="/admin/email-dashboard" className="rounded-2xl border border-surface-200 bg-surface-50 p-4 text-sm font-bold text-surface-700 transition hover:border-blue-200 hover:bg-blue-50">
+              {copy.quickEmail}
+            </Link>
+          </div>
+        </div>
+        <div className="card flex flex-col justify-center p-5 sm:p-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-surface-400">Command Palette</p>
+          <p className="mt-2 text-sm leading-6 text-surface-600">{copy.commandHint}</p>
+          <kbd className="mt-4 w-fit rounded-xl border border-surface-200 bg-surface-50 px-3 py-2 font-mono text-xs font-bold text-surface-500">
+            Ctrl / ⌘ + K
+          </kbd>
+        </div>
+      </section>
+
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_360px]">
         <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }} className="card p-6 sm:p-7">
           <div className="flex items-center justify-between gap-3">
@@ -357,7 +390,16 @@ export default function DashboardPage() {
         </div>
 
         {normalizedEvents.length === 0 ? (
-          <div className="card p-12 text-center text-sm text-surface-400">{copy.noEvents}</div>
+          <AdminEmptyState
+            icon={<Calendar className="h-7 w-7" />}
+            title={copy.noEvents}
+            description={
+              lang === "tr"
+                ? "İlk etkinliği oluşturduğunda sertifika, e-posta ve operasyon özetleri burada akıllı kartlar olarak görünür."
+                : "Once you create the first event, certificate, email, and operations summaries will appear here as smart cards."
+            }
+            action={<Link href="/admin/events" className="btn-primary">{copy.quickCreate}</Link>}
+          />
         ) : (
           <div className="grid gap-4 xl:grid-cols-2">
             {normalizedEvents.slice(0, 6).map((ev, i) => {

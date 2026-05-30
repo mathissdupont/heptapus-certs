@@ -18,6 +18,7 @@ import {
   Users,
 } from "lucide-react";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
+import MobileActionBar from "@/components/Admin/MobileActionBar";
 import {
   getEventOperations,
   undoAttendanceRecord,
@@ -47,7 +48,7 @@ function StatCard({
   icon: ElementType;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+    <div className="card p-3 sm:p-4">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 sm:text-xs sm:tracking-[0.16em]">{title}</p>
@@ -124,17 +125,17 @@ export default function EventOperationsPage() {
   }
 
   return (
-    <div className="pb-28 md:pb-8">
+    <div className="mx-auto max-w-7xl pb-28 md:pb-8">
       <EventAdminNav eventId={eventId} eventName={snapshot?.event_name} active="ops" className="mb-6 flex flex-col gap-2" />
 
-      <div className="mb-4 flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:mb-5 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
+      <div className="surface-panel mb-4 flex flex-col gap-3 p-4 sm:mb-5 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-500">Canlı operasyon</p>
           <h1 className="mt-1 truncate text-xl font-black text-slate-950 sm:text-2xl">{snapshot?.event_name || `Etkinlik #${eventId}`}</h1>
           <p className="mt-1 text-sm font-semibold text-slate-500">Son guncelleme: {formatTime(snapshot?.generated_at)}</p>
         </div>
         <div className="hidden flex-wrap gap-2 sm:flex">
-          <Link href={`/admin/events/${eventId}/checkin?staff=1`} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white">
+          <Link href={`/admin/events/${eventId}/checkin?staff=1`} className="btn-primary justify-center">
             <QrCode className="h-4 w-4" />
             Görevli Modu
           </Link>
@@ -142,7 +143,7 @@ export default function EventOperationsPage() {
             type="button"
             onClick={() => void load({ soft: true })}
             disabled={refreshing}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-black text-slate-700 disabled:opacity-50"
+            className="btn-secondary justify-center disabled:opacity-50"
           >
             {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Yenile
@@ -173,7 +174,7 @@ export default function EventOperationsPage() {
           </div>
 
           <div className="mt-4 grid gap-4 sm:mt-5 sm:gap-5 xl:grid-cols-[0.85fr_1.15fr]">
-            <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <section className="card p-4 sm:p-5">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-black text-slate-950">Oturum Durumu</h2>
@@ -186,7 +187,7 @@ export default function EventOperationsPage() {
                   <p className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">Henüz oturum yok.</p>
                 ) : (
                   snapshot.sessions.map((session) => (
-                    <div key={session.id} className="rounded-2xl border border-slate-200 p-4">
+                    <div key={session.id} className="rounded-2xl border border-surface-200 p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
@@ -205,7 +206,7 @@ export default function EventOperationsPage() {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <section className="card p-4 sm:p-5">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-black text-slate-950">Son Check-in'ler</h2>
@@ -243,7 +244,7 @@ export default function EventOperationsPage() {
           </div>
         </>
       )}
-      <div className="fixed bottom-3 left-3 right-3 z-40 grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-xl backdrop-blur md:hidden">
+      <MobileActionBar>
         <Link href={`/admin/events/${eventId}/checkin?staff=1`} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-3 py-3 text-sm font-black text-white">
           <QrCode className="h-4 w-4" />
           Görevli Modu
@@ -257,7 +258,7 @@ export default function EventOperationsPage() {
           {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
           Yenile
         </button>
-      </div>
+      </MobileActionBar>
     </div>
   );
 }
