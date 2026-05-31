@@ -327,6 +327,9 @@ export default function EditorPage() {
   const params = useParams<{ id: string }>();
   const eventId = Number(params.id);
   const t = useT();
+  const nameDragRef = useRef<HTMLDivElement>(null);
+  const certIdDragRef = useRef<HTMLDivElement>(null);
+  const qrDragRef = useRef<HTMLDivElement>(null);
 
   const [cfg, setCfg] = useState<EditorConfig>(DEFAULT_CFG);
   const [cfgVersion, setCfgVersion] = useState(0);
@@ -747,8 +750,9 @@ export default function EditorPage() {
                 onDrag={onNameDrag}
                 bounds="parent"
                 scale={zoom / 100}
+                nodeRef={nameDragRef}
               >
-                <div className="absolute cursor-move select-none z-20 group" style={{ lineHeight: 1.3 }}>
+                <div ref={nameDragRef} className="absolute cursor-move select-none z-20 group" style={{ lineHeight: 1.3 }}>
                   <div style={{ transform: alignTransform(cfg.name.text_align) }}>
                     <span
                       className="rounded-lg border-2 border-dashed border-brand-400/70 px-2 py-0.5 hover:border-brand-400 transition-all bg-black/10 backdrop-blur-sm whitespace-nowrap inline-block shadow-lg"
@@ -777,8 +781,9 @@ export default function EditorPage() {
                 onDrag={onCertIdDrag}
                 bounds="parent"
                 scale={zoom / 100}
+                nodeRef={certIdDragRef}
               >
-                <div className="absolute cursor-move select-none z-20 group" style={{ lineHeight: 1.3 }}>
+                <div ref={certIdDragRef} className="absolute cursor-move select-none z-20 group" style={{ lineHeight: 1.3 }}>
                   <div style={{ transform: alignTransform(cfg.cert_id.text_align) }}>
                     <span
                       className="rounded-lg border-2 border-dashed border-amber-400/70 px-2 py-0.5 hover:border-amber-400 transition-all bg-black/10 backdrop-blur-sm whitespace-nowrap inline-block shadow-lg"
@@ -809,8 +814,15 @@ export default function EditorPage() {
 
             {/* QR draggable */}
             {cfg.qr.show && (
-              <Draggable key={`qr-${cfgVersion}`} position={{ x: qrRX, y: qrRY }} onDrag={onQrStop} bounds="parent" scale={zoom / 100}>
-                <div className="absolute cursor-move" style={{ width: qrRS, height: qrRS }}>
+              <Draggable
+                key={`qr-${cfgVersion}`}
+                position={{ x: qrRX, y: qrRY }}
+                onDrag={onQrStop}
+                bounds="parent"
+                scale={zoom / 100}
+                nodeRef={qrDragRef}
+              >
+                <div ref={qrDragRef} className="absolute cursor-move" style={{ width: qrRS, height: qrRS }}>
                   <div className="w-full h-full rounded-lg border-2 border-dashed border-emerald-400/70 bg-white/10 backdrop-blur-sm flex items-center justify-center hover:border-emerald-400 hover:bg-white/20 transition-all group">
                     <QrCode className="text-emerald-300 group-hover:text-emerald-200 transition-colors" style={{ width: "50%", height: "50%" }} />
                   </div>
