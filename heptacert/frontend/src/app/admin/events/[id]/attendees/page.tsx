@@ -1,23 +1,24 @@
 ﻿"use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
   listAttendees, importAttendees, createManualAttendee, deleteAttendee, getAdminAttendeeSurveyLink,
   getAttendanceMatrix, bulkCertifyQueue, getBulkGenerateJob,
-  exportAttendanceFile, exportRegistrationDocumentsZip, downloadRegistrationDocument, apiFetch, consumeOAuthBridgeToken, getMySubscription, setToken,
-  type AttendeeOut, type AttendanceMatrix, type RegistrationField, type SubscriptionInfo
+  exportAttendanceFile, exportRegistrationDocumentsZip, downloadRegistrationDocument, apiFetch, consumeOAuthBridgeToken, setToken,
+  type AttendeeOut, type AttendanceMatrix, type RegistrationField
 } from "@/lib/api";
 import Link from "next/link";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 import ConfirmModal from "@/components/Admin/ConfirmModal";
 import FilterActionBar from "@/components/Admin/FilterActionBar";
 import { AdminEmptyState } from "@/components/Admin/AdminState";
+import { PlanGateCard, isPlanGateError } from "@/lib/useSubscription";
 import {
   Users, Upload, Search, Trash2, Loader2, ChevronLeft, Download,
   Award, BarChart3, CheckSquare, XSquare, RefreshCw, AlertCircle,
   UserCheck, UserX, CheckCircle2, QrCode, LockKeyhole, Hash, UserPlus,
-  ShieldAlert, Sparkles, Copy, Link2, ClipboardList, FileSpreadsheet,
+  Copy, Link2, ClipboardList, FileSpreadsheet,
   ExternalLink, Unplug
 } from "lucide-react";
 
@@ -50,7 +51,6 @@ type EventMicrosoftExcelStatus = {
 
 export default function AdminAttendeesPage() {
   const params = useParams();
-  const router = useRouter();
   const eventId = Number(params?.id);
 
   const [tab, setTab] = useState<Tab>("list");
@@ -97,6 +97,7 @@ export default function AdminAttendeesPage() {
 
   // Plan gate
   const [planOk, setPlanOk] = useState<boolean | null>(null);
+  const [planGateMessage, setPlanGateMessage] = useState<string | null>(null);
   const [authBridgeReady, setAuthBridgeReady] = useState(false);
 
   // Google Sheets
@@ -114,17 +115,12 @@ export default function AdminAttendeesPage() {
   const limit = 50;
 
   async function loadEventMeta() {
-    const [r, subInfo] = await Promise.all([
-      apiFetch(`/admin/events/${eventId}`).then((r) => r.json()),
-      getMySubscription().catch(() => ({ active: false, plan_id: null, expires_at: null, role: null } as SubscriptionInfo)),
-    ]);
+    const r = await apiFetch(`/admin/events/${eventId}`).then((r) => r.json());
     setEventName(r.name);
     setMinSessions(r.min_sessions_required ?? 1);
     const fields = Array.isArray(r.config?.registration_fields) ? r.config.registration_fields : [];
     setRegistrationFields(fields);
     setSelectedQuestionId((current) => current || fields[0]?.id || null);
-    const hasPaidPlan = subInfo.role === "superadmin" || (subInfo.active && ["pro", "growth", "enterprise"].includes(subInfo.plan_id ?? ""));
-    setPlanOk(hasPaidPlan);
   }
 
   async function loadSheetsStatus() {
@@ -161,8 +157,16 @@ export default function AdminAttendeesPage() {
       setAttendees(data.items);
       setTotal(data.total);
       setPage(p);
+      setPlanOk(true);
+      setPlanGateMessage(null);
     } catch (e: any) {
-      setListError(e.message);
+      if (e?.status === 403 && isPlanGateError(e?.message)) {
+        setPlanOk(false);
+        setPlanGateMessage(e.message);
+        setListError(null);
+      } else {
+        setListError(e.message);
+      }
     } finally {
       setLoadingList(false);
     }
@@ -227,12 +231,6 @@ export default function AdminAttendeesPage() {
     if (tab === "matrix" && !matrix) loadMatrix();
     if (tab === "answers" && answerAttendees.length === 0) loadQuestionAnswers();
   }, [tab]);
-
-  useEffect(() => {
-    if (planOk === false) {
-      router.replace("/pricing?source=admin-premium");
-    }
-  }, [planOk, router]);
 
   async function handleSearchSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -610,19 +608,10 @@ export default function AdminAttendeesPage() {
 
         {/* Plan gate */}
         {planOk === false && (
-          <div className="bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-200 rounded-2xl p-8 text-center mb-6">
-            <ShieldAlert className="w-12 h-12 text-violet-400 mx-auto mb-3" />
-            <h2 className="text-lg font-bold text-gray-800 mb-2">Pro veya Enterprise Plan Gerekli</h2>
-            <p className="text-sm text-gray-500 mb-4 max-w-md mx-auto">
-              Katılımcı yönetimi, yoklama matrisi ve toplu sertifika üretimi özellikleri sadece Pro ve Enterprise planlarında kullanılabilir.
-            </p>
-            <Link
-              href="/pricing"
-              className="inline-flex items-center gap-2 bg-violet-600 text-white font-semibold px-6 py-2.5 rounded-xl hover:bg-violet-700 transition text-sm"
-            >
-              <Sparkles className="w-4 h-4" /> Planı Yükselt
-            </Link>
-          </div>
+          <PlanGateCard
+            feature="Katılımcı yönetimi, yoklama matrisi ve toplu sertifika üretimi"
+            serverMessage={planGateMessage}
+          />
         )}
 
         {planOk !== false && (

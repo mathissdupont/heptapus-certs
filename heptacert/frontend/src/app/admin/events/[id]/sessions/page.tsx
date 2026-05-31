@@ -1,20 +1,21 @@
 ﻿"use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
   listSessions, createSession, updateSession, deleteSession,
-  toggleSession, fetchSessionQr, apiFetch, getMySubscription,
-  type SessionOut, type SubscriptionInfo
+  toggleSession, fetchSessionQr, apiFetch,
+  type SessionOut
 } from "@/lib/api";
 import Link from "next/link";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 import DateField from "@/components/Admin/DateField";
 import TimeField from "@/components/Admin/TimeField";
+import { PlanGateCard, isPlanGateError } from "@/lib/useSubscription";
 import {
   Plus, Loader2, Calendar, Clock, MapPin, QrCode, ToggleLeft,
   ToggleRight, Pencil, Trash2, ChevronLeft, Check, X, Download, ExternalLink,
-  LockKeyhole, Users, UserCheck, Hash, Link2, ClipboardCheck, ShieldAlert, Sparkles
+  LockKeyhole, Users, UserCheck, Hash, Link2, ClipboardCheck
 } from "lucide-react";
 
 function RegisterLinkBanner({ eventId }: { eventId: string }) {
@@ -51,7 +52,6 @@ function RegisterLinkBanner({ eventId }: { eventId: string }) {
 
 export default function AdminSessionsPage() {
   const params = useParams();
-  const router = useRouter();
   const eventId = Number(params?.id);
 
   const [sessions, setSessions] = useState<SessionOut[]>([]);
@@ -60,6 +60,7 @@ export default function AdminSessionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [planOk, setPlanOk] = useState<boolean | null>(null);
+  const [planGateMessage, setPlanGateMessage] = useState<string | null>(null);
 
   // Min sessions required
   const [minSessions, setMinSessions] = useState(1);
@@ -84,31 +85,35 @@ export default function AdminSessionsPage() {
 
   async function load() {
     try {
-      const [sessRes, evRes, subInfo] = await Promise.all([
-        listSessions(eventId).catch(() => []),
+      const [sessRes, evRes] = await Promise.all([
+        listSessions(eventId),
         apiFetch(`/admin/events/${eventId}`).then((r) => r.json()),
-        getMySubscription().catch(() => ({ active: false, plan_id: null, expires_at: null, role: null } as SubscriptionInfo)),
       ]);
-      const hasPaidPlan = subInfo.role === "superadmin" || (subInfo.active && ["pro", "growth", "enterprise"].includes(subInfo.plan_id ?? ""));
-      setPlanOk(hasPaidPlan);
+      setPlanOk(true);
+      setPlanGateMessage(null);
       setSessions(sessRes);
       setEventName(evRes.name);
       setEventPublicId(evRes.public_id || String(eventId));
       setMinSessions(evRes.min_sessions_required ?? 1);
     } catch (e: any) {
-      setError(e.message || "Yükleme başarısız");
+      if (e?.status === 403 && isPlanGateError(e?.message)) {
+        setPlanOk(false);
+        setPlanGateMessage(e.message);
+        setError(null);
+        try {
+          const evRes = await apiFetch(`/admin/events/${eventId}`).then((r) => r.json());
+          setEventName(evRes.name);
+          setEventPublicId(evRes.public_id || String(eventId));
+        } catch {}
+      } else {
+        setError(e.message || "Yükleme başarısız");
+      }
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => { if (eventId) load(); }, [eventId]);
-
-  useEffect(() => {
-    if (planOk === false) {
-      router.replace("/pricing?source=admin-premium");
-    }
-  }, [planOk, router]);
 
   function openCreate() {
     setEditingSession(null);
@@ -221,19 +226,10 @@ export default function AdminSessionsPage() {
 
         {/* Plan gate */}
         {planOk === false && (
-          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl p-8 text-center mb-6">
-            <ShieldAlert className="w-12 h-12 text-indigo-400 mx-auto mb-3" />
-            <h2 className="text-lg font-bold text-gray-800 mb-2">Pro veya Enterprise Plan Gerekli</h2>
-            <p className="text-sm text-gray-500 mb-4 max-w-md mx-auto">
-              Oturum yönetimi, QR ile yoklama ve katılım takibi özellikleri sadece Pro ve Enterprise planlarında kullanılabilir.
-            </p>
-            <Link
-              href="/pricing"
-              className="inline-flex items-center gap-2 bg-indigo-600 text-white font-semibold px-6 py-2.5 rounded-xl hover:bg-indigo-700 transition text-sm"
-            >
-              <Sparkles className="w-4 h-4" /> Planı Yükselt
-            </Link>
-          </div>
+          <PlanGateCard
+            feature="Oturum yönetimi, QR ile yoklama ve katılım takibi"
+            serverMessage={planGateMessage}
+          />
         )}
 
         {planOk !== false && (

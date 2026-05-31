@@ -2,17 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
   apiFetch,
   adminManualCheckin,
   checkInEventTicket,
-  getMySubscription,
   listSessions,
   type SessionOut,
-  type SubscriptionInfo,
 } from "@/lib/api";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
+import { PlanGateCard, isPlanGateError } from "@/lib/useSubscription";
 import {
   Camera,
   ArrowLeft,
@@ -22,8 +21,6 @@ import {
   QrCode,
   RotateCcw,
   Search,
-  ShieldAlert,
-  Sparkles,
   Smartphone,
   Trash2,
   UserCheck,
@@ -92,7 +89,6 @@ function classifyScan(value: string): { type: CheckinType | "unsupported"; value
 
 export default function AdminCheckinPage() {
   const params = useParams();
-  const router = useRouter();
   const eventId = Number(params?.id);
   const [staffMode, setStaffMode] = useState(false);
 
@@ -105,6 +101,7 @@ export default function AdminCheckinPage() {
   const [log, setLog] = useState<CheckinEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [planOk, setPlanOk] = useState<boolean | null>(null);
+  const [planGateMessage, setPlanGateMessage] = useState<string | null>(null);
   const [offlineQueue, setOfflineQueue] = useState<QueueEntry[]>([]);
   const [isOnline, setIsOnline] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -117,20 +114,25 @@ export default function AdminCheckinPage() {
 
   async function load() {
     try {
-      const [sessRes, evRes, subInfo] = await Promise.all([
-        listSessions(eventId).catch(() => []),
+      const [sessRes, evRes] = await Promise.all([
+        listSessions(eventId),
         apiFetch(`/admin/events/${eventId}`).then((r) => r.json()),
-        getMySubscription().catch(() => ({ active: false, plan_id: null, expires_at: null, role: null }) as SubscriptionInfo),
       ]);
-      const hasPaidPlan = subInfo.role === "superadmin" || (subInfo.active && ["pro", "growth", "enterprise"].includes(subInfo.plan_id ?? ""));
-      setPlanOk(hasPaidPlan);
+      setPlanOk(true);
+      setPlanGateMessage(null);
       setSessions(sessRes);
       setEventName(evRes.name);
       const active = sessRes.find((s) => s.is_active);
       if (active) setSelectedSession(active.id);
       else if (sessRes.length > 0) setSelectedSession(sessRes[0].id);
     } catch (e: any) {
-      setError(e.message || "Check-in ekrani yuklenemedi.");
+      if (e?.status === 403 && isPlanGateError(e?.message)) {
+        setPlanOk(false);
+        setPlanGateMessage(e.message);
+        setError(null);
+      } else {
+        setError(e.message || "Check-in ekrani yuklenemedi.");
+      }
     } finally {
       setLoading(false);
     }
@@ -162,10 +164,6 @@ export default function AdminCheckinPage() {
       window.removeEventListener("offline", update);
     };
   }, []);
-
-  useEffect(() => {
-    if (planOk === false) router.replace("/pricing?source=admin-premium");
-  }, [planOk, router]);
 
   useEffect(() => {
     if (!submitting) inputRef.current?.focus();
@@ -366,16 +364,10 @@ export default function AdminCheckinPage() {
         )}
 
         {planOk === false && (
-          <div className="mb-6 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-8 text-center">
-            <ShieldAlert className="mx-auto mb-3 h-12 w-12 text-amber-400" />
-            <h2 className="mb-2 text-lg font-bold text-gray-800">Pro veya Enterprise Plan Gerekli</h2>
-            <p className="mx-auto mb-4 max-w-md text-sm text-gray-500">
-              Manuel check-in ve yoklama sistemi sadece Pro ve Enterprise planlarinda kullanilabilir.
-            </p>
-            <Link href="/pricing" className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-700">
-              <Sparkles className="h-4 w-4" /> Plani Yukselt
-            </Link>
-          </div>
+          <PlanGateCard
+            feature="Manuel check-in ve yoklama sistemi"
+            serverMessage={planGateMessage}
+          />
         )}
 
         {planOk !== false && (

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -13,8 +13,10 @@ from .main import (
     JSONB,
     Organization,
     Role,
+    Subscription,
     User,
     _get_or_create_admin_organization,
+    ensure_utc,
     get_current_user,
     get_db,
     require_role,
@@ -185,6 +187,28 @@ async def _active_member_for_org(db: AsyncSession, organization_id: int, me: Cur
     return result.scalar_one_or_none()
 
 
+async def organization_owner_has_enterprise_plan(db: AsyncSession, organization: Organization) -> bool:
+    result = await db.execute(
+        select(Subscription)
+        .where(Subscription.user_id == organization.user_id, Subscription.is_active == True)
+        .order_by(Subscription.expires_at.desc())
+        .limit(1)
+    )
+    sub = result.scalar_one_or_none()
+    if not sub or sub.plan_id != "enterprise":
+        return False
+    expires_at = ensure_utc(sub.expires_at)
+    return not (expires_at and expires_at < datetime.now(timezone.utc))
+
+
+async def ensure_organization_enterprise(db: AsyncSession, organization: Organization) -> None:
+    if not await organization_owner_has_enterprise_plan(db, organization):
+        raise HTTPException(
+            status_code=403,
+            detail="Kurum calisanlari ve yetki yonetimi sadece Enterprise planda kullanilabilir.",
+        )
+
+
 async def user_can_manage_owner_organization(
     db: AsyncSession,
     me: CurrentUser,
@@ -194,6 +218,8 @@ async def user_can_manage_owner_organization(
     result = await db.execute(select(Organization).where(Organization.user_id == owner_user_id))
     organization = result.scalar_one_or_none()
     if organization is None:
+        return False
+    if not await organization_owner_has_enterprise_plan(db, organization):
         return False
     member = await _active_member_for_org(db, organization.id, me)
     return bool(member and member_allows(member, required_permission))
@@ -210,7 +236,11 @@ async def get_organization_for_access(
         if selected is None:
             raise HTTPException(status_code=404, detail="Organization not found")
         if selected.user_id == me.id or me.role == Role.superadmin:
+            if me.role != Role.superadmin and required_permission == "organization:team_manage":
+                await ensure_organization_enterprise(db, selected)
             return selected
+        if not await organization_owner_has_enterprise_plan(db, selected):
+            raise HTTPException(status_code=403, detail="Organization permission denied")
         member = await _active_member_for_org(db, selected.id, me)
         if member and member_allows(member, required_permission):
             return selected
@@ -219,6 +249,8 @@ async def get_organization_for_access(
     result = await db.execute(select(Organization).where(Organization.user_id == me.id))
     owned = result.scalar_one_or_none()
     if owned:
+        if required_permission == "organization:team_manage":
+            await ensure_organization_enterprise(db, owned)
         return owned
 
     normalized_email = (me.email or "").strip().lower()
@@ -236,7 +268,7 @@ async def get_organization_for_access(
     )
     memberships = result.all()
     for organization, member in memberships:
-        if member_allows(member, required_permission):
+        if await organization_owner_has_enterprise_plan(db, organization) and member_allows(member, required_permission):
             return organization
 
     if memberships:
@@ -288,6 +320,8 @@ async def get_accessible_organization_contexts(db: AsyncSession, me: CurrentUser
         .order_by(OrganizationMember.created_at.asc())
     )
     for organization, member in result.all():
+        if not await organization_owner_has_enterprise_plan(db, organization):
+            continue
         contexts.setdefault(
             organization.id,
             OrganizationContextOut(

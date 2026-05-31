@@ -4611,22 +4611,71 @@ def require_role(*allowed: Role):
         return u
     return _guard
 
+async def _get_active_subscription_for_user(user_id: int, db: AsyncSession) -> Optional[Subscription]:
+    res = await db.execute(
+        select(Subscription)
+        .where(Subscription.user_id == user_id, Subscription.is_active == True)
+        .order_by(Subscription.expires_at.desc())
+        .limit(1)
+    )
+    return res.scalar_one_or_none()
+
+
+def _subscription_is_active_plan(sub: Optional[Subscription], allowed_plans: set[str]) -> bool:
+    if not sub or sub.plan_id not in allowed_plans:
+        return False
+    now = datetime.now(timezone.utc)
+    expires_at = ensure_utc(sub.expires_at)
+    return not (expires_at and expires_at < now)
+
+
+async def _event_owner_has_enterprise_plan(event_id: int, db: AsyncSession) -> bool:
+    event_owner_res = await db.execute(select(Event.admin_id).where(Event.id == event_id))
+    event_owner_id = event_owner_res.scalar_one_or_none()
+    if event_owner_id is None:
+        return False
+    sub = await _get_active_subscription_for_user(int(event_owner_id), db)
+    return _subscription_is_active_plan(sub, {"enterprise"})
+
 
 async def require_paid_plan(
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Attendaonce/check-in features require Pro or Enterprise plan. Superadmins bypass."""
+    """Paid event features use the owner plan; collaborators require owner Enterprise."""
     if me.role == Role.superadmin:
         return me
+
+    billing_user_id = me.id
+    allowed_plans = {"pro", "growth", "enterprise"}
+    event_id_raw = request.path_params.get("event_id")
+    if event_id_raw is not None:
+        try:
+            event_id = int(event_id_raw)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=404, detail="Event not found")
+        event_owner_res = await db.execute(select(Event.admin_id).where(Event.id == event_id))
+        event_owner_id = event_owner_res.scalar_one_or_none()
+        if event_owner_id is None:
+            raise HTTPException(status_code=404, detail="Event not found")
+        billing_user_id = int(event_owner_id)
+        if billing_user_id != me.id:
+            allowed_plans = {"enterprise"}
+
     res = await db.execute(
         select(Subscription)
-        .where(Subscription.user_id == me.id, Subscription.is_active == True)
+        .where(Subscription.user_id == billing_user_id, Subscription.is_active == True)
         .order_by(Subscription.expires_at.desc())
         .limit(1)
     )
     sub = res.scalar_one_or_none()
-    if not sub or sub.plan_id not in ("pro", "growth", "enterprise"):
+    if not _subscription_is_active_plan(sub, allowed_plans):
+        if event_id_raw is not None and allowed_plans == {"enterprise"}:
+            raise HTTPException(
+                status_code=403,
+                detail="Organizasyon calisanlari ve ekip uyeleri icin etkinlik sahibinin Enterprise planda olmasi gerekir.",
+            )
         raise HTTPException(
             status_code=403,
             detail="Bu ozellik sadece Pro, Growth ve Enterprise planlarında kullanılabilir.",
@@ -4674,7 +4723,7 @@ async def _check_event_owner_has_premium_for_teams(
     event_id: int,
     db: AsyncSession,
 ) -> bool:
-    """Check if event owner has premium plan for teams feature. Returns True if owner has premium."""
+    """Check if event owner has Enterprise plan for organization/team features."""
     res = await db.execute(
         select(Event, Subscription)
         .outerjoin(Subscription, Subscription.user_id == Event.admin_id)
@@ -4688,11 +4737,7 @@ async def _check_event_owner_has_premium_for_teams(
     if not row:
         return False
     event, sub = row
-    if not sub or sub.plan_id not in ("pro", "growth", "enterprise"):
-        return False
-    now = datetime.now(timezone.utc)
-    expires_at = ensure_utc(sub.expires_at)
-    if expires_at and expires_at < now:
+    if not _subscription_is_active_plan(sub, {"enterprise"}):
         return False
     return True
 
@@ -4702,7 +4747,7 @@ async def require_event_owner_premium_for_teams(
     db: AsyncSession = Depends(get_db),
     me: CurrentUser = Depends(get_current_user),
 ):
-    """Verify event owner has premium plan for team features. Allow superadmins and owners to bypass."""
+    """Verify event owner has Enterprise plan for team/collaborator features."""
     if me.role == Role.superadmin:
         return True
     
@@ -4717,7 +4762,7 @@ async def require_event_owner_premium_for_teams(
         if not has_premium:
             raise HTTPException(
                 status_code=403,
-                detail="Ekip özellikleri Pro, Growth veya Enterprise planında kullanılabilir.",
+                detail="Ekip ve calisan ozellikleri sadece Enterprise planda kullanilabilir.",
             )
         return True
     else:
@@ -4726,7 +4771,7 @@ async def require_event_owner_premium_for_teams(
         if not has_premium:
             raise HTTPException(
                 status_code=403,
-                detail="Etkinliğin sahibinin Ekip özellikleri için Premium plana sahip olması gerekir.",
+                detail="Etkinlik sahibinin ekip ve calisan ozellikleri icin Enterprise planda olmasi gerekir.",
             )
         return True
 
@@ -14332,6 +14377,8 @@ async def _get_event_for_admin(
         raise HTTPException(status_code=404, detail="Event not found")
     if me.role == Role.superadmin or ev.admin_id == me.id:
         return ev
+    if not await _event_owner_has_enterprise_plan(event_id, db):
+        raise HTTPException(status_code=404, detail="Event not found")
     membership = await _get_event_team_membership(event_id, me, db)
     if membership and _event_team_member_allows(membership, required_permission):
         return ev

@@ -46,6 +46,7 @@ import DateField from "@/components/Admin/DateField";
 import DateTimeField from "@/components/Admin/DateTimeField";
 import RichTextEditor from "@/components/RichTextEditor";
 import { useI18n } from "@/lib/i18n";
+import { PlanGateCard } from "@/lib/useSubscription";
 import { useToast } from "@/hooks/useToast";
 import useKeyboardShortcut from "@/hooks/useKeyboardShortcut";
 import useUnsavedChanges from "@/hooks/useUnsavedChanges";
@@ -2168,17 +2169,12 @@ export default function EventSettingsPage() {
             </div>
 
             {!hasGrowthPlan ? (
-              <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-5">
-                <div className="flex items-start gap-3">
-                  <Lock className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-                  <div>
-                    <p className="font-semibold text-amber-900">{copy.upgradeTitle}</p>
-                    <p className="mt-1 text-sm leading-6 text-amber-800">{copy.upgradeBody}</p>
-                    <Link href="/pricing" className="mt-3 inline-flex text-sm font-semibold text-amber-700 hover:underline">
-                      {copy.upgradeCta}
-                    </Link>
-                  </div>
-                </div>
+              <div className="mt-6">
+                <PlanGateCard
+                  feature={copy.autoEmail}
+                  requiredPlans={["growth", "enterprise"]}
+                  compact
+                />
               </div>
             ) : (
               <div className="mt-6 space-y-5">
