@@ -9,10 +9,12 @@ import {
   MapPin,
   Globe,
   Briefcase,
+  BadgeCheck,
   Users,
   Loader2,
   CalendarDays,
   MessageSquare,
+  ExternalLink,
   X,
 } from "lucide-react";
 import {
@@ -120,6 +122,14 @@ export default function PublicMemberProfilePage() {
             noFollowing: "Henüz kimseyi takip etmiyor.",
             showFollowers: "Takipçileri Gör",
             showFollowing: "Takip Edilenleri Gör",
+            certificates: "Sertifika Cüzdanı",
+            noCertificates: "Henüz herkese açık doğrulanmış sertifika yok.",
+            hiddenCertificates: "Bu kullanıcı sertifika cüzdanını gizliyor.",
+            certificateCode: "Kod",
+            verifyCertificate: "Doğrula",
+            active: "Geçerli",
+            revoked: "İptal",
+            expired: "Süresi doldu",
             close: "Kapat",
           }
         : {
@@ -143,6 +153,14 @@ export default function PublicMemberProfilePage() {
             noFollowing: "Not following anyone yet.",
             showFollowers: "View Followers",
             showFollowing: "View Following",
+            certificates: "Certificate Wallet",
+            noCertificates: "No public verified certificates yet.",
+            hiddenCertificates: "This member hides their certificate wallet.",
+            certificateCode: "Code",
+            verifyCertificate: "Verify",
+            active: "Valid",
+            revoked: "Revoked",
+            expired: "Expired",
             close: "Close",
           },
     [lang]
@@ -398,6 +416,11 @@ export default function PublicMemberProfilePage() {
                 </div>
                 <div className="h-4 w-px bg-gray-200 hidden sm:block" />
                 <div className="flex items-center gap-1.5">
+                  <BadgeCheck className="h-4 w-4 text-gray-400" />
+                  <span className="font-bold text-gray-900">{member.certificates?.length ?? 0}</span>
+                  <span className="text-sm text-gray-500">{copy.certificates}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
                   <CalendarDays className="h-4 w-4 text-gray-400" />
                   <span className="font-bold text-gray-900">{member.event_count}</span>
                   <span className="text-sm text-gray-500">{copy.events}</span>
@@ -411,6 +434,77 @@ export default function PublicMemberProfilePage() {
             </div>
           </div>
         </article>
+
+        <section className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 shadow-sm mb-8">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+              <BadgeCheck className="h-4 w-4 text-gray-400" />
+              {copy.certificates}
+            </h2>
+            <span className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-500">
+              {(member.certificates?.length ?? 0).toLocaleString(lang === "tr" ? "tr-TR" : "en-US")}
+            </span>
+          </div>
+
+          {member.certificates_hidden ? (
+            <p className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
+              {copy.hiddenCertificates}
+            </p>
+          ) : member.certificates?.length ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {member.certificates.map((cert) => {
+                const statusLabel =
+                  cert.status === "active" ? copy.active : cert.status === "revoked" ? copy.revoked : copy.expired;
+                const statusClass =
+                  cert.status === "active"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : cert.status === "revoked"
+                      ? "border-rose-200 bg-rose-50 text-rose-700"
+                      : "border-amber-200 bg-amber-50 text-amber-700";
+
+                return (
+                  <article key={cert.uuid} className="rounded-xl border border-gray-200 bg-gray-50/50 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-sm font-bold text-gray-900">{cert.event_name}</h3>
+                        <p className="mt-1 text-xs text-gray-500">
+                          {cert.issued_at
+                            ? new Date(cert.issued_at).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              })
+                            : cert.event_date || ""}
+                        </p>
+                      </div>
+                      <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-bold ${statusClass}`}>
+                        {statusLabel}
+                      </span>
+                    </div>
+
+                    {cert.public_id && (
+                      <div className="mt-3 text-[11px] text-gray-500">
+                        {copy.certificateCode}: <code className="font-mono text-gray-700">{cert.public_id}</code>
+                      </div>
+                    )}
+
+                    <Link
+                      href={`/verify/${cert.uuid}`}
+                      className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      {copy.verifyCertificate}
+                    </Link>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
+              {copy.noCertificates}
+            </p>
+          )}
+        </section>
 
         <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
           <section className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">

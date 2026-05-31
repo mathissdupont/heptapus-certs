@@ -119,6 +119,7 @@ export default function CertificatesPage() {
   const [issueTerm, setIssueTerm] = useState<"monthly" | "yearly">("yearly");
   const [issuing, setIssuing] = useState(false);
   const [eventName, setEventName] = useState<string>("");
+  const [templateReady, setTemplateReady] = useState<boolean | null>(null);
   const [simCount, setSimCount] = useState(100);
   const [simSizeMb, setSimSizeMb] = useState(2);
   const [costEstimate, setCostEstimate] = useState<CertificateCostEstimate | null>(null);
@@ -148,6 +149,9 @@ export default function CertificatesPage() {
         issueBody: "Tek bir isimle hızlıca sertifika üretin; telefon ekranında bile kolayca tamamlanır.",
         recipientPlaceholder: "Örn. Ayşe Yılmaz",
         issueAction: "Sertifika oluştur",
+        templateNotReadyTitle: "Sertifika şablonu hazır değil",
+        templateNotReadyBody: "Basım yapmadan önce sertifika görselini ve alan konumlarını editörde tamamlayın.",
+        openEditor: "Editörü aç",
         estimatedCost: "Tahmini maliyet",
         issueCost: "Basım",
         hostingCost: "Barındırma",
@@ -208,6 +212,9 @@ export default function CertificatesPage() {
         issueBody: "Create a certificate from a single attendee name, even from a phone without fighting the layout.",
         recipientPlaceholder: "e.g. Alex Morgan",
         issueAction: "Create certificate",
+        templateNotReadyTitle: "Certificate template is not ready",
+        templateNotReadyBody: "Upload the certificate image and complete field positioning in the editor before issuing.",
+        openEditor: "Open editor",
         estimatedCost: "Estimated cost",
         issueCost: "Issue",
         hostingCost: "Hosting",
@@ -281,6 +288,9 @@ export default function CertificatesPage() {
       if (eventRes) {
         const ev = await eventRes.json();
         if (ev?.name) setEventName(ev.name);
+        const hasTemplateImage = Boolean(ev?.template_image_url && ev.template_image_url !== "placeholder");
+        const hasConfig = Boolean(ev?.config && typeof ev.config === "object" && Object.keys(ev.config).length > 0);
+        setTemplateReady(hasTemplateImage && hasConfig);
       }
     } catch (e: any) {
       setErr(e?.message || "Sertifika listesi çekilemedi.");
@@ -364,6 +374,7 @@ export default function CertificatesPage() {
 
   async function issueOne() {
     if (!issueName.trim()) return setErr("Lütfen geçerli bir isim girin.");
+    if (templateReady === false) return setErr(copy.templateNotReadyBody);
     setErr(null);
     setIssuing(true);
     try {
@@ -613,6 +624,21 @@ export default function CertificatesPage() {
             </div>
             <p className="mb-5 text-sm leading-6 text-surface-500">{copy.issueBody}</p>
             <div className="grid gap-3">
+              {templateReady === false && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <div>
+                      <p className="font-bold">{copy.templateNotReadyTitle}</p>
+                      <p className="mt-1 text-xs leading-5 text-amber-800">{copy.templateNotReadyBody}</p>
+                      <Link href={`/admin/events/${eventId}/editor`} className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-amber-700">
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        {copy.openEditor}
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div>
                 <label className="label">{t("certs_recipient")}</label>
                 <input value={issueName} onChange={(e) => setIssueName(e.target.value)} placeholder={copy.recipientPlaceholder} className="input-field" />
@@ -636,7 +662,7 @@ export default function CertificatesPage() {
                   </div>
                 )}
               </div>
-              <button onClick={issueOne} disabled={issuing} className="btn-primary mt-1 w-full justify-center">
+              <button onClick={issueOne} disabled={issuing || templateReady === false} className="btn-primary mt-1 w-full justify-center">
                 {issuing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
                 {copy.issueAction}
               </button>

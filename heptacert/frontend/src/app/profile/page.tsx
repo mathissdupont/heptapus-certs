@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { AlertTriangle, ArrowRight, Camera, Globe, KeyRound, Loader2, MapPin, Save, UserCircle2, ShieldAlert, CheckCircle2, Lock } from "lucide-react";
-import { PUBLIC_MEMBER_TOKEN_EVENT, changePublicMemberPassword, clearPublicMemberToken, deletePublicMemberAccount, getMyConnectionPrivacy, getPublicMemberMe, updateMyConnectionPrivacy, updatePublicMemberProfile, uploadPublicMemberAvatar } from "@/lib/api";
+import { PUBLIC_MEMBER_TOKEN_EVENT, changePublicMemberPassword, clearPublicMemberToken, deletePublicMemberAccount, getMyCertificatePrivacy, getMyConnectionPrivacy, getPublicMemberMe, updateMyCertificatePrivacy, updateMyConnectionPrivacy, updatePublicMemberProfile, uploadPublicMemberAvatar } from "@/lib/api";
 import { normalizeExternalUrl } from "@/lib/url";
 import { useI18n } from "@/lib/i18n";
 
@@ -54,6 +54,10 @@ export default function ProfilePage() {
             privacyDesc: "Bağlantılarınızın kimler tarafından görülebileceğini seçin.",
             hideFollowers: "Takipçi listemi gizle",
             hideFollowing: "Takip ettiğim kişileri gizle",
+            certificateVisibility: "Sertifika cüzdanı görünürlüğü",
+            certificatePublic: "Herkese açık",
+            certificateConnections: "Sadece takip ettiklerim",
+            certificatePrivate: "Gizli",
             privacyHint: "Aktif edildiğinde bu listeler profilinizde diğer kullanıcılara kapalı olur.",
             savePrivacy: "Gizliliği Kaydet",
             savingPrivacy: "Kaydediliyor...",
@@ -106,6 +110,10 @@ export default function ProfilePage() {
             privacyDesc: "Choose who can see your connections.",
             hideFollowers: "Hide my followers list",
             hideFollowing: "Hide who I follow",
+            certificateVisibility: "Certificate wallet visibility",
+            certificatePublic: "Public",
+            certificateConnections: "People I follow",
+            certificatePrivate: "Private",
             privacyHint: "When enabled, these lists will be hidden from other users on your profile.",
             savePrivacy: "Save Privacy",
             savingPrivacy: "Saving...",
@@ -133,6 +141,7 @@ export default function ProfilePage() {
   
   const [hideFollowers, setHideFollowers] = useState(false);
   const [hideFollowing, setHideFollowing] = useState(false);
+  const [certificateVisibility, setCertificateVisibility] = useState<"public" | "connections_only" | "private">("public");
 
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -187,6 +196,16 @@ export default function ProfilePage() {
         if (!active) return;
         setHideFollowers(false);
         setHideFollowing(false);
+      });
+
+    getMyCertificatePrivacy()
+      .then((privacy) => {
+        if (!active) return;
+        setCertificateVisibility(privacy.visibility || (privacy.hide_certificates ? "private" : "public"));
+      })
+      .catch(() => {
+        if (!active) return;
+        setCertificateVisibility("public");
       });
 
     return () => {
@@ -278,12 +297,18 @@ export default function ProfilePage() {
     setError(null);
     setSavingPrivacy(true);
     try {
-      const updated = await updateMyConnectionPrivacy({
-        hide_followers: hideFollowers,
-        hide_following: hideFollowing,
-      });
+      const [updated, certificatePrivacy] = await Promise.all([
+        updateMyConnectionPrivacy({
+          hide_followers: hideFollowers,
+          hide_following: hideFollowing,
+        }),
+        updateMyCertificatePrivacy({
+          visibility: certificateVisibility,
+        }),
+      ]);
       setHideFollowers(updated.hide_followers);
       setHideFollowing(updated.hide_following);
+      setCertificateVisibility(certificatePrivacy.visibility);
       showSuccess(copy.privacySuccess);
     } catch (err: any) {
       setError(err?.message || copy.fallback);
@@ -537,6 +562,21 @@ export default function ProfilePage() {
                       onChange={(e) => setHideFollowing(e.target.checked)} 
                       className="h-4 w-4 rounded border-gray-300 text-slate-900 focus:ring-slate-900" 
                     />
+                  </label>
+                  <label className="block rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{copy.certificateVisibility}</span>
+                    <select
+                      value={certificateVisibility}
+                      onChange={(e) => {
+                        const value = e.target.value as "public" | "connections_only" | "private";
+                        setCertificateVisibility(value);
+                      }}
+                      className="mt-3 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="public">{copy.certificatePublic}</option>
+                      <option value="connections_only">{copy.certificateConnections}</option>
+                      <option value="private">{copy.certificatePrivate}</option>
+                    </select>
                   </label>
                 </div>
                 <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">{copy.privacyHint}</p>

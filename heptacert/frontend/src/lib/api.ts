@@ -359,6 +359,20 @@ export interface PublicMemberProfile {
   created_at: string;
   event_count: number;
   comment_count: number;
+  certificates: PublicMemberCertificate[];
+  certificates_hidden?: boolean;
+}
+
+export interface PublicMemberCertificate {
+  uuid: string;
+  public_id?: string | null;
+  student_name: string;
+  event_id: number;
+  event_name: string;
+  event_date?: string | null;
+  status: "active" | "revoked" | "expired" | string;
+  issued_at?: string | null;
+  verify_url: string;
 }
 
 export interface PublicMemberEvent {
@@ -1328,7 +1342,10 @@ export async function listMyPublicEvents(): Promise<PublicMemberEvent[]> {
 }
 
 export async function getPublicMemberProfile(memberPublicId: string): Promise<PublicMemberProfile> {
-  const res = await publicApiFetch(`/public/members/${memberPublicId}`);
+  const token = getPublicMemberToken();
+  const res = token
+    ? await memberApiFetch(`/public/members/${memberPublicId}`)
+    : await publicApiFetch(`/public/members/${memberPublicId}`);
   return res.json();
 }
 
@@ -2180,6 +2197,26 @@ export async function updateMyConnectionPrivacy(
   data: ConnectionPrivacySettings,
 ): Promise<ConnectionPrivacySettings> {
   const res = await memberApiFetch("/public/members/me/privacy", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export interface CertificatePrivacySettings {
+  hide_certificates: boolean;
+  visibility: "public" | "connections_only" | "private";
+}
+
+export async function getMyCertificatePrivacy(): Promise<CertificatePrivacySettings> {
+  const res = await memberApiFetch("/public/members/me/certificate-privacy");
+  return res.json();
+}
+
+export async function updateMyCertificatePrivacy(
+  data: Partial<CertificatePrivacySettings>,
+): Promise<CertificatePrivacySettings> {
+  const res = await memberApiFetch("/public/members/me/certificate-privacy", {
     method: "PATCH",
     body: JSON.stringify(data),
   });

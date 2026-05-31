@@ -1924,6 +1924,8 @@ class PublicMemberProfileOut(BaseModel):
     created_at: datetime
     event_count: int = 0
     comment_count: int = 0
+    certificates: List[Dict[str, Any]] = Field(default_factory=list)
+    certificates_hidden: bool = False
 
 
 class PublicMemberTokenOut(TokenOut):
@@ -10753,7 +10755,11 @@ async def upload_public_member_avatar(
 
 
 @app.get("/api/public/members/{member_public_id}", response_model=PublicMemberProfileOut)
-async def get_public_member_profile(member_public_id: str, db: AsyncSession = Depends(get_db)):
+async def get_public_member_profile(
+    member_public_id: str,
+    db: AsyncSession = Depends(get_db),
+    viewer: Optional[CurrentPublicMember] = Depends(get_optional_public_member),
+):
     res = await db.execute(select(PublicMember).where(PublicMember.public_id == member_public_id))
     db_member = res.scalar_one_or_none()
     if not db_member:
@@ -10765,6 +10771,11 @@ async def get_public_member_profile(member_public_id: str, db: AsyncSession = De
     comment_count_res = await db.execute(
         select(func.count(EventComment.id)).where(EventComment.public_member_id == db_member.id, EventComment.status == "visible")
     )
+    from .member_certificates_api import can_view_member_certificate_wallet, list_public_member_certificates
+
+    can_view_certificates = await can_view_member_certificate_wallet(db, db_member, viewer)
+    certificates = await list_public_member_certificates(db, db_member.id) if can_view_certificates else []
+
     return PublicMemberProfileOut(
         public_id=db_member.public_id,
         display_name=db_member.display_name,
@@ -10777,6 +10788,8 @@ async def get_public_member_profile(member_public_id: str, db: AsyncSession = De
         created_at=db_member.created_at,
         event_count=int(event_count_res.scalar_one() or 0),
         comment_count=int(comment_count_res.scalar_one() or 0),
+        certificates=certificates,
+        certificates_hidden=not can_view_certificates,
     )
 
 
@@ -18755,6 +18768,9 @@ app.include_router(_social_api.router)
 
 from . import connections_api as _connections_api
 app.include_router(_connections_api.router)
+
+from . import member_certificates_api as _member_certificates_api
+app.include_router(_member_certificates_api.router)
 
 # API module imports - these are loaded after all models are defined
 from . import analytics_api as _analytics_api

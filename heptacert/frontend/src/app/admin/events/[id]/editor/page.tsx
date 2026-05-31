@@ -338,6 +338,8 @@ export default function EditorPage() {
   const [activePanel, setActivePanel] = useState<"typography" | "history">("typography");
   const [zoom, setZoom] = useState(100);
   const [showGrid, setShowGrid] = useState(false);
+  const [previewName, setPreviewName] = useState("Ayşe Yılmaz");
+  const [previewCertId, setPreviewCertId] = useState("EV1-000123");
 
   // Ctrl+S to save
   useEffect(() => {
@@ -757,7 +759,7 @@ export default function EditorPage() {
                         fontStyle: cfg.name.font_style,
                       }}
                     >
-                      {t("editor_preview_name")}
+                      {previewName || t("editor_preview_name")}
                     </span>
                     <span className="absolute -top-5 left-0 hidden group-hover:block text-[9px] bg-brand-500 text-white rounded px-1.5 py-0.5 font-bold whitespace-nowrap">
                       Ad Soyad • {cfg.name.x},{cfg.name.y}
@@ -787,7 +789,7 @@ export default function EditorPage() {
                         fontStyle: cfg.cert_id.font_style,
                       }}
                     >
-                      {t("editor_preview_cert_id")}
+                      {previewCertId || t("editor_preview_cert_id")}
                     </span>
                     <span className="absolute -top-5 left-0 hidden group-hover:block text-[9px] bg-amber-500 text-white rounded px-1.5 py-0.5 font-bold whitespace-nowrap">
                       Sertifika No • {cfg.cert_id.x},{cfg.cert_id.y}
@@ -859,6 +861,41 @@ export default function EditorPage() {
 
             {activePanel === "typography" && (
               <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+
+                <PanelSection icon={<Eye className="h-3.5 w-3.5" />} title="Canlı Önizleme Verisi" description="Canvas üzerindeki örnek metni değiştirerek gerçek sertifika görünümünü test edin.">
+                  <div className="grid gap-3">
+                    <label className="grid gap-1.5">
+                      <span className="label text-[10px]">Örnek katılımcı adı</span>
+                      <input
+                        value={previewName}
+                        onChange={(event) => setPreviewName(event.target.value)}
+                        maxLength={120}
+                        className="input-field py-2 text-xs"
+                        placeholder="Ayşe Yılmaz"
+                      />
+                    </label>
+                    <label className="grid gap-1.5">
+                      <span className="label text-[10px]">Örnek sertifika kodu</span>
+                      <input
+                        value={previewCertId}
+                        onChange={(event) => setPreviewCertId(event.target.value)}
+                        maxLength={80}
+                        className="input-field py-2 font-mono text-xs"
+                        placeholder="EV1-000123"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPreviewName("Ayşe Yılmaz");
+                        setPreviewCertId(`EV${eventId}-000123`);
+                      }}
+                      className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-600 transition hover:bg-gray-50"
+                    >
+                      Örnek veriyi sıfırla
+                    </button>
+                  </div>
+                </PanelSection>
 
                 {/* Canvas dimensions */}
                 <PanelSection icon={<Maximize2 className="h-3.5 w-3.5" />} title="Boyutlar" description="Şablon ölçüsünü çıktı boyutuyla aynı tutun.">

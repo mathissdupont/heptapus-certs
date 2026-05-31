@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertCircle, ArrowLeft, BadgeCheck, Calendar, CheckCircle2, Clock, Download, ExternalLink, Eye, FileCheck2, Hash, Linkedin, Loader2, ShieldOff, User, Building2 } from "lucide-react";
+import { AlertCircle, ArrowLeft, BadgeCheck, Calendar, CheckCircle2, Clock, Copy, Download, ExternalLink, Eye, FileCheck2, Hash, ImageDown, Linkedin, Loader2, Share2, ShieldOff, User, Building2 } from "lucide-react";
 import { apiUrl, normalizeApiAssetUrl } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
@@ -34,6 +34,7 @@ export default function VerifyPage({ params }: { params: { uuid: string } }) {
   const [state, setState] = useState<PageState>("loading");
   const [cert, setCert] = useState<CertData | null>(null);
   const [errMsg, setErrMsg] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const copy = useMemo(() => lang === "tr" ? {
     back: "Ana sayfa",
@@ -56,6 +57,11 @@ export default function VerifyPage({ params }: { params: { uuid: string } }) {
     downloadPdf: "PDF indir",
     downloadPng: "PNG indir",
     addLinkedIn: "LinkedIn'e ekle",
+    share: "Paylaş",
+    copyLink: "Linki kopyala",
+    copied: "Kopyalandı",
+    downloadShareCard: "Paylaşım görseli",
+    downloadCvSummary: "CV özeti",
     publicLink: "Paylaşılabilir doğrulama linki",
     revokedNotice: "Bu sertifika iptal edildiği için aktif belge olarak kabul edilmez.",
     expiredNotice: "Bu sertifikanın doğrulama veya barındırma süresi sona ermiş görünüyor.",
@@ -81,6 +87,11 @@ export default function VerifyPage({ params }: { params: { uuid: string } }) {
     downloadPdf: "Download PDF",
     downloadPng: "Download PNG",
     addLinkedIn: "Add to LinkedIn",
+    share: "Share",
+    copyLink: "Copy link",
+    copied: "Copied",
+    downloadShareCard: "Share card",
+    downloadCvSummary: "CV summary",
     publicLink: "Shareable verification link",
     revokedNotice: "This certificate has been revoked and should not be treated as an active credential.",
     expiredNotice: "This certificate appears to have reached the end of its validation or hosting period.",
@@ -123,6 +134,135 @@ export default function VerifyPage({ params }: { params: { uuid: string } }) {
     : cert?.status === "revoked"
       ? { label: copy.revoked, icon: ShieldOff, bar: "bg-rose-500", chip: "bg-rose-50 border-rose-200 text-rose-700" }
       : { label: copy.expired, icon: Clock, bar: "bg-amber-500", chip: "bg-amber-50 border-amber-200 text-amber-700" };
+
+  function getPublicVerifyUrl() {
+    if (typeof window === "undefined") return `/verify/${params.uuid}`;
+    return `${window.location.origin}/verify/${params.uuid}`;
+  }
+
+  async function copyVerifyLink() {
+    const url = getPublicVerifyUrl();
+    await navigator.clipboard?.writeText(url);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  }
+
+  async function shareCertificate() {
+    const url = getPublicVerifyUrl();
+    const title = cert ? `${cert.student_name} - ${cert.event_name}` : copy.publicLink;
+    if (navigator.share) {
+      await navigator.share({ title, text: copy.publicLink, url });
+      return;
+    }
+    await copyVerifyLink();
+  }
+
+  function downloadShareCard() {
+    if (!cert || typeof document === "undefined") return;
+    const width = 1200;
+    const height = 630;
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const brandColor = cert.branding?.brand_color || "#0f172a";
+    const verifyUrl = getPublicVerifyUrl();
+    const issued = cert.issued_at
+      ? new Date(cert.issued_at).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })
+      : "";
+
+    ctx.fillStyle = "#f8fafc";
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = brandColor;
+    ctx.fillRect(0, 0, width, 18);
+
+    ctx.fillStyle = "#e2e8f0";
+    ctx.fillRect(80, 92, width - 160, 1);
+    ctx.fillRect(80, height - 112, width - 160, 1);
+
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "700 42px Arial, sans-serif";
+    ctx.fillText(cert.branding?.org_name || cert.organizer_name || "HeptaCert", 80, 72);
+
+    ctx.fillStyle = brandColor;
+    ctx.font = "700 30px Arial, sans-serif";
+    ctx.fillText(statusMeta.label.toUpperCase(), 80, 150);
+
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "800 70px Arial, sans-serif";
+    wrapCanvasText(ctx, cert.student_name, 80, 245, 1040, 78, 2);
+
+    ctx.fillStyle = "#475569";
+    ctx.font = "500 38px Arial, sans-serif";
+    wrapCanvasText(ctx, cert.event_name, 80, 405, 1040, 46, 2);
+
+    ctx.fillStyle = "#64748b";
+    ctx.font = "600 26px Arial, sans-serif";
+    const details = [cert.public_id, issued].filter(Boolean).join("   |   ");
+    if (details) ctx.fillText(details, 80, 508);
+
+    ctx.fillStyle = "#334155";
+    ctx.font = "500 24px Arial, sans-serif";
+    ctx.fillText(verifyUrl, 80, 575);
+
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = `heptacert-${cert.public_id ?? cert.uuid}-share-card.png`;
+    link.click();
+  }
+
+  function downloadCvSummary() {
+    if (!cert || typeof document === "undefined") return;
+    const verifyUrl = getPublicVerifyUrl();
+    const issued = cert.issued_at
+      ? new Date(cert.issued_at).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })
+      : "";
+    const eventDate = cert.event_date
+      ? new Date(cert.event_date).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })
+      : "";
+    const lines = lang === "tr"
+      ? [
+          "Sertifika CV Özeti",
+          "",
+          `Sertifika sahibi: ${cert.student_name}`,
+          `Sertifika / etkinlik: ${cert.event_name}`,
+          cert.organizer_name ? `Düzenleyen: ${cert.organizer_name}` : "",
+          issued ? `Verilme tarihi: ${issued}` : "",
+          eventDate ? `Etkinlik tarihi: ${eventDate}` : "",
+          `Durum: ${statusMeta.label}`,
+          `Sertifika kodu: ${cert.public_id || cert.uuid}`,
+          `Doğrulama linki: ${verifyUrl}`,
+          "",
+          "CV için kısa kullanım:",
+          `${cert.event_name} - ${cert.organizer_name || cert.branding?.org_name || "HeptaCert"} (${issued || eventDate || new Date().getFullYear()})`,
+          `Doğrulanabilir sertifika: ${verifyUrl}`,
+        ]
+      : [
+          "Certificate CV Summary",
+          "",
+          `Credential holder: ${cert.student_name}`,
+          `Certificate / event: ${cert.event_name}`,
+          cert.organizer_name ? `Issuer: ${cert.organizer_name}` : "",
+          issued ? `Issued: ${issued}` : "",
+          eventDate ? `Event date: ${eventDate}` : "",
+          `Status: ${statusMeta.label}`,
+          `Certificate code: ${cert.public_id || cert.uuid}`,
+          `Verification link: ${verifyUrl}`,
+          "",
+          "Short CV entry:",
+          `${cert.event_name} - ${cert.organizer_name || cert.branding?.org_name || "HeptaCert"} (${issued || eventDate || new Date().getFullYear()})`,
+          `Verifiable credential: ${verifyUrl}`,
+        ];
+
+    const blob = new Blob([lines.filter(Boolean).join("\n")], { type: "text/plain;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `heptacert-${cert.public_id ?? cert.uuid}-cv-summary.txt`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
@@ -214,6 +354,10 @@ export default function VerifyPage({ params }: { params: { uuid: string } }) {
                   {cert.status === "active" && cert.pdf_url && <a href={cert.pdf_url} target="_blank" rel="noopener noreferrer" className="btn-primary px-5 py-3"><Download className="h-4 w-4" />{copy.downloadPdf}</a>}
                   {cert.status === "active" && cert.png_url && <a href={cert.png_url} download={`certificate-${cert.public_id ?? cert.uuid}.png`} className="btn-secondary px-5 py-3"><Download className="h-4 w-4" />{copy.downloadPng}</a>}
                   {cert.status === "active" && cert.linkedin_url && <a href={cert.linkedin_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-[#0077B5] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#005e8d]"><Linkedin className="h-4 w-4" />{copy.addLinkedIn}</a>}
+                  <button type="button" onClick={() => void shareCertificate()} className="btn-secondary px-5 py-3"><Share2 className="h-4 w-4" />{copy.share}</button>
+                  <button type="button" onClick={() => void copyVerifyLink()} className="btn-secondary px-5 py-3"><Copy className="h-4 w-4" />{copied ? copy.copied : copy.copyLink}</button>
+                  {cert.status === "active" && <button type="button" onClick={downloadShareCard} className="btn-secondary px-5 py-3"><ImageDown className="h-4 w-4" />{copy.downloadShareCard}</button>}
+                  {cert.status === "active" && <button type="button" onClick={downloadCvSummary} className="btn-secondary px-5 py-3"><FileCheck2 className="h-4 w-4" />{copy.downloadCvSummary}</button>}
                   <a href={`/verify/${cert.uuid}`} target="_blank" rel="noopener noreferrer" className="btn-secondary px-5 py-3"><ExternalLink className="h-4 w-4" />{copy.publicLink}</a>
                 </div>
 
@@ -227,6 +371,33 @@ export default function VerifyPage({ params }: { params: { uuid: string } }) {
       </main>
     </div>
   );
+}
+
+function wrapCanvasText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  lineHeight: number,
+  maxLines: number,
+) {
+  const words = text.split(/\s+/);
+  let line = "";
+  let lineCount = 0;
+  for (let i = 0; i < words.length; i += 1) {
+    const testLine = line ? `${line} ${words[i]}` : words[i];
+    if (ctx.measureText(testLine).width > maxWidth && line) {
+      lineCount += 1;
+      ctx.fillText(lineCount === maxLines ? `${line}...` : line, x, y);
+      if (lineCount >= maxLines) return;
+      line = words[i];
+      y += lineHeight;
+    } else {
+      line = testLine;
+    }
+  }
+  if (line && lineCount < maxLines) ctx.fillText(line, x, y);
 }
 
 function InfoCard({ icon: Icon, label, value }: { icon: any; label: string; value: ReactNode }) {
