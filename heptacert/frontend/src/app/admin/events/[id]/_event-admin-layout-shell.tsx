@@ -13,6 +13,7 @@ type EventAdminLayoutShellProps = {
 const ROUTE_PERMISSIONS: Array<{ match: string; href: (id: string) => string; permission: EventTeamPermission }> = [
   { match: "/team", href: (id) => `/admin/events/${id}/team`, permission: "team:manage" },
   { match: "/attendees", href: (id) => `/admin/events/${id}/attendees`, permission: "attendees:read" },
+  { match: "/segments", href: (id) => `/admin/events/${id}/segments`, permission: "attendees:read" },
   { match: "/tickets", href: (id) => `/admin/events/${id}/tickets`, permission: "checkin:write" },
   { match: "/ops", href: (id) => `/admin/events/${id}/ops`, permission: "checkin:write" },
   { match: "/checkin", href: (id) => `/admin/events/${id}/checkin`, permission: "checkin:write" },
@@ -24,6 +25,7 @@ const ROUTE_PERMISSIONS: Array<{ match: string; href: (id: string) => string; pe
   { match: "/email-templates", href: (id) => `/admin/events/${id}/email-templates`, permission: "email:write" },
   { match: "/bulk-emails", href: (id) => `/admin/events/${id}/bulk-emails`, permission: "email:write" },
   { match: "/schedule-email", href: (id) => `/admin/events/${id}/schedule-email`, permission: "email:write" },
+  { match: "/automations", href: (id) => `/admin/events/${id}/automations`, permission: "email:write" },
   { match: "/advanced-analytics", href: (id) => `/admin/events/${id}/advanced-analytics`, permission: "analytics:read" },
   { match: "/analytics", href: (id) => `/admin/events/${id}/advanced-analytics`, permission: "analytics:read" },
   { match: "/settings", href: (id) => `/admin/events/${id}/settings`, permission: "settings:write" },

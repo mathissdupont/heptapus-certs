@@ -8,6 +8,7 @@ import {
   LockKeyhole,
   QrCode,
   Users,
+  ListFilter,
   UserCog,
   UserCheck,
   Target,
@@ -15,6 +16,7 @@ import {
   BarChart3,
   Activity,
   Mail,
+  Workflow,
   Settings,
   Palette,
   ClipboardList,
@@ -29,6 +31,7 @@ type EventAdminTab =
   | "certificates"
   | "sessions"
   | "attendees"
+  | "segments"
   | "team"
   | "ops"
   | "checkin"
@@ -39,6 +42,7 @@ type EventAdminTab =
   | "analytics"
   | "editor"
   | "email"
+  | "automations"
   | "settings";
 
 type NavItem = {
@@ -53,6 +57,7 @@ const NAV_ITEMS: NavItem[] = [
   { tab: "certificates", label: { tr: "Sertifikalar", en: "Certificates" }, icon: LockKeyhole, href: (id) => `/admin/events/${id}/certificates` },
   { tab: "sessions", label: { tr: "Oturumlar", en: "Sessions" }, icon: QrCode, href: (id) => `/admin/events/${id}/sessions` },
   { tab: "attendees", label: { tr: "Katılımcılar", en: "Attendees" }, icon: Users, href: (id) => `/admin/events/${id}/attendees` },
+  { tab: "segments", label: { tr: "Segmentler", en: "Segments" }, icon: ListFilter, href: (id) => `/admin/events/${id}/segments` },
   { tab: "team", label: { tr: "Ekip", en: "Team" }, icon: UserCog, href: (id) => `/admin/events/${id}/team` },
   { tab: "tickets", label: { tr: "Biletler", en: "Tickets" }, icon: Ticket, href: (id) => `/admin/events/${id}/tickets` },
   { tab: "ops", label: { tr: "Canlı Operasyon", en: "Live Ops" }, icon: Activity, href: (id) => `/admin/events/${id}/ops` },
@@ -63,6 +68,7 @@ const NAV_ITEMS: NavItem[] = [
   { tab: "analytics", label: { tr: "İleri Analitik", en: "Advanced Analytics" }, icon: BarChart3, href: (id) => `/admin/events/${id}/advanced-analytics` },
   { tab: "editor", label: { tr: "Editör", en: "Editor" }, icon: Palette, href: (id) => `/admin/events/${id}/editor` },
   { tab: "email", label: { tr: "E-posta", en: "Email" }, icon: Mail, href: (id) => `/admin/events/${id}/email-templates` },
+  { tab: "automations", label: { tr: "Otomasyon", en: "Automation" }, icon: Workflow, href: (id) => `/admin/events/${id}/automations` },
   { tab: "settings", label: { tr: "Ayarlar", en: "Settings" }, icon: Settings, href: (id) => `/admin/events/${id}/settings` },
 ];
 
@@ -75,6 +81,7 @@ const TAB_PERMISSIONS: Partial<Record<EventAdminTab, EventTeamPermission>> = {
   certificates: "certificates:write",
   sessions: "checkin:write",
   attendees: "attendees:read",
+  segments: "attendees:read",
   team: "team:manage",
   ops: "checkin:write",
   checkin: "checkin:write",
@@ -85,6 +92,7 @@ const TAB_PERMISSIONS: Partial<Record<EventAdminTab, EventTeamPermission>> = {
   analytics: "analytics:read",
   editor: "certificates:write",
   email: "email:write",
+  automations: "email:write",
   settings: "settings:write",
 };
 
@@ -149,6 +157,7 @@ function getActiveFromPath(pathname: string): EventAdminTab {
   if (pathname.includes("/certificates")) return "certificates";
   if (pathname.includes("/sessions")) return "sessions";
   if (pathname.includes("/attendees")) return "attendees";
+  if (pathname.includes("/segments")) return "segments";
   if (pathname.includes("/team")) return "team";
   if (pathname.includes("/tickets")) return "tickets";
   if (pathname.includes("/ops")) return "ops";
@@ -159,6 +168,7 @@ function getActiveFromPath(pathname: string): EventAdminTab {
   if (pathname.includes("/advanced-analytics") || pathname.includes("/analytics")) return "analytics";
   if (pathname.includes("/editor") || pathname.includes("/preview") || pathname.includes("/qr-present")) return "editor";
   if (pathname.includes("/email-templates") || pathname.includes("/bulk-emails") || pathname.includes("/schedule-email")) return "email";
+  if (pathname.includes("/automations")) return "automations";
   if (pathname.includes("/settings")) return "settings";
   return "details";
 }

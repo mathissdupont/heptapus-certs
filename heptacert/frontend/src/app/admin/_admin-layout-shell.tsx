@@ -27,6 +27,8 @@ import {
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
+  UsersRound,
+  GraduationCap,
 } from "lucide-react";
 
 type NavItem = {
@@ -48,6 +50,8 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/admin/dashboard", label: { tr: "Dashboard", en: "Dashboard" }, icon: Gauge, exact: true },
       { href: "/admin/events", label: { tr: "Etkinlikler", en: "Events" }, icon: CalendarCheck2 },
+      { href: "/admin/crm", label: { tr: "Event CRM", en: "Event CRM" }, icon: UsersRound },
+      { href: "/admin/training", label: { tr: "Eğitim", en: "Training" }, icon: GraduationCap },
     ],
   },
   {

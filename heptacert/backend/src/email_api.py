@@ -477,7 +477,12 @@ async def start_bulk_email(
         raise HTTPException(status_code=404, detail="Template bulunamadÃ„Â±")
     
     # Count recipients
-    if payload.recipient_type == "attendees":
+    if str(payload.recipient_type or "").startswith("segment:"):
+        from .audience_segments_api import count_segment_attendees
+
+        segment_key = str(payload.recipient_type).split(":", 1)[1]
+        recipients_count = await count_segment_attendees(db, event, segment_key)
+    elif payload.recipient_type == "attendees":
         count_res = await db.execute(
             select(func.count(Attendee.id)).where(
                 Attendee.event_id == event_id,
@@ -607,7 +612,12 @@ async def schedule_email_job(
         raise HTTPException(status_code=404, detail="Template bulunamadÃ„Â±")
     
     # Count recipients
-    if payload.recipient_type == "attendees":
+    if str(payload.recipient_type or "").startswith("segment:"):
+        from .audience_segments_api import count_segment_attendees
+
+        segment_key = str(payload.recipient_type).split(":", 1)[1]
+        recipients_count = await count_segment_attendees(db, event, segment_key)
+    elif payload.recipient_type == "attendees":
         count_res = await db.execute(
             select(func.count(Attendee.id)).where(
                 Attendee.event_id == event_id,

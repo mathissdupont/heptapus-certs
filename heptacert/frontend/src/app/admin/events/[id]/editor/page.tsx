@@ -1,7 +1,14 @@
 "use client";
 
 import {
-  apiFetch, API_BASE, uploadEventBanner,
+  apiFetch,
+  API_BASE,
+  uploadEventBanner,
+  applyCertificateTemplatePreset,
+  deleteCertificateTemplatePreset,
+  listCertificateTemplatePresets,
+  saveEventCertificateTemplatePreset,
+  type CertificateTemplatePreset,
 } from "@/lib/api";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Draggable from "react-draggable";
@@ -40,6 +47,7 @@ import {
   Plus,
   Crosshair,
   Upload,
+  Trash2,
 } from "lucide-react";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 import { useT } from "@/lib/i18n";
@@ -58,9 +66,17 @@ type EditorConfig = {
   image_width: number;
   image_height: number;
   background_image?: string | null;
+  certificate_footer?: string;
   name: FieldConfig;
   cert_id: FieldConfig;
   qr: { x: number; y: number; size: number; show: boolean };
+};
+
+type OrganizationBranding = {
+  org_name?: string;
+  brand_logo?: string | null;
+  brand_color?: string;
+  settings?: Record<string, any>;
 };
 
 const RENDER_W = 780;
@@ -88,6 +104,7 @@ const DEFAULT_CFG: EditorConfig = {
   image_width: 1240,
   image_height: 877,
   background_image: null,
+  certificate_footer: "",
   name: { ...FIELD_DEFAULT, x: 620, y: 438, font_size: 48, font_color: "#1e293b" },
   cert_id: { ...FIELD_DEFAULT, x: 620, y: 700, font_size: 22, font_color: "#334155", font_weight: "normal" },
   qr: { x: 80, y: 700, size: 120, show: true },
@@ -338,11 +355,14 @@ export default function EditorPage() {
   const [saved, setSaved] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const [activePanel, setActivePanel] = useState<"typography" | "history">("typography");
+  const [activePanel, setActivePanel] = useState<"typography" | "presets" | "history">("typography");
   const [zoom, setZoom] = useState(100);
   const [showGrid, setShowGrid] = useState(false);
   const [previewName, setPreviewName] = useState("Ayşe Yılmaz");
   const [previewCertId, setPreviewCertId] = useState("EV1-000123");
+  const [branding, setBranding] = useState<OrganizationBranding | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   // Ctrl+S to save
   useEffect(() => {
@@ -362,6 +382,11 @@ export default function EditorPage() {
   const [snapshots, setSnapshots] = useState<TemplateSnap[]>([]);
   const [snapsLoading, setSnapsLoading] = useState(false);
   const [restoringId, setRestoringId] = useState<number | null>(null);
+  const [presets, setPresets] = useState<CertificateTemplatePreset[]>([]);
+  const [presetsLoading, setPresetsLoading] = useState(false);
+  const [presetName, setPresetName] = useState("");
+  const [presetBusyId, setPresetBusyId] = useState<string | null>(null);
+  const [savingPreset, setSavingPreset] = useState(false);
 
   async function loadSnapshots() {
     setSnapsLoading(true);
@@ -387,6 +412,132 @@ export default function EditorPage() {
     if (activePanel === "history") loadSnapshots();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePanel]);
+
+  async function loadPresets() {
+    setPresetsLoading(true);
+    try {
+      setPresets(await listCertificateTemplatePresets());
+    } catch (ex: any) {
+      setErr(ex?.message || "Presetler yuklenemedi.");
+    } finally {
+      setPresetsLoading(false);
+    }
+  }
+
+  async function savePreset() {
+    const name = presetName.trim();
+    if (!name) {
+      setErr("Preset adi gerekli.");
+      return;
+    }
+    setSavingPreset(true);
+    setErr(null);
+    try {
+      await saveConfig();
+      const preset = await saveEventCertificateTemplatePreset(eventId, name);
+      setPresets(prev => [preset, ...prev]);
+      setPresetName("");
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (ex: any) {
+      setErr(ex?.message || "Preset kaydedilemedi.");
+    } finally {
+      setSavingPreset(false);
+    }
+  }
+
+  async function applyPreset(presetId: string) {
+    setPresetBusyId(presetId);
+    setErr(null);
+    try {
+      const updated = await applyCertificateTemplatePreset(eventId, presetId);
+      const c = (updated.config || {}) as any;
+      if (Object.keys(c).length > 0) {
+        setCfg({
+          ...DEFAULT_CFG,
+          ...c,
+          name: { ...DEFAULT_CFG.name, ...c.name },
+          cert_id: { ...DEFAULT_CFG.cert_id, ...c.cert_id },
+          qr: { ...DEFAULT_CFG.qr, ...c.qr },
+        });
+        setCfgVersion(v => v + 1);
+      }
+      setActivePanel("typography");
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (ex: any) {
+      setErr(ex?.message || "Preset uygulanamadi.");
+    } finally {
+      setPresetBusyId(null);
+    }
+  }
+
+  async function deletePreset(presetId: string) {
+    if (!confirm("Bu preset silinsin mi?")) return;
+    setPresetBusyId(presetId);
+    setErr(null);
+    try {
+      await deleteCertificateTemplatePreset(presetId);
+      setPresets(prev => prev.filter(preset => preset.id !== presetId));
+    } catch (ex: any) {
+      setErr(ex?.message || "Preset silinemedi.");
+    } finally {
+      setPresetBusyId(null);
+    }
+  }
+
+  useEffect(() => {
+    if (activePanel === "presets") loadPresets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePanel]);
+
+  async function loadBranding() {
+    try {
+      const r = await apiFetch("/admin/organization/settings");
+      const data = await r.json();
+      setBranding(data);
+      setCfg(c => ({
+        ...c,
+        certificate_footer: c.certificate_footer || data?.settings?.certificate_footer || "",
+      }));
+    } catch {
+      // Branding is optional in the editor; organization settings can still be opened separately.
+    }
+  }
+
+  async function uploadOrganizationLogo(file: File) {
+    setLogoUploading(true);
+    setErr(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await apiFetch("/admin/organization/logo", {
+        method: "POST",
+        body: form,
+        headers: {},
+      });
+      const data = await res.json();
+      setBranding(prev => ({ ...(prev || {}), brand_logo: data.brand_logo || null }));
+    } catch (ex: any) {
+      setErr(ex?.message || "Logo yuklenemedi.");
+    } finally {
+      setLogoUploading(false);
+    }
+  }
+
+  function applyBrandColorToText() {
+    const color = branding?.brand_color || "#6366f1";
+    setCfg(c => ({
+      ...c,
+      name: { ...c.name, font_color: color },
+      cert_id: { ...c.cert_id, font_color: color },
+    }));
+  }
+
+  useEffect(() => {
+    loadBranding();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [bgUploading, setBgUploading] = useState(false);
   const bgInputRef = useRef<HTMLInputElement>(null);
@@ -825,9 +976,25 @@ export default function EditorPage() {
                 <div ref={qrDragRef} className="absolute cursor-move" style={{ width: qrRS, height: qrRS }}>
                   <div className="w-full h-full rounded-lg border-2 border-dashed border-emerald-400/70 bg-white/10 backdrop-blur-sm flex items-center justify-center hover:border-emerald-400 hover:bg-white/20 transition-all group">
                     <QrCode className="text-emerald-300 group-hover:text-emerald-200 transition-colors" style={{ width: "50%", height: "50%" }} />
+                    {branding?.brand_logo && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={branding.brand_logo} alt="" className="absolute h-1/4 w-1/4 rounded bg-white object-contain p-0.5 shadow" />
+                    )}
                   </div>
                 </div>
               </Draggable>
+            )}
+
+            {cfg.certificate_footer && (
+              <div
+                className="pointer-events-none absolute inset-x-0 z-20 text-center text-[10px] font-medium"
+                style={{
+                  bottom: 18,
+                  color: cfg.cert_id.font_color,
+                }}
+              >
+                {cfg.certificate_footer}
+              </div>
             )}
             </div>{/* scale wrapper */}
           </div>{/* inner container */}
@@ -846,6 +1013,7 @@ export default function EditorPage() {
           <div className="flex shrink-0 border-b border-gray-100 bg-white">
             {([
               { id: "typography", icon: <Type className="h-3.5 w-3.5" />, label: "Tasarım" },
+              { id: "presets", icon: <FileText className="h-3.5 w-3.5" />, label: "Preset" },
               { id: "history", icon: <History className="h-3.5 w-3.5" />, label: "Geçmiş" },
             ] as const).map(tab => (
               <button key={tab.id} onClick={() => setActivePanel(tab.id)}
@@ -906,6 +1074,74 @@ export default function EditorPage() {
                     >
                       Örnek veriyi sıfırla
                     </button>
+                  </div>
+                </PanelSection>
+
+                <PanelSection icon={<SlidersHorizontal className="h-3.5 w-3.5" />} title="Marka Kiti" description="Kurum rengini, logosunu ve sertifika alt bilgisini bu şablonla birlikte kullanın.">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white">
+                        {branding?.brand_logo ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={branding.brand_logo} alt="Logo" className="h-full w-full object-contain p-1" />
+                        ) : (
+                          <ImagePlus className="h-5 w-5 text-gray-300" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-bold text-gray-700">{branding?.org_name || "Kurum markası"}</p>
+                        <p className="mt-0.5 text-[11px] text-gray-400">Logo QR merkezinde ve sertifika üretiminde kullanılır.</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => logoInputRef.current?.click()}
+                        disabled={logoUploading}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 disabled:opacity-50"
+                        title="Logo yükle"
+                      >
+                        {logoUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                      </button>
+                      <input
+                        ref={logoInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={e => { if (e.target.files?.[0]) uploadOrganizationLogo(e.target.files[0]); }}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="label mb-1.5 text-[10px]">Marka rengi</label>
+                      <div className="flex items-center gap-2">
+                        <span className="h-9 w-9 rounded-lg border border-gray-200" style={{ backgroundColor: branding?.brand_color || "#6366f1" }} />
+                        <code className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-600">
+                          {branding?.brand_color || "#6366f1"}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={applyBrandColorToText}
+                          className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-xs font-bold text-brand-700 transition hover:bg-brand-100"
+                        >
+                          Uygula
+                        </button>
+                      </div>
+                    </div>
+
+                    <label className="grid gap-1.5">
+                      <span className="label text-[10px]">Sertifika footer</span>
+                      <textarea
+                        value={cfg.certificate_footer || ""}
+                        onChange={event => setCfg(c => ({ ...c, certificate_footer: event.target.value }))}
+                        maxLength={180}
+                        rows={3}
+                        className="input-field resize-none py-2 text-xs"
+                        placeholder="© 2026 Kurum Adı. Tüm hakları saklıdır."
+                      />
+                    </label>
+
+                    <Link href="/admin/settings?tab=branding" className="block text-[11px] font-bold text-brand-600 hover:text-brand-700">
+                      Kurumsal marka ayarlarını aç
+                    </Link>
                   </div>
                 </PanelSection>
 
@@ -1073,6 +1309,83 @@ export default function EditorPage() {
                     </div>
                   </div>
                 </div>
+              </motion.div>
+            )}
+
+            {activePanel === "presets" && (
+              <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+                <PanelSection icon={<Save className="h-3.5 w-3.5" />} title="Preset Olarak Kaydet" description="Bu etkinlikteki şablon görselini, alan konumlarını ve tipografi ayarlarını kurum presetine çevirin.">
+                  <div className="space-y-3">
+                    <label className="grid gap-1.5">
+                      <span className="label text-[10px]">Preset adı</span>
+                      <input
+                        value={presetName}
+                        onChange={(event) => setPresetName(event.target.value)}
+                        maxLength={80}
+                        className="input-field py-2 text-xs"
+                        placeholder="Örn. 2026 Kurumsal Eğitim"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={savePreset}
+                      disabled={savingPreset || saving}
+                      className="btn-primary w-full justify-center text-xs"
+                    >
+                      {savingPreset || saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                      Preset kaydet
+                    </button>
+                  </div>
+                </PanelSection>
+
+                <PanelSection icon={<FileText className="h-3.5 w-3.5" />} title="Kurum Presetleri" description="Kaydedilen tasarımları başka etkinliklere tek tıkla uygulayın.">
+                  {presetsLoading ? (
+                    <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-brand-500" /></div>
+                  ) : presets.length === 0 ? (
+                    <p className="py-6 text-center text-xs text-gray-400">Henüz kayıtlı preset yok.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {presets.map((preset) => (
+                        <div key={preset.id} className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+                          <div className="flex items-center gap-3">
+                            {preset.template_image_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={preset.template_image_url} alt="" className="h-10 w-16 rounded border border-gray-200 object-cover" />
+                            ) : (
+                              <div className="flex h-10 w-16 items-center justify-center rounded border border-gray-200 bg-white">
+                                <FileText className="h-4 w-4 text-gray-300" />
+                              </div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-[11px] font-bold text-gray-700">{preset.name}</p>
+                              <p className="text-[10px] text-gray-400">{new Date(preset.updated_at).toLocaleString("tr-TR")}</p>
+                            </div>
+                          </div>
+                          <div className="mt-3 flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => applyPreset(preset.id)}
+                              disabled={presetBusyId === preset.id}
+                              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-[11px] font-bold text-brand-700 transition-colors hover:bg-brand-100 disabled:opacity-50"
+                            >
+                              {presetBusyId === preset.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                              Uygula
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deletePreset(preset.id)}
+                              disabled={presetBusyId === preset.id}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-white text-red-500 transition-colors hover:bg-red-50 disabled:opacity-50"
+                              title="Preset sil"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </PanelSection>
               </motion.div>
             )}
 

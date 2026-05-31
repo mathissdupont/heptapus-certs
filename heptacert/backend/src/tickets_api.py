@@ -205,6 +205,8 @@ async def check_in_event_ticket(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    from .checkin_ops_api import record_checkin_activity
+
     ev = await _get_event_for_admin(event_id, me, db, "checkin:write")
     _ensure_ticketing_feature_enabled(ev)
     clean_token = _ticket_token_from_payload(payload.token)
@@ -216,17 +218,65 @@ async def check_in_event_ticket(
     )
     ticket = ticket_res.scalar_one_or_none()
     if not ticket:
+        await record_checkin_activity(
+            db,
+            event_id=event_id,
+            actor_user_id=me.id,
+            method="ticket",
+            source="admin",
+            success=False,
+            message="Ticket not found",
+            ip_address=_client_ip_for_rate_limit(request),
+        )
+        await db.commit()
         raise HTTPException(status_code=404, detail="Ticket not found")
     if ticket.status in {"cancelled", "revoked"}:
+        await record_checkin_activity(
+            db,
+            event_id=event_id,
+            attendee_id=ticket.attendee_id,
+            ticket_id=ticket.id,
+            actor_user_id=me.id,
+            method="ticket",
+            source="admin",
+            success=False,
+            message="Ticket is cancelled",
+            ip_address=_client_ip_for_rate_limit(request),
+        )
+        await db.commit()
         raise HTTPException(status_code=409, detail="Ticket is cancelled")
     ip = _client_ip_for_rate_limit(request)
     if ticket.status == "used":
         await _record_ticket_attendaonce(db, event=ev, ticket=ticket, ip_address=ip)
+        await record_checkin_activity(
+            db,
+            event_id=event_id,
+            attendee_id=ticket.attendee_id,
+            ticket_id=ticket.id,
+            actor_user_id=me.id,
+            method="ticket",
+            source="admin",
+            success=False,
+            message="Duplicate ticket check-in",
+            ip_address=ip,
+        )
         await db.commit()
         return _ticket_to_out(ticket)
     ticket.status = "used"
     ticket.checked_in_at = datetime.now(timezone.utc)
     await _record_ticket_attendaonce(db, event=ev, ticket=ticket, ip_address=ip)
+    await record_checkin_activity(
+        db,
+        event_id=event_id,
+        attendee_id=ticket.attendee_id,
+        ticket_id=ticket.id,
+        actor_user_id=me.id,
+        method="ticket",
+        source="admin",
+        success=True,
+        message="Ticket check-in successful",
+        ip_address=ip,
+    )
     await db.commit()
     await db.refresh(ticket)
     await db.refresh(ticket, attribute_names=["attendee"])

@@ -7,7 +7,9 @@ import {
   apiFetch,
   adminManualCheckin,
   checkInEventTicket,
+  getCheckinMetrics,
   listSessions,
+  type CheckinMetrics,
   type SessionOut,
 } from "@/lib/api";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
@@ -107,6 +109,7 @@ export default function AdminCheckinPage() {
   const [syncing, setSyncing] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scannerError, setScannerError] = useState<string | null>(null);
+  const [metrics, setMetrics] = useState<CheckinMetrics | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const scannerRef = useRef<any>(null);
@@ -125,6 +128,7 @@ export default function AdminCheckinPage() {
       const active = sessRes.find((s) => s.is_active);
       if (active) setSelectedSession(active.id);
       else if (sessRes.length > 0) setSelectedSession(sessRes[0].id);
+      getCheckinMetrics(eventId).then(setMetrics).catch(() => undefined);
     } catch (e: any) {
       if (e?.status === 403 && isPlanGateError(e?.message)) {
         setPlanOk(false);
@@ -266,6 +270,7 @@ export default function AdminCheckinPage() {
     try {
       const result = await performEntry(type, clean);
       appendLog({ email: clean, type, success: result.ok, message: result.message, time: now });
+      getCheckinMetrics(eventId).then(setMetrics).catch(() => undefined);
     } catch (e: any) {
       if (!navigator.onLine) {
         queueCheckin({ eventId, sessionId: selectedSession, type, value: clean });
@@ -399,6 +404,22 @@ export default function AdminCheckinPage() {
                   <p className="mt-1 text-sm font-black text-surface-900">{offlineQueue.length} bekliyor</p>
                 </div>
               </div>
+              {metrics && (
+                <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-surface-200 bg-white p-3">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-surface-400">Kapı trafiği</p>
+                    <p className="mt-1 text-sm font-black text-surface-900">{metrics.last_hour}/saat</p>
+                  </div>
+                  <div className="rounded-2xl border border-surface-200 bg-white p-3">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-surface-400">Log başarı</p>
+                    <p className="mt-1 text-sm font-black text-surface-900">{metrics.successful}/{metrics.total}</p>
+                  </div>
+                  <div className="rounded-2xl border border-surface-200 bg-white p-3">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-surface-400">En aktif görevli</p>
+                    <p className="mt-1 truncate text-sm font-black text-surface-900">{metrics.by_staff[0]?.email || "-"}</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {error && <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}

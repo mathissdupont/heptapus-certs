@@ -288,6 +288,378 @@ export interface EventOut {
   requires_approval?: boolean;
 }
 
+export interface CertificateTemplatePreset {
+  id: string;
+  name: string;
+  template_image_url?: string | null;
+  config: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function listCertificateTemplatePresets(): Promise<CertificateTemplatePreset[]> {
+  const res = await apiFetch("/admin/certificate-template-presets");
+  return res.json();
+}
+
+export async function saveEventCertificateTemplatePreset(
+  eventId: number,
+  name: string,
+): Promise<CertificateTemplatePreset> {
+  const res = await apiFetch(`/admin/events/${eventId}/certificate-template-presets`, {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+  return res.json();
+}
+
+export async function applyCertificateTemplatePreset(eventId: number, presetId: string): Promise<EventOut> {
+  const res = await apiFetch(`/admin/events/${eventId}/certificate-template-presets/${presetId}/apply`, {
+    method: "POST",
+  });
+  return res.json();
+}
+
+export async function deleteCertificateTemplatePreset(presetId: string): Promise<void> {
+  await apiFetch(`/admin/certificate-template-presets/${presetId}`, { method: "DELETE" });
+}
+
+export type AutomationTrigger =
+  | "attended_event"
+  | "registered_no_show"
+  | "certificate_issued"
+  | "survey_not_completed"
+  | "badge_earned";
+
+export type AutomationActionType = "send_email" | "create_reminder" | "webhook_dispatch";
+
+export interface AutomationAction {
+  type: AutomationActionType;
+  label?: string;
+  email_template_id?: number | null;
+  reminder_delay_hours?: number | null;
+  webhook_url?: string | null;
+}
+
+export interface AutomationRule {
+  id: string;
+  name: string;
+  trigger: AutomationTrigger;
+  trigger_label: string;
+  enabled: boolean;
+  actions: AutomationAction[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AutomationSummary {
+  trigger_counts: Record<AutomationTrigger, number>;
+  trigger_labels: Record<AutomationTrigger, string>;
+  action_labels: Record<AutomationActionType, string>;
+  rules: AutomationRule[];
+}
+
+export interface AutomationRuleInput {
+  name: string;
+  trigger: AutomationTrigger;
+  enabled: boolean;
+  actions: AutomationAction[];
+}
+
+export async function getEventAutomations(eventId: number): Promise<AutomationSummary> {
+  const res = await apiFetch(`/admin/events/${eventId}/automations`);
+  return res.json();
+}
+
+export async function createEventAutomation(eventId: number, rule: AutomationRuleInput): Promise<AutomationSummary> {
+  const res = await apiFetch(`/admin/events/${eventId}/automations`, {
+    method: "POST",
+    body: JSON.stringify(rule),
+  });
+  return res.json();
+}
+
+export async function updateEventAutomation(eventId: number, ruleId: string, rule: AutomationRuleInput): Promise<AutomationSummary> {
+  const res = await apiFetch(`/admin/events/${eventId}/automations/${ruleId}`, {
+    method: "PATCH",
+    body: JSON.stringify(rule),
+  });
+  return res.json();
+}
+
+export async function deleteEventAutomation(eventId: number, ruleId: string): Promise<AutomationSummary> {
+  const res = await apiFetch(`/admin/events/${eventId}/automations/${ruleId}`, { method: "DELETE" });
+  return res.json();
+}
+
+export async function dispatchEventAutomationsNow(eventId: number): Promise<{
+  events: number;
+  rules: number;
+  targets: number;
+  sent: number;
+  failed: number;
+  skipped: number;
+}> {
+  const res = await apiFetch(`/admin/events/${eventId}/automations/dispatch-now`, { method: "POST" });
+  return res.json();
+}
+
+export type AudienceSegmentKey =
+  | "attended_no_certificate"
+  | "certificate_holders"
+  | "survey_respondents"
+  | "no_shows"
+  | "repeat_attendees"
+  | "registration_answer"
+  | "location_filter";
+
+export interface AudienceSegment {
+  key: AudienceSegmentKey;
+  label: string;
+  description: string;
+  count: number;
+  dynamic?: boolean;
+}
+
+export interface AudienceSegmentPreview {
+  segment: AudienceSegment;
+  attendees: Array<{
+    id: number;
+    name: string;
+    email: string;
+    registered_at: string;
+    email_verified: boolean;
+    survey_completed: boolean;
+    registration_answers: Record<string, unknown>;
+  }>;
+}
+
+export async function listEventSegments(
+  eventId: number,
+  params: { field_id?: string; answer?: string; location?: string } = {},
+): Promise<AudienceSegment[]> {
+  const qs = new URLSearchParams();
+  if (params.field_id) qs.set("field_id", params.field_id);
+  if (params.answer) qs.set("answer", params.answer);
+  if (params.location) qs.set("location", params.location);
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await apiFetch(`/admin/events/${eventId}/segments${suffix}`);
+  return res.json();
+}
+
+export async function previewEventSegment(
+  eventId: number,
+  segmentKey: AudienceSegmentKey,
+  params: { field_id?: string; answer?: string; location?: string; limit?: number } = {},
+): Promise<AudienceSegmentPreview> {
+  const qs = new URLSearchParams();
+  if (params.field_id) qs.set("field_id", params.field_id);
+  if (params.answer) qs.set("answer", params.answer);
+  if (params.location) qs.set("location", params.location);
+  if (params.limit) qs.set("limit", String(params.limit));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await apiFetch(`/admin/events/${eventId}/segments/${segmentKey}${suffix}`);
+  return res.json();
+}
+
+export function getEventSegmentExportUrl(
+  eventId: number,
+  segmentKey: AudienceSegmentKey,
+  params: { field_id?: string; answer?: string; location?: string } = {},
+): string {
+  const qs = new URLSearchParams();
+  if (params.field_id) qs.set("field_id", params.field_id);
+  if (params.answer) qs.set("answer", params.answer);
+  if (params.location) qs.set("location", params.location);
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  return `${getApiBase()}/admin/events/${eventId}/segments/${segmentKey}/export${suffix}`;
+}
+
+export type CrmLifecycleStatus = "lead" | "active" | "vip" | "renewal" | "inactive";
+
+export interface CrmMeta {
+  notes: string;
+  tags: string[];
+  lifecycle_status: string;
+  updated_at?: string | null;
+}
+
+export interface CrmParticipantListItem {
+  email: string;
+  name: string;
+  event_count: number;
+  certificate_count: number;
+  attended_count: number;
+  survey_count: number;
+  latest_activity_at?: string | null;
+  meta: CrmMeta;
+}
+
+export interface CrmParticipantDetail {
+  email: string;
+  name: string;
+  meta: CrmMeta;
+  summary: Record<string, number>;
+  history: Array<Record<string, any>>;
+  timeline: Array<{ at?: string | null; type: string; label: string }>;
+}
+
+export async function listCrmParticipants(
+  params: { query?: string; tag?: string; status?: string; limit?: number } = {},
+): Promise<CrmParticipantListItem[]> {
+  const qs = new URLSearchParams();
+  if (params.query) qs.set("query", params.query);
+  if (params.tag) qs.set("tag", params.tag);
+  if (params.status) qs.set("status", params.status);
+  if (params.limit) qs.set("limit", String(params.limit));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await apiFetch(`/admin/crm/participants${suffix}`);
+  return res.json();
+}
+
+export async function getCrmParticipant(email: string): Promise<CrmParticipantDetail> {
+  const qs = new URLSearchParams({ email });
+  const res = await apiFetch(`/admin/crm/participant?${qs.toString()}`);
+  return res.json();
+}
+
+export async function updateCrmParticipant(payload: {
+  email: string;
+  notes?: string;
+  tags?: string[];
+  lifecycle_status?: string;
+}): Promise<CrmMeta> {
+  const res = await apiFetch("/admin/crm/participant", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export type TrainingStatus = "assigned" | "in_progress" | "completed" | "overdue" | "waived";
+
+export interface TrainingAssignment {
+  id: number;
+  organization_id: number;
+  title: string;
+  description?: string | null;
+  assignee_name: string;
+  assignee_email: string;
+  department?: string | null;
+  event_id?: number | null;
+  event_name?: string | null;
+  required: boolean;
+  status: TrainingStatus | string;
+  effective_status: TrainingStatus | string;
+  due_at?: string | null;
+  completed_at?: string | null;
+  certificate_id?: number | null;
+  certificate_uuid?: string | null;
+  renewal_due_at?: string | null;
+  renewal_event_id?: number | null;
+  renewal_event_name?: string | null;
+  notify_before_days: number;
+  last_notified_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TrainingAssignmentInput {
+  title: string;
+  description?: string | null;
+  assignee_name: string;
+  assignee_email: string;
+  department?: string | null;
+  event_id?: number | null;
+  required?: boolean;
+  status?: TrainingStatus | string;
+  due_at?: string | null;
+  completed_at?: string | null;
+  certificate_id?: number | null;
+  renewal_due_at?: string | null;
+  renewal_event_id?: number | null;
+  notify_before_days?: number;
+}
+
+export interface TrainingReport {
+  total: number;
+  completed: number;
+  overdue: number;
+  due_soon: number;
+  renewal_due_soon: number;
+  by_department: Array<{
+    department: string;
+    total: number;
+    completed: number;
+    overdue: number;
+    due_soon: number;
+    renewal_due_soon: number;
+  }>;
+  by_status: Record<string, number>;
+}
+
+export interface RenewalRecommendation {
+  id: number;
+  name: string;
+  event_date?: string | null;
+  event_location?: string | null;
+  reason: string;
+}
+
+export async function listTrainingAssignments(
+  params: { status?: string; department?: string; query?: string; limit?: number } = {},
+): Promise<TrainingAssignment[]> {
+  const qs = new URLSearchParams();
+  if (params.status) qs.set("status", params.status);
+  if (params.department) qs.set("department", params.department);
+  if (params.query) qs.set("query", params.query);
+  if (params.limit) qs.set("limit", String(params.limit));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await apiFetch(`/admin/training/assignments${suffix}`);
+  return res.json();
+}
+
+export async function createTrainingAssignment(payload: TrainingAssignmentInput): Promise<TrainingAssignment> {
+  const res = await apiFetch("/admin/training/assignments", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function updateTrainingAssignment(
+  assignmentId: number,
+  payload: Partial<TrainingAssignmentInput>,
+): Promise<TrainingAssignment> {
+  const res = await apiFetch(`/admin/training/assignments/${assignmentId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function deleteTrainingAssignment(assignmentId: number): Promise<void> {
+  await apiFetch(`/admin/training/assignments/${assignmentId}`, { method: "DELETE" });
+}
+
+export async function getTrainingReport(): Promise<TrainingReport> {
+  const res = await apiFetch("/admin/training/report");
+  return res.json();
+}
+
+export async function listRenewalRecommendations(department?: string): Promise<RenewalRecommendation[]> {
+  const qs = new URLSearchParams();
+  if (department) qs.set("department", department);
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await apiFetch(`/admin/training/renewal-recommendations${suffix}`);
+  return res.json();
+}
+
+export async function sendTrainingRenewalNotifications(): Promise<{ sent: number; failed: number; skipped: number }> {
+  const res = await apiFetch("/admin/training/send-renewal-notifications", { method: "POST" });
+  return res.json();
+}
+
 export type EventTeamRole = "manager" | "checkin" | "certificate" | "email" | "analytics" | "viewer";
 export type EventTeamStatus = "pending" | "active" | "disabled";
 export type EventTeamPermission =
@@ -1082,6 +1454,45 @@ export async function adminManualCheckin(
     method: "POST",
     body: JSON.stringify({ email }),
   });
+  return res.json();
+}
+
+export interface CheckinLookupItem {
+  attendee_id: number;
+  name: string;
+  email: string;
+  ticket_status?: string | null;
+  checked_in_at?: string | null;
+}
+
+export interface CheckinMetrics {
+  total: number;
+  successful: number;
+  failed: number;
+  last_hour: number;
+  by_method: Array<{ method: string; count: number }>;
+  by_staff: Array<{ email: string; count: number; successful: number }>;
+  recent: Array<{
+    id: number;
+    method: string;
+    source: string;
+    success: boolean;
+    message?: string | null;
+    created_at: string;
+    attendee_name?: string | null;
+    attendee_email?: string | null;
+    session_name?: string | null;
+  }>;
+}
+
+export async function lookupCheckinAttendees(eventId: number, query: string): Promise<CheckinLookupItem[]> {
+  const qs = new URLSearchParams({ query });
+  const res = await apiFetch(`/admin/events/${eventId}/checkin-lookup?${qs.toString()}`);
+  return res.json();
+}
+
+export async function getCheckinMetrics(eventId: number): Promise<CheckinMetrics> {
+  const res = await apiFetch(`/admin/events/${eventId}/checkin-metrics`);
   return res.json();
 }
 

@@ -519,6 +519,113 @@ class Certificate(Base):
     )
 
 
+class TrainingAssignment(Base):
+    __tablename__ = "training_assignments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    event_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("events.id", ondelete="SET NULL"), nullable=True, index=True)
+    renewal_event_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("events.id", ondelete="SET NULL"), nullable=True, index=True)
+    certificate_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("certificates.id", ondelete="SET NULL"), nullable=True, index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    assignee_name: Mapped[str] = mapped_column(String(200))
+    assignee_email: Mapped[str] = mapped_column(String(320), index=True)
+    department: Mapped[Optional[str]] = mapped_column(String(160), nullable=True, index=True)
+    required: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    status: Mapped[str] = mapped_column(String(32), default="assigned", index=True)
+    due_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    renewal_due_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    notify_before_days: Mapped[int] = mapped_column(Integer, default=30)
+    last_notified_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        Index("ix_training_assignments_org_status", "organization_id", "status"),
+        Index("ix_training_assignments_org_department", "organization_id", "department"),
+        Index("ix_training_assignments_org_renewal", "organization_id", "renewal_due_at"),
+    )
+
+
+class CertificateTemplatePreset(Base):
+    __tablename__ = "certificate_template_presets"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    scope_type: Mapped[str] = mapped_column(String(16), index=True)
+    scope_id: Mapped[int] = mapped_column(Integer, index=True)
+    name: Mapped[str] = mapped_column(String(80))
+    template_image_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    config: Mapped[dict] = mapped_column(JSONB, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        Index("ix_certificate_template_presets_scope", "scope_type", "scope_id"),
+    )
+
+
+class EventAutomationRule(Base):
+    __tablename__ = "event_automation_rules"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    event_id: Mapped[int] = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    trigger: Mapped[str] = mapped_column(String(64), index=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    actions: Mapped[list] = mapped_column(JSONB, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        Index("ix_event_automation_rules_event_enabled", "event_id", "enabled"),
+    )
+
+
+class EventAutomationDispatchState(Base):
+    __tablename__ = "event_automation_dispatch_states"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id: Mapped[int] = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    rule_id: Mapped[str] = mapped_column(String(64), index=True)
+    state: Mapped[dict] = mapped_column(JSONB, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("event_id", "rule_id", name="uq_event_automation_dispatch_event_rule"),
+    )
+
+
+class ParticipantCrmProfile(Base):
+    __tablename__ = "participant_crm_profiles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    email: Mapped[str] = mapped_column(String(320), index=True)
+    notes: Mapped[str] = mapped_column(Text, default="")
+    tags: Mapped[list] = mapped_column(JSONB, default=list)
+    lifecycle_status: Mapped[str] = mapped_column(String(64), default="lead", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("organization_id", "email", name="uq_participant_crm_org_email"),
+        Index("ix_participant_crm_org_status", "organization_id", "lifecycle_status"),
+    )
+
+
+class MemberCertificatePreference(Base):
+    __tablename__ = "member_certificate_preferences"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    public_member_id: Mapped[int] = mapped_column(Integer, ForeignKey("public_members.id", ondelete="CASCADE"), unique=True, index=True)
+    certificate_visibility: Mapped[str] = mapped_column(String(32), default="public", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
 class Transaction(Base):
     __tablename__ = "transactions"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -1390,6 +1497,28 @@ class AttendaonceRecord(Base):
 
 
 # Ã¢â€â‚¬Ã¢â€â‚¬ Gamification: Badge Rules & Participant Badges Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+
+class CheckinActivityLog(Base):
+    __tablename__ = "checkin_activity_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id: Mapped[int] = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    session_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("event_sessions.id", ondelete="SET NULL"), nullable=True, index=True)
+    attendee_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("attendees.id", ondelete="SET NULL"), nullable=True, index=True)
+    ticket_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("event_tickets.id", ondelete="SET NULL"), nullable=True, index=True)
+    actor_user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    method: Mapped[str] = mapped_column(String(32), default="manual", index=True)
+    source: Mapped[str] = mapped_column(String(32), default="admin", index=True)
+    success: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    message: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    __table_args__ = (
+        Index("ix_checkin_activity_event_created", "event_id", "created_at"),
+        Index("ix_checkin_activity_event_actor", "event_id", "actor_user_id"),
+    )
+
 
 # Keep the correctly spelled public model name without changing the existing table mapping.
 AttendanceRecord = AttendaonceRecord
@@ -5576,7 +5705,18 @@ async def startup():
                             if name_key and name_key not in cert_uuid_by_name:
                                 cert_uuid_by_name[name_key] = cert.uuid
 
-                        if (job.recipient_type or "attendees") == "certified":
+                        recipient_type = job.recipient_type or "attendees"
+                        if recipient_type.startswith("segment:"):
+                            from .audience_segments_api import get_segment_attendees
+
+                            segment_key = recipient_type.split(":", 1)[1]
+                            attendees = await get_segment_attendees(db_bulk, event, segment_key)
+                            attendees = [
+                                attendee
+                                for attendee in attendees
+                                if attendee.email and attendee.email.strip() and attendee.unsubscribed_at is None
+                            ]
+                        elif recipient_type == "certified":
                             attendees = [
                                 attendee
                                 for attendee in all_attendees
@@ -5718,12 +5858,28 @@ async def startup():
                         db_bulk.add(job)
                         await db_bulk.commit()
 
+        async def _process_automation_dispatches():
+            from .automation_api import process_automation_dispatches_once
+
+            stats = await process_automation_dispatches_once()
+            if stats.get("sent") or stats.get("failed"):
+                logger.info("Automation dispatch cycle: %s", stats)
+
+        async def _process_training_renewal_notifications():
+            from .training_api import process_training_renewal_notifications_once
+
+            stats = await process_training_renewal_notifications_once()
+            if stats.get("sent") or stats.get("failed"):
+                logger.info("Training renewal notification cycle: %s", stats)
+
         if settings.enable_scheduler:
             scheduler.add_job(_notify_expiring_certs, "cron", hour=2, minute=0)
             scheduler.add_job(_auto_renew_certificates, "interval", hours=1)
             scheduler.add_job(_monthly_hc_renewal, "cron", hour=3, minute=30)
             scheduler.add_job(_process_system_digest_emails, "cron", minute=0)
             scheduler.add_job(_process_bulk_emails, "interval", minutes=5)  # Every 5 minutes
+            scheduler.add_job(_process_automation_dispatches, "interval", minutes=5)
+            scheduler.add_job(_process_training_renewal_notifications, "cron", hour=4, minute=15)
             scheduler.add_job(_process_bulk_certificate_jobs, "interval", seconds=3)
             scheduler.start()
             logger.info("APScheduler started Ã¢â‚¬â€ cert notifications + monthly HC renewal + system digest + bulk email processing + bulk certificate queue")
@@ -11412,7 +11568,6 @@ async def _send_event_team_invite_email(
 async def get_event(event_id: int, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     ev = await _get_event_for_admin(event_id, me, db, "event:view")
     return _event_to_out(ev)
-
 
 @app.get(
     "/api/admin/events/{event_id}/health",
@@ -17106,6 +17261,7 @@ async def admin_manual_checkin(
 ):
     ev = await _get_event_for_admin(event_id, me, db, "checkin:write")
     _ensure_checkin_feature_enabled(ev)
+    ip = _client_ip_for_rate_limit(request)
 
     session_res = await db.execute(
         select(EventSession).where(EventSession.id == session_id, EventSession.event_id == event_id)
@@ -18771,6 +18927,24 @@ app.include_router(_connections_api.router)
 
 from . import member_certificates_api as _member_certificates_api
 app.include_router(_member_certificates_api.router)
+
+from . import certificate_templates_api as _certificate_templates_api
+app.include_router(_certificate_templates_api.router)
+
+from . import automation_api as _automation_api
+app.include_router(_automation_api.router)
+
+from . import audience_segments_api as _audience_segments_api
+app.include_router(_audience_segments_api.router)
+
+from . import event_crm_api as _event_crm_api
+app.include_router(_event_crm_api.router)
+
+from . import training_api as _training_api
+app.include_router(_training_api.router)
+
+from . import checkin_ops_api as _checkin_ops_api
+app.include_router(_checkin_ops_api.router)
 
 # API module imports - these are loaded after all models are defined
 from . import analytics_api as _analytics_api

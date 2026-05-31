@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, listEventSegments, type AudienceSegment } from "@/lib/api";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -47,13 +47,14 @@ export default function BulkEmailsPage() {
 
   const [jobs, setJobs] = useState<BulkEmailJob[]>([]);
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const [segments, setSegments] = useState<AudienceSegment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Create campaign modal
   const [showModal, setShowModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<number | null>(null);
-  const [recipientType, setRecipientType] = useState<"attendees" | "certified">("attendees");
+  const [recipientType, setRecipientType] = useState<string>("attendees");
   const [creating, setCreating] = useState(false);
 
   // Polling for job updates
@@ -143,9 +144,10 @@ export default function BulkEmailsPage() {
   async function loadData() {
     try {
       setError(null);
-      const [jobsRes, templatesRes] = await Promise.all([
+      const [jobsRes, templatesRes, segmentsData] = await Promise.all([
         apiFetch(`/admin/events/${eventId}/bulk-emails`),
         apiFetch(`/admin/events/${eventId}/email-templates`),
+        listEventSegments(Number(eventId)).catch(() => []),
       ]);
 
       const jobsData = await jobsRes.json();
@@ -153,6 +155,7 @@ export default function BulkEmailsPage() {
 
       setJobs(jobsData || []);
       setTemplates(templatesData || []);
+      setSegments((segmentsData || []).filter((segment) => !segment.dynamic));
     } catch (e: any) {
       setError(e?.message || copy.loadError);
     } finally {
@@ -235,6 +238,10 @@ export default function BulkEmailsPage() {
   }
 
   function getRecipientLabel(type: string) {
+    if (type.startsWith("segment:")) {
+      const key = type.split(":", 2)[1];
+      return segments.find((segment) => segment.key === key)?.label || key;
+    }
     return type === "certified" ? copy.certifiedTitle : copy.attendeesTitle;
   }
 
@@ -488,6 +495,30 @@ export default function BulkEmailsPage() {
                         <p className="mt-2 text-sm leading-6 text-surface-500">{copy.certifiedBody}</p>
                       </button>
                     </div>
+                    {segments.length > 0 && (
+                      <div className="mt-3 grid gap-2">
+                        <p className="text-xs font-bold text-surface-500">Segmentler</p>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {segments.map((segment) => {
+                            const value = `segment:${segment.key}`;
+                            return (
+                              <button
+                                key={segment.key}
+                                type="button"
+                                onClick={() => setRecipientType(value)}
+                                className={`rounded-2xl border p-3 text-left transition ${recipientType === value ? "border-brand-200 bg-brand-50" : "border-surface-200 bg-white hover:border-surface-300"}`}
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="text-sm font-semibold text-surface-900">{segment.label}</p>
+                                  <span className="rounded-full bg-surface-100 px-2 py-0.5 text-xs font-bold text-surface-600">{segment.count}</span>
+                                </div>
+                                <p className="mt-1 line-clamp-2 text-xs leading-5 text-surface-500">{segment.description}</p>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="rounded-3xl border border-blue-200 bg-blue-50 px-4 py-4 text-sm text-blue-900">

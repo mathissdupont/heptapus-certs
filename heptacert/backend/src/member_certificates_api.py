@@ -13,8 +13,8 @@ from .main import (
     Certificate,
     CurrentPublicMember,
     Event,
+    MemberCertificatePreference,
     PublicMember,
-    SystemConfig,
     build_certificate_verify_url,
     get_current_public_member,
     get_db,
@@ -38,13 +38,17 @@ def _privacy_key(member_public_id: str) -> str:
 
 
 async def get_member_certificate_privacy(db: AsyncSession, member_public_id: str) -> CertificatePrivacyOut:
-    row_res = await db.execute(select(SystemConfig).where(SystemConfig.key == _privacy_key(member_public_id)))
+    row_res = await db.execute(
+        select(MemberCertificatePreference)
+        .join(PublicMember, PublicMember.id == MemberCertificatePreference.public_member_id)
+        .where(PublicMember.public_id == member_public_id)
+    )
     row = row_res.scalar_one_or_none()
-    if not row or not isinstance(row.value, dict):
+    if not row:
         return CertificatePrivacyOut()
-    raw_visibility = str(row.value.get("certificate_visibility") or "").strip()
+    raw_visibility = str(row.certificate_visibility or "").strip()
     if raw_visibility not in {"public", "connections_only", "private"}:
-        raw_visibility = "private" if bool(row.value.get("hide_certificates", False)) else "public"
+        raw_visibility = "public"
     return CertificatePrivacyOut(
         hide_certificates=raw_visibility == "private",
         visibility=raw_visibility,
@@ -57,19 +61,18 @@ async def update_member_certificate_privacy(
     hide_certificates: Optional[bool] = None,
     visibility: Optional[str] = None,
 ) -> CertificatePrivacyOut:
-    key = _privacy_key(member_public_id)
-    row_res = await db.execute(select(SystemConfig).where(SystemConfig.key == key))
-    row = row_res.scalar_one_or_none()
-    value = dict(row.value or {}) if row and isinstance(row.value, dict) else {}
     if visibility not in {"public", "connections_only", "private"}:
         visibility = "private" if hide_certificates else "public"
-    value["certificate_visibility"] = visibility
-    value["hide_certificates"] = visibility == "private"
-
+    member_res = await db.execute(select(PublicMember).where(PublicMember.public_id == member_public_id))
+    member = member_res.scalar_one_or_none()
+    if not member:
+        return CertificatePrivacyOut(hide_certificates=False, visibility="public")
+    row_res = await db.execute(select(MemberCertificatePreference).where(MemberCertificatePreference.public_member_id == member.id))
+    row = row_res.scalar_one_or_none()
     if row:
-        row.value = value
+        row.certificate_visibility = visibility
     else:
-        db.add(SystemConfig(key=key, value=value))
+        db.add(MemberCertificatePreference(public_member_id=member.id, certificate_visibility=visibility))
 
     await db.commit()
     return CertificatePrivacyOut(hide_certificates=visibility == "private", visibility=visibility)

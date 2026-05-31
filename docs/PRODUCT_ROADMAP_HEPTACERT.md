@@ -22,54 +22,55 @@ This roadmap tracks the feature direction discussed for turning HeptaCert from a
 
 - [x] Live certificate template preview in admin
 - [x] Drag-and-drop field positioning
-- [ ] Font, color, logo, footer, and brand-kit controls
-- [ ] Save reusable organization template presets
+- [x] Font, color, logo, footer, and brand-kit controls
+- [x] Save reusable organization template presets
 - [x] Template validation before certificate generation
 
 ## Phase 3 - Post-Event Automation
 
-- [ ] Automation rule builder per event
-- [ ] Trigger: attended event
-- [ ] Trigger: registered but no-show
-- [ ] Trigger: certificate issued
-- [ ] Trigger: survey not completed
-- [ ] Trigger: badge earned
-- [ ] Actions: send email, create reminder, webhook dispatch
+- [x] Automation rule builder per event
+- [x] Trigger: attended event
+- [x] Trigger: registered but no-show
+- [x] Trigger: certificate issued
+- [x] Trigger: survey not completed
+- [x] Trigger: badge earned
+- [x] Actions: send email, create reminder, webhook dispatch
+- [x] Automation dispatch engine with scheduled and manual execution
 
 ## Phase 4 - Audience Segmentation
 
-- [ ] Segment: attended but no certificate
-- [ ] Segment: certificate holders
-- [ ] Segment: survey respondents
-- [ ] Segment: no-shows
-- [ ] Segment: repeat attendees
-- [ ] Segment: location or custom registration answer filters
-- [ ] Use segments in bulk email and exports
+- [x] Segment: attended but no certificate
+- [x] Segment: certificate holders
+- [x] Segment: survey respondents
+- [x] Segment: no-shows
+- [x] Segment: repeat attendees
+- [x] Segment: location or custom registration answer filters
+- [x] Use segments in bulk email and exports
 
 ## Phase 5 - Event CRM
 
-- [ ] Organization-level participant history
-- [ ] Member/attendee notes
-- [ ] Tags and lifecycle status
-- [ ] Payment, attendance, survey, certificate timeline
-- [ ] Organization-level search across all attendees
+- [x] Organization-level participant history
+- [x] Member/attendee notes
+- [x] Tags and lifecycle status
+- [x] Payment, attendance, survey, certificate timeline
+- [x] Organization-level search across all attendees
 
 ## Phase 6 - Training and Renewal
 
-- [ ] Training assignment model for organizations
-- [ ] Required training completion tracking
-- [ ] Department/team-based reporting
-- [ ] Certificate renewal schedule
-- [ ] Expiring certificate notifications
-- [ ] Renewal event recommendations
+- [x] Training assignment model for organizations
+- [x] Required training completion tracking
+- [x] Department/team-based reporting
+- [x] Certificate renewal schedule
+- [x] Expiring certificate notifications
+- [x] Renewal event recommendations
 
 ## Phase 7 - Staff and Kiosk Mode
 
-- [ ] Mobile-first staff check-in mode
-- [ ] Kiosk mode for QR scanning
-- [ ] Offline check-in cache
-- [ ] Manual lookup for door teams
-- [ ] Door traffic and staff performance metrics
+- [x] Mobile-first staff check-in mode
+- [x] Kiosk mode for QR scanning
+- [x] Offline check-in cache
+- [x] Manual lookup for door teams
+- [x] Door traffic and staff performance metrics
 
 ## Revenue Packaging Notes
 
