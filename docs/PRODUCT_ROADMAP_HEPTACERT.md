@@ -125,8 +125,8 @@ This roadmap tracks the feature direction discussed for turning HeptaCert from a
 - [x] Add segment composition builder with AND/OR groups instead of only fixed presets
 - [x] Add export job queue for large segments instead of synchronous CSV downloads
 - [x] Add optional Google Sheets sync for segment export jobs
-- [ ] Add export audit log with actor, filters, row count, IP, and timestamp
-- [ ] Add PII masking options and Enterprise-only full-data export policy
+- [x] Add export audit log with actor, filters, row count, IP, and timestamp
+- [x] Add PII masking options and Enterprise-only full-data export policy
 - [ ] Add segment-to-CRM and segment-to-automation handoff flows
 
 ## Phase 13 - Training and Renewal Compliance

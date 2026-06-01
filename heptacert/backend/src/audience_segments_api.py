@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import and_, exists, false, func, or_, select, true
@@ -99,6 +99,7 @@ class SegmentExportJobIn(BaseModel):
     segment_key: str
     filters: dict[str, Any] = {}
     sync_google_sheets: bool = False
+    pii_mode: str = Field(default="masked", pattern="^(masked|full)$")
 
 
 class SegmentExportJobOut(BaseModel):
@@ -116,6 +117,7 @@ class SegmentExportJobOut(BaseModel):
     created_at: datetime
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+    pii_mode: str = "masked"
 
 
 def _parse_composition(raw: Optional[str]) -> Optional[dict[str, Any]]:
@@ -497,6 +499,7 @@ def _export_job_out(row: SegmentExportJob) -> SegmentExportJobOut:
         created_at=row.created_at,
         started_at=row.started_at,
         completed_at=row.completed_at,
+        pii_mode=_normalize_pii_mode((row.filters or {}).get("_export_pii_mode")),
     )
 
 
@@ -524,14 +527,44 @@ async def _segment_rows_for_export(db: AsyncSession, event: Event, segment_key: 
     return rows.scalars().all()
 
 
-def _segment_export_values(attendees: list[Attendee]) -> list[list[Any]]:
+def _normalize_pii_mode(value: Optional[str]) -> str:
+    return "full" if value == "full" else "masked"
+
+
+def _mask_name(value: Optional[str]) -> str:
+    text = (value or "").strip()
+    if not text:
+        return ""
+    parts = text.split()
+    return " ".join(f"{part[:1]}***" for part in parts)
+
+
+def _mask_email(value: Optional[str]) -> str:
+    text = (value or "").strip()
+    if "@" not in text:
+        return "***"
+    local, domain = text.split("@", 1)
+    return f"{local[:2]}***@{domain}"
+
+
+async def _ensure_full_pii_export_allowed(db: AsyncSession, event: Event, pii_mode: str) -> None:
+    if pii_mode != "full":
+        return
+    from .main import _event_owner_has_enterprise_plan
+
+    if not await _event_owner_has_enterprise_plan(event.id, db):
+        raise HTTPException(status_code=403, detail="Full-data segment exports require Enterprise plan.")
+
+
+def _segment_export_values(attendees: list[Attendee], *, pii_mode: str = "masked") -> list[list[Any]]:
     values: list[list[Any]] = [["id", "name", "email", "registered_at", "email_verified", "survey_completed"]]
+    include_full_pii = pii_mode == "full"
     for attendee in attendees:
         values.append(
             [
                 attendee.id,
-                attendee.name,
-                attendee.email,
+                attendee.name if include_full_pii else _mask_name(attendee.name),
+                attendee.email if include_full_pii else _mask_email(attendee.email),
                 attendee.registered_at.isoformat() if isinstance(attendee.registered_at, datetime) else "",
                 "yes" if attendee.email_verified else "no",
                 "yes" if attendee.survey_completed_at else "no",
@@ -545,15 +578,20 @@ async def _sync_segment_export_to_google_sheet(db: AsyncSession, event: Event, j
 
     access_token = await _get_google_access_token_for_sheets(db, event.admin_id)
     title = f"HeptaCert - {event.name} - {job.segment_key} segment"
+    sheet_name = "Segment Export"
     created = await _google_json_request(
         access_token,
         "POST",
         "https://sheets.googleapis.com/v4/spreadsheets",
-        json_body={"properties": {"title": title[:100]}},
+        json_body={
+            "properties": {"title": title[:100]},
+            "sheets": [{"properties": {"title": sheet_name}}],
+        },
     )
     spreadsheet_id = str(created.get("spreadsheetId") or "")
+    if not spreadsheet_id:
+        raise HTTPException(status_code=502, detail="Google Sheet could not be created")
     spreadsheet_url = str(created.get("spreadsheetUrl") or f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}")
-    sheet_name = "Segment Export"
     encoded_range = _google_sheets_a1_range(sheet_name)
     await _google_json_request(
         access_token,
@@ -719,19 +757,43 @@ async def delete_saved_event_segment(
 async def create_segment_export_job(
     event_id: int,
     payload: SegmentExportJobIn,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_event_for_admin(event_id, me, db, "attendees:read")
+    event = await _get_event_for_admin(event_id, me, db, "attendees:read")
+    from .main import write_audit_log
+
+    pii_mode = _normalize_pii_mode(payload.pii_mode)
+    await _ensure_full_pii_export_allowed(db, event, pii_mode)
+    export_filters = dict(payload.filters or {})
+    export_filters["_export_pii_mode"] = pii_mode
     row = SegmentExportJob(
         event_id=event_id,
         created_by=me.id,
         segment_key=payload.segment_key,
-        filters=payload.filters or {},
+        filters=export_filters,
         sync_google_sheets=bool(payload.sync_google_sheets),
         status="pending",
     )
     db.add(row)
+    await db.flush()
+    await write_audit_log(
+        db,
+        user_id=me.id,
+        action="segment.export_job.created",
+        resource_type="event",
+        resource_id=str(event_id),
+        extra={
+            "job_id": row.id,
+            "segment_key": payload.segment_key,
+            "filters": export_filters,
+            "sync_google_sheets": bool(payload.sync_google_sheets),
+            "pii_mode": pii_mode,
+        },
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
     await db.commit()
     await db.refresh(row)
     return _export_job_out(row)
@@ -830,16 +892,22 @@ async def preview_event_segment(
 async def export_event_segment(
     event_id: int,
     segment_key: str,
+    request: Request,
     field_id: Optional[str] = Query(default=None),
     answer: Optional[str] = Query(default=None),
     location: Optional[str] = Query(default=None),
     composition: Optional[str] = Query(default=None),
+    pii_mode: str = Query(default="masked", pattern="^(masked|full)$"),
     limit: int = Query(default=5000, ge=1, le=10000),
     offset: int = Query(default=0, ge=0, le=100000),
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    from .main import write_audit_log
+
     event = await _get_event_for_admin(event_id, me, db, "attendees:read")
+    pii_mode = _normalize_pii_mode(pii_mode)
+    await _ensure_full_pii_export_allowed(db, event, pii_mode)
     composition_spec = _parse_composition(composition)
     rows = await db.execute(
         _segment_stmt(event, segment_key, field_id=field_id, answer=answer, location=location, composition=composition_spec)
@@ -849,18 +917,32 @@ async def export_event_segment(
     export_rows = rows.scalars().all()
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["id", "name", "email", "registered_at", "email_verified", "survey_completed"])
-    for attendee in export_rows:
-        writer.writerow([
-            attendee.id,
-            attendee.name,
-            attendee.email,
-            attendee.registered_at.isoformat() if isinstance(attendee.registered_at, datetime) else "",
-            "yes" if attendee.email_verified else "no",
-            "yes" if attendee.survey_completed_at else "no",
-        ])
+    writer.writerows(_segment_export_values(export_rows, pii_mode=pii_mode))
     output.seek(0)
     filename = f"event-{event_id}-{segment_key}-segment.csv"
+    await write_audit_log(
+        db,
+        user_id=me.id,
+        action="segment.export.downloaded",
+        resource_type="event",
+        resource_id=str(event_id),
+        extra={
+            "segment_key": segment_key,
+            "filters": {
+                "field_id": field_id,
+                "answer": answer,
+                "location": location,
+                "composition": composition_spec,
+                "limit": limit,
+                "offset": offset,
+                "pii_mode": pii_mode,
+            },
+            "row_count": len(export_rows),
+        },
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+    await db.commit()
     return StreamingResponse(
         iter([output.getvalue().encode("utf-8-sig")]),
         media_type="text/csv",
@@ -869,7 +951,7 @@ async def export_event_segment(
 
 
 async def process_segment_export_jobs_once(limit: int = 5) -> dict[str, int]:
-    from .main import SessionLocal
+    from .main import SessionLocal, write_audit_log
 
     stats = {"processed": 0, "completed": 0, "failed": 0}
     async with SessionLocal() as db:
@@ -893,8 +975,10 @@ async def process_segment_export_jobs_once(limit: int = 5) -> dict[str, int]:
                 job.error_message = None
                 await db.commit()
 
+                pii_mode = _normalize_pii_mode((job.filters or {}).get("_export_pii_mode"))
+                await _ensure_full_pii_export_allowed(db, event, pii_mode)
                 attendees = await _segment_rows_for_export(db, event, job.segment_key, job.filters or {})
-                values = _segment_export_values(attendees)
+                values = _segment_export_values(attendees, pii_mode=pii_mode)
                 rel_dir = Path("segment_exports") / f"event_{event.id}"
                 file_name = f"segment-{event.id}-{job.segment_key}-{job.id}.csv"
                 rel_path = rel_dir / file_name
@@ -912,12 +996,42 @@ async def process_segment_export_jobs_once(limit: int = 5) -> dict[str, int]:
                     await _sync_segment_export_to_google_sheet(db, event, job, values)
                 job.status = "completed"
                 job.completed_at = datetime.now(timezone.utc)
+                await write_audit_log(
+                    db,
+                    user_id=job.created_by,
+                    action="segment.export_job.completed",
+                    resource_type="event",
+                    resource_id=str(event.id),
+                    extra={
+                        "job_id": job.id,
+                        "segment_key": job.segment_key,
+                        "filters": job.filters or {},
+                        "row_count": job.row_count,
+                        "sync_google_sheets": bool(job.sync_google_sheets),
+                        "google_spreadsheet_id": job.google_spreadsheet_id,
+                        "pii_mode": pii_mode,
+                    },
+                )
                 stats["completed"] += 1
                 await db.commit()
             except Exception as exc:
                 job.status = "failed"
                 job.error_message = str(exc)[:2000]
                 job.completed_at = datetime.now(timezone.utc)
+                await write_audit_log(
+                    db,
+                    user_id=job.created_by,
+                    action="segment.export_job.failed",
+                    resource_type="event",
+                    resource_id=str(job.event_id),
+                    extra={
+                        "job_id": job.id,
+                        "segment_key": job.segment_key,
+                        "filters": job.filters or {},
+                        "sync_google_sheets": bool(job.sync_google_sheets),
+                        "error_message": job.error_message,
+                    },
+                )
                 stats["failed"] += 1
                 await db.commit()
     return stats

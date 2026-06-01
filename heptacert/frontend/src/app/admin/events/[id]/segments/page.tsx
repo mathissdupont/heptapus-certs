@@ -2,25 +2,28 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Download, Eye, ListFilter, Loader2, Plus, Save, Search, Trash2, Users } from "lucide-react";
+import { Download, ExternalLink, Eye, FileSpreadsheet, ListFilter, Loader2, Plus, RefreshCw, Save, Search, Trash2, Users } from "lucide-react";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 import {
+  apiFetch,
+  consumeOAuthBridgeToken,
   getEventSegmentExportUrl,
   createSegmentExportJob,
   deleteSavedEventSegment,
   getSegmentExportJobDownloadUrl,
+  getToken,
   listEventSegments,
   listSavedEventSegments,
   listSegmentExportJobs,
   previewEventSegment,
   saveEventSegment,
+  setToken,
   type AudienceSegment,
   type AudienceSegmentKey,
   type AudienceSegmentPreview,
   type SegmentComposition,
   type SegmentExportJob,
   type SavedAudienceSegment,
-  getToken,
 } from "@/lib/api";
 import { FeatureGate } from "@/lib/useSubscription";
 import { useI18n } from "@/lib/i18n";
@@ -32,6 +35,18 @@ const STANDARD_KEYS: AudienceSegmentKey[] = [
   "no_shows",
   "repeat_attendees",
 ];
+
+type EventSheetsStatus = {
+  google_configured: boolean;
+  google_connected: boolean;
+  google_email?: string | null;
+  spreadsheet_id?: string | null;
+  spreadsheet_url?: string | null;
+  sheet_name?: string | null;
+  enabled: boolean;
+  last_synced_at?: string | null;
+  missing_scopes?: string[];
+};
 
 export default function EventSegmentsPage() {
   const params = useParams<{ id: string }>();
@@ -96,6 +111,33 @@ export default function EventSegmentsPage() {
     syncSheets: "Google Sheets sync",
     backgroundExport: "Background export",
   };
+  const sheetsCopy = lang === "tr" ? {
+    title: "Segment Google Sheets otomasyonu",
+    subtitle: "Seçili segment için ayrı bir Google Sheet oluşturun; büyük listeleri CSV indirmeden ekibinizle paylaşın.",
+    googleNotConfigured: "Google OAuth ayarları .env içinde eksik.",
+    googleNotConnected: "Google hesabı bağlı değil",
+    grantGoogle: "Google izni ver",
+    completeGooglePermission: "Sheets iznini tamamla",
+    createSegmentSheet: "Sheet oluştur ve sync et",
+    syncSegmentSheet: "Segmenti Sheets'e sync et",
+    openSheet: "Sheet'i aç",
+    latestSheet: "Son segment sheet'i",
+    checkingSheets: "Durum kontrol ediliyor",
+    missingPermission: "Sheets izni eksik",
+  } : {
+    title: "Segment Google Sheets automation",
+    subtitle: "Create a dedicated Google Sheet for the selected segment and share large lists without downloading CSV files.",
+    googleNotConfigured: "Google OAuth settings are missing in .env.",
+    googleNotConnected: "Google account is not connected",
+    grantGoogle: "Grant Google access",
+    completeGooglePermission: "Complete Sheets permission",
+    createSegmentSheet: "Create Sheet and sync",
+    syncSegmentSheet: "Sync segment to Sheets",
+    openSheet: "Open Sheet",
+    latestSheet: "Latest segment sheet",
+    checkingSheets: "Checking status",
+    missingPermission: "Sheets permission missing",
+  };
   const [segments, setSegments] = useState<AudienceSegment[]>([]);
   const [savedSegments, setSavedSegments] = useState<SavedAudienceSegment[]>([]);
   const [exportJobs, setExportJobs] = useState<SegmentExportJob[]>([]);
@@ -113,7 +155,11 @@ export default function EventSegmentsPage() {
   const [loading, setLoading] = useState(true);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [savingSegment, setSavingSegment] = useState(false);
-  const [syncGoogleSheets, setSyncGoogleSheets] = useState(false);
+  const [piiMode, setPiiMode] = useState<"masked" | "full">("masked");
+  const [sheetsStatus, setSheetsStatus] = useState<EventSheetsStatus | null>(null);
+  const [sheetsLoading, setSheetsLoading] = useState(false);
+  const [sheetsAction, setSheetsAction] = useState<"auth" | "sync" | null>(null);
+  const [authBridgeReady, setAuthBridgeReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function loadSegments() {
@@ -133,6 +179,19 @@ export default function EventSegmentsPage() {
       setError(ex?.message || copy.loadError);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadSheetsStatus() {
+    if (!eventId) return;
+    setSheetsLoading(true);
+    try {
+      const response = await apiFetch(`/admin/events/${eventId}/sheets`);
+      setSheetsStatus(await response.json());
+    } catch {
+      setSheetsStatus(null);
+    } finally {
+      setSheetsLoading(false);
     }
   }
 
@@ -255,6 +314,7 @@ export default function EventSegmentsPage() {
       answer: answer || undefined,
       location: location || undefined,
       composition: key === "composition" ? compositionPayload() : undefined,
+      pii_mode: piiMode,
     });
     const response = await fetch(url, {
       headers: { Authorization: `Bearer ${getToken()}` },
@@ -274,7 +334,7 @@ export default function EventSegmentsPage() {
     URL.revokeObjectURL(objectUrl);
   }
 
-  async function queueSegmentExport(key: AudienceSegmentKey) {
+  async function queueSegmentExport(key: AudienceSegmentKey, syncGoogleSheets = false) {
     setError(null);
     const filters = key === "composition"
       ? { composition: compositionPayload() }
@@ -284,6 +344,7 @@ export default function EventSegmentsPage() {
         segment_key: key,
         filters,
         sync_google_sheets: syncGoogleSheets,
+        pii_mode: piiMode,
       });
       setExportJobs(await listSegmentExportJobs(eventId));
     } catch (ex: any) {
@@ -291,13 +352,70 @@ export default function EventSegmentsPage() {
     }
   }
 
+  async function handleConnectGoogleSheetsAuth() {
+    setSheetsAction("auth");
+    setError(null);
+    try {
+      const frontendOrigin = typeof window !== "undefined" ? window.location.origin : "";
+      const params = new URLSearchParams({
+        next: `/admin/events/${eventId}/segments`,
+        frontend_origin: frontendOrigin,
+        event_id: String(eventId),
+      });
+      const response = await apiFetch(`/admin/google/sheets/start?${params.toString()}`);
+      const data = await response.json();
+      if (!data?.authorization_url) throw new Error("Google yetkilendirme adresi alınamadı.");
+      window.location.href = data.authorization_url;
+    } catch (ex: any) {
+      setError(ex?.message || "Google Sheets bağlantısı başlatılamadı.");
+      setSheetsAction(null);
+    }
+  }
+
+  async function handleSyncSegmentSheet() {
+    setSheetsAction("sync");
+    setError(null);
+    try {
+      await queueSegmentExport(selectedKey, true);
+      await loadSheetsStatus();
+    } finally {
+      setSheetsAction(null);
+    }
+  }
+
   useEffect(() => {
+    let cancelled = false;
+    const hasBridge = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("oauth_bridge") === "1";
+    const finish = () => {
+      if (!cancelled) setAuthBridgeReady(true);
+    };
+    if (!hasBridge) {
+      finish();
+      return () => { cancelled = true; };
+    }
+    void consumeOAuthBridgeToken()
+      .then(({ access_token, mode }) => {
+        if (cancelled || mode !== "admin") return;
+        setToken(access_token);
+        const url = new URL(window.location.href);
+        url.searchParams.delete("oauth_bridge");
+        window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+      })
+      .finally(finish);
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!authBridgeReady) return;
     void loadSegments();
+    void loadSheetsStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventId]);
+  }, [eventId, authBridgeReady]);
 
   const standardSegments = segments.filter(segment => STANDARD_KEYS.includes(segment.key));
   const dynamicSegments = segments.filter(segment => segment.dynamic);
+  const latestSheetJob = exportJobs.find(job => Boolean(job.google_spreadsheet_url))
+    || exportJobs.find(job => job.sync_google_sheets);
 
   return (
     <FeatureGate requiredPlans={["growth", "enterprise"]} message={copy.gate}>
@@ -411,6 +529,15 @@ export default function EventSegmentsPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-base font-black text-surface-900">{copy.savedSegments}</h2>
           <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={piiMode}
+              onChange={event => setPiiMode(event.target.value as "masked" | "full")}
+              className="input-field h-10 w-44 text-sm"
+              title={lang === "tr" ? "Export veri modu" : "Export data mode"}
+            >
+              <option value="masked">{lang === "tr" ? "PII maskeli" : "Masked PII"}</option>
+              <option value="full">{lang === "tr" ? "Tam veri (Enterprise)" : "Full data (Enterprise)"}</option>
+            </select>
             <input
               value={segmentName}
               onChange={event => setSegmentName(event.target.value)}
@@ -423,15 +550,6 @@ export default function EventSegmentsPage() {
             </button>
           </div>
         </div>
-        <label className="mt-4 flex items-center justify-between rounded-lg border border-surface-200 bg-surface-50 px-3 py-2">
-          <span className="text-xs font-bold text-surface-700">{copy.syncSheets}</span>
-          <input
-            type="checkbox"
-            checked={syncGoogleSheets}
-            onChange={event => setSyncGoogleSheets(event.target.checked)}
-            className="h-4 w-4 accent-brand-600"
-          />
-        </label>
         {savedSegments.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2">
             {savedSegments.map(segment => (
@@ -453,6 +571,84 @@ export default function EventSegmentsPage() {
             ))}
           </div>
         )}
+      </section>
+
+      <section className="surface-panel border-emerald-200 p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600">
+              <FileSpreadsheet className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-black text-surface-900">{sheetsCopy.title}</h2>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-surface-500">{sheetsCopy.subtitle}</p>
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-surface-500">
+                {sheetsLoading ? (
+                  <span className="inline-flex items-center gap-1">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> {sheetsCopy.checkingSheets}
+                  </span>
+                ) : sheetsStatus?.google_email ? (
+                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700">
+                    {sheetsStatus.google_email}
+                  </span>
+                ) : (
+                  <span>{sheetsCopy.googleNotConnected}</span>
+                )}
+                {Boolean(sheetsStatus?.missing_scopes?.length) && (
+                  <span className="rounded-full bg-amber-50 px-2.5 py-1 font-semibold text-amber-700">
+                    {sheetsCopy.missingPermission}
+                  </span>
+                )}
+                {latestSheetJob?.google_spreadsheet_url && (
+                  <span>
+                    {sheetsCopy.latestSheet}: #{latestSheetJob.id}
+                    {latestSheetJob.row_count ? ` · ${latestSheetJob.row_count} rows` : ""}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            {!sheetsStatus?.google_configured ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+                {sheetsCopy.googleNotConfigured}
+              </div>
+            ) : !sheetsStatus?.google_connected ? (
+              <button
+                type="button"
+                onClick={handleConnectGoogleSheetsAuth}
+                disabled={Boolean(sheetsAction)}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+              >
+                {sheetsAction === "auth" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
+                {sheetsStatus?.google_email ? sheetsCopy.completeGooglePermission : sheetsCopy.grantGoogle}
+              </button>
+            ) : (
+              <>
+                {latestSheetJob?.google_spreadsheet_url && (
+                  <a
+                    href={latestSheetJob.google_spreadsheet_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-2 text-sm font-semibold text-surface-700 transition hover:bg-surface-50"
+                  >
+                    <ExternalLink className="h-4 w-4" /> {sheetsCopy.openSheet}
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={handleSyncSegmentSheet}
+                  disabled={Boolean(sheetsAction)}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                >
+                  {sheetsAction === "sync" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  {latestSheetJob?.google_spreadsheet_url ? sheetsCopy.syncSegmentSheet : sheetsCopy.createSegmentSheet}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
       </section>
 
       {exportJobs.length > 0 && (

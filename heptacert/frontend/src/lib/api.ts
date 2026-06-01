@@ -507,6 +507,7 @@ export interface SegmentExportJob {
   created_at: string;
   started_at?: string | null;
   completed_at?: string | null;
+  pii_mode?: "masked" | "full";
 }
 
 export async function listEventSegments(
@@ -544,7 +545,7 @@ export async function deleteSavedEventSegment(eventId: number, segmentId: number
 
 export async function createSegmentExportJob(
   eventId: number,
-  payload: { segment_key: AudienceSegmentKey; filters?: Record<string, any>; sync_google_sheets?: boolean },
+  payload: { segment_key: AudienceSegmentKey; filters?: Record<string, any>; sync_google_sheets?: boolean; pii_mode?: "masked" | "full" },
 ): Promise<SegmentExportJob> {
   const res = await apiFetch(`/admin/events/${eventId}/segments/export-jobs`, {
     method: "POST",
@@ -582,13 +583,14 @@ export async function previewEventSegment(
 export function getEventSegmentExportUrl(
   eventId: number,
   segmentKey: AudienceSegmentKey,
-  params: { field_id?: string; answer?: string; location?: string; limit?: number; offset?: number; composition?: SegmentComposition } = {},
+  params: { field_id?: string; answer?: string; location?: string; limit?: number; offset?: number; composition?: SegmentComposition; pii_mode?: "masked" | "full" } = {},
 ): string {
   const qs = new URLSearchParams();
   if (params.field_id) qs.set("field_id", params.field_id);
   if (params.answer) qs.set("answer", params.answer);
   if (params.location) qs.set("location", params.location);
   if ((params as any).composition) qs.set("composition", JSON.stringify((params as any).composition));
+  if (params.pii_mode) qs.set("pii_mode", params.pii_mode);
   if (params.limit) qs.set("limit", String(params.limit));
   if (params.offset) qs.set("offset", String(params.offset));
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
