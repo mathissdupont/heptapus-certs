@@ -607,12 +607,90 @@ class ParticipantCrmProfile(Base):
     notes: Mapped[str] = mapped_column(Text, default="")
     tags: Mapped[list] = mapped_column(JSONB, default=list)
     lifecycle_status: Mapped[str] = mapped_column(String(64), default="lead", index=True)
+    owner_user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    priority: Mapped[str] = mapped_column(String(32), default="normal", index=True)
+    lead_score: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    next_follow_up_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    custom_fields: Mapped[dict] = mapped_column(JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     __table_args__ = (
         UniqueConstraint("organization_id", "email", name="uq_participant_crm_org_email"),
         Index("ix_participant_crm_org_status", "organization_id", "lifecycle_status"),
+    )
+
+
+class ParticipantCrmSnapshot(Base):
+    __tablename__ = "participant_crm_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    email: Mapped[str] = mapped_column(String(320), index=True)
+    name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    event_count: Mapped[int] = mapped_column(Integer, default=0)
+    certificate_count: Mapped[int] = mapped_column(Integer, default=0)
+    attended_count: Mapped[int] = mapped_column(Integer, default=0)
+    survey_count: Mapped[int] = mapped_column(Integer, default=0)
+    ticket_count: Mapped[int] = mapped_column(Integer, default=0)
+    latest_activity_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("organization_id", "email", name="uq_participant_crm_snapshot_org_email"),
+        Index("ix_participant_crm_snapshot_org_latest", "organization_id", "latest_activity_at"),
+    )
+
+
+class ParticipantCrmAuditLog(Base):
+    __tablename__ = "participant_crm_audit_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    email: Mapped[str] = mapped_column(String(320), index=True)
+    actor_user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    action: Mapped[str] = mapped_column(String(64), index=True)
+    before: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    after: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    __table_args__ = (
+        Index("ix_participant_crm_audit_org_email_created", "organization_id", "email", "created_at"),
+    )
+
+
+class ParticipantCrmSavedView(Base):
+    __tablename__ = "participant_crm_saved_views"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    created_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    filters: Mapped[dict] = mapped_column(JSONB, default=dict)
+    visibility: Mapped[str] = mapped_column(String(24), default="private", index=True)
+    last_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_computed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        Index("ix_participant_crm_saved_views_org_visibility", "organization_id", "visibility"),
+    )
+
+
+class ParticipantCrmEmailAlias(Base):
+    __tablename__ = "participant_crm_email_aliases"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    source_email: Mapped[str] = mapped_column(String(320), index=True)
+    target_email: Mapped[str] = mapped_column(String(320), index=True)
+    created_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("organization_id", "source_email", name="uq_participant_crm_alias_org_source"),
+        Index("ix_participant_crm_alias_org_target", "organization_id", "target_email"),
     )
 
 
@@ -16187,6 +16265,8 @@ async def self_checkin(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
+    from .checkin_ops_api import record_checkin_activity
+
     ctx = await _get_checkin_context_by_token(checkin_token, db)
     if not ctx:
         raise HTTPException(status_code=404, detail="Gecersiz QR kodu")
@@ -16226,6 +16306,18 @@ async def self_checkin(
     )
     inserted_res = await db.execute(insert_stmt)
     inserted_id = inserted_res.scalar_one_or_none()
+    await record_checkin_activity(
+        db,
+        event_id=ctx["event_id"],
+        session_id=ctx["session_id"],
+        attendee_id=attendee.id,
+        actor_user_id=None,
+        method="self",
+        source="public",
+        success=inserted_id is not None,
+        message="Self check-in successful" if inserted_id is not None else "Duplicate self check-in",
+        ip_address=ip,
+    )
     await db.commit()
 
     if inserted_id is None:
@@ -17259,6 +17351,8 @@ async def admin_manual_checkin(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    from .checkin_ops_api import record_checkin_activity
+
     ev = await _get_event_for_admin(event_id, me, db, "checkin:write")
     _ensure_checkin_feature_enabled(ev)
     ip = _client_ip_for_rate_limit(request)
@@ -17284,7 +17378,6 @@ async def admin_manual_checkin(
             detail="Bu e-posta ile etkinlikte kayıtlı katılımcı bulunamadı.",
         )
 
-    ip = _client_ip_for_rate_limit(request)
     insert_stmt = (
         _pg_insert(AttendaonceRecord.__table__)
         .values(
@@ -17297,6 +17390,18 @@ async def admin_manual_checkin(
     )
     inserted_res = await db.execute(insert_stmt)
     inserted_id = inserted_res.scalar_one_or_none()
+    await record_checkin_activity(
+        db,
+        event_id=event_id,
+        session_id=session_id,
+        attendee_id=attendee.id,
+        actor_user_id=me.id,
+        method="manual",
+        source="admin",
+        success=inserted_id is not None,
+        message="Manual check-in successful" if inserted_id is not None else "Duplicate manual check-in",
+        ip_address=ip,
+    )
     await db.commit()
 
     if inserted_id is None:
@@ -18945,6 +19050,9 @@ app.include_router(_training_api.router)
 
 from . import checkin_ops_api as _checkin_ops_api
 app.include_router(_checkin_ops_api.router)
+
+from .product_observability import install_product_observability as _install_product_observability
+_install_product_observability(app)
 
 # API module imports - these are loaded after all models are defined
 from . import analytics_api as _analytics_api

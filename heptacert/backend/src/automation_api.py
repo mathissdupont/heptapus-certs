@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Any, Literal, Optional
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import and_, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,6 +32,7 @@ from .main import (
     _get_public_event_identifier,
     get_current_user,
     get_db,
+    require_email_system_access,
     require_role,
 )
 
@@ -109,6 +110,15 @@ class AutomationDispatchOut(BaseModel):
     sent: int = 0
     failed: int = 0
     skipped: int = 0
+
+
+class AutomationDispatchLogOut(BaseModel):
+    rule_id: str
+    updated_at: datetime
+    dispatched_count: int
+    sent: int
+    failed: int
+    recent: list[dict[str, Any]]
 
 
 def _automation_key(event_id: int) -> str:
@@ -494,7 +504,7 @@ def get_db_session() -> _DbSessionContext:
 @router.get(
     "/api/admin/events/{event_id}/automations",
     response_model=AutomationSummaryOut,
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
 )
 async def list_event_automations(
     event_id: int,
@@ -510,7 +520,7 @@ async def list_event_automations(
     "/api/admin/events/{event_id}/automations",
     response_model=AutomationSummaryOut,
     status_code=201,
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
 )
 async def create_event_automation(
     event_id: int,
@@ -538,7 +548,7 @@ async def create_event_automation(
 @router.patch(
     "/api/admin/events/{event_id}/automations/{rule_id}",
     response_model=AutomationSummaryOut,
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
 )
 async def update_event_automation(
     event_id: int,
@@ -564,7 +574,7 @@ async def update_event_automation(
 @router.delete(
     "/api/admin/events/{event_id}/automations/{rule_id}",
     response_model=AutomationSummaryOut,
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
 )
 async def delete_event_automation(
     event_id: int,
@@ -591,7 +601,7 @@ async def delete_event_automation(
 @router.post(
     "/api/admin/events/{event_id}/automations/dispatch-now",
     response_model=AutomationDispatchOut,
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
 )
 async def dispatch_event_automations_now(
     event_id: int,
@@ -604,3 +614,44 @@ async def dispatch_event_automations_now(
 
 async def process_automation_dispatches_once_for_event(event_id: int) -> dict[str, int]:
     return await _process_automation_dispatches(event_id=event_id, limit_events=1)
+
+
+@router.get(
+    "/api/admin/events/{event_id}/automations/logs",
+    response_model=list[AutomationDispatchLogOut],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
+)
+async def list_event_automation_logs(
+    event_id: int,
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0, le=10000),
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_event_for_admin(event_id, me, db, "email:write")
+    rows = (
+        await db.execute(
+            select(EventAutomationDispatchState)
+            .where(EventAutomationDispatchState.event_id == event_id)
+            .order_by(EventAutomationDispatchState.updated_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+    ).scalars().all()
+    logs: list[AutomationDispatchLogOut] = []
+    for row in rows:
+        state = row.state if isinstance(row.state, dict) else {}
+        dispatched = state.get("dispatched") if isinstance(state.get("dispatched"), dict) else {}
+        values = list(dispatched.values())
+        values.sort(key=lambda item: str(item.get("dispatched_at") or ""), reverse=True)
+        logs.append(
+            AutomationDispatchLogOut(
+                rule_id=row.rule_id,
+                updated_at=row.updated_at,
+                dispatched_count=len(values),
+                sent=sum(1 for item in values if item.get("ok")),
+                failed=sum(1 for item in values if not item.get("ok")),
+                recent=values[:25],
+            )
+        )
+    return logs

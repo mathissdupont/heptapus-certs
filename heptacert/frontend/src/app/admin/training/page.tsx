@@ -25,11 +25,13 @@ import {
   type TrainingAssignment,
   type TrainingReport,
 } from "@/lib/api";
+import { FeatureGate } from "@/lib/useSubscription";
+import { useI18n } from "@/lib/i18n";
 
 const STATUS_OPTIONS = [
-  { value: "assigned", label: "Atandi" },
+  { value: "assigned", label: "Atandı" },
   { value: "in_progress", label: "Devam ediyor" },
-  { value: "completed", label: "Tamamlandi" },
+  { value: "completed", label: "Tamamlandı" },
   { value: "waived", label: "Muaf" },
 ];
 
@@ -73,6 +75,92 @@ function statusBadge(status: string) {
 }
 
 export default function AdminTrainingPage() {
+  const { lang } = useI18n();
+  const copy = lang === "tr" ? {
+    title: "Eğitim ve Yenileme Takibi",
+    subtitle: "Zorunlu eğitim atamaları, departman raporları, tamamlanma durumu ve sertifika yenileme tarihlerini takip edin.",
+    runNotifications: "Bildirimleri çalıştır",
+    loadError: "Eğitim verileri yüklenemedi.",
+    requiredError: "Başlık, kişi ve e-posta gerekli.",
+    saved: "Eğitim ataması kaydedildi.",
+    saveError: "Eğitim ataması kaydedilemedi.",
+    statusError: "Durum güncellenemedi.",
+    deleteError: "Atama silinemedi.",
+    notificationResult: (sent: number, skipped: number, failed: number) => `Bildirim sonucu: ${sent} gönderildi, ${skipped} atlandı, ${failed} hata.`,
+    notificationError: "Bildirimler gönderilemedi.",
+    total: "Toplam",
+    completed: "Tamamlanan",
+    overdue: "Geciken",
+    dueSoon: "14 gün",
+    renewal: "Yenileme",
+    searchPlaceholder: "Başlık, kişi veya e-posta ara",
+    allStatuses: "Tüm durumlar",
+    department: "Departman",
+    refresh: "Yenile",
+    assignments: "Atamalar",
+    new: "Yeni",
+    empty: "Henüz eğitim ataması yok.",
+    general: "Genel",
+    dueDate: "Son tarih",
+    certificate: "Sertifika",
+    continue: "Devam",
+    complete: "Tamamla",
+    waived: "Muaf",
+    editAssignment: "Atamayı düzenle",
+    newAssignment: "Yeni atama",
+    trainingTitle: "Eğitim başlığı",
+    attendeeName: "Katılımcı adı",
+    renewalDate: "Yenileme tarihi",
+    notifyDays: "Bildirim günü",
+    description: "Açıklama",
+    save: "Kaydet",
+    recommendations: "Yenileme önerileri",
+    noRecommendations: "Uygun etkinlik önerisi bulunamadı.",
+    departmentReport: "Departman raporu",
+    gate: "Eğitim ve yenileme takibi Enterprise planına özeldir.",
+  } : {
+    title: "Training and Renewal Tracking",
+    subtitle: "Track required training assignments, department reports, completion status, and certificate renewal dates.",
+    runNotifications: "Run notifications",
+    loadError: "Could not load training data.",
+    requiredError: "Title, person, and email are required.",
+    saved: "Training assignment saved.",
+    saveError: "Could not save training assignment.",
+    statusError: "Could not update status.",
+    deleteError: "Could not delete assignment.",
+    notificationResult: (sent: number, skipped: number, failed: number) => `Notification result: ${sent} sent, ${skipped} skipped, ${failed} failed.`,
+    notificationError: "Could not send notifications.",
+    total: "Total",
+    completed: "Completed",
+    overdue: "Overdue",
+    dueSoon: "14 days",
+    renewal: "Renewal",
+    searchPlaceholder: "Search title, person, or email",
+    allStatuses: "All statuses",
+    department: "Department",
+    refresh: "Refresh",
+    assignments: "Assignments",
+    new: "New",
+    empty: "No training assignments yet.",
+    general: "General",
+    dueDate: "Due date",
+    certificate: "Certificate",
+    continue: "Continue",
+    complete: "Complete",
+    waived: "Waive",
+    editAssignment: "Edit assignment",
+    newAssignment: "New assignment",
+    trainingTitle: "Training title",
+    attendeeName: "Participant name",
+    renewalDate: "Renewal date",
+    notifyDays: "Notification days",
+    description: "Description",
+    save: "Save",
+    recommendations: "Renewal recommendations",
+    noRecommendations: "No suitable event recommendations found.",
+    departmentReport: "Department report",
+    gate: "Training and renewal tracking is available on the Enterprise plan.",
+  };
   const [assignments, setAssignments] = useState<TrainingAssignment[]>([]);
   const [report, setReport] = useState<TrainingReport | null>(null);
   const [recommendations, setRecommendations] = useState<RenewalRecommendation[]>([]);
@@ -129,7 +217,7 @@ export default function AdminTrainingPage() {
         fillForm(updated);
       }
     } catch (ex: any) {
-      setError(ex?.message || "Egitim verileri yuklenemedi.");
+      setError(ex?.message || copy.loadError);
     } finally {
       setLoading(false);
     }
@@ -137,7 +225,7 @@ export default function AdminTrainingPage() {
 
   async function saveAssignment() {
     if (!form.title || !form.assignee_name || !form.assignee_email) {
-      setError("Baslik, kisi ve e-posta gerekli.");
+      setError(copy.requiredError);
       return;
     }
     setSaving(true);
@@ -159,10 +247,10 @@ export default function AdminTrainingPage() {
         : await createTrainingAssignment({ ...payload, status: "assigned", required: true });
       setSelected(saved);
       fillForm(saved);
-      setNotice("Egitim atamasi kaydedildi.");
+      setNotice(copy.saved);
       await loadAll();
     } catch (ex: any) {
-      setError(ex?.message || "Egitim atamasi kaydedilemedi.");
+      setError(ex?.message || copy.saveError);
     } finally {
       setSaving(false);
     }
@@ -182,7 +270,7 @@ export default function AdminTrainingPage() {
       }
       await loadAll();
     } catch (ex: any) {
-      setError(ex?.message || "Durum guncellenemedi.");
+      setError(ex?.message || copy.statusError);
     }
   }
 
@@ -196,7 +284,7 @@ export default function AdminTrainingPage() {
       }
       await loadAll();
     } catch (ex: any) {
-      setError(ex?.message || "Atama silinemedi.");
+      setError(ex?.message || copy.deleteError);
     }
   }
 
@@ -205,10 +293,10 @@ export default function AdminTrainingPage() {
     setError(null);
     try {
       const result = await sendTrainingRenewalNotifications();
-      setNotice(`Bildirim sonucu: ${result.sent} gonderildi, ${result.skipped} atlandi, ${result.failed} hata.`);
+      setNotice(copy.notificationResult(result.sent, result.skipped, result.failed));
       await loadAll();
     } catch (ex: any) {
-      setError(ex?.message || "Bildirimler gonderilemedi.");
+      setError(ex?.message || copy.notificationError);
     }
   }
 
@@ -218,18 +306,19 @@ export default function AdminTrainingPage() {
   }, []);
 
   return (
+    <FeatureGate requiredPlans={["enterprise"]} message={copy.gate}>
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-600">Training compliance</p>
-          <h1 className="mt-2 text-2xl font-black text-surface-900">Egitim ve Yenileme Takibi</h1>
+          <h1 className="mt-2 text-2xl font-black text-surface-900">{copy.title}</h1>
           <p className="mt-2 max-w-2xl text-sm text-surface-500">
-            Zorunlu egitim atamalari, departman raporlari, tamamlanma durumu ve sertifika yenileme tarihlerini takip edin.
+            {copy.subtitle}
           </p>
         </div>
         <button type="button" onClick={() => void sendNotifications()} className="btn-secondary justify-center">
           <Bell className="h-4 w-4" />
-          Bildirimleri calistir
+          {copy.runNotifications}
         </button>
       </div>
 
@@ -238,11 +327,11 @@ export default function AdminTrainingPage() {
 
       <section className="grid gap-3 md:grid-cols-5">
         {[
-          ["Toplam", report?.total || 0],
-          ["Tamamlanan", report?.completed || 0],
-          ["Geciken", report?.overdue || 0],
-          ["14 gun", report?.due_soon || 0],
-          ["Yenileme", report?.renewal_due_soon || 0],
+          [copy.total, report?.total || 0],
+          [copy.completed, report?.completed || 0],
+          [copy.overdue, report?.overdue || 0],
+          [copy.dueSoon, report?.due_soon || 0],
+          [copy.renewal, report?.renewal_due_soon || 0],
         ].map(([label, value]) => (
           <div key={label} className="surface-panel p-4">
             <p className="text-xs font-bold text-surface-500">{label}</p>
@@ -259,22 +348,22 @@ export default function AdminTrainingPage() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               className="input-field pl-9"
-              placeholder="Baslik, kisi veya e-posta ara"
+              placeholder={copy.searchPlaceholder}
             />
           </label>
           <select value={status} onChange={(event) => setStatus(event.target.value)} className="input-field">
-            <option value="">Tum durumlar</option>
+            <option value="">{copy.allStatuses}</option>
             {STATUS_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </select>
-          <input value={department} onChange={(event) => setDepartment(event.target.value)} list="training-departments" className="input-field" placeholder="Departman" />
+          <input value={department} onChange={(event) => setDepartment(event.target.value)} list="training-departments" className="input-field" placeholder={copy.department} />
           <datalist id="training-departments">
             {departments.map((item) => <option key={item} value={item} />)}
           </datalist>
           <button type="button" onClick={() => void loadAll()} className="btn-primary justify-center">
             <RefreshCcw className="h-4 w-4" />
-            Yenile
+            {copy.refresh}
           </button>
         </div>
       </section>
@@ -284,7 +373,7 @@ export default function AdminTrainingPage() {
           <div className="flex items-center justify-between border-b border-surface-200 px-5 py-4">
             <div className="flex items-center gap-2">
               <GraduationCap className="h-5 w-5 text-brand-600" />
-              <h2 className="text-base font-black text-surface-900">Atamalar</h2>
+              <h2 className="text-base font-black text-surface-900">{copy.assignments}</h2>
             </div>
             <button
               type="button"
@@ -295,13 +384,13 @@ export default function AdminTrainingPage() {
               className="btn-secondary px-3 py-2 text-xs"
             >
               <Plus className="h-4 w-4" />
-              Yeni
+              {copy.new}
             </button>
           </div>
           {loading ? (
             <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-brand-600" /></div>
           ) : assignments.length === 0 ? (
-            <div className="px-5 py-12 text-center text-sm text-surface-500">Henuz egitim atamasi yok.</div>
+            <div className="px-5 py-12 text-center text-sm text-surface-500">{copy.empty}</div>
           ) : (
             <div className="divide-y divide-surface-100">
               {assignments.map((item) => (
@@ -323,18 +412,18 @@ export default function AdminTrainingPage() {
                     </span>
                   </div>
                   <div className="mt-3 grid gap-2 text-xs text-surface-500 md:grid-cols-4">
-                    <span>Departman: {item.department || "Genel"}</span>
-                    <span>Son tarih: {formatDate(item.due_at)}</span>
-                    <span>Yenileme: {formatDate(item.renewal_due_at)}</span>
-                    <span>Sertifika: {item.certificate_uuid || "-"}</span>
+                    <span>{copy.department}: {item.department || copy.general}</span>
+                    <span>{copy.dueDate}: {formatDate(item.due_at)}</span>
+                    <span>{copy.renewal}: {formatDate(item.renewal_due_at)}</span>
+                    <span>{copy.certificate}: {item.certificate_uuid || "-"}</span>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <button type="button" onClick={() => void setAssignmentStatus(item, "in_progress")} className="btn-secondary px-3 py-2 text-xs">Devam</button>
+                    <button type="button" onClick={() => void setAssignmentStatus(item, "in_progress")} className="btn-secondary px-3 py-2 text-xs">{copy.continue}</button>
                     <button type="button" onClick={() => void setAssignmentStatus(item, "completed")} className="btn-secondary px-3 py-2 text-xs">
                       <CheckCircle2 className="h-4 w-4" />
-                      Tamamla
+                      {copy.complete}
                     </button>
-                    <button type="button" onClick={() => void setAssignmentStatus(item, "waived")} className="btn-secondary px-3 py-2 text-xs">Muaf</button>
+                    <button type="button" onClick={() => void setAssignmentStatus(item, "waived")} className="btn-secondary px-3 py-2 text-xs">{copy.waived}</button>
                     <button type="button" onClick={() => void removeAssignment(item)} className="btn-secondary px-3 py-2 text-xs text-red-600 hover:bg-red-50">
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -347,26 +436,26 @@ export default function AdminTrainingPage() {
 
         <aside className="space-y-4">
           <section className="surface-panel p-5">
-            <h2 className="text-base font-black text-surface-900">{selected ? "Atamayi duzenle" : "Yeni atama"}</h2>
+            <h2 className="text-base font-black text-surface-900">{selected ? copy.editAssignment : copy.newAssignment}</h2>
             <div className="mt-4 space-y-3">
-              <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} className="input-field" placeholder="Egitim basligi" />
+              <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} className="input-field" placeholder={copy.trainingTitle} />
               <div className="grid gap-3 sm:grid-cols-2">
-                <input value={form.assignee_name} onChange={(event) => setForm({ ...form, assignee_name: event.target.value })} className="input-field" placeholder="Katilimci adi" />
+                <input value={form.assignee_name} onChange={(event) => setForm({ ...form, assignee_name: event.target.value })} className="input-field" placeholder={copy.attendeeName} />
                 <input value={form.assignee_email} onChange={(event) => setForm({ ...form, assignee_email: event.target.value })} className="input-field" placeholder="E-posta" />
               </div>
-              <input value={form.department} onChange={(event) => setForm({ ...form, department: event.target.value })} className="input-field" placeholder="Departman" />
+              <input value={form.department} onChange={(event) => setForm({ ...form, department: event.target.value })} className="input-field" placeholder={copy.department} />
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">
-                  <span className="text-xs font-bold text-surface-500">Son tarih</span>
+                  <span className="text-xs font-bold text-surface-500">{copy.dueDate}</span>
                   <input type="datetime-local" value={form.due_at} onChange={(event) => setForm({ ...form, due_at: event.target.value })} className="input-field mt-1" />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-bold text-surface-500">Yenileme tarihi</span>
+                  <span className="text-xs font-bold text-surface-500">{copy.renewalDate}</span>
                   <input type="datetime-local" value={form.renewal_due_at} onChange={(event) => setForm({ ...form, renewal_due_at: event.target.value })} className="input-field mt-1" />
                 </label>
               </div>
               <label className="block">
-                <span className="text-xs font-bold text-surface-500">Bildirim gunu</span>
+                <span className="text-xs font-bold text-surface-500">{copy.notifyDays}</span>
                 <input
                   type="number"
                   min={1}
@@ -376,10 +465,10 @@ export default function AdminTrainingPage() {
                   className="input-field mt-1"
                 />
               </label>
-              <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} className="input-field min-h-[120px]" placeholder="Aciklama" />
+              <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} className="input-field min-h-[120px]" placeholder={copy.description} />
               <button type="button" onClick={() => void saveAssignment()} disabled={saving} className="btn-primary w-full justify-center">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Kaydet
+                {copy.save}
               </button>
             </div>
           </section>
@@ -387,11 +476,11 @@ export default function AdminTrainingPage() {
           <section className="surface-panel p-5">
             <div className="flex items-center gap-2">
               <CalendarClock className="h-5 w-5 text-brand-600" />
-              <h2 className="text-base font-black text-surface-900">Yenileme onerileri</h2>
+              <h2 className="text-base font-black text-surface-900">{copy.recommendations}</h2>
             </div>
             <div className="mt-4 space-y-3">
               {recommendations.length === 0 ? (
-                <p className="text-sm text-surface-500">Uygun etkinlik onerisi bulunamadi.</p>
+                <p className="text-sm text-surface-500">{copy.noRecommendations}</p>
               ) : (
                 recommendations.map((event) => (
                   <div key={event.id} className="rounded-lg border border-surface-200 bg-white p-3">
@@ -404,7 +493,7 @@ export default function AdminTrainingPage() {
           </section>
 
           <section className="surface-panel p-5">
-            <h2 className="text-base font-black text-surface-900">Departman raporu</h2>
+            <h2 className="text-base font-black text-surface-900">{copy.departmentReport}</h2>
             <div className="mt-4 space-y-2">
               {(report?.by_department || []).map((row) => (
                 <div key={row.department} className="rounded-lg border border-surface-200 bg-white p-3">
@@ -422,5 +511,6 @@ export default function AdminTrainingPage() {
         </aside>
       </div>
     </div>
+    </FeatureGate>
   );
 }

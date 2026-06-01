@@ -6,7 +6,7 @@ This roadmap tracks the feature direction discussed for turning HeptaCert from a
 
 - New feature areas should be implemented as focused modules such as `*_api.py` instead of adding more endpoint logic directly to `backend/src/main.py`.
 - `main.py` may keep shared models, legacy endpoints, and router registration, but new product surfaces should prefer dedicated modules.
-- If a feature needs database persistence and can fit an existing JSON config safely, use that for small preferences; use Alembic migrations for durable product data.
+- If a feature needs database persistence, add or evolve real tables with Alembic migrations. Runtime/system config should stay limited to true global settings such as pricing, stats, and payment provider configuration.
 
 ## Phase 1 - Credential Wallet and Sharing
 
@@ -71,6 +71,100 @@ This roadmap tracks the feature direction discussed for turning HeptaCert from a
 - [x] Offline check-in cache
 - [x] Manual lookup for door teams
 - [x] Door traffic and staff performance metrics
+
+## Phase 8 - Hardening, Packaging, and Localization
+
+- [x] Move new product data out of JSON config into Alembic-managed tables
+- [x] Enforce Enterprise access for Event CRM and Training/Renewal
+- [x] Enforce Growth/Enterprise access for Automation and Segmentation
+- [x] Add check-in activity logging for QR, ticket, manual, duplicate, and failed attempts
+- [x] Add frontend plan gates for CRM, Training, Automation, and Segmentation
+- [x] Clean high-visibility Turkish UI copy in newly added admin screens
+- [x] Add initial English/Turkish UI copy separation for CRM, Training, Segmentation, and Automation
+- [ ] Continue deeper UI polish and full localization pass across older admin screens
+
+## Phase 9 - Performance and Data Access Hardening
+
+- [x] Add Alembic-managed indexes for CRM, segmentation, automation, training, check-in, wallet, and template queries
+- [x] Replace CRM list N+1 queries with aggregate SQL and pagination
+- [x] Add cursor/offset pagination to CRM, training assignments, check-in activity, automation logs, and segment previews
+- [x] Make CRM detail loading lazy and non-blocking in the frontend
+- [x] Add lightweight summary endpoints for dashboards instead of loading full records
+- [x] Add query limits, bounded date ranges, and defensive caps to all exports/previews
+- [x] Add response-time logging for new product endpoints
+
+## Phase 10 - CRM Enterprise Upgrade
+
+- [x] Add `participant_crm_snapshots` table for precomputed event count, attendance, surveys, tickets, certificates, and latest activity
+- [ ] Update CRM snapshots when attendee, check-in, ticket, certificate, or survey events change
+- [x] Add CRM activity audit log for notes, tags, lifecycle changes, owner changes, and manual edits
+- [x] Add owner/assignee field, priority, lead score, custom fields, and next-follow-up date
+- [x] Add saved CRM views and Enterprise filter payloads such as VIP, renewal due, high engagement, no-show risk
+- [x] Add bulk CRM actions: tag, status update, assign owner
+- [ ] Add bulk CRM actions: export selected and send segment email
+- [x] Add duplicate detection and merge flow for same participant across different emails
+- [ ] Improve CRM UI with virtualized list, detail drawer, skeleton states, and faster search debounce
+
+## Phase 11 - Automation Reliability and Safety
+
+- [ ] Add durable automation execution log table with per-recipient/action status, retry count, error message, and timestamps
+- [ ] Move automation dispatch to a real queued worker with locking, backoff, and idempotency keys
+- [ ] Add per-event and per-organization automation rate limits
+- [ ] Validate webhook URLs against private IP/localhost SSRF targets
+- [ ] Add signed webhook payloads and delivery retry history
+- [ ] Add dry-run mode showing target count and sample recipients before enabling a rule
+- [ ] Add suppression rules so unsubscribed, bounced, or blocked recipients are skipped
+- [ ] Add automation UI timeline and error drill-down
+
+## Phase 12 - Segmentation and Export Controls
+
+- [ ] Convert segment counts/previews to optimized aggregate queries
+- [ ] Add saved segments with owner, visibility, and last computed count
+- [ ] Add segment composition builder with AND/OR groups instead of only fixed presets
+- [ ] Add export job queue for large segments instead of synchronous CSV downloads
+- [ ] Add export audit log with actor, filters, row count, IP, and timestamp
+- [ ] Add PII masking options and Enterprise-only full-data export policy
+- [ ] Add segment-to-CRM and segment-to-automation handoff flows
+
+## Phase 13 - Training and Renewal Compliance
+
+- [ ] Add bulk assignment import and assignment templates by department/team
+- [ ] Add recurring training rules and auto-assignment for new participants/employees
+- [ ] Add completion evidence attachments or links
+- [ ] Add manager/department ownership and approval workflow
+- [ ] Add renewal notification execution log and retry state
+- [ ] Add compliance dashboard with overdue trend, department risk, and upcoming renewals
+- [ ] Add Enterprise CSV/PDF compliance report export with audit trail
+
+## Phase 14 - Check-in, Kiosk, and Staff Operations
+
+- [ ] Add staff-scoped permissions for lookup, manual check-in, ticket scan, and metrics
+- [ ] Add check-in activity pagination and filterable operations log
+- [ ] Add offline queue signing or server-issued nonce to reduce tampering risk
+- [ ] Add kiosk session tokens with expiration and revocation
+- [ ] Add duplicate/invalid scan analytics by staff member and entry point
+- [ ] Add door capacity alerts and hourly traffic charts
+- [ ] Add mobile UI polish for scanner, lookup, and manual fallback states
+
+## Phase 15 - Wallet, Sharing, and Certificate Template Polish
+
+- [ ] Add wallet analytics: profile views, certificate views, LinkedIn clicks, CV export clicks
+- [ ] Add wallet privacy audit and public preview mode
+- [ ] Add certificate share image caching and invalidation when certificate data changes
+- [ ] Add stricter template schema validation, versioning, and rollback
+- [ ] Add template preset permissions and Enterprise organization brand lock
+- [ ] Add template render regression snapshots for common field layouts
+- [ ] Add better bilingual UI copy for wallet, sharing, and template editor screens
+
+## Phase 16 - Platform Packaging and QA
+
+- [ ] Centralize plan gates in backend policy helpers and frontend feature metadata
+- [ ] Add tests for Growth vs Enterprise access across every new endpoint
+- [ ] Add seed/demo data for CRM, automation, segmentation, training, and check-in QA
+- [ ] Add integration tests for automation dispatch, segment export, training notifications, and check-in logs
+- [ ] Add product telemetry events for feature usage without storing sensitive content
+- [ ] Add admin-facing health checks for worker, email, webhook, export, and scheduler status
+- [ ] Finish full Turkish/English localization pass and remove mojibake/English-keyboard Turkish strings
 
 ## Revenue Packaging Notes
 

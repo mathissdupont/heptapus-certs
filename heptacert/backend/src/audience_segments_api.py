@@ -26,6 +26,7 @@ from .main import (
     _get_event_for_admin,
     get_current_user,
     get_db,
+    require_email_system_access,
     require_role,
 )
 
@@ -236,7 +237,7 @@ def _attendee_payload(attendee: Attendee) -> dict[str, Any]:
 @router.get(
     "/api/admin/events/{event_id}/segments",
     response_model=list[AudienceSegmentOut],
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
 )
 async def list_event_segments(
     event_id: int,
@@ -284,7 +285,7 @@ async def list_event_segments(
 @router.get(
     "/api/admin/events/{event_id}/segments/{segment_key}",
     response_model=AudienceSegmentPreviewOut,
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
 )
 async def preview_event_segment(
     event_id: int,
@@ -293,6 +294,7 @@ async def preview_event_segment(
     answer: Optional[str] = Query(default=None),
     location: Optional[str] = Query(default=None),
     limit: int = Query(default=25, ge=1, le=100),
+    offset: int = Query(default=0, ge=0, le=10000),
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -310,13 +312,13 @@ async def preview_event_segment(
             count=len(attendees),
             dynamic=segment_key in DYNAMIC_SEGMENT_KEYS,
         ),
-        attendees=[_attendee_payload(attendee) for attendee in attendees[:limit]],
+        attendees=[_attendee_payload(attendee) for attendee in attendees[offset:offset + limit]],
     )
 
 
 @router.get(
     "/api/admin/events/{event_id}/segments/{segment_key}/export",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
 )
 async def export_event_segment(
     event_id: int,
@@ -324,15 +326,18 @@ async def export_event_segment(
     field_id: Optional[str] = Query(default=None),
     answer: Optional[str] = Query(default=None),
     location: Optional[str] = Query(default=None),
+    limit: int = Query(default=5000, ge=1, le=10000),
+    offset: int = Query(default=0, ge=0, le=100000),
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     event = await _get_event_for_admin(event_id, me, db, "attendees:read")
     attendees = await get_segment_attendees(db, event, segment_key, field_id=field_id, answer=answer, location=location)
+    export_rows = attendees[offset:offset + limit]
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(["id", "name", "email", "registered_at", "email_verified", "survey_completed"])
-    for attendee in attendees:
+    for attendee in export_rows:
         writer.writerow([
             attendee.id,
             attendee.name,

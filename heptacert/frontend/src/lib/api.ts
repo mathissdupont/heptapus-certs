@@ -404,6 +404,27 @@ export async function dispatchEventAutomationsNow(eventId: number): Promise<{
   return res.json();
 }
 
+export interface AutomationDispatchLog {
+  rule_id: string;
+  updated_at: string;
+  dispatched_count: number;
+  sent: number;
+  failed: number;
+  recent: Array<Record<string, any>>;
+}
+
+export async function listEventAutomationLogs(
+  eventId: number,
+  params: { limit?: number; offset?: number } = {},
+): Promise<AutomationDispatchLog[]> {
+  const qs = new URLSearchParams();
+  if (params.limit) qs.set("limit", String(params.limit));
+  if (params.offset) qs.set("offset", String(params.offset));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await apiFetch(`/admin/events/${eventId}/automations/logs${suffix}`);
+  return res.json();
+}
+
 export type AudienceSegmentKey =
   | "attended_no_certificate"
   | "certificate_holders"
@@ -450,13 +471,14 @@ export async function listEventSegments(
 export async function previewEventSegment(
   eventId: number,
   segmentKey: AudienceSegmentKey,
-  params: { field_id?: string; answer?: string; location?: string; limit?: number } = {},
+  params: { field_id?: string; answer?: string; location?: string; limit?: number; offset?: number } = {},
 ): Promise<AudienceSegmentPreview> {
   const qs = new URLSearchParams();
   if (params.field_id) qs.set("field_id", params.field_id);
   if (params.answer) qs.set("answer", params.answer);
   if (params.location) qs.set("location", params.location);
   if (params.limit) qs.set("limit", String(params.limit));
+  if (params.offset) qs.set("offset", String(params.offset));
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
   const res = await apiFetch(`/admin/events/${eventId}/segments/${segmentKey}${suffix}`);
   return res.json();
@@ -465,12 +487,14 @@ export async function previewEventSegment(
 export function getEventSegmentExportUrl(
   eventId: number,
   segmentKey: AudienceSegmentKey,
-  params: { field_id?: string; answer?: string; location?: string } = {},
+  params: { field_id?: string; answer?: string; location?: string; limit?: number; offset?: number } = {},
 ): string {
   const qs = new URLSearchParams();
   if (params.field_id) qs.set("field_id", params.field_id);
   if (params.answer) qs.set("answer", params.answer);
   if (params.location) qs.set("location", params.location);
+  if (params.limit) qs.set("limit", String(params.limit));
+  if (params.offset) qs.set("offset", String(params.offset));
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
   return `${getApiBase()}/admin/events/${eventId}/segments/${segmentKey}/export${suffix}`;
 }
@@ -481,6 +505,12 @@ export interface CrmMeta {
   notes: string;
   tags: string[];
   lifecycle_status: string;
+  owner_user_id?: number | null;
+  owner_email?: string | null;
+  priority?: string;
+  lead_score?: number;
+  next_follow_up_at?: string | null;
+  custom_fields?: Record<string, any>;
   updated_at?: string | null;
 }
 
@@ -504,14 +534,68 @@ export interface CrmParticipantDetail {
   timeline: Array<{ at?: string | null; type: string; label: string }>;
 }
 
+export interface CrmSummary {
+  total_participants: number;
+  profiled_participants: number;
+  latest_activity_at?: string | null;
+  by_status: Record<string, number>;
+}
+
+export interface CrmSnapshot {
+  email: string;
+  name?: string | null;
+  event_count: number;
+  certificate_count: number;
+  attended_count: number;
+  survey_count: number;
+  ticket_count: number;
+  latest_activity_at?: string | null;
+  computed_at: string;
+}
+
+export interface CrmAuditLog {
+  id: number;
+  email: string;
+  actor_user_id?: number | null;
+  actor_email?: string | null;
+  action: string;
+  before?: Record<string, any> | null;
+  after?: Record<string, any> | null;
+  created_at: string;
+}
+
+export interface CrmSavedView {
+  id: number;
+  name: string;
+  filters: Record<string, any>;
+  visibility: string;
+  last_count: number;
+  last_computed_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CrmDuplicateCandidate {
+  name_key: string;
+  display_name: string;
+  emails: string[];
+  count: number;
+}
+
+export async function getCrmSummary(): Promise<CrmSummary> {
+  const res = await apiFetch("/admin/crm/summary");
+  return res.json();
+}
+
 export async function listCrmParticipants(
-  params: { query?: string; tag?: string; status?: string; limit?: number } = {},
+  params: { query?: string; tag?: string; status?: string; limit?: number; offset?: number } = {},
 ): Promise<CrmParticipantListItem[]> {
   const qs = new URLSearchParams();
   if (params.query) qs.set("query", params.query);
   if (params.tag) qs.set("tag", params.tag);
   if (params.status) qs.set("status", params.status);
   if (params.limit) qs.set("limit", String(params.limit));
+  if (params.offset) qs.set("offset", String(params.offset));
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
   const res = await apiFetch(`/admin/crm/participants${suffix}`);
   return res.json();
@@ -528,9 +612,98 @@ export async function updateCrmParticipant(payload: {
   notes?: string;
   tags?: string[];
   lifecycle_status?: string;
+  owner_user_id?: number | null;
+  priority?: string;
+  lead_score?: number;
+  next_follow_up_at?: string | null;
+  custom_fields?: Record<string, any>;
 }): Promise<CrmMeta> {
   const res = await apiFetch("/admin/crm/participant", {
     method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function refreshCrmParticipantSnapshot(email: string): Promise<CrmSnapshot> {
+  const qs = new URLSearchParams({ email });
+  const res = await apiFetch(`/admin/crm/participant/snapshot?${qs.toString()}`);
+  return res.json();
+}
+
+export async function listCrmAuditLogs(
+  params: { email?: string; limit?: number; offset?: number } = {},
+): Promise<CrmAuditLog[]> {
+  const qs = new URLSearchParams();
+  if (params.email) qs.set("email", params.email);
+  if (params.limit) qs.set("limit", String(params.limit));
+  if (params.offset) qs.set("offset", String(params.offset));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await apiFetch(`/admin/crm/audit${suffix}`);
+  return res.json();
+}
+
+export async function listCrmSavedViews(): Promise<CrmSavedView[]> {
+  const res = await apiFetch("/admin/crm/views");
+  return res.json();
+}
+
+export async function createCrmSavedView(payload: {
+  name: string;
+  filters: Record<string, any>;
+  visibility?: string;
+}): Promise<CrmSavedView> {
+  const res = await apiFetch("/admin/crm/views", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function updateCrmSavedView(
+  viewId: number,
+  payload: { name: string; filters: Record<string, any>; visibility?: string },
+): Promise<CrmSavedView> {
+  const res = await apiFetch(`/admin/crm/views/${viewId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function deleteCrmSavedView(viewId: number): Promise<void> {
+  await apiFetch(`/admin/crm/views/${viewId}`, { method: "DELETE" });
+}
+
+export async function bulkUpdateCrmParticipants(payload: {
+  emails: string[];
+  add_tags?: string[];
+  remove_tags?: string[];
+  lifecycle_status?: string;
+  owner_user_id?: number | null;
+  priority?: string;
+}): Promise<{ updated: number; skipped: number }> {
+  const res = await apiFetch("/admin/crm/bulk-update", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function listCrmDuplicateCandidates(params: { limit?: number } = {}): Promise<CrmDuplicateCandidate[]> {
+  const qs = new URLSearchParams();
+  if (params.limit) qs.set("limit", String(params.limit));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await apiFetch(`/admin/crm/duplicates${suffix}`);
+  return res.json();
+}
+
+export async function mergeCrmParticipants(payload: {
+  target_email: string;
+  source_emails: string[];
+}): Promise<{ target_email: string; merged_emails: string[]; aliases_created: number }> {
+  const res = await apiFetch("/admin/crm/merge", {
+    method: "POST",
     body: JSON.stringify(payload),
   });
   return res.json();
@@ -607,13 +780,14 @@ export interface RenewalRecommendation {
 }
 
 export async function listTrainingAssignments(
-  params: { status?: string; department?: string; query?: string; limit?: number } = {},
+  params: { status?: string; department?: string; query?: string; limit?: number; offset?: number } = {},
 ): Promise<TrainingAssignment[]> {
   const qs = new URLSearchParams();
   if (params.status) qs.set("status", params.status);
   if (params.department) qs.set("department", params.department);
   if (params.query) qs.set("query", params.query);
   if (params.limit) qs.set("limit", String(params.limit));
+  if (params.offset) qs.set("offset", String(params.offset));
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
   const res = await apiFetch(`/admin/training/assignments${suffix}`);
   return res.json();
@@ -1485,14 +1659,48 @@ export interface CheckinMetrics {
   }>;
 }
 
+export interface CheckinActivity {
+  id: number;
+  method: string;
+  source: string;
+  success: boolean;
+  message?: string | null;
+  created_at: string;
+  attendee_name?: string | null;
+  attendee_email?: string | null;
+  session_name?: string | null;
+  staff_email?: string | null;
+}
+
 export async function lookupCheckinAttendees(eventId: number, query: string): Promise<CheckinLookupItem[]> {
   const qs = new URLSearchParams({ query });
   const res = await apiFetch(`/admin/events/${eventId}/checkin-lookup?${qs.toString()}`);
   return res.json();
 }
 
-export async function getCheckinMetrics(eventId: number): Promise<CheckinMetrics> {
-  const res = await apiFetch(`/admin/events/${eventId}/checkin-metrics`);
+export async function getCheckinMetrics(
+  eventId: number,
+  params: { hours?: number; recent_limit?: number } = {},
+): Promise<CheckinMetrics> {
+  const qs = new URLSearchParams();
+  if (params.hours) qs.set("hours", String(params.hours));
+  if (params.recent_limit) qs.set("recent_limit", String(params.recent_limit));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await apiFetch(`/admin/events/${eventId}/checkin-metrics${suffix}`);
+  return res.json();
+}
+
+export async function listCheckinActivity(
+  eventId: number,
+  params: { success?: boolean; method?: string; limit?: number; offset?: number } = {},
+): Promise<CheckinActivity[]> {
+  const qs = new URLSearchParams();
+  if (params.success !== undefined) qs.set("success", String(params.success));
+  if (params.method) qs.set("method", params.method);
+  if (params.limit) qs.set("limit", String(params.limit));
+  if (params.offset) qs.set("offset", String(params.offset));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await apiFetch(`/admin/events/${eventId}/checkin-activity${suffix}`);
   return res.json();
 }
 

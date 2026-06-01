@@ -135,7 +135,7 @@ export default function AdminCheckinPage() {
         setPlanGateMessage(e.message);
         setError(null);
       } else {
-        setError(e.message || "Check-in ekrani yuklenemedi.");
+        setError(e.message || "Check-in ekranı yüklenemedi.");
       }
     } finally {
       setLoading(false);
@@ -202,7 +202,7 @@ export default function AdminCheckinPage() {
           () => undefined,
         );
       } catch (err: any) {
-        if (!cancelled) setScannerError(err?.message || "Kamera baslatilamadi.");
+        if (!cancelled) setScannerError(err?.message || "Kamera başlatılamadı.");
       }
     }
 
@@ -252,7 +252,7 @@ export default function AdminCheckinPage() {
   async function performEntry(type: CheckinType, value: string, sessionId = selectedSession) {
     if (type === "ticket") {
       const ticket = await checkInEventTicket(eventId, normalizeTicketToken(value));
-      return { ok: true, message: `${ticket.attendee_name} bilet girisi onaylandi.` };
+      return { ok: true, message: `${ticket.attendee_name} bilet girişi onaylandı.` };
     }
     if (!sessionId) throw new Error("Önce oturum seç.");
     return adminManualCheckin(eventId, sessionId, value.trim());
@@ -290,7 +290,7 @@ export default function AdminCheckinPage() {
       appendLog({
         email: scan.value,
         success: false,
-        message: scan.message || "QR okunamadi.",
+        message: scan.message || "QR okunamadı.",
         time: new Date().toLocaleTimeString("tr-TR"),
       });
       return;
@@ -324,7 +324,7 @@ export default function AdminCheckinPage() {
       appendLog({
         email: `${synced} kayıt`,
         success: true,
-        message: "Kuyruk senkronizasyonu tamamlandi.",
+        message: "Kuyruk senkronizasyonu tamamlandı.",
         time: new Date().toLocaleTimeString("tr-TR"),
       });
     }
@@ -393,10 +393,10 @@ export default function AdminCheckinPage() {
               <div className={`mt-4 grid gap-2 ${staffMode ? "grid-cols-3" : "sm:grid-cols-3"}`}>
                 <div className="rounded-2xl border border-surface-200 bg-surface-50 p-3">
                   <p className="text-[11px] font-bold uppercase tracking-wider text-surface-400">Oturum</p>
-                  <p className="mt-1 truncate text-sm font-black text-surface-900">{selectedSessionObj?.name || "Secilmedi"}</p>
+                  <p className="mt-1 truncate text-sm font-black text-surface-900">{selectedSessionObj?.name || "Seçilmedi"}</p>
                 </div>
                 <div className="rounded-2xl border border-surface-200 bg-surface-50 p-3">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-surface-400">Basarili</p>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-surface-400">Başarılı</p>
                   <p className="mt-1 text-sm font-black text-surface-900">{todayAttendance}</p>
                 </div>
                 <div className="rounded-2xl border border-surface-200 bg-surface-50 p-3">
@@ -425,7 +425,7 @@ export default function AdminCheckinPage() {
             {error && <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
             <div className={`card ${staffMode ? "p-3" : "p-4"}`}>
-              <label className="mb-2 block text-sm font-semibold text-gray-700">Oturum Secin</label>
+              <label className="mb-2 block text-sm font-semibold text-gray-700">Oturum Seçin</label>
               <div className="space-y-2">
                 {sessions.length === 0 ? (
                   <p className="text-sm text-gray-400">

@@ -16,13 +16,13 @@ from .main import (
     EventTicket,
     Role,
     User,
-    _client_ip_for_rate_limit,
     _get_event_for_admin,
     get_current_user,
     get_db,
     require_paid_plan,
     require_role,
 )
+from .organization_access_api import ensure_organization_enterprise
 
 router = APIRouter()
 
@@ -43,6 +43,19 @@ class CheckinMetricsOut(BaseModel):
     by_method: list[dict]
     by_staff: list[dict]
     recent: list[dict]
+
+
+class CheckinActivityOut(BaseModel):
+    id: int
+    method: str
+    source: str
+    success: bool
+    message: Optional[str] = None
+    created_at: datetime
+    attendee_name: Optional[str] = None
+    attendee_email: Optional[str] = None
+    session_name: Optional[str] = None
+    staff_email: Optional[str] = None
 
 
 async def record_checkin_activity(
@@ -86,7 +99,14 @@ async def checkin_lookup(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_event_for_admin(event_id, me, db, "checkin:write")
+    event = await _get_event_for_admin(event_id, me, db, "checkin:write")
+    if me.role != Role.superadmin:
+        from .main import Organization
+
+        org_res = await db.execute(select(Organization).where(Organization.user_id == event.admin_id))
+        org = org_res.scalar_one_or_none()
+        if org:
+            await ensure_organization_enterprise(db, org)
     needle = f"%{query.strip().lower()}%"
     rows_res = await db.execute(
         select(Attendee, EventTicket)
@@ -117,11 +137,20 @@ async def checkin_lookup(
 )
 async def get_checkin_metrics(
     event_id: int,
+    hours: int = Query(default=1, ge=1, le=168),
+    recent_limit: int = Query(default=20, ge=1, le=100),
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_event_for_admin(event_id, me, db, "checkin:write")
-    since = datetime.now(timezone.utc) - timedelta(hours=1)
+    event = await _get_event_for_admin(event_id, me, db, "checkin:write")
+    if me.role != Role.superadmin:
+        from .main import Organization
+
+        org_res = await db.execute(select(Organization).where(Organization.user_id == event.admin_id))
+        org = org_res.scalar_one_or_none()
+        if org:
+            await ensure_organization_enterprise(db, org)
+    since = datetime.now(timezone.utc) - timedelta(hours=hours)
     total = int((await db.execute(select(func.count(CheckinActivityLog.id)).where(CheckinActivityLog.event_id == event_id))).scalar_one() or 0)
     successful = int(
         (
@@ -163,7 +192,7 @@ async def get_checkin_metrics(
             .outerjoin(EventSession, EventSession.id == CheckinActivityLog.session_id)
             .where(CheckinActivityLog.event_id == event_id)
             .order_by(CheckinActivityLog.created_at.desc())
-            .limit(20)
+            .limit(recent_limit)
         )
     ).all()
     return CheckinMetricsOut(
@@ -191,3 +220,58 @@ async def get_checkin_metrics(
             for row, attendee, session in recent_rows
         ],
     )
+
+
+@router.get(
+    "/api/admin/events/{event_id}/checkin-activity",
+    response_model=list[CheckinActivityOut],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+)
+async def list_checkin_activity(
+    event_id: int,
+    success: Optional[bool] = Query(default=None),
+    method: str = Query(default="", max_length=32),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0, le=10000),
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    event = await _get_event_for_admin(event_id, me, db, "checkin:write")
+    if me.role != Role.superadmin:
+        from .main import Organization
+
+        org_res = await db.execute(select(Organization).where(Organization.user_id == event.admin_id))
+        org = org_res.scalar_one_or_none()
+        if org:
+            await ensure_organization_enterprise(db, org)
+    stmt = (
+        select(CheckinActivityLog, Attendee, EventSession, User)
+        .outerjoin(Attendee, Attendee.id == CheckinActivityLog.attendee_id)
+        .outerjoin(EventSession, EventSession.id == CheckinActivityLog.session_id)
+        .outerjoin(User, User.id == CheckinActivityLog.actor_user_id)
+        .where(CheckinActivityLog.event_id == event_id)
+    )
+    if success is not None:
+        stmt = stmt.where(CheckinActivityLog.success.is_(success))
+    if method.strip():
+        stmt = stmt.where(CheckinActivityLog.method == method.strip()[:32])
+    rows = (
+        await db.execute(
+            stmt.order_by(CheckinActivityLog.created_at.desc()).offset(offset).limit(limit)
+        )
+    ).all()
+    return [
+        CheckinActivityOut(
+            id=row.id,
+            method=row.method,
+            source=row.source,
+            success=row.success,
+            message=row.message,
+            created_at=row.created_at,
+            attendee_name=attendee.name if attendee else None,
+            attendee_email=attendee.email if attendee else None,
+            session_name=session.name if session else None,
+            staff_email=user.email if user else None,
+        )
+        for row, attendee, session, user in rows
+    ]

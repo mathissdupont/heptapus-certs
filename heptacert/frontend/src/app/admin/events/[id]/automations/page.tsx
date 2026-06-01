@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState, type ElementType } from "react";
 import { useParams } from "next/navigation";
 import { Bell, Loader2, Mail, Plus, Trash2, Webhook, Workflow } from "lucide-react";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
+import { FeatureGate } from "@/lib/useSubscription";
+import { useI18n } from "@/lib/i18n";
 import {
   createEventAutomation,
   deleteEventAutomation,
@@ -51,6 +53,34 @@ const DEFAULT_FORM: RuleForm = {
 export default function EventAutomationsPage() {
   const params = useParams<{ id: string }>();
   const eventId = Number(params.id);
+  const { lang } = useI18n();
+  const copy = lang === "tr" ? {
+    gate: "Otomasyon kuralları Growth ve Enterprise planlarında kullanılabilir.",
+    title: "Otomasyon Kuralları",
+    subtitle: "Katılım, no-show, sertifika, anket ve rozet durumlarına göre e-posta, hatırlatma veya webhook aksiyonları tanımlayın.",
+    loadError: "Otomasyonlar yüklenemedi.",
+    nameRequired: "Kural adı gerekli.",
+    saveError: "Kural kaydedilemedi.",
+    deleteConfirm: "Bu otomasyon kuralı silinsin mi?",
+    deleteError: "Kural silinemedi.",
+    dispatchResult: (sent: number, skipped: number, failed: number) => `${sent} aksiyon çalıştı, ${skipped} zaten işlenmiş, ${failed} başarısız.`,
+    dispatchError: "Otomasyonlar çalıştırılamadı.",
+    newRule: "Yeni kural",
+    runNow: "Şimdi çalıştır",
+  } : {
+    gate: "Automation rules are available on Growth and Enterprise plans.",
+    title: "Automation Rules",
+    subtitle: "Define email, reminder, or webhook actions based on attendance, no-shows, certificates, surveys, and badges.",
+    loadError: "Could not load automations.",
+    nameRequired: "Rule name is required.",
+    saveError: "Could not save rule.",
+    deleteConfirm: "Delete this automation rule?",
+    deleteError: "Could not delete rule.",
+    dispatchResult: (sent: number, skipped: number, failed: number) => `${sent} actions ran, ${skipped} already processed, ${failed} failed.`,
+    dispatchError: "Could not run automations.",
+    newRule: "New rule",
+    runNow: "Run now",
+  };
   const [summary, setSummary] = useState<AutomationSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -66,7 +96,7 @@ export default function EventAutomationsPage() {
     try {
       setSummary(await getEventAutomations(eventId));
     } catch (ex: any) {
-      setError(ex?.message || "Otomasyonlar yüklenemedi.");
+      setError(ex?.message || copy.loadError);
     } finally {
       setLoading(false);
     }
@@ -95,7 +125,7 @@ export default function EventAutomationsPage() {
   async function saveRule() {
     const name = form.name.trim();
     if (!name) {
-      setError("Kural adı gerekli.");
+      setError(copy.nameRequired);
       return;
     }
     setSaving(true);
@@ -113,21 +143,21 @@ export default function EventAutomationsPage() {
       setSummary(next);
       setForm(DEFAULT_FORM);
     } catch (ex: any) {
-      setError(ex?.message || "Kural kaydedilemedi.");
+      setError(ex?.message || copy.saveError);
     } finally {
       setSaving(false);
     }
   }
 
   async function removeRule(ruleId: string) {
-    if (!confirm("Bu otomasyon kuralı silinsin mi?")) return;
+    if (!confirm(copy.deleteConfirm)) return;
     setBusyRuleId(ruleId);
     setError(null);
     try {
       setSummary(await deleteEventAutomation(eventId, ruleId));
       if (form.id === ruleId) setForm(DEFAULT_FORM);
     } catch (ex: any) {
-      setError(ex?.message || "Kural silinemedi.");
+      setError(ex?.message || copy.deleteError);
     } finally {
       setBusyRuleId(null);
     }
@@ -139,10 +169,10 @@ export default function EventAutomationsPage() {
     setError(null);
     try {
       const result = await dispatchEventAutomationsNow(eventId);
-      setDispatchResult(`${result.sent} aksiyon çalıştı, ${result.skipped} zaten işlenmiş, ${result.failed} başarısız.`);
+      setDispatchResult(copy.dispatchResult(result.sent, result.skipped, result.failed));
       await load();
     } catch (ex: any) {
-      setError(ex?.message || "Otomasyonlar çalıştırılamadı.");
+      setError(ex?.message || copy.dispatchError);
     } finally {
       setDispatching(false);
     }
@@ -151,24 +181,25 @@ export default function EventAutomationsPage() {
   const triggerCounts: Partial<Record<AutomationTrigger, number>> = summary?.trigger_counts || {};
 
   return (
+    <FeatureGate requiredPlans={["growth", "enterprise"]} message={copy.gate}>
     <div className="space-y-6">
       <EventAdminNav eventId={eventId} active="automations" className="mb-2 flex flex-col gap-2" />
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-600">Post-event automation</p>
-          <h1 className="mt-2 text-2xl font-black text-surface-900">Otomasyon Kuralları</h1>
+          <h1 className="mt-2 text-2xl font-black text-surface-900">{copy.title}</h1>
           <p className="mt-2 max-w-2xl text-sm text-surface-500">
-            Katılım, no-show, sertifika, anket ve rozet durumlarına göre e-posta, hatırlatma veya webhook aksiyonları tanımlayın.
+            {copy.subtitle}
           </p>
         </div>
         <button type="button" onClick={() => setForm(DEFAULT_FORM)} className="btn-secondary">
           <Plus className="h-4 w-4" />
-          Yeni kural
+          {copy.newRule}
         </button>
         <button type="button" onClick={dispatchNow} disabled={dispatching} className="btn-primary">
           {dispatching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Workflow className="h-4 w-4" />}
-          Şimdi çalıştır
+          {copy.runNow}
         </button>
       </div>
 
@@ -365,5 +396,6 @@ export default function EventAutomationsPage() {
         </section>
       </div>
     </div>
+    </FeatureGate>
   );
 }

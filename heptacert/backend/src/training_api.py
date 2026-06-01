@@ -20,7 +20,7 @@ from .main import (
     require_role,
     send_email_async,
 )
-from .organization_access_api import get_organization_for_access, organization_id_from_request
+from .organization_access_api import ensure_organization_enterprise, get_organization_for_access, organization_id_from_request
 
 router = APIRouter()
 
@@ -106,7 +106,10 @@ class RenewalRecommendationOut(BaseModel):
 
 
 async def _admin_org(db: AsyncSession, me: CurrentUser, request: Request):
-    return await get_organization_for_access(db, me, "organization:view", organization_id_from_request(request))
+    org = await get_organization_for_access(db, me, "organization:view", organization_id_from_request(request))
+    if me.role != Role.superadmin:
+        await ensure_organization_enterprise(db, org)
+    return org
 
 
 def _clean_status(value: str) -> str:
@@ -245,6 +248,7 @@ async def list_training_assignments(
     department: str = Query(default=""),
     query: str = Query(default=""),
     limit: int = Query(default=200, ge=1, le=500),
+    offset: int = Query(default=0, ge=0, le=10000),
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -263,7 +267,7 @@ async def list_training_assignments(
                 func.lower(TrainingAssignment.assignee_email).like(needle),
             )
         )
-    rows_res = await db.execute(stmt.order_by(TrainingAssignment.created_at.desc()).limit(limit))
+    rows_res = await db.execute(stmt.order_by(TrainingAssignment.created_at.desc()).offset(offset).limit(limit))
     return [await _to_out(db, org.user_id, row) for row in rows_res.scalars().all()]
 
 
@@ -399,7 +403,7 @@ async def get_renewal_recommendations(
                 name=event.name,
                 event_date=event.event_date.isoformat() if event.event_date else None,
                 event_location=event.event_location,
-                reason="Yaklasan egitim/etkinlik yenileme atamalari icin onerildi.",
+                reason="Yaklaşan eğitim/etkinlik yenileme atamaları için önerildi.",
             )
         )
     return items
@@ -435,11 +439,11 @@ async def process_training_renewal_notifications_once(
             if row.last_notified_at and row.last_notified_at > now - timedelta(days=7):
                 skipped += 1
                 continue
-            subject = f"HeptaCert egitim hatirlatmasi: {row.title}"
+            subject = f"HeptaCert eğitim hatırlatması: {row.title}"
             html = f"""
             <h2>{row.title}</h2>
             <p>Merhaba {row.assignee_name},</p>
-            <p>Size atanmis egitim veya sertifika yenileme takibinde yaklasan bir tarih var.</p>
+            <p>Size atanmış eğitim veya sertifika yenileme takibinde yaklaşan bir tarih var.</p>
             <ul>
               <li>Durum: {_effective_status(row)}</li>
               <li>Son tarih: {target_date.strftime("%d.%m.%Y")}</li>
