@@ -8,6 +8,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import FileResponse, StreamingResponse
@@ -22,8 +23,12 @@ from .main import (
     CertStatus,
     CurrentUser,
     Event,
+    EventAutomationRule,
     EventSavedAudienceSegment,
     EventTicket,
+    Organization,
+    ParticipantCrmAuditLog,
+    ParticipantCrmProfile,
     Role,
     SegmentExportJob,
     SurveyResponse,
@@ -118,6 +123,28 @@ class SegmentExportJobOut(BaseModel):
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     pii_mode: str = "masked"
+
+
+class SegmentCrmHandoffIn(BaseModel):
+    add_tags: list[str] = Field(default_factory=lambda: ["segment"])
+    lifecycle_status: Optional[str] = Field(default=None, max_length=64)
+    priority: Optional[str] = Field(default=None, max_length=32)
+
+
+class SegmentCrmHandoffOut(BaseModel):
+    updated: int
+    skipped: int
+
+
+class SegmentAutomationHandoffIn(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    email_template_id: Optional[int] = Field(default=None, ge=1)
+    enabled: bool = True
+
+
+class SegmentAutomationHandoffOut(BaseModel):
+    rule_id: str
+    target_count: int
 
 
 def _parse_composition(raw: Optional[str]) -> Optional[dict[str, Any]]:
@@ -527,6 +554,14 @@ async def _segment_rows_for_export(db: AsyncSession, event: Event, segment_key: 
     return rows.scalars().all()
 
 
+async def _organization_for_event(db: AsyncSession, event: Event) -> Organization:
+    org_res = await db.execute(select(Organization).where(Organization.user_id == event.admin_id))
+    org = org_res.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    return org
+
+
 def _normalize_pii_mode(value: Optional[str]) -> str:
     return "full" if value == "full" else "masked"
 
@@ -841,6 +876,125 @@ async def download_segment_export_job(
     if not path.exists():
         raise HTTPException(status_code=404, detail="Export file not found")
     return FileResponse(path, media_type="text/csv", filename=row.file_name or f"segment-export-{row.id}.csv")
+
+
+@router.post(
+    "/api/admin/events/{event_id}/segments/{segment_key}/handoff/crm",
+    response_model=SegmentCrmHandoffOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
+)
+async def handoff_segment_to_crm(
+    event_id: int,
+    segment_key: str,
+    payload: SegmentCrmHandoffIn,
+    field_id: Optional[str] = Query(default=None),
+    answer: Optional[str] = Query(default=None),
+    location: Optional[str] = Query(default=None),
+    composition: Optional[str] = Query(default=None),
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    event = await _get_event_for_admin(event_id, me, db, "attendees:read")
+    org = await _organization_for_event(db, event)
+    composition_spec = _parse_composition(composition)
+    attendees = (
+        await db.execute(
+            _segment_stmt(event, segment_key, field_id=field_id, answer=answer, location=location, composition=composition_spec)
+            .limit(1000)
+        )
+    ).scalars().all()
+    tags = [tag.strip() for tag in payload.add_tags if tag.strip()]
+    updated = skipped = 0
+    for attendee in attendees:
+        email = (attendee.email or "").strip().lower()
+        if not email:
+            skipped += 1
+            continue
+        profile_res = await db.execute(
+            select(ParticipantCrmProfile).where(ParticipantCrmProfile.organization_id == org.id, ParticipantCrmProfile.email == email)
+        )
+        profile = profile_res.scalar_one_or_none()
+        before = None
+        if not profile:
+            profile = ParticipantCrmProfile(organization_id=org.id, email=email, notes="", tags=[], lifecycle_status="lead")
+            db.add(profile)
+        else:
+            before = {
+                "tags": profile.tags or [],
+                "lifecycle_status": profile.lifecycle_status,
+                "priority": profile.priority,
+            }
+        current_tags = {str(item).strip() for item in profile.tags or [] if str(item).strip()}
+        current_tags.update(tags)
+        current_tags.add(f"segment:{segment_key}")
+        profile.tags = sorted(current_tags)
+        if payload.lifecycle_status:
+            profile.lifecycle_status = payload.lifecycle_status
+        if payload.priority:
+            profile.priority = payload.priority
+        profile.custom_fields = {
+            **(profile.custom_fields or {}),
+            "last_segment_handoff": {
+                "event_id": event_id,
+                "segment_key": segment_key,
+                "filters": {"field_id": field_id, "answer": answer, "location": location, "composition": composition_spec},
+                "at": datetime.now(timezone.utc).isoformat(),
+            },
+        }
+        db.add(
+            ParticipantCrmAuditLog(
+                organization_id=org.id,
+                email=email,
+                actor_user_id=me.id,
+                action="segment_handoff",
+                before=before,
+                after={"tags": profile.tags, "lifecycle_status": profile.lifecycle_status, "priority": profile.priority},
+            )
+        )
+        updated += 1
+    await db.commit()
+    return SegmentCrmHandoffOut(updated=updated, skipped=skipped)
+
+
+@router.post(
+    "/api/admin/events/{event_id}/segments/{segment_key}/handoff/automation",
+    response_model=SegmentAutomationHandoffOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
+)
+async def handoff_segment_to_automation(
+    event_id: int,
+    segment_key: str,
+    payload: SegmentAutomationHandoffIn,
+    field_id: Optional[str] = Query(default=None),
+    answer: Optional[str] = Query(default=None),
+    location: Optional[str] = Query(default=None),
+    composition: Optional[str] = Query(default=None),
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    event = await _get_event_for_admin(event_id, me, db, "email:write")
+    composition_spec = _parse_composition(composition)
+    target_count = await count_segment_attendees(db, event, segment_key, field_id=field_id, answer=answer, location=location, composition=composition_spec)
+    actions: list[dict[str, Any]] = [{"type": "create_reminder", "reminder_delay_hours": 0}]
+    if payload.email_template_id:
+        actions = [{"type": "send_email", "email_template_id": payload.email_template_id, "reminder_delay_hours": 0}]
+    rule = EventAutomationRule(
+        id=uuid4().hex,
+        event_id=event_id,
+        name=payload.name.strip(),
+        trigger="audience_segment",
+        trigger_config={
+            "segment_key": segment_key,
+            "filters": {"field_id": field_id, "answer": answer, "location": location, "composition": composition_spec},
+        },
+        enabled=payload.enabled,
+        actions=actions,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
+    )
+    db.add(rule)
+    await db.commit()
+    return SegmentAutomationHandoffOut(rule_id=rule.id, target_count=target_count)
 
 
 @router.get(

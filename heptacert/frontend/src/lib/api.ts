@@ -554,6 +554,44 @@ export async function createSegmentExportJob(
   return res.json();
 }
 
+export async function handoffSegmentToCrm(
+  eventId: number,
+  segmentKey: AudienceSegmentKey,
+  payload: { add_tags?: string[]; lifecycle_status?: string | null; priority?: string | null },
+  params: { field_id?: string; answer?: string; location?: string; composition?: SegmentComposition } = {},
+): Promise<{ updated: number; skipped: number }> {
+  const qs = new URLSearchParams();
+  if (params.field_id) qs.set("field_id", params.field_id);
+  if (params.answer) qs.set("answer", params.answer);
+  if (params.location) qs.set("location", params.location);
+  if (params.composition) qs.set("composition", JSON.stringify(params.composition));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await apiFetch(`/admin/events/${eventId}/segments/${segmentKey}/handoff/crm${suffix}`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function handoffSegmentToAutomation(
+  eventId: number,
+  segmentKey: AudienceSegmentKey,
+  payload: { name: string; email_template_id?: number | null; enabled?: boolean },
+  params: { field_id?: string; answer?: string; location?: string; composition?: SegmentComposition } = {},
+): Promise<{ rule_id: string; target_count: number }> {
+  const qs = new URLSearchParams();
+  if (params.field_id) qs.set("field_id", params.field_id);
+  if (params.answer) qs.set("answer", params.answer);
+  if (params.location) qs.set("location", params.location);
+  if (params.composition) qs.set("composition", JSON.stringify(params.composition));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await apiFetch(`/admin/events/${eventId}/segments/${segmentKey}/handoff/automation${suffix}`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
 export async function listSegmentExportJobs(eventId: number): Promise<SegmentExportJob[]> {
   const res = await apiFetch(`/admin/events/${eventId}/segments/export-jobs`);
   return res.json();
@@ -840,7 +878,14 @@ export interface TrainingAssignment {
   description?: string | null;
   assignee_name: string;
   assignee_email: string;
+  department_id?: number | null;
   department?: string | null;
+  manager_email?: string | null;
+  approval_status?: string;
+  approved_by?: number | null;
+  approved_at?: string | null;
+  evidence_url?: string | null;
+  evidence_label?: string | null;
   event_id?: number | null;
   event_name?: string | null;
   required: boolean;
@@ -864,7 +909,13 @@ export interface TrainingAssignmentInput {
   description?: string | null;
   assignee_name: string;
   assignee_email: string;
+  department_id?: number | null;
   department?: string | null;
+  manager_email?: string | null;
+  approval_required?: boolean;
+  approval_status?: string;
+  evidence_url?: string | null;
+  evidence_label?: string | null;
   event_id?: number | null;
   required?: boolean;
   status?: TrainingStatus | string;
@@ -874,6 +925,58 @@ export interface TrainingAssignmentInput {
   renewal_due_at?: string | null;
   renewal_event_id?: number | null;
   notify_before_days?: number;
+}
+
+export interface OrganizationDepartment {
+  id: number;
+  name: string;
+  code?: string | null;
+  manager_name?: string | null;
+  manager_email?: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TrainingTemplate {
+  id: number;
+  name: string;
+  title: string;
+  description?: string | null;
+  department_id?: number | null;
+  department_name?: string | null;
+  required: boolean;
+  default_due_days: number;
+  renewal_interval_days?: number | null;
+  notify_before_days: number;
+  approval_required: boolean;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TrainingRecurringRule {
+  id: number;
+  template_id: number;
+  department_id?: number | null;
+  source: string;
+  enabled: boolean;
+  lookback_days: number;
+  last_run_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TrainingNotificationLog {
+  id: number;
+  assignment_id: number;
+  recipient_email: string;
+  status: string;
+  attempts: number;
+  error_message?: string | null;
+  target_date?: string | null;
+  sent_at?: string | null;
+  created_at: string;
 }
 
 export interface TrainingReport {
@@ -915,6 +1018,78 @@ export async function listTrainingAssignments(
   return res.json();
 }
 
+export async function listTrainingDepartments(): Promise<OrganizationDepartment[]> {
+  const res = await apiFetch("/admin/training/departments");
+  return res.json();
+}
+
+export async function createTrainingDepartment(payload: {
+  name: string;
+  code?: string | null;
+  manager_name?: string | null;
+  manager_email?: string | null;
+  active?: boolean;
+}): Promise<OrganizationDepartment> {
+  const res = await apiFetch("/admin/training/departments", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function listTrainingTemplates(): Promise<TrainingTemplate[]> {
+  const res = await apiFetch("/admin/training/templates");
+  return res.json();
+}
+
+export async function createTrainingTemplate(payload: Partial<TrainingTemplate> & { name: string; title: string }): Promise<TrainingTemplate> {
+  const res = await apiFetch("/admin/training/templates", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function bulkAssignTrainingFromTemplate(payload: {
+  template_id: number;
+  assignees: Array<{ assignee_name: string; assignee_email: string; department_id?: number | null; department?: string | null; manager_email?: string | null }>;
+}): Promise<{ created: number; skipped: number }> {
+  const res = await apiFetch("/admin/training/bulk-assign", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function listTrainingRecurringRules(): Promise<TrainingRecurringRule[]> {
+  const res = await apiFetch("/admin/training/recurring-rules");
+  return res.json();
+}
+
+export async function createTrainingRecurringRule(payload: {
+  template_id: number;
+  department_id?: number | null;
+  source?: string;
+  enabled?: boolean;
+  lookback_days?: number;
+}): Promise<TrainingRecurringRule> {
+  const res = await apiFetch("/admin/training/recurring-rules", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function runTrainingRecurringRules(): Promise<{ created: number; skipped: number }> {
+  const res = await apiFetch("/admin/training/recurring-rules/run", { method: "POST" });
+  return res.json();
+}
+
+export async function listTrainingNotificationLogs(): Promise<TrainingNotificationLog[]> {
+  const res = await apiFetch("/admin/training/notification-logs");
+  return res.json();
+}
+
 export async function createTrainingAssignment(payload: TrainingAssignmentInput): Promise<TrainingAssignment> {
   const res = await apiFetch("/admin/training/assignments", {
     method: "POST",
@@ -941,6 +1116,15 @@ export async function deleteTrainingAssignment(assignmentId: number): Promise<vo
 export async function getTrainingReport(): Promise<TrainingReport> {
   const res = await apiFetch("/admin/training/report");
   return res.json();
+}
+
+export function getTrainingReportExportUrl(format: "csv" | "pdf" = "csv"): string {
+  return `${getApiBase()}/admin/training/report/export?format=${format}`;
+}
+
+export async function exportTrainingReportFile(format: "csv" | "pdf" = "csv"): Promise<Blob> {
+  const res = await apiFetch(`/admin/training/report/export?format=${format}`);
+  return res.blob();
 }
 
 export async function listRenewalRecommendations(department?: string): Promise<RenewalRecommendation[]> {

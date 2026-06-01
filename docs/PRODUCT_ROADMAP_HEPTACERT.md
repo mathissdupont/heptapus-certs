@@ -127,17 +127,17 @@ This roadmap tracks the feature direction discussed for turning HeptaCert from a
 - [x] Add optional Google Sheets sync for segment export jobs
 - [x] Add export audit log with actor, filters, row count, IP, and timestamp
 - [x] Add PII masking options and Enterprise-only full-data export policy
-- [ ] Add segment-to-CRM and segment-to-automation handoff flows
+- [x] Add segment-to-CRM and segment-to-automation handoff flows
 
 ## Phase 13 - Training and Renewal Compliance
 
-- [ ] Add bulk assignment import and assignment templates by department/team
-- [ ] Add recurring training rules and auto-assignment for new participants/employees
-- [ ] Add completion evidence attachments or links
-- [ ] Add manager/department ownership and approval workflow
-- [ ] Add renewal notification execution log and retry state
-- [ ] Add compliance dashboard with overdue trend, department risk, and upcoming renewals
-- [ ] Add Enterprise CSV/PDF compliance report export with audit trail
+- [x] Add bulk assignment import and assignment templates by department/team
+- [x] Add recurring training rules and auto-assignment for new participants/employees
+- [x] Add completion evidence attachments or links
+- [x] Add manager/department ownership and approval workflow
+- [x] Add renewal notification execution log and retry state
+- [x] Add compliance dashboard with overdue trend, department risk, and upcoming renewals
+- [x] Add Enterprise CSV/PDF compliance report export with audit trail
 
 ## Phase 14 - Check-in, Kiosk, and Staff Operations
 

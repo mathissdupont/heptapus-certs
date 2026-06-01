@@ -51,6 +51,7 @@ AutomationTrigger = Literal[
     "certificate_issued",
     "survey_not_completed",
     "badge_earned",
+    "audience_segment",
 ]
 AutomationActionType = Literal["send_email", "create_reminder", "webhook_dispatch"]
 
@@ -60,6 +61,7 @@ TRIGGER_LABELS: dict[str, str] = {
     "certificate_issued": "Sertifika aldı",
     "survey_not_completed": "Anketi tamamlamadı",
     "badge_earned": "Rozet kazandı",
+    "audience_segment": "Katılımcı segmenti",
 }
 
 ACTION_LABELS: dict[str, str] = {
@@ -79,6 +81,7 @@ class AutomationActionIn(BaseModel):
 class AutomationRuleIn(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     trigger: AutomationTrigger
+    trigger_config: dict[str, Any] = Field(default_factory=dict)
     enabled: bool = True
     actions: list[AutomationActionIn] = Field(default_factory=list, min_length=1, max_length=5)
 
@@ -97,6 +100,7 @@ class AutomationRuleOut(BaseModel):
     name: str
     trigger: AutomationTrigger
     trigger_label: str
+    trigger_config: dict[str, Any] = Field(default_factory=dict)
     enabled: bool
     actions: list[AutomationActionOut] = Field(default_factory=list)
     created_at: datetime
@@ -155,6 +159,7 @@ def _rule_to_dict(rule: EventAutomationRule) -> dict[str, Any]:
         "id": rule.id,
         "name": rule.name,
         "trigger": rule.trigger,
+        "trigger_config": rule.trigger_config or {},
         "enabled": rule.enabled,
         "actions": rule.actions or [],
         "created_at": rule.created_at,
@@ -184,6 +189,7 @@ def _serialize_rule(raw: dict[str, Any]) -> AutomationRuleOut:
         name=str(raw.get("name") or TRIGGER_LABELS[trigger]),
         trigger=trigger,  # type: ignore[arg-type]
         trigger_label=TRIGGER_LABELS[trigger],
+        trigger_config=raw.get("trigger_config") or {},
         enabled=bool(raw.get("enabled", True)),
         actions=[_serialize_action(item) for item in raw.get("actions") or [] if isinstance(item, dict)],
         created_at=raw.get("created_at") or datetime.utcnow(),
@@ -378,8 +384,22 @@ async def _execution_log_for_action(
     return row
 
 
-async def _automation_target_attendees(db: AsyncSession, event: Event, trigger: str) -> list[Attendee]:
+async def _automation_target_attendees(db: AsyncSession, event: Event, trigger: str, trigger_config: Optional[dict[str, Any]] = None) -> list[Attendee]:
     from .audience_segments_api import get_segment_attendees
+
+    if trigger == "audience_segment":
+        config = trigger_config or {}
+        segment_key = str(config.get("segment_key") or "attended_no_certificate")
+        filters = config.get("filters") if isinstance(config.get("filters"), dict) else {}
+        return await get_segment_attendees(
+            db,
+            event,
+            segment_key,
+            field_id=filters.get("field_id"),
+            answer=filters.get("answer"),
+            location=filters.get("location"),
+            composition=filters.get("composition") if isinstance(filters.get("composition"), dict) else None,
+        )
 
     if trigger == "registered_no_show":
         return await get_segment_attendees(db, event, "no_shows")
@@ -564,7 +584,12 @@ async def _process_automation_dispatches(*, event_id: Optional[int] = None, limi
                 dispatch_value = dict(dispatch_row.state or {}) if dispatch_row and isinstance(dispatch_row.state, dict) else {}
                 dispatched = dict(dispatch_value.get("dispatched") or {})
 
-                targets = await _automation_target_attendees(db, event, str(rule.get("trigger") or ""))
+                targets = await _automation_target_attendees(
+                    db,
+                    event,
+                    str(rule.get("trigger") or ""),
+                    rule.get("trigger_config") if isinstance(rule.get("trigger_config"), dict) else {},
+                )
                 stats["rules"] += 1
                 stats["targets"] += len(targets)
 
@@ -698,6 +723,7 @@ async def create_event_automation(
         event_id=event_id,
         name=payload.name,
         trigger=payload.trigger,
+        trigger_config=payload.trigger_config or {},
         enabled=payload.enabled,
         actions=_clean_actions_for_storage(payload.actions),
         created_at=datetime.utcnow(),
@@ -727,6 +753,7 @@ async def update_event_automation(
         raise HTTPException(status_code=404, detail="Automation rule not found")
     rule.name = payload.name
     rule.trigger = payload.trigger
+    rule.trigger_config = payload.trigger_config or {}
     rule.enabled = payload.enabled
     rule.actions = _clean_actions_for_storage(payload.actions)
     rule.updated_at = datetime.utcnow()
@@ -801,7 +828,7 @@ async def dry_run_event_automation(
     rule = await db.get(EventAutomationRule, rule_id)
     if not rule or rule.event_id != event_id:
         raise HTTPException(status_code=404, detail="Automation rule not found")
-    targets = await _automation_target_attendees(db, event, rule.trigger)
+    targets = await _automation_target_attendees(db, event, rule.trigger, rule.trigger_config or {})
     samples = [
         {
             "attendee_id": attendee.id,

@@ -12,6 +12,8 @@ import {
   deleteSavedEventSegment,
   getSegmentExportJobDownloadUrl,
   getToken,
+  handoffSegmentToAutomation,
+  handoffSegmentToCrm,
   listEventSegments,
   listSavedEventSegments,
   listSegmentExportJobs,
@@ -159,6 +161,7 @@ export default function EventSegmentsPage() {
   const [sheetsStatus, setSheetsStatus] = useState<EventSheetsStatus | null>(null);
   const [sheetsLoading, setSheetsLoading] = useState(false);
   const [sheetsAction, setSheetsAction] = useState<"auth" | "sync" | null>(null);
+  const [handoffLoading, setHandoffLoading] = useState<"crm" | "automation" | null>(null);
   const [authBridgeReady, setAuthBridgeReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -383,6 +386,38 @@ export default function EventSegmentsPage() {
     }
   }
 
+  function currentSegmentFilters(key: AudienceSegmentKey) {
+    return key === "composition"
+      ? { composition: compositionPayload() }
+      : { field_id: fieldId || undefined, answer: answer || undefined, location: location || undefined };
+  }
+
+  async function handleCrmHandoff(key: AudienceSegmentKey) {
+    setHandoffLoading("crm");
+    setError(null);
+    try {
+      const result = await handoffSegmentToCrm(eventId, key, { add_tags: ["segment", `segment:${key}`] }, currentSegmentFilters(key));
+      setError(`${result.updated} CRM profili güncellendi, ${result.skipped} atlandı.`);
+    } catch (ex: any) {
+      setError(ex?.message || "CRM aktarımı yapılamadı.");
+    } finally {
+      setHandoffLoading(null);
+    }
+  }
+
+  async function handleAutomationHandoff(key: AudienceSegmentKey) {
+    setHandoffLoading("automation");
+    setError(null);
+    try {
+      const result = await handoffSegmentToAutomation(eventId, key, { name: `Segment otomasyonu: ${key}`, enabled: true }, currentSegmentFilters(key));
+      setError(`${result.target_count} hedefli otomasyon kuralı oluşturuldu.`);
+    } catch (ex: any) {
+      setError(ex?.message || "Otomasyon oluşturulamadı.");
+    } finally {
+      setHandoffLoading(null);
+    }
+  }
+
   useEffect(() => {
     let cancelled = false;
     const hasBridge = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("oauth_bridge") === "1";
@@ -521,6 +556,14 @@ export default function EventSegmentsPage() {
           <button type="button" onClick={() => void queueSegmentExport("composition")} className="btn-secondary justify-center">
             <Download className="h-4 w-4" />
             {copy.backgroundExport}
+          </button>
+          <button type="button" onClick={() => void handleCrmHandoff("composition")} disabled={handoffLoading === "crm"} className="btn-secondary justify-center">
+            {handoffLoading === "crm" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            CRM'e aktar
+          </button>
+          <button type="button" onClick={() => void handleAutomationHandoff("composition")} disabled={handoffLoading === "automation"} className="btn-secondary justify-center">
+            {handoffLoading === "automation" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Otomasyon oluştur
           </button>
         </div>
       </section>
@@ -715,6 +758,12 @@ export default function EventSegmentsPage() {
                   </button>
                   <button type="button" onClick={() => void queueSegmentExport(segment.key)} className="btn-secondary justify-center px-3 py-2 text-xs">
                     {copy.backgroundExport}
+                  </button>
+                  <button type="button" onClick={() => void handleCrmHandoff(segment.key)} className="btn-secondary justify-center px-3 py-2 text-xs">
+                    CRM
+                  </button>
+                  <button type="button" onClick={() => void handleAutomationHandoff(segment.key)} className="btn-secondary justify-center px-3 py-2 text-xs">
+                    Auto
                   </button>
                 </div>
               </article>

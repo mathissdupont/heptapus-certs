@@ -5,6 +5,7 @@ import {
   Bell,
   CalendarClock,
   CheckCircle2,
+  Building2,
   GraduationCap,
   Loader2,
   Plus,
@@ -15,15 +16,28 @@ import {
 } from "lucide-react";
 import {
   createTrainingAssignment,
+  createTrainingDepartment,
+  createTrainingRecurringRule,
+  createTrainingTemplate,
   deleteTrainingAssignment,
+  exportTrainingReportFile,
   getTrainingReport,
+  listTrainingDepartments,
+  listTrainingNotificationLogs,
+  listTrainingRecurringRules,
+  listTrainingTemplates,
   listRenewalRecommendations,
   listTrainingAssignments,
+  runTrainingRecurringRules,
   sendTrainingRenewalNotifications,
   updateTrainingAssignment,
+  type OrganizationDepartment,
   type RenewalRecommendation,
   type TrainingAssignment,
+  type TrainingNotificationLog,
+  type TrainingRecurringRule,
   type TrainingReport,
+  type TrainingTemplate,
 } from "@/lib/api";
 import { FeatureGate } from "@/lib/useSubscription";
 import { useI18n } from "@/lib/i18n";
@@ -44,6 +58,8 @@ const emptyForm = {
   renewal_due_at: "",
   notify_before_days: 30,
   description: "",
+  evidence_url: "",
+  evidence_label: "",
 };
 
 function formatDate(value?: string | null) {
@@ -162,6 +178,10 @@ export default function AdminTrainingPage() {
     gate: "Training and renewal tracking is available on the Enterprise plan.",
   };
   const [assignments, setAssignments] = useState<TrainingAssignment[]>([]);
+  const [orgDepartments, setOrgDepartments] = useState<OrganizationDepartment[]>([]);
+  const [templates, setTemplates] = useState<TrainingTemplate[]>([]);
+  const [recurringRules, setRecurringRules] = useState<TrainingRecurringRule[]>([]);
+  const [notificationLogs, setNotificationLogs] = useState<TrainingNotificationLog[]>([]);
   const [report, setReport] = useState<TrainingReport | null>(null);
   const [recommendations, setRecommendations] = useState<RenewalRecommendation[]>([]);
   const [selected, setSelected] = useState<TrainingAssignment | null>(null);
@@ -169,6 +189,9 @@ export default function AdminTrainingPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
   const [department, setDepartment] = useState("");
+  const [newDepartment, setNewDepartment] = useState("");
+  const [newManagerEmail, setNewManagerEmail] = useState("");
+  const [templateName, setTemplateName] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -176,6 +199,7 @@ export default function AdminTrainingPage() {
 
   const departments = useMemo(() => {
     const values = new Set<string>();
+    orgDepartments.forEach((item) => values.add(item.name));
     assignments.forEach((item) => {
       if (item.department) values.add(item.department);
     });
@@ -196,6 +220,8 @@ export default function AdminTrainingPage() {
       renewal_due_at: toDateTimeInput(item.renewal_due_at),
       notify_before_days: item.notify_before_days || 30,
       description: item.description || "",
+      evidence_url: item.evidence_url || "",
+      evidence_label: item.evidence_label || "",
     });
   }
 
@@ -208,7 +234,17 @@ export default function AdminTrainingPage() {
         getTrainingReport(),
         listRenewalRecommendations(department || undefined),
       ]);
+      const [nextDepartments, nextTemplates, nextRules, nextLogs] = await Promise.all([
+        listTrainingDepartments(),
+        listTrainingTemplates(),
+        listTrainingRecurringRules(),
+        listTrainingNotificationLogs(),
+      ]);
       setAssignments(rows);
+      setOrgDepartments(nextDepartments);
+      setTemplates(nextTemplates);
+      setRecurringRules(nextRules);
+      setNotificationLogs(nextLogs);
       setReport(nextReport);
       setRecommendations(nextRecommendations);
       if (selected) {
@@ -236,11 +272,15 @@ export default function AdminTrainingPage() {
         title: form.title,
         assignee_name: form.assignee_name,
         assignee_email: form.assignee_email,
+        department_id: orgDepartments.find((item) => item.name === form.department)?.id || null,
         department: form.department || null,
+        manager_email: orgDepartments.find((item) => item.name === form.department)?.manager_email || null,
         due_at: fromDateTimeInput(form.due_at),
         renewal_due_at: fromDateTimeInput(form.renewal_due_at),
         notify_before_days: Number(form.notify_before_days) || 30,
         description: form.description || null,
+        evidence_url: form.evidence_url || null,
+        evidence_label: form.evidence_label || null,
       };
       const saved = selected
         ? await updateTrainingAssignment(selected.id, payload)
@@ -253,6 +293,85 @@ export default function AdminTrainingPage() {
       setError(ex?.message || copy.saveError);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function addDepartment() {
+    if (!newDepartment.trim()) return;
+    setError(null);
+    try {
+      await createTrainingDepartment({
+        name: newDepartment.trim(),
+        manager_email: newManagerEmail.trim() || null,
+        active: true,
+      });
+      setNewDepartment("");
+      setNewManagerEmail("");
+      await loadAll();
+    } catch (ex: any) {
+      setError(ex?.message || copy.saveError);
+    }
+  }
+
+  async function saveTemplateAndRecurring() {
+    if (!templateName.trim() || !form.title.trim()) {
+      setError(copy.requiredError);
+      return;
+    }
+    setError(null);
+    try {
+      const dept = orgDepartments.find((item) => item.name === form.department);
+      const template = await createTrainingTemplate({
+        name: templateName.trim(),
+        title: form.title.trim(),
+        description: form.description || null,
+        department_id: dept?.id || null,
+        default_due_days: 30,
+        renewal_interval_days: 365,
+        notify_before_days: Number(form.notify_before_days) || 30,
+        approval_required: Boolean(dept?.manager_email),
+        active: true,
+      });
+      await createTrainingRecurringRule({
+        template_id: template.id,
+        department_id: dept?.id || null,
+        source: "event_participants",
+        enabled: true,
+        lookback_days: 30,
+      });
+      setTemplateName("");
+      setNotice("Şablon ve recurring kural oluşturuldu.");
+      await loadAll();
+    } catch (ex: any) {
+      setError(ex?.message || copy.saveError);
+    }
+  }
+
+  async function runRecurring() {
+    setError(null);
+    try {
+      const result = await runTrainingRecurringRules();
+      setNotice(`Recurring atama sonucu: ${result.created} oluşturuldu, ${result.skipped} atlandı.`);
+      await loadAll();
+    } catch (ex: any) {
+      setError(ex?.message || copy.saveError);
+    }
+  }
+
+  async function downloadComplianceReport(format: "csv" | "pdf") {
+    setError(null);
+    try {
+      const blob = await exportTrainingReportFile(format);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `training-compliance-report.${format}`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch (ex: any) {
+      setError(ex?.message || copy.loadError);
     }
   }
 
@@ -320,6 +439,12 @@ export default function AdminTrainingPage() {
           <Bell className="h-4 w-4" />
           {copy.runNotifications}
         </button>
+        <button type="button" onClick={() => void downloadComplianceReport("csv")} className="btn-secondary justify-center">
+          CSV rapor
+        </button>
+        <button type="button" onClick={() => void downloadComplianceReport("pdf")} className="btn-secondary justify-center">
+          PDF rapor
+        </button>
       </div>
 
       {error && <div className="error-banner text-sm">{error}</div>}
@@ -338,6 +463,49 @@ export default function AdminTrainingPage() {
             <p className="mt-1 text-2xl font-black text-surface-900">{value}</p>
           </div>
         ))}
+      </section>
+
+      <section className="surface-panel p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl bg-brand-50 p-3 text-brand-600">
+              <Building2 className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-black text-surface-900">Departmanlar ve otomatik atama</h2>
+              <p className="mt-1 max-w-2xl text-sm text-surface-500">
+                Departman yöneticisi, eğitim şablonu ve recurring kuralı aynı yerden yönetilir.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs text-surface-500">
+                <span>{orgDepartments.length} departman</span>
+                <span>{templates.length} şablon</span>
+                <span>{recurringRules.length} recurring kural</span>
+                <span>{notificationLogs.length} bildirim logu</span>
+              </div>
+            </div>
+          </div>
+          <button type="button" onClick={() => void runRecurring()} className="btn-secondary justify-center">
+            <RefreshCcw className="h-4 w-4" />
+            Recurring atamaları çalıştır
+          </button>
+        </div>
+        <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
+          <input value={newDepartment} onChange={(event) => setNewDepartment(event.target.value)} className="input-field" placeholder="Departman adı" />
+          <input value={newManagerEmail} onChange={(event) => setNewManagerEmail(event.target.value)} className="input-field" placeholder="Manager e-posta" />
+          <button type="button" onClick={() => void addDepartment()} className="btn-primary justify-center">
+            <Plus className="h-4 w-4" />
+            Departman ekle
+          </button>
+        </div>
+        {orgDepartments.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {orgDepartments.map((item) => (
+              <span key={item.id} className="rounded-full border border-surface-200 bg-white px-3 py-1 text-xs font-bold text-surface-700">
+                {item.name}{item.manager_email ? ` · ${item.manager_email}` : ""}
+              </span>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="surface-panel p-5">
@@ -443,7 +611,7 @@ export default function AdminTrainingPage() {
                 <input value={form.assignee_name} onChange={(event) => setForm({ ...form, assignee_name: event.target.value })} className="input-field" placeholder={copy.attendeeName} />
                 <input value={form.assignee_email} onChange={(event) => setForm({ ...form, assignee_email: event.target.value })} className="input-field" placeholder="E-posta" />
               </div>
-              <input value={form.department} onChange={(event) => setForm({ ...form, department: event.target.value })} className="input-field" placeholder={copy.department} />
+              <input value={form.department} onChange={(event) => setForm({ ...form, department: event.target.value })} list="training-departments" className="input-field" placeholder={copy.department} />
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">
                   <span className="text-xs font-bold text-surface-500">{copy.dueDate}</span>
@@ -465,7 +633,31 @@ export default function AdminTrainingPage() {
                   className="input-field mt-1"
                 />
               </label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <input
+                  value={(form as any).evidence_url || ""}
+                  onChange={(event) => setForm({ ...form, evidence_url: event.target.value } as typeof form)}
+                  className="input-field"
+                  placeholder="Kanıt linki"
+                />
+                <input
+                  value={(form as any).evidence_label || ""}
+                  onChange={(event) => setForm({ ...form, evidence_label: event.target.value } as typeof form)}
+                  className="input-field"
+                  placeholder="Kanıt etiketi"
+                />
+              </div>
               <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} className="input-field min-h-[120px]" placeholder={copy.description} />
+              <div className="rounded-lg border border-surface-200 bg-surface-50 p-3">
+                <p className="text-xs font-bold text-surface-600">Bu formdan şablon oluştur</p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_auto]">
+                  <input value={templateName} onChange={(event) => setTemplateName(event.target.value)} className="input-field" placeholder="Şablon adı" />
+                  <button type="button" onClick={() => void saveTemplateAndRecurring()} className="btn-secondary justify-center">
+                    <Save className="h-4 w-4" />
+                    Şablon + recurring
+                  </button>
+                </div>
+              </div>
               <button type="button" onClick={() => void saveAssignment()} disabled={saving} className="btn-primary w-full justify-center">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 {copy.save}

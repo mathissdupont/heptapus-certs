@@ -531,7 +531,16 @@ class TrainingAssignment(Base):
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     assignee_name: Mapped[str] = mapped_column(String(200))
     assignee_email: Mapped[str] = mapped_column(String(320), index=True)
+    department_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organization_departments.id", ondelete="SET NULL"), nullable=True, index=True)
     department: Mapped[Optional[str]] = mapped_column(String(160), nullable=True, index=True)
+    manager_email: Mapped[Optional[str]] = mapped_column(String(320), nullable=True, index=True)
+    approval_status: Mapped[str] = mapped_column(String(32), default="not_required", index=True)
+    approved_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    evidence_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    evidence_label: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    template_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("training_assignment_templates.id", ondelete="SET NULL"), nullable=True, index=True)
+    recurring_rule_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("training_recurring_rules.id", ondelete="SET NULL"), nullable=True, index=True)
     required: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     status: Mapped[str] = mapped_column(String(32), default="assigned", index=True)
     due_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
@@ -547,6 +556,89 @@ class TrainingAssignment(Base):
         Index("ix_training_assignments_org_status", "organization_id", "status"),
         Index("ix_training_assignments_org_department", "organization_id", "department"),
         Index("ix_training_assignments_org_renewal", "organization_id", "renewal_due_at"),
+    )
+
+
+class OrganizationDepartment(Base):
+    __tablename__ = "organization_departments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(160))
+    code: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    manager_name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    manager_email: Mapped[Optional[str]] = mapped_column(String(320), nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    created_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("organization_id", "name", name="uq_org_department_name"),
+        Index("ix_org_departments_org_active", "organization_id", "active"),
+    )
+
+
+class TrainingAssignmentTemplate(Base):
+    __tablename__ = "training_assignment_templates"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    department_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organization_departments.id", ondelete="SET NULL"), nullable=True, index=True)
+    name: Mapped[str] = mapped_column(String(160))
+    title: Mapped[str] = mapped_column(String(200))
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    required: Mapped[bool] = mapped_column(Boolean, default=True)
+    default_due_days: Mapped[int] = mapped_column(Integer, default=30)
+    renewal_interval_days: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    notify_before_days: Mapped[int] = mapped_column(Integer, default=30)
+    approval_required: Mapped[bool] = mapped_column(Boolean, default=False)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    created_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        Index("ix_training_templates_org_department", "organization_id", "department_id"),
+    )
+
+
+class TrainingRecurringRule(Base):
+    __tablename__ = "training_recurring_rules"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    template_id: Mapped[int] = mapped_column(Integer, ForeignKey("training_assignment_templates.id", ondelete="CASCADE"), index=True)
+    department_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organization_departments.id", ondelete="SET NULL"), nullable=True, index=True)
+    source: Mapped[str] = mapped_column(String(48), default="manual")
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    lookback_days: Mapped[int] = mapped_column(Integer, default=30)
+    last_run_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        Index("ix_training_recurring_org_enabled", "organization_id", "enabled"),
+    )
+
+
+class TrainingRenewalNotificationLog(Base):
+    __tablename__ = "training_renewal_notification_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    assignment_id: Mapped[int] = mapped_column(Integer, ForeignKey("training_assignments.id", ondelete="CASCADE"), index=True)
+    recipient_email: Mapped[str] = mapped_column(String(320), index=True)
+    status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    target_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_training_notification_assignment_status", "assignment_id", "status"),
     )
 
 
@@ -574,6 +666,7 @@ class EventAutomationRule(Base):
     event_id: Mapped[int] = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(120))
     trigger: Mapped[str] = mapped_column(String(64), index=True)
+    trigger_config: Mapped[dict] = mapped_column(JSONB, default=dict)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     actions: Mapped[list] = mapped_column(JSONB, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
