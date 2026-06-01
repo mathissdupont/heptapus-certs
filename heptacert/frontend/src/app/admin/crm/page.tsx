@@ -1,23 +1,27 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CheckCircle2,
   Clock3,
+  Download,
   FileBadge2,
   Loader2,
   Mail,
   Save,
   Search,
+  Send,
   Tag,
   Ticket,
   UsersRound,
 } from "lucide-react";
 import {
+  exportSelectedCrmParticipants,
   getCrmParticipant,
   listCrmDuplicateCandidates,
   listCrmParticipants,
   mergeCrmParticipants,
+  sendCrmBulkEmail,
   updateCrmParticipant,
   type CrmDuplicateCandidate,
   type CrmParticipantDetail,
@@ -95,6 +99,13 @@ export default function AdminCrmPage() {
     customFields: "Özel alanlar",
     duplicates: "Olası tekrarlar",
     merge: "Birleştir",
+    selected: "seçili",
+    selectAll: "Görünenleri seç",
+    clearSelection: "Seçimi temizle",
+    exportCsv: "CSV indir",
+    templateId: "Şablon ID",
+    sendEmail: "Mail gönder",
+    bulkEmailResult: "Mail sonucu",
     notes: "Notlar",
     notesPlaceholder: "Katılımcıyla ilgili satış, destek veya etkinlik notları",
     updated: "Son güncelleme",
@@ -135,6 +146,13 @@ export default function AdminCrmPage() {
     customFields: "Custom fields",
     duplicates: "Possible duplicates",
     merge: "Merge",
+    selected: "selected",
+    selectAll: "Select visible",
+    clearSelection: "Clear selection",
+    exportCsv: "Export CSV",
+    templateId: "Template ID",
+    sendEmail: "Send email",
+    bulkEmailResult: "Email result",
     notes: "Notes",
     notesPlaceholder: "Sales, support, or event notes for this participant",
     updated: "Last updated",
@@ -157,6 +175,7 @@ export default function AdminCrmPage() {
   const [participants, setParticipants] = useState<CrmParticipantListItem[]>([]);
   const [duplicates, setDuplicates] = useState<CrmDuplicateCandidate[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<string | null>(null);
+  const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
   const [detail, setDetail] = useState<CrmParticipantDetail | null>(null);
   const [notes, setNotes] = useState("");
   const [tagsText, setTagsText] = useState("");
@@ -168,13 +187,65 @@ export default function AdminCrmPage() {
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [bulkTemplateId, setBulkTemplateId] = useState("");
+  const [bulkWorking, setBulkWorking] = useState(false);
+  const [bulkNotice, setBulkNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const searchDebounceReady = useRef(false);
 
   const knownTags = useMemo(() => {
     const values = new Set<string>();
     participants.forEach((participant) => participant.meta.tags.forEach((item) => values.add(item)));
     return Array.from(values).sort((a, b) => a.localeCompare(b));
   }, [participants]);
+  const visibleEmails = useMemo(() => participants.map((participant) => participant.email), [participants]);
+  const selectedVisibleCount = selectedEmails.filter((email) => visibleEmails.includes(email)).length;
+
+  function toggleSelectedEmail(email: string) {
+    setSelectedEmails((items) =>
+      items.includes(email) ? items.filter((item) => item !== email) : [...items, email],
+    );
+  }
+
+  function selectVisibleParticipants() {
+    setSelectedEmails((items) => Array.from(new Set([...items, ...visibleEmails])));
+  }
+
+  async function exportSelected() {
+    if (selectedEmails.length === 0) return;
+    setBulkWorking(true);
+    setBulkNotice(null);
+    setError(null);
+    try {
+      const { blob, filename } = await exportSelectedCrmParticipants(selectedEmails);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (ex: any) {
+      setError(ex?.message || "CRM export failed.");
+    } finally {
+      setBulkWorking(false);
+    }
+  }
+
+  async function sendBulkEmail() {
+    const templateId = Number(bulkTemplateId);
+    if (!templateId || selectedEmails.length === 0) return;
+    setBulkWorking(true);
+    setBulkNotice(null);
+    setError(null);
+    try {
+      const result = await sendCrmBulkEmail({ emails: selectedEmails, email_template_id: templateId });
+      setBulkNotice(`${copy.bulkEmailResult}: ${result.sent} sent, ${result.skipped} skipped, ${result.failed} failed.`);
+    } catch (ex: any) {
+      setError(ex?.message || "CRM bulk email failed.");
+    } finally {
+      setBulkWorking(false);
+    }
+  }
 
   async function loadParticipants(nextSelectedEmail?: string | null) {
     setLoading(true);
@@ -187,6 +258,7 @@ export default function AdminCrmPage() {
         limit: 100,
       });
       setParticipants(rows);
+      setSelectedEmails((items) => items.filter((email) => rows.some((row) => row.email === email)));
       listCrmDuplicateCandidates({ limit: 5 }).then(setDuplicates).catch(() => undefined);
       const email = nextSelectedEmail ?? selectedEmail;
       const stillVisible = email ? rows.some((row) => row.email === email) : false;
@@ -276,6 +348,18 @@ export default function AdminCrmPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!searchDebounceReady.current) {
+      searchDebounceReady.current = true;
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      void loadParticipants(null);
+    }, 350);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, status, tag]);
+
   return (
     <FeatureGate requiredPlans={["enterprise"]} message={lang === "tr" ? "Event CRM Enterprise planına özeldir." : "Event CRM is available on the Enterprise plan."}>
     <div className="space-y-6">
@@ -357,6 +441,40 @@ export default function AdminCrmPage() {
               {participants.length}
             </span>
           </div>
+          <div className="border-b border-surface-200 bg-surface-50 px-5 py-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-bold text-surface-600">
+                {selectedVisibleCount} {copy.selected}
+              </span>
+              <button type="button" onClick={selectVisibleParticipants} className="btn-secondary px-3 py-2 text-xs">
+                {copy.selectAll}
+              </button>
+              <button type="button" onClick={() => setSelectedEmails([])} className="btn-secondary px-3 py-2 text-xs">
+                {copy.clearSelection}
+              </button>
+              <button type="button" onClick={() => void exportSelected()} disabled={bulkWorking || selectedEmails.length === 0} className="btn-secondary px-3 py-2 text-xs">
+                <Download className="h-3.5 w-3.5" />
+                {copy.exportCsv}
+              </button>
+              <input
+                value={bulkTemplateId}
+                onChange={(event) => setBulkTemplateId(event.target.value)}
+                className="input-field h-9 w-28 text-xs"
+                inputMode="numeric"
+                placeholder={copy.templateId}
+              />
+              <button
+                type="button"
+                onClick={() => void sendBulkEmail()}
+                disabled={bulkWorking || selectedEmails.length === 0 || !Number(bulkTemplateId)}
+                className="btn-primary px-3 py-2 text-xs"
+              >
+                {bulkWorking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                {copy.sendEmail}
+              </button>
+            </div>
+            {bulkNotice && <p className="mt-2 text-xs font-bold text-emerald-700">{bulkNotice}</p>}
+          </div>
           {loading ? (
             <div className="flex justify-center py-16">
               <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
@@ -367,43 +485,57 @@ export default function AdminCrmPage() {
             <div className="max-h-[720px] overflow-auto">
               {participants.map((participant) => {
                 const active = participant.email === selectedEmail;
+                const checked = selectedEmails.includes(participant.email);
                 return (
-                  <button
+                  <article
                     key={participant.email}
-                    type="button"
-                    onClick={() => {
-                      setSelectedEmail(participant.email);
-                      void loadDetail(participant.email);
-                    }}
                     className={`w-full border-b border-surface-100 px-5 py-4 text-left transition ${
                       active ? "bg-brand-50" : "bg-white hover:bg-surface-50"
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-black text-surface-900">{participant.name}</p>
-                        <p className="truncate text-xs text-surface-500">{participant.email}</p>
-                      </div>
-                      <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-surface-600 shadow-sm">
-                        {participant.meta.lifecycle_status}
-                      </span>
-                    </div>
-                    <div className="mt-3 grid grid-cols-4 gap-2 text-center text-[11px] font-bold text-surface-500">
-                      <span>{participant.event_count} etkinlik</span>
-                      <span>{participant.attended_count} {copy.attendance.toLowerCase()}</span>
-                      <span>{participant.certificate_count} sertifika</span>
-                      <span>{participant.survey_count} anket</span>
-                    </div>
-                    {participant.meta.tags.length > 0 && (
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        {participant.meta.tags.slice(0, 4).map((item) => (
-                          <span key={item} className="rounded-full bg-surface-100 px-2 py-0.5 text-[10px] font-bold text-surface-600">
-                            {item}
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleSelectedEmail(participant.email)}
+                        className="mt-1 h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500"
+                        aria-label={participant.email}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedEmail(participant.email);
+                          void loadDetail(participant.email);
+                        }}
+                        className="min-w-0 flex-1 text-left"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-black text-surface-900">{participant.name}</p>
+                            <p className="truncate text-xs text-surface-500">{participant.email}</p>
+                          </div>
+                          <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-surface-600 shadow-sm">
+                            {participant.meta.lifecycle_status}
                           </span>
-                        ))}
-                      </div>
-                    )}
-                  </button>
+                        </div>
+                        <div className="mt-3 grid grid-cols-4 gap-2 text-center text-[11px] font-bold text-surface-500">
+                          <span>{participant.event_count} etkinlik</span>
+                          <span>{participant.attended_count} {copy.attendance.toLowerCase()}</span>
+                          <span>{participant.certificate_count} sertifika</span>
+                          <span>{participant.survey_count} anket</span>
+                        </div>
+                        {participant.meta.tags.length > 0 && (
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {participant.meta.tags.slice(0, 4).map((item) => (
+                              <span key={item} className="rounded-full bg-surface-100 px-2 py-0.5 text-[10px] font-bold text-surface-600">
+                                {item}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </button>
+                    </div>
+                  </article>
                 );
               })}
             </div>

@@ -10,10 +10,14 @@ import {
   createEventAutomation,
   deleteEventAutomation,
   dispatchEventAutomationsNow,
+  dryRunEventAutomation,
   getEventAutomations,
+  listEventAutomationLogs,
   updateEventAutomation,
   type AutomationAction,
   type AutomationActionType,
+  type AutomationDispatchLog,
+  type AutomationDryRun,
   type AutomationRule,
   type AutomationSummary,
   type AutomationTrigger,
@@ -65,6 +69,9 @@ export default function EventAutomationsPage() {
     deleteError: "Kural silinemedi.",
     dispatchResult: (sent: number, skipped: number, failed: number) => `${sent} aksiyon çalıştı, ${skipped} zaten işlenmiş, ${failed} başarısız.`,
     dispatchError: "Otomasyonlar çalıştırılamadı.",
+    dryRun: "Önizle",
+    logs: "Çalışma geçmişi",
+    dryRunResult: (count: number) => `${count} hedef bulundu.`,
     newRule: "Yeni kural",
     runNow: "Şimdi çalıştır",
   } : {
@@ -78,6 +85,9 @@ export default function EventAutomationsPage() {
     deleteError: "Could not delete rule.",
     dispatchResult: (sent: number, skipped: number, failed: number) => `${sent} actions ran, ${skipped} already processed, ${failed} failed.`,
     dispatchError: "Could not run automations.",
+    dryRun: "Preview",
+    logs: "Run history",
+    dryRunResult: (count: number) => `${count} targets found.`,
     newRule: "New rule",
     runNow: "Run now",
   };
@@ -86,6 +96,8 @@ export default function EventAutomationsPage() {
   const [saving, setSaving] = useState(false);
   const [dispatching, setDispatching] = useState(false);
   const [dispatchResult, setDispatchResult] = useState<string | null>(null);
+  const [logs, setLogs] = useState<AutomationDispatchLog[]>([]);
+  const [dryRun, setDryRun] = useState<AutomationDryRun | null>(null);
   const [busyRuleId, setBusyRuleId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<RuleForm>(DEFAULT_FORM);
@@ -95,6 +107,7 @@ export default function EventAutomationsPage() {
     setError(null);
     try {
       setSummary(await getEventAutomations(eventId));
+      setLogs(await listEventAutomationLogs(eventId, { limit: 20 }));
     } catch (ex: any) {
       setError(ex?.message || copy.loadError);
     } finally {
@@ -175,6 +188,21 @@ export default function EventAutomationsPage() {
       setError(ex?.message || copy.dispatchError);
     } finally {
       setDispatching(false);
+    }
+  }
+
+  async function previewRule(ruleId: string) {
+    setBusyRuleId(ruleId);
+    setDryRun(null);
+    setError(null);
+    try {
+      const result = await dryRunEventAutomation(eventId, ruleId);
+      setDryRun(result);
+      setDispatchResult(copy.dryRunResult(result.target_count));
+    } catch (ex: any) {
+      setError(ex?.message || copy.dispatchError);
+    } finally {
+      setBusyRuleId(null);
     }
   }
 
@@ -374,6 +402,9 @@ export default function EventAutomationsPage() {
                         </p>
                       </div>
                       <div className="flex gap-2">
+                        <button type="button" onClick={() => void previewRule(rule.id)} disabled={busyRuleId === rule.id} className="btn-secondary px-3 py-1.5 text-xs">
+                          {copy.dryRun}
+                        </button>
                         <button type="button" onClick={() => editRule(rule)} className="btn-secondary px-3 py-1.5 text-xs">
                           Düzenle
                         </button>
@@ -395,6 +426,58 @@ export default function EventAutomationsPage() {
           )}
         </section>
       </div>
+
+      {dryRun && (
+        <section className="surface-panel p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-base font-black text-surface-900">{copy.dryRun}</h2>
+            <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-bold text-brand-700">
+              {dryRun.target_count} hedef
+            </span>
+          </div>
+          <div className="mt-4 grid gap-2 md:grid-cols-2">
+            {dryRun.sample_recipients.map((item) => (
+              <div key={`${item.attendee_id}-${item.email}`} className="rounded-lg border border-surface-200 bg-white p-3">
+                <p className="text-sm font-black text-surface-900">{item.name || item.email}</p>
+                <p className="mt-1 text-xs text-surface-500">{item.email || "-"}</p>
+                {item.suppressed && <p className="mt-2 text-xs font-bold text-amber-700">suppressed</p>}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="surface-panel p-5">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-base font-black text-surface-900">{copy.logs}</h2>
+          <span className="rounded-full bg-surface-100 px-3 py-1 text-xs font-bold text-surface-500">{logs.length}</span>
+        </div>
+        <div className="mt-4 space-y-3">
+          {logs.length === 0 ? (
+            <p className="text-sm text-surface-500">Henüz çalışma kaydı yok.</p>
+          ) : (
+            logs.map((log) => (
+              <div key={`${log.rule_id}-${log.updated_at}`} className="rounded-lg border border-surface-200 bg-white p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-sm font-black text-surface-900">{log.rule_id}</p>
+                  <p className="text-xs font-bold text-surface-500">
+                    sent {log.sent} / failed {log.failed} / skipped {log.skipped}
+                  </p>
+                </div>
+                <div className="mt-3 grid gap-2 lg:grid-cols-2">
+                  {log.recent.slice(0, 6).map((item: any) => (
+                    <div key={`${item.id}-${item.status}`} className="rounded-md bg-surface-50 px-3 py-2">
+                      <p className="text-xs font-bold text-surface-800">{item.email || `#${item.attendee_id}`} · {item.action_type}</p>
+                      <p className="mt-1 text-[11px] text-surface-500">{item.status} · attempts {item.attempts || 0}</p>
+                      {item.message && <p className="mt-1 line-clamp-2 text-[11px] text-surface-500">{item.message}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
     </div>
     </FeatureGate>
   );

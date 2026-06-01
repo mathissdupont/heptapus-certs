@@ -1,7 +1,13 @@
 """Event automation rule builder endpoints."""
 
-from datetime import datetime, timezone
+import hashlib
+import hmac
+import ipaddress
+import json
+import socket
+from datetime import datetime, timedelta, timezone
 from typing import Any, Literal, Optional
+from urllib.parse import urlparse
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -16,6 +22,7 @@ from .main import (
     EmailTemplate,
     CurrentUser,
     EventAutomationDispatchState,
+    EventAutomationExecutionLog,
     EventAutomationRule,
     EventTicket,
     Event,
@@ -118,7 +125,21 @@ class AutomationDispatchLogOut(BaseModel):
     dispatched_count: int
     sent: int
     failed: int
+    skipped: int = 0
     recent: list[dict[str, Any]]
+
+
+class AutomationDryRunOut(BaseModel):
+    rule_id: str
+    trigger: str
+    target_count: int
+    sample_recipients: list[dict[str, Any]]
+    actions: list[AutomationActionOut]
+
+
+AUTOMATION_EVENT_LIMIT_PER_HOUR = 250
+AUTOMATION_ORG_LIMIT_PER_HOUR = 1000
+AUTOMATION_MAX_ATTEMPTS = 3
 
 
 def _automation_key(event_id: int) -> str:
@@ -168,6 +189,16 @@ def _serialize_rule(raw: dict[str, Any]) -> AutomationRuleOut:
         created_at=raw.get("created_at") or datetime.utcnow(),
         updated_at=raw.get("updated_at") or datetime.utcnow(),
     )
+
+
+def _clean_actions_for_storage(actions: list[AutomationActionIn]) -> list[dict[str, Any]]:
+    clean: list[dict[str, Any]] = []
+    for action in actions:
+        data = action.model_dump()
+        if data.get("type") == "webhook_dispatch" and data.get("webhook_url"):
+            data["webhook_url"] = _safe_webhook_url(str(data["webhook_url"]))
+        clean.append(data)
+    return clean
 
 
 async def _load_rule_rows(db: AsyncSession, event_id: int) -> list[EventAutomationRule]:
@@ -254,6 +285,97 @@ async def _summary(db: AsyncSession, event_id: int, rules: list[dict[str, Any]])
 def _target_key(attendee: Attendee, action_index: int, action_type: str) -> str:
     email = (attendee.email or "").strip().lower()
     return f"{action_index}:{action_type}:{email or attendee.id}"
+
+
+def _retry_at(attempts: int) -> datetime:
+    delay_minutes = min(60, 2 ** max(0, attempts - 1))
+    return datetime.now(timezone.utc) + timedelta(minutes=delay_minutes)
+
+
+def _block_private_address(value: str) -> None:
+    ip = ipaddress.ip_address(value)
+    if ip.is_private or ip.is_loopback or ip.is_reserved or ip.is_link_local or ip.is_multicast:
+        raise HTTPException(status_code=400, detail="Webhook URL must not resolve to private/internal addresses")
+
+
+def _safe_webhook_url(raw_url: str) -> str:
+    safe_url = WebhookEndpointIn(url=str(raw_url), events=[]).url
+    parsed = urlparse(safe_url)
+    hostname = parsed.hostname or ""
+    try:
+        _block_private_address(hostname)
+    except ValueError:
+        try:
+            for info in socket.getaddrinfo(hostname, parsed.port or 443, type=socket.SOCK_STREAM):
+                _block_private_address(info[4][0])
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Webhook hostname could not be validated: {exc}") from exc
+    return safe_url
+
+
+def _sign_webhook_payload(payload: dict[str, Any]) -> str:
+    secret = (settings.jwt_secret or "heptacert").encode()
+    body = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode()
+    return hmac.new(secret, body, hashlib.sha256).hexdigest()
+
+
+async def _rate_limit_available(db: AsyncSession, event: Event) -> bool:
+    since = datetime.now(timezone.utc) - timedelta(hours=1)
+    event_count_res = await db.execute(
+        select(func.count(EventAutomationExecutionLog.id)).where(
+            EventAutomationExecutionLog.event_id == event.id,
+            EventAutomationExecutionLog.created_at >= since,
+            EventAutomationExecutionLog.status.in_(["sent", "failed", "pending"]),
+        )
+    )
+    if int(event_count_res.scalar_one() or 0) >= AUTOMATION_EVENT_LIMIT_PER_HOUR:
+        return False
+    org_count_res = await db.execute(
+        select(func.count(EventAutomationExecutionLog.id))
+        .join(Event, Event.id == EventAutomationExecutionLog.event_id)
+        .where(
+            Event.admin_id == event.admin_id,
+            EventAutomationExecutionLog.created_at >= since,
+            EventAutomationExecutionLog.status.in_(["sent", "failed", "pending"]),
+        )
+    )
+    return int(org_count_res.scalar_one() or 0) < AUTOMATION_ORG_LIMIT_PER_HOUR
+
+
+async def _execution_log_for_action(
+    db: AsyncSession,
+    event: Event,
+    rule_id: str,
+    attendee: Attendee,
+    action_index: int,
+    action_type: str,
+) -> EventAutomationExecutionLog:
+    key = _target_key(attendee, action_index, action_type)
+    row_res = await db.execute(
+        select(EventAutomationExecutionLog).where(
+            EventAutomationExecutionLog.event_id == event.id,
+            EventAutomationExecutionLog.idempotency_key == key,
+        )
+    )
+    row = row_res.scalar_one_or_none()
+    if row:
+        return row
+    row = EventAutomationExecutionLog(
+        event_id=event.id,
+        rule_id=rule_id,
+        attendee_id=attendee.id,
+        recipient_email=(attendee.email or "").strip().lower() or None,
+        action_index=action_index,
+        action_type=action_type,
+        idempotency_key=key,
+        status="pending",
+        payload={},
+    )
+    db.add(row)
+    await db.flush()
+    return row
 
 
 async def _automation_target_attendees(db: AsyncSession, event: Event, trigger: str) -> list[Attendee]:
@@ -372,7 +494,7 @@ async def _dispatch_webhook_action(event: Event, attendee: Attendee, rule: dict[
     url = action.get("webhook_url")
     if not url:
         return False, "webhook_url missing"
-    safe_url = WebhookEndpointIn(url=str(url), events=[]).url
+    safe_url = _safe_webhook_url(str(url))
     payload = {
         "event": "automation.dispatch",
         "automation_rule_id": rule.get("id"),
@@ -387,8 +509,16 @@ async def _dispatch_webhook_action(event: Event, attendee: Attendee, rule: dict[
         },
         "sent_at": datetime.now(timezone.utc).isoformat(),
     }
+    signature = _sign_webhook_payload(payload)
     async with httpx.AsyncClient(timeout=10.0) as client:
-        response = await client.post(safe_url, json=payload, headers={"X-HeptaCert-Event": "automation.dispatch"})
+        response = await client.post(
+            safe_url,
+            json=payload,
+            headers={
+                "X-HeptaCert-Event": "automation.dispatch",
+                "X-HeptaCert-Signature": f"sha256={signature}",
+            },
+        )
     if response.status_code >= 400:
         return False, f"webhook failed: HTTP {response.status_code}"
     return True, f"webhook delivered: HTTP {response.status_code}"
@@ -441,8 +571,31 @@ async def _process_automation_dispatches(*, event_id: Optional[int] = None, limi
                 for attendee in targets:
                     for action_index, action in enumerate(actions):
                         action_type = str(action.get("type") or "")
-                        key = _target_key(attendee, action_index, action_type)
-                        if key in dispatched:
+                        log_row = await _execution_log_for_action(db, event, rule_id, attendee, action_index, action_type)
+                        next_attempt_at = log_row.next_attempt_at
+                        if log_row.status == "sent":
+                            stats["skipped"] += 1
+                            continue
+                        if log_row.status == "failed" and log_row.attempts >= AUTOMATION_MAX_ATTEMPTS:
+                            stats["skipped"] += 1
+                            continue
+                        if next_attempt_at and next_attempt_at > datetime.now(timezone.utc):
+                            stats["skipped"] += 1
+                            continue
+                        if action_type == "send_email" and (not attendee.email or not attendee.email.strip() or attendee.unsubscribed_at is not None):
+                            log_row.status = "suppressed"
+                            log_row.error_message = "recipient unavailable or unsubscribed"
+                            log_row.updated_at = datetime.now(timezone.utc)
+                            log_row.payload = {"attendee_id": attendee.id, "action": action}
+                            db.add(log_row)
+                            stats["skipped"] += 1
+                            continue
+                        if not await _rate_limit_available(db, event):
+                            log_row.status = "pending"
+                            log_row.next_attempt_at = datetime.now(timezone.utc) + timedelta(minutes=15)
+                            log_row.error_message = "automation rate limit reached"
+                            log_row.updated_at = datetime.now(timezone.utc)
+                            db.add(log_row)
                             stats["skipped"] += 1
                             continue
                         try:
@@ -458,12 +611,23 @@ async def _process_automation_dispatches(*, event_id: Optional[int] = None, limi
                             ok, message = False, str(exc)
                             logger.warning("Automation dispatch failed: event=%s rule=%s attendee=%s action=%s error=%s", event.id, rule_id, attendee.id, action_type, exc)
 
-                        dispatched[key] = {
+                        log_row.attempts = int(log_row.attempts or 0) + 1
+                        log_row.status = "sent" if ok else "failed"
+                        log_row.error_message = None if ok else message[:2000]
+                        log_row.next_attempt_at = None if ok or log_row.attempts >= AUTOMATION_MAX_ATTEMPTS else _retry_at(log_row.attempts)
+                        log_row.dispatched_at = datetime.now(timezone.utc)
+                        log_row.updated_at = datetime.now(timezone.utc)
+                        log_row.payload = {"attendee_id": attendee.id, "email": attendee.email, "action": action, "message": message}
+                        db.add(log_row)
+
+                        dispatched[log_row.idempotency_key] = {
                             "ok": ok,
                             "message": message,
                             "attendee_id": attendee.id,
                             "email": attendee.email,
                             "action_type": action_type,
+                            "attempts": log_row.attempts,
+                            "status": log_row.status,
                             "dispatched_at": datetime.now(timezone.utc).isoformat(),
                         }
                         if ok:
@@ -535,7 +699,7 @@ async def create_event_automation(
         name=payload.name,
         trigger=payload.trigger,
         enabled=payload.enabled,
-        actions=[action.model_dump() for action in payload.actions],
+        actions=_clean_actions_for_storage(payload.actions),
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
     )
@@ -564,7 +728,7 @@ async def update_event_automation(
     rule.name = payload.name
     rule.trigger = payload.trigger
     rule.enabled = payload.enabled
-    rule.actions = [action.model_dump() for action in payload.actions]
+    rule.actions = _clean_actions_for_storage(payload.actions)
     rule.updated_at = datetime.utcnow()
     await db.commit()
     rules = [_rule_to_dict(item) for item in await _load_rule_rows(db, event_id)]
@@ -593,6 +757,12 @@ async def delete_event_automation(
             EventAutomationDispatchState.rule_id == rule_id,
         )
     )
+    await db.execute(
+        delete(EventAutomationExecutionLog).where(
+            EventAutomationExecutionLog.event_id == event_id,
+            EventAutomationExecutionLog.rule_id == rule_id,
+        )
+    )
     await db.commit()
     rules = [_rule_to_dict(item) for item in await _load_rule_rows(db, event_id)]
     return await _summary(db, event_id, rules)
@@ -617,6 +787,40 @@ async def process_automation_dispatches_once_for_event(event_id: int) -> dict[st
 
 
 @router.get(
+    "/api/admin/events/{event_id}/automations/{rule_id}/dry-run",
+    response_model=AutomationDryRunOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
+)
+async def dry_run_event_automation(
+    event_id: int,
+    rule_id: str,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    event = await _get_event_for_admin(event_id, me, db, "email:write")
+    rule = await db.get(EventAutomationRule, rule_id)
+    if not rule or rule.event_id != event_id:
+        raise HTTPException(status_code=404, detail="Automation rule not found")
+    targets = await _automation_target_attendees(db, event, rule.trigger)
+    samples = [
+        {
+            "attendee_id": attendee.id,
+            "name": attendee.name,
+            "email": attendee.email,
+            "suppressed": bool(not attendee.email or not attendee.email.strip() or attendee.unsubscribed_at is not None),
+        }
+        for attendee in targets[:10]
+    ]
+    return AutomationDryRunOut(
+        rule_id=rule.id,
+        trigger=rule.trigger,
+        target_count=len(targets),
+        sample_recipients=samples,
+        actions=[_serialize_action(action) for action in rule.actions or [] if isinstance(action, dict)],
+    )
+
+
+@router.get(
     "/api/admin/events/{event_id}/automations/logs",
     response_model=list[AutomationDispatchLogOut],
     dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
@@ -631,27 +835,41 @@ async def list_event_automation_logs(
     await _get_event_for_admin(event_id, me, db, "email:write")
     rows = (
         await db.execute(
-            select(EventAutomationDispatchState)
-            .where(EventAutomationDispatchState.event_id == event_id)
-            .order_by(EventAutomationDispatchState.updated_at.desc())
+            select(EventAutomationExecutionLog)
+            .where(EventAutomationExecutionLog.event_id == event_id)
+            .order_by(EventAutomationExecutionLog.updated_at.desc())
             .offset(offset)
             .limit(limit)
         )
     ).scalars().all()
-    logs: list[AutomationDispatchLogOut] = []
+    grouped: dict[str, list[EventAutomationExecutionLog]] = {}
     for row in rows:
-        state = row.state if isinstance(row.state, dict) else {}
-        dispatched = state.get("dispatched") if isinstance(state.get("dispatched"), dict) else {}
-        values = list(dispatched.values())
-        values.sort(key=lambda item: str(item.get("dispatched_at") or ""), reverse=True)
+        grouped.setdefault(row.rule_id, []).append(row)
+    logs: list[AutomationDispatchLogOut] = []
+    for rule_id, values in grouped.items():
+        values.sort(key=lambda item: item.updated_at or item.created_at, reverse=True)
         logs.append(
             AutomationDispatchLogOut(
-                rule_id=row.rule_id,
-                updated_at=row.updated_at,
+                rule_id=rule_id,
+                updated_at=values[0].updated_at,
                 dispatched_count=len(values),
-                sent=sum(1 for item in values if item.get("ok")),
-                failed=sum(1 for item in values if not item.get("ok")),
-                recent=values[:25],
+                sent=sum(1 for item in values if item.status == "sent"),
+                failed=sum(1 for item in values if item.status == "failed"),
+                skipped=sum(1 for item in values if item.status in {"suppressed", "pending"}),
+                recent=[
+                    {
+                        "id": item.id,
+                        "status": item.status,
+                        "attempts": item.attempts,
+                        "attendee_id": item.attendee_id,
+                        "email": item.recipient_email,
+                        "action_type": item.action_type,
+                        "message": item.error_message or (item.payload or {}).get("message"),
+                        "next_attempt_at": item.next_attempt_at.isoformat() if item.next_attempt_at else None,
+                        "dispatched_at": item.dispatched_at.isoformat() if item.dispatched_at else None,
+                    }
+                    for item in values[:25]
+                ],
             )
         )
     return logs

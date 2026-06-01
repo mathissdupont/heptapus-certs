@@ -1,9 +1,12 @@
 """Organization-level participant CRM endpoints."""
 
+import csv
+import io
 from datetime import datetime, timezone
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import case, distinct, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +17,7 @@ from .main import (
     AttendaonceRecord,
     Certificate,
     CurrentUser,
+    EmailTemplate,
     Event,
     EventTicket,
     Organization,
@@ -28,6 +32,7 @@ from .main import (
     get_current_user,
     get_db,
     require_role,
+    send_email_async,
 )
 from .organization_access_api import ensure_organization_enterprise, get_organization_for_access, organization_id_from_request
 
@@ -138,6 +143,20 @@ class ParticipantCrmBulkUpdateIn(BaseModel):
 class ParticipantCrmBulkUpdateOut(BaseModel):
     updated: int
     skipped: int
+
+
+class ParticipantCrmSelectionIn(BaseModel):
+    emails: list[str] = Field(min_length=1, max_length=1000)
+
+
+class ParticipantCrmBulkEmailIn(ParticipantCrmSelectionIn):
+    email_template_id: int
+
+
+class ParticipantCrmBulkEmailOut(BaseModel):
+    sent: int
+    skipped: int
+    failed: int
 
 
 class ParticipantCrmDuplicateCandidate(BaseModel):
@@ -327,6 +346,23 @@ async def _attendees_for_org(db: AsyncSession, org: Organization) -> list[tuple[
         .join(Event, Event.id == Attendee.event_id)
         .where(Event.admin_id == org.user_id, Attendee.email.is_not(None), func.trim(Attendee.email) != "")
         .order_by(Attendee.registered_at.desc())
+    )
+    return rows_res.all()
+
+
+async def _attendees_for_identity(db: AsyncSession, org: Organization, emails: list[str]) -> list[tuple[Attendee, Event]]:
+    normalized = [email for email in dict.fromkeys(_normalize_email(item) for item in emails) if email]
+    if not normalized:
+        return []
+    rows_res = await db.execute(
+        select(Attendee, Event)
+        .join(Event, Event.id == Attendee.event_id)
+        .where(
+            Event.admin_id == org.user_id,
+            Attendee.email.is_not(None),
+            func.lower(func.trim(Attendee.email)).in_(normalized),
+        )
+        .order_by(Attendee.registered_at.desc(), Attendee.id.desc())
     )
     return rows_res.all()
 
@@ -841,6 +877,162 @@ async def bulk_update_crm_participants(
         updated += 1
     await db.commit()
     return ParticipantCrmBulkUpdateOut(updated=updated, skipped=skipped)
+
+
+@router.post(
+    "/api/admin/crm/export-selected",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def export_selected_crm_participants(
+    request: Request,
+    payload: ParticipantCrmSelectionIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _admin_org(db, me, request)
+    normalized_emails = list(dict.fromkeys(_normalize_email(email) for email in payload.emails if _normalize_email(email)))
+    if not normalized_emails:
+        raise HTTPException(status_code=400, detail="At least one valid email is required")
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(
+        [
+            "email",
+            "name",
+            "lifecycle_status",
+            "priority",
+            "lead_score",
+            "tags",
+            "owner_user_id",
+            "next_follow_up_at",
+            "event_count",
+            "attended_count",
+            "certificate_count",
+            "survey_count",
+            "ticket_count",
+            "latest_activity_at",
+        ]
+    )
+
+    for email in normalized_emails:
+        canonical = await _canonical_email(db, org.id, email)
+        identity_emails = await _identity_emails(db, org.id, canonical)
+        rows = await _attendees_for_identity(db, org, identity_emails)
+        if not rows:
+            continue
+        snapshot = await _upsert_snapshot(db, org, canonical, rows, commit=False)
+        meta = await _load_meta(db, org.id, canonical)
+        writer.writerow(
+            [
+                canonical,
+                snapshot.name or rows[0][0].name or canonical,
+                meta.lifecycle_status,
+                meta.priority,
+                meta.lead_score,
+                ", ".join(meta.tags),
+                meta.owner_user_id or "",
+                meta.next_follow_up_at.isoformat() if meta.next_follow_up_at else "",
+                snapshot.event_count,
+                snapshot.attended_count,
+                snapshot.certificate_count,
+                snapshot.survey_count,
+                snapshot.ticket_count,
+                snapshot.latest_activity_at.isoformat() if snapshot.latest_activity_at else "",
+            ]
+        )
+
+    await db.commit()
+    output.seek(0)
+    filename = f"crm-selected-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}.csv"
+    headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv; charset=utf-8", headers=headers)
+
+
+@router.post(
+    "/api/admin/crm/bulk-email",
+    response_model=ParticipantCrmBulkEmailOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def send_selected_crm_email(
+    request: Request,
+    payload: ParticipantCrmBulkEmailIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _admin_org(db, me, request)
+    normalized_emails = list(dict.fromkeys(_normalize_email(email) for email in payload.emails if _normalize_email(email)))
+    if not normalized_emails:
+        raise HTTPException(status_code=400, detail="At least one valid email is required")
+
+    template_res = await db.execute(
+        select(EmailTemplate, Event)
+        .outerjoin(Event, Event.id == EmailTemplate.event_id)
+        .where(
+            EmailTemplate.id == payload.email_template_id,
+            or_(EmailTemplate.template_type == "system", Event.admin_id == org.user_id),
+        )
+    )
+    template_row = template_res.one_or_none()
+    if not template_row:
+        raise HTTPException(status_code=404, detail="Email template not found")
+    template, template_event = template_row
+
+    sent = skipped = failed = 0
+    for email in normalized_emails:
+        canonical = await _canonical_email(db, org.id, email)
+        identity_emails = await _identity_emails(db, org.id, canonical)
+        rows = [
+            row
+            for row in await _attendees_for_identity(db, org, identity_emails)
+            if row[0].email and row[0].email.strip() and row[0].unsubscribed_at is None
+        ]
+        if not rows:
+            skipped += 1
+            continue
+        attendee, event = rows[0]
+        event_for_template = template_event or event
+        template_vars = {
+            "recipient_name": attendee.name,
+            "recipient_email": attendee.email,
+            "event_name": event_for_template.name,
+            "event_date": event_for_template.event_date.isoformat() if event_for_template.event_date else "TBD",
+            "event_location": event_for_template.event_location or "Online",
+        }
+        try:
+            await send_email_async(
+                to=attendee.email,
+                subject=template.subject_tr,
+                html_body=template.body_html,
+                template_vars=template_vars,
+                raise_on_error=True,
+                sender_user_id=event_for_template.admin_id,
+            )
+            db.add(
+                ParticipantCrmAuditLog(
+                    organization_id=org.id,
+                    email=canonical,
+                    actor_user_id=me.id,
+                    action="profile.bulk_email_sent",
+                    before=None,
+                    after={"email_template_id": template.id, "recipient_email": attendee.email},
+                )
+            )
+            sent += 1
+        except Exception as exc:
+            db.add(
+                ParticipantCrmAuditLog(
+                    organization_id=org.id,
+                    email=canonical,
+                    actor_user_id=me.id,
+                    action="profile.bulk_email_failed",
+                    before=None,
+                    after={"email_template_id": template.id, "recipient_email": attendee.email, "error": str(exc)[:500]},
+                )
+            )
+            failed += 1
+    await db.commit()
+    return ParticipantCrmBulkEmailOut(sent=sent, skipped=skipped, failed=failed)
 
 
 @router.get(

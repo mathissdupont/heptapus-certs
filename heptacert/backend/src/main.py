@@ -598,6 +598,79 @@ class EventAutomationDispatchState(Base):
     )
 
 
+class EventAutomationExecutionLog(Base):
+    __tablename__ = "event_automation_execution_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id: Mapped[int] = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    rule_id: Mapped[str] = mapped_column(String(64), index=True)
+    attendee_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("attendees.id", ondelete="SET NULL"), nullable=True, index=True)
+    recipient_email: Mapped[Optional[str]] = mapped_column(String(320), nullable=True)
+    action_index: Mapped[int] = mapped_column(Integer, default=0)
+    action_type: Mapped[str] = mapped_column(String(48), index=True)
+    idempotency_key: Mapped[str] = mapped_column(String(160))
+    status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    next_attempt_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    response_status: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    payload: Mapped[dict] = mapped_column(JSONB, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    dispatched_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("event_id", "idempotency_key", name="uq_event_automation_exec_event_key"),
+        Index("ix_event_automation_exec_event_rule_status", "event_id", "rule_id", "status"),
+    )
+
+
+class EventSavedAudienceSegment(Base):
+    __tablename__ = "event_saved_audience_segments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id: Mapped[int] = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    created_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    segment_key: Mapped[str] = mapped_column(String(64), index=True)
+    filters: Mapped[dict] = mapped_column(JSONB, default=dict)
+    visibility: Mapped[str] = mapped_column(String(24), default="private", index=True)
+    last_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_computed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        Index("ix_event_saved_segments_event_visibility", "event_id", "visibility"),
+    )
+
+
+class SegmentExportJob(Base):
+    __tablename__ = "segment_export_jobs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id: Mapped[int] = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    segment_key: Mapped[str] = mapped_column(String(64), index=True)
+    filters: Mapped[dict] = mapped_column(JSONB, default=dict)
+    status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
+    row_count: Mapped[int] = mapped_column(Integer, default=0)
+    file_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    file_name: Mapped[Optional[str]] = mapped_column(String(240), nullable=True)
+    sync_google_sheets: Mapped[bool] = mapped_column(Boolean, default=False)
+    google_spreadsheet_id: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    google_spreadsheet_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    google_sheet_name: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        Index("ix_segment_export_jobs_event_status", "event_id", "status"),
+    )
+
+
 class ParticipantCrmProfile(Base):
     __tablename__ = "participant_crm_profiles"
 
@@ -5950,6 +6023,13 @@ async def startup():
             if stats.get("sent") or stats.get("failed"):
                 logger.info("Training renewal notification cycle: %s", stats)
 
+        async def _process_segment_export_jobs():
+            from .audience_segments_api import process_segment_export_jobs_once
+
+            stats = await process_segment_export_jobs_once()
+            if stats.get("completed") or stats.get("failed"):
+                logger.info("Segment export job cycle: %s", stats)
+
         if settings.enable_scheduler:
             scheduler.add_job(_notify_expiring_certs, "cron", hour=2, minute=0)
             scheduler.add_job(_auto_renew_certificates, "interval", hours=1)
@@ -5958,6 +6038,7 @@ async def startup():
             scheduler.add_job(_process_bulk_emails, "interval", minutes=5)  # Every 5 minutes
             scheduler.add_job(_process_automation_dispatches, "interval", minutes=5)
             scheduler.add_job(_process_training_renewal_notifications, "cron", hour=4, minute=15)
+            scheduler.add_job(_process_segment_export_jobs, "interval", seconds=10)
             scheduler.add_job(_process_bulk_certificate_jobs, "interval", seconds=3)
             scheduler.start()
             logger.info("APScheduler started Ã¢â‚¬â€ cert notifications + monthly HC renewal + system digest + bulk email processing + bulk certificate queue")
@@ -6928,6 +7009,8 @@ async def _process_one_bulk_certificate_job(job_id: int) -> None:
                 )
                 attendee_for_email = attendee_res.scalar_one_or_none()
                 if attendee_for_email and attendee_for_email.email:
+                    from .crm_snapshot_hooks import refresh_crm_snapshot_for_attendee
+                    await refresh_crm_snapshot_for_attendee(db_job, attendee_for_email)
                     await send_certificate_delivery_email_task(
                         event_id=ev.id,
                         cert_uuid=cert_uuid,
@@ -7866,6 +7949,8 @@ async def submit_builtin_survey(
 
     attendee.survey_completed_at = now
     attendee.can_download_cert = True
+    from .crm_snapshot_hooks import refresh_crm_snapshot_for_attendee
+    await refresh_crm_snapshot_for_attendee(db, attendee)
 
     await db.commit()
     await db.refresh(survey_response)
@@ -7939,6 +8024,8 @@ async def handle_external_survey_webhook(
 
     attendee.survey_completed_at = datetime.utcnow()
     attendee.can_download_cert = True
+    from .crm_snapshot_hooks import refresh_crm_snapshot_for_attendee
+    await refresh_crm_snapshot_for_attendee(db, attendee)
 
     await db.commit()
 
@@ -13626,6 +13713,8 @@ async def issue_certificate(
         user_agent=None,
         extra={"event_id": ev.id, "public_id": public_id, "student_name": payload.student_name},
     )
+    from .crm_snapshot_hooks import refresh_crm_snapshots_for_certificate_name
+    await refresh_crm_snapshots_for_certificate_name(db, event_id=ev.id, student_name=payload.student_name)
 
     await db.commit()
     await db.refresh(cert)
@@ -14694,6 +14783,8 @@ async def _issue_event_ticket_if_needed(db: AsyncSession, event: Event, attendee
     )
     db.add(ticket)
     await db.flush()
+    from .crm_snapshot_hooks import refresh_crm_snapshot_for_attendee
+    await refresh_crm_snapshot_for_attendee(db, attendee)
     return ticket
 
 
@@ -14746,6 +14837,8 @@ async def _record_ticket_attendaonce(
         )
     )
     await db.flush()
+    from .crm_snapshot_hooks import refresh_crm_snapshot_for_attendee
+    await refresh_crm_snapshot_for_attendee(db, ticket.attendee_id)
     return True
 
 
@@ -16012,6 +16105,8 @@ async def public_event_register(
         attendee.email_verification_token = None
         attendee.email_verified_at = datetime.now(timezone.utc)
         await _issue_event_ticket_if_needed(db, ev, attendee)
+    from .crm_snapshot_hooks import refresh_crm_snapshot_for_attendee
+    await refresh_crm_snapshot_for_attendee(db, attendee)
     consent_result = "created_unverified" if require_email_verification else "created_verified"
     await _write_attendee_consent_audit(
         db,
@@ -16306,6 +16401,9 @@ async def self_checkin(
     )
     inserted_res = await db.execute(insert_stmt)
     inserted_id = inserted_res.scalar_one_or_none()
+    if inserted_id is not None:
+        from .crm_snapshot_hooks import refresh_crm_snapshot_for_attendee
+        await refresh_crm_snapshot_for_attendee(db, attendee)
     await record_checkin_activity(
         db,
         event_id=ctx["event_id"],
@@ -17227,7 +17325,11 @@ async def import_attendees(
         if existing.scalar_one_or_none():
             skipped += 1
             continue
-        db.add(Attendee(event_id=event_id, name=raw_name, email=raw_email, source="import"))
+        attendee = Attendee(event_id=event_id, name=raw_name, email=raw_email, source="import")
+        db.add(attendee)
+        await db.flush()
+        from .crm_snapshot_hooks import refresh_crm_snapshot_for_attendee
+        await refresh_crm_snapshot_for_attendee(db, attendee)
         added += 1
         if added % 100 == 0:
             await db.flush()
@@ -17284,6 +17386,8 @@ async def create_manual_attendee(
     db.add(attendee)
     await db.flush()
     await _issue_event_ticket_if_needed(db, event, attendee)
+    from .crm_snapshot_hooks import refresh_crm_snapshot_for_attendee
+    await refresh_crm_snapshot_for_attendee(db, attendee)
 
     await write_audit_log(
         db,
@@ -17332,7 +17436,11 @@ async def delete_attendee(
     att = res.scalar_one_or_none()
     if not att:
         raise HTTPException(status_code=404, detail="Attendee not found")
+    snapshot_email = att.email
     await db.delete(att)
+    await db.flush()
+    from .crm_snapshot_hooks import refresh_crm_snapshot_for_event_email
+    await refresh_crm_snapshot_for_event_email(db, event_id=event_id, email=snapshot_email)
     await db.commit()
     return {"ok": True}
 
@@ -17390,6 +17498,9 @@ async def admin_manual_checkin(
     )
     inserted_res = await db.execute(insert_stmt)
     inserted_id = inserted_res.scalar_one_or_none()
+    if inserted_id is not None:
+        from .crm_snapshot_hooks import refresh_crm_snapshot_for_attendee
+        await refresh_crm_snapshot_for_attendee(db, attendee)
     await record_checkin_activity(
         db,
         event_id=event_id,
@@ -18351,6 +18462,8 @@ async def bulk_certify_attendees(
         created += 1
         total_spent += cost
         await db.flush()
+        from .crm_snapshot_hooks import refresh_crm_snapshot_for_attendee
+        await refresh_crm_snapshot_for_attendee(db, attendee)
         if attendee.email:
             background_tasks.add_task(
                 send_certificate_delivery_email_task,

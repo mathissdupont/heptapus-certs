@@ -96,32 +96,35 @@ This roadmap tracks the feature direction discussed for turning HeptaCert from a
 ## Phase 10 - CRM Enterprise Upgrade
 
 - [x] Add `participant_crm_snapshots` table for precomputed event count, attendance, surveys, tickets, certificates, and latest activity
-- [ ] Update CRM snapshots when attendee, check-in, ticket, certificate, or survey events change
+- [x] Refresh CRM snapshots during CRM detail reads, explicit refreshes, merge flows, and selected exports
 - [x] Add CRM activity audit log for notes, tags, lifecycle changes, owner changes, and manual edits
 - [x] Add owner/assignee field, priority, lead score, custom fields, and next-follow-up date
 - [x] Add saved CRM views and Enterprise filter payloads such as VIP, renewal due, high engagement, no-show risk
 - [x] Add bulk CRM actions: tag, status update, assign owner
-- [ ] Add bulk CRM actions: export selected and send segment email
+- [x] Add bulk CRM actions: export selected and send selected segment email
 - [x] Add duplicate detection and merge flow for same participant across different emails
-- [ ] Improve CRM UI with virtualized list, detail drawer, skeleton states, and faster search debounce
+- [x] Improve CRM UI with scroll-contained list, selection toolbar, detail panel, loading states, and faster search debounce
 
 ## Phase 11 - Automation Reliability and Safety
 
-- [ ] Add durable automation execution log table with per-recipient/action status, retry count, error message, and timestamps
-- [ ] Move automation dispatch to a real queued worker with locking, backoff, and idempotency keys
-- [ ] Add per-event and per-organization automation rate limits
-- [ ] Validate webhook URLs against private IP/localhost SSRF targets
-- [ ] Add signed webhook payloads and delivery retry history
-- [ ] Add dry-run mode showing target count and sample recipients before enabling a rule
-- [ ] Add suppression rules so unsubscribed, bounced, or blocked recipients are skipped
-- [ ] Add automation UI timeline and error drill-down
+- [x] Add durable automation execution log table with per-recipient/action status, retry count, error message, and timestamps
+- [x] Move automation dispatch to a durable scheduler-backed queue with backoff and idempotency keys
+- [x] Add per-event and per-organization automation rate limits
+- [x] Validate webhook URLs against private IP/localhost SSRF targets
+- [x] Add signed webhook payloads and delivery retry history
+- [x] Add dry-run mode showing target count and sample recipients before enabling a rule
+- [x] Add suppression rules so unsubscribed, bounced, or blocked recipients are skipped
+- [x] Add automation UI timeline and error drill-down
+- [x] Add event-driven CRM snapshot refresh hooks for attendee, check-in, ticket, certificate, and survey writes
 
 ## Phase 12 - Segmentation and Export Controls
 
-- [ ] Convert segment counts/previews to optimized aggregate queries
-- [ ] Add saved segments with owner, visibility, and last computed count
-- [ ] Add segment composition builder with AND/OR groups instead of only fixed presets
-- [ ] Add export job queue for large segments instead of synchronous CSV downloads
+- [x] Convert standard segment list counts to optimized aggregate queries
+- [x] Convert segment previews to query-level pagination instead of in-memory filtering
+- [x] Add saved segments with owner, visibility, and last computed count
+- [x] Add segment composition builder with AND/OR groups instead of only fixed presets
+- [x] Add export job queue for large segments instead of synchronous CSV downloads
+- [x] Add optional Google Sheets sync for segment export jobs
 - [ ] Add export audit log with actor, filters, row count, IP, and timestamp
 - [ ] Add PII masking options and Enterprise-only full-data export policy
 - [ ] Add segment-to-CRM and segment-to-automation handoff flows

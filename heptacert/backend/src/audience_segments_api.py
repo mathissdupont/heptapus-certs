@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import csv
 import io
-from datetime import datetime
+import json
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, Query
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import FileResponse, StreamingResponse
+from pydantic import BaseModel, Field
+from sqlalchemy import and_, exists, false, func, or_, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .main import (
@@ -20,14 +22,17 @@ from .main import (
     CertStatus,
     CurrentUser,
     Event,
+    EventSavedAudienceSegment,
     EventTicket,
     Role,
+    SegmentExportJob,
     SurveyResponse,
     _get_event_for_admin,
     get_current_user,
     get_db,
     require_email_system_access,
     require_role,
+    settings,
 )
 
 router = APIRouter()
@@ -55,7 +60,7 @@ STANDARD_SEGMENTS = {
     },
 }
 
-DYNAMIC_SEGMENT_KEYS = {"registration_answer", "location_filter"}
+DYNAMIC_SEGMENT_KEYS = {"registration_answer", "location_filter", "composition"}
 
 
 class AudienceSegmentOut(BaseModel):
@@ -69,6 +74,58 @@ class AudienceSegmentOut(BaseModel):
 class AudienceSegmentPreviewOut(BaseModel):
     segment: AudienceSegmentOut
     attendees: list[dict[str, Any]]
+
+
+class SavedAudienceSegmentIn(BaseModel):
+    name: str
+    segment_key: str
+    filters: dict[str, Any] = {}
+    visibility: str = "private"
+
+
+class SavedAudienceSegmentOut(BaseModel):
+    id: int
+    name: str
+    segment_key: str
+    filters: dict[str, Any]
+    visibility: str
+    last_count: int
+    last_computed_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class SegmentExportJobIn(BaseModel):
+    segment_key: str
+    filters: dict[str, Any] = {}
+    sync_google_sheets: bool = False
+
+
+class SegmentExportJobOut(BaseModel):
+    id: int
+    event_id: int
+    segment_key: str
+    filters: dict[str, Any]
+    status: str
+    row_count: int
+    file_name: Optional[str] = None
+    sync_google_sheets: bool = False
+    google_spreadsheet_url: Optional[str] = None
+    google_sheet_name: Optional[str] = None
+    error_message: Optional[str] = None
+    created_at: datetime
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+
+
+def _parse_composition(raw: Optional[str]) -> Optional[dict[str, Any]]:
+    if not raw:
+        return None
+    try:
+        value = json.loads(raw)
+    except Exception:
+        return None
+    return value if isinstance(value, dict) else None
 
 
 def _attendee_key(attendee: Attendee) -> str:
@@ -163,7 +220,119 @@ def _location_value(answers: dict[str, Any]) -> str:
     return " ".join(haystack)
 
 
+def _segment_conditions(
+    event: Event,
+    segment: str,
+    *,
+    field_id: Optional[str] = None,
+    answer: Optional[str] = None,
+    location: Optional[str] = None,
+    composition: Optional[dict[str, Any]] = None,
+):
+    attended_exists = exists(select(1).where(AttendaonceRecord.attendee_id == Attendee.id))
+    ticket_checkin_exists = exists(
+        select(1).where(EventTicket.attendee_id == Attendee.id, EventTicket.checked_in_at.is_not(None))
+    )
+    certificate_exists = exists(
+        select(1).where(
+            Certificate.event_id == event.id,
+            Certificate.status == CertStatus.active,
+            Certificate.deleted_at.is_(None),
+            func.lower(func.trim(Certificate.student_name)) == func.lower(func.trim(Attendee.name)),
+        )
+    )
+    survey_exists = exists(
+        select(1).where(SurveyResponse.event_id == event.id, SurveyResponse.attendee_id == Attendee.id)
+    )
+    attended_condition = attended_exists | ticket_checkin_exists
+
+    if segment == "composition":
+        spec = composition or {}
+        operator = str(spec.get("operator") or "AND").upper()
+        rules = [item for item in spec.get("rules") or [] if isinstance(item, dict)][:10]
+        clauses = [
+            _segment_conditions(
+                event,
+                str(rule.get("segment_key") or ""),
+                field_id=(rule.get("filters") or {}).get("field_id"),
+                answer=(rule.get("filters") or {}).get("answer"),
+                location=(rule.get("filters") or {}).get("location"),
+            )
+            for rule in rules
+        ]
+        if not clauses:
+            return false()
+        return or_(*clauses) if operator == "OR" else and_(*clauses)
+
+    if segment == "attended_no_certificate":
+        return attended_condition & ~certificate_exists
+    if segment == "certificate_holders":
+        return certificate_exists
+    if segment == "survey_respondents":
+        return Attendee.survey_completed_at.is_not(None) | survey_exists
+    if segment == "no_shows":
+        return ~attended_condition
+    if segment == "repeat_attendees":
+        org_events = select(Event.id).where(Event.admin_id == event.admin_id).subquery()
+        repeat_emails = (
+            select(func.lower(func.trim(Attendee.email)).label("email"))
+            .where(Attendee.event_id.in_(select(org_events.c.id)), Attendee.email.is_not(None), func.trim(Attendee.email) != "")
+            .group_by(func.lower(func.trim(Attendee.email)))
+            .having(func.count(func.distinct(Attendee.event_id)) > 1)
+            .subquery()
+        )
+        return func.lower(func.trim(Attendee.email)).in_(select(repeat_emails.c.email))
+    if segment == "registration_answer":
+        field = (field_id or "").strip()
+        expected = (answer or "").strip()
+        if not field:
+            return false()
+        if not expected:
+            return Attendee.registration_answers[field].astext.is_not(None)
+        return Attendee.registration_answers[field].astext.ilike(f"%{expected}%")
+    if segment == "location_filter":
+        expected_location = (location or answer or "").strip()
+        if not expected_location:
+            return false()
+        keys = ("location", "city", "sehir", "şehir", "il", "province")
+        return or_(*[Attendee.registration_answers[key].astext.ilike(f"%{expected_location}%") for key in keys])
+    return true()
+
+
+def _segment_stmt(
+    event: Event,
+    segment: str,
+    *,
+    field_id: Optional[str] = None,
+    answer: Optional[str] = None,
+    location: Optional[str] = None,
+    composition: Optional[dict[str, Any]] = None,
+):
+    return (
+        select(Attendee)
+        .where(
+            Attendee.event_id == event.id,
+            _segment_conditions(event, segment, field_id=field_id, answer=answer, location=location, composition=composition),
+        )
+        .order_by(Attendee.registered_at.desc(), Attendee.id.desc())
+    )
+
+
 async def get_segment_attendees(
+    db: AsyncSession,
+    event: Event,
+    segment: str,
+    *,
+    field_id: Optional[str] = None,
+    answer: Optional[str] = None,
+    location: Optional[str] = None,
+    composition: Optional[dict[str, Any]] = None,
+) -> list[Attendee]:
+    rows = await db.execute(_segment_stmt(event, segment, field_id=field_id, answer=answer, location=location, composition=composition))
+    return rows.scalars().all()
+
+
+async def get_segment_attendees_legacy(
     db: AsyncSession,
     event: Event,
     segment: str,
@@ -218,8 +387,65 @@ async def count_segment_attendees(
     field_id: Optional[str] = None,
     answer: Optional[str] = None,
     location: Optional[str] = None,
+    composition: Optional[dict[str, Any]] = None,
 ) -> int:
-    return len(await get_segment_attendees(db, event, segment, field_id=field_id, answer=answer, location=location))
+    stmt = _segment_stmt(event, segment, field_id=field_id, answer=answer, location=location, composition=composition).order_by(None).subquery()
+    res = await db.execute(select(func.count()).select_from(stmt))
+    return int(res.scalar_one() or 0)
+
+
+async def count_standard_segments(db: AsyncSession, event: Event) -> dict[str, int]:
+    attended_exists = exists(
+        select(1).where(AttendaonceRecord.attendee_id == Attendee.id)
+    )
+    ticket_checkin_exists = exists(
+        select(1).where(EventTicket.attendee_id == Attendee.id, EventTicket.checked_in_at.is_not(None))
+    )
+    certificate_exists = exists(
+        select(1).where(
+            Certificate.event_id == event.id,
+            Certificate.status == CertStatus.active,
+            Certificate.deleted_at.is_(None),
+            func.lower(func.trim(Certificate.student_name)) == func.lower(func.trim(Attendee.name)),
+        )
+    )
+    survey_exists = exists(
+        select(1).where(
+            SurveyResponse.event_id == event.id,
+            SurveyResponse.attendee_id == Attendee.id,
+        )
+    )
+    attended_condition = attended_exists | ticket_checkin_exists
+    survey_condition = Attendee.survey_completed_at.is_not(None) | survey_exists
+
+    async def _count(where_clause) -> int:
+        res = await db.execute(
+            select(func.count(func.distinct(Attendee.id))).where(Attendee.event_id == event.id, where_clause)
+        )
+        return int(res.scalar_one() or 0)
+
+    org_events = select(Event.id).where(Event.admin_id == event.admin_id).subquery()
+    repeat_emails = (
+        select(func.lower(func.trim(Attendee.email)).label("email"))
+        .where(Attendee.event_id.in_(select(org_events.c.id)), Attendee.email.is_not(None), func.trim(Attendee.email) != "")
+        .group_by(func.lower(func.trim(Attendee.email)))
+        .having(func.count(func.distinct(Attendee.event_id)) > 1)
+        .subquery()
+    )
+    repeat_res = await db.execute(
+        select(func.count(func.distinct(Attendee.id))).where(
+            Attendee.event_id == event.id,
+            func.lower(func.trim(Attendee.email)).in_(select(repeat_emails.c.email)),
+        )
+    )
+
+    return {
+        "attended_no_certificate": await _count(attended_condition & ~certificate_exists),
+        "certificate_holders": await _count(certificate_exists),
+        "survey_respondents": await _count(survey_condition),
+        "no_shows": await _count(~attended_condition),
+        "repeat_attendees": int(repeat_res.scalar_one() or 0),
+    }
 
 
 def _attendee_payload(attendee: Attendee) -> dict[str, Any]:
@@ -232,6 +458,112 @@ def _attendee_payload(attendee: Attendee) -> dict[str, Any]:
         "survey_completed": attendee.survey_completed_at is not None,
         "registration_answers": attendee.registration_answers or {},
     }
+
+
+def _clean_visibility(value: str) -> str:
+    visibility = (value or "private").strip().lower()
+    if visibility not in {"private", "event"}:
+        return "private"
+    return visibility
+
+
+def _saved_segment_out(row: EventSavedAudienceSegment) -> SavedAudienceSegmentOut:
+    return SavedAudienceSegmentOut(
+        id=row.id,
+        name=row.name,
+        segment_key=row.segment_key,
+        filters=row.filters or {},
+        visibility=row.visibility or "private",
+        last_count=int(row.last_count or 0),
+        last_computed_at=row.last_computed_at,
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+    )
+
+
+def _export_job_out(row: SegmentExportJob) -> SegmentExportJobOut:
+    return SegmentExportJobOut(
+        id=row.id,
+        event_id=row.event_id,
+        segment_key=row.segment_key,
+        filters=row.filters or {},
+        status=row.status,
+        row_count=int(row.row_count or 0),
+        file_name=row.file_name,
+        sync_google_sheets=bool(row.sync_google_sheets),
+        google_spreadsheet_url=row.google_spreadsheet_url,
+        google_sheet_name=row.google_sheet_name,
+        error_message=row.error_message,
+        created_at=row.created_at,
+        started_at=row.started_at,
+        completed_at=row.completed_at,
+    )
+
+
+def _filters_for_query(filters: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "field_id": filters.get("field_id"),
+        "answer": filters.get("answer"),
+        "location": filters.get("location"),
+        "composition": filters.get("composition") if isinstance(filters.get("composition"), dict) else None,
+    }
+
+
+async def _segment_rows_for_export(db: AsyncSession, event: Event, segment_key: str, filters: dict[str, Any]) -> list[Attendee]:
+    query_filters = _filters_for_query(filters)
+    rows = await db.execute(
+        _segment_stmt(
+            event,
+            segment_key,
+            field_id=query_filters["field_id"],
+            answer=query_filters["answer"],
+            location=query_filters["location"],
+            composition=query_filters["composition"],
+        ).limit(100_000)
+    )
+    return rows.scalars().all()
+
+
+def _segment_export_values(attendees: list[Attendee]) -> list[list[Any]]:
+    values: list[list[Any]] = [["id", "name", "email", "registered_at", "email_verified", "survey_completed"]]
+    for attendee in attendees:
+        values.append(
+            [
+                attendee.id,
+                attendee.name,
+                attendee.email,
+                attendee.registered_at.isoformat() if isinstance(attendee.registered_at, datetime) else "",
+                "yes" if attendee.email_verified else "no",
+                "yes" if attendee.survey_completed_at else "no",
+            ]
+        )
+    return values
+
+
+async def _sync_segment_export_to_google_sheet(db: AsyncSession, event: Event, job: SegmentExportJob, values: list[list[Any]]) -> None:
+    from .main import _get_google_access_token_for_sheets, _google_json_request, _google_sheets_a1_range
+
+    access_token = await _get_google_access_token_for_sheets(db, event.admin_id)
+    title = f"HeptaCert - {event.name} - {job.segment_key} segment"
+    created = await _google_json_request(
+        access_token,
+        "POST",
+        "https://sheets.googleapis.com/v4/spreadsheets",
+        json_body={"properties": {"title": title[:100]}},
+    )
+    spreadsheet_id = str(created.get("spreadsheetId") or "")
+    spreadsheet_url = str(created.get("spreadsheetUrl") or f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}")
+    sheet_name = "Segment Export"
+    encoded_range = _google_sheets_a1_range(sheet_name)
+    await _google_json_request(
+        access_token,
+        "PUT",
+        f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/{encoded_range}?valueInputOption=USER_ENTERED",
+        json_body={"majorDimension": "ROWS", "values": values},
+    )
+    job.google_spreadsheet_id = spreadsheet_id
+    job.google_spreadsheet_url = spreadsheet_url
+    job.google_sheet_name = sheet_name
 
 
 @router.get(
@@ -248,6 +580,7 @@ async def list_event_segments(
     db: AsyncSession = Depends(get_db),
 ):
     event = await _get_event_for_admin(event_id, me, db, "attendees:read")
+    standard_counts = await count_standard_segments(db, event)
     items: list[AudienceSegmentOut] = []
     for key, meta in STANDARD_SEGMENTS.items():
         items.append(
@@ -255,7 +588,7 @@ async def list_event_segments(
                 key=key,
                 label=meta["label"],
                 description=meta["description"],
-                count=await count_segment_attendees(db, event, key),
+                count=standard_counts.get(key, 0),
             )
         )
     if field_id:
@@ -279,7 +612,173 @@ async def list_event_segments(
                 dynamic=True,
             )
         )
+    items.append(
+        AudienceSegmentOut(
+            key="composition",
+            label="Kural grubu",
+            description="AND/OR ile birleştirilen segment kuralları.",
+            count=0,
+            dynamic=True,
+        )
+    )
     return items
+
+
+@router.get(
+    "/api/admin/events/{event_id}/segments/saved/list",
+    response_model=list[SavedAudienceSegmentOut],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
+)
+async def list_saved_event_segments(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_event_for_admin(event_id, me, db, "attendees:read")
+    rows = (
+        await db.execute(
+            select(EventSavedAudienceSegment)
+            .where(
+                EventSavedAudienceSegment.event_id == event_id,
+                or_(EventSavedAudienceSegment.visibility == "event", EventSavedAudienceSegment.created_by == me.id),
+            )
+            .order_by(EventSavedAudienceSegment.updated_at.desc(), EventSavedAudienceSegment.id.desc())
+        )
+    ).scalars().all()
+    return [_saved_segment_out(row) for row in rows]
+
+
+@router.post(
+    "/api/admin/events/{event_id}/segments/saved",
+    response_model=SavedAudienceSegmentOut,
+    status_code=201,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
+)
+async def save_event_segment(
+    event_id: int,
+    payload: SavedAudienceSegmentIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    event = await _get_event_for_admin(event_id, me, db, "attendees:write")
+    name = " ".join(payload.name.strip().split())[:120]
+    if not name:
+        name = STANDARD_SEGMENTS.get(payload.segment_key, {}).get("label") or "Saved segment"
+    filters = payload.filters or {}
+    composition = filters.get("composition") if isinstance(filters.get("composition"), dict) else None
+    last_count = await count_segment_attendees(
+        db,
+        event,
+        payload.segment_key,
+        field_id=filters.get("field_id"),
+        answer=filters.get("answer"),
+        location=filters.get("location"),
+        composition=composition,
+    )
+    row = EventSavedAudienceSegment(
+        event_id=event_id,
+        created_by=me.id,
+        name=name,
+        segment_key=payload.segment_key,
+        filters=filters,
+        visibility=_clean_visibility(payload.visibility),
+        last_count=last_count,
+        last_computed_at=datetime.utcnow(),
+    )
+    db.add(row)
+    await db.commit()
+    await db.refresh(row)
+    return _saved_segment_out(row)
+
+
+@router.delete(
+    "/api/admin/events/{event_id}/segments/saved/{segment_id}",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
+)
+async def delete_saved_event_segment(
+    event_id: int,
+    segment_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_event_for_admin(event_id, me, db, "attendees:write")
+    row = await db.get(EventSavedAudienceSegment, segment_id)
+    if not row or row.event_id != event_id or (row.visibility != "event" and row.created_by != me.id):
+        return {"ok": True}
+    await db.delete(row)
+    await db.commit()
+    return {"ok": True}
+
+
+@router.post(
+    "/api/admin/events/{event_id}/segments/export-jobs",
+    response_model=SegmentExportJobOut,
+    status_code=201,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
+)
+async def create_segment_export_job(
+    event_id: int,
+    payload: SegmentExportJobIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_event_for_admin(event_id, me, db, "attendees:read")
+    row = SegmentExportJob(
+        event_id=event_id,
+        created_by=me.id,
+        segment_key=payload.segment_key,
+        filters=payload.filters or {},
+        sync_google_sheets=bool(payload.sync_google_sheets),
+        status="pending",
+    )
+    db.add(row)
+    await db.commit()
+    await db.refresh(row)
+    return _export_job_out(row)
+
+
+@router.get(
+    "/api/admin/events/{event_id}/segments/export-jobs",
+    response_model=list[SegmentExportJobOut],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
+)
+async def list_segment_export_jobs(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_event_for_admin(event_id, me, db, "attendees:read")
+    rows = (
+        await db.execute(
+            select(SegmentExportJob)
+            .where(SegmentExportJob.event_id == event_id, SegmentExportJob.created_by == me.id)
+            .order_by(SegmentExportJob.created_at.desc(), SegmentExportJob.id.desc())
+            .limit(25)
+        )
+    ).scalars().all()
+    return [_export_job_out(row) for row in rows]
+
+
+@router.get(
+    "/api/admin/events/{event_id}/segments/export-jobs/{job_id}/download",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
+)
+async def download_segment_export_job(
+    event_id: int,
+    job_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_event_for_admin(event_id, me, db, "attendees:read")
+    row = await db.get(SegmentExportJob, job_id)
+    if not row or row.event_id != event_id or row.created_by != me.id:
+        raise HTTPException(status_code=404, detail="Export job not found")
+    if row.status != "completed" or not row.file_path:
+        raise HTTPException(status_code=409, detail="Export job is not completed")
+    path = Path(settings.local_storage_dir) / row.file_path
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Export file not found")
+    return FileResponse(path, media_type="text/csv", filename=row.file_name or f"segment-export-{row.id}.csv")
 
 
 @router.get(
@@ -293,13 +792,21 @@ async def preview_event_segment(
     field_id: Optional[str] = Query(default=None),
     answer: Optional[str] = Query(default=None),
     location: Optional[str] = Query(default=None),
+    composition: Optional[str] = Query(default=None),
     limit: int = Query(default=25, ge=1, le=100),
     offset: int = Query(default=0, ge=0, le=10000),
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     event = await _get_event_for_admin(event_id, me, db, "attendees:read")
-    attendees = await get_segment_attendees(db, event, segment_key, field_id=field_id, answer=answer, location=location)
+    composition_spec = _parse_composition(composition)
+    count = await count_segment_attendees(db, event, segment_key, field_id=field_id, answer=answer, location=location, composition=composition_spec)
+    rows = await db.execute(
+        _segment_stmt(event, segment_key, field_id=field_id, answer=answer, location=location, composition=composition_spec)
+        .offset(offset)
+        .limit(limit)
+    )
+    attendees = rows.scalars().all()
     meta = STANDARD_SEGMENTS.get(segment_key, {
         "label": "Dinamik segment",
         "description": "Kayıt cevabı veya lokasyon filtresi.",
@@ -309,10 +816,10 @@ async def preview_event_segment(
             key=segment_key,
             label=meta["label"],
             description=meta["description"],
-            count=len(attendees),
+            count=count,
             dynamic=segment_key in DYNAMIC_SEGMENT_KEYS,
         ),
-        attendees=[_attendee_payload(attendee) for attendee in attendees[offset:offset + limit]],
+        attendees=[_attendee_payload(attendee) for attendee in attendees],
     )
 
 
@@ -326,14 +833,20 @@ async def export_event_segment(
     field_id: Optional[str] = Query(default=None),
     answer: Optional[str] = Query(default=None),
     location: Optional[str] = Query(default=None),
+    composition: Optional[str] = Query(default=None),
     limit: int = Query(default=5000, ge=1, le=10000),
     offset: int = Query(default=0, ge=0, le=100000),
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     event = await _get_event_for_admin(event_id, me, db, "attendees:read")
-    attendees = await get_segment_attendees(db, event, segment_key, field_id=field_id, answer=answer, location=location)
-    export_rows = attendees[offset:offset + limit]
+    composition_spec = _parse_composition(composition)
+    rows = await db.execute(
+        _segment_stmt(event, segment_key, field_id=field_id, answer=answer, location=location, composition=composition_spec)
+        .offset(offset)
+        .limit(limit)
+    )
+    export_rows = rows.scalars().all()
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(["id", "name", "email", "registered_at", "email_verified", "survey_completed"])
@@ -353,3 +866,58 @@ async def export_event_segment(
         media_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+async def process_segment_export_jobs_once(limit: int = 5) -> dict[str, int]:
+    from .main import SessionLocal
+
+    stats = {"processed": 0, "completed": 0, "failed": 0}
+    async with SessionLocal() as db:
+        job_rows = (
+            await db.execute(
+                select(SegmentExportJob)
+                .where(SegmentExportJob.status == "pending")
+                .order_by(SegmentExportJob.created_at.asc(), SegmentExportJob.id.asc())
+                .limit(limit)
+                .with_for_update(skip_locked=True)
+            )
+        ).scalars().all()
+        for job in job_rows:
+            stats["processed"] += 1
+            try:
+                event = await db.get(Event, job.event_id)
+                if not event:
+                    raise RuntimeError("Event not found")
+                job.status = "processing"
+                job.started_at = datetime.now(timezone.utc)
+                job.error_message = None
+                await db.commit()
+
+                attendees = await _segment_rows_for_export(db, event, job.segment_key, job.filters or {})
+                values = _segment_export_values(attendees)
+                rel_dir = Path("segment_exports") / f"event_{event.id}"
+                file_name = f"segment-{event.id}-{job.segment_key}-{job.id}.csv"
+                rel_path = rel_dir / file_name
+                abs_path = Path(settings.local_storage_dir) / rel_path
+                abs_path.parent.mkdir(parents=True, exist_ok=True)
+                output = io.StringIO()
+                writer = csv.writer(output)
+                writer.writerows(values)
+                abs_path.write_bytes(output.getvalue().encode("utf-8-sig"))
+
+                job.row_count = max(0, len(values) - 1)
+                job.file_path = str(rel_path).replace("\\", "/")
+                job.file_name = file_name
+                if job.sync_google_sheets:
+                    await _sync_segment_export_to_google_sheet(db, event, job, values)
+                job.status = "completed"
+                job.completed_at = datetime.now(timezone.utc)
+                stats["completed"] += 1
+                await db.commit()
+            except Exception as exc:
+                job.status = "failed"
+                job.error_message = str(exc)[:2000]
+                job.completed_at = datetime.now(timezone.utc)
+                stats["failed"] += 1
+                await db.commit()
+    return stats

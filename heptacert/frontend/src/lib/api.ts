@@ -410,7 +410,21 @@ export interface AutomationDispatchLog {
   dispatched_count: number;
   sent: number;
   failed: number;
+  skipped: number;
   recent: Array<Record<string, any>>;
+}
+
+export interface AutomationDryRun {
+  rule_id: string;
+  trigger: string;
+  target_count: number;
+  sample_recipients: Array<Record<string, any>>;
+  actions: AutomationAction[];
+}
+
+export async function dryRunEventAutomation(eventId: number, ruleId: string): Promise<AutomationDryRun> {
+  const res = await apiFetch(`/admin/events/${eventId}/automations/${ruleId}/dry-run`);
+  return res.json();
 }
 
 export async function listEventAutomationLogs(
@@ -432,7 +446,18 @@ export type AudienceSegmentKey =
   | "no_shows"
   | "repeat_attendees"
   | "registration_answer"
-  | "location_filter";
+  | "location_filter"
+  | "composition";
+
+export interface SegmentCompositionRule {
+  segment_key: AudienceSegmentKey;
+  filters?: Record<string, any>;
+}
+
+export interface SegmentComposition {
+  operator: "AND" | "OR";
+  rules: SegmentCompositionRule[];
+}
 
 export interface AudienceSegment {
   key: AudienceSegmentKey;
@@ -455,6 +480,35 @@ export interface AudienceSegmentPreview {
   }>;
 }
 
+export interface SavedAudienceSegment {
+  id: number;
+  name: string;
+  segment_key: AudienceSegmentKey;
+  filters: Record<string, any>;
+  visibility: string;
+  last_count: number;
+  last_computed_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SegmentExportJob {
+  id: number;
+  event_id: number;
+  segment_key: AudienceSegmentKey;
+  filters: Record<string, any>;
+  status: string;
+  row_count: number;
+  file_name?: string | null;
+  sync_google_sheets: boolean;
+  google_spreadsheet_url?: string | null;
+  google_sheet_name?: string | null;
+  error_message?: string | null;
+  created_at: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+}
+
 export async function listEventSegments(
   eventId: number,
   params: { field_id?: string; answer?: string; location?: string } = {},
@@ -468,15 +522,56 @@ export async function listEventSegments(
   return res.json();
 }
 
+export async function listSavedEventSegments(eventId: number): Promise<SavedAudienceSegment[]> {
+  const res = await apiFetch(`/admin/events/${eventId}/segments/saved/list`);
+  return res.json();
+}
+
+export async function saveEventSegment(
+  eventId: number,
+  payload: { name: string; segment_key: AudienceSegmentKey; filters?: Record<string, any>; visibility?: string },
+): Promise<SavedAudienceSegment> {
+  const res = await apiFetch(`/admin/events/${eventId}/segments/saved`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function deleteSavedEventSegment(eventId: number, segmentId: number): Promise<void> {
+  await apiFetch(`/admin/events/${eventId}/segments/saved/${segmentId}`, { method: "DELETE" });
+}
+
+export async function createSegmentExportJob(
+  eventId: number,
+  payload: { segment_key: AudienceSegmentKey; filters?: Record<string, any>; sync_google_sheets?: boolean },
+): Promise<SegmentExportJob> {
+  const res = await apiFetch(`/admin/events/${eventId}/segments/export-jobs`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function listSegmentExportJobs(eventId: number): Promise<SegmentExportJob[]> {
+  const res = await apiFetch(`/admin/events/${eventId}/segments/export-jobs`);
+  return res.json();
+}
+
+export function getSegmentExportJobDownloadUrl(eventId: number, jobId: number): string {
+  return `${getApiBase()}/admin/events/${eventId}/segments/export-jobs/${jobId}/download`;
+}
+
 export async function previewEventSegment(
   eventId: number,
   segmentKey: AudienceSegmentKey,
-  params: { field_id?: string; answer?: string; location?: string; limit?: number; offset?: number } = {},
+  params: { field_id?: string; answer?: string; location?: string; limit?: number; offset?: number; composition?: SegmentComposition } = {},
 ): Promise<AudienceSegmentPreview> {
   const qs = new URLSearchParams();
   if (params.field_id) qs.set("field_id", params.field_id);
   if (params.answer) qs.set("answer", params.answer);
   if (params.location) qs.set("location", params.location);
+  if ((params as any).composition) qs.set("composition", JSON.stringify((params as any).composition));
   if (params.limit) qs.set("limit", String(params.limit));
   if (params.offset) qs.set("offset", String(params.offset));
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
@@ -487,12 +582,13 @@ export async function previewEventSegment(
 export function getEventSegmentExportUrl(
   eventId: number,
   segmentKey: AudienceSegmentKey,
-  params: { field_id?: string; answer?: string; location?: string; limit?: number; offset?: number } = {},
+  params: { field_id?: string; answer?: string; location?: string; limit?: number; offset?: number; composition?: SegmentComposition } = {},
 ): string {
   const qs = new URLSearchParams();
   if (params.field_id) qs.set("field_id", params.field_id);
   if (params.answer) qs.set("answer", params.answer);
   if (params.location) qs.set("location", params.location);
+  if ((params as any).composition) qs.set("composition", JSON.stringify((params as any).composition));
   if (params.limit) qs.set("limit", String(params.limit));
   if (params.offset) qs.set("offset", String(params.offset));
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
@@ -684,6 +780,30 @@ export async function bulkUpdateCrmParticipants(payload: {
   priority?: string;
 }): Promise<{ updated: number; skipped: number }> {
   const res = await apiFetch("/admin/crm/bulk-update", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function exportSelectedCrmParticipants(emails: string[]): Promise<{ blob: Blob; filename: string }> {
+  const res = await apiFetch("/admin/crm/export-selected", {
+    method: "POST",
+    body: JSON.stringify({ emails }),
+  });
+  const disposition = res.headers.get("Content-Disposition") || "";
+  const match = disposition.match(/filename="?([^"]+)"?/i);
+  return {
+    blob: await res.blob(),
+    filename: match?.[1] || "crm-selected.csv",
+  };
+}
+
+export async function sendCrmBulkEmail(payload: {
+  emails: string[];
+  email_template_id: number;
+}): Promise<{ sent: number; skipped: number; failed: number }> {
+  const res = await apiFetch("/admin/crm/bulk-email", {
     method: "POST",
     body: JSON.stringify(payload),
   });

@@ -265,6 +265,8 @@ async def check_in_event_ticket(
     ticket.status = "used"
     ticket.checked_in_at = datetime.now(timezone.utc)
     await _record_ticket_attendaonce(db, event=ev, ticket=ticket, ip_address=ip)
+    from .crm_snapshot_hooks import refresh_crm_snapshot_for_attendee
+    await refresh_crm_snapshot_for_attendee(db, ticket.attendee_id)
     await record_checkin_activity(
         db,
         event_id=event_id,
@@ -320,6 +322,8 @@ async def update_event_ticket_status(
                 ),
             )
         )
+    from .crm_snapshot_hooks import refresh_crm_snapshot_for_attendee
+    await refresh_crm_snapshot_for_attendee(db, ticket.attendee_id)
     await db.commit()
     await db.refresh(ticket)
     await db.refresh(ticket, attribute_names=["attendee"])
