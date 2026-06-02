@@ -133,7 +133,7 @@ const TR_COPY: TourCopy = {
   ],
   superadminStep: {
     title: "Super Admin Kontrolü",
-    description: "Super Admin panelinden yönetici rolleri, izinler ve platform denetimini tamamlayın.",
+    description: "Super Admin panelinden yönetici rolleri, izinler og platform denetimini tamamlayın.",
     route: "/admin/superadmin",
     actionLabel: "Super Admin Aç",
     targetSelector: "[data-tour-id='nav-superadmin']",
@@ -265,8 +265,8 @@ function getTargetBubblePosition(selector: string): TargetBubble | null {
   const viewportHeight = window.innerHeight;
 
   const margin = 12;
-  const bubbleWidth = 140;
-  const bubbleHeight = 36;
+  const bubbleWidth = 130;
+  const bubbleHeight = 34;
 
   let top = rect.top + rect.height / 2 - bubbleHeight / 2;
   let left = rect.right + margin;
@@ -408,17 +408,17 @@ export default function InAppTourGuide() {
 
   const progress = steps.length > 0 ? Math.round(((stepIndex + 1) / steps.length) * 100) : 0;
 
-  // Kapalıysa ve Dismiss edildiyse Sağ Altta ufak Launcher
+  // KAPALI DURUM: Sağ Altta Minimalist Yüzen Apple Butonu (Launcher)
   if (dismissed && !open) {
     return (
-      <div className="fixed bottom-6 right-6 z-40">
+      <div className="fixed bottom-5 right-5 z-45 antialiased">
         <button
           type="button"
           onClick={restartTour}
-          className="group flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white shadow-lg transition-all hover:w-auto hover:px-4 hover:shadow-xl"
+          className="group flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white shadow-md transition-all duration-300 hover:w-36 hover:px-4 hover:border-gray-300"
         >
-          <HelpCircle className="h-5 w-5 text-slate-500 transition-colors group-hover:text-slate-900" />
-          <span className="hidden whitespace-nowrap pl-2 text-sm font-medium text-slate-900 group-hover:block">
+          <HelpCircle className="h-5 w-5 text-gray-500 transition-colors group-hover:text-gray-900 stroke-[1.8]" />
+          <span className="hidden whitespace-nowrap pl-2 text-xs font-semibold text-gray-800 tracking-tight group-hover:block">
             {copy.launcherOpenAgain}
           </span>
         </button>
@@ -428,32 +428,30 @@ export default function InAppTourGuide() {
 
   return (
     <>
+      {/* Apple Tarzı Soft Spotlight Öğe Aydınlatma Stili */}
       <style dangerouslySetInnerHTML={{ __html: `
         .hepta-tour-highlight {
           position: relative !important;
           z-index: 45 !important;
-          box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.9), 0 0 0 7px rgba(15, 23, 42, 0.08) !important;
-          border-radius: 6px;
-          transition: box-shadow 0.3s ease !important;
+          box-shadow: 0 0 0 6px rgb(255 255 255 / 95%), 0 0 0 10px rgb(0 0 0 / 4%) !important;
+          border-radius: 8px !important;
+          transition: box-shadow 0.2s ease-out !important;
         }
       `}} />
 
-      {/* Launcher (Sağ Alt) */}
-      <div className="fixed bottom-6 right-6 z-40">
+      {/* AKTİF REHBER LAUNCHER BUTONU */}
+      <div className="fixed bottom-5 right-5 z-45 antialiased">
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="group flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white shadow-lg transition-all hover:w-auto hover:px-4 hover:shadow-xl"
+          className="group flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white shadow-md transition-all duration-300 hover:w-32 hover:px-4 hover:border-gray-300 relative"
         >
-          <HelpCircle className="h-5 w-5 text-slate-500 transition-colors group-hover:text-slate-900" />
-          <span className="hidden whitespace-nowrap pl-2 text-sm font-medium text-slate-900 group-hover:block">
+          <HelpCircle className="h-5 w-5 text-gray-500 transition-colors group-hover:text-gray-900 stroke-[1.8]" />
+          <span className="hidden whitespace-nowrap pl-2 text-xs font-semibold text-gray-800 tracking-tight group-hover:block">
             {copy.launcher}
           </span>
           {completedCount > 0 && (
-            <span 
-              className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center bg-slate-900 text-[9px] font-bold text-white group-hover:relative group-hover:right-0 group-hover:top-0 group-hover:ml-2"
-              style={{ clipPath: "polygon(50% 0%, 90% 20%, 100% 60%, 75% 100%, 25% 100%, 0% 60%, 10% 20%)" }}
-            >
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-gray-950 text-[9px] font-bold text-white shadow-sm border border-white group-hover:relative group-hover:right-0 group-hover:top-0 group-hover:ml-1.5">
               {completedCount}
             </span>
           )}
@@ -462,55 +460,62 @@ export default function InAppTourGuide() {
 
       {open && (
         <>
-          {/* Spotlight Bubble */}
+          {/* HEDEF ÖĞE ÜZERİNDEKİ ZIPLAYAN İŞARETÇİ BALONU (Spotlight Bubble) */}
           {targetBubble && currentStep?.targetSelector && (
             <div
-              className="pointer-events-none fixed z-[60] transition-all duration-200 ease-out"
+              className="pointer-events-none fixed z-[60] transition-all duration-200 ease-out antialiased"
               style={{ top: `${targetBubble.top}px`, left: `${targetBubble.left}px` }}
             >
-              <div className="inline-flex animate-bounce items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xl">
-                <MousePointerClick className="h-3.5 w-3.5 text-slate-400" />
+              <div className="inline-flex animate-bounce items-center gap-1.5 rounded-full border border-gray-100 bg-white px-3 py-1 text-[11px] font-bold text-gray-800 shadow-[0_8px_20px_rgba(0,0,0,0.06)]">
+                <MousePointerClick className="h-3.5 w-3.5 text-gray-400 stroke-[2.5]" />
                 {copy.targetHint}
               </div>
             </div>
           )}
 
-          {/* Minimalist In-App Tour Card (Sağ Alt) */}
-          <div className="fixed bottom-20 right-6 z-50 w-full max-w-[340px] overflow-hidden rounded-lg border border-slate-200/80 bg-white shadow-modal">
+          {/* SÜZÜLEN APPLE TUR KARTI (Sağ Alt Köşe Yerleşim) */}
+          <div className="fixed bottom-20 right-5 z-50 w-full max-w-[320px] overflow-hidden rounded-2xl border border-gray-200/80 bg-white/95 shadow-[0_20px_50px_rgba(0,0,0,0.08)] backdrop-blur-xl antialiased animate-in fade-in slide-in-from-bottom-4 duration-200">
             
-            {/* Üst İlerleme Çubuğu */}
-            <div className="h-1 w-full bg-slate-100">
-              <div className="h-full bg-slate-900 transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
+            {/* Üst İnce İlerleme Çubuğu */}
+            <div className="h-1 w-full bg-gray-100/70">
+              <div 
+                className="h-full bg-gray-950 transition-all duration-500 ease-out" 
+                style={{ width: `${progress}%` }} 
+              />
             </div>
 
-            {/* İçerik */}
+            {/* İç Gövde Alanı */}
             <div className="p-5">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
                   {copy.stepPrefix} {stepIndex + 1} / {steps.length}
                 </span>
                 <button
                   type="button"
                   onClick={closeGuide}
-                  className="rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                  className="rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-900"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-4 w-4 stroke-[2]" />
                 </button>
               </div>
 
-              <h3 className="mt-2 text-lg font-semibold text-slate-900">{currentStep.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">{currentStep.description}</p>
+              <h3 className="mt-2.5 text-sm font-bold tracking-tight text-gray-950">
+                {currentStep.title}
+              </h3>
+              <p className="mt-1.5 text-xs leading-relaxed text-gray-500">
+                {currentStep.description}
+              </p>
 
-              {/* Aksiyon Butonları */}
+              {/* Adım İçi Dinamik Aksiyon Kısayolları */}
               {(currentStep.route || currentStep.targetSelector) && (
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-4 flex flex-wrap gap-1.5">
                   {currentStep.route && (
                     <Link
                       href={currentStep.route}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100"
+                      className="inline-flex items-center gap-1 rounded-xl border border-gray-100 bg-gray-50/50 px-3 py-1.5 text-[11px] font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-100 hover:text-gray-950"
                     >
                       {currentStep.actionLabel || copy.actionFallback}
-                      <ChevronRight className="h-3.5 w-3.5" />
+                      <ChevronRight className="h-3.5 w-3.5 stroke-[2]" />
                     </Link>
                   )}
                   {currentStep.targetSelector && (
@@ -521,47 +526,53 @@ export default function InAppTourGuide() {
                         highlightTarget(currentStep.targetSelector || "");
                         setTargetVisible(highlightTarget(currentStep.targetSelector || ""));
                       }}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                      className="inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-600 shadow-sm transition-all hover:bg-gray-50 hover:text-gray-950 active:scale-95"
                     >
-                      <MousePointerClick className="h-3.5 w-3.5" />
+                      <MousePointerClick className="h-3.5 w-3.5 text-gray-400 stroke-[1.8]" />
                       {copy.clickTarget}
                     </button>
                   )}
                 </div>
               )}
 
+              {/* Öğe Bulunamadı Uyarı Alanı */}
               {!targetVisible && currentStep.targetSelector && (
-                <p className="mt-3 text-[11px] font-medium text-red-500">{copy.targetNotFound}</p>
+                <div className="mt-3.5 flex items-center gap-1.5 rounded-lg border border-red-100 bg-red-50/40 px-3 py-2 text-[10px] font-semibold text-red-600">
+                  <X className="h-3.5 w-3.5 shrink-0" />
+                  <span>{copy.targetNotFound}</span>
+                </div>
               )}
             </div>
 
-            {/* Footer Kontrolleri */}
-            <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-5 py-3">
-              <label className="inline-flex cursor-pointer items-center gap-2 text-[11px] font-medium text-slate-500 hover:text-slate-700">
+            {/* Alt Kontrol Paneli (Footer) */}
+            <div className="flex items-center justify-between border-t border-gray-100 bg-gray-50/40 px-5 py-3">
+              {/* Bir Daha Gösterme Checkbox */}
+              <label className="inline-flex cursor-pointer items-center gap-1.5 select-none text-[10px] font-semibold text-gray-400 tracking-tight hover:text-gray-700">
                 <input
                   type="checkbox"
                   checked={dontShowAgain}
                   onChange={(e) => setDontShowAgain(e.target.checked)}
-                  className="h-3.5 w-3.5 rounded border-slate-300 text-slate-900 focus:ring-0"
+                  className="h-3.5 w-3.5 rounded-md border-gray-300 text-gray-950 focus:ring-0 focus:ring-offset-0"
                 />
                 {copy.dontShowAgain}
               </label>
 
+              {/* Geri / İleri Navigasyon Nav seti */}
               <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={prevStep}
                   disabled={stepIndex === 0}
-                  className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-700 disabled:opacity-30"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-100 bg-white text-gray-400 transition-all hover:text-gray-900 disabled:opacity-30 disabled:hover:text-gray-400 shadow-sm"
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="h-4 w-4 stroke-[2]" />
                 </button>
                 
                 {stepIndex < steps.length - 1 ? (
                   <button
                     type="button"
                     onClick={nextStep}
-                    className="flex h-7 px-3 items-center justify-center rounded-md bg-slate-900 text-xs font-semibold text-white transition-colors hover:bg-slate-800"
+                    className="flex h-7 px-3 items-center justify-center rounded-lg bg-gray-950 text-[11px] font-bold text-white shadow-sm transition-all hover:bg-gray-900 active:scale-95"
                   >
                     {copy.next}
                   </button>
@@ -569,7 +580,7 @@ export default function InAppTourGuide() {
                   <button
                     type="button"
                     onClick={completeGuide}
-                    className="flex h-7 px-3 items-center justify-center gap-1.5 rounded-md bg-slate-900 text-xs font-semibold text-white transition-colors hover:bg-slate-800"
+                    className="flex h-7 px-3 items-center justify-center gap-1.5 rounded-lg bg-gray-950 text-[11px] font-bold text-white shadow-sm transition-all hover:bg-gray-900 active:scale-95 animate-pulse"
                   >
                     {copy.finish}
                   </button>

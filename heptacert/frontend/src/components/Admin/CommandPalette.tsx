@@ -144,41 +144,50 @@ export default function CommandPalette() {
 
   return (
     <>
+      {/* Tetikleyici Buton: Apple Tarzı İnce Çizgili Üst Arama Çubuğu Elemanı */}
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden items-center gap-2 rounded-lg border border-surface-200 bg-white px-3 py-1.5 text-xs font-bold text-surface-500 shadow-sm transition-colors hover:bg-surface-50 hover:text-surface-900 md:inline-flex"
+        className="hidden items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-500 shadow-sm transition-all hover:bg-gray-50 hover:text-gray-900 hover:border-gray-300 md:inline-flex"
         aria-label={copy.button}
       >
-        <Command className="h-4 w-4" />
-        <span>{copy.button}</span>
-        <kbd className="rounded-md border border-surface-200 bg-surface-50 px-1.5 py-0.5 font-mono text-[10px] text-surface-400">
+        <Command className="h-3.5 w-3.5 stroke-[2]" />
+        <span className="tracking-tight">{copy.button}</span>
+        <kbd className="rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[9px] font-medium text-gray-400 tracking-tight">
           {copy.hint}
         </kbd>
       </button>
 
+      {/* Komut Paleti Modalı */}
       {open && (
-        <div className="fixed inset-0 z-[80] flex items-start justify-center bg-slate-950/45 px-3 pt-20 backdrop-blur-sm sm:pt-24">
-          <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-white/20 bg-white shadow-2xl">
-            <div className="flex items-center gap-3 border-b border-surface-100 px-4 py-3">
-              <Search className="h-5 w-5 text-surface-400" />
+        <div className="fixed inset-0 z-[80] flex items-start justify-center bg-gray-900/25 px-3 pt-16 backdrop-blur-md sm:pt-28">
+          <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-gray-200 bg-white/95 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.12)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+            
+            {/* Arama Alanı */}
+            <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-3.5">
+              <Search className="h-4 w-4 text-gray-400 stroke-[2.5]" />
               <input
                 autoFocus
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={copy.placeholder}
-                className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-surface-900 outline-none placeholder:text-surface-400"
+                className="min-w-0 flex-1 bg-transparent text-sm font-medium text-gray-900 outline-none placeholder:text-gray-400"
               />
-              <button type="button" onClick={() => setOpen(false)} className="rounded-xl p-2 text-surface-400 hover:bg-surface-100 hover:text-surface-700">
+              <button 
+                type="button" 
+                onClick={() => setOpen(false)} 
+                className="rounded-lg p-1 text-gray-400 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+              >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="max-h-[60vh] overflow-y-auto p-2">
+            {/* Sonuç Listesi */}
+            <div className="max-h-[45vh] overflow-y-auto p-1.5">
               {filteredCommands.length === 0 ? (
-                <div className="p-8 text-center text-sm font-semibold text-surface-400">{copy.empty}</div>
+                <div className="p-8 text-center text-xs font-medium text-gray-400">{copy.empty}</div>
               ) : (
-                <div className="grid gap-1">
+                <div className="space-y-0.5">
                   {filteredCommands.map((item) => {
                     const Icon = item.icon;
                     return (
@@ -186,16 +195,25 @@ export default function CommandPalette() {
                         key={item.id}
                         type="button"
                         onClick={() => runCommand(item)}
-                        className="group flex items-center gap-3 rounded-2xl px-3 py-3 text-left transition hover:bg-brand-50"
+                        className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all hover:bg-gray-50 active:bg-gray-100/70"
                       >
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-surface-100 text-surface-600 transition group-hover:bg-brand-100 group-hover:text-brand-700">
-                          <Icon className="h-5 w-5" />
+                        {/* İkon Yuvası */}
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-100 bg-white text-gray-500 shadow-sm transition group-hover:border-gray-200 group-hover:text-gray-900">
+                          <Icon className="h-4 w-4 stroke-[1.8]" />
                         </span>
+                        
+                        {/* Metin Alanı */}
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-bold text-surface-900">{item.title}</span>
-                          <span className="block truncate text-xs font-medium text-surface-500">{item.description}</span>
+                          <span className="block truncate text-xs font-semibold text-gray-800 tracking-tight group-hover:text-gray-950">
+                            {item.title}
+                          </span>
+                          <span className="block truncate text-[10px] font-medium text-gray-400 mt-0.5">
+                            {item.description}
+                          </span>
                         </span>
-                        <ArrowRight className="h-4 w-4 text-surface-300 transition group-hover:text-brand-600" />
+                        
+                        {/* Sağ Ok İşareti */}
+                        <ArrowRight className="h-3.5 w-3.5 text-gray-300 opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-gray-600" />
                       </button>
                     );
                   })}

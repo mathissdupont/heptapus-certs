@@ -1,8 +1,23 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { apiFetch } from '@/lib/api';
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/api";
+import { 
+  ArrowLeft, 
+  Loader2, 
+  AlertCircle, 
+  Mail, 
+  CheckCircle2, 
+  Eye, 
+  XCircle, 
+  AlertTriangle, 
+  ChevronLeft, 
+  ChevronRight,
+  ChevronDown,
+  BarChart3,
+  RefreshCw
+} from "lucide-react";
 
 interface DeliveryStats {
   job_id: number;
@@ -37,9 +52,7 @@ export default function DeliveryAnalyticsPage() {
   const params = useParams();
   const eventId = parseInt(params.id as string);
   const jobId = parseInt(params.jobId as string);
-  if (isNaN(eventId) || isNaN(jobId)) {
-    return <div className="p-4 text-red-600">Geçersiz parametre</div>;
-  }
+  
   const router = useRouter();
 
   const [stats, setStats] = useState<DeliveryStats | null>(null);
@@ -77,125 +90,133 @@ export default function DeliveryAnalyticsPage() {
     }
   };
 
+  if (isNaN(eventId) || isNaN(jobId)) {
+    return (
+      <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 text-xs font-semibold text-red-600 flex items-center gap-2 antialiased">
+        <AlertCircle className="h-4 w-4" />
+        <span>Geçersiz parametre</span>
+      </div>
+    );
+  }
+
   if (loading) {
-    return <div className="p-8 text-center">Yükleniyor...</div>;
+    return (
+      <div className="flex w-full min-h-[340px] items-center justify-center antialiased">
+        <Loader2 className="h-6 w-6 animate-spin text-gray-400 stroke-[2.5]" />
+      </div>
+    );
   }
 
   if (!stats) {
-    return <div className="p-8 text-center text-red-600">Veriler yüklenemedi</div>;
+    return (
+      <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 text-xs font-semibold text-red-600 flex items-center gap-2 antialiased">
+        <AlertCircle className="h-4 w-4" />
+        <span>Veriler yüklenemedi</span>
+      </div>
+    );
   }
 
-  const StatCard = ({ label, value, unit = '', color = 'blue' }: any) => {
-    const colors: Record<string, string> = {
-      blue: 'bg-blue-50 border-blue-200',
-      green: 'bg-green-50 border-green-200',
-      red: 'bg-red-50 border-red-200',
-      amber: 'bg-amber-50 border-amber-200',
+  // Apple Tarzı Sadeleştirilmiş Lokal Metrik Kartı
+  const CleanStatCard = ({ label, value, color = 'blue' }: any) => {
+    const borders: Record<string, string> = {
+      blue: 'border-gray-200',
+      green: 'border-emerald-200/60 bg-emerald-50/10',
+      amber: 'border-amber-200/60 bg-amber-50/10',
+      red: 'border-red-200/60 bg-red-50/10',
+    };
+
+    const textColors: Record<string, string> = {
+      blue: 'text-gray-950',
+      green: 'text-emerald-700',
+      amber: 'text-amber-700',
+      red: 'text-red-600',
     };
 
     return (
-      <div className={`border-2 rounded-lg p-4 ${colors[color] || colors.blue}`}>
-        <p className="text-sm font-medium text-gray-600">{label}</p>
-        <p className="text-3xl font-bold text-gray-900 mt-2">
+      <div className={`rounded-2xl border p-4.5 shadow-sm transition-all ${borders[color] || borders.blue}`}>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 truncate">{label}</p>
+        <p className={`text-2xl font-bold tracking-tight mt-1 tabular-nums ${textColors[color] || textColors.blue}`}>
           {value}
-          {unit && <span className="text-lg ml-1">{unit}</span>}
         </p>
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <button
-            onClick={() => router.back()}
-            className="text-blue-600 hover:text-blue-800 mb-4"
-          >
-            ← Geri Dön
-          </button>
-          <h1 className="text-3xl font-bold text-gray-900">Email Gönderim Analitikleri</h1>
-          <p className="text-gray-600 mt-2">Job #{jobId}</p>
-        </div>
-
-        {/* Key Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-          <StatCard label="Toplam Alıcı" value={stats.total_recipients} color="blue" />
-          <StatCard
-            label="Gönderilen"
-            value={stats.sent}
-            color="green"
-          />
-          <StatCard
-            label="Açılan"
-            value={`${stats.open_rate}%`}
-            color="amber"
-          />
-          <StatCard
-            label="Bounce"
-            value={`${stats.bounce_rate}%`}
-            color="red"
-          />
-          <StatCard
-            label="Başarısız"
-            value={`${stats.failure_rate}%`}
-            color="red"
-          />
-        </div>
-
-        {/* Status Breakdown */}
-        <div className="bg-white shadow rounded-lg p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-6">Durum Dağılımı</h2>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="text-center">
-              <p className="text-sm text-gray-600">Gönderilen</p>
-              <p className="text-2xl font-bold text-green-600 mt-1">{stats.sent}</p>
-              <p className="text-xs text-gray-500 mt-1">
-                ({((stats.sent / stats.total_recipients) * 100).toFixed(1)}%)
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-600">Beklemede</p>
-              <p className="text-2xl font-bold text-amber-600 mt-1">{stats.pending}</p>
-              <p className="text-xs text-gray-500 mt-1">
-                ({((stats.pending / stats.total_recipients) * 100).toFixed(1)}%)
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-600">Açılan</p>
-              <p className="text-2xl font-bold text-blue-600 mt-1">{stats.opened}</p>
-              <p className="text-xs text-gray-500 mt-1">
-                ({stats.open_rate}%)
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-600">Bounce</p>
-              <p className="text-2xl font-bold text-orange-600 mt-1">{stats.bounced}</p>
-              <p className="text-xs text-gray-500 mt-1">
-                ({stats.bounce_rate}%)
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-600">Başarısız</p>
-              <p className="text-2xl font-bold text-red-600 mt-1">{stats.failed}</p>
-              <p className="text-xs text-gray-500 mt-1">
-                ({stats.failure_rate}%)
-              </p>
-            </div>
+    <div className="w-full max-w-6xl mx-auto p-4 sm:p-6 antialiased text-gray-900 space-y-6">
+      
+      {/* ÜST GEÇMİŞ BAŞLIK ALANI */}
+      <div className="flex flex-col gap-1.5 pb-2">
+        <button
+          onClick={() => router.back()}
+          className="inline-flex w-fit items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider transition-colors hover:text-gray-900"
+        >
+          <ArrowLeft className="h-3.5 w-3.5 stroke-[2.5]" />
+          <span>Geri Dön</span>
+        </button>
+        <div className="flex items-center justify-between gap-4 mt-1">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-gray-950 sm:text-2xl">E-posta Gönderim Analitikleri</h1>
+            <p className="text-xs text-gray-400 font-mono mt-0.5">Görev Kimliği: #JOB-{jobId}</p>
           </div>
+          <button 
+            type="button" 
+            onClick={() => void fetchData()} 
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 shadow-sm hover:bg-gray-50 active:scale-95 transition-all"
+          >
+            <RefreshCw className="h-3.5 w-3.5 stroke-[2]" />
+          </button>
         </div>
+      </div>
 
-        {/* Delivery Logs */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-gray-900">Gönderim Günlüğü</h2>
+      {/* 1. ANA METRİK KARTLARI GRUBU */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
+        <CleanStatCard label="Toplam Alıcı" value={stats.total_recipients} color="blue" />
+        <CleanStatCard label="Gönderilen" value={stats.sent} color="green" />
+        <CleanStatCard label="Açılma Oranı" value={`%${stats.open_rate}`} color="amber" />
+        <CleanStatCard label="Bounce Oranı" value={`%${stats.bounce_rate}`} color="red" />
+        <CleanStatCard label="Başarısız Oran" value={`%${stats.failure_rate}`} color="red" />
+      </div>
+
+      {/* 2. DURUM DAĞILIMI (Breakdown Matrix) */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-gray-900 border-b border-gray-100 pb-2.5">Detaylı Durum Dağılımı</h2>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {[
+            { label: "Gönderilen", count: stats.sent, pct: ((stats.sent / stats.total_recipients) * 100).toFixed(1), color: "text-emerald-600 bg-emerald-50/50" },
+            { label: "Beklemede", count: stats.pending, pct: ((stats.pending / stats.total_recipients) * 100).toFixed(1), color: "text-amber-600 bg-amber-50/50" },
+            { label: "Açılan (Tekil)", count: stats.opened, pct: stats.open_rate, color: "text-blue-600 bg-blue-50/50" },
+            { label: "Bounce", count: stats.bounced, pct: stats.bounce_rate, color: "text-orange-600 bg-orange-50/50" },
+            { label: "Başarısız", count: stats.failed, pct: stats.failure_rate, color: "text-red-600 bg-red-50/50" },
+          ].map((item, idx) => (
+            <div key={idx} className="rounded-xl border border-gray-100 bg-gray-50/30 p-3 text-center space-y-1">
+              <p className="text-[11px] font-semibold text-gray-400 tracking-tight">{item.label}</p>
+              <p className={`text-xl font-bold tracking-tight ${item.color.split(" ")[0]} tabular-nums`}>{item.count}</p>
+              <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold ${item.color}`}>
+                %{item.pct}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 3. GÖNDERİM GÜNLÜĞÜ VERİ TABLOSU */}
+      <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col">
+        {/* Tablo Başlık Alanı ve Filtre */}
+        <div className="px-5 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-gray-800 stroke-[2]" />
+            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-900">Gönderim Günlüğü</h2>
+          </div>
+          
+          <div className="relative inline-flex items-center select-none">
             <select
               value={statusFilter}
               onChange={e => {
                 setStatusFilter(e.target.value);
                 setPage(1);
               }}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="appearance-none rounded-xl border border-gray-200 bg-white pl-3 pr-7 py-1.5 text-xs font-semibold text-gray-700 outline-none hover:border-gray-300 transition-all cursor-pointer"
             >
               <option value="">Tüm Durumlar</option>
               <option value="sent">Gönderilen</option>
@@ -203,119 +224,108 @@ export default function DeliveryAnalyticsPage() {
               <option value="bounced">Bounce</option>
               <option value="opened">Açılan</option>
             </select>
+            <ChevronDown className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-gray-400" />
           </div>
+        </div>
 
-          {logs && logs.logs.length === 0 ? (
-            <div className="p-6 text-center text-gray-500">
-              Gösterilecek günlük yoktur
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-100 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                      Alıcı
-                    </th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                      E-posta
-                    </th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                      Durum
-                    </th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                      Gönderim Tarihi
-                    </th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                      Açılış Tarihi
-                    </th>
+        {/* Tablo İçeriği */}
+        {logs && logs.logs.length === 0 ? (
+          <div className="py-14 text-center text-xs font-semibold text-gray-400 tracking-tight">
+            Gösterilecek günlük kaydı bulunmuyor.
+          </div>
+        ) : (
+          <div className="overflow-x-auto scrollbar-none">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50/50">
+                  <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 select-none">Alıcı</th>
+                  <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 select-none">E-posta</th>
+                  <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 select-none">Durum</th>
+                  <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 select-none">Gönderim Tarihi</th>
+                  <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 select-none">Açılış Tarihi</th>
+                  {stats.failure_rate > 0 && (
+                    <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 select-none">Neden</th>
+                  )}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {logs?.logs.map(log => (
+                  <tr key={log.id} className="transition-colors hover:bg-gray-50/40">
+                    <td className="px-5 py-3.5 text-xs font-bold text-gray-950 tracking-tight">{log.attendee.name}</td>
+                    <td className="px-5 py-3.5 text-xs font-medium text-gray-400 font-mono tracking-tight">{log.attendee.email}</td>
+                    <td className="px-5 py-3.5">
+                      <span
+                        className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold tracking-tight shadow-sm ${
+                          log.status === 'sent'
+                            ? 'border-emerald-100 bg-emerald-50 text-emerald-700'
+                            : log.status === 'failed'
+                            ? 'border-red-100 bg-red-50 text-red-600'
+                            : log.status === 'bounced'
+                            ? 'border-orange-100 bg-orange-50 text-orange-700'
+                            : log.status === 'opened'
+                            ? 'border-blue-100 bg-blue-50 text-blue-700'
+                            : 'border-gray-100 bg-gray-50 text-gray-500'
+                        }`}
+                      >
+                        {log.status === 'sent'
+                          ? '✓ Gönderildi'
+                          : log.status === 'failed'
+                          ? '✗ Başarısız'
+                          : log.status === 'bounced'
+                          ? '↩ Bounce'
+                          : log.status === 'opened'
+                          ? '👁 Açıldı'
+                          : log.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5 text-xs font-medium text-gray-500 font-mono">
+                      {new Date(log.sent_at).toLocaleString('tr-TR', { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
+                    </td>
+                    <td className="px-5 py-3.5 text-xs font-medium text-gray-500 font-mono">
+                      {log.opened_at
+                        ? new Date(log.opened_at).toLocaleString('tr-TR', { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })
+                        : '-'}
+                    </td>
                     {stats.failure_rate > 0 && (
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                        Neden
-                      </th>
+                      <td className="px-5 py-3.5 text-xs font-semibold text-red-500 max-w-xs truncate" title={log.reason}>
+                        {log.reason || '-'}
+                      </td>
                     )}
                   </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {logs?.logs.map(log => (
-                    <tr key={log.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-3 text-sm text-gray-900">
-                        {log.attendee.name}
-                      </td>
-                      <td className="px-6 py-3 text-sm text-gray-600">
-                        {log.attendee.email}
-                      </td>
-                      <td className="px-6 py-3">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            log.status === 'sent'
-                              ? 'bg-green-100 text-green-800'
-                              : log.status === 'failed'
-                              ? 'bg-red-100 text-red-800'
-                              : log.status === 'bounced'
-                              ? 'bg-orange-100 text-orange-800'
-                              : log.status === 'opened'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {log.status === 'sent'
-                            ? '✓ Gönderildi'
-                            : log.status === 'failed'
-                            ? '✗ Başarısız'
-                            : log.status === 'bounced'
-                            ? '↩ Bounce'
-                            : log.status === 'opened'
-                            ? '👁 Açıldı'
-                            : log.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-3 text-sm text-gray-600">
-                        {new Date(log.sent_at).toLocaleString('tr-TR')}
-                      </td>
-                      <td className="px-6 py-3 text-sm text-gray-600">
-                        {log.opened_at
-                          ? new Date(log.opened_at).toLocaleString('tr-TR')
-                          : '-'}
-                      </td>
-                      {stats.failure_rate > 0 && (
-                        <td className="px-6 py-3 text-sm text-gray-600">
-                          {log.reason || '-'}
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-          {/* Pagination */}
-          {logs && logs.total > logs.limit && (
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-between items-center">
-              <p className="text-sm text-gray-600">
-                Sayfa {logs.page} / {Math.ceil(logs.total / logs.limit)} ({logs.total} toplam)
-              </p>
-              <div className="space-x-2">
-                <button
-                  onClick={() => setPage(Math.max(1, page - 1))}
-                  disabled={page === 1}
-                  className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Önceki
-                </button>
-                <button
-                  onClick={() => setPage(page + 1)}
-                  disabled={page >= Math.ceil(logs.total / logs.limit)}
-                  className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Sonraki
-                </button>
-              </div>
+        {/* 4. SAYFALAMA KONTROLLERİ (Pagination) */}
+        {logs && logs.total > logs.limit && (
+          <div className="px-5 py-3.5 border-t border-gray-100 bg-white flex items-center justify-between text-xs text-gray-400 font-semibold tracking-tight">
+            <div>
+              Sayfa {logs.page} / {Math.ceil(logs.total / logs.limit)} <span className="font-normal text-gray-300">({logs.total} kayıt)</span>
             </div>
-          )}
-        </div>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setPage(Math.max(1, page - 1))}
+                disabled={page === 1}
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-100 bg-white text-gray-400 transition-all hover:text-gray-900 disabled:opacity-30 shadow-sm"
+              >
+                <ChevronLeft className="h-4 w-4 stroke-[2]" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setPage(page + 1)}
+                disabled={page >= Math.ceil(logs.total / logs.limit)}
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-100 bg-white text-gray-400 transition-all hover:text-gray-900 disabled:opacity-30 shadow-sm"
+              >
+                <ChevronRight className="h-4 w-4 stroke-[2]" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
     </div>
   );
 }

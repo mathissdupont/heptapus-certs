@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Bold, Italic, List, ListOrdered, RemoveFormatting, Type, Underline } from "lucide-react";
+import { Bold, Italic, List, ListOrdered, RemoveFormatting, Type, Underline, ChevronDown } from "lucide-react";
 
 type RichTextEditorProps = {
   value: string;
@@ -91,82 +91,110 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
   }
 
   return (
-    <div className="rounded-3xl border border-surface-200 bg-white shadow-soft">
-      <div className="flex flex-wrap items-center gap-2 border-b border-surface-200 bg-surface-50/70 px-3 py-3">
-        <button type="button" onClick={() => runCommand("bold")} className="btn-ghost" aria-label="Bold">
-          <Bold className="h-4 w-4" />
-        </button>
-        <button type="button" onClick={() => runCommand("italic")} className="btn-ghost" aria-label="Italic">
-          <Italic className="h-4 w-4" />
-        </button>
-        <button type="button" onClick={() => runCommand("underline")} className="btn-ghost" aria-label="Underline">
-          <Underline className="h-4 w-4" />
-        </button>
-        <button type="button" onClick={() => runCommand("insertUnorderedList")} className="btn-ghost" aria-label="Bullet List">
-          <List className="h-4 w-4" />
-        </button>
-        <button type="button" onClick={() => runCommand("insertOrderedList")} className="btn-ghost" aria-label="Ordered List">
-          <ListOrdered className="h-4 w-4" />
-        </button>
-        <div className="h-6 w-px bg-surface-200" />
-        <label className="inline-flex items-center gap-2 rounded-xl border border-surface-200 bg-white px-3 py-2 text-xs font-semibold text-surface-600">
-          <Type className="h-3.5 w-3.5" />
+    <div className="w-full rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden antialiased focus-within:border-gray-300 focus-within:ring-1 focus-within:ring-gray-300 transition-all">
+      
+      {/* Apple Notlar Tarzı Minimalist Araç Çubuğu (Toolbar) */}
+      <div className="flex flex-wrap items-center gap-1 border-b border-gray-100 bg-gray-50/50 px-2.5 py-2">
+        
+        {/* Stil Butonları Gruplaması */}
+        <div className="flex items-center gap-0.5">
+          {[
+            { cmd: "bold", icon: Bold, label: "Kalın" },
+            { cmd: "italic", icon: Italic, label: "İtalik" },
+            { cmd: "underline", icon: Underline, label: "Altı Çizili" },
+            { cmd: "insertUnorderedList", icon: List, label: "Madde İşaretli Liste" },
+            { cmd: "insertOrderedList", icon: ListOrdered, label: "Numaralı Liste" },
+          ].map((btn) => {
+            const Icon = btn.icon;
+            return (
+              <button
+                key={btn.cmd}
+                type="button"
+                onClick={() => runCommand(btn.cmd)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-white hover:text-gray-900 hover:shadow-sm border border-transparent hover:border-gray-200/60 transition-all active:scale-95"
+                aria-label={btn.label}
+              >
+                <Icon className="h-3.5 w-3.5 stroke-[2]" />
+              </button>
+            );
+          })}
+        </div>
+
+        {/* İnce Bölücü Dikey Çizgi */}
+        <div className="h-4 w-px bg-gray-200 mx-1.5" />
+
+        {/* Font Ailesi Seçici */}
+        <div className="relative inline-flex items-center">
+          <Type className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-gray-400 stroke-[1.8]" />
           <select
             defaultValue=""
             onChange={(event) => {
               if (event.target.value) runCommand("fontName", event.target.value);
               event.target.value = "";
             }}
-            className="bg-transparent outline-none"
+            className="appearance-none rounded-xl border border-gray-200 bg-white pl-8 pr-7 py-1.5 text-[11px] font-semibold text-gray-600 outline-none hover:border-gray-300 transition-all cursor-pointer"
           >
-            <option value="" disabled>
-              Font
-            </option>
+            <option value="" disabled>Font</option>
             {FONT_FAMILY_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
+              <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </select>
-        </label>
-        <label className="inline-flex items-center gap-2 rounded-xl border border-surface-200 bg-white px-3 py-2 text-xs font-semibold text-surface-600">
-          <span>Size</span>
+          <ChevronDown className="pointer-events-none absolute right-2 h-3 w-3 text-gray-400" />
+        </div>
+
+        {/* Font Boyutu Seçici */}
+        <div className="relative inline-flex items-center">
           <select
             defaultValue=""
             onChange={(event) => {
               if (event.target.value) runCommand("fontSize", event.target.value);
               event.target.value = "";
             }}
-            className="bg-transparent outline-none"
+            className="appearance-none rounded-xl border border-gray-200 bg-white pl-3 pr-7 py-1.5 text-[11px] font-semibold text-gray-600 outline-none hover:border-gray-300 transition-all cursor-pointer"
           >
-            <option value="" disabled>
-              16
-            </option>
+            <option value="" disabled>16</option>
             {FONT_SIZE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
+              <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </select>
-        </label>
-        <input
-          type="color"
-          aria-label="Text Color"
-          className="h-10 w-12 cursor-pointer rounded-xl border border-surface-200 bg-white p-1"
-          defaultValue="#1f2937"
-          onChange={(event) => runCommand("foreColor", event.target.value)}
-        />
-        <button type="button" onClick={() => runCommand("removeFormat")} className="btn-ghost" aria-label="Clear Formatting">
-          <RemoveFormatting className="h-4 w-4" />
+          <ChevronDown className="pointer-events-none absolute right-2 h-3 w-3 text-gray-400" />
+        </div>
+
+        {/* İnce Bölücü Dikey Çizgi */}
+        <div className="h-4 w-px bg-gray-200 mx-1.5" />
+
+        {/* Apple Tarzı Kusursuzlaştırılmış Renk Seçici Buton */}
+        <div className="relative flex h-8 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white hover:border-gray-300 shadow-sm overflow-hidden transition-all">
+          <input
+            type="color"
+            aria-label="Metin Rengi"
+            className="absolute inset-0 h-full w-full opacity-0 cursor-pointer"
+            defaultValue="#1f2937"
+            onChange={(event) => runCommand("foreColor", event.target.value)}
+          />
+          {/* Renk Seçici İkon İllüstrasyonu */}
+          <div className="h-3 w-5 rounded border border-gray-900/10 bg-gray-800" />
+        </div>
+
+        {/* Format Temizleme Butonu */}
+        <button
+          type="button"
+          onClick={() => runCommand("removeFormat")}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-white hover:text-red-500 hover:shadow-sm border border-transparent hover:border-gray-200/60 transition-all active:scale-95 ml-auto"
+          aria-label="Formatı Temizle"
+        >
+          <RemoveFormatting className="h-3.5 w-3.5 stroke-[2]" />
         </button>
+
       </div>
 
+      {/* Yazı Yazma Alanı (ContentEditable) */}
       <div
         ref={editorRef}
         contentEditable
         suppressContentEditableWarning
         data-placeholder={placeholder || ""}
-        className="rich-editor rich-text-content min-h-48 w-full px-4 py-4 text-sm text-surface-900 outline-none"
+        className="rich-editor rich-text-content min-h-[180px] w-full px-4 py-3.5 text-xs font-medium text-gray-900 outline-none bg-white transition-all overflow-y-auto"
         onInput={syncValue}
         onBlur={syncValue}
         onPaste={handlePaste}

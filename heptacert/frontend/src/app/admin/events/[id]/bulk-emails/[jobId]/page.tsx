@@ -18,6 +18,7 @@ import {
   BarChart3,
   Target,
   Send,
+  RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 import { getEmailJobDetails, EmailJobDetailsOut } from "@/lib/api";
@@ -27,10 +28,6 @@ export default function EmailJobDetailsPage() {
   const eventId = parseInt(params.id as string);
   const jobId = parseInt(params.jobId as string);
   const router = useRouter();
-
-  if (isNaN(eventId) || isNaN(jobId)) {
-    return <div className="p-4 text-red-600">Geçersiz parametre</div>;
-  }
 
   const [job, setJob] = useState<EmailJobDetailsOut | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,7 +51,6 @@ export default function EmailJobDetailsPage() {
       const data = await getEmailJobDetails(eventId, jobId);
       setJob(data);
 
-      // Stop auto-refresh when job is completed or failed
       if (data.status === "completed" || data.status === "failed") {
         setAutoRefresh(false);
       }
@@ -66,27 +62,36 @@ export default function EmailJobDetailsPage() {
     }
   };
 
+  if (isNaN(eventId) || isNaN(jobId)) {
+    return (
+      <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 text-xs font-semibold text-red-600 flex items-center gap-2 antialiased">
+        <AlertCircle className="h-4 w-4" />
+        <span>Geçersiz parametre</span>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-24">
-        <Loader2 className="h-8 w-8 animate-spin text-brand-500" />
+      <div className="flex w-full min-h-[340px] items-center justify-center antialiased">
+        <Loader2 className="h-6 w-6 animate-spin text-gray-400 stroke-[2.5]" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-8 max-w-2xl mx-auto">
-        <div className="flex items-start gap-4 bg-red-50 border border-red-200 rounded-lg p-4">
-          <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
-          <div className="flex-1">
-            <h3 className="font-semibold text-red-900 mb-1">Hata</h3>
-            <p className="text-red-700 text-sm">{error}</p>
+      <div className="w-full max-w-2xl mx-auto p-4 antialiased">
+        <div className="flex items-start gap-3.5 bg-red-50/40 border border-red-100 rounded-2xl p-5">
+          <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0 stroke-[2]" />
+          <div className="flex-1 space-y-1">
+            <h3 className="font-bold text-sm text-red-950">İş Detayları Yüklenemedi</h3>
+            <p className="text-red-700 text-xs font-medium leading-relaxed">{error}</p>
             <button
               onClick={fetchJobDetails}
-              className="mt-3 text-sm font-medium text-red-600 hover:text-red-700"
+              className="inline-flex pt-2 text-xs font-semibold text-red-600 hover:text-red-700 transition-colors"
             >
-              Yeniden Dene
+              Yeniden Dene →
             </button>
           </div>
         </div>
@@ -104,173 +109,165 @@ export default function EmailJobDetailsPage() {
       : 0;
 
   const statusConfig = {
-    pending: { bg: "bg-amber-50", text: "text-amber-700", icon: Clock, label: "Bekleniyor" },
-    in_progress: { bg: "bg-blue-50", text: "text-blue-700", icon: Clock, label: "İşleniyor" },
-    completed: { bg: "bg-emerald-50", text: "text-emerald-700", icon: Check, label: "Tamamlandı" },
-    failed: { bg: "bg-red-50", text: "text-red-700", icon: X, label: "Başarısız" },
+    pending: { bg: "border-amber-100 bg-amber-50/30", text: "text-amber-700", icon: Clock, label: "Kuyrukta Bekliyor" },
+    in_progress: { bg: "border-blue-100 bg-blue-50/30", text: "text-blue-700", icon: Clock, label: "İşleniyor (Canlı)" },
+    completed: { bg: "border-emerald-100 bg-emerald-50/20", text: "text-emerald-700", icon: Check, label: "Başarıyla Tamamlandı" },
+    failed: { bg: "border-red-100 bg-red-50/20", text: "text-red-600", icon: X, label: "Görev Başarısız" },
   } as Record<string, any>;
 
   const config = statusConfig[job.status] || statusConfig.pending;
   const StatusIcon = config.icon;
 
+  const totalProcessed = job.sent_count + job.failed_count;
+  const progressPercent = job.total_recipients > 0 ? Math.round((totalProcessed / job.total_recipients) * 100) : 0;
+
   return (
-    <div className="p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Link
-            href={`/admin/events/${eventId}`}
-            className="p-2 hover:bg-white rounded-lg transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5 text-gray-600" />
-          </Link>
-          <div className="flex-1">
-            <h1 className="text-3xl font-black text-gray-900">Email Gönderiş Detayları</h1>
-            <p className="text-sm text-gray-500 mt-1">İş #ID: {job.id}</p>
+    <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 antialiased text-gray-900 space-y-5">
+      
+      {/* 1. ÜST GEÇMİŞ BAŞLIK BARLARI (Header) */}
+      <div className="flex flex-col gap-1.5 pb-1">
+        <Link
+          href={`/admin/events/${eventId}`}
+          className="inline-flex w-fit items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider transition-colors hover:text-gray-900"
+        >
+          <ArrowLeft className="h-3.5 w-3.5 stroke-[2.5]" />
+          <span>Etkinliğe Dön</span>
+        </Link>
+        <div className="flex items-center justify-between gap-4 mt-1">
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold tracking-tight text-gray-950 sm:text-2xl">Toplu Gönderim Detayları</h1>
+            <p className="text-xs text-gray-400 font-mono mt-0.5">Görev Kodu: #JOB-{job.id}</p>
           </div>
-        </div>
-
-        <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-gray-200 pb-4">
-          <Link href={`/admin/events/${eventId}/certificates`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
-            <BarChart3 className="h-3.5 w-3.5" /> Sertifikalar
-          </Link>
-          <Link href={`/admin/events/${eventId}/sessions`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
-            <CalendarDays className="h-3.5 w-3.5" /> Oturumlar
-          </Link>
-          <Link href={`/admin/events/${eventId}/attendees`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
-            <User className="h-3.5 w-3.5" /> Katılımcılar
-          </Link>
-          <Link href={`/admin/events/${eventId}/checkin`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
-            <QrCode className="h-3.5 w-3.5" /> Check-in
-          </Link>
-          <Link href={`/admin/events/${eventId}/gamification`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
-            <Target className="h-3.5 w-3.5" /> Oyunlaştırma
-          </Link>
-          <Link href={`/admin/events/${eventId}/surveys`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
-            <UserCheck className="h-3.5 w-3.5" /> Anketler
-          </Link>
-          <Link href={`/admin/events/${eventId}/advanced-analytics`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
-            <BarChart3 className="h-3.5 w-3.5" /> Analitik
-          </Link>
-          <Link href={`/admin/events/${eventId}/email-templates`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
-            <Mail className="h-3.5 w-3.5" /> Email
-          </Link>
-          <span className="inline-flex items-center gap-1.5 rounded-md bg-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700">
-            <Send className="h-3.5 w-3.5" /> Toplu E-posta
-          </span>
-          <Link href={`/admin/events/${eventId}/settings`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100">
-            <LockKeyhole className="h-3.5 w-3.5" /> Ayarlar
-          </Link>
-        </div>
-
-        {/* Status Card */}
-        <div className={`${config.bg} border border-current rounded-xl p-6 mb-8`}>
-          <div className="flex items-center gap-4">
-            <StatusIcon className={`h-8 w-8 ${config.text}`} />
-            <div>
-              <p className={`text-sm font-semibold ${config.text}`}>Durum</p>
-              <p className={`text-2xl font-black ${config.text}`}>{config.label}</p>
+          
+          {/* Durum Yenileme Bildirim Işığı */}
+          {autoRefresh && job.status !== "completed" && job.status !== "failed" && (
+            <div className="inline-flex items-center gap-1.5 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1 text-[10px] font-bold text-gray-400 font-mono">
+              <RefreshCw className="h-3 w-3 animate-spin text-gray-400" />
+              <span>Canlı</span>
             </div>
+          )}
+        </div>
+      </div>
+
+      {/* 2. STATÜ ROZET ALANI (Apple Soft Badge Panel) */}
+      <div className={`rounded-2xl border p-4.5 shadow-sm transition-all duration-300 ${config.bg}`}>
+        <div className="flex items-center gap-3.5">
+          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border shadow-sm bg-white`}>
+            <StatusIcon className={`h-4 w-4 ${config.text} stroke-[2.5]`} />
+          </div>
+          <div className="min-w-0 space-y-0.5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Gönderim Statüsü</p>
+            <h2 className={`text-sm font-bold tracking-tight ${config.text}`}>{config.label}</h2>
           </div>
         </div>
+      </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          {/* Total Recipients */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-gray-600 mb-4">Toplam Alıcı</h3>
-            <p className="text-3xl font-black text-gray-900">{job.total_recipients}</p>
-            <p className="text-xs text-gray-500 mt-2">Email gönderilecek</p>
-          </div>
-
-          {/* Sent */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-gray-600 mb-4">Gönderilen</h3>
-            <p className="text-3xl font-black text-emerald-600">{job.sent_count}</p>
-            <p className="text-xs text-emerald-600 mt-2">{successRate}% başarılı</p>
-          </div>
-
-          {/* Failed */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-gray-600 mb-4">Başarısız</h3>
-            <p className="text-3xl font-black text-red-600">{job.failed_count}</p>
-            <p className="text-xs text-red-600 mt-2">Hata oluşan emails</p>
-          </div>
-
-          {/* Remaining */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-gray-600 mb-4">Kalan</h3>
-            <p className="text-3xl font-black text-gray-900">
-              {Math.max(0, job.total_recipients - job.sent_count - job.failed_count)}
-            </p>
-            <p className="text-xs text-gray-500 mt-2">İşlenmeye bekliyor</p>
-          </div>
+      {/* 3. İSTATİSTİK SAYAÇ IZGARASI (Stats Grid) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+        {/* Toplam Alıcı */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 truncate">Toplam Alıcı</p>
+          <p className="text-2xl font-bold tracking-tight text-gray-950 font-mono tabular-nums">{job.total_recipients}</p>
+          <p className="text-[11px] font-medium text-gray-400 pt-1 leading-none">Hedeflenen kitle</p>
         </div>
 
-        {/* Progress Bar */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-8 shadow-sm">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">İlerleme</h3>
-          <div className="w-full bg-gray-200 rounded-full h-3">
-            <div
-              className="bg-gradient-to-r from-brand-500 to-brand-600 h-3 rounded-full transition-all duration-300"
-              style={{
-                width: `${Math.round(((job.sent_count + job.failed_count) / job.total_recipients) * 100)}%`,
-              }}
-            />
-          </div>
-          <div className="flex justify-between items-center mt-4">
-            <span className="text-sm text-gray-600">
-              {job.sent_count + job.failed_count} / {job.total_recipients} işlendi
-            </span>
-            <span className="text-sm font-medium text-gray-900">
-              {Math.round(((job.sent_count + job.failed_count) / job.total_recipients) * 100)}%
-            </span>
-          </div>
+        {/* Başarıyla Gönderilen */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 truncate">Başarılı Sevk</p>
+          <p className="text-2xl font-bold tracking-tight text-emerald-600 font-mono tabular-nums">{job.sent_count}</p>
+          <p className="text-[11px] font-bold text-emerald-500 pt-1 leading-none">%{successRate} iletildi</p>
         </div>
 
-        {/* Timeline */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-8 shadow-sm">
-          <h3 className="text-lg font-bold text-gray-900 mb-6">Zaman Çizelgesi</h3>
-          <div className="space-y-3">
-            <div className="flex items-center gap-4">
-              <div className="w-3 h-3 rounded-full bg-gray-300" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Görev Oluşturuldu</p>
-                <p className="text-xs text-gray-500">{new Date(job.created_at).toLocaleString("tr-TR")}</p>
+        {/* Hata Alıp Başarısız Olan */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 truncate">Hatalı / Başarısız</p>
+          <p className="text-2xl font-bold tracking-tight text-red-600 font-mono tabular-nums">{job.failed_count}</p>
+          <p className="text-[11px] font-medium text-red-400 pt-1 leading-none">Bağlantı/SMTP reddi</p>
+        </div>
+
+        {/* Kalan Bekleyen Alıcı */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 truncate">Kuyrukta Kalan</p>
+          <p className="text-2xl font-bold tracking-tight text-gray-950 font-mono tabular-nums">
+            {Math.max(0, job.total_recipients - job.sent_count - job.failed_count)}
+          </p>
+          <p className="text-[11px] font-medium text-gray-400 pt-1 leading-none">İşlenmeyi bekleyen</p>
+        </div>
+      </div>
+
+      {/* 4. APPLE PROGRESS BAR PANELİ */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-4">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-gray-950 border-b border-gray-100 pb-2.5">Kuyruk İlerleme Durumu</h3>
+        
+        {/* İnce Şık Siyah İlerleme Çubuğu */}
+        <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+          <div
+            className="bg-gray-950 h-full rounded-full transition-all duration-300 ease-out"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+        
+        <div className="flex justify-between items-center text-xs font-semibold tracking-tight">
+          <span className="text-gray-400 font-medium">
+            {totalProcessed} / {job.total_recipients} alıcı işlendi
+          </span>
+          <span className="text-gray-950 font-mono">
+            %{progressPercent}
+          </span>
+        </div>
+      </div>
+
+      {/* 5. DİKEY ZAMAN ÇİZELGESİ (Timeline Flow) */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 border-b border-gray-100 pb-2.5">Görev Zaman Çizelgesi</h3>
+        <div className="relative pl-4 before:absolute before:bottom-1 before:left-1 before:top-1 before:w-[1px] before:bg-gray-100">
+          <div className="space-y-4.5">
+            
+            {/* Adım 1: Görev Oluşturma */}
+            <div className="relative group flex items-start gap-3">
+              <div className="absolute -left-[19.5px] top-1 flex h-2 w-2 items-center justify-center rounded-full bg-white ring-4 ring-white border border-gray-400" />
+              <div className="min-w-0 flex-1 space-y-0.5 text-xs">
+                <p className="font-bold text-gray-950 tracking-tight">Görev Kuyruğa Alındı</p>
+                <p className="font-medium text-gray-400 font-mono">{new Date(job.created_at).toLocaleString("tr-TR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short", year: "numeric" })}</p>
               </div>
             </div>
+
+            {/* Adım 2: Son Güncelleme Akışı */}
             {job.status !== "pending" && (
-              <div className="flex items-center gap-4">
-                <div className="w-3 h-3 rounded-full bg-brand-300" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">Son Güncelleme</p>
-                  <p className="text-xs text-gray-500">{new Date(job.updated_at).toLocaleString("tr-TR")}</p>
+              <div className="relative group flex items-start gap-3">
+                <div className="absolute -left-[19.5px] top-1 flex h-2 w-2 items-center justify-center rounded-full bg-white ring-4 ring-white border border-gray-950 bg-gray-950 shadow-sm" />
+                <div className="min-w-0 flex-1 space-y-0.5 text-xs">
+                  <p className="font-bold text-gray-950 tracking-tight">Kuyruk Son Hareket İzleme</p>
+                  <p className="font-medium text-gray-400 font-mono">{new Date(job.updated_at).toLocaleString("tr-TR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short", year: "numeric" })}</p>
                 </div>
               </div>
             )}
+            
           </div>
         </div>
-
-        {/* Auto-refresh Toggle */}
-        <div className="flex justify-between items-center">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={autoRefresh && job.status !== "completed" && job.status !== "failed"}
-              onChange={(e) => setAutoRefresh(e.target.checked)}
-              className="w-4 h-4 rounded"
-            />
-            <span className="text-sm text-gray-700">Otomatik yenile (2 saniye)</span>
-          </label>
-
-          <Link
-            href={`/admin/events/${eventId}`}
-            className="px-4 py-2 rounded-lg bg-brand-500 text-white font-medium hover:bg-brand-600 transition-colors"
-          >
-            Geri Dön
-          </Link>
-        </div>
       </div>
+
+      {/* 6. ALT POLİTİKA KONTROLLERİ VE OTOMATİK YENİLEME SWITCHİ */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1.5">
+        <label className="inline-flex cursor-pointer items-center gap-2.5 select-none">
+          <input
+            type="checkbox"
+            checked={autoRefresh && job.status !== "completed" && job.status !== "failed"}
+            disabled={job.status === "completed" || job.status === "failed"}
+            onChange={(e) => setAutoRefresh(e.target.checked)}
+            className="h-3.5 w-3.5 rounded border-gray-300 text-gray-950 focus:ring-0 focus:ring-offset-0 cursor-pointer disabled:opacity-40"
+          />
+          <span className="text-xs font-semibold text-gray-600 tracking-tight">Verileri otomatik yenile (2 saniyede bir)</span>
+        </label>
+
+        <Link
+          href={`/admin/events/${eventId}`}
+          className="inline-flex min-h-[38px] items-center justify-center rounded-xl bg-gray-950 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-98 text-center"
+        >
+          Tamamlandı, Geri Dön
+        </Link>
+      </div>
+
     </div>
   );
 }

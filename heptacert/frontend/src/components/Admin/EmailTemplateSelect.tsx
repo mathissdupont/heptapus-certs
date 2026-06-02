@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Loader2, Mail } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Loader2, Mail, ChevronDown } from "lucide-react";
 import {
   listEventEmailTemplates,
   listSystemEmailTemplates,
@@ -59,45 +59,71 @@ export default function EmailTemplateSelect({
   );
 
   return (
-    <label className="grid gap-1.5">
-      <span className="text-xs font-bold text-surface-600">{label}</span>
-      <div className="relative">
-        <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+    <div className="grid gap-1.5 w-full antialiased">
+      {/* Üst Başlık */}
+      <span className="block text-xs font-semibold text-gray-700 tracking-tight">
+        {label}
+      </span>
+      
+      {/* Seçim Alanı Kapsayıcısı */}
+      <div className="relative flex items-center">
+        {/* Sol İkon */}
+        <Mail className="pointer-events-none absolute left-3.5 h-4 w-4 text-gray-400 stroke-[1.8]" />
+        
+        {/* Native Select - Apple Çizgisinde Giydirilmiş */}
         <select
           value={value || ""}
           onChange={(event) => onChange(event.target.value ? Number(event.target.value) : null)}
-          className="input-field pl-9"
+          className="w-full min-h-[42px] appearance-none rounded-xl border border-gray-200 bg-white pl-10 pr-10 text-xs font-medium text-gray-900 transition-all outline-none hover:border-gray-300 focus:border-gray-900 focus:ring-1 focus:ring-gray-900 disabled:bg-gray-50/50 disabled:opacity-50"
           disabled={disabled || loading}
         >
-          <option value="">{loading ? "Loading..." : placeholder}</option>
+          <option value="" className="text-gray-400">
+            {loading ? "Yükleniyor..." : placeholder}
+          </option>
+          
           {eventTemplates.length > 0 && (
-            <optgroup label="Event templates">
+            <optgroup label={eventId ? "Etkinlik Şablonları" : "Event Templates"} className="font-semibold text-gray-500 bg-white">
               {eventTemplates.map((template) => (
-                <option key={template.id} value={template.id}>
-                  {template.name} - {template.subject_tr || template.subject_en}
+                <option key={template.id} value={template.id} className="text-gray-900 font-medium py-1">
+                  {template.name} — {template.subject_tr || template.subject_en}
                 </option>
               ))}
             </optgroup>
           )}
+          
           {systemTemplates.length > 0 && (
-            <optgroup label="System templates">
+            <optgroup label={eventId ? "Sistem Şablonları" : "System Templates"} className="font-semibold text-gray-500 bg-white">
               {systemTemplates.map((template) => (
-                <option key={template.id} value={template.id}>
-                  {template.name} - {template.subject_tr || template.subject_en}
+                <option key={template.id} value={template.id} className="text-gray-900 font-medium py-1">
+                  {template.name} — {template.subject_tr || template.subject_en}
                 </option>
               ))}
             </optgroup>
           )}
         </select>
-        {loading && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-surface-400" />}
+        
+        {/* Sağ Durum / Ok İkonu */}
+        <div className="pointer-events-none absolute right-3.5 flex items-center justify-center">
+          {loading ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400 stroke-[2.5]" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-gray-400 stroke-[2]" />
+          )}
+        </div>
       </div>
-      {selected ? (
-        <p className="text-[11px] leading-4 text-surface-500">
-          {selected.subject_tr || selected.subject_en}
-        </p>
-      ) : (
-        <p className="text-[11px] leading-4 text-surface-500">{helperText || emptyText}</p>
-      )}
-    </label>
+      
+      {/* Alt Bilgi & Yardımcı Metin */}
+      <div className="px-0.5">
+        {selected ? (
+          <p className="text-[11px] leading-relaxed text-gray-500 tracking-normal font-medium">
+            <span className="text-gray-400 font-semibold">Konu:</span> {selected.subject_tr || selected.subject_en}
+          </p>
+        ) : (
+          <p className="text-[11px] leading-relaxed text-gray-400 tracking-normal">
+            {helperText || emptyText}
+          </p>
+        )}
+      </div>
+    </div>
   );
 }

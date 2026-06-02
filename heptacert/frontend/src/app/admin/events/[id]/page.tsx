@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ElementType } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -21,10 +21,13 @@ import {
   Sparkles,
   Ticket,
   Users,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
 } from "lucide-react";
 import { apiFetch, type EventOut } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
-import { AdminErrorState, AdminLoadingState } from "@/components/Admin/AdminState";
+import { ErrorState, LoadingState } from "@/components/Admin/AdminState";
 import EventSetupChecklist from "@/components/Admin/EventSetupChecklist";
 import EventActivityTimeline from "@/components/Admin/EventActivityTimeline";
 
@@ -51,10 +54,17 @@ type EventHealthOut = {
 };
 
 function healthTone(status: EventHealthCheck["status"]) {
-  if (status === "ok") return "border-emerald-200 bg-emerald-50 text-emerald-800";
-  if (status === "warning") return "border-amber-200 bg-amber-50 text-amber-800";
-  if (status === "error") return "border-rose-200 bg-rose-50 text-rose-800";
-  return "border-surface-200 bg-surface-50 text-surface-600";
+  if (status === "ok") return "border-emerald-100 bg-emerald-50/30 text-emerald-700";
+  if (status === "warning") return "border-amber-100 bg-amber-50/30 text-amber-700";
+  if (status === "error") return "border-red-100 bg-red-50/30 text-red-600";
+  return "border-gray-100 bg-gray-50/40 text-gray-500";
+}
+
+function getHealthIcon(status: EventHealthCheck["status"]) {
+  if (status === "ok") return <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500 stroke-[2.5]" />;
+  if (status === "warning") return <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500 stroke-[2]" />;
+  if (status === "error") return <XCircle className="h-4 w-4 shrink-0 text-red-500 stroke-[2]" />;
+  return <Activity className="h-4 w-4 shrink-0 text-gray-400 stroke-[1.8]" />;
 }
 
 export default function EventIndexPage() {
@@ -71,63 +81,63 @@ export default function EventIndexPage() {
       eyebrow: "Etkinlik Detayları",
       loading: "Etkinlik detayları yükleniyor...",
       error: "Etkinlik detayları yüklenemedi.",
-      registration: "Kayıt Sayfası",
+      registration: "Kayıt İstasyonu",
       copyLink: "Kayıt Linkini Kopyala",
       copied: "Kopyalandı",
-      openPublic: "Kayıt sayfasını aç",
-      description: "Bu standart girişten katılımcı, sertifika, bilet, e-posta ve ayar ekranlarına geçebilirsiniz.",
+      openPublic: "Kayıt Sayfasını Aç",
+      description: "Katılımcı yönetimi, akıllı sertifika üretimi, bilet check-in oturumları ve e-posta akışlarını tek panelden yapılandırın.",
       modules: "Yönetim Alanları",
       quickSetup: "Hızlı Başlangıç",
       quickSetupBody: "Önce kayıt formunu ve KVKK metnini ayarlayın, sonra katılımcıları ve otomasyonları bu ekrandan yönetin.",
       attendees: "Katılımcılar",
-      attendeesBody: "Kayıtları, soru bazlı cevapları, Excel/Sheets akışını ve katılımcı kartlarını yönetin.",
+      attendeesBody: "Kayıtları, özel soru cevaplarını, biletleri ve katılımcı listelerini filtreleyin.",
       settings: "Ayarlar",
-      settingsBody: "Kayıt formu, KVKK, banner, e-posta ve modül ayarlarını düzenleyin.",
+      settingsBody: "Kayıt formu kurgusu, KVKK metinleri, bilet ve akıllı otomasyon modüllerini yapılandırın.",
       certificates: "Sertifikalar",
-      certificatesBody: "Üretilen sertifikaları takip edin ve toplu üretim durumunu görün.",
+      certificatesBody: "Üretilen dijital sertifikaları doğrulayın, listeleri ve dışa aktarım süreçlerini izleyin.",
       editor: "Sertifika Editörü",
-      editorBody: "Sertifika tasarımını ve alan konumlarını düzenleyin.",
+      editorBody: "Zengin sertifika şablon tasarımlarını ve dinamik alan konumlarını ölçekleyin.",
       sessions: "Oturumlar",
-      sessionsBody: "QR check-in oturumlarını ve katılım eşiğini yönetin.",
+      sessionsBody: "Giriş ve yoklama için QR check-in seanslarını ve katılım barajlarını yönetin.",
       tickets: "Biletler",
-      ticketsBody: "Etkinlik giriş kartlarını ve bilet doğrulama akışını yönetin.",
+      ticketsBody: "Katılımcı giriş kartlarını, geçiş politikalarını ve bilet doğrulama akışını yönetin.",
       raffles: "Çekilişler",
-      rafflesBody: "Katılım koşullu çekilişleri hazırlayın ve sunum modunu açın.",
+      rafflesBody: "Katılım şartlarına uygun canlı çekiliş havuzları hazırlayın ve sunum modunu başlatın.",
       gamification: "Oyunlaştırma",
-      gamificationBody: "Rozet, puan ve katılım motivasyonu akışlarını yönetin.",
+      gamificationBody: "Topluluk motivasyonu için rozet, puanlama ve görev ödüllendirme akışlarını kurgulayın.",
       email: "E-posta",
-      emailBody: "Etkinliğe özel e-posta şablonları ve gönderim akışlarını yönetin.",
+      emailBody: "Etkinliğe özel akıllı e-posta şablonlarını ve bildirim otomasyonlarını yönetin.",
     },
     en: {
       eyebrow: "Event Details",
       loading: "Loading event details...",
       error: "Could not load event details.",
-      registration: "Registration Page",
+      registration: "Registration Station",
       copyLink: "Copy Registration Link",
       copied: "Copied",
-      openPublic: "Open registration page",
-      description: "Use this standard entry point to manage attendees, certificates, tickets, email, and settings.",
+      openPublic: "Open Registration Page",
+      description: "Finalize participant engagement, automated credential generation, ticket check-in workflows, and targeted email configurations.",
       modules: "Management Areas",
       quickSetup: "Quick Start",
       quickSetupBody: "Set the registration form and privacy notice first, then manage attendees and automations from here.",
       attendees: "Attendees",
-      attendeesBody: "Manage registrations, question-based answers, Excel/Sheets flow, and attendee cards.",
+      attendeesBody: "Filter registrations, question-based responses, credential tags, and attendee lists.",
       settings: "Settings",
-      settingsBody: "Edit registration form, privacy, banner, email, and module settings.",
+      settingsBody: "Configure registration rules, privacy nodes, ticket layouts, and organizational metadata.",
       certificates: "Certificates",
-      certificatesBody: "Track issued certificates and bulk generation status.",
+      certificatesBody: "Audit issued digital credentials, verify lookups, and track generation logs.",
       editor: "Certificate Editor",
-      editorBody: "Edit certificate design and field positions.",
+      editorBody: "Design professional credential canvases and map dynamic variable placeholders.",
       sessions: "Sessions",
-      sessionsBody: "Manage QR check-in sessions and attendance thresholds.",
+      sessionsBody: "Coordinate batch QR check-in sessions and control minimum compliance thresholds.",
       tickets: "Tickets",
-      ticketsBody: "Manage event passes and ticket validation.",
+      ticketsBody: "Govern event passes, credential bindings, and check-in validation pipelines.",
       raffles: "Raffles",
-      rafflesBody: "Prepare attendance-based raffles and presentation mode.",
+      rafflesBody: "Launch parameter-driven live engagement drawings and activate immersive stage view.",
       gamification: "Gamification",
-      gamificationBody: "Manage badges, points, and engagement flows.",
+      gamificationBody: "Deploy achievement badges, reward score rules, and behavior incentive pipelines.",
       email: "Email",
-      emailBody: "Manage event-specific email templates and sending flows.",
+      emailBody: "Govern automated confirmation matrices and event-scoped template assets.",
     },
   }[lang];
 
@@ -170,7 +180,7 @@ export default function EventIndexPage() {
         title: copy.attendees,
         body: copy.attendeesBody,
         icon: Users,
-        tone: "text-sky-700 bg-sky-50 border-sky-100",
+        tone: "text-gray-900 bg-gray-50 border-gray-100",
         show: true,
       },
       {
@@ -178,7 +188,7 @@ export default function EventIndexPage() {
         title: copy.settings,
         body: copy.settingsBody,
         icon: Settings,
-        tone: "text-brand-700 bg-brand-50 border-brand-100",
+        tone: "text-gray-900 bg-gray-50 border-gray-100",
         show: true,
       },
       {
@@ -186,7 +196,7 @@ export default function EventIndexPage() {
         title: copy.certificates,
         body: copy.certificatesBody,
         icon: Shield,
-        tone: "text-emerald-700 bg-emerald-50 border-emerald-100",
+        tone: "text-gray-900 bg-gray-50 border-gray-100",
         show: event.certificate_enabled !== false,
       },
       {
@@ -194,7 +204,7 @@ export default function EventIndexPage() {
         title: copy.editor,
         body: copy.editorBody,
         icon: Palette,
-        tone: "text-violet-700 bg-violet-50 border-violet-100",
+        tone: "text-gray-900 bg-gray-50 border-gray-100",
         show: event.certificate_enabled !== false,
       },
       {
@@ -202,7 +212,7 @@ export default function EventIndexPage() {
         title: copy.sessions,
         body: copy.sessionsBody,
         icon: QrCode,
-        tone: "text-indigo-700 bg-indigo-50 border-indigo-100",
+        tone: "text-gray-900 bg-gray-50 border-gray-100",
         show: event.checkin_enabled !== false,
       },
       {
@@ -210,7 +220,7 @@ export default function EventIndexPage() {
         title: copy.tickets,
         body: copy.ticketsBody,
         icon: Ticket,
-        tone: "text-amber-700 bg-amber-50 border-amber-100",
+        tone: "text-gray-900 bg-gray-50 border-gray-100",
         show: event.ticketing_enabled === true,
       },
       {
@@ -218,7 +228,7 @@ export default function EventIndexPage() {
         title: copy.raffles,
         body: copy.rafflesBody,
         icon: Gift,
-        tone: "text-fuchsia-700 bg-fuchsia-50 border-fuchsia-100",
+        tone: "text-gray-900 bg-gray-50 border-gray-100",
         show: event.checkin_enabled !== false && event.raffles_enabled === true,
       },
       {
@@ -226,7 +236,7 @@ export default function EventIndexPage() {
         title: copy.gamification,
         body: copy.gamificationBody,
         icon: Sparkles,
-        tone: "text-purple-700 bg-purple-50 border-purple-100",
+        tone: "text-gray-900 bg-gray-50 border-gray-100",
         show: event.checkin_enabled !== false && event.gamification_enabled === true,
       },
       {
@@ -234,7 +244,7 @@ export default function EventIndexPage() {
         title: copy.email,
         body: copy.emailBody,
         icon: Mail,
-        tone: "text-slate-700 bg-slate-50 border-slate-100",
+        tone: "text-gray-900 bg-gray-50 border-gray-100",
         show: true,
       },
     ].filter((item) => item.show);
@@ -248,111 +258,123 @@ export default function EventIndexPage() {
   }
 
   if (loading) {
-    return <AdminLoadingState label={copy.loading} />;
+    return <LoadingState description={copy.loading} />;
   }
 
   if (error || !event) {
-    return <AdminErrorState title={copy.error} description={error || undefined} />;
+    return <ErrorState title={copy.error} description={error || undefined} />;
   }
 
   return (
-    <div className="flex flex-col gap-6 pb-20">
-      <section className="surface-panel p-6 sm:p-7">
+    <div className="w-full flex flex-col gap-6 pb-16 antialiased text-gray-900">
+      
+      {/* 1. ANA ETKİNLİK BAŞLIK KARTI */}
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-surface-400">{copy.eyebrow}</p>
-            <h1 className="mt-2 text-3xl font-black text-surface-950">{event.name}</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-surface-600">{copy.description}</p>
-            <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-surface-500">
+          <div className="min-w-0 space-y-1.5 flex-1">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{copy.eyebrow}</p>
+            <h1 className="text-xl font-bold tracking-tight text-gray-950 sm:text-2xl">{event.name}</h1>
+            <p className="max-w-2xl text-xs leading-relaxed text-gray-400 font-medium">{copy.description}</p>
+            
+            <div className="pt-2 flex flex-wrap gap-1.5 text-[10px] font-bold text-gray-500">
               {event.event_date && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-100 px-3 py-1">
-                  <CalendarDays className="h-3.5 w-3.5" />
-                  {new Date(event.event_date).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US")}
+                <span className="inline-flex items-center gap-1 rounded-md border border-gray-100 bg-gray-50 px-2.5 py-0.5 shadow-sm font-mono uppercase">
+                  <CalendarDays className="h-3 w-3 text-gray-400" />
+                  {new Date(event.event_date).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US", { day: "2-digit", month: "short", year: "numeric" })}
                 </span>
               )}
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-100 px-3 py-1">
-                <FileText className="h-3.5 w-3.5" />
-                ID {event.id}
+              <span className="inline-flex items-center gap-1 rounded-md border border-gray-100 bg-gray-50 px-2.5 py-0.5 shadow-sm font-mono">
+                <FileText className="h-3 w-3 text-gray-400" />
+                ID: {event.id}
               </span>
             </div>
           </div>
 
-          <div className="w-full rounded-lg border border-surface-200 bg-surface-50 p-4 lg:w-[340px]">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-surface-400">{copy.registration}</p>
-            <p className="mt-2 break-all text-sm font-semibold text-surface-800">{registrationUrl}</p>
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row lg:flex-col">
-              <button type="button" onClick={copyRegistrationLink} className="btn-secondary inline-flex items-center justify-center gap-2">
-                <Copy className="h-4 w-4" />
-                {copied ? copy.copied : copy.copyLink}
+          {/* Kayıt İstasyonu Yan Kartı (Apple Özelleştirilmiş Dock) */}
+          <div className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 p-4 lg:w-[320px] shrink-0">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{copy.registration}</p>
+            <p className="mt-1.5 break-all font-mono text-[11px] font-medium text-gray-700 select-all tracking-tight">{registrationUrl}</p>
+            
+            <div className="mt-4 flex flex-col gap-1.5 sm:flex-row lg:flex-col w-full">
+              <button 
+                type="button" 
+                onClick={copyRegistrationLink} 
+                className="flex-1 inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-98"
+              >
+                <Copy className="h-3.5 w-3.5 text-gray-400 stroke-[2]" />
+                <span>{copied ? copy.copied : copy.copyLink}</span>
               </button>
-              <a href={registrationUrl} target="_blank" rel="noreferrer" className="btn-primary inline-flex items-center justify-center gap-2">
-                <ExternalLink className="h-4 w-4" />
-                {copy.openPublic}
+              <a 
+                href={registrationUrl} 
+                target="_blank" 
+                rel="noreferrer" 
+                className="flex-1 inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-lg bg-gray-950 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-98 text-center"
+              >
+                <ExternalLink className="h-3.5 w-3.5 text-gray-400 stroke-[2.5]" />
+                <span>{copy.openPublic}</span>
               </a>
             </div>
           </div>
         </div>
       </section>
 
+      {/* 2. OPERASYONEL SAĞLIK ÖZET METRİKLERİ */}
       {health && (
-        <section className="grid gap-4 xl:grid-cols-[1fr_1.4fr]">
-          <div className="card p-5">
-            <div className="w-fit rounded-lg bg-emerald-50 p-3 text-emerald-700">
-              <Activity className="h-5 w-5" />
+        <section className="grid gap-4 xl:grid-cols-[340px_1fr]">
+          {/* Sol Panel: Operasyon Başlığı ve Hızlı Durum Matrisi */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm flex flex-col justify-between">
+            <div>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-600 shadow-sm">
+                <Activity className="h-4 w-4 stroke-[2]" />
+              </div>
+              <h2 className="mt-3.5 text-sm font-bold tracking-tight text-gray-950">
+                {lang === "tr" ? "Operasyon durumu" : "Operations health"}
+              </h2>
+              <p className="mt-1 text-xs leading-relaxed text-gray-400">
+                {lang === "tr"
+                  ? "Yoklama, sertifika ve bilet akış matrisini tek bakışta izleyin."
+                  : "Monitor attendance, ticket check-ins, and credential matrices."}
+              </p>
             </div>
-            <h2 className="mt-4 text-lg font-bold text-surface-900">
-              {lang === "tr" ? "Operasyon durumu" : "Operations health"}
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-surface-600">
-              {lang === "tr"
-                ? "Katılım, sertifika, Sheets ve arka plan işlerini tek bakışta kontrol et."
-                : "Check attendance, certificates, Sheets, and background jobs at a glance."}
-            </p>
-            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-              <div className="rounded-lg border border-surface-200 bg-white p-3">
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-surface-400">
-                  {lang === "tr" ? "Yoklama kaydı" : "Attendance records"}
-                </p>
-                <p className="mt-1 text-2xl font-black text-surface-900">{health.overview.attendance_records}</p>
-              </div>
-              <div className="rounded-lg border border-surface-200 bg-white p-3">
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-surface-400">
-                  {lang === "tr" ? "Aktif sertifika" : "Active certificates"}
-                </p>
-                <p className="mt-1 text-2xl font-black text-surface-900">{health.overview.active_certificates}</p>
-              </div>
-              <div className="rounded-lg border border-surface-200 bg-white p-3">
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-surface-400">{copy.attendees}</p>
-                <p className="mt-1 text-2xl font-black text-surface-900">{health.overview.attendees}</p>
-              </div>
-              <div className="rounded-lg border border-surface-200 bg-white p-3">
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-surface-400">
-                  {lang === "tr" ? "Kullanılan bilet" : "Used tickets"}
-                </p>
-                <p className="mt-1 text-2xl font-black text-surface-900">
-                  {health.overview.used_tickets}/{health.overview.tickets}
-                </p>
-              </div>
+            
+            {/* Küçük Bilgi Matrisi */}
+            <div className="mt-5 grid grid-cols-2 gap-2.5">
+              {[
+                [lang === "tr" ? "Yoklama kaydı" : "Attendance", health.overview.attendance_records],
+                [lang === "tr" ? "Aktif sertifika" : "Credentials", health.overview.active_certificates],
+                [copy.attendees, health.overview.attendees],
+                [lang === "tr" ? "Bilet kullanımı" : "Tickets", `${health.overview.used_tickets}/${health.overview.tickets}`],
+              ].map(([lbl, val], idx) => (
+                <div key={idx} className="rounded-xl border border-gray-100 bg-gray-50/40 p-2.5 font-medium">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400 truncate">{String(lbl)}</p>
+                  <p className="mt-0.5 text-base font-bold text-gray-950 tracking-tight tabular-nums">{String(val)}</p>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="card p-5">
-            <div className="grid gap-3 sm:grid-cols-2">
+          {/* Sağ Panel: Canlı Sistem Sağlık Kontrolleri Listesi */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm flex flex-col justify-center">
+            <div className="grid gap-2.5 sm:grid-cols-2">
               {health.checks.map((item) => (
-                <div key={item.key} className={`rounded-lg border p-4 ${healthTone(item.status)}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="font-bold">{item.label}</h3>
-                      <p className="mt-1 text-sm opacity-80">{item.detail}</p>
+                <div key={item.key} className={`rounded-xl border p-3.5 transition-colors ${healthTone(item.status)}`}>
+                  <div className="flex items-start justify-between gap-3 min-w-0">
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <h3 className="font-bold text-xs text-gray-950 tracking-tight flex items-center gap-1.5">
+                        {getHealthIcon(item.status)}
+                        <span className="truncate">{item.label}</span>
+                      </h3>
+                      <p className="text-[11px] font-medium text-gray-400 leading-normal line-clamp-2">{item.detail}</p>
                     </div>
-                    <span className="rounded-full bg-white/70 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em]">
+                    
+                    <span className="shrink-0 inline-flex rounded-md border border-white/60 bg-white/50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-gray-500 shadow-sm">
                       {item.status === "ok"
                         ? lang === "tr" ? "Sağlıklı" : "Healthy"
                         : item.status === "warning"
-                          ? lang === "tr" ? "Bakılmalı" : "Review"
+                          ? lang === "tr" ? "İnceleme" : "Review"
                           : item.status === "error"
                             ? lang === "tr" ? "Hata" : "Error"
-                            : lang === "tr" ? "Kapalı" : "Idle"}
+                            : lang === "tr" ? "Pasif" : "Idle"}
                     </span>
                   </div>
                 </div>
@@ -362,13 +384,17 @@ export default function EventIndexPage() {
         </section>
       )}
 
-      <section className="grid gap-4 lg:grid-cols-[0.9fr_1.6fr]">
+      {/* 3. ADIM KONTROL LİSTESİ VE YÖNETİM MODÜLLERİ GRIDİ */}
+      <section className="grid gap-4 lg:grid-cols-[320px_1fr] items-start">
+        {/* Sol Sütun: Kurulum Kontrol Listesi */}
         <EventSetupChecklist event={event} overview={health?.overview} lang={lang} />
 
-        <div className="card p-5">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-lg font-bold text-surface-900">{copy.modules}</h2>
+        {/* Sağ Sütun: Modül Kısayol Kartları Havuzu */}
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm flex flex-col">
+          <div className="mb-4 border-b border-gray-100 pb-2.5">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-900">{copy.modules}</h2>
           </div>
+          
           <div className="grid gap-3 sm:grid-cols-2">
             {modules.map((item) => {
               const Icon = item.icon;
@@ -376,17 +402,20 @@ export default function EventIndexPage() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="group rounded-lg border border-surface-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-soft"
+                  className="group flex flex-col justify-between gap-4 rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-all duration-300 hover:border-gray-200 hover:bg-gray-50/40"
                 >
-                  <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg border ${item.tone}`}>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="font-bold text-surface-900">{item.title}</h3>
-                      <p className="mt-1 text-sm leading-5 text-surface-500">{item.body}</p>
+                  <div className="space-y-3">
+                    <div className={`flex h-9 w-9 items-center justify-center rounded-xl border shadow-sm group-hover:scale-105 transition-transform ${item.tone}`}>
+                      <Icon className="h-4 w-4 stroke-[1.8]" />
                     </div>
-                    <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-surface-300 transition group-hover:text-brand-600" />
+                    <div className="min-w-0 space-y-0.5">
+                      <h3 className="text-xs font-bold text-gray-950 tracking-tight">{item.title}</h3>
+                      <p className="text-[11px] leading-relaxed text-gray-400 line-clamp-2">{item.body}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end pt-1">
+                    <ArrowRight className="h-3.5 w-3.5 text-gray-300 opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-gray-600" />
                   </div>
                 </Link>
               );
@@ -395,7 +424,9 @@ export default function EventIndexPage() {
         </div>
       </section>
 
+      {/* 4. DİNAMİK EKİP AKTİVİTE ZAMAN AKIŞI */}
       <EventActivityTimeline eventId={event.id} />
+      
     </div>
   );
 }

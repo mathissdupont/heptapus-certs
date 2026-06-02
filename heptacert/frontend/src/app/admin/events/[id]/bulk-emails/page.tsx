@@ -1,17 +1,20 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
-import { apiFetch, listEventSegments, type AudienceSegment } from "@/lib/api";
-import Link from "next/link";
+import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { FeatureGate } from '@/lib/useSubscription';
 import {
   Send, AlertCircle, Loader2, CheckCircle2,
-  Clock, X, Eye, Plus, Mail, TrendingUp, FileText, Users,
+  Clock, X, Eye, Plus, Mail, BarChart3, FileText, Users, ChevronDown, Workflow
 } from "lucide-react";
+
+import { apiFetch, listEventSegments, type AudienceSegment } from "@/lib/api";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 import PageHeader from "@/components/Admin/PageHeader";
+import EmailTemplateSelect from "@/components/Admin/EmailTemplateSelect";
+import AdminEmptyState from "@/components/Admin/EmptyState";
 import { useI18n } from "@/lib/i18n";
 
 type BulkEmailJob = {
@@ -51,14 +54,13 @@ export default function BulkEmailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Create campaign modal
+  // Create campaign modal states
   const [showModal, setShowModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<number | null>(null);
   const [recipientType, setRecipientType] = useState<string>("attendees");
   const [creating, setCreating] = useState(false);
-
-  // Polling for job updates
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
+
   const copy = lang === "tr"
     ? {
         pageTitle: "Toplu E-posta Kampanyaları",
@@ -90,7 +92,7 @@ export default function BulkEmailsPage() {
         certifiedTitle: "Sertifikalandırılanlar",
         certifiedBody: "Yalnızca sertifikası hazır olan kişiler",
         chooseTemplate: "Şablon seçin",
-        preview: "Detay",
+        preview: "Detay Raporu",
         progressSent: "gönderildi",
         pending: "Sırada",
         statusSending: "Gönderiliyor",
@@ -127,7 +129,7 @@ export default function BulkEmailsPage() {
         certifiedTitle: "Certified only",
         certifiedBody: "Only people whose certificates are ready",
         chooseTemplate: "Choose a template",
-        preview: "Details",
+        preview: "Details Report",
         progressSent: "sent",
         pending: "Queued",
         statusSending: "Sending",
@@ -196,38 +198,18 @@ export default function BulkEmailsPage() {
 
   function getStatusBadge(status: string) {
     const statusMap: Record<string, { bg: string; text: string; icon: JSX.Element; label: string }> = {
-      pending: {
-        bg: "bg-yellow-100",
-        text: "text-yellow-800",
-        icon: <Clock className="h-4 w-4" />,
-        label: copy.pending,
-      },
-      sending: {
-        bg: "bg-blue-100",
-        text: "text-blue-800",
-        icon: <Mail className="h-4 w-4" />,
-        label: copy.statusSending,
-      },
-      completed: {
-        bg: "bg-green-100",
-        text: "text-green-800",
-        icon: <CheckCircle2 className="h-4 w-4" />,
-        label: copy.statusCompleted,
-      },
-      failed: {
-        bg: "bg-red-100",
-        text: "text-red-800",
-        icon: <AlertCircle className="h-4 w-4" />,
-        label: copy.statusFailed,
-      },
+      pending: { bg: "bg-amber-50 border-amber-100/60 text-amber-700", text: "text-amber-700", icon: <Clock className="h-3 w-3 stroke-[2]" />, label: copy.pending },
+      sending: { bg: "bg-blue-50 border-blue-100/60 text-blue-700", text: "text-blue-700", icon: <Mail className="h-3 w-3 stroke-[2]" />, label: copy.statusSending },
+      completed: { bg: "bg-emerald-50 border-emerald-100/60 text-emerald-700", text: "text-emerald-700", icon: <CheckCircle2 className="h-3 w-3 stroke-[2.5]" />, label: copy.statusCompleted },
+      failed: { bg: "bg-red-50 border-red-100/60 text-red-600", text: "text-red-700", icon: <AlertCircle className="h-3 w-3 stroke-[2]" />, label: copy.statusFailed },
     };
 
     const mapping = statusMap[status] || statusMap.pending;
 
     return (
-      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${mapping.bg} ${mapping.text}`}>
+      <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-bold tracking-tight shadow-sm ${mapping.bg}`}>
         {mapping.icon}
-        {mapping.label}
+        <span>{mapping.label}</span>
       </span>
     );
   }
@@ -253,298 +235,255 @@ export default function BulkEmailsPage() {
 
   return (
     <FeatureGate requiredPlans={["growth", "enterprise"]}>
-      <div className="space-y-6 pb-20 pt-6">
-        <EventAdminNav eventId={eventId} active="email" className="flex flex-col gap-2" />
+      <div className="w-full flex flex-col gap-5 antialiased text-gray-900 pb-16">
+        
+        {/* ÜST ETKİNLİK NAVİGASYONU */}
+        <EventAdminNav eventId={Number(eventId)} active="email" className="mb-1" />
 
+        {/* SAYFA BAŞLIĞI */}
         <PageHeader
           title={copy.pageTitle}
           subtitle={copy.pageSubtitle}
-          icon={<Send className="h-5 w-5" />}
+          icon={<Send className="h-4 w-4 stroke-[2]" />}
           actions={
-            <>
-              <Link href={`/admin/events/${eventId}/email-templates`} className="btn-secondary">
-                <FileText className="h-4 w-4" />
-                {copy.templateLabel}
+            <div className="flex items-center gap-2">
+              <Link href={`/admin/events/${eventId}/email-templates`} className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">
+                <FileText className="h-3.5 w-3.5 text-gray-400 stroke-[1.8]" />
+                <span>{copy.templateLabel}</span>
               </Link>
-              <button onClick={() => setShowModal(true)} className="btn-primary">
-                <Plus className="h-4 w-4" />
-                {copy.newCampaign}
+              <button 
+                onClick={() => setShowModal(true)} 
+                className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-95"
+              >
+                <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+                <span>{copy.newCampaign}</span>
               </button>
-            </>
+            </div>
           }
         />
 
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="card p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.totalCampaigns}</p>
-            <p className="mt-2 text-3xl font-black text-surface-900">{jobs.length}</p>
-            <p className="mt-1 text-xs text-surface-500">Campaigns</p>
-          </div>
-          <div className="card p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.completed}</p>
-            <p className="mt-2 text-3xl font-black text-emerald-600">{completedCount}</p>
-            <p className="mt-1 text-xs text-surface-500">{copy.statusCompleted}</p>
-          </div>
-          <div className="card p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.sending}</p>
-            <p className="mt-2 text-3xl font-black text-blue-600">{sendingCount}</p>
-            <p className="mt-1 text-xs text-surface-500">{copy.statusSending}</p>
-          </div>
-          <div className="card p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.failed}</p>
-            <p className="mt-2 text-3xl font-black text-rose-600">{failedCount}</p>
-            <p className="mt-1 text-xs text-surface-500">{copy.statusFailed}</p>
-          </div>
+        {/* METRİK HÜCRE IZGARASI */}
+        <div className="grid grid-cols-2 gap-3.5 xl:grid-cols-4">
+          {[
+            { label: copy.totalCampaigns, val: jobs.length, sub: "Üretilen görev", color: "text-gray-950" },
+            { label: copy.completed, val: completedCount, sub: copy.statusCompleted, color: "text-emerald-600" },
+            { label: copy.sending, val: sendingCount, sub: copy.statusSending, color: "text-blue-600" },
+            { label: copy.failed, val: failedCount, sub: copy.statusFailed, color: "text-red-600" },
+          ].map((stat, i) => (
+            <div key={i} className="rounded-2xl border border-gray-200 bg-white p-4.5 shadow-sm space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 truncate">{stat.label}</p>
+              <p className={`text-2xl font-bold tracking-tight font-mono tabular-nums ${stat.color}`}>{stat.val}</p>
+              <p className="text-[11px] font-medium text-gray-400">{stat.sub}</p>
+            </div>
+          ))}
         </div>
 
         {error && (
-          <div className="error-banner flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 shrink-0" />
+          <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 text-xs font-semibold text-red-600 flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
+        {/* BOŞ DURUM VEYA DETAYLI ÇİFT SÜTUN AKIŞI */}
         {loading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
-          </div>
+          <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-gray-400 stroke-[2.5]" /></div>
         ) : jobs.length === 0 ? (
-          <div className="card rounded-3xl border-2 border-dashed border-surface-300 bg-surface-50 p-12 text-center">
-            <Send className="mx-auto mb-4 h-12 w-12 text-surface-400" />
-            <p className="text-lg font-semibold text-surface-900">{copy.emptyTitle}</p>
-            <p className="mx-auto mt-2 max-w-xl text-sm leading-7 text-surface-500">{copy.emptyBody}</p>
-            <button onClick={() => setShowModal(true)} className="btn-primary mx-auto mt-5">
-              <Plus className="h-4 w-4" />
-              {copy.firstCampaign}
-            </button>
-          </div>
+          <AdminEmptyState
+            icon={<Send className="h-5 w-5 stroke-[1.5] text-gray-300" />}
+            title={copy.emptyTitle}
+            description={copy.emptyBody}
+            action={<button onClick={() => setShowModal(true)} className="inline-flex min-h-[34px] items-center justify-center rounded-xl bg-gray-950 px-4 text-xs font-semibold text-white transition hover:bg-gray-900 shadow-sm">{copy.firstCampaign}</button>}
+          />
         ) : (
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-            <div className="space-y-4">
-              {jobs.map((job, index) => (
-                <motion.div
-                  key={job.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.03 }}
-                  className={`card p-5 sm:p-6 ${selectedJobId === job.id ? "border-brand-200 bg-brand-50/40" : ""}`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="truncate text-lg font-bold text-surface-900">
-                          {job.email_template?.name || `${copy.templateLabel} #${job.email_template_id}`}
-                        </h3>
-                        {getStatusBadge(job.status)}
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px] items-start">
+            
+            {/* SOL SÜTUN: KAMPANYA KARTLARI LİSTESİ */}
+            <div className="space-y-3.5">
+              {jobs.map((job, index) => {
+                const isSelected = selectedJobId === job.id;
+                const progress = getProgressPercentage(job);
+                return (
+                  <motion.div
+                    key={job.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.03 }}
+                    className={`rounded-2xl border bg-white p-5 shadow-sm transition-all duration-300 ${
+                      isSelected ? "border-gray-900 ring-1 ring-gray-950" : "border-gray-200"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        <div className="flex flex-wrap items-center gap-2.5">
+                          <h3 className="font-bold text-xs text-gray-950 tracking-tight truncate">
+                            {job.email_template?.name || `${copy.templateLabel} #${job.email_template_id}`}
+                          </h3>
+                          {getStatusBadge(job.status)}
+                        </div>
+                        
+                        <p className="text-xs font-medium text-gray-500 max-w-xl truncate">
+                          <span className="font-semibold text-gray-400">{copy.subjectLabel}:</span> {job.email_template?.subject_tr || job.email_template?.subject_en || "—"}
+                        </p>
+                        
+                        <div className="pt-1 flex flex-wrap gap-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                          <span className="bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-md">{copy.recipientLabel}: {getRecipientLabel(job.recipient_type)}</span>
+                          <span className="bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-md font-mono">{new Date(job.created_at).toLocaleDateString("tr-TR")}</span>
+                        </div>
                       </div>
-                      <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-surface-500">
-                        <span className="rounded-full border border-surface-200 bg-surface-50 px-3 py-1">{copy.recipientLabel}: {getRecipientLabel(job.recipient_type)}</span>
-                        <span className="rounded-full border border-surface-200 bg-surface-50 px-3 py-1">{copy.createdAt}: {new Date(job.created_at).toLocaleString(lang === "tr" ? "tr-TR" : "en-US")}</span>
+                      
+                      <button 
+                        type="button" 
+                        onClick={() => setSelectedJobId(job.id === selectedJobId ? null : job.id)} 
+                        className="p-2 rounded-xl text-gray-400 hover:bg-gray-50 hover:text-gray-950 transition-colors"
+                      >
+                        <Eye className="h-4 w-4 stroke-[1.8]" />
+                      </button>
+                    </div>
+
+                    {/* İlerleme İndikatörü */}
+                    <div className="mt-4 pt-1">
+                      <div className="flex justify-between items-center text-[11px] font-semibold text-gray-500 mb-1.5">
+                        <span>{progress}% {copy.progressSent}</span>
+                        <span className="font-mono text-gray-950 tracking-tight">{job.sent_count + job.failed_count} / {job.total_recipients}</span>
                       </div>
-                      <p className="mt-3 text-sm text-surface-600">
-                        {copy.subjectLabel || "Subject"}: {job.email_template?.subject_tr || job.email_template?.subject_en || "N/A"}
-                      </p>
+                      <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full rounded-full transition-all duration-300 ease-out ${job.status === "failed" ? "bg-red-500" : "bg-gray-950"}`} 
+                          style={{ width: `${progress}%` }} 
+                        />
+                      </div>
                     </div>
-                    <button onClick={() => setSelectedJobId(job.id === selectedJobId ? null : job.id)} className="rounded-2xl p-2 text-surface-400 transition hover:bg-surface-100 hover:text-surface-700">
-                      <Eye className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  <div className="mt-5">
-                    <div className="mb-2 flex items-center justify-between text-sm">
-                      <span className="font-medium text-surface-700">
-                        {job.sent_count + job.failed_count} / {job.total_recipients} {copy.progressSent}
-                      </span>
-                      <span className="font-bold text-surface-900">{getProgressPercentage(job)}%</span>
-                    </div>
-                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-surface-200">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${getProgressPercentage(job)}%` }}
-                        transition={{ duration: 0.45 }}
-                        className={`h-full rounded-full ${job.status === "failed" ? "bg-rose-500" : job.status === "completed" ? "bg-emerald-500" : "bg-blue-500"}`}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-5 grid grid-cols-3 gap-2 text-center text-sm">
-                    <div className="rounded-2xl bg-emerald-50 px-3 py-3">
-                      <p className="font-bold text-emerald-700">{job.sent_count}</p>
-                      <p className="mt-1 text-[11px] text-emerald-700">{copy.successLabel}</p>
-                    </div>
-                    <div className="rounded-2xl bg-rose-50 px-3 py-3">
-                      <p className="font-bold text-rose-700">{job.failed_count}</p>
-                      <p className="mt-1 text-[11px] text-rose-700">{copy.failedLabel}</p>
-                    </div>
-                    <div className="rounded-2xl bg-surface-100 px-3 py-3">
-                      <p className="font-bold text-surface-900">{job.total_recipients}</p>
-                      <p className="mt-1 text-[11px] text-surface-600">{copy.targetLabel}</p>
-                    </div>
-                  </div>
-
-                  {job.error_message && (
-                    <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                      {job.error_message}
-                    </div>
-                  )}
-                </motion.div>
-              ))}
+                  </motion.div>
+                );
+              })}
             </div>
 
-            <div className="card p-5 sm:p-6">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-50 text-brand-600 shadow-soft">
-                  <Users className="h-5 w-5" />
+            {/* SAĞ SÜTUN: STICKY DETAY ÖZET KUTUSU */}
+            <aside className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sticky top-5 space-y-4 h-fit">
+              <div className="flex items-center gap-3 border-b border-gray-100 pb-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-50 border border-gray-100 shadow-sm text-gray-900">
+                  <Workflow className="h-4 w-4 stroke-[2]" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.preview}</p>
-                  <h2 className="text-xl font-black tracking-tight text-surface-900">{selectedJob ? selectedJob.email_template?.name || `${copy.templateLabel} #${selectedJob.email_template_id}` : copy.newCampaign}</h2>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{copy.preview}</p>
+                  <h2 className="text-xs font-bold text-gray-950 tracking-tight truncate max-w-[200px]">
+                    {selectedJob ? selectedJob.email_template?.name || `Görev #${selectedJob.id}` : copy.newCampaign}
+                  </h2>
                 </div>
               </div>
 
               {selectedJob ? (
-                <div className="mt-5 space-y-3 text-sm text-surface-600">
-                  <div className="rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.recipientLabel}</p>
-                    <p className="mt-2 font-semibold text-surface-900">{getRecipientLabel(selectedJob.recipient_type)}</p>
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-gray-100 bg-gray-50/50 p-3.5 space-y-2.5 text-xs font-semibold text-gray-600">
+                    <div className="flex justify-between"><span className="text-gray-400 font-medium">Hedef Kitle</span><span className="text-gray-950">{getRecipientLabel(selectedJob.recipient_type)}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-400 font-medium">Başarılı Sevk</span><span className="text-emerald-600 font-mono">{selectedJob.sent_count}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-400 font-medium">Reddedilen / Hata</span><span className="text-red-500 font-mono">{selectedJob.failed_count}</span></div>
+                    <div className="flex justify-between pt-2 border-t border-gray-100"><span className="text-gray-400 font-medium">Kuyruk Yoğunluğu</span><span className="text-gray-950 font-mono">{selectedJob.total_recipients}</span></div>
                   </div>
-                  <div className="rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.createdAt}</p>
-                    <p className="mt-2 font-semibold text-surface-900">{new Date(selectedJob.created_at).toLocaleString(lang === "tr" ? "tr-TR" : "en-US")}</p>
-                  </div>
-                  <div className="rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-400">Progress</p>
-                    <p className="mt-2 font-semibold text-surface-900">{getProgressPercentage(selectedJob)}%</p>
-                  </div>
+                  
+                  {selectedJob.error_message && (
+                    <div className="rounded-xl border border-red-100 bg-red-50/30 p-3 text-[11px] font-semibold text-red-600 leading-relaxed">
+                      {selectedJob.error_message}
+                    </div>
+                  )}
+
+                  <Link 
+                    href={`/admin/events/${eventId}/bulk-email-jobs/${selectedJob.id}/delivery-analytics`}
+                    className="w-full inline-flex min-h-[34px] items-center justify-center rounded-lg border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-800 shadow-sm transition hover:bg-gray-50"
+                  >
+                    <span>Detaylı Log Günlüğünü Aç</span>
+                  </Link>
                 </div>
               ) : (
-                <div className="mt-5 rounded-2xl border border-dashed border-surface-300 bg-surface-50 px-5 py-10 text-center text-sm text-surface-500">
-                  {lang === "tr" ? "Detayları görmek için bir kampanya seçin." : "Pick a campaign to see its details."}
-                </div>
+                <p className="text-xs font-medium text-gray-400 text-center py-10 leading-relaxed">Sistem akış detaylarını ve sayaç kırılımlarını izlemek için listeden bir kampanya kartı seçin.</p>
               )}
-            </div>
+            </aside>
           </div>
         )}
 
+        {/* MODAL KATMANI: YENİ KAMPANYA BAŞLATMA PENCERESİ */}
         <AnimatePresence>
           {showModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 p-3 backdrop-blur-sm sm:items-center sm:p-4"
-              onClick={() => setShowModal(false)}
-            >
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 16 }}
-                className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border border-surface-200 bg-white shadow-lifted"
-                onClick={(event) => event.stopPropagation()}
-              >
-                <div className="flex items-center justify-between border-b border-surface-100 px-5 py-5 sm:px-6">
-                  <div>
-                    <h2 className="text-xl font-black tracking-tight text-surface-900">{copy.newCampaign}</h2>
-                    <p className="mt-1 text-sm text-surface-500">{copy.pageSubtitle}</p>
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-gray-900/20 backdrop-blur-md" onClick={() => { if (!creating) setShowModal(false); }} />
+              <motion.div initial={{ opacity: 0, scale: 0.96, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 8 }} className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white/95 p-6 shadow-xl backdrop-blur-xl space-y-4">
+                
+                <div>
+                  <h2 className="text-sm font-bold text-gray-950 tracking-tight">{copy.newCampaign}</h2>
+                  <p className="mt-1 text-[11px] text-gray-400 leading-relaxed">Katılımcı gruplarına toplu bülten veya sertifika gönderim kuralı kurgulayın.</p>
+                </div>
+
+                {/* Şablon Seçim Modülü */}
+                <div className="space-y-1">
+                  <EmailTemplateSelect eventId={Number(eventId)} value={selectedTemplate} onChange={setSelectedTemplate} label={copy.templateLabel} placeholder={copy.chooseTemplate} emptyText="No templates available" />
+                  {selectedTemplateItem && (
+                    <div className="rounded-xl border border-gray-100 bg-gray-50/40 p-3 text-[11px] font-medium text-gray-500 space-y-0.5">
+                      <p className="font-bold text-gray-950 truncate">{selectedTemplateItem.name}</p>
+                      <p className="truncate"><span className="font-semibold text-gray-300">Konu:</span> {selectedTemplateItem.subject_tr || selectedTemplateItem.subject_en || "—"}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Hedef Alıcı Seçimi */}
+                <div className="space-y-2">
+                  <span className="block text-[11px] font-bold text-gray-500">{copy.recipientLabel}</span>
+                  <div className="grid gap-2 grid-cols-2">
+                    <button type="button" onClick={() => setRecipientType("attendees")} className={`p-3 rounded-xl border text-left text-xs font-bold transition-all relative flex flex-col justify-between h-22 ${recipientType === "attendees" ? "border-gray-950 bg-white ring-1 ring-gray-950 shadow-sm" : "border-gray-200 bg-white hover:border-gray-300"}`}>
+                      <p className="text-gray-950 tracking-tight">{copy.attendeesTitle}</p>
+                      <p className="text-[10px] font-medium text-gray-400 leading-normal">{copy.attendeesBody}</p>
+                    </button>
+                    
+                    <button type="button" onClick={() => setRecipientType("certified")} className={`p-3 rounded-xl border text-left text-xs font-bold transition-all relative flex flex-col justify-between h-22 ${recipientType === "certified" ? "border-gray-950 bg-white ring-1 ring-gray-950 shadow-sm" : "border-gray-200 bg-white hover:border-gray-300"}`}>
+                      <p className="text-gray-950 tracking-tight">{copy.certifiedTitle}</p>
+                      <p className="text-[10px] font-medium text-gray-400 leading-normal">{copy.certifiedBody}</p>
+                    </button>
                   </div>
-                  <button onClick={() => setShowModal(false)} className="rounded-2xl border border-surface-200 p-2 text-surface-400 transition hover:border-surface-300 hover:text-surface-700">
-                    <X className="h-4 w-4" />
+
+                  {/* Dinamik Özel Segmentler Dökümü */}
+                  {segments.length > 0 && (
+                    <div className="space-y-1.5 pt-1">
+                      <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-400">Veritabanı Özel Segmentleri</span>
+                      <div className="grid gap-2 sm:grid-cols-2 max-h-36 overflow-y-auto scrollbar-none pr-0.5">
+                        {segments.map((segment) => {
+                          const val = `segment:${segment.key}`;
+                          const isSegSel = recipientType === val;
+                          return (
+                            <button key={segment.key} type="button" onClick={() => setRecipientType(val)} className={`p-2.5 rounded-xl border text-left transition-all ${isSegSel ? "border-gray-950 bg-white ring-1 ring-gray-950 shadow-sm" : "border-gray-100 bg-white hover:border-gray-200"}`}>
+                              <div className="flex items-center justify-between gap-2 text-xs font-bold">
+                                <p className="text-gray-950 truncate tracking-tight">{segment.label}</p>
+                                <span className={`rounded-full px-1.5 font-mono text-[9px] ${isSegSel ? "bg-gray-950 text-white" : "bg-gray-50 border border-gray-100 text-gray-400"}`}>{segment.count}</span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bilgi Şeridi */}
+                <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-3 text-[11px] font-medium text-blue-800 leading-relaxed">
+                  <strong>{copy.infoTitle}:</strong> {copy.infoBody}
+                </div>
+
+                {/* Alt Kontrol Butonları */}
+                <div className="flex gap-2 pt-2">
+                  <button type="button" onClick={() => setShowModal(false)} disabled={creating} className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">İptal</button>
+                  <button type="button" onClick={handleCreateCampaign} disabled={!selectedTemplate || creating} className="flex-1 inline-flex items-center justify-center rounded-xl bg-gray-950 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 disabled:opacity-40">
+                    {creating ? (
+                      <span className="flex items-center gap-1.5"><Loader2 className="h-3.5 w-3.5 animate-spin" /> {copy.creating}</span>
+                    ) : (
+                      <span>{copy.startCampaign}</span>
+                    )}
                   </button>
                 </div>
 
-                <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-6">
-                  <div>
-                    <label className="label mb-3">{copy.templateLabel}</label>
-                    <select
-                      value={selectedTemplate || ""}
-                      onChange={(event) => setSelectedTemplate(event.target.value ? parseInt(event.target.value, 10) : null)}
-                      className="input-field"
-                    >
-                      <option value="">{copy.chooseTemplate}</option>
-                      {templates.map((template) => (
-                        <option key={template.id} value={template.id}>
-                          {template.name}
-                        </option>
-                      ))}
-                    </select>
-                    {selectedTemplateItem && (
-                      <div className="mt-3 rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3 text-sm text-surface-600">
-                        <p className="font-semibold text-surface-900">{selectedTemplateItem.name}</p>
-                        <p className="mt-1">{selectedTemplateItem.subject_tr || selectedTemplateItem.subject_en}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="label mb-3">{copy.recipientLabel}</label>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <button
-                        type="button"
-                        onClick={() => setRecipientType("attendees")}
-                        className={`rounded-3xl border p-4 text-left transition ${recipientType === "attendees" ? "border-brand-200 bg-brand-50" : "border-surface-200 bg-white hover:border-surface-300"}`}
-                      >
-                        <p className="font-semibold text-surface-900">{copy.attendeesTitle}</p>
-                        <p className="mt-2 text-sm leading-6 text-surface-500">{copy.attendeesBody}</p>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setRecipientType("certified")}
-                        className={`rounded-3xl border p-4 text-left transition ${recipientType === "certified" ? "border-brand-200 bg-brand-50" : "border-surface-200 bg-white hover:border-surface-300"}`}
-                      >
-                        <p className="font-semibold text-surface-900">{copy.certifiedTitle}</p>
-                        <p className="mt-2 text-sm leading-6 text-surface-500">{copy.certifiedBody}</p>
-                      </button>
-                    </div>
-                    {segments.length > 0 && (
-                      <div className="mt-3 grid gap-2">
-                        <p className="text-xs font-bold text-surface-500">Segmentler</p>
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          {segments.map((segment) => {
-                            const value = `segment:${segment.key}`;
-                            return (
-                              <button
-                                key={segment.key}
-                                type="button"
-                                onClick={() => setRecipientType(value)}
-                                className={`rounded-2xl border p-3 text-left transition ${recipientType === value ? "border-brand-200 bg-brand-50" : "border-surface-200 bg-white hover:border-surface-300"}`}
-                              >
-                                <div className="flex items-center justify-between gap-2">
-                                  <p className="text-sm font-semibold text-surface-900">{segment.label}</p>
-                                  <span className="rounded-full bg-surface-100 px-2 py-0.5 text-xs font-bold text-surface-600">{segment.count}</span>
-                                </div>
-                                <p className="mt-1 line-clamp-2 text-xs leading-5 text-surface-500">{segment.description}</p>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="rounded-3xl border border-blue-200 bg-blue-50 px-4 py-4 text-sm text-blue-900">
-                    <span className="font-semibold">{copy.infoTitle}:</span> {copy.infoBody}
-                  </div>
-                </div>
-
-                <div className="border-t border-surface-100 px-5 py-4 sm:px-6">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                    <button onClick={() => setShowModal(false)} className="btn-secondary justify-center">
-                      {lang === "tr" ? "İptal" : "Cancel"}
-                    </button>
-                    <button
-                      onClick={handleCreateCampaign}
-                      disabled={!selectedTemplate || creating}
-                      className="btn-primary justify-center disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {creating && <Loader2 className="h-4 w-4 animate-spin" />}
-                      {creating ? copy.creating : copy.startCampaign}
-                    </button>
-                  </div>
-                </div>
               </motion.div>
-            </motion.div>
+            </div>
           )}
         </AnimatePresence>
+
       </div>
     </FeatureGate>
   );

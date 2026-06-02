@@ -29,6 +29,9 @@ import {
   Wifi,
   WifiOff,
   XCircle,
+  ChevronRight,
+  User,
+  AlertCircle,
 } from "lucide-react";
 
 type CheckinType = "manual" | "ticket";
@@ -83,7 +86,7 @@ function classifyScan(value: string): { type: CheckinType | "unsupported"; value
   if (trimmed.includes("/tickets/")) return { type: "ticket", value: normalizeTicketToken(trimmed) };
   if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return { type: "manual", value: trimmed.toLowerCase() };
   if (trimmed.includes("/attend/")) {
-    return { type: "unsupported", value: trimmed, message: "Bu oturum QR'i. Katılımcı bileti ya da e-posta QR'i okut." };
+    return { type: "unsupported", value: trimmed, message: "Bu oturum QR'i. Katılımcı bilet ya da e-posta QR'i okutun." };
   }
   if (trimmed.length >= 24 && !trimmed.includes(" ")) return { type: "ticket", value: normalizeTicketToken(trimmed) };
   return { type: "unsupported", value: trimmed, message: "QR içeriği e-posta veya bilet token'i değil." };
@@ -144,7 +147,6 @@ export default function AdminCheckinPage() {
 
   useEffect(() => {
     if (eventId) void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId]);
 
   useEffect(() => {
@@ -175,7 +177,6 @@ export default function AdminCheckinPage() {
 
   useEffect(() => {
     if (isOnline && offlineQueue.length > 0 && !syncing) void syncQueue();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOnline, offlineQueue.length]);
 
   useEffect(() => {
@@ -211,7 +212,6 @@ export default function AdminCheckinPage() {
       cancelled = true;
       void stopScanner();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scannerOpen, scannerRegionId]);
 
   async function stopScanner() {
@@ -348,219 +348,263 @@ export default function AdminCheckinPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-24">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+      <div className="flex w-full min-h-[340px] items-center justify-center antialiased">
+        <Loader2 className="h-6 w-6 animate-spin text-gray-400 stroke-[2.5]" />
       </div>
     );
   }
 
   return (
-    <div className={`${staffMode ? "min-h-screen bg-zinc-100 px-3 pb-8 pt-3 md:px-4" : "mx-auto max-w-6xl space-y-6 pb-10"}`}>
-      <div className={`mx-auto ${staffMode ? "max-w-xl" : "max-w-6xl"}`}>
-        {!staffMode && <EventAdminNav eventId={eventId} eventName={eventName} active="checkin" className="mb-6 flex flex-col gap-2" />}
+    <div className={`antialiased text-gray-900 w-full ${staffMode ? "min-h-screen bg-gray-50 px-3 pb-8 pt-3 md:px-4" : "mx-auto max-w-6xl space-y-5 pb-10"}`}>
+      <div className={`mx-auto w-full ${staffMode ? "max-w-xl" : "max-w-6xl"}`}>
+        
+        {/* ÜST MODÜL DEKORASYONU */}
+        {!staffMode && <EventAdminNav eventId={eventId} eventName={eventName} active="checkin" />}
         {staffMode && (
-          <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white px-3 py-3 shadow-sm">
-            <Link href={`/admin/events/${eventId}/ops`} className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-black text-zinc-700">
-              <ArrowLeft className="h-4 w-4" />
-              Operasyon
+          <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+            <Link href={`/admin/events/${eventId}/ops`} className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 text-xs font-bold text-gray-700 hover:bg-gray-50 active:scale-95">
+              <ArrowLeft className="h-3.5 w-3.5 stroke-[2.5]" />
+              <span>Operasyon</span>
             </Link>
-            <span className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700">Görevli modu</span>
+            <span className="inline-flex rounded-md border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 uppercase tracking-tight shadow-sm animate-pulse">Görevli Modu</span>
           </div>
         )}
 
+        {/* PLAN GATE KORUMALARI */}
         {planOk === false && (
-          <PlanGateCard
-            feature="Manuel check-in ve yoklama sistemi"
-            serverMessage={planGateMessage}
-          />
+          <PlanGateCard feature="Manuel check-in ve yoklama sistemi" serverMessage={planGateMessage} />
         )}
 
         {planOk !== false && (
-          <>
-            <div className={`surface-panel ${staffMode ? "p-4" : "p-5 sm:p-6"}`}>
+          <div className="space-y-4">
+            
+            {/* KAPALILIK VE CANLI DURUM ADASI */}
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.22em] text-brand-500">Mobil operasyon</p>
-                  <h1 className={`${staffMode ? "mt-1 text-xl" : "mt-2 text-2xl"} font-black text-surface-950`}>Hizli Check-in</h1>
-                  <p className="mt-1 text-sm text-surface-500">{eventName}</p>
+                <div className="space-y-0.5">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Mobil saha operasyonu</p>
+                  <h1 className="text-lg font-bold tracking-tight text-gray-950 sm:text-xl">Hızlı Check-in Kapısı</h1>
+                  <p className="text-xs text-gray-400 font-medium truncate max-w-xs sm:max-w-md">{eventName}</p>
                 </div>
-                <div className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold ${isOnline ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
-                  {isOnline ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
-                  {isOnline ? "Online" : "Offline mod"}
+                
+                <div className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-tight shadow-sm self-start ${
+                  isOnline ? "border-emerald-100 bg-emerald-50 text-emerald-700" : "border-amber-100 bg-amber-50 text-amber-700"
+                }`}>
+                  {isOnline ? <Wifi className="h-3.5 w-3.5 mr-1" /> : <WifiOff className="h-3.5 w-3.5 mr-1" />}
+                  <span>{isOnline ? "Canlı (Online)" : "Offline Mod"}</span>
                 </div>
               </div>
 
-              <div className={`mt-4 grid gap-2 ${staffMode ? "grid-cols-3" : "sm:grid-cols-3"}`}>
-                <div className="rounded-2xl border border-surface-200 bg-surface-50 p-3">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-surface-400">Oturum</p>
-                  <p className="mt-1 truncate text-sm font-black text-surface-900">{selectedSessionObj?.name || "Seçilmedi"}</p>
+              {/* HIZLI DURUM PENCERELERİ (Mini Matrix Grid) */}
+              <div className="grid grid-cols-3 gap-2.5 text-center">
+                <div className="rounded-xl border border-gray-100 bg-gray-50/50 p-2.5">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400 truncate">Aktif Oturum</p>
+                  <p className="mt-0.5 text-xs font-bold text-gray-950 truncate">{selectedSessionObj?.name || "Seçilmedi"}</p>
                 </div>
-                <div className="rounded-2xl border border-surface-200 bg-surface-50 p-3">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-surface-400">Başarılı</p>
-                  <p className="mt-1 text-sm font-black text-surface-900">{todayAttendance}</p>
+                <div className="rounded-xl border border-gray-100 bg-gray-50/50 p-2.5">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400 truncate">Anlık Kabul</p>
+                  <p className="mt-0.5 text-sm font-bold text-gray-950 font-mono tabular-nums">{todayAttendance}</p>
                 </div>
-                <div className="rounded-2xl border border-surface-200 bg-surface-50 p-3">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-surface-400">Kuyruk</p>
-                  <p className="mt-1 text-sm font-black text-surface-900">{offlineQueue.length} bekliyor</p>
+                <div className="rounded-xl border border-gray-100 bg-gray-50/50 p-2.5">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400 truncate">Offline Kuyruk</p>
+                  <p className="mt-0.5 text-sm font-bold text-gray-950 font-mono tabular-nums">{offlineQueue.length}</p>
                 </div>
               </div>
+
+              {/* SAHA CANLI İSTATİSTİKLERİ DEPOSU */}
               {metrics && (
-                <div className="mt-3 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
-                  <div className="rounded-2xl border border-surface-200 bg-white p-3">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-surface-400">Kapı trafiği</p>
-                    <p className="mt-1 text-sm font-black text-surface-900">{metrics.last_hour}/saat</p>
+                <div className="grid gap-2.5 grid-cols-2 sm:grid-cols-3 md:grid-cols-6 pt-1">
+                  <div className="rounded-xl border border-gray-100 bg-white p-2.5">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Kapı Akışı</p>
+                    <p className="mt-0.5 text-xs font-bold text-gray-950 font-mono">{metrics.last_hour}/saat</p>
                   </div>
-                  <div className="rounded-2xl border border-surface-200 bg-white p-3">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-surface-400">Log başarı</p>
-                    <p className="mt-1 text-sm font-black text-surface-900">{metrics.successful}/{metrics.total}</p>
+                  <div className="rounded-xl border border-gray-100 bg-white p-2.5">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Sevk Başarı</p>
+                    <p className="mt-0.5 text-xs font-bold text-gray-950 font-mono">{metrics.successful}/{metrics.total}</p>
                   </div>
-                  <div className="rounded-2xl border border-surface-200 bg-white p-3">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-surface-400">En aktif görevli</p>
-                    <p className="mt-1 truncate text-sm font-black text-surface-900">{metrics.by_staff[0]?.email || "-"}</p>
+                  <div className="rounded-xl border border-gray-100 bg-white p-2.5">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">En Aktif Masası</p>
+                    <p className="mt-0.5 text-[10px] font-bold text-gray-900 truncate font-mono">{metrics.by_staff[0]?.email || "—"}</p>
                   </div>
-                  <div className="rounded-2xl border border-amber-100 bg-amber-50 p-3">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-amber-600">Tekrar</p>
-                    <p className="mt-1 text-sm font-black text-amber-900">{metrics.duplicate_count}</p>
+                  <div className="rounded-xl border border-amber-100 bg-amber-50/20 p-2.5">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600">Tekrarlanan</p>
+                    <p className="mt-0.5 text-xs font-bold text-amber-900 font-mono">{metrics.duplicate_count}</p>
                   </div>
-                  <div className="rounded-2xl border border-rose-100 bg-rose-50 p-3">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-rose-600">Geçersiz</p>
-                    <p className="mt-1 text-sm font-black text-rose-900">{metrics.invalid_count}</p>
+                  <div className="rounded-xl border border-red-100 bg-red-50/20 p-2.5">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-red-500">Geçersiz QR</p>
+                    <p className="mt-0.5 text-xs font-bold text-red-600 font-mono">{metrics.invalid_count}</p>
                   </div>
-                  <div className="rounded-2xl border border-sky-100 bg-sky-50 p-3">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-sky-600">Kapasite</p>
-                    <p className="mt-1 text-sm font-black text-sky-900">{metrics.capacity_alerts.length}</p>
+                  <div className="rounded-xl border border-sky-100 bg-sky-50/20 p-2.5">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-sky-600">Sınır Alarmı</p>
+                    <p className="mt-0.5 text-xs font-bold text-sky-900 font-mono">{metrics.capacity_alerts.length}</p>
                   </div>
                 </div>
               )}
+
+              {/* DOLULUK TEHLİKE ALARMI */}
               {metrics?.capacity_alerts?.length ? (
-                <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800">
-                  {metrics.capacity_alerts[0].session_name}: %{metrics.capacity_alerts[0].fill_rate} doluluk uyarısı
+                <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-3 text-[11px] font-semibold text-amber-800 flex items-center gap-1.5 animate-in fade-in duration-200">
+                  <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
+                  <span>{metrics.capacity_alerts[0].session_name}: %{metrics.capacity_alerts[0].fill_rate} salon doluluk uyarısı!</span>
                 </div>
               ) : null}
             </div>
 
-            {error && <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+            {error && <div className="rounded-xl border border-red-100 bg-red-50/40 p-3.5 text-xs font-semibold text-red-600">{error}</div>}
 
-            <div className={`card ${staffMode ? "p-3" : "p-4"}`}>
-              <label className="mb-2 block text-sm font-semibold text-gray-700">Oturum Seçin</label>
-              <div className="space-y-2">
+            {/* ANA OTURUM SEÇME PANELİ */}
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-3">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950 border-b border-gray-100 pb-2.5">Giriş Yapılacak Oturumu Belirleyin</h2>
+              <div className="space-y-2 max-h-48 overflow-y-auto scrollbar-none pr-0.5">
                 {sessions.length === 0 ? (
-                  <p className="text-sm text-gray-400">
-                    Henüz oturum yok.{" "}
-                    <Link href={`/admin/events/${eventId}/sessions`} className="text-indigo-600 underline">
-                      Oturum ekle
+                  <p className="text-xs font-semibold text-gray-400 py-2">
+                    Etkinliğe henüz bir yoklama oturumu eklenmemiş.{" "}
+                    <Link href={`/admin/events/${eventId}/sessions`} className="text-gray-900 underline underline-offset-2">
+                      Buradan yeni oturum ekle
                     </Link>
                   </p>
                 ) : (
-                  sessions.map((s) => (
-                    <label key={s.id} className={`flex cursor-pointer items-center gap-3 rounded-xl border ${staffMode ? "p-2.5" : "p-3"} transition ${selectedSession === s.id ? "border-brand-300 bg-brand-50" : "border-surface-200 hover:bg-surface-50"}`}>
-                      <input type="radio" name="session" value={s.id} checked={selectedSession === s.id} onChange={() => setSelectedSession(s.id)} className="text-indigo-600" />
-                      <div className="min-w-0 flex-1">
-                        <span className="text-sm font-medium text-gray-800">{s.name}</span>
-                        {s.session_date && <span className="ml-2 text-xs text-gray-400">{new Date(s.session_date).toLocaleDateString("tr-TR")}</span>}
-                        {s.session_start && <span className="ml-1 text-xs text-gray-400">{s.session_start}</span>}
-                      </div>
-                      <span className="shrink-0 text-xs font-medium text-indigo-600">{s.attendance_count} kişi</span>
-                    </label>
-                  ))
+                  sessions.map((s) => {
+                    const isSessSel = selectedSession === s.id;
+                    return (
+                      <label key={s.id} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all duration-200 ${
+                        isSessSel ? "border-gray-950 bg-white ring-1 ring-gray-950 shadow-sm" : "border-gray-100 bg-white hover:border-gray-200"
+                      }`}>
+                        <input type="radio" name="session" value={s.id} checked={isSessSel} onChange={() => setSelectedSession(s.id)} className="h-3.5 w-3.5 text-gray-950 focus:ring-0 focus:ring-offset-0 cursor-pointer" />
+                        <div className="min-w-0 flex-1 space-y-0.5">
+                          <p className="text-xs font-bold text-gray-950 truncate">{s.name}</p>
+                          <div className="flex gap-1.5 text-[10px] font-semibold text-gray-400 font-mono uppercase">
+                            {s.session_date && <span>{new Date(s.session_date).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" })}</span>}
+                            {s.session_start && <span>· {s.session_start}</span>}
+                          </div>
+                        </div>
+                        <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 border rounded-md shadow-sm ${isSessSel ? "border-gray-950 bg-gray-50 text-gray-900" : "border-gray-100 bg-gray-50 text-gray-400"}`}>
+                          {s.attendance_count} Kabul
+                        </span>
+                      </label>
+                    );
+                  })
                 )}
               </div>
             </div>
 
+            {/* YOKLAMA KABUL KAPISI (Check-in Area & QR Hub) */}
             {selectedSession && (
-              <div className={`card ${staffMode ? "p-4" : "p-5"}`}>
-                <div className="mb-4 flex flex-wrap items-center gap-2">
-                  <UserCheck className="h-5 w-5 text-indigo-500" />
-                  <h2 className="font-semibold text-gray-800">Check-in Yap</h2>
-                  <button type="button" onClick={() => setScannerOpen((v) => !v)} className="btn-primary ml-auto min-h-0 px-3 py-2 text-xs">
-                    <Camera className="h-4 w-4" />
-                    {scannerOpen ? "Kamerayı kapat" : "QR okut"}
+              <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+                <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <UserCheck className="h-4 w-4 text-gray-800 stroke-[2]" />
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950">Giriş Yetkilendirme Kapısı</h2>
+                  </div>
+                  
+                  <button type="button" onClick={() => setScannerOpen((v) => !v)} className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 text-xs font-bold text-gray-800 shadow-sm transition hover:bg-gray-50 active:scale-95">
+                    <Camera className="h-3.5 w-3.5 text-gray-500 stroke-[1.8]" />
+                    <span>{scannerOpen ? "Kamerayı Kapat" : "Canlı QR Tarayıcı Aç"}</span>
                   </button>
                 </div>
 
+                {/* QR Canlı Kamera Okuma Yuvası */}
                 {scannerOpen && (
-                  <div className="mb-4 overflow-hidden rounded-2xl border border-indigo-100 bg-indigo-50 p-3">
-                    <div id={scannerRegionId} className="min-h-[280px] overflow-hidden rounded-xl bg-black" />
-                    {scannerError && <p className="mt-2 text-xs font-semibold text-rose-600">{scannerError}</p>}
-                    <p className="mt-2 flex items-center gap-1 text-xs text-indigo-700">
+                  <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-900 p-3 shadow-inner max-w-sm mx-auto animate-in zoom-in-98 duration-200 w-full">
+                    <div id={scannerRegionId} className="min-h-[240px] overflow-hidden rounded-lg bg-black flex items-center justify-center text-xs text-white" />
+                    {scannerError && <p className="mt-2 text-[10px] font-bold text-red-500 text-center">{scannerError}</p>}
+                    <p className="mt-2.5 text-[10px] font-semibold text-gray-400 flex items-center justify-center gap-1">
                       <QrCode className="h-3.5 w-3.5" />
-                      Bilet QR'i, bilet linki veya e-posta QR'i okutabilirsin.
+                      <span>Bilet QR kodu, e-posta veya üye kimlik cüzdanı okutabilirsiniz.</span>
                     </p>
                   </div>
                 )}
 
-                <form onSubmit={handleCheckin} className={`grid gap-2 ${staffMode ? "" : "sm:grid-cols-[1fr_auto]"}`}>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <input ref={inputRef} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Katılımcı e-postası" required autoComplete="off" className={`${staffMode ? "py-4 text-base" : "py-3 text-sm"} w-full rounded-xl border border-gray-200 pl-9 pr-4 outline-none focus:ring-2 focus:ring-indigo-500`} />
+                {/* Manuel E-posta İle Check-in Giriş Girişi */}
+                <form onSubmit={inputRef.current?.value ? handleCheckin : undefined} className="flex flex-col sm:flex-row gap-2">
+                  <div className="relative flex-1 w-full">
+                    <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 stroke-[2]" />
+                    <input 
+                      ref={inputRef} 
+                      type="email" 
+                      value={email} 
+                      onChange={(e) => setEmail(e.target.value)} 
+                      placeholder="Katılımcı kayıt e-posta adresini girin..." 
+                      required 
+                      autoComplete="off" 
+                      disabled={submitting}
+                      className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white pl-9 pr-3.5 text-xs font-semibold outline-none transition focus:border-gray-900" 
+                    />
                   </div>
-                  <button type="submit" disabled={submitting || !email.trim()} className={`${staffMode ? "py-4 text-base" : "py-3 text-sm"} inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50`}>
-                    {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}
-                    Check-in
+                  <button 
+                    type="submit" 
+                    disabled={submitting || !email.trim()} 
+                    className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 px-5 text-xs font-bold text-white shadow-sm transition hover:bg-gray-900 disabled:opacity-40 active:scale-98"
+                  >
+                    {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserCheck className="h-3.5 w-3.5 stroke-[2.5]" />}
+                    <span>Kabul Et (Check-in)</span>
                   </button>
                 </form>
               </div>
             )}
 
-            <div className="card p-4">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <RotateCcw className={`h-4 w-4 ${syncing ? "animate-spin text-indigo-500" : "text-gray-400"}`} />
-                  <h3 className="text-sm font-black text-gray-800">Offline sync</h3>
+            {/* OFFLINE SENKRONİZASYON YÖNETİM MERKEZİ */}
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-2.5">
+                <div className="flex items-center gap-1.5">
+                  <RotateCcw className={`h-4 w-4 ${syncing ? "animate-spin text-gray-950" : "text-gray-400 stroke-[2]"}`} />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-950">Yerel Çevrimdışı Bellek Havuzu</h3>
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={() => void syncQueue()} disabled={!isOnline || syncing || offlineQueue.length === 0} className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-700 disabled:opacity-40">
-                    Senkronla
+                <div className="flex gap-1.5">
+                  <button type="button" onClick={() => void syncQueue()} disabled={!isOnline || syncing || offlineQueue.length === 0} className="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-bold text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-40">
+                    Kuyruğu Eşitle
                   </button>
-                  <button onClick={clearQueue} disabled={offlineQueue.length === 0} className="rounded-xl border border-rose-100 px-3 py-2 text-xs font-bold text-rose-600 disabled:opacity-40">
-                    <Trash2 className="h-3.5 w-3.5" />
+                  <button type="button" onClick={clearQueue} disabled={offlineQueue.length === 0} className="rounded-lg border border-red-100 bg-white px-2 py-1 text-[10px] font-bold text-red-600 shadow-sm hover:bg-red-50 disabled:opacity-40">
+                    <Trash2 className="h-3.5 w-3.5 stroke-[1.8]" />
                   </button>
                 </div>
               </div>
+              
               {offlineQueue.length === 0 ? (
-                <p className="flex items-center gap-2 text-sm text-gray-400">
-                  <Smartphone className="h-4 w-4" />
-                  Bekleyen offline kayıt yok.
+                <p className="flex items-center gap-1.5 text-xs font-medium text-gray-400">
+                  <Smartphone className="h-3.5 w-3.5 text-gray-300" />
+                  <span>Cihaz hafızasında senkronizasyon bekleyen offline kayıt bulunmuyor.</span>
                 </p>
               ) : (
-                <div className="max-h-48 divide-y divide-gray-100 overflow-y-auto">
+                <div className="max-h-40 divide-y divide-gray-100 overflow-y-auto pr-0.5 scrollbar-none font-mono text-[11px] font-medium text-gray-500">
                   {offlineQueue.map((item) => (
-                    <div key={item.id} className="py-2 text-xs">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-bold text-gray-800">{item.type === "ticket" ? "Bilet" : "E-posta"}: {item.value}</span>
-                        <span className="text-gray-400">{item.attempts} deneme</span>
-                      </div>
-                      {item.lastError && <p className="mt-1 text-rose-500">{item.lastError}</p>}
+                    <div key={item.id} className="py-2 flex items-center justify-between gap-3">
+                      <span className="truncate text-gray-800"><strong className="font-sans text-[10px] uppercase text-gray-400 mr-1">{item.type === "ticket" ? "Bilet" : "E-posta"}:</strong> {item.value}</span>
+                      <span className="shrink-0 text-gray-400 font-sans font-bold">{item.attempts} deneme</span>
+                      {item.lastError && <p className="text-red-500 text-[10px] tracking-tight">{item.lastError}</p>}
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
+            {/* GÜNLÜK ANLIK KAYIT GÜNLÜĞÜ GEÇMİŞİ */}
             {log.length > 0 && (
-              <div className="card overflow-hidden p-0">
-                <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50 px-4 py-2.5">
-                  <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    <History className="h-3.5 w-3.5" />
-                    Check-in Geçmişi
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col">
+                <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/50 px-4.5 py-3">
+                  <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-900">
+                    <History className="h-3.5 w-3.5 text-gray-400 stroke-[2]" />
+                    <span>Kapı Giriş Hareketleri Günlüğü</span>
                   </h3>
-                  <button onClick={() => setLog([])} className="text-xs text-gray-400 transition hover:text-red-500">Temizle</button>
+                  <button type="button" onClick={() => setLog([])} className="text-[10px] font-bold text-gray-400 hover:text-red-500 transition-colors">Temizle</button>
                 </div>
-                <div className="max-h-96 divide-y divide-gray-50 overflow-y-auto">
+                
+                <div className="max-h-80 divide-y divide-gray-100 overflow-y-auto scrollbar-none bg-white">
                   {log.map((entry, i) => (
-                    <div key={`${entry.time}-${i}`} className={`flex items-center gap-3 px-4 py-3 ${entry.success ? "bg-green-50/30" : "bg-red-50/30"}`}>
-                      {entry.success ? <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" /> : <XCircle className="h-5 w-5 shrink-0 text-red-500" />}
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-gray-800">{entry.email}</p>
-                        <p className="text-xs text-gray-400">{entry.queued ? "Kuyrukta: " : ""}{entry.message}</p>
+                    <div key={`${entry.time}-${i}`} className={`flex items-start gap-3 px-4.5 py-3 transition-colors ${entry.success ? "bg-white" : "bg-red-50/10"}`}>
+                      {entry.success ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500 mt-0.5 stroke-[2.5]" /> : <XCircle className="h-4 w-4 shrink-0 text-red-500 mt-0.5 stroke-[2]" />}
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <p className="truncate text-xs font-bold text-gray-950 tracking-tight">{entry.email}</p>
+                        <p className="text-[11px] font-medium text-gray-400 leading-normal">{entry.queued ? "⚠️ " : ""}{entry.message}</p>
                       </div>
-                      <span className="shrink-0 text-xs text-gray-400">{entry.time}</span>
+                      <span className="shrink-0 text-[10px] font-bold text-gray-400 font-mono pt-0.5">{entry.time}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-          </>
+
+          </div>
         )}
       </div>
     </div>

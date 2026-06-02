@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import EventAdminNav, { EventAdminLayoutProvider } from "@/components/Admin/EventAdminNav";
 import { getEventAccess, type EventTeamPermission } from "@/lib/api";
+import { Loader2 } from "lucide-react";
 
 type EventAdminLayoutShellProps = {
   eventId: string;
@@ -49,9 +50,12 @@ export function EventAdminLayoutShell({ eventId, children }: EventAdminLayoutShe
   const pathname = usePathname() || "";
   const router = useRouter();
   const [allowed, setAllowed] = useState(false);
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
+    setChecking(true);
+    
     async function checkAccess() {
       try {
         const access = await getEventAccess(Number(eventId));
@@ -60,13 +64,18 @@ export function EventAdminLayoutShell({ eventId, children }: EventAdminLayoutShe
           router.replace(firstAllowedHref(eventId, access.permissions));
           return;
         }
-        if (!cancelled) setAllowed(true);
+        if (!cancelled) {
+          setAllowed(true);
+          setChecking(false);
+        }
       } catch {
         router.replace("/admin/events");
       }
     }
+    
     setAllowed(false);
     void checkAccess();
+    
     return () => {
       cancelled = true;
     };
@@ -74,9 +83,21 @@ export function EventAdminLayoutShell({ eventId, children }: EventAdminLayoutShe
 
   return (
     <EventAdminLayoutProvider hideInlineNav>
-      <div className="flex flex-col gap-5">
+      <div className="w-full flex flex-col gap-5 antialiased text-gray-900">
+        {/* Yenilediğimiz Premium Sol Navigasyon Menüsü */}
         <EventAdminNav eventId={eventId} variant="sidebar" />
-        <div className="min-w-0">{allowed ? children : null}</div>
+        
+        {/* Güvenlik Onaylı İçerik Slotu */}
+        <div className="min-w-0 flex-1">
+          {allowed ? (
+            children
+          ) : checking ? (
+            /* Apple Tarzı Kibar Yükleniyor Durumu (Layout Shift Engelleme) */
+            <div className="w-full rounded-2xl border border-gray-100 bg-white/40 p-16 flex items-center justify-center shadow-sm">
+              <Loader2 className="h-5 w-5 animate-spin text-gray-400 stroke-[2.5]" />
+            </div>
+          ) : null}
+        </div>
       </div>
     </EventAdminLayoutProvider>
   );

@@ -31,11 +31,11 @@ function sameDay(a: Date, b: Date | null) {
   return Boolean(b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate());
 }
 
-export default function DateField({ value, onChange, label, placeholder = "Select date", locale = "tr-TR", className = "" }: DateFieldProps) {
+export default function DateField({ value, onChange, label, placeholder = "Tarih seçin", locale = "tr-TR", className = "" }: DateFieldProps) {
   const selectedDate = parseDate(value);
   const [open, setOpen] = useState(false);
   const [visibleMonth, setVisibleMonth] = useState(() => selectedDate ?? new Date());
-  const [position, setPosition] = useState({ left: 0, top: 0, width: 352 });
+  const [position, setPosition] = useState({ left: 0, top: 0, width: 340 });
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const popupRef = useRef<HTMLDivElement | null>(null);
 
@@ -58,10 +58,10 @@ export default function DateField({ value, onChange, label, placeholder = "Selec
     function updatePosition() {
       const rect = wrapperRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const desiredWidth = Math.min(352, window.innerWidth - 24);
+      const desiredWidth = Math.min(340, window.innerWidth - 24);
       setPosition({
         left: Math.max(12, Math.min(rect.left, window.innerWidth - desiredWidth - 12)),
-        top: Math.min(rect.bottom + 8, window.innerHeight - 420),
+        top: Math.min(rect.bottom + 6, window.innerHeight - 390),
         width: desiredWidth,
       });
     }
@@ -100,39 +100,66 @@ export default function DateField({ value, onChange, label, placeholder = "Selec
   }
 
   return (
-    <div ref={wrapperRef} className={`relative ${className}`}>
-      {label && <label className="label">{label}</label>}
+    <div ref={wrapperRef} className={`relative w-full ${className}`}>
+      {label && (
+        <label className="block text-xs font-semibold text-gray-700 tracking-tight mb-1.5">
+          {label}
+        </label>
+      )}
+      
+      {/* Tetikleyici İnput Butonu */}
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="input-field flex min-h-[3rem] items-center justify-between gap-3 text-left"
+        className={`flex w-full min-h-[42px] items-center justify-between gap-3 rounded-xl border px-3.5 text-xs font-medium transition-all outline-none bg-white text-left ${
+          open 
+            ? "border-gray-900 ring-1 ring-gray-950" 
+            : "border-gray-200 hover:border-gray-300 focus:border-gray-900"
+        }`}
       >
-        <span className={formattedValue ? "text-surface-900" : "text-surface-400"}>
+        <span className={formattedValue ? "text-gray-900" : "text-gray-400"}>
           {formattedValue || placeholder}
         </span>
-        <CalendarDays className="h-4 w-4 shrink-0 text-surface-400" />
+        <CalendarDays className="h-4 w-4 shrink-0 text-gray-400" />
       </button>
+
+      {/* Takvim Açılır Penceresi (Portal) */}
       {open && typeof document !== "undefined" && createPortal(
         <div
           ref={popupRef}
           style={{ left: position.left, top: position.top, width: position.width }}
-          className="fixed z-[9999] rounded-lg border border-surface-200 bg-white p-3 shadow-[0_24px_70px_rgba(15,23,42,0.16)]"
+          className="fixed z-[9999] rounded-2xl border border-gray-200/80 bg-white/95 p-4 shadow-[0_20px_50px_rgba(0,0,0,0.06)] backdrop-blur-xl animate-in fade-in zoom-in-98 duration-100"
         >
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <button type="button" onClick={() => moveMonth(-1)} className="btn-ghost h-9 w-9 p-0" aria-label="Previous month">
+          {/* Ay & Yıl Navigasyonu */}
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <button 
+              type="button" 
+              onClick={() => moveMonth(-1)} 
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-100 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-900 shadow-sm transition-all"
+              aria-label="Previous month"
+            >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <p className="text-sm font-bold capitalize text-surface-900">{monthLabel}</p>
-            <button type="button" onClick={() => moveMonth(1)} className="btn-ghost h-9 w-9 p-0" aria-label="Next month">
+            <p className="text-xs font-bold capitalize text-gray-900 tracking-tight">{monthLabel}</p>
+            <button 
+              type="button" 
+              onClick={() => moveMonth(1)} 
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-100 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-900 shadow-sm transition-all"
+              aria-label="Next month"
+            >
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
-          <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-bold uppercase text-surface-400">
+
+          {/* Gün Başlıkları */}
+          <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase text-gray-400 tracking-wider">
             {weekdayLabels.map((weekday) => (
-              <span key={weekday}>{weekday}</span>
+              <span key={weekday} className="w-full block">{weekday}</span>
             ))}
           </div>
-          <div className="mt-1 grid grid-cols-7 gap-1">
+
+          {/* Gün Matrisi */}
+          <div className="mt-2 grid grid-cols-7 gap-1">
             {weeks.map((date) => {
               const inMonth = date.getMonth() === visibleMonth.getMonth();
               const active = sameDay(date, selectedDate);
@@ -145,29 +172,34 @@ export default function DateField({ value, onChange, label, placeholder = "Selec
                     onChange(toValue(date));
                     setOpen(false);
                   }}
-                  className={[
-                    "flex h-9 items-center justify-center rounded-md text-sm font-semibold transition",
-                    inMonth ? "text-surface-700 hover:bg-brand-50" : "text-surface-300 hover:bg-surface-50",
-                    today ? "ring-1 ring-surface-300" : "",
-                    active ? "brand-bg text-white hover:brightness-95" : "",
-                  ].join(" ")}
+                  className={`flex h-8 w-8 mx-auto items-center justify-center rounded-full text-xs font-semibold tracking-tight transition-all ${
+                    active
+                      ? "bg-gray-950 text-white shadow-sm"
+                      : today
+                        ? "bg-gray-100 text-gray-900 ring-1 ring-gray-200/60"
+                        : inMonth
+                          ? "text-gray-800 hover:bg-gray-50 hover:text-gray-950"
+                          : "text-gray-300 hover:bg-gray-50/50"
+                  }`}
                 >
                   {date.getDate()}
                 </button>
               );
             })}
           </div>
-          <div className="mt-3 flex items-center justify-between border-t border-surface-100 pt-3">
+
+          {/* Alt Hızlı Butonlar */}
+          <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
             <button
               type="button"
               onClick={() => {
                 onChange("");
                 setOpen(false);
               }}
-              className="btn-ghost text-surface-500"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-gray-400 hover:text-red-500 transition-colors"
             >
-              <X className="h-4 w-4" />
-              Clear
+              <X className="h-3.5 w-3.5" />
+              {locale.startsWith("tr") ? "Temizle" : "Clear"}
             </button>
             <button
               type="button"
@@ -175,9 +207,9 @@ export default function DateField({ value, onChange, label, placeholder = "Selec
                 onChange(toValue(new Date()));
                 setOpen(false);
               }}
-              className="btn-secondary min-h-9 px-3 py-1.5"
+              className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-800 shadow-sm transition hover:bg-gray-50 hover:text-gray-950 active:scale-95"
             >
-              Today
+              {locale.startsWith("tr") ? "Bugün" : "Today"}
             </button>
           </div>
         </div>,

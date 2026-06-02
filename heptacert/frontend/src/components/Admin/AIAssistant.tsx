@@ -7,17 +7,6 @@ import { apiFetch } from "@/lib/api";
 import { detectIntent, shouldStartCreateEventWizard } from "@/lib/assistant/intent";
 import { findFaqAnswer } from "@/lib/assistant/faq";
 import { getWizardQuestion, buildReviewMessage } from "@/lib/assistant/wizard";
-
-interface Message {
-  role: "user" | "assistant";
-  message: string;
-  timestamp: string;
-}
-
-interface AssistantResponse {
-  answer?: string;
-  suggestions?: Record<string, unknown>;
-}
 import type { EventDraft, EventWizardStep } from "@/lib/assistant/eventDraft";
 import {
   createInitialDraft,
@@ -35,22 +24,16 @@ import {
 } from "@/lib/assistant/eventDraft";
 import { compactText, fuzzyAny, isAffirmative, isNegative, isSkipValue } from "@/lib/assistant/text";
 
-function singularizeWord(value: string): string {
-  const word = compactText(value).split(/\s+/)[0] || "";
-  if (!word) return "";
-  return word.replace(/(?:lar|ler|lari|leri|lari|leri)$/i, "").trim();
+interface Message {
+  role: "user" | "assistant";
+  message: string;
+  timestamp: string;
 }
 
-function tokenize(value: string): string[] {
-  return compactText(value)
-    .split(/\s+/)
-    .map((token) => token.trim())
-    .filter(Boolean);
+interface AssistantResponse {
+  answer?: string;
+  suggestions?: Record<string, unknown>;
 }
-
-// Helper parsing and formatting logic moved to src/lib/assistant/eventDraft.ts
-
-// Use centralized wizard helpers from lib/assistant/eventDraft.ts
 
 function summarizeMissingFields(step: EventWizardStep, lang: string): string {
   switch (step) {
@@ -62,10 +45,6 @@ function summarizeMissingFields(step: EventWizardStep, lang: string): string {
     default: return lang === "tr" ? "Özellikler gözden geçirilmeli." : "Features should be reviewed.";
   }
 }
-
-// deriveEventName is implemented in lib/assistant/eventDraft.ts
-
-// seedEventDraftFromText provided by lib/assistant/eventDraft.ts
 
 async function seedEventDraftFromCurrentEvent(eventId: number): Promise<EventDraft | null> {
   try {
@@ -111,19 +90,6 @@ async function seedEventDraftFromCurrentEvent(eventId: number): Promise<EventDra
     return null;
   }
 }
-
-// normalizeEventDate moved to lib/assistant/eventDraft.ts
-
-// normalizeEventType moved to lib/assistant/eventDraft.ts
-
-// feature parsing moved to lib/assistant/eventDraft.ts
-
-// buildFeatureSummary kept local
-
-// createInitialDraft provided by lib/assistant/eventDraft.ts
-
-// formatDraftSummary provided by lib/assistant/eventDraft.ts
-
 
 export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
   const { lang } = useI18n();
@@ -212,6 +178,12 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
     setEventDraft(createInitialDraft());
   };
 
+  const getCurrentEventId = (): number | null => {
+    if (typeof window === "undefined") return null;
+    const match = window.location.pathname.match(/\/admin\/events\/(\d+)/);
+    return match ? Number(match[1]) : null;
+  };
+
   const startEventWizard = async (seedText = "") => {
     setShowSupportForm(false);
     const normalizedSeed = compactText(seedText);
@@ -259,49 +231,24 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
 
     const localValidate = (d: EventDraft): string[] => {
       const errs: string[] = [];
-
-      if (!d.name || !d.name.trim()) {
-        errs.push(lang === "tr" ? "Etkinlik adı gerekli" : "Event name is required");
-      }
-
-      if (!d.eventDate || !d.eventDate.trim()) {
-        errs.push(lang === "tr" ? "Etkinlik tarihi gerekli" : "Event date is required");
-      }
-
-      if (d.eventDate && !/^\d{4}-\d{2}-\d{2}$/.test(d.eventDate)) {
-        errs.push(lang === "tr" ? "Tarih YYYY-MM-DD formatında olmalı" : "Date must be YYYY-MM-DD");
-      }
-
-      if (d.registrationQuotaEnabled && d.registrationQuota && isNaN(Number(d.registrationQuota))) {
-        errs.push(lang === "tr" ? "Kontenjan sayısal olmalı" : "Quota must be numeric");
-      }
-
-      if (d.dataControllerContactEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.dataControllerContactEmail)) {
-        errs.push(lang === "tr" ? "Geçersiz e-posta adresi" : "Invalid data controller email");
-      }
-
+      if (!d.name || !d.name.trim()) errs.push(lang === "tr" ? "Etkinlik adı gerekli" : "Event name is required");
+      if (!d.eventDate || !d.eventDate.trim()) errs.push(lang === "tr" ? "Etkinlik tarihi gerekli" : "Event date is required");
+      if (d.eventDate && !/^\d{4}-\d{2}-\d{2}$/.test(d.eventDate)) errs.push(lang === "tr" ? "Tarih YYYY-MM-DD formatında olmalı" : "Date must be YYYY-MM-DD");
+      if (d.registrationQuotaEnabled && d.registrationQuota && isNaN(Number(d.registrationQuota))) errs.push(lang === "tr" ? "Kontenjan sayısal olmalı" : "Quota must be numeric");
+      if (d.dataControllerContactEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.dataControllerContactEmail)) errs.push(lang === "tr" ? "Geçersiz e-posta adresi" : "Invalid data controller email");
       return errs;
     };
+
     const validationErrors = localValidate(createDraft);
     if (validationErrors.length > 0) {
-      pushAssistantMessage(
-        (lang === "tr" ? "Doğrulama hataları: " : "Validation errors: ") +
-          validationErrors.join("; ")
-      );
-
+      pushAssistantMessage((lang === "tr" ? "Doğrulama hataları: " : "Validation errors: ") + validationErrors.join("; "));
       if (!createDraft.eventDate || !/^\d{4}-\d{2}-\d{2}$/.test(createDraft.eventDate)) {
         setEventWizardStep("date");
-        pushAssistantMessage(
-          lang === "tr"
-            ? "Etkinlik tarihini YYYY-MM-DD formatında yazar mısınız? Örnek: 2026-06-25"
-            : "Please enter the event date in YYYY-MM-DD format. Example: 2026-06-25"
-        );
+        pushAssistantMessage(lang === "tr" ? "Etkinlik tarihini YYYY-MM-DD formatında yazar mısınız? Örnek: 2026-06-25" : "Please enter the event date in YYYY-MM-DD format. Example: 2026-06-25");
       }
-
       return null;
     }
 
-    
     const createResponse = await apiFetch("/admin/events", {
       method: "POST",
       body: JSON.stringify({
@@ -406,11 +353,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
       setEventDraft(hintedDraft);
       setEventWizardStep(nextStep);
       pushAssistantMessage(buildWizardProgressMessage(hintedDraft, lang));
-      if (nextStep === "confirm") {
-        pushAssistantMessage(getEventPromptForStep("confirm", hintedDraft, lang));
-      } else {
-        pushAssistantMessage(getEventPromptForStep(nextStep, hintedDraft, lang));
-      }
+      pushAssistantMessage(getEventPromptForStep(nextStep, hintedDraft, lang));
       return true;
     }
 
@@ -436,12 +379,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
           setLoading(false);
           return true;
         }
-
-        pushAssistantMessage(
-          lang === "tr"
-            ? `✅ Etkinlik oluşturuldu: ${created.name} (ID: ${created.id}). İsterseniz şimdi detaylarını geliştirebiliriz.`
-            : `✅ Event created: ${created.name} (ID: ${created.id}). We can refine the details next if you want.`
-        );
+        pushAssistantMessage(lang === "tr" ? `✅ Etkinlik oluşturuldu: ${created.name} (ID: ${created.id}).` : `✅ Event created: ${created.name} (ID: ${created.id}).`);
         resetEventWizard();
       } catch (error: any) {
         pushAssistantMessage(error?.message || (lang === "tr" ? "Etkinlik oluşturulamadı. Lütfen tekrar deneyin." : "I couldn't create the event. Please try again."));
@@ -474,7 +412,6 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
         pushAssistantMessage(lang === "tr" ? "Tarihi anlayamadım. Lütfen YYYY-MM-DD formatında yazın ya da 'atla' yazın." : "I couldn't parse the date. Please use YYYY-MM-DD or type 'skip'.");
         return true;
       }
-
       const nextDraft = { ...hintedDraft, eventDate: finalDate };
       setEventDraft(nextDraft);
       const nextStep = nextWizardStepFromDraft(nextDraft);
@@ -526,13 +463,6 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
     return false;
   };
 
-
-  const getCurrentEventId = (): number | null => {
-    if (typeof window === "undefined") return null;
-    const match = window.location.pathname.match(/\/admin\/events\/(\d+)/);
-    return match ? Number(match[1]) : null;
-  };
-
   const formatAiAnswer = (answer: string, suggestions?: Record<string, any>): string => {
     if (!suggestions || Object.keys(suggestions).length === 0) return answer;
     const parts = [answer];
@@ -542,32 +472,16 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
     const compliance = Array.isArray(suggestions.compliance) ? suggestions.compliance : [];
 
     if (Object.keys(eventUpdate).length > 0) {
-      parts.push(
-        lang === "tr"
-          ? `\n\nEtkinlik ayarı taslağı: ${Object.entries(eventUpdate).map(([key, value]) => `${key}: ${formatDisplayValue(value)}`).join(", ")}`
-          : `\n\nEvent settings draft: ${Object.entries(eventUpdate).map(([key, value]) => `${key}: ${formatDisplayValue(value)}`).join(", ")}`
-      );
+      parts.push((lang === "tr" ? "\n\nEtkinlik ayarı taslağı: " : "\n\nEvent settings draft: ") + Object.entries(eventUpdate).map(([key, value]) => `${key}: ${formatDisplayValue(value)}`).join(", "));
     }
     if (fields.length > 0) {
-      parts.push(
-        lang === "tr"
-          ? `\n\nKayıt formu önerisi: ${fields.map((field: any) => formatDisplayValue(field.label || field.key || field)).join(", ")}`
-          : `\n\nRegistration fields: ${fields.map((field: any) => formatDisplayValue(field.label || field.key || field)).join(", ")}`
-      );
+      parts.push((lang === "tr" ? "\n\nKayıt formu önerisi: " : "\n\nRegistration fields: ") + fields.map((field: any) => formatDisplayValue(field.label || field.key || field)).join(", "));
     }
     if (sessions.length > 0) {
-      parts.push(
-        lang === "tr"
-          ? `\n\nOturum taslağı: ${sessions.map((session: any) => formatDisplayValue(session.title || session.name || session)).join(", ")}`
-          : `\n\nSession draft: ${sessions.map((session: any) => formatDisplayValue(session.title || session.name || session)).join(", ")}`
-      );
+      parts.push((lang === "tr" ? "\n\nOturum taslağı: " : "\n\nSession draft: ") + sessions.map((session: any) => formatDisplayValue(session.title || session.name || session)).join(", "));
     }
     if (compliance.length > 0) {
-      parts.push(
-        lang === "tr"
-          ? `\n\nKVKK / uyumluluk önerileri: ${compliance.map((item: any) => formatDisplayValue(item)).join(", ")}`
-          : `\n\nCompliance suggestions: ${compliance.map((item: any) => formatDisplayValue(item)).join(", ")}`
-      );
+      parts.push((lang === "tr" ? "\n\nKVKK / uyumluluk önerileri: " : "\n\nCompliance suggestions: ") + compliance.map((item: any) => formatDisplayValue(item)).join(", "));
     }
     return parts.join("");
   };
@@ -577,7 +491,6 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
       pushAssistantMessage(lang === "tr" ? "Biraz daha ayrıntı yazar mısınız?" : "Could you add a little more detail?");
       return;
     }
-
     setLoading(true);
     try {
       const response = await apiFetch("/admin/ai/event-assistant", {
@@ -594,11 +507,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
       if (!answer) throw new Error(lang === "tr" ? "Asistan boş yanıt döndürdü." : "The assistant returned an empty response.");
       pushAssistantMessage(formatAiAnswer(answer, result.suggestions));
     } catch (error: any) {
-      pushAssistantMessage(
-        lang === "tr"
-          ? `Şu anda yanıtı hazırlayamadım: ${error?.message || "Bağlantı hatası"}. Destek talebi açarak ekibe iletebilirsiniz.`
-          : `I could not prepare a response right now: ${error?.message || "Connection error"}. You can open a support ticket for the team.`
-      );
+      pushAssistantMessage(lang === "tr" ? `Şu anda yanıtı hazırlayamadım: ${error?.message || "Bağlantı hatası"}.` : `I could not prepare a response right now: ${error?.message || "Connection error"}.`);
     } finally {
       setLoading(false);
     }
@@ -607,35 +516,23 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
   const handleSendMessage = async () => {
     if (!input.trim() || loading) return;
     const currentInput = input;
-
-    const userMsg: Message = { role: "user", message: currentInput, timestamp: new Date().toISOString() };
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages((prev) => [...prev, { role: "user", message: currentInput, timestamp: new Date().toISOString() }]);
     setInput("");
 
     const intent = detectIntent(currentInput, eventWizardStep !== "idle");
     if (intent.intent === "support_ticket") {
       setShowSupportForm(true);
-      pushAssistantMessage(
-        lang === "tr"
-          ? "Destek talebi formunu açtım. Konuyu en az 5, açıklamayı en az 10 karakter olacak şekilde doldurup gönderebilirsiniz."
-          : "I opened the support ticket form. Please provide a subject of at least 5 characters and a message of at least 10 characters."
-      );
+      pushAssistantMessage(lang === "tr" ? "Destek talebi formunu açtım." : "I opened the support ticket form.");
       return;
     }
-
-    // If wizard already active, let existing wizard handler process the input
     if (eventWizardStep !== "idle") {
       const handled = await handleEventWizardInput(currentInput);
       if (handled) return;
     }
-
-    // Start strict create-event flow only when both event+action words are present
     if (intent.intent === "create_event" && intent.confidence >= 0.8 && shouldStartCreateEventWizard(currentInput)) {
       void startEventWizard(currentInput);
       return;
     }
-
-    // FAQ handling
     if (intent.intent === "faq") {
       const answer = findFaqAnswer(currentInput, lang);
       if (answer) {
@@ -643,324 +540,218 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
         return;
       }
     }
-
     await requestAiAnswer(currentInput);
-    return;
   };
 
   const handleCreateSupport = async () => {
     const subject = supportSubject.trim();
     const message = supportMessage.trim();
     if (subject.length < 5 || message.length < 10) {
-      pushAssistantMessage(
-        lang === "tr"
-          ? "Destek talebi için konu en az 5, açıklama en az 10 karakter olmalıdır."
-          : "A support ticket requires a subject of at least 5 characters and a message of at least 10 characters."
-      );
+      pushAssistantMessage(lang === "tr" ? "Konu en az 5, açıklama en az 10 karakter olmalıdır." : "Subject at least 5, message at least 10 chars.");
       return;
     }
-
     setLoading(true);
     try {
       await apiFetch("/admin/support-tickets", {
         method: "POST",
-        body: JSON.stringify({
-          subject,
-          message,
-        }),
+        body: JSON.stringify({ subject, message }),
       });
-
-      pushAssistantMessage(lang === "tr" ? "Destek talebiniz başarıyla oluşturuldu. Destek ekibimiz en kısa sürede size ulaşacak." : "Your support ticket was created successfully. Our team will reach out soon.");
+      pushAssistantMessage(lang === "tr" ? "Destek talebiniz başarıyla oluşturuldu." : "Your support ticket was created successfully.");
       setSupportSubject("");
       setSupportMessage("");
       setShowSupportForm(false);
     } catch (error: any) {
-      const errorMsg = error?.message || (lang === "tr" ? "Bağlantı hatası" : "Connection error");
-      pushAssistantMessage(lang === "tr" ? `Destek talebi oluşturulamadı: ${errorMsg}` : `Failed to create support ticket: ${errorMsg}`);
+      pushAssistantMessage(lang === "tr" ? `Hata: ${error?.message}` : `Error: ${error?.message}`);
     } finally {
       setLoading(false);
     }
   };
-    // ----------------------------------------------------
-  // RENDER: PAGE MODE
+
+  // Ortak İçerik Alanı (Mesaj Listesi)
+  const renderMessageList = (isWidget = false) => (
+    <div className={`flex-1 space-y-3 overflow-y-auto bg-gray-50/40 p-4 ${isWidget ? "max-h-full" : ""}`}>
+      {messages.map((msg, idx) => (
+        <div key={idx} className={`flex w-full ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+          <div className={`flex max-w-[85%] gap-2 sm:gap-3 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
+            {!isWidget && (
+              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border text-xs font-medium shadow-sm ${msg.role === "user" ? "border-gray-900 bg-gray-900 text-white" : "border-gray-100 bg-white text-gray-900"}`}>
+                {msg.role === "user" ? <User className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5 text-gray-500" />}
+              </div>
+            )}
+            <div
+              onClick={() => msg.role === "user" && startEditingUserMessage(idx)}
+              className={`rounded-2xl px-4 py-2.5 text-xs leading-relaxed shadow-sm border transition-all duration-150 ${
+                msg.role === "user"
+                  ? "cursor-pointer rounded-tr-sm bg-gray-950 border-gray-900 text-white hover:bg-gray-900"
+                  : "rounded-tl-sm border-gray-100 bg-white text-gray-800"
+              }`}
+              style={{ whiteSpace: "pre-wrap" }}
+            >
+              {msg.message}
+            </div>
+          </div>
+        </div>
+      ))}
+      {loading && (
+        <div className="flex w-full justify-start">
+          <div className="flex items-center gap-2.5 rounded-2xl border border-gray-100 bg-white px-4 py-2.5 text-xs text-gray-500 shadow-sm">
+            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-900 border-t-transparent" />
+            <span>{lang === "tr" ? "Hepta AI yanıt hazırlıyor..." : "Hepta AI is responding..."}</span>
+          </div>
+        </div>
+      )}
+      <div ref={messagesEndRef} />
+    </div>
+  );
+
+  // Ortak Destek Formu Bileşeni (UX iyileştirmesi)
+  const renderSupportForm = (isSmall = false) => (
+    <div className={`shrink-0 space-y-3 border-t border-gray-100 bg-white p-4 shadow-sm`}>
+      <div className="flex items-start gap-2 rounded-xl border border-amber-100 bg-amber-50/40 p-3 text-xs text-amber-800">
+        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+        <p className="leading-relaxed">
+          {lang === "tr" ? "Sorunu detaylandırıp gönderdiğinizde teknik ekibimiz anında inceleme başlatacaktır." : "Once submitted, our team will look into your request instantly."}
+        </p>
+      </div>
+      <input
+        type="text"
+        placeholder={lang === "tr" ? "Talep Konusu..." : "Ticket Subject..."}
+        value={supportSubject}
+        onChange={(e) => setSupportSubject(e.target.value)}
+        className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs outline-none transition focus:border-gray-900 focus:ring-1 focus:ring-gray-900"
+      />
+      <textarea
+        placeholder={lang === "tr" ? "Açıklamanız veya hata kaydı detayları..." : "Your detailed explanation..."}
+        value={supportMessage}
+        onChange={(e) => setSupportMessage(e.target.value)}
+        rows={isSmall ? 2 : 3}
+        className="w-full resize-none rounded-xl border border-gray-200 px-3.5 py-2 text-xs outline-none transition focus:border-gray-900 focus:ring-1 focus:ring-gray-900"
+      />
+      <div className="flex justify-end gap-2">
+        <button onClick={() => setShowSupportForm(false)} className="rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50">
+          {lang === "tr" ? "Vazgeç" : "Cancel"}
+        </button>
+        <button
+          onClick={handleCreateSupport}
+          disabled={!supportSubject.trim() || !supportMessage.trim() || loading}
+          className="rounded-xl bg-gray-950 px-3.5 py-2 text-xs font-medium text-white transition hover:bg-gray-900 disabled:opacity-30"
+        >
+          {lang === "tr" ? "Talebi Gönder" : "Send Ticket"}
+        </button>
+      </div>
+    </div>
+  );
+
+  // Ortak İnput ve Alt Buton Grubu
+  const renderInputArea = (isSmall = false) => (
+    <div className="shrink-0 border-t border-gray-100 bg-white p-3 sm:p-4">
+      <div className="flex gap-2">
+        <input
+          ref={inputRef}
+          type="text"
+          placeholder={lang === "tr" ? "Sorunuzu sorun veya 'etkinlik oluştur' yazın..." : "Ask a question or type 'create event'..."}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+          className="min-w-0 flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-xs outline-none transition focus:border-gray-900 focus:ring-1 focus:ring-gray-900"
+          disabled={loading}
+        />
+        <button
+          onClick={handleSendMessage}
+          disabled={!input.trim() || loading}
+          className="inline-flex h-[38px] w-10 shrink-0 items-center justify-center rounded-xl bg-gray-950 text-white shadow-sm transition hover:bg-gray-900 disabled:opacity-30"
+        >
+          <Send className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="mt-2 flex gap-2">
+        <button
+          onClick={() => (eventWizardStep !== "idle" ? resetEventWizard() : void startEventWizard(input))}
+          className="flex-1 rounded-xl border border-gray-200 bg-gray-50/50 py-2 text-[11px] font-medium text-gray-800 shadow-sm transition hover:bg-gray-100"
+        >
+          {eventWizardStep !== "idle" ? (lang === "tr" ? "Taslağı İptal Et" : "Cancel Draft") : (lang === "tr" ? "✨ Etkinlik Sihirbazı" : "✨ Event Wizard")}
+        </button>
+        <button
+          onClick={() => setShowSupportForm(true)}
+          className="flex-1 rounded-xl border border-gray-200 bg-gray-50/50 py-2 text-[11px] font-medium text-gray-500 shadow-sm transition hover:bg-gray-100"
+        >
+          {lang === "tr" ? "🛠️ Destek Talebi Aç" : "🛠️ Open Ticket"}
+        </button>
+      </div>
+    </div>
+  );
+
+  // ----------------------------------------------------
+  // RENDER: PAGE MODE (Tam Ekran Modu)
   // ----------------------------------------------------
   if (pageMode) {
     return (
-      <div
-        data-theme="light"
-        className="flex h-[calc(100dvh-7rem)] w-full flex-col gap-4 overflow-hidden bg-[#fafafa] antialiased lg:h-[calc(100vh-10rem)] lg:flex-row lg:gap-6"
-      >
-        {/* Main Chat Container */}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#e5e5e5] bg-white shadow-sm">
+      <div className="flex h-[calc(100dvh-7rem)] w-full flex-col gap-4 overflow-hidden bg-gray-50/60 antialiased lg:h-[calc(100vh-10rem)] lg:flex-row lg:gap-5">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-sm">
           {/* Header */}
-          <div className="flex shrink-0 items-center justify-between border-b border-[#e5e5e5] bg-white px-4 py-3 sm:px-6">
+          <div className="flex shrink-0 items-center justify-between border-b border-gray-100 bg-white px-5 py-3.5">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#171717] text-white shadow-sm">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gray-950 text-white shadow-sm">
                 <Sparkles className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <h3 className="truncate text-sm font-semibold text-[#171717]">
-                  {lang === "tr" ? "HeptaCert Asistan" : "HeptaCert Assistant"}
-                </h3>
-                <p className="truncate text-xs text-[#737373]">
-                  {lang === "tr"
-                    ? "Etkinlik, kayıt, sertifika ve destek işlemleri"
-                    : "Events, registration, certificates and support"}
-                </p>
+                <h3 className="text-xs font-semibold text-gray-900 tracking-tight">HeptaCert Asistan</h3>
+                <p className="text-[11px] text-gray-400 truncate">Etkinlik, kayıt, sertifika ve destek otomasyonu</p>
               </div>
             </div>
-
             {eventWizardStep !== "idle" && (
-              <span className="hidden rounded-full border border-[#e5e5e5] bg-[#fafafa] px-3 py-1 text-[11px] font-medium text-[#525252] sm:inline-flex">
-                {lang === "tr" ? "Sihirbaz aktif" : "Wizard active"}
-              </span>
+              <span className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-[10px] font-medium text-gray-600 animate-pulse">Sihirbaz Aktif</span>
             )}
           </div>
 
-          {/* Messages */}
-          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-[#fcfcfc] p-3 sm:p-4 lg:p-6">
-            {messages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`flex w-full ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`flex max-w-[94%] gap-2 sm:max-w-[86%] sm:gap-3 lg:max-w-[78%] ${
-                    msg.role === "user" ? "flex-row-reverse" : "flex-row"
-                  }`}
-                >
-                  <div
-                    className={`hidden h-8 w-8 shrink-0 select-none items-center justify-center rounded-xl border text-xs font-medium shadow-sm sm:flex ${
-                      msg.role === "user"
-                        ? "border-[#171717] bg-[#171717] text-white"
-                        : "border-[#e5e5e5] bg-white text-[#171717]"
-                    }`}
-                  >
-                    {msg.role === "user" ? (
-                      <User className="h-4 w-4" />
-                    ) : (
-                      <Sparkles className="h-4 w-4 text-[#737373]" />
-                    )}
-                  </div>
+          {/* Messages Main */}
+          {renderMessageList(false)}
 
-                  <div
-                    onClick={() => msg.role === "user" && startEditingUserMessage(idx)}
-                    style={{ whiteSpace: "pre-wrap" }}
-                    className={`rounded-2xl px-3 py-2 text-xs leading-relaxed shadow-sm transition-all duration-150 sm:px-4 sm:py-2.5 sm:text-sm ${
-                      msg.role === "user"
-                        ? "cursor-pointer rounded-tr-md bg-[#171717] text-white hover:bg-[#262626]"
-                        : "rounded-tl-md border border-[#e5e5e5] bg-white text-[#171717]"
-                    }`}
-                  >
-                    {msg.message}
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {loading && (
-              <div className="flex w-full justify-start">
-                <div className="flex items-center gap-3 rounded-2xl border border-[#e5e5e5] bg-white px-4 py-3 text-xs text-[#737373] shadow-sm">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#171717] border-t-transparent" />
-                  <span>{lang === "tr" ? "Hepta AI işlem yapıyor..." : "Hepta AI is working..."}</span>
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Wizard Info Bar */}
+          {/* Wizard Bilgi Çubuğu */}
           {eventWizardStep !== "idle" && (
-            <div className="flex shrink-0 flex-col gap-2 border-t border-l-2 border-l-[#171717] border-t-[#e5e5e5] bg-[#fbfbfb] px-3 py-3 text-xs sm:flex-row sm:items-center sm:justify-between sm:px-6">
-              <div className="flex min-w-0 items-start gap-2 text-[#737373]">
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#171717]" />
-                <span className="leading-relaxed">
-                  <strong className="text-[#171717]">
-                    {lang === "tr" ? "Etkinlik Sihirbazı:" : "Event Wizard:"}
-                  </strong>{" "}
-                  {summarizeMissingFields(eventWizardStep, lang)}
-                </span>
+            <div className="flex shrink-0 flex-col gap-2 border-t border-l-2 border-l-gray-950 border-t-gray-100 bg-gray-50/50 px-5 py-3 text-xs sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-2 text-gray-500">
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-900" />
+                <span><strong>Sihirbaz:</strong> {summarizeMissingFields(eventWizardStep, lang)}</span>
               </div>
-
-              <button
-                onClick={() => {
-                  resetEventWizard();
-                  pushAssistantMessage(
-                    lang === "tr" ? "Etkinlik sihirbazı iptal edildi." : "Event wizard canceled."
-                  );
-                }}
-                className="self-start rounded-lg px-2 py-1 text-xs font-semibold text-red-500 hover:bg-red-50 sm:self-auto"
-              >
-                {lang === "tr" ? "Sihirbazı Kapat" : "Close Wizard"}
-              </button>
+              <button onClick={resetEventWizard} className="text-red-500 font-medium text-xs hover:underline self-end sm:self-auto">Sihirbazı Kapat</button>
             </div>
           )}
 
-          {/* Support Form */}
-          {showSupportForm && (
-            <div className="shrink-0 space-y-3 border-t border-[#e5e5e5] bg-[#fafafa] p-4 sm:p-5">
-              <div className="flex items-start gap-2.5 rounded-xl border border-[#e5e5e5] bg-white p-3 text-xs text-[#737373] shadow-sm sm:p-4">
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#171717]" />
-                <p className="leading-relaxed">
-                  {lang === "tr"
-                    ? "Sorunu detaylandırıp gönderdiğinizde teknik ekibimiz sistem üzerinden çözüme başlayacaktır."
-                    : "Once submitted, our team will look into your request instantly."}
-                </p>
-              </div>
-
-              <input
-                type="text"
-                placeholder={lang === "tr" ? "Talep Konusu..." : "Ticket Subject..."}
-                value={supportSubject}
-                onChange={(e) => setSupportSubject(e.target.value)}
-                className="w-full rounded-xl border border-[#e5e5e5] px-4 py-2 text-sm outline-none transition focus:border-[#171717]"
-              />
-
-              <textarea
-                placeholder={lang === "tr" ? "Açıklamanız veya hata kaydı detayları..." : "Your detailed explanation..."}
-                value={supportMessage}
-                onChange={(e) => setSupportMessage(e.target.value)}
-                rows={3}
-                className="w-full resize-none rounded-xl border border-[#e5e5e5] px-4 py-2 text-sm outline-none transition focus:border-[#171717]"
-              />
-
-              <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-                <button
-                  onClick={() => setShowSupportForm(false)}
-                  className="rounded-xl border border-[#e5e5e5] bg-white px-4 py-2 text-xs font-medium text-[#171717] transition hover:bg-[#fafafa]"
-                >
-                  {lang === "tr" ? "Vazgeç" : "Cancel"}
-                </button>
-
-                <button
-                  onClick={handleCreateSupport}
-                  disabled={!supportSubject.trim() || !supportMessage.trim() || loading}
-                  className="rounded-xl bg-[#171717] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#262626] disabled:opacity-40"
-                >
-                  {lang === "tr" ? "Talebi Gönder" : "Send Ticket"}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Input Area */}
-          {!showSupportForm && (
-            <div className="shrink-0 border-t border-[#e5e5e5] bg-white p-3 sm:p-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  placeholder={
-                    lang === "tr"
-                      ? "Sorunuzu sorun veya 'yeni etkinlik planla' yazın..."
-                      : "Ask a question or type 'create an event'..."
-                  }
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                  className="min-w-0 flex-1 rounded-xl border border-[#e5e5e5] px-4 py-2.5 text-sm outline-none transition focus:border-[#171717]"
-                  disabled={loading}
-                />
-
-                <button
-                  onClick={handleSendMessage}
-                  disabled={!input.trim() || loading}
-                  className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-[#171717] px-4 text-sm font-medium text-white shadow-sm transition hover:bg-[#262626] disabled:opacity-30 sm:w-auto"
-                >
-                  <Send className="h-4 w-4" />
-                </button>
-              </div>
-
-              <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                <button
-                  onClick={() => {
-                    if (eventWizardStep !== "idle") {
-                      resetEventWizard();
-                      pushAssistantMessage(lang === "tr" ? "Taslak iptal edildi." : "Draft canceled.");
-                    } else {
-                      void startEventWizard(input);
-                    }
-                  }}
-                  className="rounded-xl border border-[#e5e5e5] bg-[#fafafa] px-3 py-2 text-xs font-medium text-[#171717] shadow-sm transition hover:bg-[#f4f4f5]"
-                >
-                  {eventWizardStep !== "idle"
-                    ? lang === "tr"
-                      ? "Taslağı İptal Et"
-                      : "Cancel Draft"
-                    : lang === "tr"
-                      ? "✨ Yeni Etkinlik Sihirbazı"
-                      : "✨ New Event Wizard"}
-                </button>
-
-                <button
-                  onClick={() => setShowSupportForm(true)}
-                  className="rounded-xl border border-[#e5e5e5] bg-[#fafafa] px-3 py-2 text-xs font-medium text-[#737373] shadow-sm transition hover:bg-[#f4f4f5]"
-                >
-                  {lang === "tr" ? "🛠️ Destek Talebi Aç" : "🛠️ Open Support Ticket"}
-                </button>
-              </div>
-            </div>
-          )}
+          {/* Action Area */}
+          {showSupportForm ? renderSupportForm(false) : renderInputArea(false)}
         </div>
 
-        {/* Right / Bottom Panel */}
-        <aside className="flex max-h-64 w-full shrink-0 flex-col gap-4 overflow-y-auto rounded-2xl border border-[#e5e5e5] bg-white p-4 shadow-sm lg:max-h-none lg:w-80 lg:p-5">
-          <div>
-            <div className="mb-2 flex items-center gap-2 text-[#171717]">
-              <Lightbulb className="h-4 w-4" />
-              <h4 className="text-sm font-semibold tracking-tight">
-                {lang === "tr" ? "Hızlı Yönlendirmeler" : "Quick Prompts"}
-              </h4>
+        {/* Yan Panel (Quick Prompts) */}
+        <aside className="flex max-h-60 w-full shrink-0 flex-col justify-between overflow-y-auto rounded-2xl border border-gray-200/80 bg-white p-5 shadow-sm lg:max-h-none lg:w-72">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-gray-900">
+              <Lightbulb className="h-4 w-4 text-amber-500" />
+              <h4 className="text-xs font-semibold tracking-tight">Hızlı Şablonlar</h4>
             </div>
-
-            <p className="mb-4 text-xs leading-relaxed text-[#737373]">
-              {lang === "tr"
-                ? "Sistemi hızlı yönetmek için aşağıdaki şablonları asistan satırına ekleyebilirsiniz."
-                : "Use these templates to quickly guide the assistant."}
-            </p>
-
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-1">
-              <button
-                onClick={() => {
-                  window.dispatchEvent(new CustomEvent("ai-assistant-insert", { detail: "Yeni webinar, 2026-06-30, online" }));
-                }}
-                className="w-full rounded-xl border border-[#e5e5e5] bg-[#fafafa] px-3 py-2 text-left text-xs font-medium text-[#171717] transition hover:bg-[#f4f4f5]"
-              >
-                {lang === "tr" ? "Webinar Önerisi" : "Webinar Prompt"}
-              </button>
-
-              <button
-                onClick={() => {
-                  window.dispatchEvent(new CustomEvent("ai-assistant-insert", { detail: "Workshop: Hands-on, 1 gün, İstanbul" }));
-                }}
-                className="w-full rounded-xl border border-[#e5e5e5] bg-[#fafafa] px-3 py-2 text-left text-xs font-medium text-[#171717] transition hover:bg-[#f4f4f5]"
-              >
-                {lang === "tr" ? "Workshop Önerisi" : "Workshop Prompt"}
-              </button>
-
-              <button
-                onClick={() => {
-                  window.dispatchEvent(new CustomEvent("ai-assistant-insert", { detail: "Kayıt formu için KVKK metni önerisi" }));
-                }}
-                className="w-full rounded-xl border border-[#e5e5e5] bg-[#fafafa] px-3 py-2 text-left text-xs font-medium text-[#171717] transition hover:bg-[#f4f4f5]"
-              >
-                {lang === "tr" ? "KVKK Önerisi" : "KVKK Prompt"}
-              </button>
+            <div className="space-y-2">
+              {[
+                { label: "Webinar Önerisi", text: "Yeni webinar, 2026-06-30, online" },
+                { label: "Workshop Önerisi", text: "Workshop: Hands-on, 1 gün, İstanbul" },
+                { label: "KVKK Önerisi", text: "Kayıt formu için KVKK metni önerisi" }
+              ].map((item, i) => (
+                <button
+                  key={i}
+                  onClick={() => window.dispatchEvent(new CustomEvent("ai-assistant-insert", { detail: item.text }))}
+                  className="w-full text-left rounded-xl border border-gray-100 bg-gray-50/50 px-3 py-2 text-xs text-gray-700 transition hover:bg-gray-100/70"
+                >
+                  {item.label}
+                </button>
+              ))}
             </div>
           </div>
 
-          <div className="mt-auto border-t border-[#e5e5e5] pt-4">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-[#171717]">
-              <Command className="h-3.5 w-3.5" />
-              <h5>{lang === "tr" ? "Komut Paleti" : "Command Palette"}</h5>
+          <div className="border-t border-gray-100 pt-4 mt-4 lg:mt-0">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-900">
+              <Command className="h-3.5 w-3.5 text-gray-400" />
+              <span>Komut Paleti</span>
             </div>
-
-            <p className="mt-1 text-[11px] leading-normal text-[#737373]">
-              {lang === "tr"
-                ? "CMD/CTRL+K ile hızlı yönetim aksiyonlarını çağırabilirsiniz."
-                : "Open quick management actions with CMD/CTRL+K."}
-            </p>
+            <p className="mt-1 text-[10px] leading-normal text-gray-400">CMD+K kombinasyonu ile yönetim aksiyonlarını tetikleyebilirsiniz.</p>
           </div>
         </aside>
       </div>
@@ -968,192 +759,47 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
   }
 
   // ----------------------------------------------------
-  // RENDER: FLOATING WIDGET MODE
+  // RENDER: FLOATING WIDGET MODE (Yüzen Pencere)
   // ----------------------------------------------------
   return (
     <>
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-4 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#171717] text-white shadow-lg transition-transform duration-200 hover:scale-105 sm:bottom-6 sm:right-6"
-          title={lang === "tr" ? "AI Asistan" : "AI Assistant"}
+          className="fixed bottom-5 right-5 z-40 flex h-13 w-13 items-center justify-center rounded-full bg-gray-950 text-white shadow-md transition-transform duration-200 hover:scale-105 active:scale-95"
         >
-          <MessageCircle className="h-6 w-6" />
+          <MessageCircle className="h-5 w-5" />
         </button>
       )}
 
       {isOpen && (
-        <div
-          data-theme="light"
-          className="fixed inset-x-2 bottom-2 z-50 flex h-[calc(100dvh-1rem)] max-h-[720px] flex-col overflow-hidden rounded-2xl border border-[#e5e5e5] bg-white shadow-2xl antialiased sm:inset-x-auto sm:bottom-6 sm:right-6 sm:h-[min(600px,calc(100vh-3rem))] sm:w-96"
-        >
+        <div className="fixed inset-x-2 bottom-2 z-50 flex h-[calc(100dvh-1.5rem)] max-h-[580px] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl antialiased sm:inset-x-auto sm:bottom-6 sm:right-6 sm:h-[500px] sm:w-86">
           {/* Header */}
-          <div className="flex h-14 shrink-0 items-center justify-between border-b border-[#e5e5e5] bg-white px-4 sm:px-5">
+          <div className="flex h-13 shrink-0 items-center justify-between border-b border-gray-100 bg-white px-4">
             <div className="flex min-w-0 items-center gap-2">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#171717] text-white">
-                <Sparkles className="h-4 w-4" />
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gray-950 text-white">
+                <Sparkles className="h-3.5 w-3.5" />
               </div>
-
-              <div className="min-w-0">
-                <h3 className="truncate text-sm font-semibold text-[#171717]">
-                  {lang === "tr" ? "HeptaCert Asistan" : "HeptaCert Assistant"}
-                </h3>
-                <p className="truncate text-[11px] text-[#737373]">
-                  {lang === "tr" ? "Akıllı yardım paneli" : "Smart help panel"}
-                </p>
-              </div>
+              <h3 className="text-xs font-semibold text-gray-900 tracking-tight">HeptaCert Asistan</h3>
             </div>
-
-            <button
-              onClick={() => setIsOpen(false)}
-              className="rounded-lg p-1 text-[#737373] transition hover:bg-[#fafafa] hover:text-[#171717]"
-            >
+            <button onClick={() => setIsOpen(false)} className="rounded-lg p-1 text-gray-400 hover:bg-gray-50 hover:text-gray-900">
               <X className="h-4 w-4" />
             </button>
           </div>
 
-          {/* Messages */}
-          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[#fafafa] p-3 sm:p-4">
-            {messages.map((msg, idx) => (
-              <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div
-                  onClick={() => msg.role === "user" && startEditingUserMessage(idx)}
-                  style={{ whiteSpace: "pre-wrap" }}
-                  className={`max-w-[90%] rounded-2xl px-3.5 py-2 text-xs leading-relaxed shadow-sm transition-all duration-150 sm:max-w-[85%] ${
-                    msg.role === "user"
-                      ? "cursor-pointer rounded-tr-md bg-[#171717] text-white hover:bg-[#262626]"
-                      : "rounded-tl-md border border-[#e5e5e5] bg-white text-[#171717]"
-                  }`}
-                >
-                  {msg.message}
-                </div>
-              </div>
-            ))}
+          {/* Messages Body */}
+          {renderMessageList(true)}
 
-            {loading && (
-              <div className="flex justify-start">
-                <div className="flex items-center gap-2 rounded-2xl border border-[#e5e5e5] bg-white px-3 py-2 text-[11px] text-[#737373] shadow-sm">
-                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-[#171717] border-t-transparent" />
-                  <span>{lang === "tr" ? "Düşünüyor..." : "Thinking..."}</span>
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Wizard Notice */}
+          {/* Wizard Alert */}
           {eventWizardStep !== "idle" && (
-            <div className="shrink-0 border-t border-l-2 border-l-[#171717] border-t-[#e5e5e5] bg-[#fbfbfb] px-4 py-2.5 text-[11px] text-[#737373]">
-              <div className="flex items-center justify-between gap-2">
-                <span className="min-w-0 leading-relaxed">
-                  <strong className="text-[#171717]">
-                    {lang === "tr" ? "Sihirbaz:" : "Wizard:"}
-                  </strong>{" "}
-                  {summarizeMissingFields(eventWizardStep, lang)}
-                </span>
-
-                <button
-                  onClick={resetEventWizard}
-                  className="shrink-0 rounded-md px-2 py-1 font-semibold text-red-500 hover:bg-red-50"
-                >
-                  {lang === "tr" ? "İptal" : "Cancel"}
-                </button>
-              </div>
+            <div className="shrink-0 border-t border-l-2 border-l-gray-950 border-t-gray-100 bg-gray-50/50 px-4 py-2 text-[11px] text-gray-500 flex justify-between items-center">
+              <span className="truncate"><strong>Sihirbaz:</strong> {summarizeMissingFields(eventWizardStep, lang)}</span>
+              <button onClick={resetEventWizard} className="text-red-500 font-medium">İptal</button>
             </div>
           )}
 
-          {/* Support Form */}
-          {showSupportForm && (
-            <div className="shrink-0 space-y-2 border-t border-[#e5e5e5] bg-[#fcfcfc] p-3 sm:p-4">
-              <input
-                type="text"
-                placeholder={lang === "tr" ? "Konu..." : "Subject..."}
-                value={supportSubject}
-                onChange={(e) => setSupportSubject(e.target.value)}
-                className="w-full rounded-xl border border-[#e5e5e5] px-3 py-2 text-xs outline-none transition focus:border-[#171717]"
-              />
-
-              <textarea
-                placeholder={lang === "tr" ? "Mesajınız..." : "Message..."}
-                value={supportMessage}
-                onChange={(e) => setSupportMessage(e.target.value)}
-                rows={2}
-                className="w-full resize-none rounded-xl border border-[#e5e5e5] px-3 py-2 text-xs outline-none transition focus:border-[#171717]"
-              />
-
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => setShowSupportForm(false)}
-                  className="rounded-lg border border-[#e5e5e5] bg-white px-3 py-1.5 text-[11px] text-[#171717] hover:bg-[#fafafa]"
-                >
-                  {lang === "tr" ? "Kapat" : "Close"}
-                </button>
-
-                <button
-                  onClick={handleCreateSupport}
-                  disabled={!supportSubject.trim() || !supportMessage.trim() || loading}
-                  className="rounded-lg bg-[#171717] px-3 py-1.5 text-[11px] text-white hover:bg-[#262626] disabled:opacity-40"
-                >
-                  {lang === "tr" ? "Gönder" : "Send"}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Input */}
-          {!showSupportForm && (
-            <div className="shrink-0 border-t border-[#e5e5e5] bg-white p-3">
-              <div className="flex gap-2">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  placeholder={lang === "tr" ? "Sorunuzu yazın..." : "Type question..."}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                  className="min-w-0 flex-1 rounded-xl border border-[#e5e5e5] px-3 py-2 text-xs outline-none transition focus:border-[#171717]"
-                  disabled={loading}
-                />
-
-                <button
-                  onClick={handleSendMessage}
-                  disabled={!input.trim() || loading}
-                  className="rounded-xl bg-[#171717] p-2.5 text-white shadow-sm transition hover:bg-[#262626] disabled:opacity-40"
-                >
-                  <Send className="h-3.5 w-3.5" />
-                </button>
-              </div>
-
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => {
-                    if (eventWizardStep !== "idle") {
-                      resetEventWizard();
-                    } else {
-                      void startEventWizard(input);
-                    }
-                  }}
-                  className="rounded-lg border border-[#e5e5e5] bg-[#fafafa] py-2 text-[10px] font-semibold text-[#171717] shadow-sm transition hover:bg-[#f4f4f5]"
-                >
-                  {eventWizardStep !== "idle"
-                    ? lang === "tr"
-                      ? "İptal Et"
-                      : "Cancel"
-                    : lang === "tr"
-                      ? "Etkinlik Sihirbazı"
-                      : "Event Wizard"}
-                </button>
-
-                <button
-                  onClick={() => setShowSupportForm(true)}
-                  className="rounded-lg border border-[#e5e5e5] bg-[#fafafa] py-2 text-[10px] font-semibold text-[#737373] shadow-sm transition hover:bg-[#f4f4f5]"
-                >
-                  {lang === "tr" ? "Destek Talebi" : "Support Ticket"}
-                </button>
-              </div>
-            </div>
-          )}
+          {/* Form / Input Area */}
+          {showSupportForm ? renderSupportForm(true) : renderInputArea(true)}
         </div>
       )}
     </>
@@ -1167,9 +813,7 @@ function getEventPromptForStep(step: EventWizardStep, draft: EventDraft, lang: s
 
 function formatDisplayValue(value: unknown): string {
   if (value == null) return "";
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-    return String(value);
-  }
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
   if (Array.isArray(value)) return value.map(formatDisplayValue).filter(Boolean).join(", ");
   if (typeof value === "object") {
     const record = value as Record<string, unknown>;

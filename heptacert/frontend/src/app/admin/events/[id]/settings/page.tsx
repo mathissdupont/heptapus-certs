@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { ElementType } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -38,8 +39,21 @@ import {
   RefreshCw,
   Unplug,
   Building2,
+  X,
 } from "lucide-react";
-import { apiFetch, consumeOAuthBridgeToken, getMySubscription, listAdminEventComments, setToken, updateAdminEventComment, type RegistrationField, type SubscriptionInfo, type PublicEventComment } from "@/lib/api";
+import { 
+  apiFetch, 
+  API_BASE, 
+  getToken, 
+  consumeOAuthBridgeToken, 
+  getMySubscription, 
+  setToken, 
+  updateAdminEventComment, 
+  listAdminEventComments,
+  type RegistrationField, 
+  type SubscriptionInfo, 
+  type PublicEventComment 
+} from "@/lib/api";
 import EventAdminNav, { refreshEventAdminMeta } from "@/components/Admin/EventAdminNav";
 import PageHeader from "@/components/Admin/PageHeader";
 import DateField from "@/components/Admin/DateField";
@@ -60,6 +74,11 @@ type EventOut = {
     registration_quota?: number;
     registration_quota_enabled?: boolean;
     visibility?: "private" | "unlisted" | "public";
+    organizer_privacy_notice_enabled?: boolean;
+    organizer_privacy_notice_text?: string;
+    data_controller_name?: string;
+    data_controller_contact_email?: string;
+    data_retention_note?: string;
     [key: string]: unknown;
   };
   event_date?: string | null;
@@ -272,8 +291,7 @@ function toDateTimeLocal(value?: string | null) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  const offsetMs = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+  return date.toISOString().slice(0, 16);
 }
 
 export default function EventSettingsPage() {
@@ -285,7 +303,7 @@ export default function EventSettingsPage() {
   const copy = lang === "tr"
     ? {
         title: "Etkinlik Ayarları",
-        subtitle: "Etkinlik bilgisini, sertifika görünümünü ve otomatik e-posta akışını tek yerden yönetin.",
+        subtitle: "Etkinlik bilgisini, sertifika görünümünü och otomatik e-posta akışını tek yerden yönetin.",
         loadingError: "Veriler yüklenemedi.",
         requiredName: "Etkinlik adı zorunludur.",
         saveSuccess: "Ayarlar kaydedildi.",
@@ -300,6 +318,7 @@ export default function EventSettingsPage() {
         visibilityBody: "Bu ayar yalnızca açık etkinlik keşif ekranını etkiler. Mevcut kayıt bağlantıların ve organizatör akışın bozulmaz.",
         visibilityLabel: "Görünürlük modu",
         visibilityHint: "Özel etkinlikler listede görünmez. Liste dışı etkinlikler sadece doğrudan bağlantıyla açılır. Herkese açık etkinlikler keşif ekranında görünür.",
+        registrationTitleMeta: "Kayıt formu",
         registrationTitle: "Kayıt formu alanları",
         registrationBody: "Katılımcılardan toplamak istediğiniz ek bilgileri belirleyin. Bu alanlar açık kayıt sayfasında ad ve e-postanın altında görünür.",
         verificationTitle: "E-posta doğrulaması",
@@ -318,7 +337,7 @@ export default function EventSettingsPage() {
         emptyFields: "Henüz özel kayıt alanı eklenmedi.",
         fieldLabel: "Alan etiketi",
         fieldType: "Alan türü",
-        fieldPlaceholder: "Placeholder",
+        fieldPlaceholder: "Placeholder / Örnek metin",
         fieldHelper: "Yardım metni",
         fieldOptions: "Seçenekler",
         fieldOptionsHint: "Her satıra bir seçenek yazın.",
@@ -390,6 +409,7 @@ export default function EventSettingsPage() {
         visibilityBody: "This setting only affects the public discovery layer. Your current registration links and organizer workflow remain intact.",
         visibilityLabel: "Visibility mode",
         visibilityHint: "Private stays hidden. Unlisted opens only via direct link. Public events appear in the discovery list.",
+        registrationTitleMeta: "Registration form",
         registrationTitle: "Registration form fields",
         registrationBody: "Define the extra information you want to collect from attendees. These fields are shown below name and email on the public registration page.",
         verificationTitle: "Email verification",
@@ -408,7 +428,7 @@ export default function EventSettingsPage() {
         emptyFields: "No custom registration field has been added yet.",
         fieldLabel: "Field label",
         fieldType: "Field type",
-        fieldPlaceholder: "Placeholder",
+        fieldPlaceholder: "Placeholder text",
         fieldHelper: "Helper text",
         fieldOptions: "Options",
         fieldOptionsHint: "Write one option per line.",
@@ -469,6 +489,7 @@ export default function EventSettingsPage() {
   const [systemEmailTemplates, setSystemEmailTemplates] = useState<EmailTemplate[]>([]);
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [venues, setVenues] = useState<OrganizationVenue[]>([]);
+  
   const [formData, setFormData] = useState<FormState>({
     name: "",
     event_date: "",
@@ -503,6 +524,7 @@ export default function EventSettingsPage() {
     venue_reservation_start_at: "",
     venue_reservation_end_at: "",
   });
+  
   const [savedFormSnapshot, setSavedFormSnapshot] = useState("");
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
@@ -510,10 +532,8 @@ export default function EventSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const isDirty = savedFormSnapshot !== "" && JSON.stringify(formData) !== savedFormSnapshot;
-  useUnsavedChanges(isDirty && !saving, lang === "tr" ? "Kaydedilmemiş etkinlik ayarları var." : "You have unsaved event settings.");
-  useKeyboardShortcut("s", () => void handleSave(), { meta: true, enabled: !saving });
-  const [activeTab, setActiveTab] = useState<"general" | "registration" | "banner" | "email" | "comments">("general");
+  
+  const [activeTab, setActiveTab] = useState<"general" | "registration" | "banner" | "email" | "comments" >("general");
   const [comments, setComments] = useState<PublicEventComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentsSavingId, setCommentsSavingId] = useState<number | null>(null);
@@ -525,7 +545,13 @@ export default function EventSettingsPage() {
   const [excelAction, setExcelAction] = useState<"auth" | "connect" | "sync" | "disconnect" | null>(null);
   const [authBridgeReady, setAuthBridgeReady] = useState(false);
 
+  const isDirty = savedFormSnapshot !== "" && JSON.stringify(formData) !== savedFormSnapshot;
+  
+  useUnsavedChanges(isDirty && !saving, lang === "tr" ? "Kaydedilmemiş etkinlik ayarları var." : "You have unsaved event settings.");
+  useKeyboardShortcut("s", () => void handleSave(), { meta: true, enabled: !saving });
+
   const hasGrowthPlan = subscription?.role === "superadmin" || (subscription?.active && ["growth", "enterprise"].includes(subscription?.plan_id || ""));
+  
   const fieldTypeOptions = FIELD_TYPE_OPTIONS.map((option) => ({
     value: option.value,
     label: lang === "tr" ? option.tr : option.en,
@@ -594,6 +620,8 @@ export default function EventSettingsPage() {
         setVenues([]);
       }
       void loadSheetsStatus();
+      void loadMicrosoftExcelStatus();
+
       const nextFormData: FormState = {
         name: eventData.name || "",
         event_date: eventData.event_date || "",
@@ -1012,347 +1040,230 @@ export default function EventSettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-24">
-        <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
+      <div className="flex w-full min-h-[340px] items-center justify-center antialiased">
+        <Loader2 className="h-6 w-6 animate-spin text-gray-400 stroke-[2.5]" />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6 pb-20">
-      <EventAdminNav eventId={eventId} eventName={event?.name} active="settings" className="mb-2 flex flex-col gap-2" />
+    <div className="w-full flex flex-col gap-5 antialiased text-gray-900 pb-16">
+      
+      {/* ÜST ETKİNLİK NAVİGASYONU */}
+      <EventAdminNav eventId={Number(eventId)} eventName={event?.name} active="settings" />
 
+      {/* SAYFA BAŞLIĞI */}
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}
-        icon={<Wand2 className="h-5 w-5" />}
+        icon={<Settings className="h-4 w-4 stroke-[2]" />}
         actions={
-          <div className="flex flex-wrap gap-2">
-            <Link href={`/admin/events/${eventId}/editor`} className="btn-secondary">
+          <div className="flex items-center gap-2">
+            <Link href={`/admin/events/${eventId}/editor`} className="inline-flex min-h-[38px] items-center justify-center rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">
               {copy.openEditor}
             </Link>
-            <button onClick={handleSave} disabled={saving} className="btn-primary inline-flex items-center gap-2 disabled:opacity-60">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {saving ? copy.saving : copy.save}
+            <button 
+              onClick={handleSave} 
+              disabled={saving} 
+              className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-95 disabled:opacity-40"
+            >
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5 stroke-[2.5]" />}
+              <span>{saving ? copy.saving : copy.save}</span>
             </button>
           </div>
         }
       />
 
-      {/* AI assistant KVKK banner */}
-      {(event?.config as any)?.ai_assistant_populated_kvkk ? (
-        <div className="mb-4 rounded-md border p-3 bg-yellow-50 border-yellow-200">
-          <div className="flex items-start gap-3">
-            <ShieldAlert className="text-yellow-700" />
-            <div>
-              <div className="font-semibold">Otomatik eklenmiş KVKK / Gizlilik öğeleri</div>
-              <div className="text-sm text-slate-700">AI Asistanı bu etkinlik için KVKK/gizlilik öğelerini otomatik ekledi. Lütfen gözden geçirip kaydedin.</div>
-              <div className="mt-2">
-                <button
-                  className="inline-flex items-center gap-2 rounded bg-yellow-600 px-3 py-1 text-white"
-                  onClick={() => {
-                    if (!event) return;
-                    const cfg = (event.config as any) || {};
-                    setFormData((current) => ({
-                      ...(current ?? ({} as FormState)),
-                      organizer_privacy_notice_enabled: Boolean(cfg.organizer_privacy_notice_enabled ?? current?.organizer_privacy_notice_enabled ?? false),
-                      organizer_privacy_notice_text: String(cfg.organizer_privacy_notice_text ?? current?.organizer_privacy_notice_text ?? ""),
-                      show_cross_border_transfer_notice: Boolean(cfg.show_cross_border_transfer_notice ?? current?.show_cross_border_transfer_notice ?? true),
-                      require_cross_border_transfer_consent: Boolean(cfg.require_cross_border_transfer_consent ?? current?.require_cross_border_transfer_consent ?? true),
-                      data_controller_name: String(cfg.data_controller_name ?? current?.data_controller_name ?? ""),
-                      data_controller_contact_email: String(cfg.data_controller_contact_email ?? current?.data_controller_contact_email ?? ""),
-                      data_retention_note: String(cfg.data_retention_note ?? current?.data_retention_note ?? ""),
-                    }));
-                    // clear the flag visually by refreshing event
-                    refreshEventAdminMeta(eventId);
-                    void loadData();
-                  }}
-                >
-                  Prefill ve İncele
-                </button>
-              </div>
-            </div>
+      {/* AI ASSISTANT PREFILL BANNERI */}
+      {(event?.config as any)?.ai_assistant_populated_kvkk && (
+        <div className="rounded-2xl border border-amber-100 bg-amber-50/20 p-4 flex items-start gap-3 animate-in fade-in duration-200">
+          <ShieldAlert className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+          <div className="space-y-2 flex-1 text-xs">
+            <h4 className="font-bold text-amber-900 tracking-tight">Otomatik Eklenmiş KVKK / Gizlilik Öğeleri</h4>
+            <p className="text-amber-800 leading-relaxed font-medium">AI Asistanı bu etkinlik için KVKK/gizlilik öğelerini otomatik ekledi. Lütfen gözden geçirip doğrulayın.</p>
+            <button
+              type="button"
+              onClick={() => {
+                if (!event) return;
+                const cfg = (event.config as any) || {};
+                setFormData((current) => ({
+                  ...current,
+                  organizer_privacy_notice_enabled: Boolean(cfg.organizer_privacy_notice_enabled ?? current.organizer_privacy_notice_enabled ?? false),
+                  organizer_privacy_notice_text: String(cfg.organizer_privacy_notice_text ?? current.organizer_privacy_notice_text ?? ""),
+                  show_cross_border_transfer_notice: Boolean(cfg.show_cross_border_transfer_notice ?? current.show_cross_border_transfer_notice ?? true),
+                  require_cross_border_transfer_consent: Boolean(cfg.require_cross_border_transfer_consent ?? current.require_cross_border_transfer_consent ?? true),
+                  data_controller_name: String(cfg.data_controller_name ?? current.data_controller_name ?? ""),
+                  data_controller_contact_email: String(cfg.data_controller_contact_email ?? current.data_controller_contact_email ?? ""),
+                  data_retention_note: String(cfg.data_retention_note ?? current.data_retention_note ?? ""),
+                }));
+                refreshEventAdminMeta(eventId);
+                void loadData();
+              }}
+              className="inline-flex min-h-[30px] items-center justify-center rounded-lg bg-amber-600 px-3 font-bold text-white shadow-sm transition hover:bg-amber-700 active:scale-95"
+            >
+              Prefill Verileri İncele
+            </button>
           </div>
         </div>
-      ) : null}
+      )}
 
+      {/* DURUM BİLGİLENDİRME ŞERİTLERİ */}
       {error && (
-        <div className="error-banner">
+        <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 text-xs font-semibold text-red-600 flex items-center gap-2">
           <AlertCircle className="h-4 w-4 shrink-0" />
-          {error}
+          <span>{error}</span>
         </div>
       )}
-
-      {success && (
-        <div className="success-banner items-center">
+      {window.navigator.onLine && success && (
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4 text-xs font-semibold text-emerald-600 flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
-          {success}
+          <span>{success}</span>
         </div>
       )}
 
-      {/* Sticky Tab Bar */}
-      <div className="sticky top-0 z-20 -mx-4 border-b border-surface-200 bg-white/90 px-4 py-2 backdrop-blur">
-        <div className="scrollbar-polished flex gap-1 overflow-x-auto rounded-lg border border-surface-200 bg-surface-50 p-1">
+      {/* APPLE SEGMENTED CONTROL TASARIMINDA SABİTLENMİŞ SEKME ÇUBUĞU */}
+      <div className="overflow-x-auto scrollbar-none">
+        <div className="flex min-w-max gap-1 border border-gray-200/80 bg-gray-50/60 p-1 rounded-xl lg:min-w-0">
           {SETTINGS_TABS.map((tab) => {
             const Icon = tab.icon;
             const label = lang === "tr" ? tab.label_tr : tab.label_en;
-            const isActive = activeTab === tab.id;
+            const isAct = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`flex items-center gap-2 whitespace-nowrap rounded-lg border px-4 py-2.5 text-sm font-semibold transition ${
-                  isActive
-                    ? "border-brand-200 bg-white text-brand-700 shadow-soft"
-                    : "border-transparent text-surface-600 hover:bg-white hover:text-surface-900"
+                className={`inline-flex items-center gap-2 rounded-lg px-4 py-1.5 text-xs font-semibold tracking-tight transition-all ${
+                  isAct
+                    ? "bg-white text-gray-950 shadow-sm border border-gray-200/60"
+                    : "border border-transparent text-gray-500 hover:text-gray-900 hover:bg-white/40"
                 }`}
               >
-                <Icon className="h-4 w-4" />
-                <span className="hidden sm:inline">{label}</span>
+                <Icon className={`h-3.5 w-3.5 shrink-0 ${isAct ? "text-gray-950 stroke-[2]" : "text-gray-400 stroke-[1.8]"}`} />
+                <span>{label}</span>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Content Sections */}
-      <div className="space-y-6">
-        {/* ===== GENERAL TAB ===== */}
-        {activeTab === "general" && (
-          <>
-            {/* Temel Bilgiler */}
-            <section className="card p-6 sm:p-7">
-              <div className="flex items-start gap-3">
-                <div className="rounded-lg bg-brand-50 p-3 text-brand-600">
-                  <FileText className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-surface-900">{copy.basicTitle}</h2>
-                  <p className="mt-1 text-sm text-surface-500">{copy.basicBody}</p>
-                </div>
-              </div>
+      {/* DEĞİŞİKLİK VE KAYDETME YÜZEY UYARI ÇUBUĞU */}
+      {isDirty && !saving && (
+        <div className="rounded-xl border border-amber-100 bg-amber-50/30 p-3 text-center text-[11px] font-bold text-amber-700 tracking-tight animate-in fade-in duration-150">
+          ⚠️ {lang === "tr" ? "Kaydedilmemiş değişiklikleriniz bulunuyor. Değişiklikleri doğrulamak için Ctrl/⌘ + S kısayolunu kullanabilirsiniz." : "You have unsaved changes. Use Ctrl/⌘ + S to sync and verify configurations."}
+        </div>
+      )}
 
-              <div className="mt-6 grid gap-4">
-                <div>
-                  <label className="label">{copy.name}</label>
-                  <input
-                    value={formData.name}
-                    onChange={(event) => setFormData((current) => ({ ...current, name: event.target.value }))}
-                    className="input-field"
-                    placeholder={copy.namePlaceholder}
-                  />
+      {/* 5. AKTİF SEKME AYAR KAPSÜLLERİ GÖVDESİ */}
+      <div className="space-y-4">
+        
+        {/* TAB 1: GENEL AYARLAR VE SALON REZERVASYON Katmanı */}
+        {activeTab === "general" && (
+          <div className="space-y-4 w-full">
+            {/* Blok A: Temel Bilgiler Formu */}
+            <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 border-b border-gray-100 pb-2.5">
+                <FileText className="h-4 w-4 text-gray-800 stroke-[1.8]" />
+                <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950">{copy.basicTitle}</h2>
+              </div>
+              
+              <div className="grid gap-4">
+                <label className="block w-full">
+                  <span className="block text-[11px] font-bold text-gray-500 mb-1">{copy.name}</span>
+                  <input value={formData.name} onChange={(e) => setFormData((curr) => ({ ...curr, name: e.target.value }))} className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-gray-900" placeholder={copy.namePlaceholder} />
+                </label>
+                
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <DateField label={copy.date} value={formData.event_date} onChange={(val) => setFormData((curr) => ({ ...curr, event_date: val }))} placeholder={copy.datePlaceholder} locale={lang === "tr" ? "tr-TR" : "en-US"} />
+                  <label className="block w-full">
+                    <span className="block text-[11px] font-bold text-gray-500 mb-1">{copy.location}</span>
+                    <input value={formData.event_location} onChange={(e) => setFormData((curr) => ({ ...curr, event_location: e.target.value }))} className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-gray-900" placeholder={copy.locationPlaceholder} />
+                  </label>
                 </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <DateField
-                    label={copy.date}
-                    value={formData.event_date}
-                    onChange={(value) => setFormData((current) => ({ ...current, event_date: value }))}
-                    placeholder={copy.datePlaceholder}
-                    locale={lang === "tr" ? "tr-TR" : "en-US"}
-                  />
-                  <div>
-                    <label className="label">{copy.location}</label>
-                    <input
-                      value={formData.event_location}
-                      onChange={(event) => setFormData((current) => ({ ...current, event_location: event.target.value }))}
-                      className="input-field"
-                      placeholder={copy.locationPlaceholder}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="label">{copy.description}</label>
-                  <RichTextEditor
-                    value={formData.event_description}
-                    onChange={(value) => setFormData((current) => ({ ...current, event_description: value }))}
-                    placeholder={copy.descriptionPlaceholder}
-                  />
-                </div>
+
+                <label className="block w-full">
+                  <span className="block text-[11px] font-bold text-gray-500 mb-1">{copy.description}</span>
+                  <RichTextEditor value={formData.event_description} onChange={(val) => setFormData((curr) => ({ ...curr, event_description: val }))} placeholder={copy.descriptionPlaceholder} />
+                </label>
               </div>
             </section>
 
+            {/* Blok B: Salon Rezervasyon Otomasyonu */}
             {venues.length > 0 && (
-              <section className="card p-6 sm:p-7">
-                <div className="flex items-start gap-3">
-                  <div className="rounded-lg bg-emerald-50 p-3 text-emerald-600">
-                    <Building2 className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-surface-900">
-                      {lang === "tr" ? "Salon ve rezervasyon" : "Venue and reservation"}
-                    </h2>
-                    <p className="mt-1 text-sm text-surface-500">
-                      {lang === "tr"
-                        ? "Kurum salonlarından birini seçip uygunluk varsa rezervasyonu otomatik oluşturabilir veya güncelleyebilirsiniz."
-                        : "Choose an organization venue and automatically create or update the reservation when it is available."}
-                    </p>
-                  </div>
+              <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 border-b border-gray-100 pb-2.5">
+                  <Building2 className="h-4 w-4 text-gray-800 stroke-[1.8]" />
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950">{lang === "tr" ? "Salon ve Rezervasyon Otomasyonu" : "Venue and Reservation"}</h2>
+                </div>
+                
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <label className="block w-full">
+                    <span className="block text-[11px] font-bold text-gray-500 mb-1">{lang === "tr" ? "Yerleşke / Salon" : "Venue"}</span>
+                    <div className="relative inline-flex items-center w-full">
+                      <select
+                        value={formData.organization_venue_id}
+                        onChange={(e) => setFormData((curr) => ({ ...curr, organization_venue_id: e.target.value, auto_reserve_venue: e.target.value ? curr.auto_reserve_venue : false }))}
+                        className="w-full min-h-[38px] appearance-none rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold outline-none cursor-pointer"
+                      >
+                        <option value="">{lang === "tr" ? "Salon Seçilmedi" : "No venue selected"}</option>
+                        {venues.map((v) => (
+                          <option key={v.id} value={v.id}>{v.name}{v.capacity ? ` (${v.capacity} kişi)` : ""}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="pointer-events-none absolute right-3 h-3.5 w-3.5 text-gray-400" />
+                    </div>
+                  </label>
+
+                  <DateTimeField value={formData.venue_reservation_start_at} onChange={(val) => setFormData((curr) => ({ ...curr, venue_reservation_start_at: val }))} label={lang === "tr" ? "Rezervasyon Başlangıcı" : "Reservation Start"} disabled={!formData.organization_venue_id} locale={lang === "tr" ? "tr-TR" : "en-US"} />
+                  <DateTimeField value={formData.venue_reservation_end_at} onChange={(val) => setFormData((curr) => ({ ...curr, venue_reservation_end_at: val }))} label={lang === "tr" ? "Rezervasyon Bitişi" : "Reservation End"} disabled={!formData.organization_venue_id} locale={lang === "tr" ? "tr-TR" : "en-US"} />
                 </div>
 
-                <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
-                  <div>
-                    <label className="label">{lang === "tr" ? "Salon" : "Venue"}</label>
-                    <select
-                      value={formData.organization_venue_id}
-                      onChange={(event) =>
-                        setFormData((current) => ({
-                          ...current,
-                          organization_venue_id: event.target.value,
-                          auto_reserve_venue: event.target.value ? current.auto_reserve_venue : false,
-                        }))
-                      }
-                      className="input-field"
-                    >
-                      <option value="">{lang === "tr" ? "Salon seçme" : "No venue"}</option>
-                      {venues.map((venue) => (
-                        <option key={venue.id} value={venue.id}>
-                          {venue.name}{venue.capacity ? ` - ${venue.capacity} kişi` : ""}{venue.location ? ` - ${venue.location}` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <DateTimeField
-                    value={formData.venue_reservation_start_at}
-                    onChange={(value) => setFormData((current) => ({ ...current, venue_reservation_start_at: value }))}
-                    label={lang === "tr" ? "Rezervasyon başlangıcı" : "Reservation start"}
-                    disabled={!formData.organization_venue_id}
-                    locale={lang === "tr" ? "tr-TR" : "en-US"}
-                  />
-                  <DateTimeField
-                    value={formData.venue_reservation_end_at}
-                    onChange={(value) => setFormData((current) => ({ ...current, venue_reservation_end_at: value }))}
-                    label={lang === "tr" ? "Rezervasyon bitişi" : "Reservation end"}
-                    disabled={!formData.organization_venue_id}
-                    locale={lang === "tr" ? "tr-TR" : "en-US"}
-                  />
-                </div>
-                <label className="mt-4 flex items-start gap-2 rounded-xl border border-surface-200 bg-surface-50 p-4 text-sm font-semibold text-surface-700">
-                  <input
-                    type="checkbox"
-                    checked={formData.auto_reserve_venue}
-                    disabled={!formData.organization_venue_id}
-                    onChange={(event) => setFormData((current) => ({ ...current, auto_reserve_venue: event.target.checked }))}
-                    className="mt-1 h-4 w-4 accent-brand-600"
-                  />
-                  <span>
-                    {lang === "tr"
-                      ? "Salon uygunsa rezervasyonu otomatik oluştur veya mevcut rezervasyonu güncelle"
-                      : "Create or update the reservation automatically if the venue is available"}
-                  </span>
+                <label className="flex items-center gap-2.5 select-none pt-1">
+                  <input type="checkbox" checked={formData.auto_reserve_venue} disabled={!formData.organization_venue_id} onChange={(e) => setFormData((curr) => ({ ...curr, auto_reserve_venue: e.target.checked }))} className="h-4 w-4 rounded-md border-gray-300 text-gray-950 focus:ring-0 cursor-pointer disabled:opacity-40" />
+                  <span className="text-xs font-semibold text-gray-700 tracking-tight">{lang === "tr" ? "Salon takvimi uygunsa rezervasyon kaydını akıllı eşitleme ile otomatik doğrula" : "Auto-reserve venue based on current availability nodes"}</span>
                 </label>
               </section>
             )}
 
-            {/* Event Type & Features */}
-            <section className="card p-6 sm:p-7">
-              <div className="flex items-start gap-3">
-                <div className="rounded-lg bg-violet-50 p-3 text-violet-600">
-                  <Settings className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-surface-900">
-                    {lang === "tr" ? "Etkinlik tipi ve özellikler" : "Event type and features"}
-                  </h2>
-                  <p className="mt-1 text-sm text-surface-500">
-                    {lang === "tr"
-                      ? "Sertifika, check-in, biletleme, çekiliş, oyunlaştırma ve herkese açık kayıt davranışını etkinlik bazında seçin."
-                      : "Choose certificate, check-in, ticketing, raffle, gamification, and public registration behavior per event."}
-                  </p>
-                </div>
+            {/* Blok C: Etkinlik Özellik Matrisi ve Switch Kapakları */}
+            <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 border-b border-gray-100 pb-2.5">
+                <Settings className="h-4 w-4 text-gray-800 stroke-[1.8]" />
+                <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950">{lang === "tr" ? "Modül Aktivasyon Mimari Filtresi" : "Feature Configuration Matrix"}</h2>
               </div>
+              
+              <div className="space-y-3.5">
+                <label className="block w-full sm:max-w-xs">
+                  <span className="block text-[11px] font-bold text-gray-500 mb-1">{lang === "tr" ? "Ana Şablon Tipi" : "Base Event Type"}</span>
+                  <div className="relative inline-flex items-center w-full">
+                    <select
+                      value={formData.event_type}
+                      onChange={(e) => setFormData((curr) => ({ ...curr, event_type: e.target.value as EventType, ...defaultsForEventType(e.target.value as EventType) }))}
+                      className="w-full min-h-[38px] appearance-none rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold outline-none cursor-pointer"
+                    >
+                      {EVENT_TYPE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{lang === "tr" ? option.tr : option.en}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 h-3.5 w-3.5 text-gray-400" />
+                  </div>
+                </label>
 
-              <div className="mt-6 space-y-4">
-                <div>
-                  <label className="label">{lang === "tr" ? "Etkinlik tipi" : "Event type"}</label>
-                  <select
-                    value={formData.event_type}
-                    onChange={(event) =>
-                      setFormData((current) => {
-                        const nextEventType = event.target.value as EventType;
-                        return {
-                          ...current,
-                          event_type: nextEventType,
-                          ...defaultsForEventType(nextEventType),
-                        };
-                      })
-                    }
-                    className="input-field"
-                  >
-                    {EVENT_TYPE_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {lang === "tr" ? option.tr : option.en}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 pt-1">
                   {[
-                    {
-                      key: "certificate_enabled",
-                      label: lang === "tr" ? "Sertifika modu aktif" : "Certificate mode enabled",
-                      hint: lang === "tr"
-                        ? "Kapalıysa: Katılımcılar sertifika alamaz, yönetici de sertifika üretemez ve gösteremez."
-                        : "When off: Participants cannot receive certificates, and admins cannot issue or manage them.",
-                    },
-                    {
-                      key: "checkin_enabled",
-                      label: lang === "tr" ? "QR check-in aktif" : "QR check-in enabled",
-                      hint: lang === "tr"
-                        ? "Kapalıysa: QR taraması ve kapıda giriş kontrolü devre dışı kalır. Katılımcıları kaydedemezsiniz."
-                        : "When off: QR scanning and entry check-in are disabled. You cannot record who attended.",
-                    },
-                    {
-                      key: "ticketing_enabled",
-                      label: lang === "tr" ? "Bilet / giriş kartı modu aktif" : "Ticket/pass mode enabled",
-                      hint: lang === "tr"
-                        ? "Açık ise kayıt olan katılımcılar için QR tabanlı dijital bilet oluşturulur."
-                        : "When on, registered attendees receive a QR-based digital ticket.",
-                    },
-                    {
-                      key: "raffles_enabled",
-                      label: lang === "tr" ? "Çekiliş modu aktif" : "Raffle mode enabled",
-                      hint: lang === "tr"
-                        ? "Açık ise çekiliş ekranı görünür. Check-in/oturum kapalıysa çekiliş ekranı gizlenir."
-                        : "When on, raffle screens are visible. They stay hidden if check-in/sessions are off.",
-                    },
-                    {
-                      key: "gamification_enabled",
-                      label: lang === "tr" ? "Oyunlaştırma modu aktif" : "Gamification mode enabled",
-                      hint: lang === "tr"
-                        ? "Açık ise rozet ve oyunlaştırma ekranı görünür. Check-in/oturum kapalıysa gizlenir."
-                        : "When on, badge and gamification screens are visible. They stay hidden if check-in/sessions are off.",
-                    },
-                    {
-                      key: "registration_enabled",
-                      label: lang === "tr" ? "Herkese açık kayıt aktif" : "Public registration enabled",
-                      hint: lang === "tr"
-                        ? "Kapalıysa: Dış kişiler (linkten bulan insanlar) kayıt olamaz. Sadece siz kendiniz veya toplu yükleme ile kişi ekleyebilirsiniz."
-                        : "When off: People cannot self-register from the link. You must manually add or bulk-import attendees.",
-                    },
-                    {
-                      key: "requires_approval",
-                      label: lang === "tr" ? "Kayıtlar onay gerektirsin" : "Registrations require approval",
-                      hint: lang === "tr"
-                        ? "Açık ise: Katılımcı kaydı siz onaylayıncaya kadar bekleme durumunda kalır. Kapalı ise: Katılımcı kayıt olunca otomatik aktif olur."
-                        : "When on: Registrations are inactive until you manually approve them.",
-                    },
+                    { key: "certificate_enabled", label: lang === "tr" ? "Akıllı Sertifika Modülü" : "Certificate engine active", hint: lang === "tr" ? "Kapatıldığında katılımcılara dijital sertifika üretimi ve sorgulama cüzdanları pasif konuma geçer." : "Deactivates credential ledger features." },
+                    { key: "checkin_enabled", label: lang === "tr" ? "Saha QR Yoklama (Check-in)" : "QR check-in engine active", hint: lang === "tr" ? "Kapatıldığında kapı sevk trafiği, mobil tarayıcılar og oturum yoklama matrisleri kilitlenir." : "Deactivates onsite gate sync matrices." },
+                    { key: "ticketing_enabled", label: lang === "tr" ? "Dijital Giriş Bilet Düzeni" : "Pass card ticketing system", hint: lang === "tr" ? "Etkinleştirildiğinde her yeni kayıt için cüzdan uyumlu benzersiz QR giriş kartı sevk edilir." : "Generates wallet-bound pass codes." },
+                    { key: "raffles_enabled", label: lang === "tr" ? "Canlı Çekiliş Motoru" : "Raffle execution hub", hint: lang === "tr" ? "Check-in katılım şartlarına entegre pürüzsüz sahne sunum çekiliş modülünü açar." : "Enables attendee-bound randomizer luck algorithms." },
+                    { key: "gamification_enabled", label: lang === "tr" ? "Oyunlaştırma & Dijital Rozet" : "Engagement badge logic", hint: lang === "tr" ? "Katılımcıların görev tamamlamalarına göre kazanacağı başarı rozet şeritlerini aktif eder." : "Activates behavioral achievement badges." },
+                    { key: "registration_enabled", label: lang === "tr" ? "Herkese Açık Kayıt Formu" : "Self registration landing", hint: lang === "tr" ? "Kapatıldığında dışarıdan formu bulanlar kaydolamaz, sadece siz manuel alıcı ekleyebilirsiniz." : "Restricts entry to internal import pipelines." },
+                    { key: "requires_approval", label: lang === "tr" ? "Yönetici Kayıt Onay Havuzu" : "Admin approval lifecycle", hint: lang === "tr" ? "Etkinleştirildiğinde yeni kayıtlar siz panelden onay verene kadar bekleme (lead) listesinde tutulur." : "Holds incoming entries in staging queues." },
                   ].map((feature) => (
-                    <label key={feature.key} className="flex items-start gap-3 rounded-lg border border-surface-200 bg-surface-50 px-4 py-4">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(formData[feature.key as keyof FormState])}
-                        onChange={(event) =>
-                          setFormData((current) => ({
-                            ...current,
-                            [feature.key]: event.target.checked,
-                          }))
-                        }
-                        className="mt-1 h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500"
-                      />
-                      <div>
-                        <p className="text-sm font-semibold text-surface-900">{feature.label}</p>
-                        <p className="mt-1 text-xs text-surface-500">{feature.hint}</p>
+                    <label key={feature.key} className="flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50/40 p-4 select-none cursor-pointer hover:bg-gray-50 transition-colors">
+                      <input type="checkbox" checked={Boolean(formData[feature.key as keyof FormState])} onChange={(e) => setFormData((curr) => ({ ...curr, [feature.key]: e.target.checked }))} className="mt-0.5 h-4 w-4 rounded-md border-gray-300 text-gray-950 focus:ring-0 cursor-pointer" />
+                      <div className="space-y-0.5">
+                        <p className="text-xs font-bold text-gray-950 tracking-tight">{feature.label}</p>
+                        <p className="text-[10px] leading-normal text-gray-400 font-medium">{feature.hint}</p>
                       </div>
                     </label>
                   ))}
@@ -1360,978 +1271,408 @@ export default function EventSettingsPage() {
               </div>
             </section>
 
-            {/* Visibility */}
-            <section className="card p-6 sm:p-7">
-              <div className="flex items-start gap-3">
-                <div className="rounded-lg bg-emerald-50 p-3 text-emerald-600">
-                  <Sparkles className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-surface-900">{copy.visibilityTitle}</h2>
-                  <p className="mt-1 text-sm text-surface-500">{copy.visibilityBody}</p>
-                </div>
+            {/* Blok D: Görünürlük Ayarı */}
+            <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 border-b border-gray-100 pb-2.5">
+                <Sparkles className="h-4 w-4 text-gray-800 stroke-[1.8]" />
+                <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950">{copy.visibilityTitle}</h2>
               </div>
-
-              <div className="mt-6 space-y-4">
-                <div>
-                  <label className="label">{copy.visibilityLabel}</label>
-                  <select
-                    value={formData.visibility}
-                    onChange={(event) =>
-                      setFormData((current) => ({
-                        ...current,
-                        visibility: event.target.value as FormState["visibility"],
-                      }))
-                    }
-                    className="input-field"
-                  >
-                    {visibilityOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <p className="text-xs text-surface-400">{copy.visibilityHint}</p>
+              <p className="text-[11px] leading-relaxed text-gray-400 font-medium">{copy.visibilityBody}</p>
+              
+              <div className="space-y-3.5 max-w-sm">
+                <label className="block w-full">
+                  <span className="block text-[11px] font-bold text-gray-500 mb-1">{copy.visibilityLabel}</span>
+                  <div className="relative inline-flex items-center w-full">
+                    <select value={formData.visibility} onChange={(e) => setFormData((curr) => ({ ...curr, visibility: e.target.value as FormState["visibility"] }))} className="w-full min-h-[38px] appearance-none rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold outline-none cursor-pointer focus:border-gray-900">
+                      {visibilityOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 h-3.5 w-3.5 text-gray-400" />
+                  </div>
+                </label>
+                <p className="text-[10px] leading-relaxed text-gray-400 font-medium">{copy.visibilityHint}</p>
               </div>
             </section>
 
-            {/* Registration Status */}
-            <section className="card p-6 sm:p-7">
-              <div className="flex items-start gap-3">
-                <div className="rounded-lg bg-rose-50 p-3 text-rose-600">
-                  <AlertCircle className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-surface-900">{copy.registrationStatusTitle}</h2>
-                  <p className="mt-1 text-sm text-surface-500">{copy.registrationStatusBody}</p>
-                </div>
+            {/* Blok E: Kota ve Kayıt Durumu Sınırları */}
+            <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 border-b border-gray-100 pb-2.5">
+                <AlertCircle className="h-4 w-4 text-gray-800 stroke-[1.8]" />
+                <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950">{copy.registrationStatusTitle}</h2>
               </div>
+              <p className="text-[11px] leading-relaxed text-gray-400 font-medium">{copy.registrationStatusBody}</p>
 
-              <div className="mt-6 space-y-4">
-                <label className="flex items-start gap-3 rounded-lg border border-surface-200 bg-surface-50 px-4 py-4">
-                  <input
-                    type="checkbox"
-                    checked={formData.registration_closed}
-                    onChange={(event) =>
-                      setFormData((current) => ({
-                        ...current,
-                        registration_closed: event.target.checked,
-                      }))
-                    }
-                    className="mt-1 h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500"
-                  />
-                  <div>
-                    <p className="text-sm font-semibold text-surface-900">{copy.registrationToggle}</p>
-                    <p className="mt-1 text-xs text-surface-500">{copy.registrationHint}</p>
-                  </div>
+              <div className="space-y-3.5">
+                <label className="inline-flex cursor-pointer items-center gap-2.5 select-none">
+                  <input type="checkbox" checked={formData.registration_closed} onChange={(e) => setFormData((curr) => ({ ...curr, registration_closed: e.target.checked }))} className="h-4 w-4 rounded-md border-gray-300 text-gray-950 focus:ring-0 cursor-pointer" />
+                  <span className="text-xs font-semibold text-gray-800 tracking-tight">{copy.registrationToggle}</span>
                 </label>
-                <div>
-                  <label className="mb-3 flex items-start gap-3 rounded-lg border border-surface-200 bg-surface-50 px-4 py-4">
-                    <input
-                      type="checkbox"
-                      checked={formData.registration_quota_enabled}
-                      onChange={(event) =>
-                        setFormData((current) => ({
-                          ...current,
-                          registration_quota_enabled: event.target.checked,
-                        }))
-                      }
-                      className="mt-1 h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500"
-                    />
-                    <div>
-                      <p className="text-sm font-semibold text-surface-900">{copy.registrationQuotaToggle}</p>
-                      <p className="mt-1 text-xs text-surface-500">{copy.registrationQuotaHint}</p>
-                    </div>
+                <p className="text-[10px] leading-none text-gray-400 font-medium pl-6">{copy.registrationHint}</p>
+
+                <div className="border-t border-gray-50 pt-3 max-w-sm space-y-2.5">
+                  <label className="inline-flex cursor-pointer items-center gap-2.5 select-none">
+                    <input type="checkbox" checked={formData.registration_quota_enabled} onChange={(e) => setFormData((curr) => ({ ...curr, registration_quota_enabled: e.target.checked }))} className="h-4 w-4 rounded-md border-gray-300 text-gray-950 focus:ring-0 cursor-pointer" />
+                    <span className="text-xs font-semibold text-gray-800 tracking-tight">{copy.registrationQuotaToggle}</span>
                   </label>
-                  <label className="label">{copy.registrationQuotaLabel}</label>
-                  <input
-                    type="number"
-                    min={1}
-                    step={1}
-                    value={formData.registration_quota}
-                    disabled={!formData.registration_quota_enabled}
-                    onChange={(event) =>
-                      setFormData((current) => ({
-                        ...current,
-                        registration_quota: event.target.value,
-                      }))
-                    }
-                    className="input-field"
-                    placeholder={copy.registrationQuotaPlaceholder}
-                  />
-                  {!formData.registration_quota_enabled && (
-                    <p className="mt-1 text-xs text-surface-500">
-                      {lang === "tr" ? "Kota kapalıyken kayıt sınırsız devam eder." : "When quota is off, registration remains unlimited."}
-                    </p>
-                  )}
+                  <p className="text-[10px] leading-normal text-gray-400 font-medium pl-6">{copy.registrationQuotaHint}</p>
+                  
+                  <div className="pl-6 pt-1">
+                    <input type="number" min={1} step={1} value={formData.registration_quota} disabled={!formData.registration_quota_enabled} onChange={(e) => setFormData((curr) => ({ ...curr, registration_quota: e.target.value }))} className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold font-mono outline-none transition focus:border-gray-900 placeholder:text-gray-400" placeholder={copy.registrationQuotaPlaceholder} />
+                    {!formData.registration_quota_enabled && <p className="mt-1 text-[10px] font-semibold text-gray-400">Kota eşiği kapatıldığında kayıt tavanı sınırsız kalır.</p>}
+                  </div>
                 </div>
               </div>
             </section>
 
-            {/* Email Verification */}
-            <section className="card p-6 sm:p-7">
-              <div className="flex items-start gap-3">
-                <div className="rounded-lg bg-amber-50 p-3 text-amber-600">
-                  <Mail className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-surface-900">{copy.verificationTitle}</h2>
-                  <p className="mt-1 text-sm text-surface-500">{copy.verificationBody}</p>
-                </div>
+            {/* Blok F: KVKK, Aydınlatma Sorumluluk Grubu */}
+            <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 border-b border-gray-100 pb-2.5">
+                <ShieldAlert className="h-4 w-4 text-gray-800 stroke-[1.8]" />
+                <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950">{lang === "tr" ? "Hukuki KVKK ve Veri İşleme Mevzuatı" : "Privacy and Data Processing"}</h2>
               </div>
+              <p className="text-[11px] leading-relaxed text-gray-400 font-medium">{lang === "tr" ? "Katılımcı açık rıza aydınlatma politikalarını ve yasal saklama sürelerini kurumsal kimliğinize göre özelleştirin." : "Map regulatory notice nodes."}</p>
 
-              <div className="mt-6 space-y-4">
-                <label className="flex items-start gap-3 rounded-lg border border-surface-200 bg-surface-50 px-4 py-4">
-                  <input
-                    type="checkbox"
-                    checked={formData.require_email_verification}
-                    onChange={(event) =>
-                      setFormData((current) => ({
-                        ...current,
-                        require_email_verification: event.target.checked,
-                      }))
-                    }
-                    className="mt-1 h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500"
-                  />
-                  <div>
-                    <p className="text-sm font-semibold text-surface-900">{copy.verificationToggle}</p>
-                    <p className="mt-1 text-xs text-surface-500">{copy.verificationHint}</p>
-                  </div>
-                </label>
-              </div>
-            </section>
-
-            <section className="card p-6 sm:p-7">
-              <div className="flex items-start gap-3">
-                <div className="rounded-lg bg-sky-50 p-3 text-sky-600">
-                  <ShieldAlert className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-surface-900">{lang === "tr" ? "KVKK ve Veri İşleme" : "Privacy and Data Processing"}</h2>
-                  <p className="mt-1 text-sm text-surface-500">
-                    {lang === "tr"
-                      ? "Etkinliğe özel aydınlatma metni, organizatör sorumluluğu ve yurt dışı altyapı bilgilendirmesini burada tanımlayabilirsiniz."
-                      : "Define the event-specific notice, organizer responsibility wording, and cross-border transfer information here."}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 space-y-4">
-                <label className="flex items-start gap-3 rounded-lg border border-surface-200 bg-surface-50 px-4 py-4">
-                  <input
-                    type="checkbox"
-                    checked={formData.organizer_privacy_notice_enabled}
-                    onChange={(event) =>
-                      setFormData((current) => ({
-                        ...current,
-                        organizer_privacy_notice_enabled: event.target.checked,
-                      }))
-                    }
-                    className="mt-1 h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500"
-                  />
-                  <div>
-                    <p className="text-sm font-semibold text-surface-900">
-                      {lang === "tr" ? "Organizatör aydınlatma metni aktif" : "Organizer notice enabled"}
-                    </p>
-                    <p className="mt-1 text-xs text-surface-500">
-                      {lang === "tr"
-                        ? "Açık olursa kayıt formunda organizatöre ait ayrı bir KVKK metni gösterilir ve onay istenir."
-                        : "When enabled, a separate organizer-specific notice is shown in registration and requires acknowledgement."}
-                    </p>
-                  </div>
+              <div className="space-y-4">
+                <label className="inline-flex cursor-pointer items-center gap-2.5 select-none">
+                  <input type="checkbox" checked={formData.organizer_privacy_notice_enabled} onChange={(e) => setFormData((curr) => ({ ...curr, organizer_privacy_notice_enabled: e.target.checked }))} className="h-4 w-4 rounded-md border-gray-300 text-gray-950 focus:ring-0 cursor-pointer" />
+                  <span className="text-xs font-semibold text-gray-800 tracking-tight">{lang === "tr" ? "Organizatöre ait özel aydınlatma metnini formda zorunlu tut" : "Organizer notice required"}</span>
                 </label>
 
-                <div>
-                  <label className="label">{lang === "tr" ? "Organizatör KVKK metni" : "Organizer privacy notice"}</label>
-                  <RichTextEditor
-                    value={formData.organizer_privacy_notice_text}
-                    onChange={(value) => setFormData((current) => ({ ...current, organizer_privacy_notice_text: value }))}
-                    placeholder={lang === "tr"
-                      ? "Etkinliğe özel aydınlatma metnini burada yazın."
-                      : "Write the event-specific privacy notice here."}
-                  />
-                  <p className="mt-1 text-xs text-surface-500">
-                    {lang === "tr"
-                      ? "Örnek: TC kimlik no, pasaport no, doğum tarihi gibi alanların neden toplandığı ve saklama süresi burada açıklanabilir."
-                      : "Example: explain why fields like national ID, passport number, or date of birth are collected and how long they are kept."}
-                  </p>
+                <div className="space-y-1">
+                  <span className="block text-[11px] font-bold text-gray-500 mb-1">{lang === "tr" ? "Kurumsal Aydınlatma Metni İçeriği" : "Organizer Privacy Notice"}</span>
+                  <RichTextEditor value={formData.organizer_privacy_notice_text} onChange={(val) => setFormData((curr) => ({ ...curr, organizer_privacy_notice_text: val }))} placeholder="Mevzuat uyumluluk metnini yazın..." />
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="label">{lang === "tr" ? "Veri sorumlusu adı" : "Data controller name"}</label>
-                    <input
-                      value={formData.data_controller_name}
-                      onChange={(event) => setFormData((current) => ({ ...current, data_controller_name: event.target.value }))}
-                      className="input-field"
-                      placeholder={lang === "tr" ? "Örn. ABC Derneği" : "e.g. ABC Association"}
-                    />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="block w-full">
+                    <span className="block text-[11px] font-bold text-gray-500 mb-1">Veri Sorumlusu Kurum Unvanı</span>
+                    <input value={formData.data_controller_name} onChange={(e) => setFormData((curr) => ({ ...curr, data_controller_name: e.target.value }))} className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-gray-900" placeholder="Örn: Heptapus Teknoloji Grubu" />
+                  </label>
+                  <label className="block w-full">
+                    <span className="block text-[11px] font-bold text-gray-500 mb-1">Mevzuat Veri Sorumlusu E-postası</span>
+                    <input type="email" value={formData.data_controller_contact_email} onChange={(e) => setFormData((curr) => ({ ...curr, data_controller_contact_email: e.target.value }))} className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-gray-900" placeholder="kvkk@heptapusgroup.com" />
+                  </label>
+                </div>
+
+                <label className="block w-full">
+                  <span className="block text-[11px] font-bold text-gray-500 mb-1">Veri İmha ve Saklama Politikası Notu</span>
+                  <textarea value={formData.data_retention_note} onChange={(e) => setFormData((curr) => ({ ...curr, data_retention_note: e.target.value }))} className="w-full rounded-xl border border-gray-200 bg-white p-3 text-xs font-medium outline-none transition focus:border-gray-900 min-h-24 resize-none placeholder:text-gray-400" placeholder="Örn: Veriler kanuni süre uyarınca etkinlik tamamlandıktan 180 gün sonra imha edilir." />
+                </label>
+
+                {/* Sabit Yasal Uyarı Paneli */}
+                <div className="rounded-xl border border-amber-100 bg-amber-50/30 p-3.5 flex items-start gap-3">
+                  <Info className="h-4 w-4 shrink-0 text-amber-500 mt-0.5 stroke-[2]" />
+                  <div className="space-y-1 text-[11px] leading-relaxed text-amber-800 font-medium">
+                    <p className="font-bold">{lang === "tr" ? "Yurt Dışı Veri Aktarımı Açık Rıza Beyanı" : "Cross-Border Data Transfer Node"}</p>
+                    <p>{lang === "tr" ? "HeptaCert çekirdek altyapısı egemen, self-hosted ve kriptografik güvenli sunucularda çalışsa da küresel CDN ağları, barındırma katmanları ve yedekleme modülleri sınır ötesi veri transferi doğurabileceğinden, bu açık rıza onay mekanizması kayıt akışına sistem tarafından otomatik eklenir." : "System forces cross-border acknowledgement automatically."}</p>
                   </div>
-                  <div>
-                    <label className="label">{lang === "tr" ? "İletişim e-postası" : "Contact email"}</label>
-                    <input
-                      type="email"
-                      value={formData.data_controller_contact_email}
-                      onChange={(event) => setFormData((current) => ({ ...current, data_controller_contact_email: event.target.value }))}
-                      className="input-field"
-                      placeholder={lang === "tr" ? "kvkk@ornek.org" : "privacy@example.org"}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="label">{lang === "tr" ? "Saklama notu" : "Retention note"}</label>
-                  <textarea
-                    value={formData.data_retention_note}
-                    onChange={(event) => setFormData((current) => ({ ...current, data_retention_note: event.target.value }))}
-                    className="input-field min-h-28"
-                    placeholder={lang === "tr" ? "Örn. Etkinlik bitiminden sonra 90 gün saklanır." : "e.g. Kept for 90 days after the event ends."}
-                  />
-                  <p className="mt-1 text-xs text-surface-500">
-                    {lang === "tr"
-                      ? "Bu not sadece organizatörün etkinlik içi saklama politikasını açıklamak içindir."
-                      : "This note is for explaining the organizer's event-specific retention policy."}
-                  </p>
-                </div>
-
-                <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-4">
-                  <p className="text-sm font-semibold text-amber-900">
-                    {lang === "tr" ? "Yurt dışı aktarım onayı sistem tarafından zorunlu tutulur" : "Cross-border transfer consent is required by the system"}
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-amber-800">
-                    {lang === "tr"
-                      ? "HeptaCert altyapısı yurt dışındaki barındırma, yedekleme, güvenlik ve teknik destek sağlayıcılarını kullanabildiği için bu bilgilendirme ve açık rıza kayıt akışına otomatik eklenir."
-                      : "Because HeptaCert may use overseas providers for hosting, backup, security, and technical support, this notice and explicit consent are added to the registration flow automatically."}
-                  </p>
                 </div>
               </div>
             </section>
-          </>
+          </div>
         )}
 
-        {/* ===== REGISTRATION TAB ===== */}
+        {/* TAB 2: KAYIT FORMU ÖZEL ALAN YAPILANDIRMASI */}
         {activeTab === "registration" && (
-          <section className="card p-6 sm:p-7">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <div className="rounded-lg bg-violet-50 p-3 text-violet-600">
-                  <FileText className="h-5 w-5" />
+          <div className="space-y-4 w-full">
+            <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-2.5">
+                <div className="space-y-0.5">
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950">{copy.registrationTitleMeta}</h2>
+                  <p className="text-[11px] font-medium text-gray-400">Ad ve e-postaya ek olarak toplanacak form girdileri</p>
                 </div>
-                <div>
-                  <h2 className="text-xl font-bold text-surface-900">{copy.registrationTitle}</h2>
-                  <p className="mt-1 text-sm text-surface-500">{copy.registrationBody}</p>
-                </div>
+                <button type="button" onClick={addRegistrationField} className="inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 px-3.5 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-95">
+                  <Plus className="h-3.5 w-3.5 stroke-[2.5]" /> <span>{copy.addField}</span>
+                </button>
               </div>
-              <button type="button" onClick={addRegistrationField} className="btn-secondary inline-flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                {copy.addField}
-              </button>
-            </div>
 
-            <div className="mt-6 rounded-lg bg-blue-50 border border-blue-200 p-4 flex gap-3">
-              <Lightbulb className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-blue-900">
-                <p className="font-semibold mb-1">{lang === "tr" ? "Form oluşturma ipuçları:" : "Form building tips:"}</p>
-                <ul className="text-xs space-y-1 text-blue-800">
-                  <li>• {lang === "tr" ? "Alanları sürükleyerek sırasını değiştirebilirsiniz" : "Reorder fields using the up/down buttons"}</li>
-                  <li>• {lang === "tr" ? "Koşullu zorunlu alanlar ekleyebilirsiniz" : "Add conditional requirements for smart forms"}</li>
-                  <li>• {lang === "tr" ? "Her alan için yardımcı metin ekleyebilirsiniz" : "Add helper text to guide users"}</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="mt-6 rounded-lg border border-surface-200 bg-white p-5">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="flex items-start gap-3">
-                  <div className="rounded-lg bg-emerald-50 p-3 text-emerald-600">
-                    <FileSpreadsheet className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-surface-900">
-                      {lang === "tr" ? "Google Sheets otomasyonu" : "Google Sheets automation"}
-                    </h3>
-                    <p className="mt-1 max-w-2xl text-sm leading-6 text-surface-600">
-                      {lang === "tr"
-                        ? "Bu etkinlikteki kayıtlar Google E-Tablolar'a otomatik akar. Mevcut kayıtları tek seferde senkronlayabilir, yeni kayıtları da tabloya anlık ekletebilirsiniz."
-                        : "Registrations for this event can flow into Google Sheets automatically. Existing attendees can be synced once, and new registrations are appended as they arrive."}
-                    </p>
-                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-surface-500">
-                      {sheetsLoading ? (
-                        <span className="inline-flex items-center gap-1">
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          {lang === "tr" ? "Durum kontrol ediliyor" : "Checking status"}
-                        </span>
-                      ) : sheetsStatus?.google_email ? (
-                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700">
-                          {sheetsStatus.google_email}
-                        </span>
-                      ) : (
-                        <span>{lang === "tr" ? "Google hesabı bağlı değil" : "No Google account connected"}</span>
-                      )}
-                      {sheetsStatus?.last_synced_at && (
-                        <span>
-                          {lang === "tr" ? "Son senkron: " : "Last sync: "}
-                          {new Date(sheetsStatus.last_synced_at).toLocaleString(lang === "tr" ? "tr-TR" : "en-US")}
-                        </span>
-                      )}
-                      {Boolean(sheetsStatus?.missing_scopes?.length) && (
-                        <span className="rounded-full bg-amber-50 px-2.5 py-1 font-semibold text-amber-700">
-                          {lang === "tr" ? "Sheets izni eksik" : "Sheets permission missing"}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2 lg:justify-end">
-                  {!sheetsStatus?.google_configured ? (
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
-                      {lang === "tr"
-                        ? "Google OAuth ayarları .env içinde eksik."
-                        : "Google OAuth settings are missing in .env."}
-                    </div>
-                  ) : !sheetsStatus?.google_connected ? (
-                    <button
-                      type="button"
-                      onClick={handleConnectGoogleSheetsAuth}
-                      disabled={Boolean(sheetsAction)}
-                      className="btn-primary inline-flex items-center gap-2 disabled:opacity-60"
-                    >
-                      {sheetsAction === "auth" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
-                      {sheetsStatus?.google_email
-                        ? (lang === "tr" ? "Sheets iznini tamamla" : "Complete Sheets permission")
-                        : (lang === "tr" ? "Google izni ver" : "Connect Google")}
-                    </button>
-                  ) : sheetsStatus.enabled && sheetsStatus.spreadsheet_url ? (
-                    <>
-                      <a
-                        href={sheetsStatus.spreadsheet_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="btn-secondary inline-flex items-center gap-2"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        {lang === "tr" ? "Sheet'i aç" : "Open Sheet"}
-                      </a>
-                      <button
-                        type="button"
-                        onClick={handleSyncGoogleSheet}
-                        disabled={Boolean(sheetsAction)}
-                        className="btn-secondary inline-flex items-center gap-2 disabled:opacity-60"
-                      >
-                        {sheetsAction === "sync" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                        {lang === "tr" ? "Senkronla" : "Sync"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleDisconnectGoogleSheet}
-                        disabled={Boolean(sheetsAction)}
-                        className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60"
-                      >
-                        {sheetsAction === "disconnect" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Unplug className="h-4 w-4" />}
-                        {lang === "tr" ? "Kapat" : "Disable"}
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleCreateGoogleSheet}
-                      disabled={Boolean(sheetsAction)}
-                      className="btn-primary inline-flex items-center gap-2 disabled:opacity-60"
-                    >
-                      {sheetsAction === "connect" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
-                      {lang === "tr" ? "Sheet oluştur ve bağla" : "Create and connect Sheet"}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 rounded-lg border border-sky-200 bg-white p-5">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="flex items-start gap-3">
-                  <div className="rounded-lg bg-sky-50 p-3 text-sky-600">
-                    <FileSpreadsheet className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-surface-900">
-                      {lang === "tr" ? "Microsoft 365 Excel otomasyonu" : "Microsoft 365 Excel automation"}
-                    </h3>
-                    <p className="mt-1 max-w-2xl text-sm leading-6 text-surface-600">
-                      {lang === "tr"
-                        ? "Azure ile entegrasyon çalışmalarımız devam etmektedir bu sebeple şimdilik inşa halinde tutuyoruz. Hazır olduğunda kayıtları OneDrive üzerindeki Excel dosyasına senkronlayacak."
-                        : "This integration is temporarily under construction because we're trying to integrate the Azure services. Once enabled, registrations will sync into an Excel workbook on OneDrive."}
-                    </p>
-                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-surface-500">
-                      <span className="rounded-full bg-sky-50 px-2.5 py-1 font-semibold text-sky-700">
-                        {lang === "tr" ? "İnşa halinde" : "Under construction"}
-                      </span>
-                      <span>{lang === "tr" ? "Microsoft bağlantısı şu an kapalı" : "Microsoft connection is currently disabled"}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2 lg:justify-end">
-                  <button
-                    type="button"
-                    disabled
-                    className="inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-700 opacity-70"
-                  >
-                    <FileSpreadsheet className="h-4 w-4" />
-                    {lang === "tr" ? "Yakında" : "Coming soon"}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-4">
+              {/* Boş Durum Sinyali */}
               {formData.registration_fields.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-surface-300 bg-surface-50 px-5 py-6 text-sm text-surface-500">
-                  <p className="font-medium text-surface-700">{copy.emptyFields}</p>
-                  <p className="mt-1">{copy.previewHint}</p>
-                </div>
+                <div className="rounded-xl border border-dashed border-gray-200 py-12 text-center text-xs font-semibold text-gray-400 tracking-tight">{copy.emptyFields}</div>
               ) : (
-                formData.registration_fields.map((field, index) => {
-                  const conditionalSourceFields = formData.registration_fields.filter(
-                    (candidate) => candidate.id !== field.id && candidate.type === "select",
-                  );
-                  const selectedConditionalSource = conditionalSourceFields.find(
-                    (candidate) => candidate.id === field.required_when_field_id,
-                  );
-                  const conditionalValueOptions = (selectedConditionalSource?.options || [])
-                    .map((option: any) => (typeof option === "string" ? option : option.label || String(option)))
-                    .map((s: string) => s.trim())
-                    .filter(Boolean);
+                /* Özel Alan Kartları Döngüsü */
+                <div className="space-y-3.5">
+                  {formData.registration_fields.map((field, index) => {
+                    const conditionalSourceFields = formData.registration_fields.filter((c) => c.id !== field.id && c.type === "select");
+                    const selectedConditionalSource = conditionalSourceFields.find((c) => c.id === field.required_when_field_id);
+                    const conditionalValueOptions = (selectedConditionalSource?.options || []).map((o: any) => typeof o === "string" ? o : o.label || String(o)).map((s: string) => s.trim()).filter(Boolean);
 
-                  return (
-                    <div key={field.id} className="rounded-lg border border-surface-200 bg-white p-5 hover:shadow-md transition">
-                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4 pb-4 border-b border-surface-100">
-                        <div className="flex items-start gap-3">
-                          <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-brand-100 text-sm font-bold text-brand-700 flex-shrink-0">
-                            {index + 1}
+                    return (
+                      <div key={field.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4 relative transition-all hover:border-gray-300">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-50 pb-3">
+                          <div className="flex items-center gap-2.5 text-xs font-bold text-gray-950 tracking-tight">
+                            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gray-950 font-mono text-[10px] text-white shadow-sm">{index + 1}</span>
+                            <span className="truncate max-w-[240px]">{field.label || "İsimsiz Alan Çeperi"}</span>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-surface-900 truncate">
-                              {field.label || `[${copy.fieldLabel}]`}
-                            </p>
-                            <p className="mt-1 text-xs text-surface-500">
-                              {fieldTypeOptions.find(o => o.value === field.type)?.label}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => moveRegistrationField(field.id, "up")}
-                            disabled={index === 0}
-                            className="rounded-lg border border-surface-200 bg-white p-2 text-surface-600 hover:bg-surface-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                            title={lang === "tr" ? "Yukarı taşı" : "Move up"}
-                          >
-                            <ChevronUp className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => moveRegistrationField(field.id, "down")}
-                            disabled={index === formData.registration_fields.length - 1}
-                            className="rounded-lg border border-surface-200 bg-white p-2 text-surface-600 hover:bg-surface-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                            title={lang === "tr" ? "Aşağı taşı" : "Move down"}
-                          >
-                            <ChevronDown className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => removeRegistrationField(field.id)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            {copy.removeField}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                          <div>
-                            <label className="label text-xs font-semibold text-surface-700">{copy.fieldLabel}</label>
-                            <input
-                              value={field.label}
-                              onChange={(event) => updateRegistrationField(field.id, { label: event.target.value })}
-                              className="input-field text-sm"
-                              placeholder={copy.labelPlaceholder}
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="label text-xs font-semibold text-surface-700">{copy.fieldType}</label>
-                            <select
-                              value={field.type}
-                              onChange={(event) =>
-                                updateRegistrationField(field.id, {
-                                  type: event.target.value as RegistrationField["type"],
-                                  options: event.target.value === "select" ? (field.options || [""]) : [],
-                                })
-                              }
-                              className="input-field text-sm"
-                            >
-                              {fieldTypeOptions.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <div className="sm:col-span-2 lg:col-span-2">
-                            <label className="label text-xs font-semibold text-surface-700">{copy.fieldPlaceholder}</label>
-                            <input
-                              value={field.placeholder || ""}
-                              onChange={(event) => updateRegistrationField(field.id, { placeholder: event.target.value })}
-                              className="input-field text-sm"
-                              placeholder={copy.fieldPlaceholder}
-                            />
+                          
+                          {/* Alan Hiyerarşi Değiştirme Butonları */}
+                          <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
+                            <button type="button" onClick={() => moveRegistrationField(field.id, "up")} disabled={index === 0} className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-100 bg-white text-gray-400 hover:text-gray-900 disabled:opacity-20 shadow-sm"><ChevronUp className="h-4 w-4 stroke-[2]" /></button>
+                            <button type="button" onClick={() => moveRegistrationField(field.id, "down")} disabled={index === formData.registration_fields.length - 1} className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-100 bg-white text-gray-400 hover:text-gray-900 disabled:opacity-20 shadow-sm"><ChevronDown className="h-4 w-4 stroke-[2]" /></button>
+                            <button type="button" onClick={() => removeRegistrationField(field.id)} className="inline-flex min-h-[28px] items-center justify-center gap-1 rounded-lg border border-red-100 bg-white px-2 text-[11px] font-bold text-red-600 shadow-sm hover:bg-red-50"><Trash2 className="h-3 w-3 stroke-[1.8]" /> <span>Kaldır</span></button>
                           </div>
                         </div>
 
-                        <div>
-                          <label className="label text-xs font-semibold text-surface-700">{copy.fieldHelper}</label>
-                          <RichTextEditor
-                            value={field.helper_text || ""}
-                            onChange={(value) => updateRegistrationField(field.id, { helper_text: value })}
-                            placeholder={copy.helperPlaceholder}
-                          />
+                        {/* Kart İçi Form Girdileri */}
+                        <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4 font-semibold text-gray-600">
+                          <label className="block w-full">
+                            <span className="block text-[11px] font-bold text-gray-500 mb-1">{copy.fieldLabel}</span>
+                            <input value={field.label} onChange={(e) => updateRegistrationField(field.id, { label: e.target.value })} className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-gray-900" placeholder="Örn: Şirket / Kurum Unvanı" />
+                          </label>
+
+                          <label className="block w-full">
+                            <span className="block text-[11px] font-bold text-gray-500 mb-1">{copy.fieldType}</span>
+                            <div className="relative inline-flex items-center w-full">
+                              <select value={field.type} onChange={(e) => updateRegistrationField(field.id, { type: e.target.value as any, options: e.target.value === "select" ? (field.options || [""]) : [] })} className="w-full min-h-[38px] appearance-none rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold outline-none cursor-pointer">
+                                {fieldTypeOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                              </select>
+                              <ChevronDown className="pointer-events-none absolute right-3 h-3.5 w-3.5 text-gray-400" />
+                            </div>
+                          </label>
+
+                          <label className="block w-full sm:col-span-2">
+                            <span className="block text-[11px] font-bold text-gray-500 mb-1">{copy.fieldPlaceholder}</span>
+                            <input value={field.placeholder || ""} onChange={(e) => updateRegistrationField(field.id, { placeholder: e.target.value })} className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-gray-900" placeholder="Kutunun içinde silik görünecek açıklama..." />
+                          </label>
                         </div>
 
+                        <label className="block w-full">
+                          <span className="block text-[11px] font-bold text-gray-500 mb-1">{copy.fieldHelper}</span>
+                          <RichTextEditor value={field.helper_text || ""} onChange={(val) => updateRegistrationField(field.id, { helper_text: val })} placeholder="Katılımcıyı yönlendirecek kılavuz alt metni kurgulayın..." />
+                        </label>
+
+                        {/* SEÇENEKLER ALANI */}
                         {field.type === "select" && (
-                          <div className="space-y-3 rounded-lg border border-blue-200 bg-blue-50 p-4">
-                            <div>
-                              <label className="label text-xs font-semibold text-surface-700 mb-2">{lang === "tr" ? "Seçim Türü" : "Selection Type"}</label>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => updateRegistrationField(field.id, { selection_mode: "single" })}
-                                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${
-                                    (field.selection_mode || "single") === "single"
-                                      ? "bg-blue-600 text-white"
-                                      : "bg-white border border-surface-300 text-surface-700 hover:bg-surface-100"
-                                  }`}
-                                >
-                                  {lang === "tr" ? "Tek Seçim" : "Single Choice"}
-                                </button>
-                                <button
-                                  onClick={() => updateRegistrationField(field.id, { selection_mode: "multiple" })}
-                                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${
-                                    field.selection_mode === "multiple"
-                                      ? "bg-blue-600 text-white"
-                                      : "bg-white border border-surface-300 text-surface-700 hover:bg-surface-100"
-                                  }`}
-                                >
-                                  {lang === "tr" ? "Birden Fazla Seçim" : "Multiple Choices"}
-                                </button>
+                          <div className="rounded-xl border border-gray-100 bg-gray-50/40 p-4 space-y-4">
+                            <div className="space-y-1.5">
+                              <span className="block text-[11px] font-bold text-gray-500">Çoklu Seçim Tolerans Ayarı</span>
+                              <div className="flex gap-2 font-bold text-xs">
+                                <button type="button" onClick={() => updateRegistrationField(field.id, { selection_mode: "single" })} className={`inline-flex h-8 px-4 items-center justify-center rounded-xl border transition-all ${(!field.selection_mode || field.selection_mode === "single") ? "border-gray-950 bg-gray-950 text-white shadow-sm" : "border-gray-200 bg-white text-gray-600 hover:bg-gray-950"}`}>Tekil Radyo Seçimi</button>
+                                <button type="button" onClick={() => updateRegistrationField(field.id, { selection_mode: "multiple" })} className={`inline-flex h-8 px-4 items-center justify-center rounded-xl border transition-all ${(field.selection_mode === "multiple") ? "border-gray-950 bg-gray-950 text-white shadow-sm" : "border-gray-200 bg-white text-gray-600 hover:bg-gray-950"}`}>Çoklu Onay Kutusu (Checkbox)</button>
                               </div>
                             </div>
 
-                            <div>
-                              <label className="label text-xs font-semibold text-surface-700 mb-2">{copy.fieldOptions}</label>
-                              <div className="space-y-2">
-                                {(field.options || []).length > 0 && (
-                                  <div className="flex flex-wrap gap-2 rounded-lg bg-surface-50 p-3">
-                                    {(field.options || []).map((option: any, idx) => (
-                                      <div key={idx} className="inline-flex items-center gap-2 rounded-full bg-white border border-surface-300 px-3 py-1.5 text-sm font-medium text-surface-700">
-                                        <span>{typeof option === "string" ? option : option.label}</span>
-                                        <span className="text-xs text-surface-400">{typeof option === "object" && option.capacity != null ? `· ${option.capacity} kişi` : ""}</span>
-                                        <button
-                                          onClick={() =>
-                                            updateRegistrationField(field.id, {
-                                              options: (field.options || []).filter((_, i) => i !== idx),
-                                            })
-                                          }
-                                          className="text-surface-400 hover:text-rose-600 transition font-bold text-lg leading-none"
-                                        >
-                                          ×
-                                        </button>
-                                        <input
-                                          type="number"
-                                          min={1}
-                                          step={1}
-                                          placeholder="Kota"
-                                          value={typeof option === "object" && option.capacity != null ? String(option.capacity) : ""}
-                                          onChange={(e) => {
-                                            const val = e.target.value.trim();
-                                            updateRegistrationField(field.id, {
-                                              options: (field.options || []).map((o: any, i: number) =>
-                                                i === idx
-                                                  ? { label: typeof o === "string" ? o : o.label, capacity: val ? Number(val) : null }
-                                                  : o,
-                                              ),
-                                            });
-                                          }}
-                                          className="ml-2 w-20 input-field text-xs"
-                                        />
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                                
-                                <div className="flex gap-2 items-start">
-                                  <input
-                                    type="text"
-                                    id={`option-input-${field.id}`}
-                                    placeholder={lang === "tr" ? "Yeni seçenek..." : "New option..."}
-                                    className="input-field flex-1 text-sm"
-                                        onKeyDown={(e) => {
-                                          if (e.key === "Enter") {
-                                            e.preventDefault();
-                                            const input = e.currentTarget;
-                                            const value = input.value.trim();
-                                            const exists = (field.options || []).some((o: any) => (typeof o === "string" ? o === value : o.label === value));
-                                            if (value && !exists) {
-                                              updateRegistrationField(field.id, {
-                                                options: [...(field.options || []), { label: value, capacity: null }],
-                                              });
-                                              input.value = "";
-                                            }
-                                          }
-                                        }}
-                                  />
-                                  <button
-                                    onClick={() => {
-                                      const input = document.getElementById(`option-input-${field.id}`) as HTMLInputElement;
-                                      if (input) {
-                                        const value = input.value.trim();
-                                        const exists = (field.options || []).some((o: any) => (typeof o === "string" ? o === value : o.label === value));
-                                        if (value && !exists) {
+                            <div className="space-y-2.5">
+                              <span className="block text-[11px] font-bold text-gray-500">{copy.fieldOptions}</span>
+                              {Array.isArray(field.options) && field.options.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 rounded-xl border border-gray-100 bg-white p-3 shadow-inner">
+                                  {field.options.map((opt: any, idx) => (
+                                    <div key={idx} className="inline-flex items-center gap-2 rounded-lg border border-gray-100 bg-gray-50/50 pl-2.5 pr-1.5 py-1 text-xs font-semibold text-gray-800">
+                                      <span>{typeof opt === "string" ? opt : opt.label}</span>
+                                      {typeof opt === "object" && opt.capacity != null && <span className="font-mono text-[10px] text-emerald-600 bg-emerald-50 px-1 rounded">Maks {opt.capacity}</span>}
+                                      <input
+                                        type="number"
+                                        placeholder="Kota"
+                                        value={typeof opt === "object" && opt.capacity != null ? String(opt.capacity) : ""}
+                                        onChange={(e) => {
+                                          const v = e.target.value.trim();
                                           updateRegistrationField(field.id, {
-                                            options: [...(field.options || []), { label: value, capacity: null }],
+                                            options: (field.options || []).map((o: any, i: number) => i === idx ? { label: typeof o === "string" ? o : o.label, capacity: v ? Number(v) : null } : o)
                                           });
-                                          input.value = "";
-                                        }
-                                      }
-                                    }}
-                                    className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
-                                  >
-                                    {lang === "tr" ? "Ekle" : "Add"}
-                                  </button>
+                                        }}
+                                        className="w-12 border border-gray-200 rounded px-1 text-center font-mono text-[10px] bg-white h-5 outline-none"
+                                      />
+                                      <span onClick={() => updateRegistrationField(field.id, { options: (field.options || []).filter((_, i) => i !== idx) })} className="p-0.5 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"><X className="h-3 w-3 stroke-[2.5]" /></span>
+                                    </div>
+                                  ))}
                                 </div>
+                              )}
+                              <div className="flex gap-2 max-w-sm">
+                                <input id={`option-input-${field.id}`} placeholder="Yeni seçenek metnini yazın..." onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const inp = e.currentTarget; const val = inp.value.trim(); if (val) { updateRegistrationField(field.id, { options: [...(field.options || []), { label: val, capacity: null }] }); inp.value = ""; } } }} className="w-full min-h-[34px] rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold outline-none transition focus:border-gray-900" />
+                                <button type="button" onClick={() => { const inp = document.getElementById(`option-input-${field.id}`) as HTMLInputElement; if (inp) { const val = inp.value.trim(); if (val) { updateRegistrationField(field.id, { options: [...(field.options || []), { label: val, capacity: null }] }); inp.value = ""; } } }} className="inline-flex min-h-[34px] items-center justify-center rounded-xl bg-gray-950 px-3.5 text-xs font-bold text-white shadow-sm hover:bg-gray-900">Ekle</button>
                               </div>
                             </div>
                           </div>
                         )}
 
-                        <div className="flex items-center gap-4 pt-2">
-                          <label className="inline-flex items-center gap-3 rounded-lg border border-surface-200 bg-white px-4 py-2.5 text-sm font-medium text-surface-700 cursor-pointer hover:bg-surface-50 transition">
-                            <input
-                              type="checkbox"
-                              checked={field.required}
-                              onChange={(event) => updateRegistrationField(field.id, { required: event.target.checked })}
-                              className="h-4 w-4 accent-brand-600 cursor-pointer"
-                            />
-                            {copy.requiredField}
+                        <div className="flex flex-wrap items-center gap-4 pt-1">
+                          <label className="inline-flex cursor-pointer items-center gap-2.5 select-none">
+                            <input type="checkbox" checked={field.required} onChange={(e) => updateRegistrationField(field.id, { required: e.target.checked })} className="h-4 w-4 rounded-md border-gray-300 text-gray-950 focus:ring-0 cursor-pointer" />
+                            <span className="text-xs font-semibold text-gray-800 tracking-tight">{copy.requiredField}</span>
                           </label>
                         </div>
 
-                        <details className="rounded-lg border border-surface-200 bg-surface-50 group">
-                            <summary className="flex cursor-pointer items-center justify-between px-4 py-3 font-semibold text-surface-900 text-sm">
-                              <span className="flex items-center gap-2">
-                                <Settings className="h-4 w-4 text-surface-600" />
-                                {copy.conditionalRequirement}
-                              </span>
-                              <span className="text-xs text-surface-500 group-open:hidden">{lang === "tr" ? "İsteğe bağlı" : "Optional"}</span>
-                            </summary>
-                            <div className="border-t border-surface-200 px-4 py-3 space-y-3 text-sm">
-                              <p className="text-xs text-surface-500">{copy.conditionalHint}</p>
-                              <div className="grid gap-3 md:grid-cols-2">
-                                <div>
-                                  <label className="label text-xs font-semibold text-surface-700">{copy.conditionalDependsOn}</label>
-                                  <select
-                                    value={field.required_when_field_id || ""}
-                                    onChange={(event) => {
-                                      const nextFieldId = event.target.value;
-                                      updateRegistrationField(field.id, {
-                                        required_when_field_id: nextFieldId || undefined,
-                                        required_when_equals: nextFieldId
-                                          ? (field.required_when_equals || "")
-                                          : undefined,
-                                      });
-                                    }}
-                                    className="input-field text-sm"
-                                  >
-                                    <option value="">{lang === "tr" ? "Yok" : "None"}</option>
-                                    {conditionalSourceFields.map((candidate) => (
-                                      <option key={candidate.id} value={candidate.id}>
-                                        {candidate.label || candidate.id}
-                                      </option>
-                                    ))}
+                        {/* KOŞULLU ZORUNLULUK SİHİRBAZI */}
+                        <details className="rounded-xl border border-gray-200 bg-gray-50/30 group overflow-hidden">
+                          <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 font-bold text-gray-900 text-xs select-none bg-gray-50/50 [&::-webkit-details-marker]:hidden">
+                            <span className="flex items-center gap-1.5"><Settings className="h-3.5 w-3.5 text-gray-500" /> <span>{copy.conditionalRequirement}</span></span>
+                            <ChevronDown className="h-3.5 w-3.5 text-gray-400 transition-transform duration-200 group-open:rotate-180" />
+                          </summary>
+                          <div className="border-t border-gray-100 p-4 space-y-3 font-semibold text-gray-600 text-xs">
+                            <p className="text-gray-400 font-medium leading-relaxed mb-1">{copy.conditionalHint}</p>
+                            <div className="grid gap-4 sm:grid-cols-2 max-w-xl">
+                              <label className="block w-full">
+                                <span className="block text-[11px] font-bold text-gray-500 mb-1">{copy.conditionalDependsOn}</span>
+                                <div className="relative inline-flex items-center w-full">
+                                  <select value={field.required_when_field_id || ""} onChange={(e) => { const nextId = e.target.value; updateRegistrationField(field.id, { required_when_field_id: nextId || undefined, required_when_equals: nextId ? (field.required_when_equals || "") : undefined }); }} className="w-full min-h-[36px] appearance-none rounded-xl border border-gray-200 bg-white px-3 font-semibold outline-none cursor-pointer">
+                                    <option value="">{lang === "tr" ? "Bağlantı Yok" : "None"}</option>
+                                    {conditionalSourceFields.map((c) => <option key={c.id} value={c.id}>{c.label || c.id}</option>)}
                                   </select>
+                                  <ChevronDown className="pointer-events-none absolute right-3 h-3.5 w-3.5 text-gray-400" />
                                 </div>
-                                <div>
-                                  <label className="label text-xs font-semibold text-surface-700">{copy.conditionalValue}</label>
-                                  <select
-                                    value={field.required_when_equals || ""}
-                                    onChange={(event) =>
-                                      updateRegistrationField(field.id, {
-                                        required_when_equals: event.target.value,
-                                      })
-                                    }
-                                    disabled={!field.required_when_field_id || !conditionalValueOptions.length}
-                                    className="input-field text-sm"
-                                  >
+                              </label>
+                              
+                              <label className="block w-full">
+                                <span className="block text-[11px] font-bold text-gray-500 mb-1">{copy.conditionalValue}</span>
+                                <div className="relative inline-flex items-center w-full">
+                                  <select value={field.required_when_equals || ""} onChange={(e) => updateRegistrationField(field.id, { required_when_equals: e.target.value })} disabled={!field.required_when_field_id || !conditionalValueOptions.length} className="w-full min-h-[36px] appearance-none rounded-xl border border-gray-200 bg-white px-3 font-semibold outline-none cursor-pointer disabled:opacity-40">
                                     <option value="">{copy.conditionalValuePlaceholder}</option>
-                                    {conditionalValueOptions.map((option) => (
-                                      <option key={option} value={option}>
-                                        {option}
-                                      </option>
-                                    ))}
+                                    {conditionalValueOptions.map((o) => <option key={o} value={o}>{o}</option>)}
                                   </select>
+                                  <ChevronDown className="pointer-events-none absolute right-3 h-3.5 w-3.5 text-gray-400" />
                                 </div>
-                              </div>
+                              </label>
                             </div>
+                          </div>
                         </details>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
 
-            {/* Sticky footer bar for adding fields (visible when scrolled down) */}
-            {formData.registration_fields.length > 0 && (
-              <div className="sticky bottom-0 left-0 right-0 z-10 border-t border-surface-200 bg-white px-5 py-3 shadow-md flex items-center justify-between gap-3 sm:gap-4">
-                <p className="text-xs sm:text-sm text-surface-600 font-medium">{formData.registration_fields.length} {lang === "tr" ? "alan eklendi" : "fields added"}</p>
-                <button type="button" onClick={addRegistrationField} className="btn-secondary inline-flex items-center gap-2 whitespace-nowrap">
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">{copy.addField}</span>
-                  <span className="inline sm:hidden">{lang === "tr" ? "Ekle" : "Add"}</span>
-                </button>
-              </div>
-            )}
-          </section>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          </div>
         )}
 
-        {/* ===== BANNER TAB ===== */}
+        {/* TAB 3: AFİŞ / BANNER YÜKLEME PANELİ */}
         {activeTab === "banner" && (
-          <section className="card p-6 sm:p-7">
-            <div className="flex items-start gap-3">
-              <div className="rounded-lg bg-sky-50 p-3 text-sky-600">
-                <ImageIcon className="h-5 w-5" />
+          <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+            <div className="flex items-start gap-3 border-b border-gray-100 pb-2.5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-100 bg-gray-50 text-gray-500 shadow-sm">
+                <ImageIcon className="h-4 w-4 stroke-[1.8]" />
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-surface-900">{copy.bannerTitle}</h2>
-                <p className="mt-1 text-sm text-surface-500">{copy.bannerBody}</p>
+              <div className="space-y-0.5">
+                <h2 className="text-sm font-bold tracking-tight text-gray-950">{copy.bannerTitle}</h2>
+                <p className="text-xs text-gray-400 font-medium">{copy.bannerBody}</p>
               </div>
             </div>
 
-            <div className="mt-6 space-y-4">
-              <div className="overflow-hidden rounded-lg border border-surface-200 bg-surface-50">
+            <div className="space-y-3.5 max-w-2xl">
+              <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-50 shadow-inner relative group">
                 {bannerPreview || formData.event_banner_url ? (
-                  <img
-                    src={bannerPreview || formData.event_banner_url}
-                    alt={copy.bannerTitle}
-                    className="h-52 w-full object-cover"
-                  />
+                  <img src={bannerPreview || formData.event_banner_url} alt={copy.bannerTitle} className="h-48 w-full object-cover mix-blend-multiply sm:h-56" />
                 ) : (
-                  <div className="flex h-52 items-center justify-center text-sm text-surface-400">{copy.noBanner}</div>
+                  <div className="flex h-48 sm:h-56 items-center justify-center text-xs font-semibold text-gray-400">{copy.noBanner}</div>
                 )}
               </div>
-              <label className="btn-secondary inline-flex cursor-pointer items-center gap-2 w-fit">
-                <Upload className="h-4 w-4" />
-                {copy.uploadBanner}
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(event) => {
-                    if (event.target.files?.[0]) handleBannerSelect(event.target.files[0]);
-                  }}
-                />
-              </label>
-              <p className="text-xs text-surface-400">{copy.bannerHint}</p>
+              
+              <div className="flex items-center gap-3">
+                <label className="inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold text-gray-800 shadow-sm transition hover:bg-gray-50 cursor-pointer select-none">
+                  <Upload className="h-3.5 w-3.5 text-gray-500 stroke-[2]" />
+                  <span>{copy.uploadBanner}</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleBannerSelect(e.target.files[0])} />
+                </label>
+                <p className="text-[10px] font-medium text-gray-400">{copy.bannerHint}</p>
+              </div>
             </div>
           </section>
         )}
 
-        {/* ===== EMAIL TAB ===== */}
+        {/* TAB 4: OTOMATİK SERTİFİKA TESLİMAT BÜLTEN KANALI */}
         {activeTab === "email" && (
-          <section className="card p-6 sm:p-7">
-            <div className="flex items-start gap-3">
-              <div className="rounded-lg bg-emerald-50 p-3 text-emerald-600">
-                <Mail className="h-5 w-5" />
+          <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+            <div className="flex items-start gap-3 border-b border-gray-100 pb-2.5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-gray-100 bg-gray-50 text-gray-500 shadow-sm">
+                <Mail className="h-4 w-4 stroke-[1.8]" />
               </div>
-              <div className="flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-xl font-bold text-surface-900">{copy.emailTitle}</h2>
-                  {hasGrowthPlan && (
-                    <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                      {subscription?.plan_id === "enterprise" ? copy.enterprise : copy.growth}
-                    </span>
-                  )}
+              <div className="min-w-0 space-y-0.5 flex-1">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-bold tracking-tight text-gray-950">{copy.emailTitle}</h2>
+                  {hasGrowthPlan && <span className="inline-flex rounded-md bg-emerald-50 border border-emerald-100 px-1.5 py-0.2 text-[9px] font-bold uppercase text-emerald-700 shadow-sm">{subscription?.plan_id === "enterprise" ? copy.enterprise : copy.growth}</span>}
                 </div>
-                <p className="mt-1 text-sm text-surface-500">{copy.emailBody}</p>
+                <p className="text-xs text-gray-400 font-medium">{copy.emailBody}</p>
               </div>
             </div>
 
             {!hasGrowthPlan ? (
-              <div className="mt-6">
-                <PlanGateCard
-                  feature={copy.autoEmail}
-                  requiredPlans={["growth", "enterprise"]}
-                  compact
-                />
-              </div>
+              <div className="pt-2"><PlanGateCard feature={copy.autoEmail} requiredPlans={["growth", "enterprise"]} compact /></div>
             ) : (
-              <div className="mt-6 space-y-5">
-                <label className="flex items-start gap-3 rounded-lg border border-surface-200 bg-surface-50 px-4 py-4">
-                  <input
-                    type="checkbox"
-                    checked={formData.auto_email_on_cert}
-                    onChange={(event) => setFormData((current) => ({ ...current, auto_email_on_cert: event.target.checked }))}
-                    className="mt-1 h-4 w-4 accent-brand-600"
-                  />
-                  <div>
-                    <p className="font-semibold text-surface-900">{copy.autoEmail}</p>
-                    <p className="mt-1 text-sm text-surface-500">{copy.autoEmailHint}</p>
+              <div className="space-y-4.5">
+                <label className="inline-flex cursor-pointer items-center gap-2.5 select-none py-1">
+                  <input type="checkbox" checked={formData.auto_email_on_cert} onChange={(e) => setFormData((curr) => ({ ...curr, auto_email_on_cert: e.target.checked }))} className="h-4 w-4 rounded-md border-gray-300 text-gray-950 focus:ring-0 cursor-pointer" />
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-semibold text-gray-900 tracking-tight block">{copy.autoEmail}</span>
+                    <span className="text-[10px] text-gray-400 font-medium block">{copy.autoEmailHint}</span>
                   </div>
                 </label>
 
                 {formData.auto_email_on_cert && (
-                  <div className="grid gap-3">
-                    <label className="label">{copy.templateLabel}</label>
-                    <select
-                      value={formData.cert_email_template_id || ""}
-                      onChange={(event) =>
-                        setFormData((current) => ({
-                          ...current,
-                          cert_email_template_id: event.target.value ? Number(event.target.value) : null,
-                        }))
-                      }
-                      className="input-field"
-                    >
-                      <option value="">{copy.templatePlaceholder}</option>
-                      {customEmailTemplates.length > 0 && (
-                        <optgroup label={copy.customTemplates}>
-                          {customEmailTemplates.map((template) => (
-                            <option key={`custom-${template.id}`} value={template.id}>
-                              {template.name}
-                            </option>
-                          ))}
-                        </optgroup>
-                      )}
-                      {systemEmailTemplates.length > 0 && (
-                        <optgroup label={copy.systemTemplates}>
-                          {systemEmailTemplates.map((template) => (
-                            <option key={`system-${template.id}`} value={template.id}>
-                              {template.name}
-                            </option>
-                          ))}
-                        </optgroup>
-                      )}
-                    </select>
+                  <div className="space-y-3 max-w-sm pt-1 animate-in fade-in duration-150">
+                    <label className="block w-full">
+                      <span className="block text-[11px] font-bold text-gray-500 mb-1">{copy.templateLabel}</span>
+                      <div className="relative inline-flex items-center w-full">
+                        <select value={formData.cert_email_template_id || ""} onChange={(e) => setFormData((curr) => ({ ...curr, cert_email_template_id: e.target.value ? Number(e.target.value) : null }))} className="w-full min-h-[38px] appearance-none rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold outline-none cursor-pointer">
+                          <option value="">{copy.templatePlaceholder}</option>
+                          {customEmailTemplates.length > 0 && <optgroup label={copy.customTemplates}>{customEmailTemplates.map((t) => <option key={`custom-${t.id}`} value={t.id}>{t.name}</option>)}</optgroup>}
+                          {systemEmailTemplates.length > 0 && <optgroup label={copy.systemTemplates}>{systemEmailTemplates.map((t) => <option key={`system-${t.id}`} value={t.id}>{t.name}</option>)}</optgroup>}
+                        </select>
+                        <ChevronDown className="pointer-events-none absolute right-3 h-3.5 w-3.5 text-gray-400" />
+                      </div>
+                    </label>
 
-                    {availableEmailTemplates.length === 0 && (
-                      <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                        {copy.noTemplates}
-                      </p>
-                    )}
-
+                    {availableEmailTemplates.length === 0 && <div className="rounded-xl border border-amber-100 bg-amber-50/20 p-3.5 text-xs font-semibold text-amber-700">{copy.noTemplates}</div>}
+                    
                     {formData.cert_email_template_id && (
-                      <div className="rounded-lg border border-surface-200 bg-white p-4">
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.active}</p>
-                        <p className="mt-2 font-semibold text-surface-900">
-                          {availableEmailTemplates.find((template) => template.id === formData.cert_email_template_id)?.name}
-                        </p>
+                      <div className="rounded-xl border border-gray-100 bg-gray-50/50 p-3 text-xs flex items-center justify-between gap-3">
+                        <div className="min-w-0"><p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">{copy.active}</p><p className="font-bold text-gray-900 mt-0.5 truncate">{availableEmailTemplates.find((t) => t.id === formData.cert_email_template_id)?.name}</p></div>
                       </div>
                     )}
-
-                    <div className="flex flex-wrap gap-3 text-sm font-semibold">
-                      <Link href={`/admin/events/${eventId}/email-templates`} className="text-brand-600 hover:text-brand-700">
-                        {copy.manageTemplates}
-                      </Link>
-                      <Link href={`/admin/events/${eventId}/bulk-emails`} className="text-surface-600 hover:text-surface-900">
-                        {copy.manageCampaigns}
-                      </Link>
-                    </div>
                   </div>
                 )}
+                
+                <div className="flex flex-wrap items-center gap-3 text-xs font-bold pt-1.5 border-t border-gray-50">
+                  <Link href={`/admin/events/${eventId}/email-templates`} className="text-gray-950 hover:text-gray-900 underline underline-offset-2">{copy.manageTemplates}</Link>
+                  <Link href={`/admin/events/${eventId}/bulk-emails`} className="text-gray-400 hover:text-gray-900 transition-colors font-medium">{copy.manageCampaigns}</Link>
+                </div>
               </div>
             )}
           </section>
         )}
 
-        {/* ===== COMMENTS TAB ===== */}
+        {/* TAB 5: ETKİNLİK YORUM MODERASYON PANELİ */}
         {activeTab === "comments" && (
-          <section className="card p-6 sm:p-7">
-            <div className="flex items-start gap-3">
-              <div className="rounded-lg bg-blue-50 p-3 text-blue-600">
-                <MessageSquare className="h-5 w-5" />
+          <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+            <div className="flex items-start gap-3 border-b border-gray-100 pb-2.5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-100 bg-gray-50 text-gray-500 shadow-sm">
+                <MessageSquare className="h-4 w-4 stroke-[1.8]" />
               </div>
-              <div className="flex-1">
-                <h2 className="text-xl font-bold text-surface-900">{copy.commentsTitle}</h2>
-                <p className="mt-1 text-sm text-surface-500">{copy.commentsSubtitle}</p>
+              <div className="space-y-0.5">
+                <h2 className="text-sm font-bold tracking-tight text-gray-950">{copy.commentsTitle}</h2>
+                <p className="text-xs text-gray-400 font-medium">{copy.commentsSubtitle}</p>
               </div>
             </div>
 
-            {error && (
-              <div className="mt-6 flex items-start gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
-                <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 flex-none text-rose-600" />
-                <p>{error}</p>
-              </div>
-            )}
-
             {commentsLoading ? (
-              <div className="mt-10 flex items-center justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
-              </div>
+              <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-gray-400 stroke-[2.5]" /></div>
             ) : comments.length === 0 ? (
-              <div className="mt-6 rounded-lg border border-surface-200 bg-surface-50 py-12 text-center text-sm text-surface-500">
-                {copy.commentsEmpty}
-              </div>
+              <div className="rounded-xl border border-dashed border-gray-200 py-12 text-center text-xs font-semibold text-gray-400 tracking-tight">{copy.commentsEmpty}</div>
             ) : (
-              <div className="mt-6 space-y-4">
+              <div className="space-y-3.5 max-h-[560px] overflow-y-auto scrollbar-none pr-0.5 bg-white">
                 {comments.map((comment) => {
-                  const statusStyle =
-                    comment.status === "visible"
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                      : comment.status === "reported"
-                        ? "border-amber-200 bg-amber-50 text-amber-700"
-                        : "border-slate-200 bg-slate-100 text-slate-700";
-
+                  const commentSel = comment.status === "visible" ? "border-emerald-100 bg-emerald-50/10 text-emerald-700" : comment.status === "reported" ? "border-amber-100 bg-amber-50/10 text-amber-700" : "border-gray-100 bg-gray-50/40 text-gray-400";
                   return (
-                    <article key={comment.id} className="rounded-lg border border-surface-200 bg-white p-5 sm:p-6">
-                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm font-semibold text-surface-900">{comment.member_name}</span>
-                            <span className="text-xs text-surface-400">{comment.member_email}</span>
-                            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${statusStyle}`}>
-                              {comment.status}
-                            </span>
-                          </div>
-                          <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-surface-700">{comment.body}</p>
-                          <div className="mt-4 flex flex-wrap gap-4 text-xs text-surface-400">
-                            <span>{copy.commentsMember}: {comment.member_public_id}</span>
-                            <span>{copy.commentsReported}: {comment.report_count}</span>
-                            <span>{copy.commentsUpdated}: {new Date(comment.updated_at).toLocaleString(lang === "tr" ? "tr-TR" : "en-US")}</span>
-                          </div>
+                    <article key={comment.id} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm flex flex-col justify-between lg:flex-row lg:items-center gap-4 transition-colors hover:border-gray-200">
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs font-bold text-gray-950 tracking-tight">{comment.member_name}</span>
+                          <span className="text-[10px] font-medium text-gray-400 font-mono">{comment.member_email}</span>
+                          <span className={`rounded-md border px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-tight shadow-sm ${commentSel}`}>{comment.status}</span>
                         </div>
+                        <p className="text-xs leading-relaxed text-gray-700 font-medium whitespace-pre-wrap">{comment.body}</p>
+                        <div className="pt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                          <span>{copy.commentsMember}: {comment.member_public_id}</span>
+                          <span className={comment.report_count > 0 ? "text-red-500" : ""}>{copy.commentsReported}: {comment.report_count}</span>
+                          <span className="font-mono text-gray-300 font-medium lowercase">{new Date(comment.updated_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
 
-                        <div className="flex shrink-0 flex-wrap gap-2 lg:flex-col">
-                          <button
-                            type="button"
-                            onClick={() => void handleCommentStatusChange(comment.id, "visible")}
-                            disabled={commentsSavingId === comment.id || comment.status === "visible"}
-                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-50 lg:w-full"
-                          >
-                            {commentsSavingId === comment.id && <Loader2 className="h-4 w-4 animate-spin" />}
-                            {copy.commentsPublish}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void handleCommentStatusChange(comment.id, "hidden")}
-                            disabled={commentsSavingId === comment.id || comment.status === "hidden"}
-                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-50 lg:w-full"
-                          >
-                            {commentsSavingId === comment.id && <Loader2 className="h-4 w-4 animate-spin" />}
-                            {copy.commentsHide}
-                          </button>
-                        </div>
+                      <div className="flex items-center gap-1.5 shrink-0 self-end lg:self-auto w-full lg:w-auto">
+                        <button type="button" onClick={() => void handleCommentStatusChange(comment.id, "visible")} disabled={commentsSavingId === comment.id || comment.status === "visible"} className="flex-1 lg:flex-initial inline-flex h-7 items-center justify-center rounded-lg border border-emerald-100 bg-white px-2.5 text-[10px] font-bold text-emerald-700 shadow-sm hover:bg-emerald-50 disabled:opacity-20">
+                          {commentsSavingId === comment.id && <Loader2 className="h-3 w-3 animate-spin mr-1" />} <span>{copy.commentsPublish}</span>
+                        </button>
+                        <button type="button" onClick={() => void handleCommentStatusChange(comment.id, "hidden")} disabled={commentsSavingId === comment.id || comment.status === "hidden"} className="flex-1 lg:flex-initial inline-flex h-7 items-center justify-center rounded-lg border border-red-100 bg-white px-2.5 text-[10px] font-bold text-red-600 shadow-sm hover:bg-red-50 disabled:opacity-20">
+                          {commentsSavingId === comment.id && <Loader2 className="h-3 w-3 animate-spin mr-1" />} <span>{copy.commentsHide}</span>
+                        </button>
                       </div>
                     </article>
                   );
@@ -2341,41 +1682,22 @@ export default function EventSettingsPage() {
           </section>
         )}
 
-        {/* Floating Action Buttons - Bottom Center */}
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex flex-col gap-3 items-center">
-          {isDirty && !saving && (
-            <span className="rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-bold text-amber-800 shadow-soft">
-              {lang === "tr" ? "Kaydedilmemiş değişiklikler var · Ctrl/⌘+S" : "Unsaved changes · Ctrl/⌘+S"}
-            </span>
-          )}
-          {/* Add Field Button - Only on registration tab */}
-          {activeTab === "registration" && (
-            <button
-              onClick={addRegistrationField}
-              className="group relative flex items-center gap-2 rounded-full bg-violet-600 text-white px-6 py-3 font-semibold shadow-lg transition hover:bg-violet-700 hover:shadow-xl"
-              title={copy.addField}
-            >
-              <Plus className="h-5 w-5" />
-              <span>{copy.addField}</span>
-            </button>
-          )}
-
-          {/* Save Button - Always visible */}
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="group relative flex items-center gap-2 rounded-full bg-brand-600 text-white px-6 py-3 font-semibold shadow-lg transition hover:bg-brand-700 hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed"
-            title={copy.save}
-          >
-            {saving ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Save className="h-5 w-5" />
-            )}
-            <span>{saving ? copy.saving : copy.save}</span>
-          </button>
-        </div>
       </div>
+
+      {/* SÜZÜLEN ALT ANA AKSİYON OPERASYON KONSOLU */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex flex-col gap-2.5 items-center w-full max-w-xs px-4">
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="w-full inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-full bg-gray-950 px-6 font-bold text-white shadow-xl transition hover:bg-gray-900 active:scale-98 disabled:opacity-50"
+          title={`${copy.save} (Ctrl/⌘ + S)`}
+        >
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 stroke-[2.5]" />}
+          <span className="text-xs">{saving ? copy.saving : copy.save}</span>
+        </button>
+      </div>
+
     </div>
   );
 }

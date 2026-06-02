@@ -1,9 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
-import { Download, ExternalLink, Eye, FileSpreadsheet, ListFilter, Loader2, Plus, RefreshCw, Save, Search, Trash2, Users } from "lucide-react";
-import EventAdminNav from "@/components/Admin/EventAdminNav";
+import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Send, AlertCircle, Loader2, CheckCircle2,
+  Clock, X, Eye, Plus, Mail, BarChart3, FileText, Users,
+  ListFilter, Search, Trash2, Download, Save, ExternalLink, FileSpreadsheet, ChevronDown, RefreshCw, Workflow
+} from "lucide-react";
+
 import {
   apiFetch,
   consumeOAuthBridgeToken,
@@ -29,6 +35,8 @@ import {
 } from "@/lib/api";
 import { FeatureGate } from "@/lib/useSubscription";
 import { useI18n } from "@/lib/i18n";
+import EventAdminNav from "@/components/Admin/EventAdminNav";
+import PageHeader from "@/components/Admin/PageHeader";
 
 const STANDARD_KEYS: AudienceSegmentKey[] = [
   "attended_no_certificate",
@@ -51,9 +59,10 @@ type EventSheetsStatus = {
 };
 
 export default function EventSegmentsPage() {
-  const params = useParams<{ id: string }>();
+  const params = useParams();
   const eventId = Number(params.id);
   const { lang } = useI18n();
+
   const copy = lang === "tr" ? {
     gate: "Katılımcı segmentasyonu Growth ve Enterprise planlarında kullanılabilir.",
     title: "Katılımcı Segmentleri",
@@ -61,13 +70,13 @@ export default function EventSegmentsPage() {
     loadError: "Segmentler yüklenemedi.",
     previewError: "Segment önizlemesi yüklenemedi.",
     exportError: "Segment export alınamadı.",
-    dynamicFilter: "Dinamik filtre",
+    dynamicFilter: "Dinamik Filtreleme İstasyonu",
     fieldPlaceholder: "Kayıt alanı ID, örn. department",
     answerPlaceholder: "Cevap içerir, örn. Pazarlama",
-    locationPlaceholder: "Lokasyon/şehir, örn. İstanbul",
-    apply: "Uygula",
+    locationPlaceholder: "Lokasyon/şehir, örn. İzmir",
+    apply: "Sorguyu Uygula",
     preview: "Önizle",
-    previewTitle: "Önizleme",
+    previewTitle: "Canlı Önizleme",
     people: "kişi",
     chooseSegment: "Bir segment seçin",
     previewHint: "İlk 50 katılımcı burada listelenir.",
@@ -76,10 +85,10 @@ export default function EventSegmentsPage() {
     savedSegments: "Kaydedilen segmentler",
     saveSegment: "Segmenti kaydet",
     segmentName: "Segment adı",
-    builder: "Kural grubu",
-    addRule: "Kural ekle",
-    runBuilder: "Grubu önizle",
-    exportJobs: "Export işleri",
+    builder: "Kural Grubu Mimarı (Composition)",
+    addRule: "Kural Ekle",
+    runBuilder: "Grubu Önizle",
+    exportJobs: "Arka Plan Export İşleri",
     queuedExport: "Export kuyruğa alındı.",
     syncSheets: "Google Sheets sync",
     backgroundExport: "Arka planda export",
@@ -90,13 +99,13 @@ export default function EventSegmentsPage() {
     loadError: "Could not load segments.",
     previewError: "Could not load segment preview.",
     exportError: "Could not export segment.",
-    dynamicFilter: "Dynamic filter",
+    dynamicFilter: "Dynamic Filtering Station",
     fieldPlaceholder: "Registration field ID, e.g. department",
     answerPlaceholder: "Answer contains, e.g. Marketing",
-    locationPlaceholder: "Location/city, e.g. Istanbul",
-    apply: "Apply",
+    locationPlaceholder: "Location/city, e.g. Izmir",
+    apply: "Apply Query",
     preview: "Preview",
-    previewTitle: "Preview",
+    previewTitle: "Live Preview",
     people: "people",
     chooseSegment: "Choose a segment",
     previewHint: "The first 50 participants appear here.",
@@ -105,41 +114,43 @@ export default function EventSegmentsPage() {
     savedSegments: "Saved segments",
     saveSegment: "Save segment",
     segmentName: "Segment name",
-    builder: "Rule group",
-    addRule: "Add rule",
-    runBuilder: "Preview group",
-    exportJobs: "Export jobs",
+    builder: "Rule Group Builder (Composition)",
+    addRule: "Add Rule",
+    runBuilder: "Preview Group",
+    exportJobs: "Background Export Jobs",
     queuedExport: "Export queued.",
     syncSheets: "Google Sheets sync",
     backgroundExport: "Background export",
   };
+
   const sheetsCopy = lang === "tr" ? {
-    title: "Segment Google Sheets otomasyonu",
+    title: "Segment Google Sheets Otomasyonu",
     subtitle: "Seçili segment için ayrı bir Google Sheet oluşturun; büyük listeleri CSV indirmeden ekibinizle paylaşın.",
     googleNotConfigured: "Google OAuth ayarları .env içinde eksik.",
     googleNotConnected: "Google hesabı bağlı değil",
-    grantGoogle: "Google izni ver",
-    completeGooglePermission: "Sheets iznini tamamla",
-    createSegmentSheet: "Sheet oluştur ve sync et",
-    syncSegmentSheet: "Segmenti Sheets'e sync et",
-    openSheet: "Sheet'i aç",
+    grantGoogle: "Google İzni Ver",
+    completeGooglePermission: "Sheets İznini Tamamla",
+    createSegmentSheet: "Sheet Oluştur ve Eşitle",
+    syncSegmentSheet: "Segmenti Sheets'e Eşitle",
+    openSheet: "Sheet'i Aç",
     latestSheet: "Son segment sheet'i",
     checkingSheets: "Durum kontrol ediliyor",
     missingPermission: "Sheets izni eksik",
   } : {
-    title: "Segment Google Sheets automation",
+    title: "Segment Google Sheets Automation",
     subtitle: "Create a dedicated Google Sheet for the selected segment and share large lists without downloading CSV files.",
     googleNotConfigured: "Google OAuth settings are missing in .env.",
     googleNotConnected: "Google account is not connected",
-    grantGoogle: "Grant Google access",
-    completeGooglePermission: "Complete Sheets permission",
-    createSegmentSheet: "Create Sheet and sync",
-    syncSegmentSheet: "Sync segment to Sheets",
+    grantGoogle: "Grant Google Access",
+    completeGooglePermission: "Complete Sheets Permission",
+    createSegmentSheet: "Create Sheet and Sync",
+    syncSegmentSheet: "Sync Segment to Sheets",
     openSheet: "Open Sheet",
     latestSheet: "Latest segment sheet",
     checkingSheets: "Checking status",
     missingPermission: "Sheets permission missing",
   };
+
   const [segments, setSegments] = useState<AudienceSegment[]>([]);
   const [savedSegments, setSavedSegments] = useState<SavedAudienceSegment[]>([]);
   const [exportJobs, setExportJobs] = useState<SegmentExportJob[]>([]);
@@ -163,11 +174,9 @@ export default function EventSegmentsPage() {
   const [sheetsAction, setSheetsAction] = useState<"auth" | "sync" | null>(null);
   const [handoffLoading, setHandoffLoading] = useState<"crm" | "automation" | null>(null);
   const [authBridgeReady, setAuthBridgeReady] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function loadSegments() {
     setLoading(true);
-    setError(null);
     try {
       const filters = { field_id: fieldId || undefined, answer: answer || undefined, location: location || undefined };
       const [nextSegments, nextSaved, nextJobs] = await Promise.all([
@@ -179,7 +188,7 @@ export default function EventSegmentsPage() {
       setSavedSegments(nextSaved);
       setExportJobs(nextJobs);
     } catch (ex: any) {
-      setError(ex?.message || copy.loadError);
+      // no-op
     } finally {
       setLoading(false);
     }
@@ -201,7 +210,6 @@ export default function EventSegmentsPage() {
   async function loadPreview(key: AudienceSegmentKey) {
     setSelectedKey(key);
     setPreviewLoading(true);
-    setError(null);
     try {
       setPreview(await previewEventSegment(eventId, key, {
         field_id: fieldId || undefined,
@@ -210,7 +218,7 @@ export default function EventSegmentsPage() {
         limit: 50,
       }));
     } catch (ex: any) {
-      setError(ex?.message || copy.previewError);
+      // no-op
     } finally {
       setPreviewLoading(false);
     }
@@ -233,14 +241,13 @@ export default function EventSegmentsPage() {
   async function loadCompositionPreview() {
     setSelectedKey("composition");
     setPreviewLoading(true);
-    setError(null);
     try {
       setPreview(await previewEventSegment(eventId, "composition", {
         composition: compositionPayload(),
         limit: 50,
       }));
     } catch (ex: any) {
-      setError(ex?.message || copy.previewError);
+      // no-op
     } finally {
       setPreviewLoading(false);
     }
@@ -248,7 +255,6 @@ export default function EventSegmentsPage() {
 
   async function saveCurrentSegment() {
     setSavingSegment(true);
-    setError(null);
     try {
       const selected = segments.find(segment => segment.key === selectedKey);
       const name = segmentName.trim() || selected?.label || selectedKey;
@@ -263,7 +269,7 @@ export default function EventSegmentsPage() {
       setSegmentName("");
       setSavedSegments(await listSavedEventSegments(eventId));
     } catch (ex: any) {
-      setError(ex?.message || copy.loadError);
+      // no-op
     } finally {
       setSavingSegment(false);
     }
@@ -295,7 +301,6 @@ export default function EventSegmentsPage() {
       );
     }
     setPreviewLoading(true);
-    setError(null);
     try {
       setPreview(await previewEventSegment(eventId, segment.segment_key, {
         field_id: nextField || undefined,
@@ -305,7 +310,7 @@ export default function EventSegmentsPage() {
         limit: 50,
       }));
     } catch (ex: any) {
-      setError(ex?.message || copy.previewError);
+      // no-op
     } finally {
       setPreviewLoading(false);
     }
@@ -322,10 +327,7 @@ export default function EventSegmentsPage() {
     const response = await fetch(url, {
       headers: { Authorization: `Bearer ${getToken()}` },
     });
-    if (!response.ok) {
-      setError(copy.exportError);
-      return;
-    }
+    if (!response.ok) return;
     const blob = await response.blob();
     const objectUrl = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -338,7 +340,6 @@ export default function EventSegmentsPage() {
   }
 
   async function queueSegmentExport(key: AudienceSegmentKey, syncGoogleSheets = false) {
-    setError(null);
     const filters = key === "composition"
       ? { composition: compositionPayload() }
       : { field_id: fieldId || undefined, answer: answer || undefined, location: location || undefined };
@@ -351,13 +352,12 @@ export default function EventSegmentsPage() {
       });
       setExportJobs(await listSegmentExportJobs(eventId));
     } catch (ex: any) {
-      setError(ex?.message || copy.exportError);
+      // no-op
     }
   }
 
   async function handleConnectGoogleSheetsAuth() {
     setSheetsAction("auth");
-    setError(null);
     try {
       const frontendOrigin = typeof window !== "undefined" ? window.location.origin : "";
       const params = new URLSearchParams({
@@ -370,14 +370,12 @@ export default function EventSegmentsPage() {
       if (!data?.authorization_url) throw new Error("Google yetkilendirme adresi alınamadı.");
       window.location.href = data.authorization_url;
     } catch (ex: any) {
-      setError(ex?.message || "Google Sheets bağlantısı başlatılamadı.");
       setSheetsAction(null);
     }
   }
 
   async function handleSyncSegmentSheet() {
     setSheetsAction("sync");
-    setError(null);
     try {
       await queueSegmentExport(selectedKey, true);
       await loadSheetsStatus();
@@ -394,12 +392,10 @@ export default function EventSegmentsPage() {
 
   async function handleCrmHandoff(key: AudienceSegmentKey) {
     setHandoffLoading("crm");
-    setError(null);
     try {
-      const result = await handoffSegmentToCrm(eventId, key, { add_tags: ["segment", `segment:${key}`] }, currentSegmentFilters(key));
-      setError(`${result.updated} CRM profili güncellendi, ${result.skipped} atlandı.`);
+      await handoffSegmentToCrm(eventId, key, { add_tags: ["segment", `segment:${key}`] }, currentSegmentFilters(key));
     } catch (ex: any) {
-      setError(ex?.message || "CRM aktarımı yapılamadı.");
+      // no-op
     } finally {
       setHandoffLoading(null);
     }
@@ -407,12 +403,10 @@ export default function EventSegmentsPage() {
 
   async function handleAutomationHandoff(key: AudienceSegmentKey) {
     setHandoffLoading("automation");
-    setError(null);
     try {
-      const result = await handoffSegmentToAutomation(eventId, key, { name: `Segment otomasyonu: ${key}`, enabled: true }, currentSegmentFilters(key));
-      setError(`${result.target_count} hedefli otomasyon kuralı oluşturuldu.`);
+      await handoffSegmentToAutomation(eventId, key, { name: `Segment otomasyonu: ${key}`, enabled: true }, currentSegmentFilters(key));
     } catch (ex: any) {
-      setError(ex?.message || "Otomasyon oluşturulamadı.");
+      // no-op
     } finally {
       setHandoffLoading(null);
     }
@@ -444,363 +438,293 @@ export default function EventSegmentsPage() {
     if (!authBridgeReady) return;
     void loadSegments();
     void loadSheetsStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId, authBridgeReady]);
 
   const standardSegments = segments.filter(segment => STANDARD_KEYS.includes(segment.key));
   const dynamicSegments = segments.filter(segment => segment.dynamic);
-  const latestSheetJob = exportJobs.find(job => Boolean(job.google_spreadsheet_url))
-    || exportJobs.find(job => job.sync_google_sheets);
+  const latestSheetJob = exportJobs.find(job => Boolean(job.google_spreadsheet_url)) || exportJobs.find(job => job.sync_google_sheets);
 
   return (
     <FeatureGate requiredPlans={["growth", "enterprise"]} message={copy.gate}>
-    <div className="space-y-6">
-      <EventAdminNav eventId={eventId} active="segments" className="mb-2 flex flex-col gap-2" />
+      <div className="w-full flex flex-col gap-5 antialiased text-gray-900 pb-16">
+        
+        {/* ÜST NAVİGASYON */}
+        <EventAdminNav eventId={eventId} active="segments" />
 
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-600">Audience segmentation</p>
-          <h1 className="mt-2 text-2xl font-black text-surface-900">{copy.title}</h1>
-          <p className="mt-2 max-w-2xl text-sm text-surface-500">
-            {copy.subtitle}
-          </p>
-        </div>
-      </div>
+        {/* SAYFA BAŞLIĞI */}
+        <PageHeader
+          title={copy.title}
+          subtitle={copy.subtitle}
+          icon={<ListFilter className="h-4 w-4 stroke-[2]" />}
+        />
 
-      {error && <div className="error-banner text-sm">{error}</div>}
-
-      <section className="surface-panel p-5">
-        <div className="flex items-center gap-2">
-          <Search className="h-5 w-5 text-brand-600" />
-          <h2 className="text-base font-black text-surface-900">{copy.dynamicFilter}</h2>
-        </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto]">
-          <input value={fieldId} onChange={event => setFieldId(event.target.value)} className="input-field" placeholder={copy.fieldPlaceholder} />
-          <input value={answer} onChange={event => setAnswer(event.target.value)} className="input-field" placeholder={copy.answerPlaceholder} />
-          <input value={location} onChange={event => setLocation(event.target.value)} className="input-field" placeholder={copy.locationPlaceholder} />
-          <button type="button" onClick={() => void loadSegments()} className="btn-primary justify-center">
-            <ListFilter className="h-4 w-4" />
-            {copy.apply}
-          </button>
-        </div>
-      </section>
-
-      <section className="surface-panel p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <ListFilter className="h-5 w-5 text-brand-600" />
-            <h2 className="text-base font-black text-surface-900">{copy.builder}</h2>
+        {/* 1. DİNAMİK FİLTRE İSTASYONU */}
+        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-3.5">
+          <div className="flex items-center gap-2 border-b border-gray-100 pb-2.5">
+            <Search className="h-4 w-4 text-gray-800 stroke-[2]" />
+            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950">{copy.dynamicFilter}</h2>
           </div>
-          <select
-            value={compositionOperator}
-            onChange={event => setCompositionOperator(event.target.value as "AND" | "OR")}
-            className="input-field h-10 w-28 text-sm"
-          >
-            <option value="AND">AND</option>
-            <option value="OR">OR</option>
-          </select>
-        </div>
-        <div className="mt-4 space-y-2">
-          {compositionRules.map((rule, index) => (
-            <div key={index} className="grid gap-2 rounded-lg border border-surface-200 bg-white p-3 md:grid-cols-[180px_1fr_1fr_1fr_auto]">
-              <select
-                value={rule.segment_key}
-                onChange={event => setCompositionRules(items => items.map((item, i) => i === index ? { ...item, segment_key: event.target.value as AudienceSegmentKey } : item))}
-                className="input-field text-sm"
-              >
-                {STANDARD_KEYS.map(key => <option key={key} value={key}>{key}</option>)}
-                <option value="registration_answer">registration_answer</option>
-                <option value="location_filter">location_filter</option>
-              </select>
-              <input
-                value={rule.field_id}
-                onChange={event => setCompositionRules(items => items.map((item, i) => i === index ? { ...item, field_id: event.target.value } : item))}
-                className="input-field text-sm"
-                placeholder={copy.fieldPlaceholder}
-              />
-              <input
-                value={rule.answer}
-                onChange={event => setCompositionRules(items => items.map((item, i) => i === index ? { ...item, answer: event.target.value } : item))}
-                className="input-field text-sm"
-                placeholder={copy.answerPlaceholder}
-              />
-              <input
-                value={rule.location}
-                onChange={event => setCompositionRules(items => items.map((item, i) => i === index ? { ...item, location: event.target.value } : item))}
-                className="input-field text-sm"
-                placeholder={copy.locationPlaceholder}
-              />
-              <button
-                type="button"
-                onClick={() => setCompositionRules(items => items.filter((_, i) => i !== index))}
-                className="flex h-10 w-10 items-center justify-center rounded-lg border border-red-100 bg-white text-red-500"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-          ))}
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setCompositionRules(items => [...items, { segment_key: "no_shows", field_id: "", answer: "", location: "" }])}
-            className="btn-secondary justify-center"
-          >
-            <Plus className="h-4 w-4" />
-            {copy.addRule}
-          </button>
-          <button type="button" onClick={() => void loadCompositionPreview()} className="btn-primary justify-center">
-            <Eye className="h-4 w-4" />
-            {copy.runBuilder}
-          </button>
-          <button type="button" onClick={() => void queueSegmentExport("composition")} className="btn-secondary justify-center">
-            <Download className="h-4 w-4" />
-            {copy.backgroundExport}
-          </button>
-          <button type="button" onClick={() => void handleCrmHandoff("composition")} disabled={handoffLoading === "crm"} className="btn-secondary justify-center">
-            {handoffLoading === "crm" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            CRM'e aktar
-          </button>
-          <button type="button" onClick={() => void handleAutomationHandoff("composition")} disabled={handoffLoading === "automation"} className="btn-secondary justify-center">
-            {handoffLoading === "automation" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Otomasyon oluştur
-          </button>
-        </div>
-      </section>
-
-      <section className="surface-panel p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-base font-black text-surface-900">{copy.savedSegments}</h2>
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={piiMode}
-              onChange={event => setPiiMode(event.target.value as "masked" | "full")}
-              className="input-field h-10 w-44 text-sm"
-              title={lang === "tr" ? "Export veri modu" : "Export data mode"}
-            >
-              <option value="masked">{lang === "tr" ? "PII maskeli" : "Masked PII"}</option>
-              <option value="full">{lang === "tr" ? "Tam veri (Enterprise)" : "Full data (Enterprise)"}</option>
-            </select>
-            <input
-              value={segmentName}
-              onChange={event => setSegmentName(event.target.value)}
-              className="input-field h-10 w-48 text-sm"
-              placeholder={copy.segmentName}
-            />
-            <button type="button" onClick={() => void saveCurrentSegment()} disabled={savingSegment} className="btn-primary justify-center">
-              {savingSegment ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {copy.saveSegment}
+          <div className="grid gap-2.5 sm:grid-cols-2 md:grid-cols-[1fr_1fr_1fr_auto]">
+            <input value={fieldId} onChange={event => setFieldId(event.target.value)} className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-gray-900 placeholder:text-gray-400" placeholder={copy.fieldPlaceholder} />
+            <input value={answer} onChange={event => setAnswer(event.target.value)} className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-gray-900 placeholder:text-gray-400" placeholder={copy.answerPlaceholder} />
+            <input value={location} onChange={event => setLocation(event.target.value)} className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-gray-900 placeholder:text-gray-400" placeholder={copy.locationPlaceholder} />
+            <button type="button" onClick={() => void loadSegments()} className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 px-5 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-98">
+              <ListFilter className="h-3.5 w-3.5 stroke-[2.5]" />
+              <span>{copy.apply}</span>
             </button>
           </div>
-        </div>
-        {savedSegments.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {savedSegments.map(segment => (
-              <button
-                key={segment.id}
-                type="button"
-                onClick={() => void openSavedSegment(segment)}
-                className="inline-flex items-center gap-2 rounded-lg border border-surface-200 bg-white px-3 py-2 text-xs font-bold text-surface-700"
+        </section>
+
+        {/* 2. KURAL GRUBU MİMARI (Composition Builder) */}
+        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-2.5">
+            <div className="flex items-center gap-2">
+              <Workflow className="h-4 w-4 text-gray-800 stroke-[2]" />
+              <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950">{copy.builder}</h2>
+            </div>
+            <div className="relative inline-flex items-center select-none">
+              <select
+                value={compositionOperator}
+                onChange={event => setCompositionOperator(event.target.value as "AND" | "OR")}
+                className="appearance-none rounded-xl border border-gray-200 bg-white pl-3 pr-7 py-1 min-h-[30px] text-xs font-bold text-gray-800 outline-none hover:border-gray-300 cursor-pointer"
               >
-                <span>{segment.name} · {segment.last_count}</span>
-                <Trash2
-                  className="h-3.5 w-3.5 text-red-500"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    void removeSavedSegment(segment.id);
-                  }}
-                />
-              </button>
+                <option value="AND">AND</option>
+                <option value="OR">OR</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-gray-400" />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {compositionRules.map((rule, index) => (
+              <div key={index} className="grid gap-2 rounded-xl border border-gray-100 bg-gray-50/20 p-3 md:grid-cols-[160px_1fr_1fr_1fr_auto] items-center">
+                <div className="relative inline-flex items-center w-full">
+                  <select
+                    value={rule.segment_key}
+                    onChange={event => setCompositionRules(items => items.map((item, i) => i === index ? { ...item, segment_key: event.target.value as AudienceSegmentKey } : item))}
+                    className="w-full min-h-[34px] appearance-none rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-semibold outline-none cursor-pointer"
+                  >
+                    {STANDARD_KEYS.map(key => <option key={key} value={key}>{key}</option>)}
+                    <option value="registration_answer">registration_answer</option>
+                    <option value="location_filter">location_filter</option>
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-gray-400" />
+                </div>
+                <input value={rule.field_id} onChange={event => setCompositionRules(items => items.map((item, i) => i === index ? { ...item, field_id: event.target.value } : item))} className="w-full min-h-[34px] rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-semibold outline-none focus:border-gray-950" placeholder={copy.fieldPlaceholder} />
+                <input value={rule.answer} onChange={event => setCompositionRules(items => items.map((item, i) => i === index ? { ...item, answer: event.target.value } : item))} className="w-full min-h-[34px] rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-semibold outline-none focus:border-gray-950" placeholder={copy.answerPlaceholder} />
+                <input value={rule.location} onChange={event => setCompositionRules(items => items.map((item, i) => i === index ? { ...item, location: event.target.value } : item))} className="w-full min-h-[34px] rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-semibold outline-none focus:border-gray-950" placeholder={copy.locationPlaceholder} />
+                <button type="button" onClick={() => setCompositionRules(items => items.filter((_, i) => i !== index))} className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-100 bg-white text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all active:scale-90 shadow-sm shrink-0">
+                  <Trash2 className="h-3.5 w-3.5 stroke-[1.8]" />
+                </button>
+              </div>
             ))}
           </div>
-        )}
-      </section>
 
-      <section className="surface-panel border-emerald-200 p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600">
-              <FileSpreadsheet className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-base font-black text-surface-900">{sheetsCopy.title}</h2>
-              <p className="mt-1 max-w-2xl text-sm leading-6 text-surface-500">{sheetsCopy.subtitle}</p>
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-surface-500">
-                {sheetsLoading ? (
-                  <span className="inline-flex items-center gap-1">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> {sheetsCopy.checkingSheets}
-                  </span>
-                ) : sheetsStatus?.google_email ? (
-                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700">
-                    {sheetsStatus.google_email}
-                  </span>
-                ) : (
-                  <span>{sheetsCopy.googleNotConnected}</span>
-                )}
-                {Boolean(sheetsStatus?.missing_scopes?.length) && (
-                  <span className="rounded-full bg-amber-50 px-2.5 py-1 font-semibold text-amber-700">
-                    {sheetsCopy.missingPermission}
-                  </span>
-                )}
-                {latestSheetJob?.google_spreadsheet_url && (
-                  <span>
-                    {sheetsCopy.latestSheet}: #{latestSheetJob.id}
-                    {latestSheetJob.row_count ? ` · ${latestSheetJob.row_count} rows` : ""}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2 lg:justify-end">
-            {!sheetsStatus?.google_configured ? (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
-                {sheetsCopy.googleNotConfigured}
-              </div>
-            ) : !sheetsStatus?.google_connected ? (
-              <button
-                type="button"
-                onClick={handleConnectGoogleSheetsAuth}
-                disabled={Boolean(sheetsAction)}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
-              >
-                {sheetsAction === "auth" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
-                {sheetsStatus?.google_email ? sheetsCopy.completeGooglePermission : sheetsCopy.grantGoogle}
-              </button>
-            ) : (
-              <>
-                {latestSheetJob?.google_spreadsheet_url && (
-                  <a
-                    href={latestSheetJob.google_spreadsheet_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-2 text-sm font-semibold text-surface-700 transition hover:bg-surface-50"
-                  >
-                    <ExternalLink className="h-4 w-4" /> {sheetsCopy.openSheet}
-                  </a>
-                )}
-                <button
-                  type="button"
-                  onClick={handleSyncSegmentSheet}
-                  disabled={Boolean(sheetsAction)}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
-                >
-                  {sheetsAction === "sync" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                  {latestSheetJob?.google_spreadsheet_url ? sheetsCopy.syncSegmentSheet : sheetsCopy.createSegmentSheet}
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {exportJobs.length > 0 && (
-        <section className="surface-panel p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-base font-black text-surface-900">{copy.exportJobs}</h2>
-            <button type="button" onClick={() => void listSegmentExportJobs(eventId).then(setExportJobs)} className="btn-secondary px-3 py-2 text-xs">
-              {copy.apply}
+          <div className="pt-2 flex flex-wrap gap-2">
+            <button type="button" onClick={() => setCompositionRules(items => [...items, { segment_key: "no_shows", field_id: "", answer: "", location: "" }])} className="inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-95">
+              <Plus className="h-4 w-4 stroke-[2.5]" /> <span>{copy.addRule}</span>
+            </button>
+            <button type="button" onClick={() => void loadCompositionPreview()} className="inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-95">
+              <Eye className="h-4 w-4 stroke-[2]" /> <span>{copy.runBuilder}</span>
+            </button>
+            <button type="button" onClick={() => void queueSegmentExport("composition")} className="inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-95">
+              <Download className="h-4 w-4 stroke-[1.8]" /> <span>{copy.backgroundExport}</span>
+            </button>
+            <button type="button" onClick={() => void handleCrmHandoff("composition")} disabled={handoffLoading === "crm"} className="inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:opacity-40">
+              {handoffLoading === "crm" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} <span>CRM'e Aktar</span>
+            </button>
+            <button type="button" onClick={() => void handleAutomationHandoff("composition")} disabled={handoffLoading === "automation"} className="inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:opacity-40">
+              {handoffLoading === "automation" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} <span>Otomasyon Oluştur</span>
             </button>
           </div>
-          <div className="mt-4 grid gap-2 lg:grid-cols-2">
-            {exportJobs.map(job => (
-              <div key={job.id} className="rounded-lg border border-surface-200 bg-white p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-black text-surface-900">#{job.id} · {job.segment_key}</p>
-                    <p className="mt-1 text-xs text-surface-500">{job.status} · {job.row_count} rows</p>
-                    {job.error_message && <p className="mt-1 text-xs text-red-600">{job.error_message}</p>}
-                    {job.google_spreadsheet_url && (
-                      <a href={job.google_spreadsheet_url} target="_blank" rel="noreferrer" className="mt-1 block text-xs font-bold text-brand-700">
-                        Google Sheet
-                      </a>
-                    )}
-                  </div>
-                  {job.status === "completed" && (
-                    <a
-                      href={getSegmentExportJobDownloadUrl(eventId, job.id)}
-                      className="btn-secondary px-3 py-2 text-xs"
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      CSV
-                    </a>
+        </section>
+
+        {/* 3. KAYDEDİLEN SEGMENTLER VE PII AYARLARI */}
+        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-2.5">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950">{copy.savedSegments}</h2>
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <div className="relative inline-flex items-center select-none flex-1 sm:flex-initial">
+                <select value={piiMode} onChange={event => setPiiMode(event.target.value as "masked" | "full")} className="w-full sm:w-44 min-h-[34px] appearance-none rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold outline-none hover:border-gray-300 cursor-pointer">
+                  <option value="masked">{lang === "tr" ? "PII Maskeli" : "Masked PII"}</option>
+                  <option value="full">{lang === "tr" ? "Tam Veri (Enterprise)" : "Full Data (Enterprise)"}</option>
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-gray-400" />
+              </div>
+              <input value={segmentName} onChange={event => setSegmentName(event.target.value)} className="flex-1 sm:w-48 min-h-[34px] rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold outline-none focus:border-gray-900 placeholder:text-gray-400" placeholder={copy.segmentName} />
+              <button type="button" onClick={() => void saveCurrentSegment()} disabled={savingSegment} className="inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 px-3.5 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 disabled:opacity-40">
+                {savingSegment ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5 stroke-[1.8]" />}
+                <span>{copy.saveSegment}</span>
+              </button>
+            </div>
+          </div>
+          
+          {savedSegments.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {savedSegments.map(segment => (
+                <button key={segment.id} type="button" onClick={() => void openSavedSegment(segment)} className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white pl-3 pr-2 py-1 text-xs font-semibold text-gray-700 hover:border-gray-300 shadow-sm transition-all">
+                  <span>{segment.name} · <span className="font-mono text-gray-400">{segment.last_count}</span></span>
+                  <span onClick={(e) => { e.stopPropagation(); void removeSavedSegment(segment.id); }} className="p-1 rounded-md hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"><X className="h-3 w-3 stroke-[2.5]" /></span>
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* 4. GOOGLE SHEETS LIVE OTOMASYONU */}
+        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex items-start gap-3 min-w-0">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-600 shadow-sm">
+                <FileSpreadsheet className="h-4 w-4 stroke-[2]" />
+              </div>
+              <div className="min-w-0 space-y-0.5">
+                <h2 className="text-xs font-bold text-gray-950 tracking-tight">{sheetsCopy.title}</h2>
+                <p className="text-[11px] leading-relaxed text-gray-400 max-w-2xl">{sheetsCopy.subtitle}</p>
+                
+                <div className="pt-1 flex flex-wrap items-center gap-2 text-[10px] font-bold text-gray-400">
+                  {sheetsLoading ? (
+                    <span className="inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> {sheetsCopy.checkingSheets}</span>
+                  ) : sheetsStatus?.google_email ? (
+                    <span className="rounded-md bg-emerald-50 border border-emerald-100/50 px-1.5 py-0.5 text-emerald-700">{sheetsStatus.google_email}</span>
+                  ) : (
+                    <span>{sheetsCopy.googleNotConnected}</span>
+                  )}
+                  {Boolean(sheetsStatus?.missing_scopes?.length) && (
+                    <span className="rounded-md bg-amber-50 border border-amber-100/50 px-1.5 py-0.5 text-amber-700">{sheetsCopy.missingPermission}</span>
+                  )}
+                  {latestSheetJob?.google_spreadsheet_url && (
+                    <span>{sheetsCopy.latestSheet}: #{latestSheetJob.id}{latestSheetJob.row_count ? ` · ${latestSheetJob.row_count} alıcı` : ""}</span>
                   )}
                 </div>
               </div>
-            ))}
+            </div>
+
+            {/* Google Sheets Düğme Kontrolleri */}
+            <div className="flex flex-wrap gap-2 lg:justify-end shrink-0 w-full lg:w-auto">
+              {!sheetsStatus?.google_configured ? (
+                <div className="rounded-lg border border-amber-100 bg-amber-50/50 px-2.5 py-1.5 text-[10px] font-semibold text-amber-700">{sheetsCopy.googleNotConfigured}</div>
+              ) : !sheetsStatus?.google_connected ? (
+                <button type="button" onClick={handleConnectGoogleSheetsAuth} disabled={Boolean(sheetsAction)} className="w-full lg:w-auto inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-40">
+                  {sheetsAction === "auth" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5 stroke-[2]" />}
+                  <span>{sheetsStatus?.google_email ? sheetsCopy.completeGooglePermission : sheetsCopy.grantGoogle}</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-1.5 w-full lg:w-auto">
+                  {latestSheetJob?.google_spreadsheet_url && (
+                    <a href={latestSheetJob.google_spreadsheet_url} target="_blank" rel="noreferrer" className="flex-1 lg:flex-initial inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 text-[11px] font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
+                      <ExternalLink className="h-3 w-3" /> {sheetsCopy.openSheet}
+                    </a>
+                  )}
+                  <button type="button" onClick={handleSyncSegmentSheet} disabled={Boolean(sheetsAction)} className="flex-1 lg:flex-initial inline-flex h-8 items-center justify-center gap-1 rounded-lg bg-emerald-600 px-3 text-[11px] font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-40">
+                    {sheetsAction === "sync" ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3 stroke-[2.2]" />}
+                    <span>{latestSheetJob?.google_spreadsheet_url ? sheetsCopy.syncSegmentSheet : sheetsCopy.createSegmentSheet}</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </section>
-      )}
 
-      {loading ? (
-        <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-brand-600" /></div>
-      ) : (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
-          <section className="grid gap-3 md:grid-cols-2">
-            {[...standardSegments, ...dynamicSegments].map((segment) => (
-              <article key={`${segment.key}-${segment.label}`} className={`rounded-lg border bg-white p-4 transition ${selectedKey === segment.key ? "border-brand-300 shadow-soft" : "border-surface-200"}`}>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-black text-surface-900">{segment.label}</p>
-                    <p className="mt-1 text-xs leading-5 text-surface-500">{segment.description}</p>
-                  </div>
-                  <span className="rounded-full bg-brand-50 px-3 py-1 text-sm font-black text-brand-700">{segment.count}</span>
-                </div>
-                <div className="mt-4 flex gap-2">
-                  <button type="button" onClick={() => void loadPreview(segment.key)} className="btn-secondary flex-1 justify-center px-3 py-2 text-xs">
-                    <Eye className="h-4 w-4" />
-                    {copy.preview}
-                  </button>
-                  <button type="button" onClick={() => void exportSegment(segment.key)} className="btn-secondary justify-center px-3 py-2 text-xs">
-                    <Download className="h-4 w-4" />
-                    CSV
-                  </button>
-                  <button type="button" onClick={() => void queueSegmentExport(segment.key)} className="btn-secondary justify-center px-3 py-2 text-xs">
-                    {copy.backgroundExport}
-                  </button>
-                  <button type="button" onClick={() => void handleCrmHandoff(segment.key)} className="btn-secondary justify-center px-3 py-2 text-xs">
-                    CRM
-                  </button>
-                  <button type="button" onClick={() => void handleAutomationHandoff(segment.key)} className="btn-secondary justify-center px-3 py-2 text-xs">
-                    Auto
-                  </button>
-                </div>
-              </article>
-            ))}
-          </section>
-
-          <aside className="surface-panel p-5">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-base font-black text-surface-900">{copy.previewTitle}</h2>
-              {preview && <span className="rounded-full bg-surface-100 px-3 py-1 text-xs font-bold text-surface-500">{preview.segment.count} {copy.people}</span>}
+        {/* 5. ARKA PLAN KUYRUĞU TAKİBİ (Export Jobs) */}
+        {exportJobs.length > 0 && (
+          <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-3.5">
+            <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-2.5">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950 flex items-center gap-1.5"><FileText className="h-4 w-4 text-gray-400 stroke-[1.8]" /> {copy.exportJobs}</h2>
+              <button type="button" onClick={() => void listSegmentExportJobs(eventId).then(setExportJobs)} className="inline-flex min-h-[26px] items-center justify-center rounded-lg border border-gray-200 bg-white px-2.5 text-[10px] font-bold text-gray-700 shadow-sm hover:bg-gray-50">{copy.apply.split(" ")[0]}</button>
             </div>
-            {previewLoading ? (
-              <div className="flex justify-center py-12"><Loader2 className="h-7 w-7 animate-spin text-brand-600" /></div>
-            ) : !preview ? (
-              <div className="py-12 text-center">
-                <Users className="mx-auto h-10 w-10 text-surface-300" />
-                <p className="mt-3 text-sm font-bold text-surface-700">{copy.chooseSegment}</p>
-                <p className="mt-1 text-xs text-surface-500">{copy.previewHint}</p>
-              </div>
-            ) : (
-              <div className="mt-4 max-h-[560px] space-y-2 overflow-auto pr-1">
-                {preview.attendees.map((attendee) => (
-                  <div key={attendee.id} className="rounded-lg border border-surface-200 bg-white px-3 py-2">
-                    <p className="truncate text-sm font-bold text-surface-900">{attendee.name}</p>
-                    <p className="truncate text-xs text-surface-500">{attendee.email}</p>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {attendee.email_verified && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">{copy.emailVerified}</span>}
-                      {attendee.survey_completed && <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700">{copy.surveyDone}</span>}
-                    </div>
+            <div className="grid gap-2.5 sm:grid-cols-2 font-medium">
+              {exportJobs.map(job => (
+                <div key={job.id} className="rounded-xl border border-gray-100 bg-white p-3 shadow-sm flex items-start justify-between gap-3 transition-colors hover:border-gray-200">
+                  <div className="min-w-0 flex-1 space-y-0.5 text-xs">
+                    <p className="font-bold text-gray-950 font-mono truncate">İş ID: #{job.id} · {job.segment_key}</p>
+                    <p className="text-[11px] text-gray-400">{job.status} · <span className="font-mono">{job.row_count} satır</span></p>
+                    {job.error_message && <p className="text-[10px] font-semibold text-red-500 truncate">{job.error_message}</p>}
+                    {job.google_spreadsheet_url && <a href={job.google_spreadsheet_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 underline">E-Tablo Linki <ExternalLink className="h-2.5 w-2.5" /></a>}
                   </div>
-                ))}
+                  {job.status === "completed" && (
+                    <a href={getSegmentExportJobDownloadUrl(eventId, job.id)} className="shrink-0 inline-flex h-7 items-center justify-center rounded-lg border border-gray-200 bg-white px-2.5 text-[10px] font-bold text-gray-800 shadow-sm hover:bg-gray-50" target="_blank" rel="noreferrer">CSV</a>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* 6. ANA SEGMENT KARTLARI HAVUZU VE MATRİS CANLI ÖNİZLEME YAN PANELİ */}
+        {loading ? (
+          <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-gray-400 stroke-[2.5]" /></div>
+        ) : (
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] items-start w-full">
+            
+            {/* Sol Hücre Seti: Hazır & Dinamik Segment Kartları */}
+            <section className="grid gap-3 sm:grid-cols-2 w-full">
+              {[...standardSegments, ...dynamicSegments].map((segment) => {
+                const isSegSel = selectedKey === segment.key;
+                return (
+                  <article key={`${segment.key}-${segment.label}`} className={`rounded-2xl border bg-white p-4.5 shadow-sm flex flex-col justify-between gap-4 transition-all duration-300 ${isSegSel ? "border-gray-950 ring-1 ring-gray-950" : "border-gray-200"}`}>
+                    <div className="flex items-start justify-between gap-3 min-w-0">
+                      <div className="min-w-0 space-y-0.5 flex-1">
+                        <p className="font-bold text-xs text-gray-950 tracking-tight truncate">{segment.label}</p>
+                        <p className="text-[11px] leading-relaxed text-gray-400 line-clamp-2 font-medium">{segment.description}</p>
+                      </div>
+                      <span className="shrink-0 inline-flex rounded-md bg-gray-50 border border-gray-100 px-2 py-0.5 text-xs font-bold font-mono text-gray-900 shadow-inner tabular-nums">{segment.count}</span>
+                    </div>
+                    
+                    {/* Kart İçi Mikro Aksiyon Düğmeleri Şeridi */}
+                    <div className="grid grid-cols-5 gap-1 pt-1.5 border-t border-gray-50 text-[10px] font-bold">
+                      <button type="button" onClick={() => void loadPreview(segment.key)} className="col-span-2 inline-flex h-7 items-center justify-center gap-1 rounded-md border border-gray-200 bg-white text-gray-700 shadow-sm hover:bg-gray-50 transition-all">
+                        <Eye className="h-3 w-3 text-gray-400" /> <span>{copy.preview.split(" ")[0]}</span>
+                      </button>
+                      <button type="button" onClick={() => void exportSegment(segment.key)} className="inline-flex h-7 items-center justify-center rounded-md border border-gray-100 bg-gray-50 px-1 text-gray-600 hover:bg-gray-100">CSV</button>
+                      <button type="button" onClick={() => void queueSegmentExport(segment.key)} className="inline-flex h-7 items-center justify-center rounded-md border border-gray-100 bg-gray-50 px-1 text-gray-600 hover:bg-gray-100" title="Arka Plan Kuyruğuna Gönder">Kuyruk</button>
+                      <button type="button" onClick={() => void handleCrmHandoff(segment.key)} className="inline-flex h-7 items-center justify-center rounded-md border border-gray-100 bg-gray-50 px-1 text-gray-600 hover:bg-gray-100" title="CRM Veritabanına Aktar">CRM</button>
+                    </div>
+                  </article>
+                );
+              })}
+            </section>
+
+            {/* Sağ Hücre Seti: Canlı Katılımcı Önizleme Listesi Panel Filtresi */}
+            <aside className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4 h-fit sticky top-5">
+              <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-2.5">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950 flex items-center gap-1.5"><Users className="h-4 w-4 text-gray-400 stroke-[1.8]" /> {copy.previewTitle}</h2>
+                {preview && <span className="rounded-md bg-gray-950 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm animate-in fade-in duration-100 tabular-nums">{preview.segment.count} {copy.people}</span>}
               </div>
-            )}
-          </aside>
-        </div>
-      )}
-    </div>
+              
+              {previewLoading ? (
+                <div className="flex justify-center py-14"><Loader2 className="h-6 w-6 animate-spin text-gray-400 stroke-[2.5]" /></div>
+              ) : !preview ? (
+                <div className="py-14 text-center">
+                  <Users className="mx-auto h-9 w-9 text-gray-300 stroke-[1.5]" />
+                  <p className="mt-3 text-xs font-bold text-gray-950 tracking-tight">{copy.chooseSegment}</p>
+                  <p className="mt-1 text-[11px] text-gray-400 leading-relaxed">{copy.previewHint}</p>
+                </div>
+              ) : (
+                <div className="space-y-2.5 max-h-[520px] overflow-y-auto pr-0.5 scrollbar-none bg-white">
+                  {preview.attendees.map((attendee) => (
+                    <div key={attendee.id} className="rounded-xl border border-gray-100 bg-white p-3 shadow-sm space-y-1.5">
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-bold text-gray-950 tracking-tight">{attendee.name}</p>
+                        <p className="truncate text-[10px] font-medium text-gray-400 font-mono mt-0.5">{attendee.email}</p>
+                      </div>
+                      
+                      {/* Küçük Durum Sinyal Rozetleri */}
+                      {(attendee.email_verified || attendee.survey_completed) && (
+                        <div className="flex flex-wrap gap-1">
+                          {attendee.email_verified && <span className="rounded bg-emerald-50 px-1.5 py-0.2 text-[9px] font-bold text-emerald-700">{copy.emailVerified.split(" ")[0]}</span>}
+                          {attendee.survey_completed && <span className="rounded bg-blue-50 px-1.5 py-0.2 text-[9px] font-bold text-blue-700">{copy.surveyDone}</span>}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </aside>
+          </div>
+        )}
+
+      </div>
     </FeatureGate>
   );
 }

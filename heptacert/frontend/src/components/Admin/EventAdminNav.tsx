@@ -190,6 +190,7 @@ export default function EventAdminNav({
   const [eventMeta, setEventMeta] = useState<EventOut | null>(() => EVENT_META_CACHE.get(cacheKey) ?? null);
   const [eventAccess, setEventAccess] = useState<EventAccessOut | null>(() => EVENT_ACCESS_CACHE.get(cacheKey) ?? null);
   const [loadingEventMeta, setLoadingEventMeta] = useState(() => !EVENT_META_CACHE.has(cacheKey) || !EVENT_ACCESS_CACHE.has(cacheKey));
+  
   const visibleNavItems = useMemo(
     () => NAV_ITEMS.filter((item) => {
       if (!isNavItemEnabled(item, eventMeta)) return false;
@@ -199,6 +200,7 @@ export default function EventAdminNav({
     }),
     [eventAccess, eventMeta],
   );
+
   const copy = {
     tr: {
       allEvents: "Tüm Etkinlikler",
@@ -285,31 +287,38 @@ export default function EventAdminNav({
     container.scrollLeft += event.deltaY;
   }
 
+  // ----------------------------------------------------
+  // VARIANT: SIDEBAR MODE
+  // ----------------------------------------------------
   if (variant === "sidebar") {
     return (
-      <div className={className || "space-y-3"}>
-        <div className="surface-panel p-4 lg:p-5">
+      <div className={`w-full flex flex-col gap-4 antialiased ${className || ""}`}>
+        {/* Üst Kart Alanı - Apple Bilgi Bloğu */}
+        <div className="rounded-2xl border border-gray-200/70 bg-white p-4.5 shadow-sm">
           <Link
             href="/admin/events"
-            className="mb-2 flex w-fit items-center gap-1 text-xs font-medium text-surface-400 transition-colors hover:text-surface-600"
+            className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400 transition-colors hover:text-gray-900"
           >
-            <ChevronLeft className="h-3.5 w-3.5" />
+            <ChevronLeft className="h-3.5 w-3.5 stroke-[2.5]" />
             {copy.allEvents}
           </Link>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-surface-400">
-            {getActiveLabel(resolvedActive, lang)}
-          </p>
-          <p className="mt-1 text-base font-bold leading-snug text-surface-900 lg:text-lg">
-            {eventName || eventMeta?.name || copy.eventFallback(eventId)}
-          </p>
+          <div className="mt-3">
+            <span className="inline-flex items-center rounded-md bg-gray-50 border border-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500 uppercase tracking-tight">
+              {getActiveLabel(resolvedActive, lang)}
+            </span>
+            <h2 className="mt-1.5 text-base font-bold leading-tight text-gray-950 tracking-tight">
+              {eventName || eventMeta?.name || copy.eventFallback(eventId)}
+            </h2>
+          </div>
         </div>
 
+        {/* Buton Navigasyon Listesi */}
         <div
           ref={scrollerRef}
           onWheel={handleWheel}
-          className="scrollbar-polished overflow-x-auto pb-1"
+          className="overflow-x-auto scrollbar-none"
         >
-          <div className="flex min-w-max items-center gap-1.5 rounded-lg border border-surface-200 bg-surface-50 p-1.5 lg:min-w-0 lg:flex-wrap">
+          <div className="flex min-w-max items-center gap-1 rounded-xl border border-gray-200/80 bg-gray-50/50 p-1.5 lg:min-w-0 lg:flex-col lg:items-stretch">
             {loadingEventMeta && !eventMeta ? (
               <NavSkeleton variant="sidebar" />
             ) : visibleNavItems.map(({ tab, label, icon: Icon, href }) => {
@@ -318,14 +327,14 @@ export default function EventAdminNav({
                 <Link
                   key={tab}
                   href={href(eventId)}
-                  className={`inline-flex items-center gap-2 rounded-lg border px-3.5 py-2.5 text-sm font-semibold transition ${
+                  className={`inline-flex items-center gap-2.5 rounded-lg px-3.5 py-2 text-xs font-semibold tracking-tight transition-all duration-150 ${
                     isAct
-                      ? "border-brand-300 bg-white text-brand-700 shadow-soft"
-                      : "border-transparent bg-transparent text-surface-600 hover:border-surface-200 hover:bg-white hover:text-surface-900"
+                      ? "bg-white text-gray-950 shadow-sm border border-gray-200/60"
+                      : "border border-transparent text-gray-500 hover:text-gray-900 hover:bg-white/60"
                   }`}
                 >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  {label[lang]}
+                  <Icon className={`h-4 w-4 shrink-0 transition-transform duration-200 ${isAct ? "text-gray-950 stroke-[2]" : "text-gray-400 stroke-[1.8]"}`} />
+                  <span>{label[lang]}</span>
                 </Link>
               );
             })}
@@ -335,19 +344,33 @@ export default function EventAdminNav({
     );
   }
 
+  // ----------------------------------------------------
+  // VARIANT: INLINE MODE (Üst Yatay Çubuk)
+  // ----------------------------------------------------
   return (
-    <div className={className || "mb-6"}>
-      <Link href="/admin/events" className="mb-3 flex w-fit items-center gap-1.5 text-xs font-semibold text-surface-500 uppercase tracking-wider transition-colors hover:text-brand-600">
-        <ChevronLeft className="h-3.5 w-3.5" />
-        {copy.allEvents}
-      </Link>
-      {(eventName || eventMeta?.name) && <p className="mb-3 text-sm font-bold text-surface-900">{eventName || eventMeta?.name}</p>}
+    <div className={`w-full antialiased ${className || "mb-5"}`}>
+      <div className="flex flex-col gap-1.5 mb-3.5">
+        <Link 
+          href="/admin/events" 
+          className="inline-flex w-fit items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider transition-colors hover:text-gray-900"
+        >
+          <ChevronLeft className="h-3.5 w-3.5 stroke-[2.5]" />
+          {copy.allEvents}
+        </Link>
+        {(eventName || eventMeta?.name) && (
+          <h1 className="text-sm font-bold text-gray-950 tracking-tight">
+            {eventName || eventMeta?.name}
+          </h1>
+        )}
+      </div>
+
       <div
         ref={scrollerRef}
         onWheel={handleWheel}
-        className="scrollbar-polished overflow-x-auto pb-2"
+        className="overflow-x-auto scrollbar-none"
       >
-        <div className="flex min-w-max gap-0.5 border-b border-surface-200 lg:min-w-0 lg:flex-wrap lg:gap-1 lg:rounded-lg lg:border lg:bg-surface-50 lg:p-1.5">
+        {/* Apple Segmented Control Çizgisinde Yatay Panel */}
+        <div className="flex min-w-max gap-1 border border-gray-200/80 bg-gray-50/60 p-1 rounded-xl lg:min-w-0 lg:flex-wrap">
           {loadingEventMeta && !eventMeta ? (
             <NavSkeleton variant="inline" />
           ) : visibleNavItems.map(({ tab, label, icon: Icon, href }) => {
@@ -356,15 +379,14 @@ export default function EventAdminNav({
               <Link
                 key={tab}
                 href={href(eventId)}
-                className={`group relative flex items-center gap-2 rounded-lg px-3 py-2.5 text-xs font-semibold transition-all lg:px-3.5 ${
+                className={`group relative inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold tracking-tight transition-all ${
                   isAct
-                    ? "text-brand-700 bg-brand-50 lg:bg-white lg:border lg:border-brand-200"
-                    : "text-surface-600 hover:text-surface-900 hover:bg-surface-100 lg:hover:bg-white lg:hover:border lg:hover:border-surface-200"
+                    ? "bg-white text-gray-950 shadow-sm border border-gray-200/60"
+                    : "border border-transparent text-gray-500 hover:text-gray-900 hover:bg-white/40"
                 }`}
               >
-                <Icon className="h-4 w-4 shrink-0 transition-transform group-hover:scale-110" />
-                <span className="hidden sm:inline">{label[lang]}</span>
-                {isAct && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-600 rounded-t-full lg:hidden" />}
+                <Icon className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-hover:scale-105 ${isAct ? "text-gray-950 stroke-[2]" : "text-gray-400 stroke-[1.8]"}`} />
+                <span className="inline">{label[lang]}</span>
               </Link>
             );
           })}
@@ -377,14 +399,14 @@ export default function EventAdminNav({
 function NavSkeleton({ variant }: { variant: "inline" | "sidebar" }) {
   const itemClass =
     variant === "sidebar"
-      ? "h-10 w-28 rounded-lg bg-surface-200/70"
-      : "h-9 w-10 rounded-lg bg-surface-200/70 sm:w-24";
+      ? "h-8 w-full rounded-lg bg-gray-200/60"
+      : "h-7 w-20 rounded-lg bg-gray-200/60";
   return (
-    <>
+    <div className={`w-full flex ${variant === "sidebar" ? "flex-col gap-1" : "flex-row gap-1"}`}>
       {Array.from({ length: 5 }).map((_, index) => (
         <div key={index} className={`${itemClass} animate-pulse`} />
       ))}
-    </>
+    </div>
   );
 }
 

@@ -1,9 +1,8 @@
 ﻿"use client";
 
-import { apiFetch, API_BASE, getToken } from "@/lib/api";
-import Link from "next/link";
-import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft,
@@ -26,11 +25,10 @@ import {
   FileDown,
   CheckSquare,
   Square,
-  QrCode,
-  Users,
 } from "lucide-react";
-import { useT } from "@/lib/i18n";
-import { useI18n } from "@/lib/i18n";
+
+import { apiFetch, API_BASE, getToken } from "@/lib/api";
+import { useT, useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/useToast";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 import ConfirmModal from "@/components/Admin/ConfirmModal";
@@ -81,21 +79,21 @@ type CertificateCostEstimate = {
 function getStatusStyle(s: CertStatus) {
   if (s === "active") return {
     color: "text-emerald-700",
-    bg: "bg-emerald-50",
-    border: "border-emerald-200",
-    icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+    bg: "bg-emerald-50/60",
+    border: "border-emerald-100",
+    icon: <CheckCircle2 className="h-3.5 w-3.5 stroke-[2.5]" />,
   };
   if (s === "expired") return {
     color: "text-amber-700",
-    bg: "bg-amber-50",
-    border: "border-amber-200",
-    icon: <Clock className="h-3.5 w-3.5" />,
+    bg: "bg-amber-50/60",
+    border: "border-amber-100",
+    icon: <Clock className="h-3.5 w-3.5 stroke-[2]" />,
   };
   return {
-    color: "text-rose-700",
-    bg: "bg-rose-50",
-    border: "border-rose-200",
-    icon: <ShieldOff className="h-3.5 w-3.5" />,
+    color: "text-red-600",
+    bg: "bg-red-50/60",
+    border: "border-red-100",
+    icon: <ShieldOff className="h-3.5 w-3.5 stroke-[1.8]" />,
   };
 }
 
@@ -104,6 +102,7 @@ export default function CertificatesPage() {
   const eventId = Number(params.id);
   const t = useT();
   const { lang } = useI18n();
+  const toast = useToast();
 
   const [items, setItems] = useState<CertificateOut[]>([]);
   const [total, setTotal] = useState(0);
@@ -135,13 +134,13 @@ export default function CertificatesPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const allSelected = items.length > 0 && items.every((c) => selectedIds.has(c.id));
-  const toast = useToast();
+
   const copy = lang === "tr"
     ? {
         pageTitle: "Sertifikalar",
         pageSubtitle: "Basım, filtreleme, durum güncelleme ve dışa aktarım artık tek akışta.",
-        exportCsv: "CSV indir",
-        exportExcel: "Excel indir",
+        exportCsv: "CSV İndir",
+        exportExcel: "Excel İndir",
         visibleResults: "Görünen sonuç",
         selected: "Seçili",
         currentPage: "Sayfa",
@@ -301,7 +300,6 @@ export default function CertificatesPage() {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
   useEffect(() => {
@@ -435,7 +433,6 @@ export default function CertificatesPage() {
   function exportCerts(format: "csv" | "xlsx") {
     const token = getToken();
     const url = `${API_BASE}/admin/events/${eventId}/certificates/export?format=${format}`;
-    // Use a temporary link with authorization header via fetch + blob
     fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.blob())
       .then((blob) => {
@@ -451,6 +448,7 @@ export default function CertificatesPage() {
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const containerVars = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.05 } } };
   const rowVars = { hidden: { opacity: 0, y: 6 }, show: { opacity: 1, y: 0 } };
+  
   const visibleStats = useMemo(() => {
     return items.reduce(
       (acc, item) => {
@@ -484,53 +482,58 @@ export default function CertificatesPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 pb-24 pt-6">
-      <EventAdminNav eventId={eventId} active="certificates" eventName={eventName || `Etkinlik #${eventId}`} className="flex flex-col gap-3" />
+    <div className="flex w-full flex-col gap-5 pb-16 pt-4 antialiased text-gray-900">
+      <EventAdminNav eventId={eventId} active="certificates" eventName={eventName || `Etkinlik #${eventId}`} />
+      
       <PageHeader
         title={copy.pageTitle}
         subtitle={copy.pageSubtitle}
-        icon={<FileText className="h-5 w-5" />}
+        icon={<FileText className="h-4 w-4 stroke-[2]" />}
         actions={
-          <>
-            <button onClick={() => exportCerts("csv")} className="btn-secondary">
-              <FileDown className="h-4 w-4" />
-              {copy.exportCsv}
+          <div className="flex items-center gap-2">
+            <button onClick={() => exportCerts("csv")} className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-95">
+              <FileDown className="h-4 w-4 text-gray-400" />
+              <span>{copy.exportCsv}</span>
             </button>
-            <button onClick={() => exportCerts("xlsx")} className="btn-primary">
-              <FileDown className="h-4 w-4" />
-              {copy.exportExcel}
+            <button onClick={() => exportCerts("xlsx")} className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-95">
+              <FileDown className="h-4 w-4 text-white/60" />
+              <span>{copy.exportExcel}</span>
             </button>
-          </>
+          </div>
         }
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="card p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-400">{t("certs_total")}</p>
-          <p className="mt-2 text-3xl font-black text-surface-900">{total}</p>
-          <p className="mt-1 text-xs text-surface-500">{copy.visibleResults}</p>
+      {/* 4'LÜ ÜST ÖZET METRİK ROZETLERİ */}
+      <div className="grid grid-cols-2 gap-3.5 xl:grid-cols-4">
+        <div className="rounded-2xl border border-gray-200 bg-white p-4.5 shadow-sm space-y-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{t("certs_total")}</p>
+          <p className="text-2xl font-bold tracking-tight text-gray-950 font-mono tabular-nums">{total}</p>
+          <p className="text-[11px] font-medium text-gray-400">{copy.visibleResults}</p>
         </div>
-        <div className="card p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.currentView}</p>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">{t("certs_status_active")} {visibleStats.active}</span>
-            <span className="rounded-full bg-rose-50 px-3 py-1 text-rose-700">{t("certs_status_revoked")} {visibleStats.revoked}</span>
-            <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-700">{t("certs_status_expired")} {visibleStats.expired}</span>
+        
+        <div className="rounded-2xl border border-gray-200 bg-white p-4.5 shadow-sm space-y-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{copy.currentView}</p>
+          <div className="pt-1 flex flex-wrap gap-1 text-[9px] font-bold">
+            <span className="rounded bg-emerald-50 border border-emerald-100/40 px-1.5 py-0.5 text-emerald-700">AKTİF: {visibleStats.active}</span>
+            <span className="rounded bg-red-50 border border-red-100/40 px-1.5 py-0.5 text-red-600">İPTAL: {visibleStats.revoked}</span>
+            <span className="rounded bg-amber-50 border border-amber-100/40 px-1.5 py-0.5 text-amber-700">SÜRE: {visibleStats.expired}</span>
           </div>
         </div>
-        <div className="card p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.selected}</p>
-          <p className="mt-2 text-3xl font-black text-surface-900">{selectedIds.size}</p>
-          <p className="mt-1 text-xs text-surface-500">{copy.selectionTitle}</p>
+
+        <div className="rounded-2xl border border-gray-200 bg-white p-4.5 shadow-sm space-y-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{copy.selected}</p>
+          <p className="text-2xl font-bold tracking-tight text-gray-950 font-mono tabular-nums">{selectedIds.size}</p>
+          <p className="text-[11px] font-medium text-gray-400">{copy.selectionTitle}</p>
         </div>
-        <div className="card p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.currentPage}</p>
-          <p className="mt-2 text-3xl font-black text-surface-900">{page}/{totalPages}</p>
-          <p className="mt-1 text-xs font-mono text-surface-500">#{eventId}</p>
+
+        <div className="rounded-2xl border border-gray-200 bg-white p-4.5 shadow-sm space-y-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{copy.currentPage}</p>
+          <p className="text-2xl font-bold tracking-tight text-gray-950 font-mono tabular-nums">{page} / {totalPages}</p>
+          <p className="text-[11px] font-semibold text-gray-300 font-mono">#EV-{eventId}</p>
         </div>
       </div>
 
-      {/* Bulk action floating bar */}
+      {/* TOPLU EYLEM YÜZEY PANELİ (Bulk Action Floating Bar UX) */}
       <AnimatePresence>
         {selectedIds.size > 0 && (
           <BulkActionBar
@@ -538,274 +541,311 @@ export default function CertificatesPage() {
             title={copy.selectionTitle}
             description={copy.selectedCount(selectedIds.size)}
             onClear={() => setSelectedIds(new Set())}
-            loading={bulkLoading ? <Loader2 className="mt-3 h-4 w-4 animate-spin" /> : null}
+            loading={bulkLoading ? <Loader2 className="h-4 w-4 animate-spin text-white" /> : null}
           >
-            <button onClick={() => setBulkTarget("enable_auto_renew")} disabled={bulkLoading} className="flex items-center justify-center gap-1.5 rounded-2xl bg-emerald-600 px-3 py-2.5 text-xs font-bold transition-colors hover:bg-emerald-700 disabled:opacity-50">
-              <RefreshCcw className="h-3.5 w-3.5" /> {copy.autoRenewEnable}
-            </button>
-            <button onClick={() => setBulkTarget("disable_auto_renew")} disabled={bulkLoading} className="flex items-center justify-center gap-1.5 rounded-2xl bg-slate-700 px-3 py-2.5 text-xs font-bold transition-colors hover:bg-slate-800 disabled:opacity-50">
-              <RefreshCcw className="h-3.5 w-3.5" /> {copy.autoRenewDisable}
-            </button>
-            <button onClick={() => setBulkTarget("revoke")} disabled={bulkLoading} className="flex items-center justify-center gap-1.5 rounded-2xl bg-rose-600 px-3 py-2.5 text-xs font-bold transition-colors hover:bg-rose-700 disabled:opacity-50">
-              <ShieldOff className="h-3.5 w-3.5" /> {copy.revokeAction}
-            </button>
-            <button onClick={() => setBulkTarget("expire")} disabled={bulkLoading} className="flex items-center justify-center gap-1.5 rounded-2xl bg-amber-600 px-3 py-2.5 text-xs font-bold transition-colors hover:bg-amber-700 disabled:opacity-50">
-              <Clock className="h-3.5 w-3.5" /> {copy.expireAction}
-            </button>
-            <button onClick={() => setBulkTarget("delete")} disabled={bulkLoading} className="flex items-center justify-center gap-1.5 rounded-2xl bg-red-700 px-3 py-2.5 text-xs font-bold transition-colors hover:bg-red-800 disabled:opacity-50">
-              <Trash2 className="h-3.5 w-3.5" /> {copy.deleteAction}
-            </button>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button onClick={() => setBulkTarget("enable_auto_renew")} disabled={bulkLoading} className="inline-flex min-h-[32px] items-center justify-center gap-1 rounded-lg border border-white/20 bg-white/10 px-2.5 text-[11px] font-bold text-white transition hover:bg-white/20">
+                <RefreshCcw className="h-3 w-3" /> <span>{copy.autoRenewEnable}</span>
+              </button>
+              <button onClick={() => setBulkTarget("disable_auto_renew")} disabled={bulkLoading} className="inline-flex min-h-[32px] items-center justify-center gap-1 rounded-lg border border-white/20 bg-white/10 px-2.5 text-[11px] font-bold text-white transition hover:bg-white/20">
+                <RefreshCcw className="h-3 w-3" /> <span>{copy.autoRenewDisable}</span>
+              </button>
+              <button onClick={() => setBulkTarget("revoke")} disabled={bulkLoading} className="inline-flex min-h-[32px] items-center justify-center gap-1 rounded-lg bg-red-600 px-2.5 text-[11px] font-bold text-white transition hover:bg-red-700">
+                <ShieldOff className="h-3 w-3" /> <span>{copy.revokeAction}</span>
+              </button>
+              <button onClick={() => setBulkTarget("expire")} disabled={bulkLoading} className="inline-flex min-h-[32px] items-center justify-center gap-1 rounded-lg bg-amber-600 px-2.5 text-[11px] font-bold text-white transition hover:bg-amber-700">
+                <Clock className="h-3 w-3" /> <span>{copy.expireAction}</span>
+              </button>
+              <button onClick={() => setBulkTarget("delete")} disabled={bulkLoading} className="inline-flex min-h-[32px] items-center justify-center gap-1 rounded-lg bg-red-700 px-2.5 text-[11px] font-bold text-white transition hover:bg-red-800">
+                <Trash2 className="h-3 w-3" /> <span>{copy.deleteAction}</span>
+              </button>
+            </div>
           </BulkActionBar>
         )}
       </AnimatePresence>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_400px]">
-
-        {/* LEFT */}
-        <div className="flex flex-col gap-5 xl:order-2">
-
-          <motion.div initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} className="order-1 card p-6">
-            <div className="mb-3 flex items-center gap-3 font-bold text-gray-800">
-              <div className="rounded-xl bg-emerald-50 p-2"><Hash className="h-4 w-4 text-emerald-600" /></div>
-              {copy.costSimulator}
-              {costLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-surface-400" />}
+      {/* ÇİFT SÜTUN SİMETRİK RAPOR VE LİSTE GRUBU */}
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_360px] items-start">
+        
+        {/* SAĞ SÜTUN: MANUEL BASIM, SİMÜLATÖR VE FİLTRE DOCK GRUBU */}
+        <div className="flex flex-col gap-4 xl:order-2">
+          
+          {/* A. MALİYET SİMÜLATÖRÜ */}
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 border-b border-gray-100 pb-2.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-100 bg-emerald-50 text-emerald-600 shadow-sm">
+                <Hash className="h-3.5 w-3.5 stroke-[2]" />
+              </div>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950">{copy.costSimulator}</h2>
+              {costLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400" />}
             </div>
-            <p className="mb-4 text-sm leading-6 text-surface-500">{copy.costSimulatorBody}</p>
-            <div className="grid gap-3">
-              <label className="grid gap-1.5">
-                <span className="label">{copy.certCount}</span>
+            <p className="text-[11px] leading-relaxed text-gray-400 font-medium">{copy.costSimulatorBody}</p>
+            
+            <div className="space-y-3.5">
+              <label className="block w-full">
+                <span className="block text-[11px] font-bold text-gray-500 mb-1">{copy.certCount}</span>
                 <input
                   type="number"
                   min={1}
                   max={100000}
                   value={simCount}
                   onChange={(e) => setSimCount(Math.max(1, Math.min(100000, Number(e.target.value) || 1)))}
-                  className="input-field"
+                  className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-gray-900 font-mono"
                 />
               </label>
-              <label className="grid gap-1.5">
-                <span className="label">{copy.avgSize}</span>
+
+              <label className="block w-full">
+                <span className="block text-[11px] font-bold text-gray-500 mb-1">{copy.avgSize}</span>
                 <input
                   type="number"
                   min={0}
                   step={0.1}
                   value={simSizeMb}
                   onChange={(e) => setSimSizeMb(Math.max(0, Number(e.target.value) || 0))}
-                  className="input-field"
+                  className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-gray-900 font-mono"
                 />
               </label>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3">
-                  <p className="font-bold text-emerald-900">{copy.firstMonthTotal}</p>
-                  <p className="mt-1 text-lg font-black text-emerald-800">{formatHc(costEstimate?.monthly_total_units)}</p>
+
+              <div className="grid grid-cols-2 gap-2 text-[10px] font-bold tracking-tight">
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50/20 p-2.5">
+                  <p className="text-gray-400 truncate">{copy.firstMonthTotal}</p>
+                  <p className="text-sm font-bold text-emerald-600 font-mono mt-0.5">{formatHc(costEstimate?.monthly_total_units)}</p>
                 </div>
-                <div className="rounded-2xl border border-brand-100 bg-brand-50 p-3">
-                  <p className="font-bold text-brand-900">{copy.firstYearTotal}</p>
-                  <p className="mt-1 text-lg font-black text-brand-800">{formatHc(costEstimate?.yearly_total_units)}</p>
+                <div className="rounded-xl border border-gray-200 bg-gray-50/20 p-2.5">
+                  <p className="text-gray-400 truncate">{copy.firstYearTotal}</p>
+                  <p className="text-sm font-bold text-gray-900 font-mono mt-0.5">{formatHc(costEstimate?.yearly_total_units)}</p>
                 </div>
-                <div className="rounded-2xl border border-surface-200 bg-surface-50 p-3">
-                  <p className="font-bold text-surface-700">{copy.monthlyRenewal}</p>
-                  <p className="mt-1 text-lg font-black text-surface-900">{formatHc(costEstimate?.monthly_renewal_units)}</p>
+                <div className="rounded-xl border border-gray-100 bg-gray-50/40 p-2.5">
+                  <p className="text-gray-400 truncate">{copy.monthlyRenewal}</p>
+                  <p className="text-xs font-bold text-gray-500 font-mono mt-0.5">{formatHc(costEstimate?.monthly_renewal_units)}</p>
                 </div>
-                <div className="rounded-2xl border border-surface-200 bg-surface-50 p-3">
-                  <p className="font-bold text-surface-700">{copy.yearlyRenewal}</p>
-                  <p className="mt-1 text-lg font-black text-surface-900">{formatHc(costEstimate?.yearly_renewal_units)}</p>
+                <div className="rounded-xl border border-gray-100 bg-gray-50/40 p-2.5">
+                  <p className="text-gray-400 truncate">{copy.yearlyRenewal}</p>
+                  <p className="text-xs font-bold text-gray-500 font-mono mt-0.5">{formatHc(costEstimate?.yearly_renewal_units)}</p>
                 </div>
               </div>
             </div>
           </motion.div>
 
-          {/* Issue card */}
-          <motion.div initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} className="order-2 card relative overflow-hidden p-6">
-            <div className="absolute top-0 left-0 w-1 h-full rounded-l-3xl bg-amber-400" />
-            <div className="mb-3 flex items-center gap-3 text-gray-800 font-bold">
-              <div className="p-2 rounded-xl bg-amber-50"><Plus className="h-4 w-4 text-amber-500" /></div>
-              {copy.issueTitle}
+          {/* B. MANUEL TEKİL BASIM KARTI */}
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4 relative overflow-hidden">
+            <div className="flex items-center gap-2 border-b border-gray-100 pb-2.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-amber-100 bg-amber-50 text-amber-500 shadow-sm">
+                <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+              </div>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950">{copy.issueTitle}</h2>
             </div>
-            <p className="mb-5 text-sm leading-6 text-surface-500">{copy.issueBody}</p>
-            <div className="grid gap-3">
+            <p className="text-[11px] leading-relaxed text-gray-400 font-medium">{copy.issueBody}</p>
+
+            <div className="space-y-3.5">
               {templateReady === false && (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                    <div>
-                      <p className="font-bold">{copy.templateNotReadyTitle}</p>
-                      <p className="mt-1 text-xs leading-5 text-amber-800">{copy.templateNotReadyBody}</p>
-                      <Link href={`/admin/events/${eventId}/editor`} className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-amber-700">
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        {copy.openEditor}
-                      </Link>
-                    </div>
+                <div className="rounded-xl border border-amber-100 bg-amber-50/30 p-3.5 flex items-start gap-2.5">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-amber-500 stroke-[2] mt-0.5" />
+                  <div className="space-y-1.5 flex-1 text-[11px] font-medium leading-relaxed">
+                    <p className="font-bold text-amber-900">{copy.templateNotReadyTitle}</p>
+                    <p className="text-amber-800">{copy.templateNotReadyBody}</p>
+                    <Link href={`/admin/events/${eventId}/editor`} className="inline-flex min-h-[28px] items-center justify-center gap-1 rounded-lg bg-amber-600 px-2.5 font-bold text-white shadow-sm transition hover:bg-amber-700 pt-0.5">
+                      <ExternalLink className="h-3 w-3 stroke-[2]" /> <span>{copy.openEditor}</span>
+                    </Link>
                   </div>
                 </div>
               )}
-              <div>
-                <label className="label">{t("certs_recipient")}</label>
-                <input value={issueName} onChange={(e) => setIssueName(e.target.value)} placeholder={copy.recipientPlaceholder} className="input-field" />
-              </div>
-              <div>
-                <label className="label">{t("certs_hosting_term")}</label>
-                <select value={issueTerm} onChange={(e) => setIssueTerm(e.target.value as any)} className="input-field appearance-none">
-                  <option value="monthly">{t("certs_term_monthly")}</option>
-                  <option value="yearly">{t("certs_term_yearly")} (12 Ay)</option>
-                </select>
-              </div>
-              <div className="rounded-2xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                <div className="flex items-center justify-between gap-3 font-bold">
-                  <span>{copy.estimatedCost}</span>
-                  <span>{issueEstimate ? formatHc(issueEstimate.total) : copy.costUnknown}</span>
+
+              <label className="block w-full">
+                <span className="block text-[11px] font-bold text-gray-500 mb-1">{t("certs_recipient")}</span>
+                <input value={issueName} onChange={(e) => setIssueName(e.target.value)} placeholder={copy.recipientPlaceholder} className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-gray-900 placeholder:text-gray-400" />
+              </label>
+
+              <label className="block w-full">
+                <span className="block text-[11px] font-bold text-gray-500 mb-1">{t("certs_hosting_term")}</span>
+                <div className="relative inline-flex items-center w-full">
+                  <select value={issueTerm} onChange={(e) => setIssueTerm(e.target.value as any)} className="w-full min-h-[38px] appearance-none rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-gray-900 cursor-pointer">
+                    <option value="monthly">{t("certs_term_monthly")}</option>
+                    <option value="yearly">{t("certs_term_yearly")} (12 Ay)</option>
+                  </select>
+                  <ChevronLeft className="pointer-events-none absolute right-3 h-3.5 w-3.5 text-gray-400 rotate-270" />
+                </div>
+              </label>
+
+              <div className="rounded-xl border border-amber-100 bg-amber-50/20 p-3 flex flex-col gap-1 text-[11px] font-bold text-amber-900 leading-normal">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-400 font-medium">{copy.estimatedCost}</span>
+                  <span className="font-mono">{issueEstimate ? formatHc(issueEstimate.total) : copy.costUnknown}</span>
                 </div>
                 {issueEstimate && (
-                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-amber-800">
+                  <div className="flex flex-wrap gap-x-3 text-[10px] text-amber-700/80 font-semibold">
                     <span>{copy.issueCost}: {formatHc(issueEstimate.issue)}</span>
                     <span>{copy.hostingCost}: {formatHc(issueEstimate.hosting)}</span>
                   </div>
                 )}
               </div>
-              <button onClick={issueOne} disabled={issuing || templateReady === false} className="btn-primary mt-1 w-full justify-center">
-                {issuing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                {copy.issueAction}
+
+              <button onClick={issueOne} disabled={issuing || templateReady === false} className="w-full inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-98 disabled:opacity-40">
+                {issuing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5 stroke-[2]" />}
+                <span>{copy.issueAction}</span>
               </button>
             </div>
           </motion.div>
 
-          {/* Filter card */}
-          <motion.div initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className="order-3 card p-6">
-            <div className="mb-3 flex items-center gap-3 text-gray-800 font-bold">
-              <div className="p-2 rounded-xl bg-brand-50"><Filter className="h-4 w-4 text-brand-600" /></div>
-              {copy.filterTitle}
-            </div>
-            <p className="mb-4 text-sm leading-6 text-surface-500">{copy.filterBody}</p>
-            <div className="grid gap-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <input value={search} onChange={(e) => { setPage(1); setSearch(e.target.value); }} placeholder={t("certs_search_placeholder")} className="input-field pl-9" />
+          {/* C. CANLI FİLTRE VE ARAMA DOCK'I */}
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 border-b border-gray-100 pb-2.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-100 bg-gray-50 text-gray-500 shadow-sm">
+                <Filter className="h-3.5 w-3.5 stroke-[1.8]" />
               </div>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950">{copy.filterTitle}</h2>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 stroke-[2]" />
+                <input value={search} onChange={(e) => { setPage(1); setSearch(e.target.value); }} placeholder={t("certs_search_placeholder")} className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white pl-9 pr-3.5 text-xs font-semibold outline-none transition focus:border-gray-900 placeholder:text-gray-400" />
+              </div>
+              
               <div className="flex gap-2">
-                <select value={status} onChange={(e) => { setPage(1); setStatus(e.target.value as any); }} className="input-field flex-1 appearance-none">
-                  <option value="">{t("certs_status_all")}</option>
-                  <option value="active">{t("certs_status_active")}</option>
-                  <option value="revoked">{t("certs_status_revoked")}</option>
-                  <option value="expired">{t("certs_status_expired")}</option>
-                </select>
-                <button onClick={() => load()} className="btn-secondary justify-center">
-                  <RefreshCcw className="h-4 w-4" />
-                  <span className="hidden sm:inline">{copy.refresh}</span>
+                <div className="relative inline-flex items-center flex-1 w-full">
+                  <select value={status} onChange={(e) => { setPage(1); setStatus(e.target.value as any); }} className="w-full min-h-[38px] appearance-none rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-gray-900 cursor-pointer">
+                    <option value="">{t("certs_status_all")}</option>
+                    <option value="active">{t("certs_status_active")}</option>
+                    <option value="revoked">{t("certs_status_revoked")}</option>
+                    <option value="expired">{t("certs_status_expired")}</option>
+                  </select>
+                  <ChevronLeft className="pointer-events-none absolute right-3 h-3.5 w-3.5 text-gray-400 rotate-270" />
+                </div>
+                
+                <button onClick={() => void load()} className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-700 shadow-sm hover:bg-gray-50 transition active:scale-95">
+                  <RefreshCcw className="h-3.5 w-3.5 stroke-[2]" />
                 </button>
               </div>
             </div>
           </motion.div>
 
+          {/* DİNAMİK LOKAL HATA SİNYALİ */}
           <AnimatePresence>
             {err && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                <div className="error-banner flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 shrink-0" /> {err}
+                <div className="rounded-xl border border-red-100 bg-red-50/40 p-3.5 text-xs font-semibold text-red-600 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{err}</span>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        {/* RIGHT - Table */}
+        {/* SOL SÜTUN: SERTİFİKA VERİ MATRİS TABLOSU BARINDIRICI */}
         <div className="flex flex-col xl:order-1">
-          <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="card overflow-hidden flex flex-col flex-grow">
-
-            <div className="bg-surface-50 border-b border-surface-100 px-5 py-4 sm:px-6 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3 text-surface-700 font-bold">
-                <button onClick={toggleSelectAll} className="text-surface-400 hover:text-brand-600 transition-colors" title={lang === "tr" ? "Tumunu sec" : "Select all"}>
-                  {allSelected ? <CheckSquare className="h-4 w-4 text-brand-600" /> : <Square className="h-4 w-4" />}
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col flex-grow">
+            
+            {/* Tablo Üst Kontrol Başlığı */}
+            <div className="border-b border-gray-100 px-4.5 py-3.5 flex items-center justify-between gap-3 bg-white">
+              <div className="flex items-center gap-2.5 font-bold text-gray-900 text-xs">
+                <button type="button" onClick={toggleSelectAll} className="text-gray-400 hover:text-gray-950 transition-colors">
+                  {allSelected ? <CheckSquare className="h-4 w-4 text-gray-950 stroke-[2.2]" /> : <Square className="h-4 w-4 stroke-[1.8]" />}
                 </button>
-                <FileText className="h-4 w-4 text-gray-400" />
-                {t("certs_title")}
+                <FileText className="h-4 w-4 text-gray-400 stroke-[1.8]" />
+                <span className="uppercase tracking-wider font-bold text-gray-900">{t("certs_title")}</span>
               </div>
-              <div className="flex gap-2 text-xs font-bold text-gray-500">
+              
+              <div className="flex gap-1.5 text-[10px] font-bold text-gray-400">
                 {selectedIds.size > 0 && (
-                  <span className="rounded-full bg-brand-100 border border-brand-200 px-3 py-0.5 text-brand-700">{selectedIds.size} {copy.selected.toLowerCase()}</span>
+                  <span className="rounded-md border border-gray-950 bg-gray-950 px-2 py-0.5 text-white tracking-tight shadow-sm animate-in fade-in duration-100">{selectedIds.size} {copy.selected.toLowerCase()}</span>
                 )}
-                <span className="rounded-full bg-surface-100 border border-surface-200 px-3 py-0.5">{t("certs_total")} {total}</span>
-                <span className="rounded-full bg-surface-100 border border-surface-200 px-3 py-0.5">{page}/{totalPages}</span>
+                <span className="rounded-md border border-gray-100 bg-gray-50 px-2 py-0.5">{t("certs_total")}: {total}</span>
               </div>
             </div>
 
+            {/* Gövde Veri Akış Slotları */}
             {loading ? (
               <div className="flex flex-col items-center justify-center p-24 flex-grow">
-                <Loader2 className="h-8 w-8 animate-spin text-brand-500 mb-3" />
+                <Loader2 className="h-6 w-6 animate-spin text-gray-400 stroke-[2.5]" />
               </div>
             ) : items.length === 0 ? (
-              <div className="flex flex-col items-center justify-center p-24 text-center flex-grow">
-                <Search className="h-10 w-10 text-gray-200 mb-3" />
-                <p className="text-sm text-gray-500">{t("certs_empty")}</p>
+              <div className="flex flex-col items-center justify-center p-20 text-center flex-grow space-y-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-100 bg-gray-50 text-gray-400 shadow-sm">
+                  <Search className="h-4 w-4 stroke-[1.8]" />
+                </div>
+                <p className="text-xs font-semibold text-gray-400 tracking-tight">{t("certs_empty")}</p>
               </div>
             ) : (
-              <motion.div variants={containerVars} initial="hidden" animate="show" className="grid gap-3 p-4 sm:p-5">
+              <motion.div variants={containerVars} initial="hidden" animate="show" className="divide-y divide-gray-100 bg-white">
                 {items.map((c) => {
                   const s = getStatusStyle(c.status);
                   const canDownload = c.status === "active" && !!c.pdf_url;
                   const isSelected = selectedIds.has(c.id);
                   return (
-                    <motion.div key={c.id} variants={rowVars} className={`rounded-3xl border p-4 sm:p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-4 transition-colors ${isSelected ? "border-brand-200 bg-brand-50/60" : "border-surface-200 bg-white hover:border-surface-300"}`}>
+                    <motion.div 
+                      key={c.id} 
+                      variants={rowVars} 
+                      className={`flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4.5 transition-colors relative ${
+                        isSelected ? "bg-gray-50/50" : "hover:bg-gray-50/20"
+                      }`}
+                    >
                       <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <button onClick={() => toggleSelect(c.id)} className="mt-0.5 shrink-0 text-gray-300 hover:text-brand-600 transition-colors">
-                          {isSelected ? <CheckSquare className="h-4 w-4 text-brand-600" /> : <Square className="h-4 w-4" />}
+                        <button type="button" onClick={() => toggleSelect(c.id)} className="mt-0.5 shrink-0 text-gray-300 hover:text-gray-950 transition-colors">
+                          {isSelected ? <CheckSquare className="h-4 w-4 text-gray-950 stroke-[2.2]" /> : <Square className="h-4 w-4 stroke-[1.5]" />}
                         </button>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${s.bg} ${s.color} ${s.border}`}>
-                              {s.icon} {c.status}
+                        
+                        <div className="flex-1 min-w-0 space-y-1.5">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-tight shadow-sm ${s.bg} ${s.color} ${s.border}`}>
+                              {s.icon} <span>{c.status}</span>
                             </span>
-                            <span className="text-base font-semibold text-gray-800 truncate">{c.student_name}</span>
+                            <h3 className="text-xs font-bold text-gray-950 tracking-tight truncate">{c.student_name}</h3>
                           </div>
-                          <div className="flex flex-wrap gap-x-3 gap-y-2 text-[10px] font-mono text-gray-400">
-                            <span className="flex items-center gap-1"><Hash className="h-3 w-3" />{c.uuid.split("-")[0]}...</span>
-                            {c.public_id && <span className="flex items-center gap-1"><LockKeyhole className="h-3 w-3" />{c.public_id}</span>}
-                            {c.hosting_term && <span className="rounded-full border border-gray-100 bg-gray-50 px-2.5 py-1">{c.hosting_term}</span>}
-                            <span className="rounded-full border border-gray-100 bg-gray-50 px-2.5 py-1">{copy.remaining}: {formatRemaining(c)}</span>
-                            <span className="rounded-full border border-gray-100 bg-gray-50 px-2.5 py-1">{formatHc(c.total_cost_units)}</span>
-                            <span className="rounded-full border border-gray-100 bg-gray-50 px-2.5 py-1">
-                              {copy.monthlyCost}: {formatHc(c.monthly_cost_units)} / {copy.yearlyCost}: {formatHc(c.yearly_cost_units)}
-                            </span>
-                            <span className={`rounded-full border px-2.5 py-1 ${c.auto_renew_enabled ? "border-emerald-100 bg-emerald-50 text-emerald-700" : "border-gray-100 bg-gray-50 text-gray-400"}`}>
+                          
+                          {/* Teknik Bilgi Hap Kümesi */}
+                          <div className="flex flex-wrap gap-1.5 text-[10px] font-semibold text-gray-400 font-mono leading-none">
+                            <span className="flex items-center gap-0.5 bg-gray-50 border border-gray-100/60 rounded px-1.5 py-0.5"><Hash className="h-2.5 w-2.5" />{c.uuid.split("-")[0]}</span>
+                            {c.public_id && <span className="flex items-center gap-0.5 bg-gray-50 border border-gray-100/60 rounded px-1.5 py-0.5"><LockKeyhole className="h-2.5 w-2.5" />{c.public_id}</span>}
+                            {c.hosting_term && <span className="bg-gray-50 border border-gray-100/60 rounded px-1.5 py-0.5 uppercase">{c.hosting_term}</span>}
+                            <span className="bg-gray-50 border border-gray-100/60 rounded px-1.5 py-0.5">{copy.remaining}: {formatRemaining(c)}</span>
+                            <span className="bg-gray-50 border border-gray-100/60 rounded px-1.5 py-0.5">{formatHc(c.total_cost_units)}</span>
+                            <span className={`border rounded px-1.5 py-0.5 ${c.auto_renew_enabled ? "border-emerald-100 bg-emerald-50/40 text-emerald-700" : "border-gray-100 bg-gray-50 text-gray-400"}`}>
                               {c.auto_renew_enabled ? copy.autoRenewOn : copy.autoRenewOff}
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex w-full flex-col gap-2 shrink-0 xl:w-[360px]">
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          <a href={`/verify/${c.uuid}`} target="_blank" className="btn-secondary justify-center text-xs">
-                            <ExternalLink className="h-3.5 w-3.5" /> {copy.verifyAction}
+                      {/* Kart İçi Eylem Konsolu (Action Bar Grid) */}
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 lg:w-[320px] self-end lg:self-auto w-full sm:w-auto">
+                        <div className="grid grid-cols-2 gap-1.5 flex-1">
+                          <a href={`/verify/${c.uuid}`} target="_blank" rel="noreferrer" className="inline-flex min-h-[32px] items-center justify-center gap-1 rounded-lg border border-gray-200 bg-white text-[11px] font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">
+                            <ExternalLink className="h-3 w-3 text-gray-400 stroke-[2]" /> <span>{copy.verifyAction}</span>
                           </a>
                           {canDownload ? (
-                            <a href={c.pdf_url!} target="_blank" className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-xs font-bold text-emerald-700 transition-all hover:bg-emerald-500 hover:text-white">
-                              <Download className="h-3.5 w-3.5" /> {copy.downloadAction}
+                            <a href={c.pdf_url!} target="_blank" rel="noreferrer" className="inline-flex min-h-[32px] items-center justify-center gap-1 rounded-lg border border-emerald-100 bg-emerald-50 text-[11px] font-bold text-emerald-700 shadow-sm transition hover:bg-emerald-50/80">
+                              <Download className="h-3 w-3 stroke-[2.5]" /> <span>{copy.downloadAction}</span>
                             </a>
                           ) : (
-                            <div className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-gray-100 bg-gray-50 px-3 py-3 text-xs font-bold text-gray-300 cursor-not-allowed">
-                              <ShieldOff className="h-3.5 w-3.5" /> {copy.locked}
+                            <div className="inline-flex min-h-[32px] items-center justify-center gap-1 rounded-lg border border-gray-100 bg-gray-50/50 px-2.5 text-[11px] font-semibold text-gray-300 cursor-not-allowed select-none">
+                              <ShieldOff className="h-3 w-3 stroke-[1.8]" /> <span>{copy.locked}</span>
                             </div>
                           )}
                         </div>
 
+                        {/* Oto Yenileme Tetikleyicisi */}
                         <button
+                          type="button"
                           onClick={() => patchAutoRenew(c.id, !c.auto_renew_enabled)}
-                          className={`inline-flex items-center justify-center gap-1.5 rounded-2xl border px-3 py-3 text-xs font-bold transition-all ${
+                          className={`inline-flex min-h-[32px] items-center justify-center gap-1 rounded-lg border text-[11px] font-semibold transition-all ${
                             c.auto_renew_enabled
-                              ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-500 hover:text-white"
-                              : "border-surface-200 bg-white text-surface-500 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
+                              ? "border-emerald-100 bg-emerald-50 text-emerald-700 hover:bg-emerald-50/80"
+                              : "border-gray-200 bg-white text-gray-500 hover:border-gray-300 hover:text-gray-950"
                           }`}
                         >
-                          <RefreshCcw className="h-3.5 w-3.5" />
-                          {c.auto_renew_enabled ? copy.autoRenewDisable : copy.autoRenewEnable}
+                          <RefreshCcw className="h-3 w-3 stroke-[2]" />
+                          <span>{c.auto_renew_enabled ? copy.autoRenewDisable.split(" ")[0] : copy.autoRenewEnable.split(" ")[0]}</span>
                         </button>
 
-                        <div className="grid grid-cols-4 gap-1 rounded-2xl border border-surface-200 bg-surface-50 p-1">
-                          <button onClick={() => patchStatus(c.id, "active")} disabled={c.status === "active"} className="rounded-xl px-2 py-2 text-[10px] font-bold text-surface-400 hover:text-emerald-700 hover:bg-emerald-50 disabled:opacity-25 transition-colors">{copy.activeAction}</button>
-                          <button onClick={() => patchStatus(c.id, "revoked")} disabled={c.status === "revoked"} className="rounded-xl px-2 py-2 text-[10px] font-bold text-surface-400 hover:text-rose-600 hover:bg-rose-50 disabled:opacity-25 transition-colors">{copy.revokeAction}</button>
-                          <button onClick={() => patchStatus(c.id, "expired")} disabled={c.status === "expired"} className="rounded-xl px-2 py-2 text-[10px] font-bold text-surface-400 hover:text-amber-600 hover:bg-amber-50 disabled:opacity-25 transition-colors">{copy.expireAction}</button>
-                          <button onClick={() => setDeleteTargetId(c.id)} className="rounded-xl px-2 py-2 text-surface-300 hover:text-rose-500 hover:bg-rose-50 transition-colors" title={lang === "tr" ? "Sil" : "Delete"}>
-                            <Trash2 className="mx-auto h-3.5 w-3.5" />
+                        {/* Alt Durum Değiştirme Matrisi (4'lü Bölme) */}
+                        <div className="grid grid-cols-4 gap-0.5 rounded-lg border border-gray-100 bg-gray-50 p-0.5">
+                          <button type="button" onClick={() => patchStatus(c.id, "active")} disabled={c.status === "active"} className="rounded px-1 py-1 text-[9px] font-bold text-gray-400 hover:text-emerald-700 hover:bg-white disabled:opacity-20 transition-colors" title="Aktif">{copy.activeAction.slice(0,3)}</button>
+                          <button type="button" onClick={() => patchStatus(c.id, "revoked")} disabled={c.status === "revoked"} className="rounded px-1 py-1 text-[9px] font-bold text-gray-400 hover:text-red-500 hover:bg-white disabled:opacity-20 transition-colors" title="İptal">{copy.revokeAction.slice(0,3)}</button>
+                          <button type="button" onClick={() => patchStatus(c.id, "expired")} disabled={c.status === "expired"} className="rounded px-1 py-1 text-[9px] font-bold text-gray-400 hover:text-amber-600 hover:bg-white disabled:opacity-20 transition-colors" title="Süre Bitir">{copy.expireAction.slice(0,3)}</button>
+                          <button type="button" onClick={() => setDeleteTargetId(c.id)} className="rounded px-1 py-1 text-gray-300 hover:text-red-600 hover:bg-white transition-colors" title="Kalıcı Sil">
+                            <Trash2 className="mx-auto h-3 w-3 stroke-[1.8]" />
                           </button>
                         </div>
                       </div>
@@ -815,36 +855,23 @@ export default function CertificatesPage() {
               </motion.div>
             )}
 
-            <div className="bg-surface-50 border-t border-surface-100 px-4 py-3 flex items-center justify-between mt-auto">
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="btn-secondary gap-2 text-xs disabled:opacity-30">
-                <ChevronLeft className="h-4 w-4" /> {t("certs_prev")}
+            {/* Alt Sayfalama Kontrol Paneli */}
+            <div className="border-t border-gray-100 px-4 py-3.5 flex items-center justify-between mt-auto bg-white text-xs font-semibold text-gray-400 tracking-tight">
+              <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="flex h-7 px-2.5 items-center justify-center rounded-lg border border-gray-100 bg-white text-gray-400 transition-all hover:text-gray-900 disabled:opacity-30 shadow-sm">
+                ← {t("certs_prev")}
               </button>
-              <span className="text-xs font-bold text-surface-400"><span className="text-surface-700">{page}</span>/{totalPages}</span>
-              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="btn-secondary gap-2 text-xs disabled:opacity-30">
-                {t("certs_next")} <ChevronLeft className="h-4 w-4 rotate-180" />
+              <span className="font-mono text-gray-400 font-bold"><span className="text-gray-900">{page}</span> / {totalPages}</span>
+              <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="flex h-7 px-2.5 items-center justify-center rounded-lg border border-gray-100 bg-white text-gray-400 transition-all hover:text-gray-900 disabled:opacity-30 shadow-sm">
+                {t("certs_next")} →
               </button>
             </div>
           </motion.div>
         </div>
       </div>
-      <ConfirmModal
-        open={deleteTargetId !== null}
-        title={copy.deleteSingleTitle}
-        description={copy.deleteSingleBody}
-        danger
-        loading={deleteLoading}
-        onConfirm={confirmSoftDelete}
-        onCancel={() => setDeleteTargetId(null)}
-      />
-      <ConfirmModal
-        open={bulkTarget !== null}
-        title={bulkTarget === "delete" ? copy.bulkDeleteTitle : bulkTarget === "revoke" ? copy.bulkRevokeTitle : bulkTarget === "expire" ? copy.bulkExpireTitle : bulkTarget === "enable_auto_renew" ? copy.bulkEnableRenewTitle : copy.bulkDisableRenewTitle}
-        description={bulkTarget === "delete" ? copy.bulkDeleteBody(selectedIds.size) : bulkTarget === "revoke" ? copy.bulkRevokeBody(selectedIds.size) : bulkTarget === "expire" ? copy.bulkExpireBody(selectedIds.size) : bulkTarget === "enable_auto_renew" ? copy.bulkEnableRenewBody(selectedIds.size) : copy.bulkDisableRenewBody(selectedIds.size)}
-        danger={bulkTarget === "delete"}
-        loading={bulkLoading}
-        onConfirm={executeBulkAction}
-        onCancel={() => setBulkTarget(null)}
-      />
+
+      {/* GLOBAL ONAY MODALLARI SELLERİ */}
+      <ConfirmModal open={deleteTargetId !== null} title={copy.deleteSingleTitle} description={copy.deleteSingleBody} danger loading={deleteLoading} onConfirm={confirmSoftDelete} onCancel={() => setDeleteTargetId(null)} />
+      <ConfirmModal open={bulkTarget !== null} title={bulkTarget === "delete" ? copy.bulkDeleteTitle : bulkTarget === "revoke" ? copy.bulkRevokeTitle : bulkTarget === "expire" ? copy.bulkExpireTitle : bulkTarget === "enable_auto_renew" ? copy.bulkEnableRenewTitle : copy.bulkDisableRenewTitle} description={bulkTarget === "delete" ? copy.bulkDeleteBody(selectedIds.size) : bulkTarget === "revoke" ? copy.bulkRevokeBody(selectedIds.size) : bulkTarget === "expire" ? copy.bulkExpireBody(selectedIds.size) : bulkTarget === "enable_auto_renew" ? copy.bulkEnableRenewBody(selectedIds.size) : copy.bulkDisableRenewBody(selectedIds.size)} danger={bulkTarget === "delete"} loading={bulkLoading} onConfirm={executeBulkAction} onCancel={() => setBulkTarget(null)} />
     </div>
   );
 }

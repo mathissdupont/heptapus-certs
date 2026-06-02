@@ -38,67 +38,67 @@ export default function EmailDashboard() {
 
   const copy = lang === "tr"
     ? {
-      title: "Email Merkezi",
-      subtitle: "SMTP bağlantısını, şablonları, kampanyaları ve teslimat analitiğini tek panelden yönetin.",
-      setupTitle: "Çalışma mantığı",
-      setupBody: "Email akışları etkinlik bazlı çalışır. Önce SMTP ayarınızı tamamlayın, ardından bir etkinlik içinden şablon ve kampanya yönetimine geçin.",
-      metricTemplates: "Şablonlar",
-      metricWebhooks: "Webhooklar",
-      metricEvents: "Etkinlikler",
-      statTemplates: "Sistem şablonu",
-      statWebhooks: "Aktif webhook",
-      statEvents: "etkinlik",
-      smtpTitle: "SMTP ve teslimat",
-      smtpBody: "Gönderici hesabını doğrulayın, bağlantıyı test edin ve otomatik sertifika maillerini güvene alın.",
-      smtpStat: "Bağlantıyı test et",
-      templatesTitle: "Şablon kütüphanesi",
-      templatesBody: "Etkinlik bazlı özel şablonlar ve sistem şablonlarını yönetin. Otomatik sertifika mailleri de buradan beslenir.",
-      templatesStat: "Etkinlik bazlı",
-      campaignsTitle: "Kampanyalar",
-      campaignsBody: "Toplu e-posta, planlı gönderim ve kayıt sonrası iletişim akışlarını etkinlikten başlatın.",
-      campaignsStat: "Toplu ve planlı",
-      analyticsTitle: "Analitik",
-      analyticsBody: "Teslimat durumu, iş geçmişi ve etkinlik bazlı email performansını izleyin.",
-      analyticsStat: "Teslimat görünümü",
-      webhooksTitle: "Webhook entegrasyonu",
-      webhooksBody: "Email olaylarını Slack, CRM veya diğer sistemlere iletin.",
-      webhooksStat: "Gerçek zamanlı",
-      open: "Aç",
-      eventsHint: "Şablon ve kampanya yönetimi etkinlik sayfalarından yapılır.",
-      goEvents: "Etkinlikleri Aç",
-      goAnalytics: "Analitiğe Git",
-    }
+        title: "Email Merkezi",
+        subtitle: "SMTP bağlantısını, şablonları, kampanyaları ve teslimat analitiğini tek panelden yönetin.",
+        setupTitle: "Çalışma mantığı",
+        setupBody: "Email akışları etkinlik bazlı çalışır. Önce SMTP ayarınızı tamamlayın, ardından bir etkinlik içinden şablon ve kampanya yönetimine geçin.",
+        metricTemplates: "Şablonlar",
+        metricWebhooks: "Webhooklar",
+        metricEvents: "Etkinlikler",
+        statTemplates: "Sistem şablonu",
+        statWebhooks: "Aktif webhook",
+        statEvents: "etkinlik",
+        smtpTitle: "SMTP ve teslimat",
+        smtpBody: "Gönderici hesabını doğrulayın, bağlantıyı test edin ve otomatik sertifika maillerini güvene alın.",
+        smtpStat: "Bağlantıyı test et",
+        templatesTitle: "Şablon kütüphanesi",
+        templatesBody: "Etkinlik bazlı özel şablonlar ve sistem şablonlarını yönetin. Otomatik sertifika mailleri de buradan beslenir.",
+        templatesStat: "Etkinlik bazlı",
+        campaignsTitle: "Kampanyalar",
+        campaignsBody: "Toplu e-posta, planlı gönderim ve kayıt sonrası iletişim akışlarını etkinlikten başlatın.",
+        campaignsStat: "Toplu ve planlı",
+        analyticsTitle: "Analitik",
+        analyticsBody: "Teslimat durumu, iş geçmişi ve etkinlik bazlı email performansını izleyin.",
+        analyticsStat: "Teslimat görünümü",
+        webhooksTitle: "Webhook entegrasyonu",
+        webhooksBody: "Email olaylarını Slack, CRM veya diğer sistemlere iletin.",
+        webhooksStat: "Gerçek zamanlı",
+        open: "Aç",
+        eventsHint: "Şablon ve kampanya yönetimi etkinlik sayfalarından yapılır.",
+        goEvents: "Etkinlikleri Aç",
+        goAnalytics: "Analitiğe Git",
+      }
     : {
-      title: "Email Center",
-      subtitle: "Manage SMTP connectivity, templates, campaigns and delivery analytics from one control surface.",
-      setupTitle: "How it works",
-      setupBody: "Email flows are event-based. Configure SMTP first, then manage templates and campaigns from the relevant event workspace.",
-      metricTemplates: "Templates",
-      metricWebhooks: "Webhooks",
-      metricEvents: "Events",
-      statTemplates: "system templates",
-      statWebhooks: "active webhooks",
-      statEvents: "events",
-      smtpTitle: "SMTP and deliverability",
-      smtpBody: "Verify the sender account, test connectivity, and stabilize automatic certificate delivery emails.",
-      smtpStat: "Run connection test",
-      templatesTitle: "Template library",
-      templatesBody: "Manage event-specific templates and system templates. Automatic certificate emails also draw from here.",
-      templatesStat: "Event scoped",
-      campaignsTitle: "Campaigns",
-      campaignsBody: "Launch bulk email, scheduled sends, and post-registration communication from each event.",
-      campaignsStat: "Bulk and scheduled",
-      analyticsTitle: "Analytics",
-      analyticsBody: "Track delivery status, job history and event-level email performance.",
-      analyticsStat: "Delivery view",
-      webhooksTitle: "Webhook integrations",
-      webhooksBody: "Send email events to Slack, your CRM, or other downstream systems.",
-      webhooksStat: "Real time",
-      open: "Open",
-      eventsHint: "Template and campaign management lives inside each event workspace.",
-      goEvents: "Open Events",
-      goAnalytics: "Go to Analytics",
-    };
+        title: "Email Center",
+        subtitle: "Manage SMTP connectivity, templates, campaigns and delivery analytics from one control surface.",
+        setupTitle: "How it works",
+        setupBody: "Email flows are event-based. Configure SMTP first, then manage templates and campaigns from the relevant event workspace.",
+        metricTemplates: "Templates",
+        metricWebhooks: "Webhooks",
+        metricEvents: "Events",
+        statTemplates: "system templates",
+        statWebhooks: "active webhooks",
+        statEvents: "events",
+        smtpTitle: "SMTP and deliverability",
+        smtpBody: "Verify the sender account, test connectivity, and stabilize automatic certificate delivery emails.",
+        smtpStat: "Run connection test",
+        templatesTitle: "Template library",
+        templatesBody: "Manage event-specific templates and system templates. Automatic certificate emails also draw from here.",
+        templatesStat: "Event scoped",
+        campaignsTitle: "Campaigns",
+        campaignsBody: "Launch bulk email, scheduled sends, and post-registration communication from each event.",
+        campaignsStat: "Bulk and scheduled",
+        analyticsTitle: "Analytics",
+        analyticsBody: "Track delivery status, job history and event-level email performance.",
+        analyticsStat: "Delivery view",
+        webhooksTitle: "Webhook integrations",
+        webhooksBody: "Send email events to Slack, your CRM, or other downstream systems.",
+        webhooksStat: "Real time",
+        open: "Open",
+        eventsHint: "Template and campaign management lives inside each event workspace.",
+        goEvents: "Open Events",
+        goAnalytics: "Go to Analytics",
+      };
 
   useEffect(() => {
     void load();
@@ -132,7 +132,7 @@ export default function EmailDashboard() {
         description: copy.smtpBody,
         href: "/admin/email-settings",
         icon: Settings,
-        tone: "bg-blue-50 text-blue-700 border-blue-200",
+        tone: "bg-gray-50 border-gray-100 text-gray-800",
         stat: copy.smtpStat,
       },
       {
@@ -140,7 +140,7 @@ export default function EmailDashboard() {
         description: copy.templatesBody,
         href: "/admin/events",
         icon: Layers3,
-        tone: "bg-violet-50 text-violet-700 border-violet-200",
+        tone: "bg-gray-50 border-gray-100 text-gray-800",
         stat: copy.templatesStat,
       },
       {
@@ -148,7 +148,7 @@ export default function EmailDashboard() {
         description: copy.campaignsBody,
         href: "/admin/events",
         icon: Send,
-        tone: "bg-emerald-50 text-emerald-700 border-emerald-200",
+        tone: "bg-gray-50 border-gray-100 text-gray-800",
         stat: copy.campaignsStat,
       },
       {
@@ -156,7 +156,7 @@ export default function EmailDashboard() {
         description: copy.analyticsBody,
         href: "/admin/email-analytics",
         icon: BarChart3,
-        tone: "bg-amber-50 text-amber-700 border-amber-200",
+        tone: "bg-gray-50 border-gray-100 text-gray-800",
         stat: copy.analyticsStat,
       },
       {
@@ -164,7 +164,7 @@ export default function EmailDashboard() {
         description: copy.webhooksBody,
         href: "/admin/webhooks",
         icon: Webhook,
-        tone: "bg-rose-50 text-rose-700 border-rose-200",
+        tone: "bg-gray-50 border-gray-100 text-gray-800",
         stat: copy.webhooksStat,
       },
     ],
@@ -173,45 +173,57 @@ export default function EmailDashboard() {
 
   return (
     <FeatureGate requiredPlans={["growth", "enterprise"]}>
-      <div className="flex flex-col gap-6 pb-20">
-        <PageHeader title={copy.title} subtitle={copy.subtitle} icon={<Mail className="h-5 w-5" />} />
+      <div className="flex w-full flex-col gap-6 pb-16 antialiased text-gray-900">
+        {/* GLOBAL BAŞLIK KARTI */}
+        <PageHeader title={copy.title} subtitle={copy.subtitle} icon={<Mail className="h-4 w-4 stroke-[2]" />} />
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="card p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.metricTemplates}</p>
-            <p className="mt-3 text-3xl font-black text-surface-900">{loading ? "..." : templateCount}</p>
-            <p className="mt-1 text-sm text-surface-500">{copy.statTemplates}</p>
-          </div>
-          <div className="card p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.metricWebhooks}</p>
-            <p className="mt-3 text-3xl font-black text-surface-900">{loading ? "..." : webhookCount}</p>
-            <p className="mt-1 text-sm text-surface-500">{copy.statWebhooks}</p>
-          </div>
-          <div className="card p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.metricEvents}</p>
-            <p className="mt-3 text-3xl font-black text-surface-900">{loading ? "..." : eventCount}</p>
-            <p className="mt-1 text-sm text-surface-500">{copy.statEvents}</p>
-          </div>
+        {/* 3'LÜ METRİK ÖZET ALANI */}
+        <div className="grid gap-3.5 grid-cols-2 md:grid-cols-3">
+          {[
+            { label: copy.metricTemplates, count: templateCount, sub: copy.statTemplates },
+            { label: copy.metricWebhooks, count: webhookCount, sub: copy.statWebhooks },
+            { label: copy.metricEvents, count: eventCount, sub: copy.statEvents },
+          ].map((metric, i) => (
+            <div key={i} className="w-full rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{metric.label}</p>
+              <p className="mt-1 text-2xl font-bold tracking-tight text-gray-950 tabular-nums">
+                {loading ? "..." : metric.count}
+              </p>
+              <p className="mt-1 text-[11px] font-medium text-gray-400">{metric.sub}</p>
+            </div>
+          ))}
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_360px]">
-          <div className="grid gap-4 md:grid-cols-2">
+        {/* ANA KART DÜZENİ VE SAĞ KILAVUZ SÜTUNU */}
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_320px] items-start">
+          
+          {/* Sol Izgara: Aksiyon Kartları */}
+          <div className="grid gap-3.5 sm:grid-cols-2">
             {cards.map((card) => {
               const Icon = card.icon;
               return (
-                <Link key={card.title} href={card.href} className="card group flex flex-col gap-5 p-5 transition hover:-translate-y-0.5 hover:shadow-soft-lg">
-                  <div className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl border ${card.tone}`}>
-                    <Icon className="h-5 w-5" />
+                <Link 
+                  key={card.title} 
+                  href={card.href} 
+                  className="group flex flex-col justify-between gap-5 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-300 hover:border-gray-300 hover:bg-gray-50/40"
+                >
+                  <div className="space-y-4">
+                    {/* Minimalist Apple İkon Kafesi */}
+                    <div className={`inline-flex h-9 w-9 items-center justify-center rounded-xl border shadow-sm group-hover:scale-105 transition-transform ${card.tone}`}>
+                      <Icon className="h-4 w-4 stroke-[1.8]" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-bold tracking-tight text-gray-950">{card.title}</h2>
+                      <p className="mt-1.5 text-xs leading-relaxed text-gray-400">{card.description}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-surface-900">{card.title}</h2>
-                    <p className="mt-2 text-sm leading-6 text-surface-500">{card.description}</p>
-                  </div>
-                  <div className="mt-auto flex items-center justify-between gap-3 text-sm">
-                    <span className="font-semibold text-surface-400">{card.stat}</span>
-                    <span className="inline-flex items-center gap-1 font-semibold text-brand-600 group-hover:text-brand-700">
-                      {copy.open}
-                      <ChevronRight className="h-4 w-4" />
+                  
+                  {/* Kart Altı Statü ve İlerleme Okları */}
+                  <div className="flex items-center justify-between gap-2 text-[11px] font-semibold tracking-tight pt-1.5 border-t border-gray-50">
+                    <span className="text-gray-400 font-medium">{card.stat}</span>
+                    <span className="inline-flex items-center gap-0.5 text-gray-950 group-hover:text-gray-900">
+                      <span>{copy.open}</span>
+                      <ChevronRight className="h-3.5 w-3.5 opacity-60 translate-x-0 transition-transform group-hover:translate-x-0.5" />
                     </span>
                   </div>
                 </Link>
@@ -219,24 +231,32 @@ export default function EmailDashboard() {
             })}
           </div>
 
-          <aside className="card p-6 sm:p-7">
-            <div className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-              <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
-              {copy.setupTitle}
+          {/* Sağ Sütun: Sistem Çalışma Rehberi */}
+          <aside className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+            <div className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 shadow-sm">
+              <ShieldCheck className="mr-1 h-3 w-3 stroke-[2.5]" />
+              <span>{copy.setupTitle}</span>
             </div>
-            <h2 className="mt-4 text-2xl font-black tracking-tight text-surface-900">{copy.title}</h2>
-            <p className="mt-3 text-sm leading-6 text-surface-500">{copy.setupBody}</p>
+            
+            <div>
+              <h2 className="text-sm font-bold tracking-tight text-gray-950">{copy.title}</h2>
+              <p className="mt-1.5 text-xs leading-relaxed text-gray-500">{copy.setupBody}</p>
+            </div>
 
-            <div className="mt-6 space-y-3 rounded-3xl border border-surface-200 bg-surface-50 p-4 text-sm text-surface-600">
-              <p className="font-semibold text-surface-900">{copy.eventsHint}</p>
-              <Link href="/admin/events" className="btn-secondary w-full justify-center">
-                {copy.goEvents}
-              </Link>
-              <Link href="/admin/email-analytics" className="btn-primary w-full justify-center">
-                {copy.goAnalytics}
-              </Link>
+            {/* İçi Boş Şablon Yönetim Uyarı Kapsülü */}
+            <div className="space-y-2 rounded-xl border border-gray-100 bg-gray-50/50 p-3.5 text-xs">
+              <p className="font-semibold leading-relaxed text-gray-700 tracking-tight">{copy.eventsHint}</p>
+              <div className="pt-1.5 space-y-2">
+                <Link href="/admin/events" className="w-full inline-flex min-h-[34px] items-center justify-center rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-800 shadow-sm transition hover:bg-gray-50">
+                  {copy.goEvents}
+                </Link>
+                <Link href="/admin/email-analytics" className="w-full inline-flex min-h-[34px] items-center justify-center rounded-lg bg-gray-950 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900">
+                  {copy.goAnalytics}
+                </Link>
+              </div>
             </div>
           </aside>
+
         </div>
       </div>
     </FeatureGate>

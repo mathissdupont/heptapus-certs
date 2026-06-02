@@ -16,6 +16,8 @@ import {
   Ticket,
   UserCheck,
   Users,
+  Calendar,
+  ChevronDown,
 } from "lucide-react";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 import MobileActionBar from "@/components/Admin/MobileActionBar";
@@ -48,16 +50,14 @@ function StatCard({
   icon: ElementType;
 }) {
   return (
-    <div className="card p-3 sm:p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 sm:text-xs sm:tracking-[0.16em]">{title}</p>
-          <p className="mt-1 text-xl font-black text-slate-950 sm:text-2xl">{value}</p>
-          {note && <p className="mt-1 truncate text-[11px] font-semibold text-slate-500 sm:text-xs">{note}</p>}
-        </div>
-        <div className="hidden rounded-2xl bg-indigo-50 p-3 text-indigo-600 sm:block">
-          <Icon className="h-5 w-5" />
-        </div>
+    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm flex items-start justify-between gap-4">
+      <div className="min-w-0 flex-1 space-y-1">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 truncate">{title}</p>
+        <p className="text-2xl font-bold tracking-tight text-gray-950 font-mono tabular-nums">{value}</p>
+        {note && <p className="text-[11px] font-medium text-gray-400 truncate leading-none pt-0.5">{note}</p>}
+      </div>
+      <div className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-gray-50 bg-gray-50/50 text-gray-900 shadow-sm sm:flex">
+        <Icon className="h-4 w-4 stroke-[2]" />
       </div>
     </div>
   );
@@ -93,7 +93,6 @@ export default function EventOperationsPage() {
     void load();
     const timer = window.setInterval(() => void load({ soft: true }), 10_000);
     return () => window.clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId]);
 
   async function undo(record: EventOperationCheckin) {
@@ -118,123 +117,152 @@ export default function EventOperationsPage() {
 
   if (loading && !snapshot) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+      <div className="flex w-full min-h-[340px] items-center justify-center antialiased">
+        <Loader2 className="h-6 w-6 animate-spin text-gray-400 stroke-[2.5]" />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-7xl pb-28 md:pb-8">
-      <EventAdminNav eventId={eventId} eventName={snapshot?.event_name} active="ops" className="mb-6 flex flex-col gap-2" />
+    <div className="w-full mx-auto max-w-7xl pb-24 md:pb-8 antialiased text-gray-900 space-y-5">
+      
+      {/* ÜST ETKİNLİK NAVİGASYONU */}
+      <EventAdminNav eventId={eventId} eventName={snapshot?.event_name} active="ops" />
 
-      <div className="surface-panel mb-4 flex flex-col gap-3 p-4 sm:mb-5 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0">
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-500">Canlı operasyon</p>
-          <h1 className="mt-1 truncate text-xl font-black text-slate-950 sm:text-2xl">{snapshot?.event_name || `Etkinlik #${eventId}`}</h1>
-          <p className="mt-1 text-sm font-semibold text-slate-500">Son guncelleme: {formatTime(snapshot?.generated_at)}</p>
+      {/* ANA SAYFA BAŞLIK ALANI */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="space-y-0.5">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Canlı operasyon ekranı</p>
+          <h1 className="text-xl font-bold tracking-tight text-gray-950 sm:text-2xl">
+            {snapshot?.event_name || `Etkinlik #${eventId}`}
+          </h1>
+          <div className="flex items-center gap-1 text-[11px] font-semibold text-gray-400 font-mono uppercase">
+            <span>Son Güncelleme: {formatTime(snapshot?.generated_at)}</span>
+          </div>
         </div>
-        <div className="hidden flex-wrap gap-2 sm:flex">
-          <Link href={`/admin/events/${eventId}/checkin?staff=1`} className="btn-primary justify-center">
-            <QrCode className="h-4 w-4" />
-            Görevli Modu
+        
+        {/* Masaüstü Hızlı Aksiyonlar */}
+        <div className="hidden flex-wrap items-center gap-2 sm:flex">
+          <Link 
+            href={`/admin/events/${eventId}/checkin?staff=1`} 
+            className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-95"
+          >
+            <QrCode className="h-3.5 w-3.5 stroke-[2.5]" />
+            <span>Görevli Modu</span>
           </Link>
           <button
             type="button"
             onClick={() => void load({ soft: true })}
             disabled={refreshing}
-            className="btn-secondary justify-center disabled:opacity-50"
+            className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-95 disabled:opacity-40"
           >
-            {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            Yenile
+            {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 stroke-[2]" />}
+            <span>Yenile</span>
           </button>
         </div>
       </div>
 
+      {/* DURUM BANNERLARI VE SİNYALLER */}
       {error && (
-        <div className="mb-4 flex items-start gap-2 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-          {error}
+        <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 text-xs font-semibold text-red-600 flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 shrink-0 stroke-[2]" />
+          <span>{error}</span>
         </div>
       )}
       {notice && (
-        <div className="mb-4 flex items-start gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-          {notice}
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4 text-xs font-semibold text-emerald-600 flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 shrink-0 stroke-[2.5]" />
+          <span>{notice}</span>
         </div>
       )}
 
       {snapshot && (
         <>
-          <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
-            <StatCard title="Katılımcı" value={snapshot.overview.attendees} note="Kayıtlı kişi" icon={Users} />
-            <StatCard title="Check-in" value={snapshot.overview.attendance_records} note="Toplam oturum kaydı" icon={UserCheck} />
-            <StatCard title="Aktif Oturum" value={snapshot.overview.active_sessions} note={activeSessionNames} icon={Activity} />
-            <StatCard title="Bilet" value={`${snapshot.overview.tickets_used}/${snapshot.overview.tickets_total}`} note="Kullanilan / toplam" icon={Ticket} />
+          {/* ANLIK CANLI METRİK KARTLARI SETİ */}
+          <div className="grid grid-cols-2 gap-3.5 xl:grid-cols-4">
+            <StatCard title="Katılımcı" value={snapshot.overview.attendees} note="Kayıtlı toplam kitle" icon={Users} />
+            <StatCard title="Check-in" value={snapshot.overview.attendance_records} note="Üretilen anlık yoklama" icon={UserCheck} />
+            <StatCard title="Aktif Oturum" value={snapshot.overview.active_sessions} note={activeSessionNames.length > 25 ? activeSessionNames.slice(0, 25) + "..." : activeSessionNames} icon={Activity} />
+            <StatCard title="Bilet Kullanımı" value={`${snapshot.overview.tickets_used}/${snapshot.overview.tickets_total}`} note="Giriş yapan davetli biletleri" icon={Ticket} />
           </div>
 
-          <div className="mt-4 grid gap-4 sm:mt-5 sm:gap-5 xl:grid-cols-[0.85fr_1.15fr]">
-            <section className="card p-4 sm:p-5">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-black text-slate-950">Oturum Durumu</h2>
-                  <p className="text-sm font-semibold text-slate-500">Anlık katılım sayıları</p>
+          {/* İKİLİ ÇALIŞMA SÜTUN DÜZENİ */}
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] items-start">
+            
+            {/* SOL SÜTUN: OTURUM KAPASİTE DURUMLARI */}
+            <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-3">
+                <div className="space-y-0.5">
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950">Seans Yoklama Durumları</h2>
+                  <p className="text-[11px] font-medium text-gray-400">Oturum bazında canlı katılım sayıları</p>
                 </div>
-                <Clock3 className="h-5 w-5 text-slate-400" />
+                <Clock3 className="h-4 w-4 text-gray-400 stroke-[1.8]" />
               </div>
-              <div className="space-y-3">
+              
+              <div className="space-y-2.5">
                 {snapshot.sessions.length === 0 ? (
-                  <p className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">Henüz oturum yok.</p>
+                  <div className="rounded-xl border border-dashed border-gray-200 p-6 text-center text-xs font-semibold text-gray-400">
+                    Henüz tanımlanmış bir seans akışı bulunmuyor.
+                  </div>
                 ) : (
                   snapshot.sessions.map((session) => (
-                    <div key={session.id} className="rounded-2xl border border-surface-200 p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="truncate text-sm font-black text-slate-950">{session.name}</p>
-                            {session.is_active && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-black text-emerald-700">Aktif</span>}
-                          </div>
-                          <p className="mt-1 text-xs font-semibold text-slate-400">
-                            {[session.session_date, session.session_start].filter(Boolean).join(" - ") || "Tarih yok"}
-                          </p>
+                    <div key={session.id} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm flex items-center justify-between gap-4 transition-colors hover:border-gray-200">
+                      <div className="min-w-0 space-y-1 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-xs font-bold text-gray-950 truncate tracking-tight">{session.name}</p>
+                          {session.is_active && (
+                            <span className="inline-flex rounded-md border border-emerald-100 bg-emerald-50 px-1.5 py-0.2 text-[9px] font-bold uppercase text-emerald-700 animate-pulse shadow-sm">
+                              Canlı
+                            </span>
+                          )}
                         </div>
-                        <p className="shrink-0 text-lg font-black text-indigo-600">{session.attendance_count}</p>
+                        <p className="text-[10px] font-semibold text-gray-400 font-mono uppercase">
+                          {[session.session_date, session.session_start].filter(Boolean).join(" · ") || "Zaman Planı Yok"}
+                        </p>
                       </div>
+                      <p className="text-xl font-bold tracking-tight text-gray-950 font-mono tabular-nums shrink-0">{session.attendance_count}</p>
                     </div>
                   ))
                 )}
               </div>
             </section>
 
-            <section className="card p-4 sm:p-5">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-black text-slate-950">Son Check-in'ler</h2>
-                  <p className="text-sm font-semibold text-slate-500">Yanlis okutma varsa buradan geri al</p>
+            {/* SAĞ SÜTUN: GERÇEK ZAMANLI LOG AKIŞI VE GERİ ALMA MERKEZİ */}
+            <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-3">
+                <div className="space-y-0.5">
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950">Son Giriş Hareketleri</h2>
+                  <p className="text-[11px] font-medium text-gray-400">Hatalı okutma iptalleri ve kapı sevk günlüğü</p>
                 </div>
-                <UserCheck className="h-5 w-5 text-slate-400" />
+                <UserCheck className="h-4 w-4 text-gray-400 stroke-[1.8]" />
               </div>
-              <div className="max-h-[620px] divide-y divide-slate-100 overflow-y-auto">
+              
+              <div className="max-h-[580px] divide-y divide-gray-100 overflow-y-auto pr-0.5 scrollbar-none bg-white">
                 {snapshot.recent_checkins.length === 0 ? (
-                  <p className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">Check-in kaydı yok.</p>
+                  <div className="py-12 text-center text-xs font-semibold text-gray-400 tracking-tight">
+                    Kapılardan henüz bir check-in sinyali alınmadı.
+                  </div>
                 ) : (
                   snapshot.recent_checkins.map((record) => (
-                    <div key={record.id} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-black text-slate-950">{record.attendee_name}</p>
-                        <p className="truncate text-xs font-semibold text-slate-500">{record.attendee_email}</p>
-                        <p className="mt-1 text-xs font-semibold text-indigo-600">
-                          {record.session_name} - {formatTime(record.checked_in_at)}
-                        </p>
+                    <div key={record.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 py-3.5 bg-white transition-colors hover:bg-gray-50/20 first:pt-0 last:pb-0">
+                      <div className="min-w-0 space-y-0.5 flex-1">
+                        <p className="text-xs font-bold text-gray-950 tracking-tight truncate">{record.attendee_name}</p>
+                        <p className="text-[10px] font-medium text-gray-400 font-mono truncate">{record.attendee_email}</p>
+                        <div className="pt-1 flex flex-wrap gap-x-2 text-[10px] font-bold text-gray-400">
+                          <span className="text-gray-950">{record.session_name}</span>
+                          <span>·</span>
+                          <span className="font-mono text-gray-400">{formatTime(record.checked_in_at)}</span>
+                        </div>
                       </div>
+                      
                       <button
                         type="button"
                         onClick={() => void undo(record)}
                         disabled={undoingId === record.id}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-100 px-3 py-2 text-xs font-black text-rose-600 disabled:opacity-50"
+                        className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-red-100 bg-white px-3 text-[11px] font-bold text-red-600 shadow-sm transition hover:bg-red-50 active:scale-90 disabled:opacity-40 shrink-0 self-end sm:self-auto"
                       >
-                        {undoingId === record.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
-                        Geri al
+                        {undoingId === record.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3 stroke-[2.5]" />}
+                        <span>Geri Al</span>
                       </button>
                     </div>
                   ))
@@ -244,21 +272,27 @@ export default function EventOperationsPage() {
           </div>
         </>
       )}
+
+      {/* MOBİL ALT AKSİYON TUTUCU (iOS Standartları) */}
       <MobileActionBar>
-        <Link href={`/admin/events/${eventId}/checkin?staff=1`} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-3 py-3 text-sm font-black text-white">
-          <QrCode className="h-4 w-4" />
-          Görevli Modu
+        <Link 
+          href={`/admin/events/${eventId}/checkin?staff=1`} 
+          className="flex-1 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-gray-950 px-4 text-xs font-bold text-white shadow-sm transition active:scale-98"
+        >
+          <QrCode className="h-4 w-4 stroke-[2.5]" />
+          <span>Görevli Modu</span>
         </Link>
         <button
           type="button"
           onClick={() => void load({ soft: true })}
           disabled={refreshing}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-3 text-sm font-black text-slate-700 disabled:opacity-50"
+          className="flex-1 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-xs font-bold text-gray-700 shadow-sm transition active:scale-98 disabled:opacity-40"
         >
-          {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          Yenile
+          {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4 stroke-[2]" />}
+          <span>Yenile</span>
         </button>
       </MobileActionBar>
+
     </div>
   );
 }

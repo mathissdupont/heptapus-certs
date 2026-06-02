@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { ArrowLeft, Loader2, AlertCircle, Plus, Copy, CheckCircle2, Eye, EyeOff, Trash2, Lock } from "lucide-react";
+import { ArrowLeft, Loader2, AlertCircle, Plus, Copy, CheckCircle2, Eye, EyeOff, Trash2, Lock, Calendar, Terminal } from "lucide-react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import PageHeader from "@/components/Admin/PageHeader";
 import { DataTable } from "@/components/DataTable/DataTable";
 import { ColumnDef } from "@tanstack/react-table";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 type ApiKey = {
   id: number;
@@ -117,17 +117,17 @@ export default function ApiKeysPage() {
       {
         accessorKey: "name",
         header: "Ad",
-        cell: (info) => <span className="font-semibold text-gray-800 dark:text-gray-200">{info.getValue() as string}</span>,
+        cell: (info) => <span className="font-semibold text-gray-950 tracking-tight">{info.getValue() as string}</span>,
       },
       {
         accessorKey: "key_prefix",
         header: "Anahtar",
         cell: (info) => (
           <div className="flex items-center gap-2">
-            <span className="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-gray-700 dark:text-gray-300">
+            <span className="font-mono text-xs bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-lg text-gray-700 tracking-tight">
               {info.getValue() as string}
             </span>
-            <Lock className="h-3 w-3 text-gray-400" />
+            <Lock className="h-3 w-3 text-gray-400 stroke-[1.8]" />
           </div>
         ),
       },
@@ -136,16 +136,16 @@ export default function ApiKeysPage() {
         header: "Yetkiler",
         cell: (info) => {
           const scopes = (info.getValue() as string[]) ?? [];
-          if (scopes.length === 0) return <span className="text-xs text-gray-400">Tüm yetkiler</span>;
+          if (scopes.length === 0) return <span className="text-xs font-medium text-gray-400">Tüm yetkiler</span>;
           return (
             <div className="flex gap-1 flex-wrap">
               {scopes.length <= 2
                 ? scopes.map((s) => (
-                    <span key={s} className="text-xs px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                    <span key={s} className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 border border-gray-200/50 text-gray-700">
                       {s}
                     </span>
                   ))
-                : <span className="text-xs text-gray-500">{scopes.length} yetki</span>}
+                : <span className="text-xs font-semibold text-gray-500">{scopes.length} yetki</span>}
             </div>
           );
         },
@@ -156,11 +156,11 @@ export default function ApiKeysPage() {
         cell: (info) => {
           const date = info.getValue();
           return date ? (
-            <span className="text-gray-600 dark:text-gray-400 text-sm">
-              {new Date(date as string).toLocaleString("tr-TR")}
+            <span className="text-gray-500 font-medium text-xs">
+              {new Date(date as string).toLocaleString("tr-TR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
             </span>
           ) : (
-            <span className="text-gray-400 dark:text-gray-500 text-sm">Hiç</span>
+            <span className="text-gray-300 font-medium text-xs">-</span>
           );
         },
       },
@@ -170,11 +170,11 @@ export default function ApiKeysPage() {
         cell: (info) => {
           const date = info.getValue();
           return date ? (
-            <span className="text-gray-600 dark:text-gray-400 text-sm">
-              {new Date(date as string).toLocaleDateString("tr-TR")}
+            <span className="text-gray-500 font-medium text-xs">
+              {new Date(date as string).toLocaleDateString("tr-TR", { day: "2-digit", month: "short", year: "numeric" })}
             </span>
           ) : (
-            <span className="text-gray-400 dark:text-gray-500 text-sm">Süresiz</span>
+            <span className="text-gray-400 font-semibold text-[10px] tracking-tight bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">Süresiz</span>
           );
         },
       },
@@ -182,8 +182,8 @@ export default function ApiKeysPage() {
         accessorKey: "created_at",
         header: "Oluşturuldu",
         cell: (info) => (
-          <span className="text-gray-600 dark:text-gray-400 text-sm">
-            {new Date(info.getValue() as string).toLocaleDateString("tr-TR")}
+          <span className="text-gray-400 font-medium text-xs">
+            {new Date(info.getValue() as string).toLocaleDateString("tr-TR", { day: "2-digit", month: "short", year: "numeric" })}
           </span>
         ),
       },
@@ -196,10 +196,10 @@ export default function ApiKeysPage() {
             <button
               onClick={() => handleDeleteKey(key.id)}
               disabled={deletingId === key.id}
-              className="p-1.5 rounded hover:bg-rose-50 text-rose-500 hover:text-rose-700 transition-colors disabled:opacity-50"
+              className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-600 transition-all active:scale-95 disabled:opacity-40"
               title="Devre dışı bırak"
             >
-              {deletingId === key.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              {deletingId === key.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5 stroke-[1.8]" />}
             </button>
           );
         },
@@ -210,169 +210,79 @@ export default function ApiKeysPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-24">
-        <Loader2 className="h-8 w-8 animate-spin text-brand-500" />
+      <div className="flex w-full items-center justify-center p-24">
+        <Loader2 className="h-6 w-6 animate-spin text-gray-400 stroke-[2.5]" />
       </div>
     );
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6 w-full space-y-5 antialiased text-gray-900">
+      
+      {/* SAYFA BAŞLIĞI */}
       <PageHeader
         title="API Anahtarları"
-        subtitle="API erişimi ve entegrasyonlar için kimlik doğrulama anahtarlarını yönetin"
-        icon={<Lock className="h-5 w-5" />}
+        subtitle="Harici entegrasyonlar ve güvenli API erişimi için kimlik doğrulama anahtarlarını yönetin"
+        icon={<Lock className="h-4 w-4 stroke-[2]" />}
         breadcrumbs={[{ label: "Ayarlar", href: "/admin/settings" }, { label: "API Anahtarları" }]}
         actions={
           <button
             onClick={() => setShowCreateModal(true)}
-            className="btn-primary flex items-center gap-2"
+            className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 px-4 text-xs font-semibold text-white transition hover:bg-gray-900 active:scale-95 shadow-sm"
           >
-            <Plus className="h-4 w-4" /> Yeni Anahtar
+            <Plus className="h-4 w-4 stroke-[2.5]" /> 
+            <span>Yeni Anahtar</span>
           </button>
         }
       />
 
-      {/* Info Box */}
-      <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} className="card bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-4">
-        <div className="flex gap-3">
-          <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-blue-900 dark:text-blue-100">
-            <p className="font-semibold mb-1">API Anahtarları Nasıl Kullanılır?</p>
-            <p className="mb-2">API anahtarları, harici uygulamalardan (ör: kendi yazılımınız, üçüncü parti servisler) API'mize güvenli bir şekilde erişebilmeniz için kullanılır. Her istekte anahtar gönderilerek kimlik doğrulaması yapılır.</p>
-            <div className="text-xs opacity-90 space-y-1 mt-2 font-mono bg-white dark:bg-blue-900 px-2 py-2 rounded">
-              <div>curl -H "Authorization: Bearer YOUR_API_KEY" https://api.example.com/events</div>
+      {/* ÜST BİLGİLENDİRME KUTUSU (Apple Tarzı Soft Kart) */}
+      <motion.div 
+        initial={{ opacity: 0, y: -10 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+      >
+        <div className="flex gap-3.5 items-start">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600 shadow-sm">
+            <Terminal className="h-4 w-4 stroke-[2]" />
+          </div>
+          <div className="text-xs leading-relaxed text-gray-500 space-y-2 flex-1">
+            <h4 className="font-semibold text-gray-950 text-xs tracking-tight">API Anahtarları Nasıl Kullanılır?</h4>
+            <p>API anahtarları; harici uygulamalarınızdan veya üçüncü parti servislerden sistemimize güvenli bir şekilde erişebilmeniz için üretilir. Her istekte başlık (Header) alanına anahtar eklenerek kimlik doğrulaması otomatik olarak tamamlanır.</p>
+            <div className="overflow-x-auto rounded-xl border border-gray-100 bg-gray-50 p-3 font-mono text-[11px] text-gray-700 font-medium">
+              curl -H "Authorization: Bearer YOUR_API_KEY" https://api.heptapusgroup.com/admin/events
             </div>
-            <p className="mt-2 text-xs"><strong>Uyarı:</strong> API anahtarlarınızı asla halka açık yerlere (GitHub, sosyal medya) yazmayın!</p>
+            <p className="text-[10px] text-amber-600 font-semibold bg-amber-50/50 border border-amber-100/50 rounded-lg px-2.5 py-1 w-fit">
+              ⚠️ Güvenlik Uyarısı: API anahtarlarınızı asla GitHub reposu gibi halka açık veya sızdırılabilecek alanlarda paylaşmayın!
+            </p>
           </div>
         </div>
       </motion.div>
 
-      {/* Error Alert */}
+      {/* HATA BANNERI */}
       {error && (
-        <div className="error-banner mb-6">
-          <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="font-semibold">Hata</p>
-            <p className="mt-0.5">{error}</p>
-          </div>
+        <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 text-xs font-semibold text-red-600 flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
-      {/* Full Key Display Modal */}
-      {displayedFullKey && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-        >
-          <motion.div
-            initial={{ scale: 0.95 }}
-            animate={{ scale: 1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full p-8"
-          >
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">🔐 API Anahtarınız</h2>
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6">
-              <p className="text-sm text-amber-900 dark:text-amber-200 mb-3">
-                <strong>Önemli:</strong> Bu anahtarı şimdi kopyalayın. Güvenlik nedeniyle bu anahtarı bir daha göremeyeceksiniz.
-              </p>
-            </div>
-
-            <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-6 flex items-center justify-between">
-              <code className="font-mono text-sm text-gray-800 dark:text-gray-200 break-all">{displayedFullKey}</code>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                onClick={() => handleCopyKey(displayedFullKey, 0)}
-                className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded transition-colors flex-shrink-0 ml-2"
-              >
-                {copiedKeyId === 0 ? <CheckCircle2 className="h-5 w-5 text-emerald-500" /> : <Copy className="h-5 w-5 text-gray-600 dark:text-gray-400" />}
-              </motion.button>
-            </div>
-
-            <button
-              onClick={() => setDisplayedFullKey(null)}
-              className="w-full px-4 py-2 rounded-lg bg-brand-500 text-white font-medium hover:bg-brand-600 transition-colors"
-            >
-              Tamam
-            </button>
-          </motion.div>
-        </motion.div>
-      )}
-
-      {/* Create Modal */}
-      {showCreateModal && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-        >
-          <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Yeni API Anahtarı</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Bu anahtar yazılımınızda API istekleri için kullanılacak. Oluştur'u tıklamadan sonra, anahtar sadece bir kez gösterilir - lütfen güvenli bir yerde saklayın.</p>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Anahtar İsmi
-                <span className="ml-2 inline-flex items-center justify-center w-4 h-4 text-xs bg-gray-200 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-400" title="Bu anahtarı neyin için kullanacağınızı açıklayan isim">?</span>
-              </label>
-              <input
-                type="text"
-                placeholder="örn. Production API Key, Mobile App"
-                value={keyName}
-                onChange={(e) => setKeyName(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
-              />
-              <p className="mt-1 text-xs text-gray-500">Birden fazla anahtar oluşturup farklı uygulamalar için kullanabilirsiniz (örneğin: test ortamı, production)</p>
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Geçerlilik Süresi (gün)
-                <span className="ml-2 inline-flex items-center justify-center w-4 h-4 text-xs bg-gray-200 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-400" title="Kaç gün sonra bu anahtar otomatik olarak devre dışı bırakılacak">?</span>
-              </label>
-              <input
-                type="number"
-                placeholder="Boş bırakırsanız süresiz olur"
-                value={expiresDays}
-                onChange={(e) => setExpiresDays(e.target.value)}
-                min="1"
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
-              />
-              <p className="mt-1 text-xs text-gray-500">Güvenlik için 30-90 gün arası belirlemeniz önerilir. Anahtarlar her zaman devre dışı bırakılabilir.</p>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => { setShowCreateModal(false); setKeyName(""); setExpiresDays(""); }}
-                className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                İptal
-              </button>
-              <button
-                onClick={handleCreateKey}
-                disabled={creating || !keyName.trim()}
-                className="flex-1 px-4 py-2 rounded-lg bg-brand-500 text-white font-medium hover:bg-brand-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 transition-colors"
-              >
-                {creating ? "Oluşturuluyor..." : "Oluştur"}
-              </button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-
-      {/* Keys Table */}
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+      {/* ANA ANAHTAR TABLOSU VE BOŞ DURUM ALANI */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         {keys.length === 0 ? (
-          <div className="card p-12 text-center">
-            <Lock className="h-12 w-12 text-surface-300 mx-auto mb-4" />
-            <p className="text-surface-500 mb-6">Henüz API anahtarı yok. Başlamak için bir tane oluşturun.</p>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
+          <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/30 p-12 text-center">
+            <div className="flex h-11 w-11 mx-auto items-center justify-center rounded-full border border-gray-100 bg-white text-gray-400 shadow-sm mb-4">
+              <Lock className="h-4 w-4 stroke-[1.8]" />
+            </div>
+            <p className="text-xs font-semibold text-gray-900 tracking-tight mb-1">Henüz üretilmiş bir API anahtarı yok</p>
+            <p className="text-[11px] text-gray-400 max-w-xs mx-auto mb-5 leading-relaxed">Harici servislerin HeptaCert verilerine erişmesi için güvenli bir anahtar kurgulayın.</p>
+            <button
               onClick={() => setShowCreateModal(true)}
-              className="px-4 py-2 rounded-lg bg-brand-500 text-white font-medium hover:bg-brand-600 transition-colors inline-flex items-center gap-2"
+              className="inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 px-3.5 text-xs font-semibold text-white transition hover:bg-gray-900 active:scale-95 shadow-sm"
             >
-              <Plus className="h-4 w-4" /> İlk Anahtarı Oluştur
-            </motion.button>
+              <Plus className="h-3.5 w-3.5 stroke-[2.5]" /> 
+              <span>İlk Anahtarı Oluştur</span>
+            </button>
           </div>
         ) : (
           <DataTable
@@ -388,18 +298,145 @@ export default function ApiKeysPage() {
         )}
       </motion.div>
 
-      {/* Security Info */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="mt-8 card bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 p-6">
-        <h3 className="font-bold text-blue-900 dark:text-blue-200 mb-3">🔐 API Anahtarı Güvenliği</h3>
-        <ul className="space-y-2 text-sm text-blue-800 dark:text-blue-300">
-          <li>• API anahtarları hassas kimlik bilgileridir — asla paylaşmayın veya sürüm kontrol sistemine eklemeyin</li>
-          <li>• Kısayolla (...****) görüntülenen anahtarlar oluşturulduktan sonra tekrar görüntülenemez</li>
-          <li>• Tam anahtarı yalnızca oluşturma anında görebilirsiniz</li>
-          <li>• Açığa çıkma durumunda anahtarları derhal devre dışı bırakın</li>
-          <li>• Geliştirme ve üretim ortamları için ayrı anahtarlar kullanın</li>
-          <li>• Daha iyi güvenlik için anahtarlara son kullanma tarihi belirleyin</li>
+      {/* GÜVENLİK KILAVUZU (Apple Altyazı Bloğu) */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-3">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 border-b border-gray-100 pb-2.5">🔐 API Anahtarı Güvenlik Protokolü</h3>
+        <ul className="space-y-2 text-xs font-medium text-gray-500 leading-relaxed">
+          <li className="flex items-start gap-1.5"><span>•</span> <span>API anahtarları en üst düzey hassasiyete sahiptir; asla sürüm kontrol (Git) geçmişine eklemeyin.</span></li>
+          <li className="flex items-start gap-1.5"><span>•</span> <span>Maskelenmiş olarak listelenen anahtarlar güvenlik politikası gereği sistemde kriptolu tutulur ve tekrar çözülemez.</span></li>
+          <li className="flex items-start gap-1.5"><span>•</span> <span>Oluşturulan anahtarın ham halini (Full Key) **yalnızca üretim anında tek bir kez** görüntüleyebilirsiniz.</span></li>
+          <li className="flex items-start gap-1.5"><span>•</span> <span>Anahtarın üçüncü şahısların eline geçtiğinden şüphelendiğiniz an listeden derhal devre dışı (silme) bırakın.</span></li>
+          <li className="flex items-start gap-1.5"><span>•</span> <span>Test/Staging ortamı ile canlı üretim (Production) altyapısı için her zaman ayrı anahtarlar kurgulayın.</span></li>
         </ul>
       </motion.div>
+
+      {/* MODALLAR KATMANI (AnimatePresence Entegrasyonu) */}
+      <AnimatePresence>
+        {/* 1. GÖRÜNTÜLEME MODALI (Full Key Display) */}
+        {displayedFullKey && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-gray-900/20 backdrop-blur-md"
+              onClick={() => setDisplayedFullKey(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white/95 p-6 shadow-xl backdrop-blur-xl"
+            >
+              <h2 className="text-sm font-bold text-gray-950 tracking-tight mb-3">🔐 API Anahtarınız Hazır</h2>
+              <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-3.5 text-xs text-amber-800 leading-relaxed mb-4">
+                <strong>Önemli Protokol:</strong> Bu gizli anahtarı şimdi güvenli bir yere kopyalayın. Güvenlik altyapısı gereği pencereyi kapattıktan sonra anahtarı bir daha asla göremeyeceksiniz.
+              </div>
+
+              <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-3 mb-5 flex items-center justify-between gap-3 font-mono text-xs">
+                <code className="text-gray-900 break-all select-all pr-1 font-semibold">{displayedFullKey}</code>
+                <button
+                  type="button"
+                  onClick={() => handleCopyKey(displayedFullKey, 0)}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-400 hover:border-gray-300 hover:text-gray-900 transition-all active:scale-90 shadow-sm"
+                >
+                  {copiedKeyId === 0 ? <CheckCircle2 className="h-4 w-4 text-emerald-500 stroke-[2.5]" /> : <Copy className="h-4 w-4 stroke-[2]" />}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setDisplayedFullKey(null)}
+                className="w-full inline-flex min-h-[38px] items-center justify-center rounded-xl bg-gray-950 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-98"
+              >
+                Kopyaladım, Kapat
+              </button>
+            </motion.div>
+          </div>
+        )}
+
+        {/* 2. ANAHTAR ÜRETİM MODALI (Create Modal) */}
+        {showCreateModal && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-gray-900/20 backdrop-blur-md"
+              onClick={() => { if (!creating) { setShowCreateModal(false); setKeyName(""); setExpiresDays(""); } }}
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.96, y: 8 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl border border-gray-200 bg-white/95 p-6 shadow-xl backdrop-blur-xl space-y-4"
+            >
+              <div>
+                <h2 className="text-sm font-bold text-gray-950 tracking-tight">Yeni API Anahtarı Üret</h2>
+                <p className="mt-1 text-[11px] leading-relaxed text-gray-400">Bu anahtar harici sistemlerdeki arka plan botları veya özel panelleriniz için yetkilendirme sağlayacaktır.</p>
+              </div>
+
+              {/* İsim Alanı */}
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-bold text-gray-500">
+                  Anahtar Tanımlama Adı
+                </label>
+                <input
+                  type="text"
+                  placeholder="Örn: Mobil Entegrasyon, Test Ortamı"
+                  value={keyName}
+                  onChange={(e) => setKeyName(e.target.value)}
+                  className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-gray-900 focus:ring-1 focus:ring-gray-900 placeholder:text-gray-400"
+                  disabled={creating}
+                />
+              </div>
+
+              {/* Geçerlilik Süresi */}
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-bold text-gray-500">
+                  Geçerlilik Süresi (Gün)
+                </label>
+                <input
+                  type="number"
+                  placeholder="Süresiz kalması için boş bırakın"
+                  value={expiresDays}
+                  onChange={(e) => setExpiresDays(e.target.value)}
+                  min="1"
+                  className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-gray-900 focus:ring-1 focus:ring-gray-900 placeholder:text-gray-400"
+                  disabled={creating}
+                />
+                <p className="text-[10px] text-gray-400 leading-normal pt-0.5">Sistem güvenliği için 30 veya 90 günlük periyotlar belirlemeniz tavsiye edilir.</p>
+              </div>
+
+              {/* Buton Kontrolleri */}
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowCreateModal(false); setKeyName(""); setExpiresDays(""); }}
+                  disabled={creating}
+                  className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-98 disabled:opacity-40"
+                >
+                  İptal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateKey}
+                  disabled={creating || !keyName.trim()}
+                  className="flex-1 inline-flex items-center justify-center rounded-xl bg-gray-950 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-98 disabled:opacity-30"
+                >
+                  {creating ? (
+                    <span className="flex items-center gap-1.5">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Üretiliyor...
+                    </span>
+                  ) : "Anahtarı Üret"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

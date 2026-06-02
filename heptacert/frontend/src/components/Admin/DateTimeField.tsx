@@ -37,21 +37,30 @@ export default function DateTimeField({
   const { date, time } = splitDateTime(value);
 
   return (
-    <fieldset disabled={disabled} className={`min-w-0 disabled:opacity-60 ${className}`}>
-      {label && <legend className="label mb-1.5">{label}</legend>}
-      <div className="grid gap-2 sm:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+    <fieldset 
+      disabled={disabled} 
+      className={`min-w-0 border-0 p-0 m-0 transition-opacity duration-200 disabled:opacity-50 antialiased ${className}`}
+    >
+      {label && (
+        <legend className="block text-xs font-semibold text-gray-900 tracking-tight mb-2.5">
+          {label}
+        </legend>
+      )}
+      
+      {/* Mobil uyumlu, esnek ve tam orantılı Apple Izgara Düzeni */}
+      <div className="grid gap-3 grid-cols-1 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
         <DateField
           value={date}
           onChange={(nextDate) => onChange(joinDateTime(nextDate, time))}
           label={dateLabel}
-          placeholder="Tarih seçin"
+          placeholder={locale.startsWith("tr") ? "Tarih seçin" : "Select date"}
           locale={locale}
         />
         <TimeField
           value={time}
           onChange={(nextTime) => onChange(joinDateTime(date, nextTime))}
           label={timeLabel}
-          placeholder="Saat seçin"
+          placeholder={locale.startsWith("tr") ? "Saat seçin" : "Select time"}
         />
       </div>
     </fieldset>
