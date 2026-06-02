@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -133,7 +133,7 @@ export default function DeliveryAnalyticsPage() {
     };
 
     return (
-      <div className={`rounded-2xl border p-4.5 shadow-sm transition-all ${borders[color] || borders.blue}`}>
+      <div className={`rounded-2xl border p-4 shadow-sm transition-all ${borders[color] || borders.blue}`}>
         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 truncate">{label}</p>
         <p className={`text-2xl font-bold tracking-tight mt-1 tabular-nums ${textColors[color] || textColors.blue}`}>
           {value}
@@ -274,7 +274,7 @@ export default function DeliveryAnalyticsPage() {
                           : log.status === 'bounced'
                           ? '↩ Bounce'
                           : log.status === 'opened'
-                          ? '👁 Açıldı'
+                          ? 'Açıldı'
                           : log.status}
                       </span>
                     </td>

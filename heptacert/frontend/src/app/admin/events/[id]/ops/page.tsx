@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import type { ElementType } from "react";
@@ -211,7 +211,7 @@ export default function EventOperationsPage() {
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="text-xs font-bold text-gray-950 truncate tracking-tight">{session.name}</p>
                           {session.is_active && (
-                            <span className="inline-flex rounded-md border border-emerald-100 bg-emerald-50 px-1.5 py-0.2 text-[9px] font-bold uppercase text-emerald-700 animate-pulse shadow-sm">
+                            <span className="inline-flex rounded-md border border-emerald-100 bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold uppercase text-emerald-700 animate-pulse shadow-sm">
                               Canlı
                             </span>
                           )}
@@ -277,7 +277,7 @@ export default function EventOperationsPage() {
       <MobileActionBar>
         <Link 
           href={`/admin/events/${eventId}/checkin?staff=1`} 
-          className="flex-1 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-gray-950 px-4 text-xs font-bold text-white shadow-sm transition active:scale-98"
+          className="flex-1 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-gray-950 px-4 text-xs font-bold text-white shadow-sm transition active:scale-[0.98]"
         >
           <QrCode className="h-4 w-4 stroke-[2.5]" />
           <span>Görevli Modu</span>
@@ -286,7 +286,7 @@ export default function EventOperationsPage() {
           type="button"
           onClick={() => void load({ soft: true })}
           disabled={refreshing}
-          className="flex-1 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-xs font-bold text-gray-700 shadow-sm transition active:scale-98 disabled:opacity-40"
+          className="flex-1 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-xs font-bold text-gray-700 shadow-sm transition active:scale-[0.98] disabled:opacity-40"
         >
           {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4 stroke-[2]" />}
           <span>Yenile</span>

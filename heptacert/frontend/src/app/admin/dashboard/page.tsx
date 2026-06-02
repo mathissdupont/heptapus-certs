@@ -422,7 +422,7 @@ export default function DashboardPage() {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.25 + i * 0.03 }}
-                  className="rounded-2xl border border-gray-200 bg-white p-4.5 sm:p-5 shadow-sm"
+                  className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm"
                 >
                   <div className="flex flex-col justify-between sm:flex-row sm:items-center gap-4">
                     <div className="min-w-0 space-y-0.5">

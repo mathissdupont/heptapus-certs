@@ -294,7 +294,7 @@ export default function EventAdminNav({
     return (
       <div className={`w-full flex flex-col gap-4 antialiased ${className || ""}`}>
         {/* Üst Kart Alanı - Apple Bilgi Bloğu */}
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-4.5 shadow-sm">
+        <div className="rounded-2xl border border-gray-200/70 bg-white p-4 shadow-sm">
           <Link
             href="/admin/events"
             className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400 transition-colors hover:text-gray-900"

@@ -270,7 +270,7 @@ export default function BulkEmailsPage() {
             { label: copy.sending, val: sendingCount, sub: copy.statusSending, color: "text-blue-600" },
             { label: copy.failed, val: failedCount, sub: copy.statusFailed, color: "text-red-600" },
           ].map((stat, i) => (
-            <div key={i} className="rounded-2xl border border-gray-200 bg-white p-4.5 shadow-sm space-y-1">
+            <div key={i} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-1">
               <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 truncate">{stat.label}</p>
               <p className={`text-2xl font-bold tracking-tight font-mono tabular-nums ${stat.color}`}>{stat.val}</p>
               <p className="text-[11px] font-medium text-gray-400">{stat.sub}</p>
@@ -429,12 +429,12 @@ export default function BulkEmailsPage() {
                 <div className="space-y-2">
                   <span className="block text-[11px] font-bold text-gray-500">{copy.recipientLabel}</span>
                   <div className="grid gap-2 grid-cols-2">
-                    <button type="button" onClick={() => setRecipientType("attendees")} className={`p-3 rounded-xl border text-left text-xs font-bold transition-all relative flex flex-col justify-between h-22 ${recipientType === "attendees" ? "border-gray-950 bg-white ring-1 ring-gray-950 shadow-sm" : "border-gray-200 bg-white hover:border-gray-300"}`}>
+                    <button type="button" onClick={() => setRecipientType("attendees")} className={`p-3 rounded-xl border text-left text-xs font-bold transition-all relative flex flex-col justify-between h-[88px] ${recipientType === "attendees" ? "border-gray-950 bg-white ring-1 ring-gray-950 shadow-sm" : "border-gray-200 bg-white hover:border-gray-300"}`}>
                       <p className="text-gray-950 tracking-tight">{copy.attendeesTitle}</p>
                       <p className="text-[10px] font-medium text-gray-400 leading-normal">{copy.attendeesBody}</p>
                     </button>
                     
-                    <button type="button" onClick={() => setRecipientType("certified")} className={`p-3 rounded-xl border text-left text-xs font-bold transition-all relative flex flex-col justify-between h-22 ${recipientType === "certified" ? "border-gray-950 bg-white ring-1 ring-gray-950 shadow-sm" : "border-gray-200 bg-white hover:border-gray-300"}`}>
+                    <button type="button" onClick={() => setRecipientType("certified")} className={`p-3 rounded-xl border text-left text-xs font-bold transition-all relative flex flex-col justify-between h-[88px] ${recipientType === "certified" ? "border-gray-950 bg-white ring-1 ring-gray-950 shadow-sm" : "border-gray-200 bg-white hover:border-gray-300"}`}>
                       <p className="text-gray-950 tracking-tight">{copy.certifiedTitle}</p>
                       <p className="text-[10px] font-medium text-gray-400 leading-normal">{copy.certifiedBody}</p>
                     </button>

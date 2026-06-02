@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useMemo, type ElementType } from "react";
 import { useParams } from "next/navigation";
@@ -399,7 +399,7 @@ export default function EventAutomationsPage() {
             </label>
 
             {/* Form Kaydetme Butonu */}
-            <button type="button" onClick={saveRule} disabled={saving} className="w-full inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 disabled:opacity-40 active:scale-98">
+            <button type="button" onClick={saveRule} disabled={saving} className="w-full inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 disabled:opacity-40 active:scale-[0.98]">
               {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Workflow className="h-3.5 w-3.5 stroke-[2.5]" />}
               <span>{form.id ? "Kural Yapılandırmasını Güncelle" : "Kuralı Üret ve Çalıştır"}</span>
             </button>
@@ -434,7 +434,7 @@ export default function EventAutomationsPage() {
                     <div className="min-w-0 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-bold text-xs text-gray-950 tracking-tight">{rule.name}</p>
-                        <span className={`inline-flex rounded-md border px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-tight shadow-sm ${rule.enabled ? "border-emerald-100 bg-emerald-50 text-emerald-700" : "border-gray-100 bg-gray-50 text-gray-400"}`}>
+                        <span className={`inline-flex rounded-md border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-tight shadow-sm ${rule.enabled ? "border-emerald-100 bg-emerald-50 text-emerald-700" : "border-gray-100 bg-gray-50 text-gray-400"}`}>
                           {rule.enabled ? "Aktif" : "Pasif"}
                         </span>
                       </div>

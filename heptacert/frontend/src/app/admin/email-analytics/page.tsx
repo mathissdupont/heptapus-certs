@@ -97,7 +97,7 @@ export default function EmailAnalyticsPage() {
         )}
 
         {/* REHBER BİLGİ KUTUSU (Apple Tarzı Soft Kart) */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-4.5 shadow-sm flex items-start gap-3">
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm flex items-start gap-3">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-gray-100 bg-gray-50 text-gray-900 shadow-sm">
             <Mail className="h-4 w-4 stroke-[1.8]" />
           </div>

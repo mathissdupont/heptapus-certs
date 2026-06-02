@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState, type ElementType } from "react";
 import Link from "next/link";
@@ -299,7 +299,7 @@ export default function EventIndexPage() {
               <button 
                 type="button" 
                 onClick={copyRegistrationLink} 
-                className="flex-1 inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-98"
+                className="flex-1 inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-[0.98]"
               >
                 <Copy className="h-3.5 w-3.5 text-gray-400 stroke-[2]" />
                 <span>{copied ? copy.copied : copy.copyLink}</span>
@@ -308,7 +308,7 @@ export default function EventIndexPage() {
                 href={registrationUrl} 
                 target="_blank" 
                 rel="noreferrer" 
-                className="flex-1 inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-lg bg-gray-950 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-98 text-center"
+                className="flex-1 inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-lg bg-gray-950 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-[0.98] text-center"
               >
                 <ExternalLink className="h-3.5 w-3.5 text-gray-400 stroke-[2.5]" />
                 <span>{copy.openPublic}</span>

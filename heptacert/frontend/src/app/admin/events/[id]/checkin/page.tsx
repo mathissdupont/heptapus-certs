@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -534,7 +534,7 @@ export default function AdminCheckinPage() {
                   <button 
                     type="submit" 
                     disabled={submitting || !email.trim()} 
-                    className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 px-5 text-xs font-bold text-white shadow-sm transition hover:bg-gray-900 disabled:opacity-40 active:scale-98"
+                    className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 px-5 text-xs font-bold text-white shadow-sm transition hover:bg-gray-900 disabled:opacity-40 active:scale-[0.98]"
                   >
                     {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserCheck className="h-3.5 w-3.5 stroke-[2.5]" />}
                     <span>Kabul Et (Check-in)</span>

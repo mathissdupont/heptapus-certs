@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useMemo } from "react";
 import { ArrowLeft, Loader2, AlertCircle, Plus, Copy, CheckCircle2, Eye, EyeOff, Trash2, Lock, Calendar, Terminal } from "lucide-react";
@@ -300,7 +300,7 @@ export default function ApiKeysPage() {
 
       {/* GÜVENLİK KILAVUZU (Apple Altyazı Bloğu) */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-3">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 border-b border-gray-100 pb-2.5">🔐 API Anahtarı Güvenlik Protokolü</h3>
+        <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 border-b border-gray-100 pb-2.5">API Anahtarı Güvenlik Protokolü</h3>
         <ul className="space-y-2 text-xs font-medium text-gray-500 leading-relaxed">
           <li className="flex items-start gap-1.5"><span>•</span> <span>API anahtarları en üst düzey hassasiyete sahiptir; asla sürüm kontrol (Git) geçmişine eklemeyin.</span></li>
           <li className="flex items-start gap-1.5"><span>•</span> <span>Maskelenmiş olarak listelenen anahtarlar güvenlik politikası gereği sistemde kriptolu tutulur ve tekrar çözülemez.</span></li>
@@ -328,7 +328,7 @@ export default function ApiKeysPage() {
               exit={{ opacity: 0, scale: 0.96, y: 8 }}
               className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white/95 p-6 shadow-xl backdrop-blur-xl"
             >
-              <h2 className="text-sm font-bold text-gray-950 tracking-tight mb-3">🔐 API Anahtarınız Hazır</h2>
+              <h2 className="text-sm font-bold text-gray-950 tracking-tight mb-3">API Anahtarınız Hazır</h2>
               <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-3.5 text-xs text-amber-800 leading-relaxed mb-4">
                 <strong>Önemli Protokol:</strong> Bu gizli anahtarı şimdi güvenli bir yere kopyalayın. Güvenlik altyapısı gereği pencereyi kapattıktan sonra anahtarı bir daha asla göremeyeceksiniz.
               </div>
@@ -347,7 +347,7 @@ export default function ApiKeysPage() {
               <button
                 type="button"
                 onClick={() => setDisplayedFullKey(null)}
-                className="w-full inline-flex min-h-[38px] items-center justify-center rounded-xl bg-gray-950 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-98"
+                className="w-full inline-flex min-h-[38px] items-center justify-center rounded-xl bg-gray-950 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-[0.98]"
               >
                 Kopyaladım, Kapat
               </button>
@@ -414,7 +414,7 @@ export default function ApiKeysPage() {
                   type="button"
                   onClick={() => { setShowCreateModal(false); setKeyName(""); setExpiresDays(""); }}
                   disabled={creating}
-                  className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-98 disabled:opacity-40"
+                  className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-[0.98] disabled:opacity-40"
                 >
                   İptal
                 </button>
@@ -422,7 +422,7 @@ export default function ApiKeysPage() {
                   type="button"
                   onClick={handleCreateKey}
                   disabled={creating || !keyName.trim()}
-                  className="flex-1 inline-flex items-center justify-center rounded-xl bg-gray-950 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-98 disabled:opacity-30"
+                  className="flex-1 inline-flex items-center justify-center rounded-xl bg-gray-950 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-[0.98] disabled:opacity-30"
                 >
                   {creating ? (
                     <span className="flex items-center gap-1.5">

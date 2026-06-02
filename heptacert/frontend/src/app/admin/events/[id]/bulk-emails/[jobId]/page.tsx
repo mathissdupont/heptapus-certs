@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -150,7 +150,7 @@ export default function EmailJobDetailsPage() {
       </div>
 
       {/* 2. STATÜ ROZET ALANI (Apple Soft Badge Panel) */}
-      <div className={`rounded-2xl border p-4.5 shadow-sm transition-all duration-300 ${config.bg}`}>
+      <div className={`rounded-2xl border p-4 shadow-sm transition-all duration-300 ${config.bg}`}>
         <div className="flex items-center gap-3.5">
           <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border shadow-sm bg-white`}>
             <StatusIcon className={`h-4 w-4 ${config.text} stroke-[2.5]`} />
@@ -262,7 +262,7 @@ export default function EmailJobDetailsPage() {
 
         <Link
           href={`/admin/events/${eventId}`}
-          className="inline-flex min-h-[38px] items-center justify-center rounded-xl bg-gray-950 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-98 text-center"
+          className="inline-flex min-h-[38px] items-center justify-center rounded-xl bg-gray-950 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-[0.98] text-center"
         >
           Tamamlandı, Geri Dön
         </Link>

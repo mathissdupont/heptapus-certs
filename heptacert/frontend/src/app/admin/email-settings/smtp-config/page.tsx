@@ -376,7 +376,7 @@ export default function SMTPConfigurationPage() {
               <button 
                 onClick={handleSave} 
                 disabled={saving} 
-                className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-98 disabled:opacity-40"
+                className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-[0.98] disabled:opacity-40"
               >
                 {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                 <span>{saving ? "Kaydediliyor..." : "Yapılandırmayı Kaydet"}</span>

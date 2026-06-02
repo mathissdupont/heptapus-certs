@@ -1169,7 +1169,7 @@ export default function AdminAttendeesPage() {
         {selectedAttendee && (
           <div className="fixed inset-0 z-50 flex justify-end">
             {/* Arka Plan Cam Katmanı */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-gray-900/10 backdrop-blur-xs" onClick={() => setSelectedAttendee(null)} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-gray-900/10 backdrop-blur-sm" onClick={() => setSelectedAttendee(null)} />
             
             {/* Çekmece Gövdesi */}
             <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 220 }} className="relative h-full w-full max-w-sm overflow-y-auto border-l border-gray-200 bg-white/95 backdrop-blur-xl p-5 sm:p-6 shadow-2xl flex flex-col justify-between scrollbar-none">

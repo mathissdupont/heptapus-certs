@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import type { ElementType } from "react";
@@ -1578,7 +1578,7 @@ export default function EventSettingsPage() {
               <div className="min-w-0 space-y-0.5 flex-1">
                 <div className="flex items-center gap-2">
                   <h2 className="text-sm font-bold tracking-tight text-gray-950">{copy.emailTitle}</h2>
-                  {hasGrowthPlan && <span className="inline-flex rounded-md bg-emerald-50 border border-emerald-100 px-1.5 py-0.2 text-[9px] font-bold uppercase text-emerald-700 shadow-sm">{subscription?.plan_id === "enterprise" ? copy.enterprise : copy.growth}</span>}
+                  {hasGrowthPlan && <span className="inline-flex rounded-md bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-emerald-700 shadow-sm">{subscription?.plan_id === "enterprise" ? copy.enterprise : copy.growth}</span>}
                 </div>
                 <p className="text-xs text-gray-400 font-medium">{copy.emailBody}</p>
               </div>
@@ -1656,7 +1656,7 @@ export default function EventSettingsPage() {
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-xs font-bold text-gray-950 tracking-tight">{comment.member_name}</span>
                           <span className="text-[10px] font-medium text-gray-400 font-mono">{comment.member_email}</span>
-                          <span className={`rounded-md border px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-tight shadow-sm ${commentSel}`}>{comment.status}</span>
+                          <span className={`rounded-md border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-tight shadow-sm ${commentSel}`}>{comment.status}</span>
                         </div>
                         <p className="text-xs leading-relaxed text-gray-700 font-medium whitespace-pre-wrap">{comment.body}</p>
                         <div className="pt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
@@ -1690,7 +1690,7 @@ export default function EventSettingsPage() {
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="w-full inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-full bg-gray-950 px-6 font-bold text-white shadow-xl transition hover:bg-gray-900 active:scale-98 disabled:opacity-50"
+          className="w-full inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-full bg-gray-950 px-6 font-bold text-white shadow-xl transition hover:bg-gray-900 active:scale-[0.98] disabled:opacity-50"
           title={`${copy.save} (Ctrl/⌘ + S)`}
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 stroke-[2.5]" />}

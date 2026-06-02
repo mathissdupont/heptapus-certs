@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -196,7 +196,7 @@ export default function TwoFAManagementPage() {
       {!status?.is_enabled && (
         <button
           onClick={handleSetupClick}
-          className="w-full inline-flex min-h-[42px] items-center justify-center rounded-xl bg-gray-950 text-xs font-semibold text-white transition hover:bg-gray-900 active:scale-98 shadow-sm"
+          className="w-full inline-flex min-h-[42px] items-center justify-center rounded-xl bg-gray-950 text-xs font-semibold text-white transition hover:bg-gray-900 active:scale-[0.98] shadow-sm"
         >
           2FA Kurulumunu Başlat
         </button>
@@ -240,7 +240,7 @@ export default function TwoFAManagementPage() {
           <button
             onClick={handleDeleteKey}
             disabled={disabling || !disablePassword}
-            className="w-full inline-flex min-h-[38px] items-center justify-center rounded-xl bg-red-500 text-xs font-semibold text-white transition hover:bg-red-600 active:scale-98 disabled:opacity-40 shadow-sm"
+            className="w-full inline-flex min-h-[38px] items-center justify-center rounded-xl bg-red-500 text-xs font-semibold text-white transition hover:bg-red-600 active:scale-[0.98] disabled:opacity-40 shadow-sm"
           >
             {disabling ? (
               <span className="flex items-center gap-1.5">
@@ -335,7 +335,7 @@ export default function TwoFAManagementPage() {
                     setShowSetupModal(false);
                     setVerificationCode("");
                   }}
-                  className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-98"
+                  className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-[0.98]"
                 >
                   İptal
                 </button>
@@ -343,7 +343,7 @@ export default function TwoFAManagementPage() {
                   type="button"
                   onClick={handleEnable}
                   disabled={verifying || verificationCode.length !== 6}
-                  className="flex-1 inline-flex items-center justify-center rounded-xl bg-gray-950 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-98 disabled:opacity-30"
+                  className="flex-1 inline-flex items-center justify-center rounded-xl bg-gray-950 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-[0.98] disabled:opacity-30"
                 >
                   {verifying ? (
                     <span className="flex items-center gap-1.5">

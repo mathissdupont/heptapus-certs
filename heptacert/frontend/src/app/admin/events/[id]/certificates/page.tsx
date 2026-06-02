@@ -505,13 +505,13 @@ export default function CertificatesPage() {
 
       {/* 4'LÜ ÜST ÖZET METRİK ROZETLERİ */}
       <div className="grid grid-cols-2 gap-3.5 xl:grid-cols-4">
-        <div className="rounded-2xl border border-gray-200 bg-white p-4.5 shadow-sm space-y-1">
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-1">
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{t("certs_total")}</p>
           <p className="text-2xl font-bold tracking-tight text-gray-950 font-mono tabular-nums">{total}</p>
           <p className="text-[11px] font-medium text-gray-400">{copy.visibleResults}</p>
         </div>
         
-        <div className="rounded-2xl border border-gray-200 bg-white p-4.5 shadow-sm space-y-1">
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-1">
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{copy.currentView}</p>
           <div className="pt-1 flex flex-wrap gap-1 text-[9px] font-bold">
             <span className="rounded bg-emerald-50 border border-emerald-100/40 px-1.5 py-0.5 text-emerald-700">AKTİF: {visibleStats.active}</span>
@@ -520,13 +520,13 @@ export default function CertificatesPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-4.5 shadow-sm space-y-1">
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-1">
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{copy.selected}</p>
           <p className="text-2xl font-bold tracking-tight text-gray-950 font-mono tabular-nums">{selectedIds.size}</p>
           <p className="text-[11px] font-medium text-gray-400">{copy.selectionTitle}</p>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-4.5 shadow-sm space-y-1">
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-1">
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{copy.currentPage}</p>
           <p className="text-2xl font-bold tracking-tight text-gray-950 font-mono tabular-nums">{page} / {totalPages}</p>
           <p className="text-[11px] font-semibold text-gray-300 font-mono">#EV-{eventId}</p>
@@ -680,7 +680,7 @@ export default function CertificatesPage() {
                 )}
               </div>
 
-              <button onClick={issueOne} disabled={issuing || templateReady === false} className="w-full inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-98 disabled:opacity-40">
+              <button onClick={issueOne} disabled={issuing || templateReady === false} className="w-full inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-[0.98] disabled:opacity-40">
                 {issuing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5 stroke-[2]" />}
                 <span>{copy.issueAction}</span>
               </button>
@@ -777,7 +777,7 @@ export default function CertificatesPage() {
                     <motion.div 
                       key={c.id} 
                       variants={rowVars} 
-                      className={`flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4.5 transition-colors relative ${
+                      className={`flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 transition-colors relative ${
                         isSelected ? "bg-gray-50/50" : "hover:bg-gray-50/20"
                       }`}
                     >
@@ -788,7 +788,7 @@ export default function CertificatesPage() {
                         
                         <div className="flex-1 min-w-0 space-y-1.5">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-tight shadow-sm ${s.bg} ${s.color} ${s.border}`}>
+                            <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-tight shadow-sm ${s.bg} ${s.color} ${s.border}`}>
                               {s.icon} <span>{c.status}</span>
                             </span>
                             <h3 className="text-xs font-bold text-gray-950 tracking-tight truncate">{c.student_name}</h3>

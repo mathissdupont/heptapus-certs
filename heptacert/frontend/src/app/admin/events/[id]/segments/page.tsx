@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
@@ -468,7 +468,7 @@ export default function EventSegmentsPage() {
             <input value={fieldId} onChange={event => setFieldId(event.target.value)} className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-gray-900 placeholder:text-gray-400" placeholder={copy.fieldPlaceholder} />
             <input value={answer} onChange={event => setAnswer(event.target.value)} className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-gray-900 placeholder:text-gray-400" placeholder={copy.answerPlaceholder} />
             <input value={location} onChange={event => setLocation(event.target.value)} className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-gray-900 placeholder:text-gray-400" placeholder={copy.locationPlaceholder} />
-            <button type="button" onClick={() => void loadSegments()} className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 px-5 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-98">
+            <button type="button" onClick={() => void loadSegments()} className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 px-5 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-[0.98]">
               <ListFilter className="h-3.5 w-3.5 stroke-[2.5]" />
               <span>{copy.apply}</span>
             </button>
@@ -662,7 +662,7 @@ export default function EventSegmentsPage() {
               {[...standardSegments, ...dynamicSegments].map((segment) => {
                 const isSegSel = selectedKey === segment.key;
                 return (
-                  <article key={`${segment.key}-${segment.label}`} className={`rounded-2xl border bg-white p-4.5 shadow-sm flex flex-col justify-between gap-4 transition-all duration-300 ${isSegSel ? "border-gray-950 ring-1 ring-gray-950" : "border-gray-200"}`}>
+                  <article key={`${segment.key}-${segment.label}`} className={`rounded-2xl border bg-white p-4 shadow-sm flex flex-col justify-between gap-4 transition-all duration-300 ${isSegSel ? "border-gray-950 ring-1 ring-gray-950" : "border-gray-200"}`}>
                     <div className="flex items-start justify-between gap-3 min-w-0">
                       <div className="min-w-0 space-y-0.5 flex-1">
                         <p className="font-bold text-xs text-gray-950 tracking-tight truncate">{segment.label}</p>
@@ -712,8 +712,8 @@ export default function EventSegmentsPage() {
                       {/* Küçük Durum Sinyal Rozetleri */}
                       {(attendee.email_verified || attendee.survey_completed) && (
                         <div className="flex flex-wrap gap-1">
-                          {attendee.email_verified && <span className="rounded bg-emerald-50 px-1.5 py-0.2 text-[9px] font-bold text-emerald-700">{copy.emailVerified.split(" ")[0]}</span>}
-                          {attendee.survey_completed && <span className="rounded bg-blue-50 px-1.5 py-0.2 text-[9px] font-bold text-blue-700">{copy.surveyDone}</span>}
+                          {attendee.email_verified && <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">{copy.emailVerified.split(" ")[0]}</span>}
+                          {attendee.survey_completed && <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[9px] font-bold text-blue-700">{copy.surveyDone}</span>}
                         </div>
                       )}
                     </div>
