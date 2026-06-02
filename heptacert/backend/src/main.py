@@ -18856,50 +18856,21 @@ def _pdf_escape_text(value: Any) -> str:
 
 
 def _minimal_pdf_response(rows: List[Dict[str, Any]], title: str, filename: str) -> Response:
-    lines = [title, f"Generated at: {datetime.now(timezone.utc).isoformat()}", ""]
-    for row in rows[:120]:
-        summary = (
-            f"#{row.get('id')} | {row.get('created_at')} | {row.get('user_email') or 'system'} | "
-            f"{row.get('action')} | {row.get('resource_type') or '-'}:{row.get('resource_id') or '-'}"
-        )
-        lines.extend(textwrap.wrap(summary, width=96) or [""])
-        details = row.get("details")
-        if details:
-            lines.extend(textwrap.wrap(f"Details: {details}", width=96))
-        lines.append("")
-    if len(rows) > 120:
-        lines.append(f"... {len(rows) - 120} more rows available in CSV export.")
+    from .document_outputs import render_log_document_pdf_bytes
 
-    content_lines = ["BT", "/F1 9 Tf", "40 800 Td", "13 TL"]
-    for line in lines[:56]:
-        content_lines.append(f"({_pdf_escape_text(line)}) Tj")
-        content_lines.append("T*")
-    content_lines.append("ET")
-    stream = "\n".join(content_lines).encode("utf-8")
-    objects = [
-        b"<< /Type /Catalog /Pages 2 0 R >>",
-        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
-        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-        b"<< /Length " + str(len(stream)).encode("ascii") + b" >>\nstream\n" + stream + b"\nendstream",
-    ]
-    pdf = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
-    offsets = [0]
-    for idx, obj in enumerate(objects, start=1):
-        offsets.append(len(pdf))
-        pdf.extend(f"{idx} 0 obj\n".encode("ascii"))
-        pdf.extend(obj)
-        pdf.extend(b"\nendobj\n")
-    xref_offset = len(pdf)
-    pdf.extend(f"xref\n0 {len(objects) + 1}\n".encode("ascii"))
-    pdf.extend(b"0000000000 65535 f \n")
-    for offset in offsets[1:]:
-        pdf.extend(f"{offset:010d} 00000 n \n".encode("ascii"))
-    pdf.extend(
-        f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref_offset}\n%%EOF\n".encode("ascii")
+    pdf = render_log_document_pdf_bytes(
+        title=title,
+        intro="Bu dokuman HeptaCert sistem kayitlarindan otomatik olarak olusturulmustur.",
+        summary={
+            "Uretilme zamani": datetime.now(timezone.utc).isoformat(),
+            "Kayit sayisi": len(rows),
+            "Cikti tipi": "Resmi log PDF",
+        },
+        records=rows,
+        columns=["id", "created_at", "user_email", "action", "resource_type", "resource_id", "ip_address", "details"],
     )
     return Response(
-        bytes(pdf),
+        pdf,
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
@@ -19354,6 +19325,9 @@ app.include_router(_email_api.router)
 
 from . import auth_2fa_api as _auth_2fa_api
 app.include_router(_auth_2fa_api.router)
+
+from . import document_outputs_api as _document_outputs_api
+app.include_router(_document_outputs_api.router)
 
 from . import community_api as _community_api
 app.include_router(_community_api.router)
