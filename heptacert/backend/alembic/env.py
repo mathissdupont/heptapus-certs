@@ -5,7 +5,7 @@ import os
 import sys
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import engine_from_config, pool, text
 from alembic import context
 
 # Add src/ to path so models can be imported
@@ -53,6 +53,20 @@ def run_migrations_online() -> None:
         poolclass=pool.NullPool,
     )
     with connectable.connect() as connection:
+        if connection.dialect.name == "postgresql":
+            connection.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS alembic_version (
+                        version_num VARCHAR(128) NOT NULL,
+                        CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
+                    )
+                    """
+                )
+            )
+            connection.execute(text("ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(128)"))
+            connection.commit()
+
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
