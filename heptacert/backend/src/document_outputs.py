@@ -46,8 +46,8 @@ def _fallback_template() -> str:
 <body>
   <h1>{{title}}</h1>
   <section class="meta-row">
-    <div>Tarih: <span>{{date}}</span></div>
-    <div>Evrak No: <span>{{documentNo}}</span></div>
+    <div>Date: <span>{{date}}</span></div>
+    <div>Document No: <span>{{documentNo}}</span></div>
   </section>
   {{bodyHtml}}
 </body>
@@ -66,9 +66,9 @@ def render_official_document_html(
     document_no: str | None = None,
     date_text: str | None = None,
     left_signer_name: str = "Heptapus Group",
-    left_signer_title: str = "Yetkili Birim",
+    left_signer_title: str = "Authorized Unit",
     right_signer_name: str = "HeptaCert",
-    right_signer_title: str = "Sistem Kaydi",
+    right_signer_title: str = "System Record",
     template_path: Path | None = None,
 ) -> str:
     template = _read_template(template_path)
@@ -100,7 +100,7 @@ def render_key_value_table(rows: Iterable[tuple[str, Any]]) -> str:
 
 def render_records_table(records: list[dict[str, Any]], columns: list[str] | None = None) -> str:
     if not records:
-        return "<p>Kayit bulunamadi.</p>"
+        return "<p>No records found.</p>"
     resolved_columns = columns or list(records[0].keys())
     head = "".join(f"<th>{escape(str(column))}</th>" for column in resolved_columns)
     body_rows = []
@@ -121,12 +121,12 @@ def render_log_document_body(
     if intro:
         parts.append(f"<p>{escape(intro)}</p>")
     if summary:
-        parts.append("<h2>Ozet</h2>")
+        parts.append("<h2>Summary</h2>")
         parts.append(render_key_value_table(summary.items()))
     if records is not None:
-        parts.append("<h2>Kayitlar</h2>")
+        parts.append("<h2>Records</h2>")
         parts.append(render_records_table(records, columns))
-    return "\n".join(parts) or "<p>Bu dokuman icin icerik uretilmedi.</p>"
+    return "\n".join(parts) or "<p>No content was generated for this document.</p>"
 
 
 def render_log_document_pdf_bytes(
@@ -138,9 +138,9 @@ def render_log_document_pdf_bytes(
     intro: str | None = None,
     document_no: str | None = None,
     left_signer_name: str = "Heptapus Group",
-    left_signer_title: str = "Yetkili Birim",
+    left_signer_title: str = "Authorized Unit",
     right_signer_name: str = "HeptaCert",
-    right_signer_title: str = "Sistem Kaydi",
+    right_signer_title: str = "System Record",
     template_path: Path | None = None,
 ) -> bytes:
     """Render official log/report content onto the letterhead template as PDF bytes."""
@@ -161,8 +161,8 @@ def render_log_document_pdf_bytes(
         page = background.copy()
         draw = ImageDraw.Draw(page)
         _draw_centered(draw, title, y=_mm(38), font=fonts["title"], fill=(17, 17, 17), max_width=PDF_WIDTH - _mm(50))
-        draw.text((_mm(25), _mm(50)), f"Tarih: {date_text}", font=fonts["meta"], fill=(17, 17, 17))
-        right_meta = f"Evrak No: {doc_no}"
+        draw.text((_mm(25), _mm(50)), f"Date: {date_text}", font=fonts["meta"], fill=(17, 17, 17))
+        right_meta = f"Document No: {doc_no}"
         right_bbox = draw.textbbox((0, 0), right_meta, font=fonts["meta"])
         draw.text((PDF_WIDTH - _mm(25) - (right_bbox[2] - right_bbox[0]), _mm(50)), right_meta, font=fonts["meta"], fill=(17, 17, 17))
 
@@ -177,10 +177,11 @@ def render_log_document_pdf_bytes(
                 draw.line((_mm(25), y, PDF_WIDTH - _mm(25), y), fill=(34, 34, 34), width=1)
                 y += 10
             else:
-                draw.text((_mm(25), y), item["text"], font=fonts["body"], fill=(17, 17, 17))
-                y += 24
+                for visual_line in _wrap_text_to_pixels(draw, item["text"], fonts["body"], PDF_WIDTH - _mm(50)):
+                    draw.text((_mm(25), y), visual_line, font=fonts["body"], fill=(17, 17, 17))
+                    y += 22
 
-        footer = f"Sayfa {page_index}/{len(chunks)}"
+        footer = f"Page {page_index}/{len(chunks)}"
         footer_bbox = draw.textbbox((0, 0), footer, font=fonts["small"])
         draw.text((PDF_WIDTH - _mm(25) - (footer_bbox[2] - footer_bbox[0]), PDF_HEIGHT - _mm(24)), footer, font=fonts["small"], fill=(70, 70, 70))
         _draw_signature(draw, _mm(25), PDF_HEIGHT - _mm(43), left_signer_name, left_signer_title, fonts)
@@ -234,7 +235,7 @@ def _pdf_fonts() -> dict[str, Any]:
         "title": font(bold, 34),
         "meta": font(bold, 21),
         "heading": font(bold, 25),
-        "body": font(regular, 21),
+        "body": font(regular, 18),
         "small": font(regular, 17),
         "signature": font(bold, 20),
         "signature_title": font(regular, 18),
@@ -254,36 +255,117 @@ def _build_pdf_lines(
             lines.append({"kind": "text", "text": line})
         lines.append({"kind": "rule", "text": ""})
     if summary:
-        lines.append({"kind": "heading", "text": "Ozet"})
+        lines.append({"kind": "heading", "text": "Summary"})
         for key, value in summary.items():
-            for line in _wrap_pdf_text(f"{key}: {_stringify(value)}", width=96):
+            for line in _wrap_pdf_text(f"{key}: {_stringify(value)}", width=82):
                 lines.append({"kind": "text", "text": line})
         lines.append({"kind": "rule", "text": ""})
-    lines.append({"kind": "heading", "text": "Kayitlar"})
+    lines.append({"kind": "heading", "text": "Records"})
     if not records:
-        lines.append({"kind": "text", "text": "Kayit bulunamadi."})
+        lines.append({"kind": "text", "text": "No records found."})
         return lines
     resolved_columns = columns or ["id", "created_at", "user_email", "action", "resource_type", "resource_id", "ip_address", "details"]
     for index, record in enumerate(records[:500], start=1):
-        compact = " | ".join(
-            _stringify(record.get(column, ""))[:180]
-            for column in resolved_columns
-            if _stringify(record.get(column, ""))
-        )
-        prefix = f"{index}. "
-        wrapped = _wrap_pdf_text(prefix + compact, width=112)
-        for line in wrapped:
+        for line in _wrap_pdf_text(f"{index}. {_record_summary(record, resolved_columns)}", width=84):
             lines.append({"kind": "text", "text": line})
-        if record.get("extra"):
-            for line in _wrap_pdf_text("extra: " + _stringify(record.get("extra")), width=112)[:3]:
+        extra_summary = _extra_summary(record.get("extra"))
+        if extra_summary:
+            for line in _wrap_pdf_text("Details: " + extra_summary, width=78)[:3]:
                 lines.append({"kind": "text", "text": "   " + line})
     if len(records) > 500:
-        lines.append({"kind": "text", "text": f"... {len(records) - 500} kayit daha CSV dis aktariminda bulunur."})
+        lines.append({"kind": "text", "text": f"... {len(records) - 500} additional records are available in the CSV export."})
     return lines
 
 
 def _wrap_pdf_text(text: str, width: int) -> list[str]:
     return textwrap.wrap(str(text), width=width, replace_whitespace=False, drop_whitespace=True) or [""]
+
+
+def _wrap_text_to_pixels(draw: Any, text: str, font: Any, max_width: int) -> list[str]:
+    lines: list[str] = []
+    for source_line in str(text).splitlines() or [""]:
+        current = ""
+        for token in _split_wrappable_tokens(source_line):
+            candidate = f"{current}{token}" if current else token.lstrip()
+            bbox = draw.textbbox((0, 0), candidate, font=font)
+            if bbox[2] - bbox[0] <= max_width or not current:
+                current = candidate
+            else:
+                lines.append(current.rstrip())
+                current = token.lstrip()
+        if current:
+            lines.append(current.rstrip())
+    return lines or [""]
+
+
+def _split_wrappable_tokens(text: str) -> list[str]:
+    tokens = re.findall(r"\S+\s*", text)
+    expanded: list[str] = []
+    for token in tokens:
+        if len(token) <= 42:
+            expanded.append(token)
+            continue
+        expanded.extend(token[i : i + 42] for i in range(0, len(token), 42))
+    return expanded
+
+
+def _record_summary(record: dict[str, Any], columns: list[str]) -> str:
+    labels = {
+        "id": "ID",
+        "created_at": "Date",
+        "user_email": "User",
+        "action": "Action",
+        "resource_type": "Resource",
+        "resource_id": "Resource ID",
+        "ip_address": "IP",
+        "details": "Result",
+    }
+    parts: list[str] = []
+    for column in columns:
+        value = _stringify(record.get(column, "")).strip()
+        if not value or column == "extra":
+            continue
+        if column == "created_at":
+            value = _format_timestamp(value)
+        parts.append(f"{labels.get(column, column)}: {_shorten(value, 96)}")
+    return " | ".join(parts)
+
+
+def _extra_summary(extra: Any) -> str:
+    if not isinstance(extra, dict):
+        return ""
+    preferred_keys = [
+        "email",
+        "result",
+        "event_id",
+        "event_public_id",
+        "attendee_id",
+        "document",
+        "context",
+        "source_path",
+        "status_code",
+        "kvkk_required",
+        "kvkk_accepted",
+        "cross_border_transfer_consent_required",
+        "cross_border_transfer_consent",
+        "legal_document_version",
+    ]
+    parts = []
+    for key in preferred_keys:
+        if key in extra and extra.get(key) not in (None, ""):
+            parts.append(f"{key}={_shorten(_stringify(extra.get(key)), 80)}")
+    return "; ".join(parts[:10])
+
+
+def _format_timestamp(value: str) -> str:
+    return value.replace("T", " ").replace("+00:00", " UTC")
+
+
+def _shorten(value: str, limit: int) -> str:
+    text = str(value)
+    if len(text) <= limit:
+        return text
+    return text[: max(0, limit - 1)].rstrip() + "..."
 
 
 def _mm(value: float) -> int:

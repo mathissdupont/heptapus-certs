@@ -13,16 +13,16 @@ router = APIRouter(prefix="/api/admin/document-outputs", tags=["document-outputs
 
 
 class OfficialLogDocumentIn(BaseModel):
-    title: str = Field(default="Resmi Kayit Ciktisi", max_length=160)
+    title: str = Field(default="Official Record Output", max_length=160)
     document_no: str | None = Field(default=None, max_length=80)
     intro: str | None = Field(default=None, max_length=1000)
     summary: dict[str, Any] | None = None
     records: list[dict[str, Any]] = Field(default_factory=list)
     columns: list[str] | None = None
     left_signer_name: str = Field(default="Heptapus Group", max_length=120)
-    left_signer_title: str = Field(default="Yetkili Birim", max_length=120)
+    left_signer_title: str = Field(default="Authorized Unit", max_length=120)
     right_signer_name: str = Field(default="HeptaCert", max_length=120)
-    right_signer_title: str = Field(default="Sistem Kaydi", max_length=120)
+    right_signer_title: str = Field(default="System Record", max_length=120)
 
 
 @router.post("/official-log", response_class=HTMLResponse)

@@ -18860,11 +18860,11 @@ def _minimal_pdf_response(rows: List[Dict[str, Any]], title: str, filename: str)
 
     pdf = render_log_document_pdf_bytes(
         title=title,
-        intro="Bu dokuman HeptaCert sistem kayitlarindan otomatik olarak olusturulmustur.",
+        intro="This document was automatically generated from HeptaCert system records.",
         summary={
-            "Uretilme zamani": datetime.now(timezone.utc).isoformat(),
-            "Kayit sayisi": len(rows),
-            "Cikti tipi": "Resmi log PDF",
+            "Generated at": datetime.now(timezone.utc).isoformat(),
+            "Record count": len(rows),
+            "Output type": "Official log PDF",
         },
         records=rows,
         columns=["id", "created_at", "user_email", "action", "resource_type", "resource_id", "ip_address", "details"],
