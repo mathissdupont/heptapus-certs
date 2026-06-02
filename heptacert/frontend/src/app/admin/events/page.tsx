@@ -263,15 +263,7 @@ export default function AdminEvents() {
   async function load() {
     setErr(null);
     try {
-      const [eventsRes, meRes, contextsRes, venuesRes] = await Promise.all([
-        apiFetch("/admin/events", { method: "GET" }),
-        apiFetch("/me", { method: "GET" }),
-        apiFetch("/admin/organization/contexts", { method: "GET" }).catch(() => null),
-        apiFetch("/admin/organization/venues", { method: "GET" }).catch(() => null),
-      ]);
-      setEvents(await eventsRes.json());
-      const meData = (await meRes.json()) as MeOut;
-      setMe(meData);
+      const contextsRes = await apiFetch("/admin/organization/contexts", { method: "GET" }).catch(() => null);
       if (contextsRes) {
         const contexts = (await contextsRes.json()) as OrganizationContext[];
         setOrganizationContexts(contexts || []);
@@ -282,6 +274,15 @@ export default function AdminEvents() {
           setSelectedOrganizationId(selected.id);
         }
       }
+
+      const [eventsRes, meRes, venuesRes] = await Promise.all([
+        apiFetch("/admin/events", { method: "GET" }),
+        apiFetch("/me", { method: "GET" }),
+        apiFetch("/admin/organization/venues", { method: "GET" }).catch(() => null),
+      ]);
+      setEvents(await eventsRes.json());
+      const meData = (await meRes.json()) as MeOut;
+      setMe(meData);
       if (venuesRes) {
         const venueItems = (await venuesRes.json()) as OrganizationVenue[];
         setVenues((venueItems || []).filter((venue) => venue.is_active));

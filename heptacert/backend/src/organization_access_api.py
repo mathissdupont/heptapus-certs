@@ -246,13 +246,6 @@ async def get_organization_for_access(
             return selected
         raise HTTPException(status_code=403, detail="Organization permission denied")
 
-    result = await db.execute(select(Organization).where(Organization.user_id == me.id))
-    owned = result.scalar_one_or_none()
-    if owned:
-        if required_permission == "organization:team_manage":
-            await ensure_organization_enterprise(db, owned)
-        return owned
-
     normalized_email = (me.email or "").strip().lower()
     result = await db.execute(
         select(Organization, OrganizationMember)
@@ -270,6 +263,13 @@ async def get_organization_for_access(
     for organization, member in memberships:
         if await organization_owner_has_enterprise_plan(db, organization) and member_allows(member, required_permission):
             return organization
+
+    result = await db.execute(select(Organization).where(Organization.user_id == me.id))
+    owned = result.scalar_one_or_none()
+    if owned:
+        if required_permission == "organization:team_manage":
+            await ensure_organization_enterprise(db, owned)
+        return owned
 
     if memberships:
         raise HTTPException(status_code=403, detail="Organization permission denied")
@@ -295,17 +295,7 @@ def organization_id_from_request(request: Request) -> Optional[int]:
 
 
 async def get_accessible_organization_contexts(db: AsyncSession, me: CurrentUser) -> list[OrganizationContextOut]:
-    owned = await _get_or_create_admin_organization(db, me.id)
-    contexts: dict[int, OrganizationContextOut] = {
-        owned.id: OrganizationContextOut(
-            id=owned.id,
-            public_id=owned.public_id,
-            org_name=owned.org_name or "Kendi organizasyonum",
-            role="owner",
-            owned=True,
-            permissions=sorted(ORGANIZATION_PERMISSION_LABELS.keys()),
-        )
-    }
+    contexts: dict[int, OrganizationContextOut] = {}
     normalized_email = (me.email or "").strip().lower()
     result = await db.execute(
         select(Organization, OrganizationMember)
@@ -331,6 +321,24 @@ async def get_accessible_organization_contexts(db: AsyncSession, me: CurrentUser
                 role=member.role,
                 owned=False,
                 permissions=effective_organization_permissions(member),
+            ),
+        )
+
+    owned_result = await db.execute(select(Organization).where(Organization.user_id == me.id))
+    owned = owned_result.scalar_one_or_none()
+    if owned is None and not contexts:
+        owned = await _get_or_create_admin_organization(db, me.id)
+    include_owned_context = owned is not None and (not contexts or bool((owned.org_name or "").strip()))
+    if include_owned_context:
+        contexts.setdefault(
+            owned.id,
+            OrganizationContextOut(
+                id=owned.id,
+                public_id=owned.public_id,
+                org_name=owned.org_name or "Kendi organizasyonum",
+                role="owner",
+                owned=True,
+                permissions=sorted(ORGANIZATION_PERMISSION_LABELS.keys()),
             ),
         )
     return list(contexts.values())
