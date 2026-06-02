@@ -202,7 +202,7 @@ async def update_event_email_template(
     )
     template = t_res.scalar_one_or_none()
     if not template:
-        raise HTTPException(status_code=404, detail="Template bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Template bulunamadı")
     
     template.name = payload.name
     template.subject_tr = payload.subject_tr
@@ -232,7 +232,7 @@ async def delete_event_email_template(
     )
     template = t_res.scalar_one_or_none()
     if not template:
-        raise HTTPException(status_code=404, detail="Template bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Template bulunamadı")
     
     await db.delete(template)
     await db.commit()
@@ -260,7 +260,7 @@ async def preview_email_template(
     )
     template = t_res.scalar_one_or_none()
     if not template:
-        raise HTTPException(status_code=404, detail="Template bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Template bulunamadı")
     
     # Get event for details
     ev_res = await db.execute(select(Event).where(Event.id == event_id))
@@ -268,7 +268,7 @@ async def preview_email_template(
     
     # Prepare sample data
     language = payload.get("language", "tr")
-    sample_attendee = payload.get("sample_attendee", {"name": "Ãƒâ€“rnek KatÃ„Â±lÃ„Â±mcÃ„Â±", "email": "ornek@example.com"})
+    sample_attendee = payload.get("sample_attendee", {"name": "\u00d6rnek Kat\u0131l\u0131mc\u0131", "email": "ornek@example.com"})
     
     # Simple template variable replacement
     variables = {
@@ -277,7 +277,7 @@ async def preview_email_template(
         if hasattr(sample_attendee, '__getitem__') or isinstance(sample_attendee, dict)
     }
     variables = {
-        "{{attendee_name}}": sample_attendee.get("name", "KatÃ„Â±lÃ„Â±mcÃ„Â±"),
+        "{{attendee_name}}": sample_attendee.get("name", "Katılımcı"),
         "{{attendee_email}}": sample_attendee.get("email", ""),
         "{{event_name}}": event.name if event else "Etkinlik",
         "{{event_date}}": event.date.isoformat() if (event and hasattr(event, 'date') and event.date) else "",
@@ -430,27 +430,27 @@ async def test_smtp_connection(
         
         return EmailConfigTestResponse(
             status="success",
-            message="SMTP baÄŸlantÄ±sÄ± baÅŸarÄ±lÄ±",
+            message="SMTP bağlantısı başarılı",
             verified_at=datetime.utcnow()
         )
     except smtplib.SMTPAuthenticationError:
         return EmailConfigTestResponse(
             status="error",
-            message="Kimlik doÄŸrulama hatasÄ±: geÃ§ersiz kullanÄ±cÄ± adÄ± veya ÅŸifre"
+            message="Kimlik doğrulama hatası: geçersiz kullanıcı adı veya şifre"
         )
     except smtplib.SMTPException as e:
         return EmailConfigTestResponse(
             status="error",
-            message=f"SMTP hatasÄ±: {str(e)}"
+            message=f"SMTP hatası: {str(e)}"
         )
     except Exception as e:
         return EmailConfigTestResponse(
             status="error",
-            message=f"BaÄŸlantÄ± hatasÄ±: {str(e)}"
+            message=f"Bağlantı hatası: {str(e)}"
         )
 
 
-# â”€â”€ Admin: Bulk Email â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# -- Admin: Bulk Email --
 
 
 
@@ -474,7 +474,7 @@ async def start_bulk_email(
         select(EmailTemplate).where(EmailTemplate.id == payload.email_template_id)
     )
     if not t_res.scalar_one_or_none():
-        raise HTTPException(status_code=404, detail="Template bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Template bulunamadı")
     
     # Count recipients
     if str(payload.recipient_type or "").startswith("segment:"):
@@ -557,7 +557,7 @@ async def get_bulk_email_job(
     )
     job = j_res.scalar_one_or_none()
     if not job:
-        raise HTTPException(status_code=404, detail="Job bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Job bulunamadı")
     
     return job
 
@@ -609,7 +609,7 @@ async def schedule_email_job(
         select(EmailTemplate).where(EmailTemplate.id == payload.email_template_id)
     )
     if not t_res.scalar_one_or_none():
-        raise HTTPException(status_code=404, detail="Template bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Template bulunamadı")
     
     # Count recipients
     if str(payload.recipient_type or "").startswith("segment:"):
@@ -680,11 +680,11 @@ async def schedule_email_job(
         try:
             CronTrigger.from_crontab(payload.cron_expression, timezone="UTC")
         except Exception:
-            raise HTTPException(status_code=400, detail="GeÃƒÂ§ersiz cron ifadesi")
+            raise HTTPException(status_code=400, detail="Geçersiz cron ifadesi")
         job.cron_expression = payload.cron_expression
         job.status = "scheduled"
     else:
-        raise HTTPException(status_code=400, detail="schedule_type geÃƒÂ§ersiz")
+        raise HTTPException(status_code=400, detail="schedule_type geçersiz")
     
     db.add(job)
     await db.commit()
@@ -697,7 +697,7 @@ async def schedule_email_job(
         "recipients_count": job.recipients_count,
         "scheduled_at": job.scheduled_at.isoformat() if job.scheduled_at else None,
         "cron_expression": job.cron_expression,
-        "message": f"Email {payload.schedule_type} baÃ…Å¸arÃ„Â±lÃ„Â±" if payload.schedule_type != "datetime" else f"Email {payload.scheduled_datetime} tarihinde gÃƒÂ¶nderilmek ÃƒÂ¼zere zamanlandÃ„Â±",
+        "message": f"Email {payload.schedule_type} başarılı" if payload.schedule_type != "datetime" else f"Email {payload.scheduled_datetime} tarihinde gönderilmek üzere zamanlandı",
     }
 
 
@@ -758,7 +758,7 @@ async def cancel_email_job(
     )
     job = j_res.scalar_one_or_none()
     if not job:
-        raise HTTPException(status_code=404, detail="Job bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Job bulunamadı")
     
     if job.status not in ["pending", "scheduled"]:
         raise HTTPException(status_code=400, detail="Sadece pending/scheduled joblar iptal edilebilir")
@@ -767,10 +767,10 @@ async def cancel_email_job(
     db.add(job)
     await db.commit()
     
-    return {"message": "Job baÃ…Å¸arÃ„Â±yla iptal edildi"}
+    return {"message": "Job başarıyla iptal edildi"}
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Admin: Email Delivery Tracking Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# -- Admin: Email Delivery Tracking --
 
 @router.post(
     "/api/admin/bulk-email-jobs/{job_id}/log-delivery",
@@ -786,7 +786,7 @@ async def log_email_delivery(
     j_res = await db.execute(select(BulkEmailJob).where(BulkEmailJob.id == job_id))
     job = j_res.scalar_one_or_none()
     if not job:
-        raise HTTPException(status_code=404, detail="Job bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Job bulunamadı")
     await _get_event_for_admin(job.event_id, me, db, "email:write")
 
     attendee_id = payload.get("attendee_id")
@@ -834,7 +834,7 @@ async def get_delivery_stats(
     )
     job = j_res.scalar_one_or_none()
     if not job:
-        raise HTTPException(status_code=404, detail="Job bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Job bulunamadı")
     
     # Get delivery logs
     logs_res = await db.execute(
@@ -910,7 +910,7 @@ async def get_delivery_logs(
     }
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Admin: Webhook Subscriptions Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# -- Admin: Webhook Subscriptions --
 
 @router.get(
     "/api/superadmin/email-audience",

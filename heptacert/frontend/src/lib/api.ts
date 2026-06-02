@@ -293,6 +293,9 @@ export interface CertificateTemplatePreset {
   name: string;
   template_image_url?: string | null;
   config: Record<string, unknown>;
+  min_plan?: string;
+  enterprise_locked?: boolean;
+  version?: number;
   created_at: string;
   updated_at: string;
 }
@@ -305,11 +308,27 @@ export async function listCertificateTemplatePresets(): Promise<CertificateTempl
 export async function saveEventCertificateTemplatePreset(
   eventId: number,
   name: string,
+  options: { enterprise_locked?: boolean; min_plan?: "growth" | "enterprise" } = {},
 ): Promise<CertificateTemplatePreset> {
   const res = await apiFetch(`/admin/events/${eventId}/certificate-template-presets`, {
     method: "POST",
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, ...options }),
   });
+  return res.json();
+}
+
+export async function listCertificateTemplatePresetVersions(presetId: string): Promise<Array<{ version: number; created_at: string }>> {
+  const res = await apiFetch(`/admin/certificate-template-presets/${presetId}/versions`);
+  return res.json();
+}
+
+export async function rollbackCertificateTemplatePreset(presetId: string, version: number): Promise<CertificateTemplatePreset> {
+  const res = await apiFetch(`/admin/certificate-template-presets/${presetId}/rollback/${version}`, { method: "POST" });
+  return res.json();
+}
+
+export async function listCertificateTemplateSnapshots(presetId: string): Promise<Array<{ id: number; scenario: string; render_hash: string; created_at: string }>> {
+  const res = await apiFetch(`/admin/certificate-template-presets/${presetId}/snapshots`);
   return res.json();
 }
 
@@ -1963,13 +1982,20 @@ export interface CheckinMetrics {
     attendee_email?: string | null;
     session_name?: string | null;
   }>;
+  duplicate_count: number;
+  invalid_count: number;
+  capacity_alerts: Array<{ session_id: number; session_name: string; used: number; capacity: number; fill_rate: number }>;
+  hourly: Array<{ hour: string; count: number }>;
 }
 
 export interface CheckinActivity {
   id: number;
   method: string;
   source: string;
+  entry_point?: string;
   success: boolean;
+  duplicate?: boolean;
+  invalid_reason?: string | null;
   message?: string | null;
   created_at: string;
   attendee_name?: string | null;
@@ -1998,15 +2024,55 @@ export async function getCheckinMetrics(
 
 export async function listCheckinActivity(
   eventId: number,
-  params: { success?: boolean; method?: string; limit?: number; offset?: number } = {},
+  params: { success?: boolean; method?: string; source?: string; entry_point?: string; staff_email?: string; limit?: number; offset?: number } = {},
 ): Promise<CheckinActivity[]> {
   const qs = new URLSearchParams();
   if (params.success !== undefined) qs.set("success", String(params.success));
   if (params.method) qs.set("method", params.method);
+  if (params.source) qs.set("source", params.source);
+  if (params.entry_point) qs.set("entry_point", params.entry_point);
+  if (params.staff_email) qs.set("staff_email", params.staff_email);
   if (params.limit) qs.set("limit", String(params.limit));
   if (params.offset) qs.set("offset", String(params.offset));
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
   const res = await apiFetch(`/admin/events/${eventId}/checkin-activity${suffix}`);
+  return res.json();
+}
+
+export async function issueCheckinNonce(eventId: number, kioskToken?: string): Promise<{ nonce: string; expires_at: string }> {
+  const res = await apiFetch(`/admin/events/${eventId}/checkin-nonce`, {
+    method: "POST",
+    headers: kioskToken ? { "X-Kiosk-Token": kioskToken } : undefined,
+  });
+  return res.json();
+}
+
+export interface KioskSession {
+  id: number;
+  label: string;
+  token?: string | null;
+  session_id?: number | null;
+  expires_at: string;
+  revoked_at?: string | null;
+  last_seen_at?: string | null;
+  created_at: string;
+}
+
+export async function createKioskSession(eventId: number, payload: { label?: string; session_id?: number | null; ttl_hours?: number }): Promise<KioskSession> {
+  const res = await apiFetch(`/admin/events/${eventId}/kiosk-sessions`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function listKioskSessions(eventId: number): Promise<KioskSession[]> {
+  const res = await apiFetch(`/admin/events/${eventId}/kiosk-sessions`);
+  return res.json();
+}
+
+export async function revokeKioskSession(eventId: number, kioskId: number): Promise<KioskSession> {
+  const res = await apiFetch(`/admin/events/${eventId}/kiosk-sessions/${kioskId}/revoke`, { method: "POST" });
   return res.json();
 }
 
@@ -3145,6 +3211,49 @@ export async function updateMyCertificatePrivacy(
     method: "PATCH",
     body: JSON.stringify(data),
   });
+  return res.json();
+}
+
+export async function trackWalletAnalytics(
+  eventType: "profile_view" | "certificate_view" | "linkedin_click" | "cv_export_click",
+  certificateUuid?: string,
+): Promise<void> {
+  const qs = new URLSearchParams({ event_type: eventType });
+  if (certificateUuid) qs.set("certificate_uuid", certificateUuid);
+  await memberApiFetch(`/public/members/me/wallet-analytics?${qs.toString()}`, { method: "POST" });
+}
+
+export async function getMyWalletAnalytics(): Promise<{ profile_views: number; certificate_views: number; linkedin_clicks: number; cv_export_clicks: number }> {
+  const res = await memberApiFetch("/public/members/me/wallet-analytics");
+  return res.json();
+}
+
+export async function getMyCertificatePrivacyAudit(): Promise<Array<{ id: number; action: string; before?: Record<string, unknown> | null; after?: Record<string, unknown> | null; created_at: string }>> {
+  const res = await memberApiFetch("/public/members/me/certificate-privacy/audit");
+  return res.json();
+}
+
+export async function ensureCertificateShareCache(certificateUuid: string): Promise<{ ok: boolean; cache_key?: string; image_path?: string | null; invalidated?: boolean }> {
+  const res = await publicApiFetch(`/public/certificates/${certificateUuid}/share-cache`, { method: "POST" });
+  return res.json();
+}
+
+export async function recordProductTelemetry(data: {
+  event_name: "feature_open" | "export_started" | "automation_tested" | "segment_previewed" | "checkin_scan" | "training_report_exported";
+  feature_key: string;
+  resource_type?: string;
+  resource_id?: string;
+  metadata?: Record<string, string | number | boolean | null>;
+}): Promise<{ ok: boolean; reason?: string }> {
+  const res = await apiFetch("/admin/product-telemetry", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function getPlatformHealth(): Promise<{ checked_at: string; probes: Record<string, { ok: boolean; status: string; detail: string }> }> {
+  const res = await apiFetch("/superadmin/platform-health");
   return res.json();
 }
 

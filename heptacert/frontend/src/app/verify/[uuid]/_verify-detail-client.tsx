@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertCircle, ArrowLeft, BadgeCheck, Calendar, CheckCircle2, Clock, Copy, Download, ExternalLink, Eye, FileCheck2, Hash, ImageDown, Linkedin, Loader2, Share2, ShieldOff, User, Building2 } from "lucide-react";
-import { apiUrl, normalizeApiAssetUrl } from "@/lib/api";
+import { apiUrl, ensureCertificateShareCache, normalizeApiAssetUrl, trackWalletAnalytics } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 type CertData = {
@@ -120,6 +120,7 @@ export default function VerifyPage({ params }: { params: { uuid: string } }) {
             ? { ...data.branding, brand_logo: normalizeApiAssetUrl(data.branding.brand_logo) }
             : data.branding,
         });
+        void ensureCertificateShareCache(data.uuid || params.uuid).catch(() => undefined);
         setState("ok");
       })
       .catch((e) => {
@@ -159,6 +160,7 @@ export default function VerifyPage({ params }: { params: { uuid: string } }) {
 
   function downloadShareCard() {
     if (!cert || typeof document === "undefined") return;
+    void ensureCertificateShareCache(cert.uuid).catch(() => undefined);
     const width = 1200;
     const height = 630;
     const canvas = document.createElement("canvas");
@@ -215,6 +217,7 @@ export default function VerifyPage({ params }: { params: { uuid: string } }) {
 
   function downloadCvSummary() {
     if (!cert || typeof document === "undefined") return;
+    void trackWalletAnalytics("cv_export_click", cert.uuid).catch(() => undefined);
     const verifyUrl = getPublicVerifyUrl();
     const issued = cert.issued_at
       ? new Date(cert.issued_at).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })
@@ -353,7 +356,7 @@ export default function VerifyPage({ params }: { params: { uuid: string } }) {
                 <div className="mt-8 flex flex-wrap gap-3 border-t border-slate-100 pt-6">
                   {cert.status === "active" && cert.pdf_url && <a href={cert.pdf_url} target="_blank" rel="noopener noreferrer" className="btn-primary px-5 py-3"><Download className="h-4 w-4" />{copy.downloadPdf}</a>}
                   {cert.status === "active" && cert.png_url && <a href={cert.png_url} download={`certificate-${cert.public_id ?? cert.uuid}.png`} className="btn-secondary px-5 py-3"><Download className="h-4 w-4" />{copy.downloadPng}</a>}
-                  {cert.status === "active" && cert.linkedin_url && <a href={cert.linkedin_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-[#0077B5] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#005e8d]"><Linkedin className="h-4 w-4" />{copy.addLinkedIn}</a>}
+                  {cert.status === "active" && cert.linkedin_url && <a href={cert.linkedin_url} target="_blank" rel="noopener noreferrer" onClick={() => void trackWalletAnalytics("linkedin_click", cert.uuid).catch(() => undefined)} className="inline-flex items-center gap-2 rounded-xl bg-[#0077B5] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#005e8d]"><Linkedin className="h-4 w-4" />{copy.addLinkedIn}</a>}
                   <button type="button" onClick={() => void shareCertificate()} className="btn-secondary px-5 py-3"><Share2 className="h-4 w-4" />{copy.share}</button>
                   <button type="button" onClick={() => void copyVerifyLink()} className="btn-secondary px-5 py-3"><Copy className="h-4 w-4" />{copied ? copy.copied : copy.copyLink}</button>
                   {cert.status === "active" && <button type="button" onClick={downloadShareCard} className="btn-secondary px-5 py-3"><ImageDown className="h-4 w-4" />{copy.downloadShareCard}</button>}

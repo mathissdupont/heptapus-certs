@@ -651,12 +651,43 @@ class CertificateTemplatePreset(Base):
     name: Mapped[str] = mapped_column(String(80))
     template_image_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     config: Mapped[dict] = mapped_column(JSONB, default=dict)
+    min_plan: Mapped[str] = mapped_column(String(32), default="growth", index=True)
+    enterprise_locked: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    locked_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     __table_args__ = (
         Index("ix_certificate_template_presets_scope", "scope_type", "scope_id"),
     )
+
+
+class CertificateTemplatePresetVersion(Base):
+    __tablename__ = "certificate_template_preset_versions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    preset_id: Mapped[str] = mapped_column(String(64), ForeignKey("certificate_template_presets.id", ondelete="CASCADE"), index=True)
+    version: Mapped[int] = mapped_column(Integer, index=True)
+    template_image_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    config: Mapped[dict] = mapped_column(JSONB, default=dict)
+    created_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("preset_id", "version", name="uq_template_preset_version"),
+    )
+
+
+class CertificateTemplateRegressionSnapshot(Base):
+    __tablename__ = "certificate_template_regression_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    preset_id: Mapped[str] = mapped_column(String(64), ForeignKey("certificate_template_presets.id", ondelete="CASCADE"), index=True)
+    scenario: Mapped[str] = mapped_column(String(80), index=True)
+    render_hash: Mapped[str] = mapped_column(String(128))
+    payload: Mapped[dict] = mapped_column(JSONB, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class EventAutomationRule(Base):
@@ -866,6 +897,69 @@ class MemberCertificatePreference(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     public_member_id: Mapped[int] = mapped_column(Integer, ForeignKey("public_members.id", ondelete="CASCADE"), unique=True, index=True)
     certificate_visibility: Mapped[str] = mapped_column(String(32), default="public", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class WalletAnalyticsEvent(Base):
+    __tablename__ = "wallet_analytics_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    public_member_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("public_members.id", ondelete="SET NULL"), nullable=True, index=True)
+    certificate_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("certificates.id", ondelete="SET NULL"), nullable=True, index=True)
+    event_type: Mapped[str] = mapped_column(String(48), index=True)
+    source: Mapped[str] = mapped_column(String(48), default="public", index=True)
+    ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
+    user_agent: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    metadata_json: Mapped[dict] = mapped_column(JSONB, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    __table_args__ = (
+        Index("ix_wallet_analytics_member_event_created", "public_member_id", "event_type", "created_at"),
+    )
+
+
+class WalletPrivacyAuditLog(Base):
+    __tablename__ = "wallet_privacy_audit_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    public_member_id: Mapped[int] = mapped_column(Integer, ForeignKey("public_members.id", ondelete="CASCADE"), index=True)
+    actor_public_member_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("public_members.id", ondelete="SET NULL"), nullable=True, index=True)
+    action: Mapped[str] = mapped_column(String(64), index=True)
+    before: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    after: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
+    user_agent: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class ProductTelemetryEvent(Base):
+    __tablename__ = "product_telemetry_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    event_name: Mapped[str] = mapped_column(String(80), index=True)
+    feature_key: Mapped[str] = mapped_column(String(80), index=True)
+    resource_type: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+    resource_id: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    metadata_json: Mapped[dict] = mapped_column(JSONB, default=dict)
+    user_agent: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    __table_args__ = (
+        Index("ix_product_telemetry_feature_event_created", "feature_key", "event_name", "created_at"),
+    )
+
+
+class CertificateShareCache(Base):
+    __tablename__ = "certificate_share_caches"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    certificate_id: Mapped[int] = mapped_column(Integer, ForeignKey("certificates.id", ondelete="CASCADE"), index=True)
+    cache_key: Mapped[str] = mapped_column(String(160), unique=True, index=True)
+    image_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    version_hash: Mapped[str] = mapped_column(String(128), index=True)
+    invalidated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -1627,6 +1721,8 @@ class EventSession(Base):
     is_active:               Mapped[bool]           = mapped_column(Boolean, default=False)
     enable_participation_test: Mapped[bool]         = mapped_column(Boolean, default=False)
     test_score_max:          Mapped[int]            = mapped_column(Integer, default=100)
+    capacity:                Mapped[Optional[int]]  = mapped_column(Integer, nullable=True)
+    capacity_alert_threshold: Mapped[int]            = mapped_column(Integer, default=90)
     created_at:              Mapped[datetime]       = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     event: Mapped["Event"] = relationship(back_populates="sessions")
@@ -1753,7 +1849,10 @@ class CheckinActivityLog(Base):
     actor_user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     method: Mapped[str] = mapped_column(String(32), default="manual", index=True)
     source: Mapped[str] = mapped_column(String(32), default="admin", index=True)
+    entry_point: Mapped[str] = mapped_column(String(48), default="admin", index=True)
     success: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    duplicate: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    invalid_reason: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, index=True)
     message: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
@@ -1762,6 +1861,34 @@ class CheckinActivityLog(Base):
         Index("ix_checkin_activity_event_created", "event_id", "created_at"),
         Index("ix_checkin_activity_event_actor", "event_id", "actor_user_id"),
     )
+
+
+class CheckinKioskSession(Base):
+    __tablename__ = "checkin_kiosk_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id: Mapped[int] = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    session_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("event_sessions.id", ondelete="SET NULL"), nullable=True, index=True)
+    token_hash: Mapped[str] = mapped_column(String(128), unique=True, index=True)
+    label: Mapped[str] = mapped_column(String(120), default="Kiosk")
+    created_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    last_seen_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class CheckinNonce(Base):
+    __tablename__ = "checkin_nonces"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id: Mapped[int] = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    nonce: Mapped[str] = mapped_column(String(96), unique=True, index=True)
+    actor_user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    kiosk_session_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("checkin_kiosk_sessions.id", ondelete="SET NULL"), nullable=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 # Keep the correctly spelled public model name without changing the existing table mapping.
@@ -4997,11 +5124,9 @@ async def _get_active_subscription_for_user(user_id: int, db: AsyncSession) -> O
 
 
 def _subscription_is_active_plan(sub: Optional[Subscription], allowed_plans: set[str]) -> bool:
-    if not sub or sub.plan_id not in allowed_plans:
-        return False
-    now = datetime.now(timezone.utc)
-    expires_at = ensure_utc(sub.expires_at)
-    return not (expires_at and expires_at < now)
+    from .plan_policy import subscription_is_active_plan
+
+    return subscription_is_active_plan(sub, allowed_plans)
 
 
 async def _event_owner_has_enterprise_plan(event_id: int, db: AsyncSession) -> bool:
@@ -19256,6 +19381,21 @@ app.include_router(_training_api.router)
 
 from . import checkin_ops_api as _checkin_ops_api
 app.include_router(_checkin_ops_api.router)
+
+from . import platform_health_api as _platform_health_api
+app.include_router(_platform_health_api.router)
+
+from . import product_telemetry_api as _product_telemetry_api
+app.include_router(_product_telemetry_api.router)
+
+from . import qa_seed_api as _qa_seed_api
+app.include_router(_qa_seed_api.router)
+
+from .plan_policy import feature_policy_payload as _feature_policy_payload
+
+@app.get("/api/feature-policies")
+async def feature_policies():
+    return _feature_policy_payload()
 
 from .product_observability import install_product_observability as _install_product_observability
 _install_product_observability(app)

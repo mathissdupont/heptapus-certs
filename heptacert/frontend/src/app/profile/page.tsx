@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { AlertTriangle, ArrowRight, Camera, Globe, KeyRound, Loader2, MapPin, Save, UserCircle2, ShieldAlert, CheckCircle2, Lock } from "lucide-react";
-import { PUBLIC_MEMBER_TOKEN_EVENT, changePublicMemberPassword, clearPublicMemberToken, deletePublicMemberAccount, getMyCertificatePrivacy, getMyConnectionPrivacy, getPublicMemberMe, updateMyCertificatePrivacy, updateMyConnectionPrivacy, updatePublicMemberProfile, uploadPublicMemberAvatar } from "@/lib/api";
+import { AlertTriangle, ArrowRight, BarChart3, Camera, Eye, Globe, KeyRound, Loader2, MapPin, Save, UserCircle2, ShieldAlert, CheckCircle2, Lock } from "lucide-react";
+import { PUBLIC_MEMBER_TOKEN_EVENT, changePublicMemberPassword, clearPublicMemberToken, deletePublicMemberAccount, getMyCertificatePrivacy, getMyCertificatePrivacyAudit, getMyConnectionPrivacy, getMyWalletAnalytics, getPublicMemberMe, updateMyCertificatePrivacy, updateMyConnectionPrivacy, updatePublicMemberProfile, uploadPublicMemberAvatar } from "@/lib/api";
 import { normalizeExternalUrl } from "@/lib/url";
 import { useI18n } from "@/lib/i18n";
 
@@ -142,6 +142,9 @@ export default function ProfilePage() {
   const [hideFollowers, setHideFollowers] = useState(false);
   const [hideFollowing, setHideFollowing] = useState(false);
   const [certificateVisibility, setCertificateVisibility] = useState<"public" | "connections_only" | "private">("public");
+  const [publicId, setPublicId] = useState("");
+  const [walletAnalytics, setWalletAnalytics] = useState<{ profile_views: number; certificate_views: number; linkedin_clicks: number; cv_export_clicks: number } | null>(null);
+  const [privacyAuditCount, setPrivacyAuditCount] = useState(0);
 
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -165,6 +168,7 @@ export default function ProfilePage() {
     getPublicMemberMe()
       .then((member) => {
         if (!active) return;
+        setPublicId(member.public_id || "");
         setDisplayName(member.display_name || "");
         setEmail(member.email || "");
         setContactEmail(member.contact_email || "");
@@ -206,6 +210,26 @@ export default function ProfilePage() {
       .catch(() => {
         if (!active) return;
         setCertificateVisibility("public");
+      });
+
+    getMyWalletAnalytics()
+      .then((analytics) => {
+        if (!active) return;
+        setWalletAnalytics(analytics);
+      })
+      .catch(() => {
+        if (!active) return;
+        setWalletAnalytics(null);
+      });
+
+    getMyCertificatePrivacyAudit()
+      .then((rows) => {
+        if (!active) return;
+        setPrivacyAuditCount(rows.length);
+      })
+      .catch(() => {
+        if (!active) return;
+        setPrivacyAuditCount(0);
       });
 
     return () => {
@@ -591,6 +615,51 @@ export default function ProfilePage() {
                   </button>
                 </div>
               </form>
+            </section>
+
+            {/* WALLET PREVIEW & ANALYTICS */}
+            <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+              <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">{lang === "tr" ? "Cüzdan Önizleme ve Analitik" : "Wallet Preview & Analytics"}</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  {lang === "tr" ? "Sertifika cüzdanınızın public görünümünü ve paylaşım hareketlerini takip edin." : "Preview your public certificate wallet and track sharing actions."}
+                </p>
+              </div>
+              <div className="p-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{lang === "tr" ? "Public profil görünümü" : "Public profile preview"}</p>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {certificateVisibility === "private"
+                        ? (lang === "tr" ? "Sertifika cüzdanı şu an gizli." : "Your certificate wallet is currently private.")
+                        : (lang === "tr" ? "Başkalarının göreceği profil sayfasını kontrol edin." : "Check the profile page other people will see.")}
+                    </p>
+                  </div>
+                  {publicId && (
+                    <Link href={`/member/${publicId}`} target="_blank" className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800">
+                      <Eye className="h-4 w-4" />
+                      {lang === "tr" ? "Önizle" : "Preview"}
+                    </Link>
+                  )}
+                </div>
+                <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {[
+                    [lang === "tr" ? "Profil görüntüleme" : "Profile views", walletAnalytics?.profile_views ?? 0],
+                    [lang === "tr" ? "Sertifika görüntüleme" : "Certificate views", walletAnalytics?.certificate_views ?? 0],
+                    ["LinkedIn", walletAnalytics?.linkedin_clicks ?? 0],
+                    [lang === "tr" ? "CV dışa aktarım" : "CV exports", walletAnalytics?.cv_export_clicks ?? 0],
+                  ].map(([label, value]) => (
+                    <div key={String(label)} className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 p-3">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500">{label}</p>
+                      <p className="mt-1 text-lg font-black text-gray-900 dark:text-white">{value}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-800 dark:border-blue-900/40 dark:bg-blue-950/20 dark:text-blue-200">
+                  <BarChart3 className="h-4 w-4" />
+                  {lang === "tr" ? `${privacyAuditCount} gizlilik değişikliği audit kaydına işlendi.` : `${privacyAuditCount} privacy changes recorded in the audit log.`}
+                </div>
+              </div>
             </section>
 
             {/* PASSWORD & SECURITY */}

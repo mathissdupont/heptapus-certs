@@ -1,9 +1,10 @@
 """Public member certificate wallet helpers and privacy endpoints."""
 
-from datetime import datetime
+import hashlib
+from datetime import datetime, timezone
 from typing import Any, Literal, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,8 +14,11 @@ from .main import (
     Certificate,
     CurrentPublicMember,
     Event,
+    CertificateShareCache,
     MemberCertificatePreference,
     PublicMember,
+    WalletAnalyticsEvent,
+    WalletPrivacyAuditLog,
     build_certificate_verify_url,
     get_current_public_member,
     get_db,
@@ -31,6 +35,44 @@ class CertificatePrivacyIn(BaseModel):
 class CertificatePrivacyOut(BaseModel):
     hide_certificates: bool = False
     visibility: Literal["public", "connections_only", "private"] = "public"
+
+
+class WalletAnalyticsOut(BaseModel):
+    profile_views: int = 0
+    certificate_views: int = 0
+    linkedin_clicks: int = 0
+    cv_export_clicks: int = 0
+
+
+class WalletPrivacyAuditOut(BaseModel):
+    id: int
+    action: str
+    before: Optional[dict[str, Any]] = None
+    after: Optional[dict[str, Any]] = None
+    created_at: datetime
+
+
+async def record_wallet_analytics(
+    db: AsyncSession,
+    *,
+    event_type: str,
+    public_member_id: Optional[int] = None,
+    certificate_id: Optional[int] = None,
+    request: Optional[Request] = None,
+    source: str = "public",
+    metadata: Optional[dict[str, Any]] = None,
+) -> None:
+    db.add(
+        WalletAnalyticsEvent(
+            public_member_id=public_member_id,
+            certificate_id=certificate_id,
+            event_type=event_type[:48],
+            source=source[:48],
+            ip_address=request.client.host if request and request.client else None,
+            user_agent=request.headers.get("user-agent") if request else None,
+            metadata_json=metadata or {},
+        )
+    )
 
 
 def _privacy_key(member_public_id: str) -> str:
@@ -69,10 +111,20 @@ async def update_member_certificate_privacy(
         return CertificatePrivacyOut(hide_certificates=False, visibility="public")
     row_res = await db.execute(select(MemberCertificatePreference).where(MemberCertificatePreference.public_member_id == member.id))
     row = row_res.scalar_one_or_none()
+    before = {"visibility": row.certificate_visibility} if row else {"visibility": "public"}
     if row:
         row.certificate_visibility = visibility
     else:
         db.add(MemberCertificatePreference(public_member_id=member.id, certificate_visibility=visibility))
+    db.add(
+        WalletPrivacyAuditLog(
+            public_member_id=member.id,
+            actor_public_member_id=member.id,
+            action="certificate_privacy.update",
+            before=before,
+            after={"visibility": visibility},
+        )
+    )
 
     await db.commit()
     return CertificatePrivacyOut(hide_certificates=visibility == "private", visibility=visibility)
@@ -141,6 +193,81 @@ async def list_public_member_certificates(db: AsyncSession, member_id: int) -> l
             }
         )
     return items
+
+
+@router.post("/api/public/members/me/wallet-analytics")
+async def track_my_wallet_analytics(
+    request: Request,
+    event_type: str = Query(pattern="^(profile_view|certificate_view|linkedin_click|cv_export_click)$"),
+    certificate_uuid: str = Query(default=""),
+    member: CurrentPublicMember = Depends(get_current_public_member),
+    db: AsyncSession = Depends(get_db),
+):
+    cert_id = None
+    if certificate_uuid:
+        cert = (await db.execute(select(Certificate).where(Certificate.uuid == certificate_uuid))).scalar_one_or_none()
+        cert_id = cert.id if cert else None
+    await record_wallet_analytics(db, event_type=event_type, public_member_id=member.id, certificate_id=cert_id, request=request, source="member")
+    await db.commit()
+    return {"ok": True}
+
+
+@router.get("/api/public/members/me/wallet-analytics", response_model=WalletAnalyticsOut)
+async def get_my_wallet_analytics(
+    member: CurrentPublicMember = Depends(get_current_public_member),
+    db: AsyncSession = Depends(get_db),
+):
+    rows = (
+        await db.execute(
+            select(WalletAnalyticsEvent.event_type, func.count(WalletAnalyticsEvent.id))
+            .where(WalletAnalyticsEvent.public_member_id == member.id)
+            .group_by(WalletAnalyticsEvent.event_type)
+        )
+    ).all()
+    counts = {event_type: int(count or 0) for event_type, count in rows}
+    return WalletAnalyticsOut(
+        profile_views=counts.get("profile_view", 0),
+        certificate_views=counts.get("certificate_view", 0),
+        linkedin_clicks=counts.get("linkedin_click", 0),
+        cv_export_clicks=counts.get("cv_export_click", 0),
+    )
+
+
+@router.get("/api/public/members/me/certificate-privacy/audit", response_model=list[WalletPrivacyAuditOut])
+async def list_my_certificate_privacy_audit(
+    member: CurrentPublicMember = Depends(get_current_public_member),
+    db: AsyncSession = Depends(get_db),
+):
+    rows = (
+        await db.execute(
+            select(WalletPrivacyAuditLog)
+            .where(WalletPrivacyAuditLog.public_member_id == member.id)
+            .order_by(WalletPrivacyAuditLog.created_at.desc())
+            .limit(50)
+        )
+    ).scalars().all()
+    return [WalletPrivacyAuditOut(id=row.id, action=row.action, before=row.before, after=row.after, created_at=row.created_at) for row in rows]
+
+
+@router.post("/api/public/certificates/{certificate_uuid}/share-cache")
+async def ensure_certificate_share_cache(
+    certificate_uuid: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    cert = (await db.execute(select(Certificate).where(Certificate.uuid == certificate_uuid, Certificate.deleted_at.is_(None)))).scalar_one_or_none()
+    if not cert:
+        return {"ok": False, "reason": "not_found"}
+    version_source = f"{cert.uuid}:{cert.student_name}:{cert.status}:{cert.issued_at}:{cert.pdf_url}:{cert.png_url}"
+    version_hash = hashlib.sha256(version_source.encode("utf-8")).hexdigest()
+    cache_key = f"share:{cert.id}:{version_hash[:32]}"
+    row = (await db.execute(select(CertificateShareCache).where(CertificateShareCache.cache_key == cache_key))).scalar_one_or_none()
+    if not row:
+        row = CertificateShareCache(certificate_id=cert.id, cache_key=cache_key, version_hash=version_hash, image_path=None)
+        db.add(row)
+    await record_wallet_analytics(db, event_type="certificate_view", certificate_id=cert.id, request=request, source="share-cache")
+    await db.commit()
+    return {"ok": True, "cache_key": cache_key, "image_path": row.image_path, "invalidated": bool(row.invalidated_at)}
 
 
 @router.get("/api/public/members/me/certificate-privacy", response_model=CertificatePrivacyOut)

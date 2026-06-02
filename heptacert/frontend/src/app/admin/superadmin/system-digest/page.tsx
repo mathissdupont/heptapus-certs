@@ -36,10 +36,10 @@ export default function SuperadminSystemDigestPage() {
   useEffect(() => {
     if (!config) return;
     const errs: Record<string, string> = {};
-    if (config.send_hour < 0 || config.send_hour > 23 || Number.isNaN(config.send_hour)) errs.send_hour = "Must be 0–23";
+    if (config.send_hour < 0 || config.send_hour > 23 || Number.isNaN(config.send_hour)) errs.send_hour = "Must be 0-23";
     if (config.frequency === "weekly") {
       const w = config.send_weekday ?? -1;
-      if (w < 0 || w > 6 || Number.isNaN(w)) errs.send_weekday = "Must be 0–6";
+      if (w < 0 || w > 6 || Number.isNaN(w)) errs.send_weekday = "Must be 0-6";
     }
     if (config.max_events < 0 || Number.isNaN(config.max_events)) errs.max_events = "Must be 0 or greater";
     if (config.max_posts < 0 || Number.isNaN(config.max_posts)) errs.max_posts = "Must be 0 or greater";
@@ -48,9 +48,9 @@ export default function SuperadminSystemDigestPage() {
 
   const copy = {
     title: lang === "tr" ? "Sistem Maili" : "System Digest",
-    subtitle: lang === "tr" ? "Haftalik/gunluk arkaplan digesti ayarlari" : "Configure scheduled system digest emails",
+    subtitle: lang === "tr" ? "Haftalık/günlük arka plan digest ayarları" : "Configure scheduled system digest emails",
     save: lang === "tr" ? "Kaydet" : "Save",
-    sendNow: lang === "tr" ? "Simdi Gonder" : "Send Now",
+    sendNow: lang === "tr" ? "Şimdi Gönder" : "Send Now",
   };
 
   if (loading) return (<div className="flex items-center justify-center p-24"><Loader2 className="h-8 w-8 animate-spin text-brand-500" /></div>);
@@ -69,7 +69,7 @@ export default function SuperadminSystemDigestPage() {
 
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm text-surface-600 mb-1">{lang === "tr" ? "Siklik" : "Frequency"}</label>
+            <label className="block text-sm text-surface-600 mb-1">{lang === "tr" ? "Sıklık" : "Frequency"}</label>
             <select value={config.frequency} onChange={(e) => setConfig({ ...config, frequency: e.target.value as any })} className="input-field w-full">
               <option value="daily">{lang === "tr" ? "Günlük" : "Daily"}</option>
               <option value="weekly">{lang === "tr" ? "Haftalık" : "Weekly"}</option>
@@ -84,14 +84,14 @@ export default function SuperadminSystemDigestPage() {
 
           {config.frequency === "weekly" && (
             <div>
-              <label className="block text-sm text-surface-600 mb-1">{lang === "tr" ? "Haftanin Gunu (0=Paz,6=Cum)" : "Send Weekday (0=Sun,6=Sat)"}</label>
+              <label className="block text-sm text-surface-600 mb-1">{lang === "tr" ? "Haftanın Günü (0=Paz, 6=Cum)" : "Send Weekday (0=Sun, 6=Sat)"}</label>
               <input type="number" min={0} max={6} value={config.send_weekday ?? 0} onChange={(e) => setConfig({ ...config, send_weekday: Number(e.target.value) })} className={`input-field w-full ${formErrors.send_weekday ? "border-red-400" : ""}`} />
               {formErrors.send_weekday && <p className="text-xs text-red-400 mt-1">{formErrors.send_weekday}</p>}
             </div>
           )}
 
           <div>
-            <label className="block text-sm text-surface-600 mb-1">{lang === "tr" ? "Maks Etkinlik Sayisi" : "Max Events"}</label>
+            <label className="block text-sm text-surface-600 mb-1">{lang === "tr" ? "Maks Etkinlik Sayısı" : "Max Events"}</label>
             <input type="number" min={0} value={config.max_events} onChange={(e) => setConfig({ ...config, max_events: Number(e.target.value) })} className={`input-field w-full ${formErrors.max_events ? "border-red-400" : ""}`} />
             {formErrors.max_events && <p className="text-xs text-red-400 mt-1">{formErrors.max_events}</p>}
           </div>
@@ -143,7 +143,7 @@ export default function SuperadminSystemDigestPage() {
         <div className="mt-6 grid gap-3 rounded-2xl border border-surface-200 bg-surface-50 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
           <label className="space-y-1">
             <span className="text-xs font-semibold uppercase tracking-[0.12em] text-surface-500">
-              {lang === "tr" ? "Test alÄ±cÄ±sÄ±" : "Test recipient"}
+              {lang === "tr" ? "Test alıcısı" : "Test recipient"}
             </span>
             <input
               type="email"
@@ -155,25 +155,25 @@ export default function SuperadminSystemDigestPage() {
           </label>
           <button disabled={testSending} onClick={async () => {
             if (!testEmail.trim() || !testEmail.includes("@")) {
-              setError(lang === "tr" ? "GeÃ§erli bir test alÄ±cÄ±sÄ± girin" : "Enter a valid test recipient");
+              setError(lang === "tr" ? "Geçerli bir test alıcısı girin" : "Enter a valid test recipient");
               return;
             }
             try {
               setTestSending(true);
               setError(null);
               const res = await sendSystemDigestTest(testEmail.trim());
-              setSuccessMessage(`${lang === "tr" ? "Test digest gÃ¶nderildi" : "Test digest sent"}: ${res.to_email}`);
+              setSuccessMessage(`${lang === "tr" ? "Test digest gönderildi" : "Test digest sent"}: ${res.to_email}`);
               setTimeout(() => setSuccessMessage(null), 4000);
             } catch (e: any) {
-              setError(e?.message || (lang === "tr" ? "Test digest gÃ¶nderilemedi" : "Failed to send test digest"));
+              setError(e?.message || (lang === "tr" ? "Test digest gönderilemedi" : "Failed to send test digest"));
             } finally {
               setTestSending(false);
             }
           }} className="btn-secondary">
             {testSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
             {testSending
-              ? lang === "tr" ? "Test gÃ¶nderiliyor..." : "Sending test..."
-              : lang === "tr" ? "Test Digest GÃ¶nder" : "Send Test Digest"}
+              ? lang === "tr" ? "Test gönderiliyor..." : "Sending test..."
+              : lang === "tr" ? "Test Digest Gönder" : "Send Test Digest"}
           </button>
         </div>
         {error && <div className="error-banner mt-4">{error}</div>}

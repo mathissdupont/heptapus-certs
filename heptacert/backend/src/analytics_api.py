@@ -40,10 +40,10 @@ async def get_event_analytics(
     e_res = await db.execute(select(Event).where(Event.id == event_id))
     event = e_res.scalar_one_or_none()
     if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamad\u0131")
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
+        raise HTTPException(status_code=403, detail="Yetkisiz eri\u015fim")
 
     att_res = await db.execute(
         select(func.count(Attendee.id)).where(Attendee.event_id == event_id)
@@ -95,10 +95,10 @@ async def get_engagement_analytics(
     e_res = await db.execute(select(Event).where(Event.id == event_id))
     event = e_res.scalar_one_or_none()
     if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃƒâ€Ã‚Â±")
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamad\u0131")
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃƒâ€¦Ã…Â¸im")
+        raise HTTPException(status_code=403, detail="Yetkisiz eri\u015fim")
 
     att_count_res = await db.execute(
         select(func.count(Attendee.id)).where(Attendee.event_id == event_id)
@@ -220,10 +220,10 @@ async def get_badge_analytics(
     e_res = await db.execute(select(Event).where(Event.id == event_id))
     event = e_res.scalar_one_or_none()
     if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃƒâ€Ã‚Â±")
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamad\u0131")
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃƒâ€¦Ã…Â¸im")
+        raise HTTPException(status_code=403, detail="Yetkisiz eri\u015fim")
 
     pb_res = await db.execute(
         select(ParticipantBadge.badge_type, func.count(ParticipantBadge.id))
@@ -268,10 +268,10 @@ async def get_tier_analytics(
     e_res = await db.execute(select(Event).where(Event.id == event_id))
     event = e_res.scalar_one_or_none()
     if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃƒâ€Ã‚Â±")
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamad\u0131")
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃƒâ€¦Ã…Â¸im")
+        raise HTTPException(status_code=403, detail="Yetkisiz eri\u015fim")
 
     cert_res = await db.execute(
         select(Certificate.certificate_tier, func.count(Certificate.id))
@@ -333,10 +333,10 @@ async def get_timeline_analytics(
     e_res = await db.execute(select(Event).where(Event.id == event_id))
     event = e_res.scalar_one_or_none()
     if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃƒâ€Ã‚Â±")
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamad\u0131")
 
     if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÃƒâ€¦Ã…Â¸im")
+        raise HTTPException(status_code=403, detail="Yetkisiz eri\u015fim")
 
     reg_res = await db.execute(
         select(

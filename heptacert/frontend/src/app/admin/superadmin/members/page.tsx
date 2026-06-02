@@ -241,7 +241,7 @@ export default function SuperadminMembersPage() {
       return;
     }
     if (!testEmail.trim() || !testEmail.includes("@")) {
-      setError(lang === "tr" ? "GeÃ§erli bir test alÄ±cÄ±sÄ± girin" : "Enter a valid test recipient");
+      setError(lang === "tr" ? "Geçerli bir test alıcısı girin" : "Enter a valid test recipient");
       return;
     }
 
@@ -254,9 +254,9 @@ export default function SuperadminMembersPage() {
         subject,
         body_html: bodyHtml,
       });
-      setResultMessage(`${lang === "tr" ? "Test maili gÃ¶nderildi" : "Test email sent"}: ${res.to_email}`);
+      setResultMessage(`${lang === "tr" ? "Test maili gönderildi" : "Test email sent"}: ${res.to_email}`);
     } catch (e: any) {
-      setError(e?.message || (lang === "tr" ? "Test maili gÃ¶nderilemedi" : "Failed to send test email"));
+      setError(e?.message || (lang === "tr" ? "Test maili gönderilemedi" : "Failed to send test email"));
     } finally {
       setTestSending(false);
     }
@@ -414,7 +414,7 @@ export default function SuperadminMembersPage() {
         <div className="grid gap-3 rounded-2xl border border-surface-200 bg-surface-50 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
           <label className="space-y-1">
             <span className="text-xs font-semibold uppercase tracking-[0.12em] text-surface-500">
-              {lang === "tr" ? "Test alÄ±cÄ±sÄ±" : "Test recipient"}
+              {lang === "tr" ? "Test alıcısı" : "Test recipient"}
             </span>
             <input
               type="email"
@@ -427,8 +427,8 @@ export default function SuperadminMembersPage() {
           <button className="btn-secondary" onClick={() => void onSendTest()} disabled={testSending || submitting}>
             {testSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
             {testSending
-              ? lang === "tr" ? "Test gÃ¶nderiliyor..." : "Sending test..."
-              : lang === "tr" ? "Test Maili GÃ¶nder" : "Send Test Email"}
+              ? lang === "tr" ? "Test gönderiliyor..." : "Sending test..."
+              : lang === "tr" ? "Test Maili Gönder" : "Send Test Email"}
           </button>
         </div>
 

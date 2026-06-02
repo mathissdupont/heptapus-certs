@@ -23,6 +23,9 @@ os.environ.setdefault("LOCAL_STORAGE_DIR", "/tmp/heptacert_test")
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def setup_database():
     """Create all database tables before the test session begins."""
+    if os.environ.get("HEPTACERT_UNIT_ONLY") == "1":
+        yield
+        return
     from src.main import engine, Base
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

@@ -12,7 +12,7 @@ import {
   RefreshCw,
   ServerCog,
 } from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getPlatformHealth } from "@/lib/api";
 import PageHeader from "@/components/Admin/PageHeader";
 import { useI18n } from "@/lib/i18n";
 
@@ -27,6 +27,11 @@ type SystemHealth = {
   recent_24h_actions?: number;
 };
 
+type PlatformHealth = {
+  checked_at: string;
+  probes: Record<string, { ok: boolean; status: string; detail: string }>;
+};
+
 function formatUptime(seconds: number, lang: "tr" | "en") {
   const days = Math.floor(seconds / 86400);
   const hours = Math.floor((seconds % 86400) / 3600);
@@ -37,6 +42,7 @@ function formatUptime(seconds: number, lang: "tr" | "en") {
 export default function SuperadminHealthPage() {
   const { lang } = useI18n();
   const [data, setData] = useState<SystemHealth | null>(null);
+  const [platform, setPlatform] = useState<PlatformHealth | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +62,7 @@ export default function SuperadminHealthPage() {
         operations: "işlem",
         online: "Çevrimiçi",
         onlineDetail: "Servisler yanıt veriyor ve sağlık metrikleri düzenli olarak güncelleniyor.",
+        probes: "Servis kontrolleri",
         updatedAt: "Son güncelleme",
         locale: "tr-TR",
       }
@@ -73,6 +80,7 @@ export default function SuperadminHealthPage() {
         operations: "operations",
         online: "Online",
         onlineDetail: "Core services are responding and health metrics are updating normally.",
+        probes: "Service probes",
         updatedAt: "Updated",
         locale: "en-US",
       };
@@ -82,8 +90,12 @@ export default function SuperadminHealthPage() {
       if (mode === "load") setLoading(true);
       if (mode === "refresh") setRefreshing(true);
       setError(null);
-      const response = await apiFetch("/superadmin/system-health");
+      const [response, platformHealth] = await Promise.all([
+        apiFetch("/superadmin/system-health"),
+        getPlatformHealth().catch(() => null),
+      ]);
       setData(await response.json());
+      setPlatform(platformHealth);
     } catch (e: any) {
       setError(e?.message || copy.loadFailed);
     } finally {
@@ -175,6 +187,26 @@ export default function SuperadminHealthPage() {
           </div>
         ))}
       </div>
+
+      {platform && (
+        <div className="card p-6">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-semibold text-surface-900">{copy.probes}</h2>
+              <p className="text-sm text-surface-500">{new Date(platform.checked_at).toLocaleString(copy.locale)}</p>
+            </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-5">
+            {Object.entries(platform.probes).map(([key, probe]) => (
+              <div key={key} className={`rounded-2xl border p-4 ${probe.ok ? "border-emerald-100 bg-emerald-50" : "border-amber-100 bg-amber-50"}`}>
+                <p className={`text-xs font-black uppercase tracking-wider ${probe.ok ? "text-emerald-700" : "text-amber-700"}`}>{key}</p>
+                <p className="mt-2 text-sm font-semibold text-surface-900">{probe.ok ? "OK" : "Warning"}</p>
+                <p className="mt-1 text-xs leading-5 text-surface-600">{probe.detail}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <div className="card p-6">

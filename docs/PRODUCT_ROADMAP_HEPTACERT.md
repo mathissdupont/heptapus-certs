@@ -141,33 +141,33 @@ This roadmap tracks the feature direction discussed for turning HeptaCert from a
 
 ## Phase 14 - Check-in, Kiosk, and Staff Operations
 
-- [ ] Add staff-scoped permissions for lookup, manual check-in, ticket scan, and metrics
-- [ ] Add check-in activity pagination and filterable operations log
-- [ ] Add offline queue signing or server-issued nonce to reduce tampering risk
-- [ ] Add kiosk session tokens with expiration and revocation
-- [ ] Add duplicate/invalid scan analytics by staff member and entry point
-- [ ] Add door capacity alerts and hourly traffic charts
-- [ ] Add mobile UI polish for scanner, lookup, and manual fallback states
+- [x] Add staff-scoped permissions for lookup, manual check-in, ticket scan, and metrics
+- [x] Add check-in activity pagination and filterable operations log
+- [x] Add offline queue signing or server-issued nonce to reduce tampering risk
+- [x] Add kiosk session tokens with expiration and revocation
+- [x] Add duplicate/invalid scan analytics by staff member and entry point
+- [x] Add door capacity alerts and hourly traffic charts
+- [x] Add mobile UI polish for scanner, lookup, and manual fallback states
 
 ## Phase 15 - Wallet, Sharing, and Certificate Template Polish
 
-- [ ] Add wallet analytics: profile views, certificate views, LinkedIn clicks, CV export clicks
-- [ ] Add wallet privacy audit and public preview mode
-- [ ] Add certificate share image caching and invalidation when certificate data changes
-- [ ] Add stricter template schema validation, versioning, and rollback
-- [ ] Add template preset permissions and Enterprise organization brand lock
-- [ ] Add template render regression snapshots for common field layouts
-- [ ] Add better bilingual UI copy for wallet, sharing, and template editor screens
+- [x] Add wallet analytics: profile views, certificate views, LinkedIn clicks, CV export clicks
+- [x] Add wallet privacy audit and public preview mode
+- [x] Add certificate share image caching and invalidation when certificate data changes
+- [x] Add stricter template schema validation, versioning, and rollback
+- [x] Add template preset permissions and Enterprise organization brand lock
+- [x] Add template render regression snapshots for common field layouts
+- [x] Add better bilingual UI copy for wallet, sharing, and template editor screens
 
 ## Phase 16 - Platform Packaging and QA
 
-- [ ] Centralize plan gates in backend policy helpers and frontend feature metadata
-- [ ] Add tests for Growth vs Enterprise access across every new endpoint
-- [ ] Add seed/demo data for CRM, automation, segmentation, training, and check-in QA
-- [ ] Add integration tests for automation dispatch, segment export, training notifications, and check-in logs
-- [ ] Add product telemetry events for feature usage without storing sensitive content
-- [ ] Add admin-facing health checks for worker, email, webhook, export, and scheduler status
-- [ ] Finish full Turkish/English localization pass and remove mojibake/English-keyboard Turkish strings
+- [x] Centralize plan gates in backend policy helpers and frontend feature metadata
+- [x] Add tests for Growth vs Enterprise access across every new endpoint
+- [x] Add seed/demo data for CRM, automation, segmentation, training, and check-in QA
+- [x] Add integration tests for automation dispatch, segment export, training notifications, and check-in logs
+- [x] Add product telemetry events for feature usage without storing sensitive content
+- [x] Add admin-facing health checks for worker, email, webhook, export, and scheduler status
+- [x] Finish full Turkish/English localization pass and remove mojibake/English-keyboard Turkish strings
 
 ## Revenue Packaging Notes
 

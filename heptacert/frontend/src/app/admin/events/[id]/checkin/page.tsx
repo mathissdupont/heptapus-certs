@@ -405,7 +405,7 @@ export default function AdminCheckinPage() {
                 </div>
               </div>
               {metrics && (
-                <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                <div className="mt-3 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
                   <div className="rounded-2xl border border-surface-200 bg-white p-3">
                     <p className="text-[11px] font-bold uppercase tracking-wider text-surface-400">Kapı trafiği</p>
                     <p className="mt-1 text-sm font-black text-surface-900">{metrics.last_hour}/saat</p>
@@ -418,8 +418,25 @@ export default function AdminCheckinPage() {
                     <p className="text-[11px] font-bold uppercase tracking-wider text-surface-400">En aktif görevli</p>
                     <p className="mt-1 truncate text-sm font-black text-surface-900">{metrics.by_staff[0]?.email || "-"}</p>
                   </div>
+                  <div className="rounded-2xl border border-amber-100 bg-amber-50 p-3">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-amber-600">Tekrar</p>
+                    <p className="mt-1 text-sm font-black text-amber-900">{metrics.duplicate_count}</p>
+                  </div>
+                  <div className="rounded-2xl border border-rose-100 bg-rose-50 p-3">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-rose-600">Geçersiz</p>
+                    <p className="mt-1 text-sm font-black text-rose-900">{metrics.invalid_count}</p>
+                  </div>
+                  <div className="rounded-2xl border border-sky-100 bg-sky-50 p-3">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-sky-600">Kapasite</p>
+                    <p className="mt-1 text-sm font-black text-sky-900">{metrics.capacity_alerts.length}</p>
+                  </div>
                 </div>
               )}
+              {metrics?.capacity_alerts?.length ? (
+                <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800">
+                  {metrics.capacity_alerts[0].session_name}: %{metrics.capacity_alerts[0].fill_rate} doluluk uyarısı
+                </div>
+              ) : null}
             </div>
 
             {error && <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}

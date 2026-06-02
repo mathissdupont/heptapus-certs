@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "./api";
+import { FEATURE_METADATA } from "./featureMetadata";
 
 export interface SubscriptionInfo {
   active: boolean;
@@ -142,7 +143,7 @@ export function useSubscription() {
 }
 
 export function FeatureGate({
-  requiredPlans = ["growth", "enterprise"],
+  requiredPlans = FEATURE_METADATA.automation.requiredPlans,
   children,
   message,
   redirectTo = false,

@@ -224,7 +224,7 @@ export default function AdvancedAnalyticsPage() {
           setPlanGateMessage(err.message);
           setError(null);
         } else {
-          setError(err?.message || "Analitikler yÃ¼klenemedi");
+          setError(err?.message || "Analitikler yüklenemedi");
         }
       } finally {
         if (mounted) setLoading(false);
@@ -256,28 +256,28 @@ export default function AdvancedAnalyticsPage() {
   const hasCertificates = engagement?.certificate_enabled !== false;
   const hasBadges = engagement?.gamification_enabled !== false || (badges?.total_badges ?? 0) > 0;
   const tabs = [
-    { id: "engagement" as const, label: "KatÄ±lÄ±m", icon: Users, visible: true },
+    { id: "engagement" as const, label: "Katılım", icon: Users, visible: true },
     { id: "tickets" as const, label: "Biletler", icon: Ticket, visible: isTicketedEvent },
     { id: "badges" as const, label: "Rozetler", icon: Badge, visible: hasBadges },
     { id: "tiers" as const, label: "Seviyeler", icon: Award, visible: hasCertificates },
-    { id: "timeline" as const, label: "Zaman Ã‡izelgesi", icon: Calendar, visible: true },
+    { id: "timeline" as const, label: "Zaman Çizelgesi", icon: Calendar, visible: true },
   ].filter((tab) => tab.visible);
 
   const overviewCards = engagement
     ? [
         {
-          label: "Toplam KatÄ±lÄ±mcÄ±",
+          label: "Toplam Katılımcı",
           value: engagement.total_attendees,
           icon: Users,
           tone: "brand" as const,
-          caption: "Analitikte takip edilen aktif katÄ±lÄ±mcÄ± sayÄ±sÄ±",
+          caption: "Analitikte takip edilen aktif katılımcı sayısı",
         },
         {
-          label: "KatÄ±lÄ±m OranÄ±",
+          label: "Katılım Oranı",
           value: `${(engagement.attendance.attendance_rate || 0).toFixed(1)}%`,
           icon: Percent,
           tone: "sky" as const,
-          caption: "Check-in bazlÄ± etkin katÄ±lÄ±m oranÄ±",
+          caption: "Check-in bazlı etkin katılım oranı",
         },
         {
           label: "Anket Tamamlama",
@@ -288,18 +288,18 @@ export default function AdvancedAnalyticsPage() {
         },
         isTicketedEvent && engagement.tickets
           ? {
-              label: "Bilet KullanÄ±mÄ±",
+              label: "Bilet Kullanımı",
               value: `${engagement.tickets.used}/${engagement.tickets.active_total ?? engagement.tickets.total}`,
               icon: Ticket,
               tone: "amber" as const,
-              caption: `%${(engagement.tickets.usage_rate || 0).toFixed(1)} biletli giriÅŸ`,
+              caption: `%${(engagement.tickets.usage_rate || 0).toFixed(1)} biletli giriş`,
             }
           : {
               label: hasBadges ? "Ortalama Rozet" : "Sertifika",
               value: hasBadges ? engagement.badges.average_per_attendee.toFixed(2) : tiers?.total_certificates ?? 0,
               icon: hasBadges ? Badge : Award,
               tone: "amber" as const,
-              caption: hasBadges ? "KatÄ±lÄ±mcÄ± baÅŸÄ±na ortalama rozet" : "Ãœretilen sertifika sayÄ±sÄ±",
+              caption: hasBadges ? "Katılımcı başına ortalama rozet" : "Üretilen sertifika sayısı",
             },
       ]
     : [];
@@ -314,8 +314,8 @@ export default function AdvancedAnalyticsPage() {
             </motion.button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">GeliÅŸmiÅŸ Analitikler</h1>
-            <p className="mt-1 text-sm text-gray-500">KatÄ±lÄ±m, rozetler, sertifikalar ve zaman iÃ§i eÄŸilimler</p>
+            <h1 className="text-3xl font-bold text-gray-900">Gelişmiş Analitikler</h1>
+            <p className="mt-1 text-sm text-gray-500">Katılım, rozetler, sertifikalar ve zaman içi eğilimler</p>
           </div>
         </div>
       </div>
@@ -324,12 +324,12 @@ export default function AdvancedAnalyticsPage() {
 
       {!canViewAnalytics ? (
         <PlanGateCard
-          feature="Ä°leri analitik, katÄ±lÄ±m eÄŸilimleri, rozet daÄŸÄ±lÄ±mÄ±, sertifika trendleri ve zaman Ã§izelgesi"
+          feature="İleri analitik, katılım eğilimleri, rozet dağılımı, sertifika trendleri ve zaman çizelgesi"
           requiredPlans={["growth", "enterprise"]}
         />
       ) : planGateMessage ? (
         <PlanGateCard
-          feature="Ä°leri analitik, katÄ±lÄ±m eÄŸilimleri, rozet daÄŸÄ±lÄ±mÄ±, sertifika trendleri ve zaman Ã§izelgesi"
+          feature="İleri analitik, katılım eğilimleri, rozet dağılımı, sertifika trendleri ve zaman çizelgesi"
           requiredPlans={["growth", "enterprise"]}
           serverMessage={planGateMessage}
         />
@@ -369,22 +369,22 @@ export default function AdvancedAnalyticsPage() {
               <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                 <div className="flex items-center gap-2">
                   <UserCheck className="h-5 w-5 text-brand-600" />
-                  <h3 className="text-lg font-semibold text-gray-900">KatÄ±lÄ±m Ã¶zeti</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Katılım özeti</h3>
                 </div>
                 <div className="mt-4 space-y-3 text-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">KatÄ±ldÄ±</span>
+                    <span className="text-gray-600">Katıldı</span>
                     <span className="font-semibold text-gray-900">{engagement.attendance.attended}</span>
                   </div>
                   <div className="h-2 rounded-full bg-gray-100">
                     <div className="h-2 rounded-full bg-brand-600" style={{ width: `${Math.min(100, Math.max(0, engagement.attendance.attendance_rate || 0))}%` }} />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">KatÄ±lmadÄ±</span>
+                    <span className="text-gray-600">Katılmadı</span>
                     <span className="font-semibold text-gray-900">{engagement.attendance.not_attended}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">No-show oranÄ±</span>
+                    <span className="text-gray-600">No-show oranı</span>
                     <span className="font-semibold text-gray-900">%{(engagement.attendance.no_show_rate || 0).toFixed(1)}</span>
                   </div>
                 </div>
@@ -397,7 +397,7 @@ export default function AdvancedAnalyticsPage() {
                 </div>
                 <div className="mt-4 space-y-3 text-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">TamamlandÄ±</span>
+                    <span className="text-gray-600">Tamamlandı</span>
                     <span className="font-semibold text-gray-900">{engagement.survey_completion.completed}</span>
                   </div>
                   <div className="h-2 rounded-full bg-gray-100">
@@ -417,11 +417,11 @@ export default function AdvancedAnalyticsPage() {
               <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                 <div className="flex items-center gap-2">
                   <Ticket className="h-5 w-5 text-brand-600" />
-                  <h3 className="text-lg font-semibold text-gray-900">Bilet kullanÄ±mÄ±</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Bilet kullanımı</h3>
                 </div>
                 <div className="mt-4 space-y-3 text-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">KullanÄ±ldÄ±</span>
+                    <span className="text-gray-600">Kullanıldı</span>
                     <span className="font-semibold text-gray-900">{engagement.tickets.used}</span>
                   </div>
                   <div className="h-2 rounded-full bg-gray-100">
@@ -441,14 +441,14 @@ export default function AdvancedAnalyticsPage() {
               <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                 <div className="flex items-center gap-2">
                   <BarChart3 className="h-5 w-5 text-emerald-600" />
-                  <h3 className="text-lg font-semibold text-gray-900">Bilet durumlarÄ±</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Bilet durumları</h3>
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <StatCard icon={Ticket} label="Bekleyen" value={engagement.tickets.issued} tone="sky" />
-                  <StatCard icon={CheckCircle2} label="KullanÄ±lan" value={engagement.tickets.used} tone="emerald" />
+                  <StatCard icon={CheckCircle2} label="Kullanılan" value={engagement.tickets.used} tone="emerald" />
                   <StatCard icon={Percent} label="No-show" value={engagement.tickets.no_show ?? engagement.tickets.issued} caption={`%${(engagement.tickets.no_show_rate || 0).toFixed(1)} aktif bilet`} tone="amber" />
-                  <StatCard icon={AlertCircle} label="Ä°ptal" value={engagement.tickets.cancelled} tone="amber" />
-                  <StatCard icon={AlertCircle} label="Ä°ptal edilen" value={engagement.tickets.revoked} tone="amber" />
+                  <StatCard icon={AlertCircle} label="İptal" value={engagement.tickets.cancelled} tone="amber" />
+                  <StatCard icon={AlertCircle} label="İptal edilen" value={engagement.tickets.revoked} tone="amber" />
                 </div>
               </div>
             </div>
@@ -459,11 +459,11 @@ export default function AdvancedAnalyticsPage() {
               <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                 <div className="flex items-center gap-2">
                   <Badge className="h-5 w-5 text-brand-600" />
-                  <h3 className="text-lg font-semibold text-gray-900">Rozet daÄŸÄ±lÄ±mÄ±</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Rozet dağılımı</h3>
                 </div>
                 <div className="mt-4 space-y-2">
                   {Object.entries(badges.by_type || {}).length === 0 ? (
-                    <p className="text-sm text-gray-500">HenÃ¼z rozet verisi yok.</p>
+                    <p className="text-sm text-gray-500">Henüz rozet verisi yok.</p>
                   ) : (
                     Object.entries(badges.by_type).map(([type, count]) => (
                       <div key={type} className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 text-sm">
@@ -478,7 +478,7 @@ export default function AdvancedAnalyticsPage() {
               <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                 <div className="flex items-center gap-2">
                   <Target className="h-5 w-5 text-amber-600" />
-                  <h3 className="text-lg font-semibold text-gray-900">Atama yÃ¶ntemi</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Atama yöntemi</h3>
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <StatCard icon={Badge} label="Otomatik" value={badges.by_award_method.automatic} tone="amber" />
@@ -493,11 +493,11 @@ export default function AdvancedAnalyticsPage() {
               <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                 <div className="flex items-center gap-2">
                   <Award className="h-5 w-5 text-brand-600" />
-                  <h3 className="text-lg font-semibold text-gray-900">Sertifika daÄŸÄ±lÄ±mÄ±</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Sertifika dağılımı</h3>
                 </div>
                 <div className="mt-4 space-y-2">
                   {Object.entries(tiers.tier_distribution || {}).length === 0 ? (
-                    <p className="text-sm text-gray-500">HenÃ¼z seviye daÄŸÄ±lÄ±mÄ± yok.</p>
+                    <p className="text-sm text-gray-500">Henüz seviye dağılımı yok.</p>
                   ) : (
                     Object.entries(tiers.tier_distribution).map(([tier, detail]) => (
                       <div key={tier} className="rounded-xl bg-gray-50 px-4 py-3">
@@ -517,13 +517,13 @@ export default function AdvancedAnalyticsPage() {
               <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                 <div className="flex items-center gap-2">
                   <BarChart3 className="h-5 w-5 text-emerald-600" />
-                  <h3 className="text-lg font-semibold text-gray-900">Ã–zet</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Özet</h3>
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <StatCard icon={Award} label="Toplam sertifika" value={tiers.total_certificates} tone="emerald" />
                   <StatCard icon={AlertCircle} label="Atanmayan" value={tiers.unassigned_count} tone="amber" />
-                  <StatCard icon={QrCode} label="DoÄŸrulama hit" value={tiers.verification_hits ?? 0} tone="sky" />
-                  <StatCard icon={Percent} label="DoÄŸrulanan" value={`%${(tiers.verification_rate || 0).toFixed(1)}`} caption={`${tiers.verified_certificates ?? 0} sertifika`} tone="brand" />
+                  <StatCard icon={QrCode} label="Doğrulama hit" value={tiers.verification_hits ?? 0} tone="sky" />
+                  <StatCard icon={Percent} label="Doğrulanan" value={`%${(tiers.verification_rate || 0).toFixed(1)}`} caption={`${tiers.verified_certificates ?? 0} sertifika`} tone="brand" />
                 </div>
               </div>
             </div>
@@ -531,12 +531,12 @@ export default function AdvancedAnalyticsPage() {
 
           {activeTab === "timeline" && timeline && (
             <div className={`grid gap-4 ${timeline.ticketing_enabled ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
-              <TimelineCard icon={CalendarDays} title="KayÄ±tlar" items={timeline.registrations} emptyText="KayÄ±t eÄŸrisi henÃ¼z oluÅŸmadÄ±." tone="brand" />
+              <TimelineCard icon={CalendarDays} title="Kayıtlar" items={timeline.registrations} emptyText="Kayıt eğrisi henüz oluşmadı." tone="brand" />
               {timeline.ticketing_enabled ? (
-                <TimelineCard icon={Ticket} title="Biletli giriÅŸler" items={timeline.ticket_checkins || []} emptyText="Biletli giriÅŸ verisi yok." tone="amber" />
+                <TimelineCard icon={Ticket} title="Biletli girişler" items={timeline.ticket_checkins || []} emptyText="Biletli giriş verisi yok." tone="amber" />
               ) : null}
-              <TimelineCard icon={QrCode} title="Anket tamamlamalarÄ±" items={timeline.survey_completions} emptyText="Anket verisi yok." tone="emerald" />
-              <TimelineCard icon={CheckCircle2} title="Sertifika Ã¼retimleri" items={timeline.certificate_creations} emptyText="Sertifika Ã¼retimi yok." tone="sky" />
+              <TimelineCard icon={QrCode} title="Anket tamamlamaları" items={timeline.survey_completions} emptyText="Anket verisi yok." tone="emerald" />
+              <TimelineCard icon={CheckCircle2} title="Sertifika üretimleri" items={timeline.certificate_creations} emptyText="Sertifika üretimi yok." tone="sky" />
             </div>
           )}
         </>
