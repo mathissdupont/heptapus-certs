@@ -19352,6 +19352,9 @@ async def delete_organization(
 from . import email_api as _email_api
 app.include_router(_email_api.router)
 
+from . import auth_2fa_api as _auth_2fa_api
+app.include_router(_auth_2fa_api.router)
+
 from . import community_api as _community_api
 app.include_router(_community_api.router)
 
