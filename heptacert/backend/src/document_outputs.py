@@ -11,11 +11,10 @@ import re
 import textwrap
 from typing import Any, Iterable
 
-from PIL import Image, ImageDraw, ImageFont
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_TEMPLATE_PATH = PROJECT_ROOT / "frontend" / "public" / "heptacert_document_template.html"
+BACKEND_TEMPLATE_PATH = Path(__file__).resolve().parent / "document_templates" / "heptacert_document_template.html"
+FRONTEND_TEMPLATE_PATH = PROJECT_ROOT / "frontend" / "public" / "heptacert_document_template.html"
 
 PDF_WIDTH = 1240
 PDF_HEIGHT = 1754
@@ -23,9 +22,10 @@ MM_TO_PX = PDF_WIDTH / 210
 
 
 def _read_template(template_path: Path | None = None) -> str:
-    path = template_path or DEFAULT_TEMPLATE_PATH
-    if path.exists():
-        return path.read_text(encoding="utf-8")
+    paths = [template_path] if template_path else [BACKEND_TEMPLATE_PATH, FRONTEND_TEMPLATE_PATH]
+    for path in paths:
+        if path and path.exists():
+            return path.read_text(encoding="utf-8")
     return _fallback_template()
 
 
@@ -144,6 +144,8 @@ def render_log_document_pdf_bytes(
     template_path: Path | None = None,
 ) -> bytes:
     """Render official log/report content onto the letterhead template as PDF bytes."""
+    from PIL import Image, ImageDraw
+
     template = _read_template(template_path)
     background = _template_background(template)
     fonts = _pdf_fonts()
@@ -191,7 +193,9 @@ def render_log_document_pdf_bytes(
     return buffer.getvalue()
 
 
-def _template_background(template: str) -> Image.Image:
+def _template_background(template: str) -> Any:
+    from PIL import Image
+
     match = re.search(r"background-image:\s*url\(\"data:image/png;base64,([^\"]+)\"\)", template)
     if match:
         try:
@@ -203,21 +207,25 @@ def _template_background(template: str) -> Image.Image:
     return Image.new("RGB", (PDF_WIDTH, PDF_HEIGHT), "white")
 
 
-def _pdf_fonts() -> dict[str, ImageFont.FreeTypeFont | ImageFont.ImageFont]:
+def _pdf_fonts() -> dict[str, Any]:
+    from PIL import ImageFont
+
     candidates = [
         Path("C:/Windows/Fonts/times.ttf"),
         Path("C:/Windows/Fonts/arial.ttf"),
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
         Path("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf"),
     ]
     bold_candidates = [
         Path("C:/Windows/Fonts/timesbd.ttf"),
         Path("C:/Windows/Fonts/arialbd.ttf"),
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
         Path("/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf"),
     ]
     regular = next((p for p in candidates if p.exists()), None)
     bold = next((p for p in bold_candidates if p.exists()), regular)
 
-    def font(path: Path | None, size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    def font(path: Path | None, size: int) -> Any:
         if path:
             return ImageFont.truetype(str(path), size=size)
         return ImageFont.load_default()
@@ -283,11 +291,11 @@ def _mm(value: float) -> int:
 
 
 def _draw_centered(
-    draw: ImageDraw.ImageDraw,
+    draw: Any,
     text: str,
     *,
     y: int,
-    font: ImageFont.FreeTypeFont | ImageFont.ImageFont,
+    font: Any,
     fill: tuple[int, int, int],
     max_width: int,
 ) -> None:
@@ -310,12 +318,12 @@ def _draw_centered(
 
 
 def _draw_signature(
-    draw: ImageDraw.ImageDraw,
+    draw: Any,
     x: int,
     y: int,
     name: str,
     title: str,
-    fonts: dict[str, ImageFont.FreeTypeFont | ImageFont.ImageFont],
+    fonts: dict[str, Any],
 ) -> None:
     width = _mm(60)
     draw.line((x, y, x + width, y), fill=(34, 34, 34), width=1)
@@ -324,12 +332,12 @@ def _draw_signature(
 
 
 def _draw_text_center_in_box(
-    draw: ImageDraw.ImageDraw,
+    draw: Any,
     text: str,
     x: int,
     y: int,
     width: int,
-    font: ImageFont.FreeTypeFont | ImageFont.ImageFont,
+    font: Any,
 ) -> None:
     bbox = draw.textbbox((0, 0), text, font=font)
     draw.text((x + (width - (bbox[2] - bbox[0])) // 2, y), text, font=font, fill=(17, 17, 17))
