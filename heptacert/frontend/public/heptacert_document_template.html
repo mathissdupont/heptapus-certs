@@ -93,6 +93,38 @@
       text-align: center;
     }
 
+    .official-output {
+      font-size: 10.5pt;
+      line-height: 1.45;
+    }
+
+    .official-output h2 {
+      margin: 0 0 8px;
+      font-size: 13pt;
+    }
+
+    .official-output table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      table-layout: fixed;
+    }
+
+    .official-output th,
+    .official-output td {
+      border: 1px solid #222;
+      padding: 5px 6px;
+      vertical-align: top;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .official-output th {
+      background: rgba(0, 0, 0, .06);
+      font-weight: 700;
+      text-align: left;
+    }
+
     .signature-row {
       position: absolute;
       left: 25mm;
@@ -146,13 +178,8 @@
     </section>
 
     <section class="content">
-      <!-- Sertifika / resmi yazı içeriğini burada dinamik basabilirsiniz. -->
-      <div class="certificate-box">
-        <p>Bu belge ile</p>
-        <div class="recipient-name">{{recipientName}}</div>
-        <p class="certificate-description">
-          {{description}}
-        </p>
+      <div class="official-output">
+        {{bodyHtml}}
       </div>
     </section>
 
