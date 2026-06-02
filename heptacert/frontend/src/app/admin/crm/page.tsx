@@ -27,6 +27,7 @@ import {
   type CrmParticipantDetail,
   type CrmParticipantListItem,
 } from "@/lib/api";
+import EmailTemplateSelect from "@/components/Admin/EmailTemplateSelect";
 import { FeatureGate } from "@/lib/useSubscription";
 import { useI18n } from "@/lib/i18n";
 
@@ -103,7 +104,7 @@ export default function AdminCrmPage() {
     selectAll: "Görünenleri seç",
     clearSelection: "Seçimi temizle",
     exportCsv: "CSV indir",
-    templateId: "Şablon ID",
+    templateId: "\u015eablon",
     sendEmail: "Mail gönder",
     bulkEmailResult: "Mail sonucu",
     notes: "Notlar",
@@ -150,7 +151,7 @@ export default function AdminCrmPage() {
     selectAll: "Select visible",
     clearSelection: "Clear selection",
     exportCsv: "Export CSV",
-    templateId: "Template ID",
+    templateId: "Template",
     sendEmail: "Send email",
     bulkEmailResult: "Email result",
     notes: "Notes",
@@ -456,13 +457,15 @@ export default function AdminCrmPage() {
                 <Download className="h-3.5 w-3.5" />
                 {copy.exportCsv}
               </button>
-              <input
-                value={bulkTemplateId}
-                onChange={(event) => setBulkTemplateId(event.target.value)}
-                className="input-field h-9 w-28 text-xs"
-                inputMode="numeric"
-                placeholder={copy.templateId}
-              />
+              <div className="min-w-[260px] flex-1">
+                <EmailTemplateSelect
+                  value={bulkTemplateId ? Number(bulkTemplateId) : null}
+                  onChange={(templateId) => setBulkTemplateId(templateId ? String(templateId) : "")}
+                  label={copy.templateId}
+                  placeholder={lang === "tr" ? "Şablon seç" : "Choose template"}
+                  emptyText={lang === "tr" ? "CRM maili için bir sistem şablonu seçin." : "Choose a system template for CRM email."}
+                />
+              </div>
               <button
                 type="button"
                 onClick={() => void sendBulkEmail()}

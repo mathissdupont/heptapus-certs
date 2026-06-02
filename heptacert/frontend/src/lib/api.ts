@@ -343,6 +343,30 @@ export async function deleteCertificateTemplatePreset(presetId: string): Promise
   await apiFetch(`/admin/certificate-template-presets/${presetId}`, { method: "DELETE" });
 }
 
+export interface EmailTemplate {
+  id: number;
+  event_id?: number | null;
+  created_by: number;
+  name: string;
+  subject_tr: string;
+  subject_en: string;
+  body_html: string;
+  template_type: "system" | "custom" | string;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function listEventEmailTemplates(eventId: number): Promise<EmailTemplate[]> {
+  const res = await apiFetch(`/admin/events/${eventId}/email-templates`);
+  return res.json();
+}
+
+export async function listSystemEmailTemplates(): Promise<EmailTemplate[]> {
+  const res = await apiFetch("/system/email-templates");
+  return res.json();
+}
+
 export type AutomationTrigger =
   | "attended_event"
   | "registered_no_show"

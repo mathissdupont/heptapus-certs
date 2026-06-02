@@ -13,6 +13,7 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import distinct, func, literal, or_, select, union_all
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .email_template_presets import SYSTEM_EMAIL_TEMPLATE_PRESETS
 from .main import (
     Attendee,
     BulkEmailJob,
@@ -69,6 +70,41 @@ router = APIRouter()
 SUPERADMIN_BULK_EMAIL_DAILY_JOB_QUOTA = 10
 SUPERADMIN_BULK_EMAIL_DAILY_RECIPIENT_QUOTA = 2000
 SUPERADMIN_DIGEST_MANUAL_DAILY_QUOTA = 1
+
+
+async def _ensure_system_email_template_presets(db: AsyncSession) -> None:
+    existing_res = await db.execute(
+        select(EmailTemplate.name).where(EmailTemplate.template_type == "system", EmailTemplate.is_default == True)
+    )
+    existing_names = {str(row[0]) for row in existing_res.all()}
+    missing = [item for item in SYSTEM_EMAIL_TEMPLATE_PRESETS if item["name"] not in existing_names]
+    if not missing:
+        return
+
+    creator_res = await db.execute(
+        select(User)
+        .where(User.role.in_([Role.superadmin, Role.admin]))
+        .order_by(User.role.desc(), User.id.asc())
+        .limit(1)
+    )
+    creator = creator_res.scalar_one_or_none()
+    if not creator:
+        return
+
+    for item in missing:
+        db.add(
+            EmailTemplate(
+                event_id=None,
+                created_by=creator.id,
+                name=item["name"],
+                subject_tr=item["subject_tr"],
+                subject_en=item["subject_en"],
+                body_html=item["body_html"],
+                template_type="system",
+                is_default=True,
+            )
+        )
+    await db.commit()
 
 
 class SuperadminBulkEmailTestIn(BaseModel):
@@ -311,6 +347,7 @@ async def preview_email_template(
 )
 async def list_system_email_templates(db: AsyncSession = Depends(get_db)):
     """Get system default email templates."""
+    await _ensure_system_email_template_presets(db)
     res = await db.execute(
         select(EmailTemplate)
         .where(EmailTemplate.template_type == "system", EmailTemplate.is_default == True)

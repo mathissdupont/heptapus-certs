@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ElementType } from "react";
 import { useParams } from "next/navigation";
 import { Bell, Loader2, Mail, Plus, Trash2, Webhook, Workflow } from "lucide-react";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
+import EmailTemplateSelect from "@/components/Admin/EmailTemplateSelect";
 import { FeatureGate } from "@/lib/useSubscription";
 import { useI18n } from "@/lib/i18n";
 import {
@@ -64,6 +65,7 @@ export default function EventAutomationsPage() {
     subtitle: "Katılım, no-show, sertifika, anket ve rozet durumlarına göre e-posta, hatırlatma veya webhook aksiyonları tanımlayın.",
     loadError: "Otomasyonlar yüklenemedi.",
     nameRequired: "Kural adı gerekli.",
+    templateRequired: "E-posta aksiyonu i\u00e7in \u015fablon se\u00e7in.",
     saveError: "Kural kaydedilemedi.",
     deleteConfirm: "Bu otomasyon kuralı silinsin mi?",
     deleteError: "Kural silinemedi.",
@@ -80,6 +82,7 @@ export default function EventAutomationsPage() {
     subtitle: "Define email, reminder, or webhook actions based on attendance, no-shows, certificates, surveys, and badges.",
     loadError: "Could not load automations.",
     nameRequired: "Rule name is required.",
+    templateRequired: "Choose a template for the email action.",
     saveError: "Could not save rule.",
     deleteConfirm: "Delete this automation rule?",
     deleteError: "Could not delete rule.",
@@ -139,6 +142,10 @@ export default function EventAutomationsPage() {
     const name = form.name.trim();
     if (!name) {
       setError(copy.nameRequired);
+      return;
+    }
+    if (form.action.type === "send_email" && !form.action.email_template_id) {
+      setError(copy.templateRequired);
       return;
     }
     setSaving(true);
@@ -307,17 +314,15 @@ export default function EventAutomationsPage() {
             </div>
 
             {form.action.type === "send_email" && (
-              <label className="grid gap-1.5">
-                <span className="text-xs font-bold text-surface-600">E-posta şablon ID</span>
-                <input
-                  type="number"
-                  min={1}
-                  value={form.action.email_template_id || ""}
-                  onChange={event => setForm(prev => ({ ...prev, action: { ...prev.action, email_template_id: event.target.value ? Number(event.target.value) : null } }))}
-                  className="input-field"
-                  placeholder="Örn. 12"
-                />
-              </label>
+              <EmailTemplateSelect
+                eventId={eventId}
+                value={form.action.email_template_id || null}
+                onChange={(templateId) => setForm(prev => ({ ...prev, action: { ...prev.action, email_template_id: templateId } }))}
+                label={lang === "tr" ? "E-posta şablonu" : "Email template"}
+                placeholder={lang === "tr" ? "Şablon seçin" : "Choose a template"}
+                emptyText={lang === "tr" ? "Önce bir sistem veya etkinlik şablonu seçin." : "Select a system or event template first."}
+                helperText={lang === "tr" ? "Otomasyon e-postası seçtiğiniz şablonla gönderilir." : "Automation email will be sent with the selected template."}
+              />
             )}
 
             {form.action.type === "create_reminder" && (
