@@ -22,6 +22,7 @@
     -moz-osx-font-smoothing: grayscale;
   }
   button, input, select, textarea { font: inherit; }
+  button, a { min-width: 0; }
   ::selection {
     background: rgba(28, 25, 23, 0.14);
     color: #1c1917;
@@ -55,6 +56,14 @@
     background: var(--site-brand-color);
     box-shadow: 0 1px 2px rgba(28,25,23,0.12), 0 10px 24px rgba(28,25,23,0.12);
     transition: all 0.15s ease;
+  }
+  .btn-primary > span,
+  .btn-secondary > span,
+  .btn-ghost > span,
+  .btn-danger > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .btn-primary:hover { filter: brightness(1.08); box-shadow: 0 2px 4px rgba(28,25,23,0.12), 0 14px 30px rgba(28,25,23,0.14); }
   .btn-primary:active { transform: translateY(0); }
@@ -107,14 +116,14 @@
   .focus\:ring-brand-500:focus { box-shadow: 0 0 0 6px var(--site-brand-accent); }
 
   .card {
-    @apply rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900;
+    @apply min-w-0 rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900;
   }
   .card-hover {
-    @apply rounded-2xl border border-gray-200 bg-white shadow-sm transition-all hover:border-gray-300 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700;
+    @apply min-w-0 rounded-2xl border border-gray-200 bg-white shadow-sm transition-all hover:border-gray-300 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700;
   }
 
   .surface-panel {
-    @apply rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900;
+    @apply min-w-0 rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900;
   }
 
   .toolbar-surface {
@@ -159,10 +168,16 @@
   }
 
   .sidebar-item {
-    @apply flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-600 transition-all hover:bg-sidebar-hover hover:text-surface-900;
+    @apply flex min-w-0 items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-600 transition-all hover:bg-sidebar-hover hover:text-surface-900;
   }
   .sidebar-item-active {
-    @apply flex items-center gap-2.5 rounded-lg border border-surface-300 bg-white px-3 py-2.5 text-sm font-semibold text-surface-900 shadow-soft;
+    @apply flex min-w-0 items-center gap-2.5 rounded-lg border border-surface-300 bg-white px-3 py-2.5 text-sm font-semibold text-surface-900 shadow-soft;
+  }
+  .sidebar-item > span,
+  .sidebar-item-active > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .mobile-bottom-nav {
     @apply fixed inset-x-3 bottom-3 z-40 rounded-[24px] border border-surface-200/80 bg-white/95 p-2 shadow-[0_18px_50px_rgba(15,23,42,0.14)] backdrop-blur lg:hidden;

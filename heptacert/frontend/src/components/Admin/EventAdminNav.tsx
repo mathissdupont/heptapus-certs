@@ -139,6 +139,7 @@ type EventAdminNavProps = {
   eventName?: string;
   className?: string;
   variant?: "inline" | "sidebar";
+  forceVisible?: boolean;
 };
 
 const EventAdminLayoutContext = createContext<{ hideInlineNav: boolean }>({ hideInlineNav: false });
@@ -179,6 +180,7 @@ export default function EventAdminNav({
   eventName,
   className,
   variant = "inline",
+  forceVisible = false,
 }: EventAdminNavProps) {
   const { lang } = useI18n();
   const pathname = usePathname() || "";
@@ -274,7 +276,7 @@ export default function EventAdminNav({
     router.replace(visibleNavItems[0].href(eventId));
   }, [eventId, eventMeta, resolvedActive, router, visibleNavItems]);
 
-  if (hideInlineNav && variant === "inline") {
+  if (hideInlineNav && variant === "inline" && !forceVisible) {
     return null;
   }
 
@@ -292,7 +294,7 @@ export default function EventAdminNav({
   // ----------------------------------------------------
   if (variant === "sidebar") {
     return (
-      <div className={`w-full flex flex-col gap-4 antialiased ${className || ""}`}>
+      <div className={`w-full flex min-w-0 flex-col gap-3 antialiased ${className || ""}`}>
         {/* Üst Kart Alanı - Apple Bilgi Bloğu */}
         <div className="rounded-2xl border border-gray-200/70 bg-white p-4 shadow-sm">
           <Link
@@ -306,7 +308,7 @@ export default function EventAdminNav({
             <span className="inline-flex items-center rounded-md bg-gray-50 border border-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500 uppercase tracking-tight">
               {getActiveLabel(resolvedActive, lang)}
             </span>
-            <h2 className="mt-1.5 text-base font-bold leading-tight text-gray-950 tracking-tight">
+            <h2 className="mt-1.5 break-words text-base font-bold leading-tight text-gray-950 tracking-tight">
               {eventName || eventMeta?.name || copy.eventFallback(eventId)}
             </h2>
           </div>
@@ -327,14 +329,14 @@ export default function EventAdminNav({
                 <Link
                   key={tab}
                   href={href(eventId)}
-                  className={`inline-flex items-center gap-2.5 rounded-lg px-3.5 py-2 text-xs font-semibold tracking-tight transition-all duration-150 ${
+                  className={`inline-flex min-w-0 items-center gap-2.5 rounded-lg px-3.5 py-2 text-xs font-semibold tracking-tight transition-all duration-150 ${
                     isAct
                       ? "bg-white text-gray-950 shadow-sm border border-gray-200/60"
                       : "border border-transparent text-gray-500 hover:text-gray-900 hover:bg-white/60"
                   }`}
                 >
                   <Icon className={`h-4 w-4 shrink-0 transition-transform duration-200 ${isAct ? "text-gray-950 stroke-[2]" : "text-gray-400 stroke-[1.8]"}`} />
-                  <span>{label[lang]}</span>
+                  <span className="min-w-0 truncate">{label[lang]}</span>
                 </Link>
               );
             })}
@@ -348,29 +350,34 @@ export default function EventAdminNav({
   // VARIANT: INLINE MODE (Üst Yatay Çubuk)
   // ----------------------------------------------------
   return (
-    <div className={`w-full antialiased ${className || "mb-5"}`}>
-      <div className="flex flex-col gap-1.5 mb-3.5">
-        <Link 
-          href="/admin/events" 
-          className="inline-flex w-fit items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider transition-colors hover:text-gray-900"
-        >
-          <ChevronLeft className="h-3.5 w-3.5 stroke-[2.5]" />
-          {copy.allEvents}
-        </Link>
-        {(eventName || eventMeta?.name) && (
-          <h1 className="text-sm font-bold text-gray-950 tracking-tight">
-            {eventName || eventMeta?.name}
-          </h1>
-        )}
-      </div>
+    <div className={`w-full min-w-0 antialiased ${className || ""}`}>
+      <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+        <div className="mb-2.5 flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <Link
+              href="/admin/events"
+              className="inline-flex w-fit max-w-full items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 transition-colors hover:text-gray-900"
+            >
+              <ChevronLeft className="h-3.5 w-3.5 shrink-0 stroke-[2.5]" />
+              <span className="truncate">{copy.allEvents}</span>
+            </Link>
+            <h1 className="mt-1 truncate text-sm font-bold tracking-tight text-gray-950 sm:text-base">
+              {eventName || eventMeta?.name || copy.eventFallback(eventId)}
+            </h1>
+          </div>
+          {getActiveLabel(resolvedActive, lang) && (
+            <span className="inline-flex w-fit max-w-full shrink-0 items-center rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-gray-500">
+              <span className="truncate">{getActiveLabel(resolvedActive, lang)}</span>
+            </span>
+          )}
+        </div>
 
-      <div
-        ref={scrollerRef}
-        onWheel={handleWheel}
-        className="overflow-x-auto scrollbar-none"
-      >
-        {/* Apple Segmented Control Çizgisinde Yatay Panel */}
-        <div className="flex min-w-max gap-1 border border-gray-200/80 bg-gray-50/60 p-1 rounded-xl lg:min-w-0 lg:flex-wrap">
+        <div
+          ref={scrollerRef}
+          onWheel={handleWheel}
+          className="overflow-x-auto scrollbar-none"
+        >
+        <div className="flex min-w-max gap-1 rounded-xl border border-gray-200/80 bg-gray-50/60 p-1 lg:min-w-0 lg:flex-wrap">
           {loadingEventMeta && !eventMeta ? (
             <NavSkeleton variant="inline" />
           ) : visibleNavItems.map(({ tab, label, icon: Icon, href }) => {
@@ -379,17 +386,18 @@ export default function EventAdminNav({
               <Link
                 key={tab}
                 href={href(eventId)}
-                className={`group relative inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold tracking-tight transition-all ${
+                className={`group relative inline-flex max-w-[180px] items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold tracking-tight transition-all ${
                   isAct
                     ? "bg-white text-gray-950 shadow-sm border border-gray-200/60"
                     : "border border-transparent text-gray-500 hover:text-gray-900 hover:bg-white/40"
                 }`}
               >
                 <Icon className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-hover:scale-105 ${isAct ? "text-gray-950 stroke-[2]" : "text-gray-400 stroke-[1.8]"}`} />
-                <span className="inline">{label[lang]}</span>
+                <span className="min-w-0 truncate">{label[lang]}</span>
               </Link>
             );
           })}
+          </div>
         </div>
       </div>
     </div>

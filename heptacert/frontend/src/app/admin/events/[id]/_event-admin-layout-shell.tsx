@@ -83,9 +83,9 @@ export function EventAdminLayoutShell({ eventId, children }: EventAdminLayoutShe
 
   return (
     <EventAdminLayoutProvider hideInlineNav>
-      <div className="w-full flex flex-col gap-5 antialiased text-gray-900">
+      <div className="w-full flex min-w-0 flex-col gap-4 antialiased text-gray-900">
         {/* Yenilediğimiz Premium Sol Navigasyon Menüsü */}
-        <EventAdminNav eventId={eventId} variant="sidebar" />
+        <EventAdminNav eventId={eventId} variant="inline" forceVisible />
         
         {/* Güvenlik Onaylı İçerik Slotu */}
         <div className="min-w-0 flex-1">

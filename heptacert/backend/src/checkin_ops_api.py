@@ -7,7 +7,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import Integer, cast, func, or_, select
+from sqlalchemy import Integer, cast, func, literal_column, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .main import (
@@ -408,12 +408,13 @@ async def get_checkin_metrics(
             .limit(recent_limit)
         )
     ).all()
+    hourly_bucket = func.date_trunc(literal_column("'hour'"), CheckinActivityLog.created_at).label("hour")
     hourly_rows = (
         await db.execute(
-            select(func.date_trunc("hour", CheckinActivityLog.created_at), func.count(CheckinActivityLog.id))
+            select(hourly_bucket, func.count(CheckinActivityLog.id))
             .where(CheckinActivityLog.event_id == event_id, CheckinActivityLog.created_at >= datetime.now(timezone.utc) - timedelta(hours=24))
-            .group_by(func.date_trunc("hour", CheckinActivityLog.created_at))
-            .order_by(func.date_trunc("hour", CheckinActivityLog.created_at))
+            .group_by(hourly_bucket)
+            .order_by(hourly_bucket)
         )
     ).all()
     capacity_rows = (

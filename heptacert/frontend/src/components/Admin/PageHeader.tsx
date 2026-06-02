@@ -24,22 +24,22 @@ export function PageHeader({
   iconBg = "bg-gray-50 text-gray-800 border border-gray-100 shadow-sm",
 }: PageHeaderProps) {
   return (
-    <div className="mb-6 w-full antialiased">
+    <div className="mb-6 w-full min-w-0 antialiased">
       {/* Apple Tarzı Akıcı ve Minimal Breadcrumb (Navigasyon İzi) */}
       {breadcrumbs && breadcrumbs.length > 0 && (
-        <nav className="mb-2.5 flex flex-wrap items-center gap-1 text-[11px] font-medium text-gray-400">
+        <nav className="mb-2.5 flex min-w-0 flex-wrap items-center gap-1 text-[11px] font-medium text-gray-400">
           {breadcrumbs.map((crumb, i) => (
-            <span key={i} className="flex items-center gap-1">
+            <span key={i} className="flex min-w-0 items-center gap-1">
               {i > 0 && <ChevronRight className="h-3 w-3 text-gray-300 stroke-[2.5]" />}
               {crumb.href ? (
                 <Link
                   href={crumb.href}
-                  className="transition-colors hover:text-gray-900"
+                  className="max-w-[180px] truncate transition-colors hover:text-gray-900"
                 >
                   {crumb.label}
                 </Link>
               ) : (
-                <span className="text-gray-600 font-semibold">
+                <span className="max-w-[180px] truncate text-gray-600 font-semibold">
                   {crumb.label}
                 </span>
               )}
@@ -50,7 +50,7 @@ export function PageHeader({
 
       {/* Başlık Gövde Paneli - Süzülen Temiz Yüzey */}
       <div className="relative overflow-hidden rounded-2xl border border-gray-200/80 bg-white p-5 shadow-sm sm:p-6">
-        <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="relative flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           
           {/* Sol Alan: İkon ve Başlık Grubu */}
           <div className="flex min-w-0 items-center gap-4">
@@ -68,7 +68,7 @@ export function PageHeader({
                 {title}
               </h1>
               {subtitle && (
-                <p className="text-xs leading-relaxed text-gray-400 max-w-2xl tracking-normal">
+                <p className="max-w-2xl break-words text-xs leading-relaxed tracking-normal text-gray-400">
                   {subtitle}
                 </p>
               )}
@@ -77,7 +77,7 @@ export function PageHeader({
 
           {/* Sağ Alan: Global Sayfa Aksiyon Butonları (Slot) */}
           {actions && (
-            <div className="flex flex-wrap items-center gap-2 shrink-0 w-full lg:w-auto">
+            <div className="flex min-w-0 w-full flex-wrap items-center gap-2 lg:w-auto lg:shrink-0 [&_*]:min-w-0">
               {actions}
             </div>
           )}

@@ -191,7 +191,7 @@ function SidebarContent({
                       className={active ? "sidebar-item-active" : "sidebar-item"}
                     >
                       <Icon className="h-4 w-4 shrink-0" />
-                      {label}
+                      <span className="min-w-0 truncate">{label}</span>
                     </Link>
                   );
                 })}
