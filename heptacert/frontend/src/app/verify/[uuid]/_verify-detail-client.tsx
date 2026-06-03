@@ -23,6 +23,8 @@ type CertData = {
   png_url?: string | null;
   view_count?: number;
   linkedin_url?: string | null;
+  linkedin_share_url?: string | null;
+  linkedin_add_url?: string | null;
   branding?: { org_name?: string; brand_logo?: string | null; brand_color?: string | null } | null;
   settings?: { certificate_footer?: string; hide_heptacert_home?: boolean } | null;
 };
@@ -56,7 +58,7 @@ export default function VerifyPage({ params }: { params: { uuid: string } }) {
     organizer: "Düzenleyen",
     downloadPdf: "PDF indir",
     downloadPng: "PNG indir",
-    addLinkedIn: "LinkedIn'e ekle",
+    shareLinkedIn: "LinkedIn'de paylaş",
     share: "Paylaş",
     copyLink: "Linki kopyala",
     copied: "Kopyalandı",
@@ -86,7 +88,7 @@ export default function VerifyPage({ params }: { params: { uuid: string } }) {
     organizer: "Organizer",
     downloadPdf: "Download PDF",
     downloadPng: "Download PNG",
-    addLinkedIn: "Add to LinkedIn",
+    shareLinkedIn: "Share on LinkedIn",
     share: "Share",
     copyLink: "Copy link",
     copied: "Copied",
@@ -356,7 +358,7 @@ export default function VerifyPage({ params }: { params: { uuid: string } }) {
                 <div className="mt-8 flex flex-wrap gap-3 border-t border-slate-100 pt-6">
                   {cert.status === "active" && cert.pdf_url && <a href={cert.pdf_url} target="_blank" rel="noopener noreferrer" className="btn-primary px-5 py-3"><Download className="h-4 w-4" />{copy.downloadPdf}</a>}
                   {cert.status === "active" && cert.png_url && <a href={cert.png_url} download={`certificate-${cert.public_id ?? cert.uuid}.png`} className="btn-secondary px-5 py-3"><Download className="h-4 w-4" />{copy.downloadPng}</a>}
-                  {cert.status === "active" && cert.linkedin_url && <a href={cert.linkedin_url} target="_blank" rel="noopener noreferrer" onClick={() => void trackWalletAnalytics("linkedin_click", cert.uuid).catch(() => undefined)} className="inline-flex items-center gap-2 rounded-xl bg-[#0077B5] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#005e8d]"><Linkedin className="h-4 w-4" />{copy.addLinkedIn}</a>}
+                  {cert.status === "active" && (cert.linkedin_share_url || cert.linkedin_url) && <a href={cert.linkedin_share_url || cert.linkedin_url || "#"} target="_blank" rel="noopener noreferrer" onClick={() => void trackWalletAnalytics("linkedin_click", cert.uuid).catch(() => undefined)} className="inline-flex items-center gap-2 rounded-xl bg-[#0077B5] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#005e8d]"><Linkedin className="h-4 w-4" />{copy.shareLinkedIn}</a>}
                   <button type="button" onClick={() => void shareCertificate()} className="btn-secondary px-5 py-3"><Share2 className="h-4 w-4" />{copy.share}</button>
                   <button type="button" onClick={() => void copyVerifyLink()} className="btn-secondary px-5 py-3"><Copy className="h-4 w-4" />{copied ? copy.copied : copy.copyLink}</button>
                   {cert.status === "active" && <button type="button" onClick={downloadShareCard} className="btn-secondary px-5 py-3"><ImageDown className="h-4 w-4" />{copy.downloadShareCard}</button>}

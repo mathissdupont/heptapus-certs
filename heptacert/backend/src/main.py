@@ -2744,6 +2744,8 @@ class VerifyOut(BaseModel):
     hosting_ends_at: Optional[datetime] = None
     view_count: int = 0
     linkedin_url: Optional[str] = None
+    linkedin_share_url: Optional[str] = None
+    linkedin_add_url: Optional[str] = None
     branding: Optional[Dict[str, Any]] = None
 
 
@@ -13319,11 +13321,16 @@ async def verify(uuid: str, request: Request, db: AsyncSession = Depends(get_db)
             }
 
     # Ã¢â€â‚¬Ã¢â€â‚¬ LinkedIn URL Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+    canonical_verify_url = build_certificate_verify_url(uuid)
+    linkedin_share_url: Optional[str] = None
+    linkedin_add_url: Optional[str] = None
     linkedin_url: Optional[str] = None
     if cert.status == CertStatus.active:
         from urllib.parse import urlencode
         issue_date = ensure_utc(getattr(cert, "issued_at", None)) or ensure_utc(getattr(cert, "created_at", None)) or now
         organization_name = organizer_name or (branding or {}).get("org_name") or "HeptaCert"
+        share_text = f"{cert.student_name} - {ev.name} certificate"
+        linkedin_share_url = build_linkedin_share_url(canonical_verify_url, share_text)
         params = {
             "startTask": "CERTIFICATION_NAME",
             "name": ev.name,
@@ -13331,14 +13338,10 @@ async def verify(uuid: str, request: Request, db: AsyncSession = Depends(get_db)
             "issueYear": str(issue_date.year),
             "issueMonth": str(issue_date.month),
             "certId": cert.public_id or cert.uuid,
-            "certUrl": build_certificate_verify_url(
-                uuid,
-                host=host or None,
-                scheme=scheme,
-                verification_path=verification_path,
-            ),
+            "certUrl": canonical_verify_url,
         }
-        linkedin_url = f"https://www.linkedin.com/profile/add?{urlencode(params)}"
+        linkedin_add_url = f"https://www.linkedin.com/profile/add?{urlencode(params)}"
+        linkedin_url = linkedin_share_url
 
     await db.commit()
 
@@ -13365,6 +13368,8 @@ async def verify(uuid: str, request: Request, db: AsyncSession = Depends(get_db)
         hosting_ends_at=cert.hosting_ends_at,
         view_count=view_count,
         linkedin_url=linkedin_url,
+        linkedin_share_url=linkedin_share_url,
+        linkedin_add_url=linkedin_add_url,
         branding=branding,
     )
 
