@@ -6281,6 +6281,13 @@ async def startup():
             if stats.get("completed") or stats.get("failed"):
                 logger.info("Segment export job cycle: %s", stats)
 
+        async def _process_document_export_jobs():
+            from .document_export_jobs import process_document_export_jobs_once
+
+            stats = await process_document_export_jobs_once()
+            if stats.get("processed") or stats.get("failed"):
+                logger.info("Document export job cycle: %s", stats)
+
         if settings.enable_scheduler:
             scheduler.add_job(_notify_expiring_certs, "cron", hour=2, minute=0)
             scheduler.add_job(_auto_renew_certificates, "interval", hours=1)
@@ -6290,6 +6297,7 @@ async def startup():
             scheduler.add_job(_process_automation_dispatches, "interval", minutes=5)
             scheduler.add_job(_process_training_renewal_notifications, "cron", hour=4, minute=15)
             scheduler.add_job(_process_segment_export_jobs, "interval", seconds=10)
+            scheduler.add_job(_process_document_export_jobs, "interval", seconds=10)
             scheduler.add_job(_process_bulk_certificate_jobs, "interval", seconds=3)
             scheduler.start()
             logger.info("APScheduler started Ã¢â‚¬â€ cert notifications + monthly HC renewal + system digest + bulk email processing + bulk certificate queue")
@@ -19395,6 +19403,9 @@ app.include_router(_auth_2fa_api.router)
 
 from . import document_outputs_api as _document_outputs_api
 app.include_router(_document_outputs_api.router)
+
+from . import document_export_jobs as _document_export_jobs
+app.include_router(_document_export_jobs.router)
 
 from . import community_api as _community_api
 app.include_router(_community_api.router)

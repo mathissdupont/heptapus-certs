@@ -162,8 +162,8 @@ export default function AuditLogsPage() {
 
   const exportLogs = async (format: "csv" | "pdf") => {
     try {
-      await downloadAuditLogExport(format, category === "all" ? undefined : category);
-      toast.success(format === "csv" ? "CSV hazır." : "PDF hazır.");
+      const result = await downloadAuditLogExport(format, category === "all" ? undefined : category);
+      toast.success(result?.queued ? result.message : "CSV hazır.");
     } catch (e: any) {
       toast.error(e?.message || "Dışa aktarım başarısız.");
     }

@@ -1445,8 +1445,8 @@ function ComplianceTab() {
   async function download(format: "csv" | "pdf") {
     setDownloading(format);
     try {
-      await downloadOrganizationConsentLogs(format);
-      toast.success(format === "csv" ? "Rıza logları CSV olarak hazır." : "Rıza logları PDF olarak hazır.");
+      const result = await downloadOrganizationConsentLogs(format);
+      toast.success(result?.queued ? result.message : "Rıza logları CSV olarak hazır.");
     } catch (error: any) {
       toast.error(error?.message || "Rıza logları indirilemedi.");
     } finally {

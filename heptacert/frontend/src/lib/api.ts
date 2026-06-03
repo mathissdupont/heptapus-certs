@@ -3327,7 +3327,27 @@ export async function getSecurityEvents(): Promise<SecurityEventsOut> {
   return res.json();
 }
 
-export async function downloadAuditLogExport(format: "csv" | "pdf", category?: "legal" | "security") {
+export type QueuedDocumentExport = {
+  queued: true;
+  job_id: number;
+  status: string;
+  message: string;
+};
+
+export async function downloadAuditLogExport(format: "csv" | "pdf", category?: "legal" | "security"): Promise<void | QueuedDocumentExport> {
+  if (format === "pdf") {
+    const res = await apiFetch("/admin/document-export-jobs", {
+      method: "POST",
+      body: JSON.stringify({ export_type: "audit_logs", format, category }),
+    });
+    const job = await res.json();
+    return {
+      queued: true,
+      job_id: job.id,
+      status: job.status,
+      message: "PDF çıktısı kuyruğa alındı. Hazır olunca e-posta ile gönderilecek.",
+    };
+  }
   const qs = new URLSearchParams({ format });
   if (category) qs.set("category", category);
   const res = await apiFetch(`/superadmin/audit-logs/export?${qs}`);
@@ -3340,7 +3360,20 @@ export async function downloadAuditLogExport(format: "csv" | "pdf", category?: "
   URL.revokeObjectURL(url);
 }
 
-export async function downloadOrganizationConsentLogs(format: "csv" | "pdf") {
+export async function downloadOrganizationConsentLogs(format: "csv" | "pdf"): Promise<void | QueuedDocumentExport> {
+  if (format === "pdf") {
+    const res = await apiFetch("/admin/document-export-jobs", {
+      method: "POST",
+      body: JSON.stringify({ export_type: "organization_legal_consents", format }),
+    });
+    const job = await res.json();
+    return {
+      queued: true,
+      job_id: job.id,
+      status: job.status,
+      message: "PDF çıktısı kuyruğa alındı. Hazır olunca e-posta ile gönderilecek.",
+    };
+  }
   const res = await apiFetch(`/admin/organization/legal-consents/export?format=${format}`);
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
