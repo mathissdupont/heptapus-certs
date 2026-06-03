@@ -2,12 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { 
-  Loader2, 
-  Search, 
-  Heart, 
-  MessageCircle,
-} from "lucide-react";
+import { Loader2, Search, Heart, MessageCircle } from "lucide-react";
 import {
   listPublicFeed,
   getPublicMemberMe,
@@ -29,95 +24,80 @@ interface ScoredPost extends CommunityPost {
   finalScore: number;
 }
 
-// Advanced Viral Score Algorithm (like Instagram/Reddit)
+// ── Scoring algorithms (untouched) ───────────────────────────────────
 function calculateViralityScore(post: CommunityPost): number {
-  const totalEngagement = post.like_count + (post.comment_count * 2);
+  const totalEngagement = post.like_count + post.comment_count * 2;
   const ageInHours = (new Date().getTime() - new Date(post.created_at).getTime()) / (1000 * 60 * 60);
-  const ageInDays = Math.max(0.1, ageInHours / 24); 
+  const ageInDays = Math.max(0.1, ageInHours / 24);
   const engagementPerDay = totalEngagement / ageInDays;
-  const viralScore = (Math.tanh(engagementPerDay / 10) + 1) * 50;
-  return Math.min(100, viralScore);
+  return Math.min(100, (Math.tanh(engagementPerDay / 10) + 1) * 50);
 }
 
-// Engagement Velocity Score (how fast engagement is growing)
 function calculateVelocityScore(post: CommunityPost): number {
-  const now = new Date();
-  const postDate = new Date(post.created_at);
-  const ageMs = now.getTime() - postDate.getTime();
-  const ageHours = ageMs / (1000 * 60 * 60);
-  
+  const ageHours = (Date.now() - new Date(post.created_at).getTime()) / (1000 * 60 * 60);
   if (ageHours < 1) return 30;
   if (ageHours < 6) return 20;
-  if (ageHours < 24) return (post.like_count + post.comment_count > 5) ? 10 : 0;
+  if (ageHours < 24) return post.like_count + post.comment_count > 5 ? 10 : 0;
   return 0;
 }
 
-// Quality Score based on comment depth and discussion
 function calculateQualityScore(post: CommunityPost): number {
   const commentBonus = Math.min(50, post.comment_count * 2);
-  const likeCommentRatio = post.comment_count > 0
-    ? post.like_count / post.comment_count
-    : post.like_count; 
-  const ratioPenaline = Math.abs(likeCommentRatio - 2) > 5 ? -10 : 0;
-  return Math.max(0, commentBonus + ratioPenaline);
+  const ratio = post.comment_count > 0 ? post.like_count / post.comment_count : post.like_count;
+  const penalty = Math.abs(ratio - 2) > 5 ? -10 : 0;
+  return Math.max(0, commentBonus + penalty);
 }
 
-// Freshness Score: newer = better
 function calculateFreshnessScore(post: CommunityPost): number {
-  const now = new Date();
-  const postDate = new Date(post.created_at);
-  const ageMs = now.getTime() - postDate.getTime();
-  const ageHours = ageMs / (1000 * 60 * 60);
-  
-  if (ageHours < 2) return 40; 
+  const ageHours = (Date.now() - new Date(post.created_at).getTime()) / (1000 * 60 * 60);
+  if (ageHours < 2) return 40;
   if (ageHours < 6) return 35;
   if (ageHours < 24) return 25;
   if (ageHours < 72) return 15;
-  return 5; 
+  return 5;
 }
 
-// Main Algorithm: Combines all signals into one score
 function calculateFinalScore(post: CommunityPost): number {
-  const virality = calculateViralityScore(post);
-  const velocity = calculateVelocityScore(post);
-  const quality = calculateQualityScore(post);
-  const freshness = calculateFreshnessScore(post);
-  
-  const finalScore = (
-    (virality * 0.40) +
-    (quality * 0.30) +
-    (velocity * 0.20) +
-    (freshness * 0.10)
-  );
-  
-  return Math.min(100, Math.max(0, finalScore));
+  return Math.min(100, Math.max(0,
+    calculateViralityScore(post) * 0.40 +
+    calculateQualityScore(post)  * 0.30 +
+    calculateVelocityScore(post) * 0.20 +
+    calculateFreshnessScore(post)* 0.10,
+  ));
 }
 
 function calculateEngagementScore(post: CommunityPost): number {
-  return post.like_count + (post.comment_count * 1.5);
+  return post.like_count + post.comment_count * 1.5;
 }
 
-function formatNumber(num: number): string {
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K';
-  }
-  return num.toString();
+function scorePost(post: CommunityPost): ScoredPost {
+  return {
+    ...post,
+    score:           calculateFinalScore(post),
+    engagement:      calculateEngagementScore(post),
+    viralityScore:   calculateViralityScore(post),
+    velocityScore:   calculateVelocityScore(post),
+    qualityScore:    calculateQualityScore(post),
+    freshnessScore:  calculateFreshnessScore(post),
+    finalScore:      calculateFinalScore(post),
+  };
+}
+
+function formatNumber(n: number): string {
+  return n >= 1000 ? (n / 1000).toFixed(1) + "K" : String(n);
 }
 
 function formatTimeAgo(dateString: string, lang: "tr" | "en") {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  
-  if (diffInSeconds < 60) return lang === "tr" ? "Az önce" : "Just now";
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) return lang === "tr" ? `${diffInMinutes}d` : `${diffInMinutes}m`;
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return lang === "tr" ? `${diffInHours}s` : `${diffInHours}h`;
-  const diffInDays = Math.floor(diffInHours / 24);
-  return lang === "tr" ? `${diffInDays}g` : `${diffInDays}d`;
+  const secs = Math.floor((Date.now() - new Date(dateString).getTime()) / 1000);
+  if (secs < 60) return lang === "tr" ? "Az önce" : "Just now";
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return lang === "tr" ? `${mins}d` : `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return lang === "tr" ? `${hours}s` : `${hours}h`;
+  return lang === "tr" ? `${Math.floor(hours / 24)}g` : `${Math.floor(hours / 24)}d`;
 }
 
+// ── Component ─────────────────────────────────────────────────────────
 export default function DiscoveryPage() {
   const { lang } = useI18n();
   const [posts, setPosts] = useState<ScoredPost[]>([]);
@@ -128,322 +108,250 @@ export default function DiscoveryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"trending" | "recent" | "popular">("trending");
 
-  const copy = useMemo(() => lang === "tr" ? {
-    title: "Merkez",
-    subtitle: "Topluluklardan gündemi takip edin, etkinlik odaklı paylaşımları ve öne çıkan üyeleri görün",
-    loading: "Gönderiler yükleniyor...",
-    error: "Gönderiler yüklenemedi",
-    empty: "Henüz gönderi yok",
-    searchPlaceholder: "Gönderi, üye veya topluluk ara...",
-    trending: "Trend",
-    recent: "Yeni",
-    popular: "Popüler",
-    noResults: "Aramanızla eşleşen gönderi bulunamadı",
-  } : {
-    title: "Hub",
-    subtitle: "Follow the community pulse with event-focused updates and standout members",
-    loading: "Loading posts...",
-    error: "Failed to load posts",
-    empty: "No posts yet",
-    searchPlaceholder: "Search posts, members or communities...",
-    trending: "Trending",
-    recent: "Recent",
-    popular: "Popular",
-    noResults: "No posts found matching your search",
-  }, [lang]);
+  const copy = useMemo(
+    () =>
+      lang === "tr"
+        ? {
+            title: "Topluluk Merkezi",
+            subtitle: "Topluluklardan gündemi takip edin ve öne çıkan paylaşımları keşfedin.",
+            loading: "Gönderiler yükleniyor...",
+            error: "Gönderiler yüklenemedi.",
+            empty: "Henüz gönderi yok.",
+            searchPlaceholder: "Gönderi, üye veya topluluk ara...",
+            trending: "Trend",
+            recent: "Yeni",
+            popular: "Popüler",
+            noResults: "Aramanızla eşleşen gönderi bulunamadı.",
+            member: "Üye",
+          }
+        : {
+            title: "Community Hub",
+            subtitle: "Follow the community pulse and discover standout posts.",
+            loading: "Loading posts...",
+            error: "Failed to load posts.",
+            empty: "No posts yet.",
+            searchPlaceholder: "Search posts, members, or communities...",
+            trending: "Trending",
+            recent: "Recent",
+            popular: "Popular",
+            noResults: "No posts found matching your search.",
+            member: "Member",
+          },
+    [lang],
+  );
 
   useEffect(() => {
     setLoading(true);
     setError(null);
     Promise.all([
-      listPublicFeed({ limit: 50 }).catch((err: any) => {
-        console.error("Error fetching public feed:", err);
-        throw err;
-      }),
+      listPublicFeed({ limit: 50 }),
       getPublicMemberToken() ? getPublicMemberMe().catch(() => null) : Promise.resolve(null),
     ])
       .then(([items, viewerData]) => {
-        const scored = (Array.isArray(items) ? items : []).map((post) => ({
-          ...post,
-          score: calculateFinalScore(post),
-          engagement: calculateEngagementScore(post),
-          viralityScore: calculateViralityScore(post),
-          velocityScore: calculateVelocityScore(post),
-          qualityScore: calculateQualityScore(post),
-          freshnessScore: calculateFreshnessScore(post),
-          finalScore: calculateFinalScore(post),
-        }));
-
-        setPosts(scored);
+        setPosts((Array.isArray(items) ? items : []).map(scorePost));
         setViewer(viewerData);
-        setError(null);
       })
-      .catch((err: any) => {
-        console.error("Error in discover page:", err);
+      .catch((err: unknown) => {
+        const e = err as { message?: string; status?: number };
         let msg = copy.error;
-        if (typeof err === 'string') {
-          msg = err;
-        } else if (err?.message && typeof err.message === 'string') {
-          msg = err.message;
-        } else if (err?.status === 401) {
-          msg = lang === "tr" ? "Bu sayfaya erişim için giriş yapın" : "Sign in to view this page";
-        } else if (err?.status === 403) {
-          msg = lang === "tr" ? "Bu sayfaya erişim izniniz yok" : "You don't have permission to view this page";
-        } else if (err?.status === 404) {
-          msg = lang === "tr" ? "Sayfa bulunamadı" : "Page not found";
-        } else if (err?.status === 500) {
-          msg = lang === "tr" ? "Sunucu hatası oluştu" : "Server error occurred";
-        }
+        if (e?.status === 401) msg = lang === "tr" ? "Bu sayfaya erişim için giriş yapın." : "Sign in to view this page.";
+        else if (e?.status === 403) msg = lang === "tr" ? "Bu sayfaya erişim izniniz yok." : "You don't have permission to view this page.";
+        else if (e?.message) msg = e.message;
         setError(msg);
         setPosts([]);
       })
       .finally(() => setLoading(false));
   }, [copy.error, lang]);
 
-  const filteredAndSortedPosts = useMemo(() => {
-    let filtered = posts;
-
+  const displayPosts = useMemo(() => {
+    let result = posts;
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = posts.filter(
-        (post) =>
-          post.body.toLowerCase().includes(term) ||
-          post.author_name.toLowerCase().includes(term) ||
-          (post.organization_name?.toLowerCase().includes(term) ?? false)
+      result = posts.filter(
+        (p) =>
+          p.body.toLowerCase().includes(term) ||
+          p.author_name.toLowerCase().includes(term) ||
+          (p.organization_name?.toLowerCase().includes(term) ?? false),
       );
     }
-
-    return filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "trending":
-          const trendingScoreA = a.viralityScore * 0.6 + a.velocityScore * 0.4;
-          const trendingScoreB = b.viralityScore * 0.6 + b.velocityScore * 0.4;
-          return trendingScoreB - trendingScoreA;
-        case "recent":
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        case "popular":
-          return b.finalScore - a.finalScore;
-        default:
-          return 0;
-      }
+    return result.sort((a, b) => {
+      if (sortBy === "trending") return (b.viralityScore * 0.6 + b.velocityScore * 0.4) - (a.viralityScore * 0.6 + a.velocityScore * 0.4);
+      if (sortBy === "recent") return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      return b.finalScore - a.finalScore;
     });
   }, [posts, searchTerm, sortBy]);
 
   async function handleToggleLike(post: ScoredPost) {
-    if (!viewer) {
-      window.location.href = "/login?mode=member";
-      return;
-    }
+    if (!viewer) { window.location.href = "/login?mode=member"; return; }
     setBusyPostId(post.public_id);
     try {
       if (post.liked_by_me) {
         await unlikeCommunityPost(post.public_id);
-        setPosts((current) =>
-          current.map((item) =>
-            item.public_id === post.public_id
-              ? (() => {
-                  const updated = {
-                    ...item,
-                    liked_by_me: false,
-                    like_count: Math.max(0, item.like_count - 1),
-                  };
-                  return {
-                    ...updated,
-                    score: calculateFinalScore(updated),
-                    engagement: calculateEngagementScore(updated),
-                    viralityScore: calculateViralityScore(updated),
-                    velocityScore: calculateVelocityScore(updated),
-                    qualityScore: calculateQualityScore(updated),
-                    freshnessScore: calculateFreshnessScore(updated),
-                    finalScore: calculateFinalScore(updated),
-                  };
-                })()
-              : item
-          )
-        );
+        setPosts((cur) => cur.map((p) => p.public_id === post.public_id ? scorePost({ ...p, liked_by_me: false, like_count: Math.max(0, p.like_count - 1) }) : p));
       } else {
         await likeCommunityPost(post.public_id);
-        setPosts((current) =>
-          current.map((item) =>
-            item.public_id === post.public_id
-              ? (() => {
-                  const updated = {
-                    ...item,
-                    liked_by_me: true,
-                    like_count: item.like_count + 1,
-                  };
-                  return {
-                    ...updated,
-                    score: calculateFinalScore(updated),
-                    engagement: calculateEngagementScore(updated),
-                    viralityScore: calculateViralityScore(updated),
-                    velocityScore: calculateVelocityScore(updated),
-                    qualityScore: calculateQualityScore(updated),
-                    freshnessScore: calculateFreshnessScore(updated),
-                    finalScore: calculateFinalScore(updated),
-                  };
-                })()
-              : item
-          )
-        );
+        setPosts((cur) => cur.map((p) => p.public_id === post.public_id ? scorePost({ ...p, liked_by_me: true, like_count: p.like_count + 1 }) : p));
       }
-    } catch (err: any) {
-      setError(err?.message || copy.error);
+    } catch (e: unknown) {
+      setError((e as { message?: string })?.message || copy.error);
     } finally {
       setBusyPostId(null);
     }
   }
 
+  const sortOptions = (["trending", "recent", "popular"] as const);
+
   return (
-    <div className="mx-auto min-h-screen max-w-5xl px-4 sm:px-6 py-10">
+    <div className="flex min-h-screen flex-col bg-surface-50 pb-20">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">{copy.title}</h1>
-        <p className="text-sm text-gray-500">{copy.subtitle}</p>
-      </div>
+      <section className="border-b border-surface-200 bg-white px-4 pb-8 pt-12 sm:px-6">
+        <div className="mx-auto max-w-2xl">
+          <h1 className="text-2xl font-bold tracking-tight text-surface-900 sm:text-3xl">
+            {copy.title}
+          </h1>
+          <p className="mt-1.5 text-base text-surface-500">{copy.subtitle}</p>
 
-      {/* Search and Filter Bar */}
-      <div className="mb-8 flex flex-col sm:flex-row gap-4">
-        {/* Search */}
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.currentTarget.value)}
-            placeholder={copy.searchPlaceholder}
-            className="w-full rounded-lg border border-gray-200 bg-white pl-9 pr-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 shadow-sm"
-          />
+          {/* Toolbar */}
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.currentTarget.value)}
+                placeholder={copy.searchPlaceholder}
+                className="input-field pl-9"
+              />
+            </div>
+            <div className="flex shrink-0 items-center gap-1 rounded-xl border border-surface-200 bg-white p-1 shadow-soft">
+              {sortOptions.map((opt) => (
+                <button
+                  key={opt}
+                  onClick={() => setSortBy(opt)}
+                  className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                    sortBy === opt
+                      ? "bg-surface-900 text-white"
+                      : "text-surface-500 hover:text-surface-900"
+                  }`}
+                >
+                  {copy[opt]}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
+      </section>
 
-        {/* Sort Buttons */}
-        <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200/60 shrink-0">
-          {(["trending", "recent", "popular"] as const).map((option) => (
-            <button
-              key={option}
-              onClick={() => setSortBy(option)}
-              className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
-                sortBy === option
-                  ? "bg-white text-gray-900 shadow-sm border border-gray-200/50"
-                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
-              }`}
-            >
-              {copy[option]}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Content */}
+      <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6">
+        {/* Error */}
+        {error && <div className="error-banner mb-6">{error}</div>}
 
-      {/* Error */}
-      {error && (
-        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+        {/* Loading */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-20 text-surface-400">
+            <Loader2 className="mb-3 h-6 w-6 animate-spin" />
+            <span className="text-sm">{copy.loading}</span>
+          </div>
+        )}
 
-      {/* Loading */}
-      {loading && (
-        <div className="flex flex-col items-center justify-center py-20 text-gray-500">
-          <Loader2 className="mb-3 h-6 w-6 animate-spin" />
-          <span className="text-sm font-medium">{copy.loading}</span>
-        </div>
-      )}
+        {/* Empty */}
+        {!loading && displayPosts.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl border border-surface-200 bg-surface-50">
+              <Search className="h-5 w-5 text-surface-400" />
+            </div>
+            <p className="text-sm font-medium text-surface-700">
+              {searchTerm ? copy.noResults : copy.empty}
+            </p>
+          </div>
+        )}
 
-      {/* Empty State */}
-      {!loading && filteredAndSortedPosts.length === 0 && (
-        <div className="mt-8 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-6 py-16 text-center text-sm text-gray-500">
-          {searchTerm ? copy.noResults : copy.empty}
-        </div>
-      )}
-
-      {/* Posts Feed (single-column scroll) */}
-      {!loading && filteredAndSortedPosts.length > 0 && (
-        <div className="mx-auto max-w-2xl space-y-4">
-          {filteredAndSortedPosts.map((post) => (
-            <Link
-              key={post.public_id}
-              href={`/post/${post.public_id}`}
-              className="block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:border-gray-300 hover:shadow-md transition-all"
-            >
-              <div className="p-5 cursor-pointer">
-                {/* Header: Author */}
-                <div className="flex items-start gap-3 mb-4">
-                  <div className="h-10 w-10 rounded-full bg-slate-100 border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {post.author_avatar_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={post.author_avatar_url}
-                        alt={post.author_name}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-sm font-semibold text-slate-500">
-                        {post.author_name.charAt(0).toUpperCase()}
-                      </span>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      {post.author_public_id && post.author_type === "member" ? (
-                        <Link
-                          href={`/member/${post.author_public_id}`}
-                          className="text-sm font-semibold text-gray-900 hover:text-blue-600 transition truncate"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {post.author_name}
-                        </Link>
-                      ) : (
-                        <p className="text-sm font-semibold text-gray-900 truncate">
-                          {post.author_name}
+        {/* Posts */}
+        {!loading && displayPosts.length > 0 && (
+          <div className="space-y-4">
+            {displayPosts.map((post) => (
+              <Link
+                key={post.public_id}
+                href={`/post/${post.public_id}`}
+                className="block"
+              >
+                <article className="overflow-hidden rounded-xl border border-surface-200 bg-white shadow-card transition-shadow hover:shadow-raised">
+                  <div className="p-5">
+                    {/* Author row */}
+                    <div className="mb-3 flex items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-surface-200 bg-surface-100">
+                        {post.author_avatar_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={post.author_avatar_url}
+                            alt={post.author_name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-sm font-semibold text-surface-500">
+                            {post.author_name.charAt(0).toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        {post.author_public_id && post.author_type === "member" ? (
+                          <Link
+                            href={`/member/${post.author_public_id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="block truncate text-sm font-medium text-surface-900 hover:text-blue-600 transition-colors"
+                          >
+                            {post.author_name}
+                          </Link>
+                        ) : (
+                          <p className="truncate text-sm font-medium text-surface-900">
+                            {post.author_name}
+                          </p>
+                        )}
+                        <p className="truncate text-xs text-surface-400">
+                          {post.organization_name || copy.member}
+                          {" · "}
+                          {formatTimeAgo(post.created_at, lang)}
                         </p>
-                      )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                      <span className="truncate">{post.organization_name || "Üye"}</span>
-                      <span>•</span>
-                      <span>{formatTimeAgo(post.created_at, lang)}</span>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Content */}
-                <p className="text-sm text-gray-700 leading-relaxed mb-4 whitespace-pre-wrap">
-                  {post.body}
-                </p>
+                    {/* Body */}
+                    <p className="text-sm leading-relaxed text-surface-700 whitespace-pre-wrap">
+                      {post.body}
+                    </p>
 
-                {/* Engagement & Analytics Container */}
-                <div className="pt-3 border-t border-gray-100 flex flex-col gap-3">
-                  
-                  {/* Primary Actions (Like / Comment) */}
-                  <div className="flex items-center gap-4">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        viewer ? handleToggleLike(post) : (window.location.href = "/login?mode=member");
-                      }}
-                      disabled={busyPostId === post.public_id}
-                      className={`flex items-center gap-1.5 text-sm font-medium transition-colors ${
-                        post.liked_by_me
-                          ? "text-rose-600"
-                          : "text-gray-500 hover:text-gray-900"
-                      } disabled:opacity-50`}
-                    >
-                      <Heart className={`h-4 w-4 ${post.liked_by_me ? "fill-current" : ""}`} />
-                      <span>{formatNumber(post.like_count)}</span>
-                    </button>
-                    
-                    <div className="flex items-center gap-1.5 text-sm font-medium text-gray-500">
-                      <MessageCircle className="h-4 w-4" />
-                      <span>{formatNumber(post.comment_count)}</span>
+                    {/* Engagement */}
+                    <div className="mt-4 flex items-center gap-4 border-t border-surface-100 pt-3">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          void handleToggleLike(post);
+                        }}
+                        disabled={busyPostId === post.public_id}
+                        className={`flex items-center gap-1.5 text-sm font-medium transition-colors disabled:opacity-50 ${
+                          post.liked_by_me
+                            ? "text-rose-500"
+                            : "text-surface-400 hover:text-surface-700"
+                        }`}
+                      >
+                        <Heart className={`h-4 w-4 ${post.liked_by_me ? "fill-current" : ""}`} />
+                        <span>{formatNumber(post.like_count)}</span>
+                      </button>
+
+                      <div className="flex items-center gap-1.5 text-sm text-surface-400">
+                        <MessageCircle className="h-4 w-4" />
+                        <span>{formatNumber(post.comment_count)}</span>
+                      </div>
                     </div>
                   </div>
-
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+                </article>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

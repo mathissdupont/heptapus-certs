@@ -75,9 +75,7 @@ function Navbar() {
         }
       })
       .catch(() => {});
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, []);
 
   useEffect(() => {
@@ -88,7 +86,6 @@ function Navbar() {
         if (mounted) setMember(null);
         return;
       }
-
       try {
         const data = await getPublicMemberMe();
         if (mounted) setMember(data);
@@ -103,18 +100,13 @@ function Navbar() {
       void syncMember();
     }
 
-    function handleTokenChange() {
-      void syncMember();
-    }
-
     void syncMember();
     window.addEventListener("storage", handleStorage);
-    window.addEventListener(PUBLIC_MEMBER_TOKEN_EVENT, handleTokenChange);
+    window.addEventListener(PUBLIC_MEMBER_TOKEN_EVENT, () => void syncMember());
 
     return () => {
       mounted = false;
       window.removeEventListener("storage", handleStorage);
-      window.removeEventListener(PUBLIC_MEMBER_TOKEN_EVENT, handleTokenChange);
     };
   }, []);
 
@@ -129,25 +121,23 @@ function Navbar() {
     return !isHeptaCertHost;
   }, [host, isHeptaCertHost, settings]);
 
-  const eventsLabel = lang === "tr" ? "Etkinlikler" : "Events";
-  const communitiesLabel = lang === "tr" ? "Topluluklar" : "Communities";
-  const discoverLabel = lang === "tr" ? "Merkez" : "Hub";
-  const myEventsLabel = lang === "tr" ? "Katıldıklarım" : "My Events";
-  const profileLabel = lang === "tr" ? "Profilim" : "My Profile";
-  const logoutLabel = lang === "tr" ? "Çıkış Yap" : "Sign Out";
+  const eventsLabel      = lang === "tr" ? "Etkinlikler"  : "Events";
+  const communitiesLabel = lang === "tr" ? "Topluluklar"  : "Communities";
+  const discoverLabel    = lang === "tr" ? "Merkez"       : "Hub";
+  const myEventsLabel    = lang === "tr" ? "Katıldıklarım": "My Events";
+  const profileLabel     = lang === "tr" ? "Profilim"     : "My Profile";
+  const logoutLabel      = lang === "tr" ? "Çıkış Yap"   : "Sign Out";
 
   const links = isWhiteLabel
-    ? [
-        { href: "/verify", label: t("nav_verify") },
-      ]
+    ? [{ href: "/verify", label: t("nav_verify") }]
     : [
-        { href: "/events", label: eventsLabel },
+        { href: "/events",        label: eventsLabel },
         { href: "/organizations", label: communitiesLabel },
-        { href: "/discover", label: discoverLabel },
+        { href: "/discover",      label: discoverLabel },
         ...(member ? [{ href: "/my-events", label: myEventsLabel }] : []),
-        ...(member ? [{ href: "/profile", label: profileLabel }] : []),
+        ...(member ? [{ href: "/profile",   label: profileLabel   }] : []),
         { href: "/pricing", label: t("nav_pricing") },
-        { href: "/verify", label: t("nav_verify") },
+        { href: "/verify",  label: t("nav_verify")  },
       ];
 
   const memberName = member?.display_name || member?.email || "";
@@ -159,26 +149,19 @@ function Navbar() {
   }
 
   return (
-    <motion.header
-      initial={{ y: -20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-      className="sticky top-0 z-50 w-full bg-white/80 dark:bg-gray-950/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800"
-    >
-      <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Logo Section */}
-        <Link href="/" className="flex items-center group shrink-0">
+    <header className="sticky top-0 z-50 w-full border-b border-surface-200 bg-white/95 backdrop-blur">
+      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        {/* Logo */}
+        <Link href="/" className="group flex shrink-0 items-center">
           {brandLogo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img 
-              src={brandLogo} 
-              alt="brand" 
-              className="h-8 w-auto max-w-[160px] object-contain group-hover:opacity-80 transition-opacity" 
+            <img
+              src={brandLogo}
+              alt="brand"
+              className="h-8 w-auto max-w-[160px] object-contain opacity-100 transition-opacity group-hover:opacity-75"
             />
           ) : isWhiteLabel && orgName ? (
-            <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
-              {orgName}
-            </span>
+            <span className="text-base font-bold tracking-tight text-surface-900">{orgName}</span>
           ) : (
             <Image
               src="/logo.png"
@@ -187,153 +170,149 @@ function Navbar() {
               height={40}
               unoptimized
               priority
-              className="h-8 w-auto object-contain group-hover:opacity-80 transition-opacity"
+              className="h-8 w-auto object-contain transition-opacity group-hover:opacity-75"
             />
           )}
         </Link>
 
-        {/* Desktop Navigation */}
-        <div className="hidden lg:flex items-center gap-1 flex-1 px-8 justify-center">
+        {/* Desktop nav links — centered */}
+        <div className="hidden flex-1 items-center justify-center gap-0.5 px-8 lg:flex">
           {links.map((l) => (
-            <Link 
+            <Link
               key={l.href}
-              href={l.href} 
-              className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800/50 rounded-md transition-colors"
+              href={l.href}
+              className="rounded-md px-3 py-2 text-sm font-medium text-surface-600 transition-colors hover:text-surface-900"
             >
               {l.label}
             </Link>
           ))}
         </div>
 
-        {/* Right Actions */}
-        <div className="hidden lg:flex items-center gap-4 shrink-0">
+        {/* Desktop right actions */}
+        <div className="hidden shrink-0 items-center gap-3 lg:flex">
           <LanguageToggle />
-          
-          <div className="h-6 w-px bg-gray-200 dark:bg-gray-800 mx-1" />
+          <div className="mx-1 h-5 w-px bg-surface-200" />
 
           {member ? (
-            <div className="flex items-center gap-4">
+            <>
               <Link
                 href="/post/create"
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white rounded-lg bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-gray-100 transition-colors shadow-sm"
+                className="btn-ghost text-sm"
               >
                 <Plus className="h-4 w-4" />
                 {lang === "tr" ? "Gönderi" : "Post"}
               </Link>
-              
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white leading-none">
-                    {memberName}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
-                >
-                  {logoutLabel}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <Link 
-                href="/login" 
-                className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+              <span className="text-sm font-medium text-surface-700 max-w-[140px] truncate">
+                {memberName}
+              </span>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="btn-ghost text-sm"
               >
+                {logoutLabel}
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="btn-ghost text-sm">
                 {t("nav_login")}
               </Link>
-
               {!isWhiteLabel && (
-                <Link
-                  href="/register?mode=organizer"
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-white rounded-lg bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-gray-100 transition-colors shadow-sm"
-                >
+                <Link href="/register?mode=organizer" className="btn-primary text-sm">
                   {t("nav_start_free")}
                 </Link>
               )}
-            </div>
+            </>
           )}
         </div>
 
-        {/* Mobile Menu Button */}
-        <button 
-          onClick={() => setOpen(!open)} 
-          className="lg:hidden p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+        {/* Mobile menu toggle */}
+        <button
+          onClick={() => setOpen(!open)}
+          aria-label={open ? (lang === "tr" ? "Menüyü Kapat" : "Close menu") : (lang === "tr" ? "Menüyü Aç" : "Open menu")}
+          aria-expanded={open}
+          className="rounded-lg p-2 text-surface-600 transition-colors hover:bg-surface-100 hover:text-surface-900 lg:hidden"
         >
-          {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </nav>
 
-      {/* Mobile Menu Dropdown */}
+      {/* Mobile menu */}
       <AnimatePresence>
         {open && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }} 
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 overflow-hidden"
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className="overflow-hidden border-t border-surface-100 bg-white lg:hidden"
           >
-            <div className="px-4 py-4 space-y-1">
+            {/* Nav links */}
+            <div className="space-y-0.5 px-4 py-3">
               {links.map((l) => (
-                <Link 
+                <Link
                   key={l.href}
-                  href={l.href} 
-                  onClick={() => setOpen(false)} 
-                  className="block px-3 py-2.5 text-base font-medium text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800/50 rounded-lg transition-colors"
+                  href={l.href}
+                  onClick={() => setOpen(false)}
+                  className="block rounded-lg px-3 py-2.5 text-sm font-medium text-surface-700 transition-colors hover:bg-surface-50 hover:text-surface-900"
                 >
                   {l.label}
                 </Link>
               ))}
             </div>
 
-            <div className="px-4 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
-              <div className="flex items-center justify-between mb-4 px-3">
-                <span className="text-sm font-medium text-gray-500">Dil Seçimi</span>
+            {/* Auth section */}
+            <div className="border-t border-surface-100 bg-surface-50 px-4 py-4">
+              <div className="mb-4 flex items-center justify-between px-1">
+                <span className="text-xs font-medium text-surface-500">
+                  {lang === "tr" ? "Dil" : "Language"}
+                </span>
                 <LanguageToggle />
               </div>
 
               {member ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <Link
                     href="/profile"
                     onClick={() => setOpen(false)}
-                    className="block px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg"
+                    className="block rounded-xl border border-surface-200 bg-white px-4 py-3"
                   >
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{memberName}</p>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{lang === "tr" ? "Profil ayarları" : "Profile settings"}</p>
+                    <p className="truncate text-sm font-medium text-surface-900">{memberName}</p>
+                    <p className="mt-0.5 text-xs text-surface-400">
+                      {lang === "tr" ? "Profil ayarları" : "Profile settings"}
+                    </p>
                   </Link>
                   <Link
                     href="/post/create"
                     onClick={() => setOpen(false)}
-                    className="flex w-full items-center justify-center px-4 py-2.5 text-sm font-medium text-white rounded-lg bg-slate-900 hover:bg-slate-800 transition-colors shadow-sm"
+                    className="btn-secondary flex w-full justify-center"
                   >
-                    {lang === "tr" ? "Yeni Gönderi Oluştur" : "Create New Post"}
+                    <Plus className="h-4 w-4" />
+                    {lang === "tr" ? "Yeni Gönderi" : "New Post"}
                   </Link>
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="w-full px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="btn-ghost w-full justify-center"
                   >
                     {logoutLabel}
                   </button>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <Link 
-                    href="/login" 
+                <div className="space-y-2">
+                  <Link
+                    href="/login"
                     onClick={() => setOpen(false)}
-                    className="flex w-full justify-center px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="btn-secondary flex w-full justify-center"
                   >
                     {t("nav_login")}
                   </Link>
-
                   {!isWhiteLabel && (
                     <Link
                       href="/register?mode=organizer"
                       onClick={() => setOpen(false)}
-                      className="flex w-full justify-center px-4 py-2.5 text-sm font-medium text-white rounded-lg bg-slate-900 hover:bg-slate-800 transition-colors shadow-sm"
+                      className="btn-primary flex w-full justify-center"
                     >
                       {t("nav_start_free")}
                     </Link>
@@ -344,12 +323,12 @@ function Navbar() {
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.header>
+    </header>
   );
 }
 
 function InstallPrompt() {
-  const [promptEvent, setPromptEvent] = useState<any>(null);
+  const [promptEvent, setPromptEvent] = useState<unknown>(null);
   const [visible, setVisible] = useState(false);
   const [iosInstallHelp, setIosInstallHelp] = useState(false);
 
@@ -360,11 +339,8 @@ function InstallPrompt() {
     const isIos = /iphone|ipad|ipod/i.test(userAgent) || (userAgent.includes("Macintosh") && "ontouchend" in document);
     const isStandalone =
       window.matchMedia("(display-mode: standalone)").matches ||
-      Boolean((window.navigator as any).standalone);
-    if (isStandalone) {
-      setVisible(false);
-      return;
-    }
+      Boolean((window.navigator as { standalone?: boolean }).standalone);
+    if (isStandalone) { setVisible(false); return; }
     const isSafari = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(userAgent);
     if (isIos && isSafari && !isStandalone && !dismissed) {
       setIosInstallHelp(true);
@@ -393,9 +369,10 @@ function InstallPrompt() {
 
   async function install() {
     if (!promptEvent) return;
-    await promptEvent.prompt();
+    const pe = promptEvent as { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
+    await pe.prompt();
     try {
-      const choice = await promptEvent.userChoice;
+      const choice = await pe.userChoice;
       if (choice?.outcome === "accepted" || choice?.outcome === "dismissed") {
         window.localStorage.setItem("heptacert:pwa-install-dismissed", "1");
       }
@@ -412,35 +389,46 @@ function InstallPrompt() {
   }
 
   return (
-    <div className="fixed inset-x-3 bottom-20 z-[70] rounded-2xl border border-indigo-100 bg-white p-4 shadow-2xl md:bottom-5 md:left-auto md:right-5 md:w-96">
+    <div className="fixed inset-x-3 bottom-20 z-[70] rounded-2xl border border-surface-200 bg-white p-4 shadow-float md:bottom-5 md:left-auto md:right-5 md:w-96">
       <div className="flex items-start gap-3">
-        <div className="rounded-xl bg-indigo-50 p-2 text-indigo-600">
+        <div className="rounded-xl border border-surface-150 bg-surface-50 p-2 text-surface-600">
           <Smartphone className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
-            <p className="text-sm font-black text-slate-950">HeptaCert'i ana ekrana ekle</p>
-            <button type="button" onClick={dismiss} className="-mt-1 rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+            <p className="text-sm font-semibold text-surface-900">HeptaCert&apos;i ana ekrana ekle</p>
+            <button
+              type="button"
+              onClick={dismiss}
+              aria-label="Kapat"
+              className="btn-ghost -mt-1 p-1"
+            >
               <X className="h-4 w-4" />
             </button>
           </div>
-          <p className="mt-1 text-xs leading-5 text-slate-500">
+          <p className="mt-1 text-xs leading-relaxed text-surface-500">
             {iosInstallHelp
               ? "iPhone'da Safari paylaş menüsü üzerinden Ana Ekrana Ekle seçeneğini kullan."
               : "Check-in ve bilet kontrolünü uygulama gibi aç."}
           </p>
           {iosInstallHelp && (
-            <div className="mt-3 rounded-xl bg-slate-50 p-3 text-xs font-semibold leading-5 text-slate-600">
+            <div className="mt-3 rounded-xl border border-surface-150 bg-surface-50 p-3 text-xs text-surface-600">
               <p className="flex items-center gap-2">
-                <Share className="h-4 w-4 text-indigo-600" />
-                Safari'de Paylaş'a bas
+                <Share className="h-4 w-4 text-surface-500" />
+                Safari&apos;de Paylaş&apos;a bas
               </p>
               <p className="mt-1 pl-6">Sonra Ana Ekrana Ekle seç.</p>
             </div>
           )}
           <div className="mt-3 flex gap-2">
-            {promptEvent && <button type="button" onClick={install} className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white">Ekle</button>}
-            <button type="button" onClick={dismiss} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600">Sonra</button>
+            {promptEvent && (
+              <button type="button" onClick={install} className="btn-primary text-xs">
+                Ekle
+              </button>
+            )}
+            <button type="button" onClick={dismiss} className="btn-secondary text-xs">
+              Sonra
+            </button>
           </div>
         </div>
       </div>
@@ -454,25 +442,36 @@ function AdminMobileNav() {
   const eventId = eventMatch?.[1];
   const items = eventId
     ? [
-        { href: `/admin/events/${eventId}`, label: "Özet", icon: Home },
-        { href: `/admin/events/${eventId}/ops`, label: "Canlı", icon: Activity },
-        { href: `/admin/events/${eventId}/checkin`, label: "Check-in", icon: QrCode },
-        { href: `/admin/events/${eventId}/tickets`, label: "Bilet", icon: Ticket },
-        { href: `/admin/events/${eventId}/certificates`, label: "Sertifika", icon: Shield },
+        { href: `/admin/events/${eventId}`,              label: "Özet",     icon: Home       },
+        { href: `/admin/events/${eventId}/ops`,           label: "Canlı",    icon: Activity   },
+        { href: `/admin/events/${eventId}/checkin`,       label: "Check-in", icon: QrCode     },
+        { href: `/admin/events/${eventId}/tickets`,       label: "Bilet",    icon: Ticket     },
+        { href: `/admin/events/${eventId}/certificates`,  label: "Sertifika",icon: Shield     },
       ]
     : [
-        { href: "/admin/dashboard", label: "Panel", icon: Home },
-        { href: "/admin/events", label: "Etkinlik", icon: CalendarDays },
+        { href: "/admin/dashboard", label: "Panel",    icon: Home        },
+        { href: "/admin/events",    label: "Etkinlik", icon: CalendarDays},
       ];
 
   return (
-    <nav className="fixed inset-x-3 bottom-3 z-[60] rounded-2xl border border-slate-200 bg-white/95 p-1.5 shadow-2xl backdrop-blur md:hidden">
+    <nav
+      className="fixed inset-x-3 bottom-3 z-[60] rounded-2xl border border-surface-200 bg-white/95 p-1.5 shadow-float backdrop-blur md:hidden"
+      aria-label="Admin hızlı gezinti"
+    >
       <div className="grid" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
         {items.map((item) => {
           const Icon = item.icon;
-          const active = pathname === item.href || (item.href !== `/admin/events/${eventId}` && pathname.startsWith(item.href));
+          const active =
+            pathname === item.href ||
+            (item.href !== `/admin/events/${eventId}` && pathname.startsWith(item.href));
           return (
-            <Link key={item.href} href={item.href} className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-black ${active ? "bg-indigo-600 text-white" : "text-slate-500"}`}>
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold transition-colors ${
+                active ? "bg-surface-900 text-white" : "text-surface-500 hover:bg-surface-100 hover:text-surface-900"
+              }`}
+            >
               <Icon className="h-4 w-4" />
               <span className="truncate">{item.label}</span>
             </Link>
@@ -511,8 +510,8 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
         <motion.main
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-          className="min-h-screen w-full bg-[#F9FAFB] dark:bg-gray-950"
+          transition={{ duration: 0.25, ease: "easeOut" }}
+          className="min-h-screen w-full bg-surface-50"
         >
           {children}
         </motion.main>
@@ -523,17 +522,13 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
   return (
     <I18nProvider>
       <HtmlLangSync />
-      {/* DÜZELTME BURADA: Navbar artık max-w-7xl içine hapsedilmedi. 
-        Ana wrapper tam genişlik alıyor, içeriği flex-col ile diziyor.
-      */}
-      <div className="min-h-screen flex flex-col bg-[#F9FAFB] dark:bg-gray-950 font-sans text-slate-900">
+      <div className="flex min-h-screen flex-col bg-surface-50 font-sans text-surface-900">
         <Navbar />
-        
         <motion.main
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-          className="flex-grow w-full"
+          transition={{ duration: 0.25, ease: "easeOut" }}
+          className="w-full flex-grow"
         >
           {children}
         </motion.main>

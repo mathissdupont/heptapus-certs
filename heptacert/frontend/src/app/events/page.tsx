@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, MapPin, Search, Users, ArrowRight, ShieldCheck, Layers, Building2, Ticket } from "lucide-react";
+import { CalendarDays, MapPin, Search, Building2, ArrowRight, ShieldCheck, Ticket } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { listPublicEvents, type PublicEventListItem } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
@@ -19,19 +19,16 @@ function formatDate(value: string | null | undefined, lang: "tr" | "en") {
   }).format(date);
 }
 
-const staggerContainer = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.1 } } };
-const cardVariant = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } } };
-
 const EVENT_TYPE_LABELS: Record<string, { tr: string; en: string }> = {
-  certificate_event: { tr: "Sertifika", en: "Certificate" },
-  seminar: { tr: "Seminer", en: "Seminar" },
-  workshop: { tr: "Atölye", en: "Workshop" },
-  conference: { tr: "Konferans", en: "Conference" },
-  concert: { tr: "Konser", en: "Concert" },
-  training: { tr: "Eğitim", en: "Training" },
-  club_event: { tr: "Kulüp", en: "Club" },
-  online_event: { tr: "Online", en: "Online" },
-  custom: { tr: "Özel", en: "Custom" },
+  certificate_event: { tr: "Sertifika",  en: "Certificate" },
+  seminar:           { tr: "Seminer",    en: "Seminar"      },
+  workshop:          { tr: "Atölye",     en: "Workshop"     },
+  conference:        { tr: "Konferans",  en: "Conference"   },
+  concert:           { tr: "Konser",     en: "Concert"      },
+  training:          { tr: "Eğitim",     en: "Training"     },
+  club_event:        { tr: "Kulüp",      en: "Club"         },
+  online_event:      { tr: "Online",     en: "Online"       },
+  custom:            { tr: "Özel",       en: "Custom"       },
 };
 
 function eventTypeLabel(item: PublicEventListItem, lang: "tr" | "en") {
@@ -39,12 +36,14 @@ function eventTypeLabel(item: PublicEventListItem, lang: "tr" | "en") {
   return EVENT_TYPE_LABELS[key]?.[lang] || key;
 }
 
-function featureLabel(item: PublicEventListItem, lang: "tr" | "en") {
-  if (item.ticketing_enabled) return lang === "tr" ? "Biletli" : "Ticketed";
-  if (item.certificate_enabled) return lang === "tr" ? "Sertifikalı" : "Certificate";
-  if (item.checkin_enabled) return lang === "tr" ? "Katılım" : "Check-in";
-  return lang === "tr" ? "Etkinlik" : "Event";
-}
+const stagger = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.06 } },
+};
+const cardAnim = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.25, ease: "easeOut" } },
+};
 
 export default function PublicEventsPage() {
   const { lang } = useI18n();
@@ -55,48 +54,64 @@ export default function PublicEventsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const copy = useMemo(() => lang === "tr" ? {
-    eyebrow: "Keşfet",
-    title: "Yaklaşan Etkinlikler",
-    subtitle: "Topluluk tarafından herkese açık olarak paylaşılan profesyonel seminer, eğitim ve organizasyonları keşfedin.",
-    searchPlaceholder: "Etkinlik adı, kurum veya konum ara...",
-    loading: "Etkinlikler yükleniyor...",
-    error: "Etkinlikler yüklenirken bir sorun oluştu.",
-    empty: "Aramanıza uygun açık etkinlik bulunamadı.",
-    sessions: "Oturum",
-    minSessions: "Sertifika Eşiği",
-    details: "Detayları İncele",
-    communities: "Toplulukları Keşfet",
-    allTypes: "Tümü",
-    clear: "Temizle",
-  } : {
-    eyebrow: "Discover",
-    title: "Upcoming Events",
-    subtitle: "Explore professional seminars, workshops, and organizations shared publicly by the community.",
-    searchPlaceholder: "Search by event name, organization, or location...",
-    loading: "Loading events...",
-    error: "Failed to load events.",
-    empty: "No public events found matching your search.",
-    sessions: "Sessions",
-    minSessions: "Cert. Threshold",
-    details: "View Details",
-    communities: "Explore Communities",
-    allTypes: "All",
-    clear: "Clear",
-  }, [lang]);
+  const copy = useMemo(
+    () =>
+      lang === "tr"
+        ? {
+            title: "Etkinlikler",
+            subtitle: "Topluluklar tarafından paylaşılan herkese açık etkinlikleri keşfedin.",
+            searchPlaceholder: "Etkinlik, kurum veya konum ara...",
+            error: "Etkinlikler yüklenirken bir sorun oluştu.",
+            empty: "Aramanıza uygun etkinlik bulunamadı.",
+            details: "Detaylar",
+            communities: "Topluluklar",
+            allTypes: "Tüm Türler",
+            upcoming: "Yaklaşan Etkinlikler",
+            past: "Geçmiş Etkinlikler",
+            sessions: "oturum",
+            certificate: "Sertifika",
+            ticketed: "Biletli",
+            raffle: "Çekiliş",
+          }
+        : {
+            title: "Events",
+            subtitle: "Discover public events shared by communities.",
+            searchPlaceholder: "Search events, organization, or location...",
+            error: "Failed to load events.",
+            empty: "No events match your search.",
+            details: "Details",
+            communities: "Communities",
+            allTypes: "All Types",
+            upcoming: "Upcoming Events",
+            past: "Past Events",
+            sessions: "sessions",
+            certificate: "Certificate",
+            ticketed: "Ticketed",
+            raffle: "Raffle",
+          },
+    [lang],
+  );
 
   const typeOptions = useMemo(() => {
     const seen = new Set<string>();
-    [...upcomingItems, ...pastItems].forEach((item) => seen.add(item.event_type || "certificate_event"));
+    [...upcomingItems, ...pastItems].forEach((item) =>
+      seen.add(item.event_type || "certificate_event"),
+    );
     return Array.from(seen).sort();
   }, [pastItems, upcomingItems]);
 
-  const visibleUpcomingItems = useMemo(
-    () => typeFilter === "all" ? upcomingItems : upcomingItems.filter((item) => (item.event_type || "certificate_event") === typeFilter),
+  const visibleUpcoming = useMemo(
+    () =>
+      typeFilter === "all"
+        ? upcomingItems
+        : upcomingItems.filter((item) => (item.event_type || "certificate_event") === typeFilter),
     [typeFilter, upcomingItems],
   );
-  const visiblePastItems = useMemo(
-    () => typeFilter === "all" ? pastItems : pastItems.filter((item) => (item.event_type || "certificate_event") === typeFilter),
+  const visiblePast = useMemo(
+    () =>
+      typeFilter === "all"
+        ? pastItems
+        : pastItems.filter((item) => (item.event_type || "certificate_event") === typeFilter),
     [pastItems, typeFilter],
   );
 
@@ -109,18 +124,18 @@ export default function PublicEventsPage() {
   useEffect(() => {
     setLoading(true);
     const handle = window.setTimeout(() => {
-      const normalizedSearch = search.trim();
+      const q = search.trim();
       Promise.all([
-        listPublicEvents({ scope: "upcoming", limit: 24, search: normalizedSearch || undefined }),
-        listPublicEvents({ scope: "past", limit: 24, search: normalizedSearch || undefined }),
+        listPublicEvents({ scope: "upcoming", limit: 24, search: q || undefined }),
+        listPublicEvents({ scope: "past",     limit: 24, search: q || undefined }),
       ])
-        .then(([upcomingData, pastData]) => {
-          setUpcomingItems(upcomingData);
-          setPastItems(pastData);
+        .then(([upcoming, past]) => {
+          setUpcomingItems(upcoming);
+          setPastItems(past);
           setError(null);
         })
-        .catch((err: any) => {
-          setError(err?.message || copy.error);
+        .catch((err: unknown) => {
+          setError((err as { message?: string })?.message || copy.error);
           setUpcomingItems([]);
           setPastItems([]);
         })
@@ -131,226 +146,250 @@ export default function PublicEventsPage() {
   }, [copy.error, search]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50 selection:bg-zinc-200 pb-24">
-      {/* HERO SECTION (Clean & Typographic) */}
-      <section className="relative px-6 pt-16 pb-12 sm:px-10 lg:pt-24 lg:pb-16 text-center">
-        <div className="mx-auto max-w-3xl">
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-zinc-500 shadow-sm">
-            <Search className="h-3.5 w-3.5" />
-            {copy.eyebrow}
-          </motion.div>
-          <motion.h1 initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mt-6 text-4xl font-extrabold tracking-tight text-zinc-950 sm:text-5xl lg:text-6xl">
+    <div className="flex min-h-screen flex-col bg-surface-50 pb-24">
+      {/* Header */}
+      <section className="border-b border-surface-200 bg-white px-4 pb-8 pt-12 sm:px-6">
+        <div className="mx-auto max-w-5xl">
+          <h1 className="text-2xl font-bold tracking-tight text-surface-900 sm:text-3xl">
             {copy.title}
-          </motion.h1>
-          <motion.p initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-zinc-600">
-            {copy.subtitle}
-          </motion.p>
-        </div>
+          </h1>
+          <p className="mt-1.5 text-base text-surface-500">{copy.subtitle}</p>
 
-        {/* SEARCH BAR (Elevated & Prominent) */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mx-auto mt-10 max-w-2xl relative z-10">
-          <div className="relative flex items-center rounded-2xl border border-zinc-200 bg-white shadow-sm transition-all focus-within:border-zinc-400 focus-within:ring-4 focus-within:ring-zinc-950/5">
-            <Search className="absolute left-5 h-5 w-5 text-zinc-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={copy.searchPlaceholder}
-              className="w-full rounded-2xl border-none bg-transparent py-4 pl-14 pr-6 text-base text-zinc-950 placeholder:text-zinc-400 focus:outline-none focus:ring-0"
-            />
-            {search && (
-              <button onClick={() => setSearch("")} className="absolute right-5 text-xs font-bold text-zinc-400 hover:text-zinc-700 uppercase tracking-wide">
-                {copy.clear}
-              </button>
-            )}
-          </div>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <Link href="/organizations" className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-950">
-            <Building2 className="h-4 w-4" />
-            {copy.communities}
-          </Link>
-        </motion.div>
-        {typeOptions.length > 1 ? (
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mx-auto mt-6 flex max-w-4xl flex-wrap items-center justify-center gap-2">
-            <button
-              type="button"
-              onClick={() => setTypeFilter("all")}
-              className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${typeFilter === "all" ? "border-zinc-950 bg-zinc-950 text-white" : "border-zinc-200 bg-white text-zinc-600 hover:text-zinc-950"}`}
-            >
-              {copy.allTypes}
-            </button>
-            {typeOptions.map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => setTypeFilter(type)}
-                className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${typeFilter === type ? "border-zinc-950 bg-zinc-950 text-white" : "border-zinc-200 bg-white text-zinc-600 hover:text-zinc-950"}`}
+          {/* Search + filter toolbar */}
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={copy.searchPlaceholder}
+                className="input-field pl-9"
+              />
+            </div>
+
+            {typeOptions.length > 1 && (
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="input-field sm:w-48"
               >
-                {EVENT_TYPE_LABELS[type]?.[lang] || type}
-              </button>
-            ))}
-          </motion.div>
-        ) : null}
+                <option value="all">{copy.allTypes}</option>
+                {typeOptions.map((type) => (
+                  <option key={type} value={type}>
+                    {EVENT_TYPE_LABELS[type]?.[lang] || type}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            <Link href="/organizations" className="btn-ghost shrink-0 text-sm">
+              <Building2 className="h-4 w-4" />
+              {copy.communities}
+            </Link>
+          </div>
+        </div>
       </section>
 
-      {/* EVENTS GRID */}
-      <section className="mx-auto w-full max-w-7xl px-6 lg:px-8">
+      {/* Content */}
+      <section className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
         {loading ? (
-          /* SKELETON LOADER */
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="flex flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
-                <div className="h-48 w-full animate-pulse bg-slate-200"></div>
-                <div className="flex flex-1 flex-col p-6 space-y-4">
-                  <div className="h-6 w-3/4 animate-pulse rounded bg-slate-200"></div>
-                  <div className="space-y-2">
-                    <div className="h-4 w-full animate-pulse rounded bg-slate-200"></div>
-                    <div className="h-4 w-5/6 animate-pulse rounded bg-slate-200"></div>
-                  </div>
-                  <div className="mt-auto pt-6 border-t border-slate-100 flex gap-4">
-                    <div className="h-4 w-20 animate-pulse rounded bg-slate-200"></div>
-                    <div className="h-4 w-24 animate-pulse rounded bg-slate-200"></div>
-                  </div>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="overflow-hidden rounded-xl border border-surface-100 bg-white shadow-card animate-pulse">
+                <div className="aspect-video bg-surface-100" />
+                <div className="space-y-2.5 p-4">
+                  <div className="h-3 w-16 rounded bg-surface-100" />
+                  <div className="h-4 w-3/4 rounded bg-surface-100" />
+                  <div className="h-3 w-1/2 rounded bg-surface-100" />
                 </div>
               </div>
             ))}
           </div>
         ) : error ? (
-          /* ERROR STATE */
-          <div className="mx-auto flex max-w-lg flex-col items-center justify-center rounded-3xl border border-rose-200 bg-rose-50 px-6 py-12 text-center">
-            <ShieldCheck className="mb-4 h-10 w-10 text-rose-500" />
-            <p className="text-sm font-bold text-rose-800">{error}</p>
+          <div className="error-banner mx-auto max-w-md justify-center">
+            <ShieldCheck className="h-4 w-4 shrink-0" />
+            {error}
           </div>
-        ) : visibleUpcomingItems.length === 0 && visiblePastItems.length === 0 ? (
-          /* EMPTY STATE */
-          <div className="mx-auto flex max-w-lg flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50/50 px-6 py-16 text-center">
-            <Search className="mb-4 h-10 w-10 text-slate-300" />
-            <p className="text-base font-bold text-slate-900">{copy.empty}</p>
-            <p className="mt-2 text-sm text-slate-500">Arama terimini değiştirerek tekrar deneyebilirsiniz.</p>
+        ) : visibleUpcoming.length === 0 && visiblePast.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl border border-surface-200 bg-surface-50">
+              <Search className="h-5 w-5 text-surface-400" />
+            </div>
+            <p className="text-sm font-medium text-surface-700">{copy.empty}</p>
           </div>
         ) : (
           <div className="space-y-10">
-            <div>
-              <div className="mb-5 flex items-center justify-between">
-                <h2 className="text-2xl font-black text-slate-900">{lang === "tr" ? "Yaklaşan Etkinlikler" : "Upcoming Events"}</h2>
-                <span className="text-sm text-slate-500">{visibleUpcomingItems.length}</span>
-              </div>
-              <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                <AnimatePresence>
-                  {visibleUpcomingItems.map((item) => (
-                    <motion.article
-                      key={item.id}
-                      layout
-                      variants={cardVariant}
-                      initial="hidden"
-                      animate="show"
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      className="group flex flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:border-slate-300 hover:shadow-xl"
-                    >
-                      <Link href={`/events/${item.public_id}`} className="flex flex-col h-full">
-                        <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100">
-                          {item.event_banner_url ? (
-                            <img src={item.event_banner_url} alt={item.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                          ) : (
-                            <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 p-6 text-center">
-                              <span className="text-xl font-bold text-white/80 line-clamp-2">{item.name}</span>
-                            </div>
-                          )}
-                          <div className="absolute right-4 top-4 rounded-full bg-white/90 backdrop-blur-md px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-900 shadow-sm">
-                            {item.session_count} {copy.sessions}
-                          </div>
-                          <div className="absolute left-4 top-4 rounded-full bg-slate-900/85 backdrop-blur-md px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm">
-                            {eventTypeLabel(item, lang)}
-                          </div>
-                        </div>
-                        <div className="flex flex-1 flex-col p-6 sm:p-8">
-                          <h2 className="text-xl font-bold text-slate-900 line-clamp-2 group-hover:text-brand-600 transition-colors">{item.name}</h2>
-                          {item.organization_public_id && item.organization_name ? <div className="mt-3"><span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">{item.organization_name}</span></div> : null}
-                          {stripRichTextToPlainText(item.event_description) && <p className="mt-3 text-sm leading-relaxed text-slate-500 line-clamp-2">{stripRichTextToPlainText(item.event_description)}</p>}
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
-                              {item.ticketing_enabled ? <Ticket className="h-3.5 w-3.5" /> : <ShieldCheck className="h-3.5 w-3.5" />}
-                              {featureLabel(item, lang)}
-                            </span>
-                            {item.raffles_enabled ? <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">Çekiliş</span> : null}
-                          </div>
-                          <div className="mt-6 flex flex-col gap-3">
-                            <div className="flex items-center gap-3 text-sm font-medium text-slate-600"><CalendarDays className="h-4 w-4 text-slate-400" /><span className="line-clamp-1">{formatDate(item.event_date, lang)}</span></div>
-                            <div className="flex items-center gap-3 text-sm font-medium text-slate-600"><MapPin className="h-4 w-4 text-slate-400" /><span className="line-clamp-1">{item.event_location || "-"}</span></div>
-                            <div className="flex items-center gap-3 text-sm font-medium text-slate-600"><Layers className="h-4 w-4 text-slate-400" /><span>{copy.minSessions}: <strong className="text-slate-900">{item.min_sessions_required}</strong></span></div>
-                          </div>
-                          <div className="mt-auto pt-6"><div className="flex items-center justify-between border-t border-slate-100 pt-5 text-sm font-bold text-slate-900">{copy.details}<ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-brand-600" /></div></div>
-                        </div>
-                      </Link>
-                    </motion.article>
-                  ))}
-                </AnimatePresence>
-              </motion.div>
-            </div>
-
-            {visiblePastItems.length > 0 ? (
-              <div>
-                <div className="mb-5 flex items-center justify-between">
-                  <h2 className="text-2xl font-black text-slate-900">{lang === "tr" ? "Geçmiş Etkinlikler" : "Past Events"}</h2>
-                  <span className="text-sm text-slate-500">{visiblePastItems.length}</span>
-                </div>
-                <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                  <AnimatePresence>
-                    {visiblePastItems.map((item) => (
-                      <motion.article
-                        key={`past-${item.id}`}
-                        layout
-                        variants={cardVariant}
-                        initial="hidden"
-                        animate="show"
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="group flex flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:border-slate-300 hover:shadow-xl"
-                      >
-                        <Link href={`/events/${item.public_id}`} className="flex flex-col h-full">
-                          <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100">
-                            {item.event_banner_url ? (
-                              <img src={item.event_banner_url} alt={item.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                            ) : (
-                              <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 p-6 text-center">
-                                <span className="text-xl font-bold text-white/80 line-clamp-2">{item.name}</span>
-                              </div>
-                            )}
-                            <div className="absolute right-4 top-4 rounded-full bg-white/90 backdrop-blur-md px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-900 shadow-sm">
-                              {item.session_count} {copy.sessions}
-                            </div>
-                            <div className="absolute left-4 top-4 rounded-full bg-slate-900/85 backdrop-blur-md px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm">
-                              {eventTypeLabel(item, lang)}
-                            </div>
-                          </div>
-                          <div className="flex flex-1 flex-col p-6 sm:p-8">
-                            <h2 className="text-xl font-bold text-slate-900 line-clamp-2 group-hover:text-brand-600 transition-colors">{item.name}</h2>
-                            {item.organization_public_id && item.organization_name ? <div className="mt-3"><span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">{item.organization_name}</span></div> : null}
-                            {stripRichTextToPlainText(item.event_description) && <p className="mt-3 text-sm leading-relaxed text-slate-500 line-clamp-2">{stripRichTextToPlainText(item.event_description)}</p>}
-                            <div className="mt-4 flex flex-wrap gap-2">
-                              <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
-                                {item.ticketing_enabled ? <Ticket className="h-3.5 w-3.5" /> : <ShieldCheck className="h-3.5 w-3.5" />}
-                                {featureLabel(item, lang)}
-                              </span>
-                              {item.raffles_enabled ? <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">Çekiliş</span> : null}
-                            </div>
-                            <div className="mt-6 flex flex-col gap-3">
-                              <div className="flex items-center gap-3 text-sm font-medium text-slate-600"><CalendarDays className="h-4 w-4 text-slate-400" /><span className="line-clamp-1">{formatDate(item.event_date, lang)}</span></div>
-                              <div className="flex items-center gap-3 text-sm font-medium text-slate-600"><MapPin className="h-4 w-4 text-slate-400" /><span className="line-clamp-1">{item.event_location || "-"}</span></div>
-                              <div className="flex items-center gap-3 text-sm font-medium text-slate-600"><Layers className="h-4 w-4 text-slate-400" /><span>{copy.minSessions}: <strong className="text-slate-900">{item.min_sessions_required}</strong></span></div>
-                            </div>
-                            <div className="mt-auto pt-6"><div className="flex items-center justify-between border-t border-slate-100 pt-5 text-sm font-bold text-slate-900">{copy.details}<ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-brand-600" /></div></div>
-                          </div>
-                        </Link>
-                      </motion.article>
-                    ))}
-                  </AnimatePresence>
-                </motion.div>
-              </div>
-            ) : null}
+            <EventSection
+              title={copy.upcoming}
+              count={visibleUpcoming.length}
+              items={visibleUpcoming}
+              lang={lang}
+              copy={copy}
+            />
+            {visiblePast.length > 0 && (
+              <EventSection
+                title={copy.past}
+                count={visiblePast.length}
+                items={visiblePast}
+                lang={lang}
+                copy={copy}
+                muted
+              />
+            )}
           </div>
         )}
       </section>
     </div>
+  );
+}
+
+function EventSection({
+  title,
+  count,
+  items,
+  lang,
+  copy,
+  muted = false,
+}: {
+  title: string;
+  count: number;
+  items: PublicEventListItem[];
+  lang: "tr" | "en";
+  copy: Record<string, string>;
+  muted?: boolean;
+}) {
+  return (
+    <div>
+      <div className="mb-5 flex items-center justify-between">
+        <h2 className={`text-lg font-semibold ${muted ? "text-surface-500" : "text-surface-900"}`}>
+          {title}
+        </h2>
+        <span className="text-sm text-surface-400">{count}</span>
+      </div>
+      <motion.div
+        variants={stagger}
+        initial="hidden"
+        animate="show"
+        className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
+      >
+        <AnimatePresence>
+          {items.map((item) => (
+            <EventCard key={item.id} item={item} lang={lang} copy={copy} muted={muted} />
+          ))}
+        </AnimatePresence>
+      </motion.div>
+    </div>
+  );
+}
+
+function EventCard({
+  item,
+  lang,
+  copy,
+  muted,
+}: {
+  item: PublicEventListItem;
+  lang: "tr" | "en";
+  copy: Record<string, string>;
+  muted: boolean;
+}) {
+  const typeLabel = eventTypeLabel(item, lang);
+  const dateStr = formatDate(item.event_date, lang);
+  const description = stripRichTextToPlainText(item.event_description);
+
+  return (
+    <motion.article
+      variants={cardAnim}
+      layout
+      exit={{ opacity: 0 }}
+      className={`group overflow-hidden rounded-xl border bg-white shadow-card transition-shadow hover:shadow-raised ${
+        muted ? "border-surface-150 opacity-80" : "border-surface-200"
+      }`}
+    >
+      <Link href={`/events/${item.public_id}`} className="flex h-full flex-col">
+        {/* Banner */}
+        <div className="relative aspect-video w-full overflow-hidden bg-surface-100">
+          {item.event_banner_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={item.event_banner_url}
+              alt={item.name}
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center bg-surface-800 p-6 text-center">
+              <span className="line-clamp-2 text-base font-semibold text-white/70">
+                {item.name}
+              </span>
+            </div>
+          )}
+          {/* Type badge */}
+          <div className="absolute left-3 top-3 rounded-md border border-white/20 bg-black/50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white backdrop-blur-sm">
+            {typeLabel}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex flex-1 flex-col p-4">
+          {/* Title */}
+          <h3 className="line-clamp-2 text-sm font-semibold text-surface-900 group-hover:text-surface-700 transition-colors">
+            {item.name}
+          </h3>
+
+          {/* Org name */}
+          {item.organization_name && (
+            <p className="mt-1 truncate text-xs text-surface-500">{item.organization_name}</p>
+          )}
+
+          {/* Description */}
+          {description && (
+            <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-surface-400">
+              {description}
+            </p>
+          )}
+
+          {/* Date + location */}
+          <div className="mt-3 space-y-1">
+            {dateStr && (
+              <div className="flex items-center gap-1.5 text-xs text-surface-400">
+                <CalendarDays className="h-3.5 w-3.5 shrink-0" />
+                {dateStr}
+              </div>
+            )}
+            {item.event_location && (
+              <div className="flex items-center gap-1.5 text-xs text-surface-400">
+                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{item.event_location}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Feature tags + CTA */}
+          <div className="mt-auto flex items-center justify-between pt-3 border-t border-surface-100 mt-3">
+            <div className="flex flex-wrap gap-1.5">
+              {item.certificate_enabled && !item.ticketing_enabled && (
+                <span className="badge-neutral text-[10px]">
+                  <ShieldCheck className="h-3 w-3" /> {copy.certificate}
+                </span>
+              )}
+              {item.ticketing_enabled && (
+                <span className="badge-neutral text-[10px]">
+                  <Ticket className="h-3 w-3" /> {copy.ticketed}
+                </span>
+              )}
+              {item.raffles_enabled && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-100 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                  {copy.raffle}
+                </span>
+              )}
+            </div>
+            <span className="flex items-center gap-1 text-xs font-medium text-surface-500 group-hover:text-surface-900 transition-colors">
+              {copy.details} <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+            </span>
+          </div>
+        </div>
+      </Link>
+    </motion.article>
   );
 }
