@@ -142,6 +142,14 @@ function Navbar() {
 
   const memberName = member?.display_name || member?.email || "";
 
+  useEffect(() => {
+    if (!isWhiteLabel || !orgName || typeof document === "undefined") return;
+    const currentTitle = document.title || "";
+    document.title = currentTitle.includes("HeptaCert")
+      ? currentTitle.replace(/HeptaCert/g, orgName)
+      : orgName;
+  }, [isWhiteLabel, orgName]);
+
   function handleLogout() {
     clearPublicMemberToken();
     setMember(null);
@@ -193,7 +201,7 @@ function Navbar() {
           <LanguageToggle />
           <div className="mx-1 h-5 w-px bg-surface-200" />
 
-          {member ? (
+          {isWhiteLabel ? null : member ? (
             <>
               <Link
                 href="/post/create"
@@ -271,7 +279,7 @@ function Navbar() {
                 <LanguageToggle />
               </div>
 
-              {member ? (
+              {isWhiteLabel ? null : member ? (
                 <div className="space-y-2">
                   <Link
                     href="/profile"

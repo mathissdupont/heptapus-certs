@@ -192,6 +192,7 @@ export default function EventAdminNav({
   const resolvedActive = active ?? getActiveFromPath(pathname);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const moreRef = useRef<HTMLDivElement | null>(null);
+  const mobileMoreRef = useRef<HTMLDivElement | null>(null);
   const cacheKey = String(eventId);
 
   const [eventMeta, setEventMeta] = useState<EventOut | null>(() => EVENT_META_CACHE.get(cacheKey) ?? null);
@@ -213,6 +214,8 @@ export default function EventAdminNav({
   const primaryItems = visibleNavItems.slice(0, PRIMARY_TAB_COUNT);
   const overflowItems = visibleNavItems.slice(PRIMARY_TAB_COUNT);
   const activeIsOverflow = overflowItems.some((item) => item.tab === resolvedActive);
+  const activeItem = visibleNavItems.find((item) => item.tab === resolvedActive);
+  const ActiveIcon = activeItem?.icon;
 
   const copy = {
     tr: { allEvents: "Tüm Etkinlikler", eventFallback: (id: string | number) => `Etkinlik #${id}`, more: "Daha Fazla" },
@@ -259,7 +262,10 @@ export default function EventAdminNav({
   useEffect(() => {
     if (!moreOpen) return;
     function handleClickOutside(e: MouseEvent) {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const insideDesktop = moreRef.current?.contains(target) ?? false;
+      const insideMobile = mobileMoreRef.current?.contains(target) ?? false;
+      if (!insideDesktop && !insideMobile) {
         setMoreOpen(false);
       }
     }
@@ -358,7 +364,54 @@ export default function EventAdminNav({
         </div>
 
         {/* Tab row — scroll area + "More" button side by side */}
-        <div className="flex items-end">
+        {!loadingEventMeta && visibleNavItems.length > 0 && (
+          <div ref={mobileMoreRef} className="relative flex items-center gap-2 border-b border-surface-100 px-3 py-2 md:hidden">
+            {activeItem && (
+              <Link
+                href={activeItem.href(eventId)}
+                className="inline-flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-surface-200 bg-surface-50 px-3 py-2 text-sm font-semibold text-surface-900"
+              >
+                {ActiveIcon && <ActiveIcon className="h-4 w-4 shrink-0 text-surface-500" />}
+                <span className="min-w-0 truncate">{activeItem.label[lang]}</span>
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={() => setMoreOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={moreOpen}
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-surface-200 bg-white px-3 py-2 text-sm font-semibold text-surface-700 shadow-sm"
+            >
+              {copy.more}
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-150 ${moreOpen ? "rotate-180" : ""}`} />
+            </button>
+
+            {moreOpen && (
+              <div role="menu" className="absolute left-3 right-3 top-full z-50 mt-1 grid grid-cols-2 gap-1 rounded-xl border border-surface-200 bg-white p-2 shadow-float">
+                {visibleNavItems.map(({ tab, label, icon: Icon, href }) => {
+                  const isAct = resolvedActive === tab;
+                  return (
+                    <Link
+                      key={tab}
+                      href={href(eventId)}
+                      onClick={() => setMoreOpen(false)}
+                      className={`flex min-w-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                        isAct
+                          ? "bg-surface-100 text-surface-900"
+                          : "text-surface-600 hover:bg-surface-50 hover:text-surface-900"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 shrink-0 text-surface-400" />
+                      <span className="min-w-0 truncate">{label[lang]}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="hidden items-end md:flex">
           {/* Scrollable primary tabs */}
           <div
             ref={scrollerRef}
