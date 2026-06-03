@@ -1,10 +1,20 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type WheelEvent } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  type ReactNode,
+  type WheelEvent,
+} from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ChevronLeft,
+  ChevronDown,
   LockKeyhole,
   QrCode,
   Users,
@@ -53,47 +63,51 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { tab: "details", label: { tr: "Etkinlik Detayları", en: "Event Details" }, icon: FolderKanban, href: (id) => `/admin/events/${id}` },
-  { tab: "certificates", label: { tr: "Sertifikalar", en: "Certificates" }, icon: LockKeyhole, href: (id) => `/admin/events/${id}/certificates` },
-  { tab: "sessions", label: { tr: "Oturumlar", en: "Sessions" }, icon: QrCode, href: (id) => `/admin/events/${id}/sessions` },
-  { tab: "attendees", label: { tr: "Katılımcılar", en: "Attendees" }, icon: Users, href: (id) => `/admin/events/${id}/attendees` },
-  { tab: "segments", label: { tr: "Segmentler", en: "Segments" }, icon: ListFilter, href: (id) => `/admin/events/${id}/segments` },
-  { tab: "team", label: { tr: "Ekip", en: "Team" }, icon: UserCog, href: (id) => `/admin/events/${id}/team` },
-  { tab: "tickets", label: { tr: "Biletler", en: "Tickets" }, icon: Ticket, href: (id) => `/admin/events/${id}/tickets` },
-  { tab: "ops", label: { tr: "Canlı Operasyon", en: "Live Ops" }, icon: Activity, href: (id) => `/admin/events/${id}/ops` },
-  { tab: "checkin", label: { tr: "Check-in", en: "Check-in" }, icon: UserCheck, href: (id) => `/admin/events/${id}/checkin` },
-  { tab: "gamification", label: { tr: "Oyunlaştırma", en: "Gamification" }, icon: Target, href: (id) => `/admin/events/${id}/gamification` },
-  { tab: "raffles", label: { tr: "Çekilişler", en: "Raffles" }, icon: Gift, href: (id) => `/admin/events/${id}/raffles` },
-  { tab: "surveys", label: { tr: "Anketler", en: "Surveys" }, icon: ClipboardList, href: (id) => `/admin/events/${id}/surveys` },
-  { tab: "analytics", label: { tr: "İleri Analitik", en: "Advanced Analytics" }, icon: BarChart3, href: (id) => `/admin/events/${id}/advanced-analytics` },
-  { tab: "editor", label: { tr: "Editör", en: "Editor" }, icon: Palette, href: (id) => `/admin/events/${id}/editor` },
-  { tab: "email", label: { tr: "E-posta", en: "Email" }, icon: Mail, href: (id) => `/admin/events/${id}/email-templates` },
-  { tab: "automations", label: { tr: "Otomasyon", en: "Automation" }, icon: Workflow, href: (id) => `/admin/events/${id}/automations` },
-  { tab: "settings", label: { tr: "Ayarlar", en: "Settings" }, icon: Settings, href: (id) => `/admin/events/${id}/settings` },
+  { tab: "details",      label: { tr: "Detaylar",       en: "Details"      }, icon: FolderKanban, href: (id) => `/admin/events/${id}` },
+  { tab: "attendees",    label: { tr: "Katılımcılar",   en: "Attendees"    }, icon: Users,        href: (id) => `/admin/events/${id}/attendees` },
+  { tab: "certificates", label: { tr: "Sertifikalar",   en: "Certificates" }, icon: LockKeyhole,  href: (id) => `/admin/events/${id}/certificates` },
+  { tab: "sessions",     label: { tr: "Oturumlar",      en: "Sessions"     }, icon: QrCode,       href: (id) => `/admin/events/${id}/sessions` },
+  { tab: "email",        label: { tr: "E-posta",        en: "Email"        }, icon: Mail,         href: (id) => `/admin/events/${id}/email-templates` },
+  { tab: "editor",       label: { tr: "Editör",         en: "Editor"       }, icon: Palette,      href: (id) => `/admin/events/${id}/editor` },
+  { tab: "checkin",      label: { tr: "Check-in",       en: "Check-in"     }, icon: UserCheck,    href: (id) => `/admin/events/${id}/checkin` },
+  { tab: "tickets",      label: { tr: "Biletler",       en: "Tickets"      }, icon: Ticket,       href: (id) => `/admin/events/${id}/tickets` },
+  // — overflow tabs (visible in "More" menu) —
+  { tab: "analytics",    label: { tr: "Analitik",       en: "Analytics"    }, icon: BarChart3,    href: (id) => `/admin/events/${id}/advanced-analytics` },
+  { tab: "surveys",      label: { tr: "Anketler",       en: "Surveys"      }, icon: ClipboardList,href: (id) => `/admin/events/${id}/surveys` },
+  { tab: "segments",     label: { tr: "Segmentler",     en: "Segments"     }, icon: ListFilter,   href: (id) => `/admin/events/${id}/segments` },
+  { tab: "team",         label: { tr: "Ekip",           en: "Team"         }, icon: UserCog,      href: (id) => `/admin/events/${id}/team` },
+  { tab: "gamification", label: { tr: "Oyunlaştırma",   en: "Gamification" }, icon: Target,       href: (id) => `/admin/events/${id}/gamification` },
+  { tab: "raffles",      label: { tr: "Çekilişler",     en: "Raffles"      }, icon: Gift,         href: (id) => `/admin/events/${id}/raffles` },
+  { tab: "automations",  label: { tr: "Otomasyon",      en: "Automation"   }, icon: Workflow,     href: (id) => `/admin/events/${id}/automations` },
+  { tab: "ops",          label: { tr: "Canlı Ops",      en: "Live Ops"     }, icon: Activity,     href: (id) => `/admin/events/${id}/ops` },
+  { tab: "settings",     label: { tr: "Ayarlar",        en: "Settings"     }, icon: Settings,     href: (id) => `/admin/events/${id}/settings` },
 ];
+
+// First N tabs are shown inline; the rest go into the "More" dropdown
+const PRIMARY_TAB_COUNT = 8;
 
 const EVENT_META_CACHE = new Map<string, EventOut>();
 const EVENT_ACCESS_CACHE = new Map<string, EventAccessOut>();
 const EVENT_META_REFRESH_EVENT = "heptacert:event-admin-meta-updated";
 
 const TAB_PERMISSIONS: Partial<Record<EventAdminTab, EventTeamPermission>> = {
-  details: "event:view",
-  certificates: "certificates:write",
-  sessions: "checkin:write",
-  attendees: "attendees:read",
-  segments: "attendees:read",
-  team: "team:manage",
-  ops: "checkin:write",
-  checkin: "checkin:write",
-  tickets: "checkin:write",
-  gamification: "settings:write",
-  raffles: "settings:write",
-  surveys: "settings:write",
-  analytics: "analytics:read",
-  editor: "certificates:write",
-  email: "email:write",
-  automations: "email:write",
-  settings: "settings:write",
+  details:       "event:view",
+  certificates:  "certificates:write",
+  sessions:      "checkin:write",
+  attendees:     "attendees:read",
+  segments:      "attendees:read",
+  team:          "team:manage",
+  ops:           "checkin:write",
+  checkin:       "checkin:write",
+  tickets:       "checkin:write",
+  gamification:  "settings:write",
+  raffles:       "settings:write",
+  surveys:       "settings:write",
+  analytics:     "analytics:read",
+  editor:        "certificates:write",
+  email:         "email:write",
+  automations:   "email:write",
+  settings:      "settings:write",
 };
 
 export function refreshEventAdminMeta(eventId?: string | number) {
@@ -115,21 +129,10 @@ function isNavItemEnabled(item: NavItem, event: EventOut | null) {
   if (!event) {
     return !["certificates", "editor", "sessions", "ops", "checkin", "raffles", "gamification"].includes(item.tab);
   }
-  if (event.certificate_enabled === false && (item.tab === "certificates" || item.tab === "editor")) {
-    return false;
-  }
-  if (
-    event.checkin_enabled === false &&
-    (item.tab === "sessions" || item.tab === "ops" || item.tab === "checkin")
-  ) {
-    return false;
-  }
-  if (item.tab === "raffles" && event.raffles_enabled !== true) {
-    return false;
-  }
-  if (item.tab === "gamification" && event.gamification_enabled !== true) {
-    return false;
-  }
+  if (event.certificate_enabled === false && (item.tab === "certificates" || item.tab === "editor")) return false;
+  if (event.checkin_enabled === false && (item.tab === "sessions" || item.tab === "ops" || item.tab === "checkin")) return false;
+  if (item.tab === "raffles" && event.raffles_enabled !== true) return false;
+  if (item.tab === "gamification" && event.gamification_enabled !== true) return false;
   return true;
 }
 
@@ -155,22 +158,22 @@ export function EventAdminLayoutProvider({
 }
 
 function getActiveFromPath(pathname: string): EventAdminTab {
-  if (pathname.includes("/certificates")) return "certificates";
-  if (pathname.includes("/sessions")) return "sessions";
-  if (pathname.includes("/attendees")) return "attendees";
-  if (pathname.includes("/segments")) return "segments";
-  if (pathname.includes("/team")) return "team";
-  if (pathname.includes("/tickets")) return "tickets";
-  if (pathname.includes("/ops")) return "ops";
-  if (pathname.includes("/checkin")) return "checkin";
-  if (pathname.includes("/gamification")) return "gamification";
-  if (pathname.includes("/raffles")) return "raffles";
-  if (pathname.includes("/surveys")) return "surveys";
+  if (pathname.includes("/certificates"))       return "certificates";
+  if (pathname.includes("/sessions"))           return "sessions";
+  if (pathname.includes("/attendees"))          return "attendees";
+  if (pathname.includes("/segments"))           return "segments";
+  if (pathname.includes("/team"))               return "team";
+  if (pathname.includes("/tickets"))            return "tickets";
+  if (pathname.includes("/ops"))                return "ops";
+  if (pathname.includes("/checkin"))            return "checkin";
+  if (pathname.includes("/gamification"))       return "gamification";
+  if (pathname.includes("/raffles"))            return "raffles";
+  if (pathname.includes("/surveys"))            return "surveys";
   if (pathname.includes("/advanced-analytics") || pathname.includes("/analytics")) return "analytics";
   if (pathname.includes("/editor") || pathname.includes("/preview") || pathname.includes("/qr-present")) return "editor";
   if (pathname.includes("/email-templates") || pathname.includes("/bulk-emails") || pathname.includes("/schedule-email")) return "email";
-  if (pathname.includes("/automations")) return "automations";
-  if (pathname.includes("/settings")) return "settings";
+  if (pathname.includes("/automations"))        return "automations";
+  if (pathname.includes("/settings"))           return "settings";
   return "details";
 }
 
@@ -188,50 +191,41 @@ export default function EventAdminNav({
   const { hideInlineNav } = useContext(EventAdminLayoutContext);
   const resolvedActive = active ?? getActiveFromPath(pathname);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const moreRef = useRef<HTMLDivElement | null>(null);
   const cacheKey = String(eventId);
+
   const [eventMeta, setEventMeta] = useState<EventOut | null>(() => EVENT_META_CACHE.get(cacheKey) ?? null);
   const [eventAccess, setEventAccess] = useState<EventAccessOut | null>(() => EVENT_ACCESS_CACHE.get(cacheKey) ?? null);
   const [loadingEventMeta, setLoadingEventMeta] = useState(() => !EVENT_META_CACHE.has(cacheKey) || !EVENT_ACCESS_CACHE.has(cacheKey));
-  
+  const [moreOpen, setMoreOpen] = useState(false);
+
   const visibleNavItems = useMemo(
-    () => NAV_ITEMS.filter((item) => {
-      if (!isNavItemEnabled(item, eventMeta)) return false;
-      if (!eventAccess) return false;
-      const required = TAB_PERMISSIONS[item.tab];
-      return !required || eventAccess.permissions.includes(required);
-    }),
+    () =>
+      NAV_ITEMS.filter((item) => {
+        if (!isNavItemEnabled(item, eventMeta)) return false;
+        if (!eventAccess) return false;
+        const required = TAB_PERMISSIONS[item.tab];
+        return !required || eventAccess.permissions.includes(required);
+      }),
     [eventAccess, eventMeta],
   );
 
+  const primaryItems = visibleNavItems.slice(0, PRIMARY_TAB_COUNT);
+  const overflowItems = visibleNavItems.slice(PRIMARY_TAB_COUNT);
+  const activeIsOverflow = overflowItems.some((item) => item.tab === resolvedActive);
+
   const copy = {
-    tr: {
-      allEvents: "Tüm Etkinlikler",
-      eventFallback: (id: string | number) => `Etkinlik #${id}`,
-    },
-    en: {
-      allEvents: "All Events",
-      eventFallback: (id: string | number) => `Event #${id}`,
-    },
+    tr: { allEvents: "Tüm Etkinlikler", eventFallback: (id: string | number) => `Etkinlik #${id}`, more: "Daha Fazla" },
+    en: { allEvents: "All Events",       eventFallback: (id: string | number) => `Event #${id}`,   more: "More" },
   }[lang];
 
   useEffect(() => {
     let cancelled = false;
     async function loadEventMeta() {
       const cached = EVENT_META_CACHE.get(cacheKey);
-      if (cached) {
-        setEventMeta(cached);
-      } else {
-        setEventMeta(null);
-        setLoadingEventMeta(true);
-      }
+      if (cached) { setEventMeta(cached); } else { setEventMeta(null); setLoadingEventMeta(true); }
       const cachedAccess = EVENT_ACCESS_CACHE.get(cacheKey);
-      if (cachedAccess) {
-        setEventAccess(cachedAccess);
-      } else {
-        setEventAccess(null);
-        setLoadingEventMeta(true);
-      }
-
+      if (cachedAccess) { setEventAccess(cachedAccess); } else { setEventAccess(null); setLoadingEventMeta(true); }
       try {
         const response = await apiFetch(`/admin/events/${eventId}`);
         const [data, access] = await Promise.all([
@@ -240,34 +234,19 @@ export default function EventAdminNav({
         ]);
         EVENT_META_CACHE.set(cacheKey, data);
         EVENT_ACCESS_CACHE.set(cacheKey, access);
-        if (!cancelled) {
-          setEventMeta(data);
-          setEventAccess(access);
-          setLoadingEventMeta(false);
-        }
+        if (!cancelled) { setEventMeta(data); setEventAccess(access); setLoadingEventMeta(false); }
       } catch {
-        if (!cancelled) {
-          setEventMeta(null);
-          setLoadingEventMeta(false);
-        }
+        if (!cancelled) setLoadingEventMeta(false);
       }
     }
-
     void loadEventMeta();
-
     function handleRefresh(event: Event) {
       const customEvent = event as CustomEvent<{ eventId?: string | null }>;
-      if (customEvent.detail?.eventId && customEvent.detail.eventId !== cacheKey) {
-        return;
-      }
+      if (customEvent.detail?.eventId && customEvent.detail.eventId !== cacheKey) return;
       void loadEventMeta();
     }
-
     window.addEventListener(EVENT_META_REFRESH_EVENT, handleRefresh as EventListener);
-    return () => {
-      cancelled = true;
-      window.removeEventListener(EVENT_META_REFRESH_EVENT, handleRefresh as EventListener);
-    };
+    return () => { cancelled = true; window.removeEventListener(EVENT_META_REFRESH_EVENT, handleRefresh as EventListener); };
   }, [cacheKey, eventId]);
 
   useEffect(() => {
@@ -276,9 +255,19 @@ export default function EventAdminNav({
     router.replace(visibleNavItems[0].href(eventId));
   }, [eventId, eventMeta, resolvedActive, router, visibleNavItems]);
 
-  if (hideInlineNav && variant === "inline" && !forceVisible) {
-    return null;
-  }
+  // Close "More" dropdown on outside click
+  useEffect(() => {
+    if (!moreOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [moreOpen]);
+
+  if (hideInlineNav && variant === "inline" && !forceVisible) return null;
 
   function handleWheel(event: WheelEvent<HTMLDivElement>) {
     const container = scrollerRef.current;
@@ -289,115 +278,159 @@ export default function EventAdminNav({
     container.scrollLeft += event.deltaY;
   }
 
-  // ----------------------------------------------------
-  // VARIANT: SIDEBAR MODE
-  // ----------------------------------------------------
+  // ── SIDEBAR VARIANT ──────────────────────────────────────────────────
   if (variant === "sidebar") {
     return (
-      <div className={`w-full flex min-w-0 flex-col gap-3 antialiased ${className || ""}`}>
-        {/* Üst Kart Alanı - Apple Bilgi Bloğu */}
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-4 shadow-sm">
+      <div className={`flex w-full min-w-0 flex-col gap-3 antialiased ${className || ""}`}>
+        {/* Back + event info */}
+        <div className="rounded-xl border border-surface-200 bg-white p-4 shadow-card">
           <Link
             href="/admin/events"
-            className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400 transition-colors hover:text-gray-900"
+            className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-surface-400 transition-colors hover:text-surface-900"
           >
             <ChevronLeft className="h-3.5 w-3.5 stroke-[2.5]" />
             {copy.allEvents}
           </Link>
           <div className="mt-3">
-            <span className="inline-flex items-center rounded-md bg-gray-50 border border-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500 uppercase tracking-tight">
+            <span className="inline-flex items-center rounded-md border border-surface-150 bg-surface-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-tight text-surface-500">
               {getActiveLabel(resolvedActive, lang)}
             </span>
-            <h2 className="mt-1.5 break-words text-base font-bold leading-tight text-gray-950 tracking-tight">
+            <h2 className="mt-1.5 break-words text-sm font-semibold leading-tight text-surface-900">
               {eventName || eventMeta?.name || copy.eventFallback(eventId)}
             </h2>
           </div>
         </div>
 
-        {/* Buton Navigasyon Listesi */}
-        <div
-          ref={scrollerRef}
-          onWheel={handleWheel}
-          className="overflow-x-auto scrollbar-none"
-        >
-          <div className="flex min-w-max items-center gap-1 rounded-xl border border-gray-200/80 bg-gray-50/50 p-1.5 lg:min-w-0 lg:flex-col lg:items-stretch">
+        {/* Sidebar nav list */}
+        <div className="overflow-hidden rounded-xl border border-surface-200 bg-white shadow-card">
+          <div className="p-1.5">
             {loadingEventMeta && !eventMeta ? (
               <NavSkeleton variant="sidebar" />
-            ) : visibleNavItems.map(({ tab, label, icon: Icon, href }) => {
-              const isAct = resolvedActive === tab;
-              return (
-                <Link
-                  key={tab}
-                  href={href(eventId)}
-                  className={`inline-flex min-w-0 items-center gap-2.5 rounded-lg px-3.5 py-2 text-xs font-semibold tracking-tight transition-all duration-150 ${
-                    isAct
-                      ? "bg-white text-gray-950 shadow-sm border border-gray-200/60"
-                      : "border border-transparent text-gray-500 hover:text-gray-900 hover:bg-white/60"
-                  }`}
-                >
-                  <Icon className={`h-4 w-4 shrink-0 transition-transform duration-200 ${isAct ? "text-gray-950 stroke-[2]" : "text-gray-400 stroke-[1.8]"}`} />
-                  <span className="min-w-0 truncate">{label[lang]}</span>
-                </Link>
-              );
-            })}
+            ) : (
+              visibleNavItems.map(({ tab, label, icon: Icon, href }) => {
+                const isAct = resolvedActive === tab;
+                return (
+                  <Link
+                    key={tab}
+                    href={href(eventId)}
+                    className={`flex min-w-0 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      isAct
+                        ? "bg-surface-100 text-surface-900"
+                        : "text-surface-500 hover:bg-surface-50 hover:text-surface-900"
+                    }`}
+                  >
+                    <Icon className={`h-4 w-4 shrink-0 ${isAct ? "text-surface-700" : "text-surface-400"}`} />
+                    <span className="min-w-0 truncate">{label[lang]}</span>
+                  </Link>
+                );
+              })
+            )}
           </div>
         </div>
       </div>
     );
   }
 
-  // ----------------------------------------------------
-  // VARIANT: INLINE MODE (Üst Yatay Çubuk)
-  // ----------------------------------------------------
+  // ── INLINE VARIANT (horizontal tab bar) ─────────────────────────────
   return (
     <div className={`w-full min-w-0 antialiased ${className || ""}`}>
-      <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
-        <div className="mb-2.5 flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
+      <div className="rounded-xl border border-surface-200 bg-white shadow-card">
+        {/* Event breadcrumb row */}
+        <div className="flex min-w-0 items-center justify-between gap-3 border-b border-surface-100 px-4 py-3">
+          <div className="flex min-w-0 items-center gap-2">
             <Link
               href="/admin/events"
-              className="inline-flex w-fit max-w-full items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 transition-colors hover:text-gray-900"
+              className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-surface-400 transition-colors hover:text-surface-900 shrink-0"
             >
-              <ChevronLeft className="h-3.5 w-3.5 shrink-0 stroke-[2.5]" />
-              <span className="truncate">{copy.allEvents}</span>
+              <ChevronLeft className="h-3.5 w-3.5 stroke-[2.5]" />
+              {copy.allEvents}
             </Link>
-            <h1 className="mt-1 truncate text-sm font-bold tracking-tight text-gray-950 sm:text-base">
+            <span className="text-surface-200">›</span>
+            <span className="truncate text-sm font-medium text-surface-700">
               {eventName || eventMeta?.name || copy.eventFallback(eventId)}
-            </h1>
+            </span>
           </div>
           {getActiveLabel(resolvedActive, lang) && (
-            <span className="inline-flex w-fit max-w-full shrink-0 items-center rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-gray-500">
-              <span className="truncate">{getActiveLabel(resolvedActive, lang)}</span>
+            <span className="shrink-0 rounded-md border border-surface-150 bg-surface-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-surface-500">
+              {getActiveLabel(resolvedActive, lang)}
             </span>
           )}
         </div>
 
+        {/* Tab row */}
         <div
           ref={scrollerRef}
           onWheel={handleWheel}
-          className="overflow-x-auto scrollbar-none"
+          className="overflow-x-auto scrollbar-none px-2"
         >
-        <div className="flex min-w-max gap-1 rounded-xl border border-gray-200/80 bg-gray-50/60 p-1 lg:min-w-0 lg:flex-wrap">
           {loadingEventMeta && !eventMeta ? (
-            <NavSkeleton variant="inline" />
-          ) : visibleNavItems.map(({ tab, label, icon: Icon, href }) => {
-            const isAct = resolvedActive === tab;
-            return (
-              <Link
-                key={tab}
-                href={href(eventId)}
-                className={`group relative inline-flex max-w-[180px] items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold tracking-tight transition-all ${
-                  isAct
-                    ? "bg-white text-gray-950 shadow-sm border border-gray-200/60"
-                    : "border border-transparent text-gray-500 hover:text-gray-900 hover:bg-white/40"
-                }`}
-              >
-                <Icon className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-hover:scale-105 ${isAct ? "text-gray-950 stroke-[2]" : "text-gray-400 stroke-[1.8]"}`} />
-                <span className="min-w-0 truncate">{label[lang]}</span>
-              </Link>
-            );
-          })}
-          </div>
+            <div className="flex gap-1 py-2">
+              <NavSkeleton variant="inline" />
+            </div>
+          ) : (
+            <div className="flex items-end gap-0.5">
+              {/* Primary tabs */}
+              {primaryItems.map(({ tab, label, href }) => {
+                const isAct = resolvedActive === tab;
+                return (
+                  <Link
+                    key={tab}
+                    href={href(eventId)}
+                    className={`relative inline-flex items-center whitespace-nowrap px-3.5 py-3 text-sm font-medium transition-colors ${
+                      isAct
+                        ? "text-surface-900 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-full after:bg-surface-900 after:content-['']"
+                        : "text-surface-500 hover:text-surface-800"
+                    }`}
+                  >
+                    {label[lang]}
+                  </Link>
+                );
+              })}
+
+              {/* "More" dropdown for overflow tabs */}
+              {overflowItems.length > 0 && (
+                <div ref={moreRef} className="relative">
+                  <button
+                    onClick={() => setMoreOpen((v) => !v)}
+                    aria-haspopup="menu"
+                    aria-expanded={moreOpen}
+                    aria-label={copy.more}
+                    className={`inline-flex items-center gap-1 whitespace-nowrap px-3.5 py-3 text-sm font-medium transition-colors ${
+                      activeIsOverflow
+                        ? "text-surface-900 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-full after:bg-surface-900 after:content-[''] relative"
+                        : "text-surface-500 hover:text-surface-800"
+                    }`}
+                  >
+                    {copy.more}
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-150 ${moreOpen ? "rotate-180" : ""}`} />
+                  </button>
+
+                  {moreOpen && (
+                    <div role="menu" className="absolute left-0 top-full z-30 mt-1 w-48 overflow-hidden rounded-xl border border-surface-200 bg-white py-1 shadow-float">
+                      {overflowItems.map(({ tab, label, icon: Icon, href }) => {
+                        const isAct = resolvedActive === tab;
+                        return (
+                          <Link
+                            key={tab}
+                            href={href(eventId)}
+                            onClick={() => setMoreOpen(false)}
+                            className={`flex items-center gap-2.5 px-3.5 py-2.5 text-sm font-medium transition-colors ${
+                              isAct
+                                ? "bg-surface-100 text-surface-900"
+                                : "text-surface-600 hover:bg-surface-50 hover:text-surface-900"
+                            }`}
+                          >
+                            <Icon className="h-4 w-4 shrink-0 text-surface-400" />
+                            {label[lang]}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -405,14 +438,14 @@ export default function EventAdminNav({
 }
 
 function NavSkeleton({ variant }: { variant: "inline" | "sidebar" }) {
-  const itemClass =
+  const cls =
     variant === "sidebar"
-      ? "h-8 w-full rounded-lg bg-gray-200/60"
-      : "h-7 w-20 rounded-lg bg-gray-200/60";
+      ? "h-8 w-full rounded-lg bg-surface-100"
+      : "h-8 w-20 rounded-lg bg-surface-100";
   return (
-    <div className={`w-full flex ${variant === "sidebar" ? "flex-col gap-1" : "flex-row gap-1"}`}>
-      {Array.from({ length: 5 }).map((_, index) => (
-        <div key={index} className={`${itemClass} animate-pulse`} />
+    <div className={`flex w-full ${variant === "sidebar" ? "flex-col gap-1 p-1.5" : "flex-row gap-1 py-2"}`}>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className={`${cls} animate-pulse`} />
       ))}
     </div>
   );

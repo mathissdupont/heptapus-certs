@@ -57,7 +57,7 @@ function healthTone(status: EventHealthCheck["status"]) {
   if (status === "ok") return "border-emerald-100 bg-emerald-50/30 text-emerald-700";
   if (status === "warning") return "border-amber-100 bg-amber-50/30 text-amber-700";
   if (status === "error") return "border-red-100 bg-red-50/30 text-red-600";
-  return "border-gray-100 bg-gray-50/40 text-gray-500";
+  return "border-surface-150 bg-surface-50 text-surface-500";
 }
 
 function getHealthIcon(status: EventHealthCheck["status"]) {

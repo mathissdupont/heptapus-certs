@@ -63,7 +63,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   colorScheme: "light",
-  themeColor: "#7c3aed",
+  themeColor: "#18181B",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -111,7 +111,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div
           className="fixed left-0 right-0 top-0 z-50 h-[3px]"
           style={{
-            background: "linear-gradient(90deg, var(--site-brand-color, #7c3aed), rgba(124,58,237,0.8))",
+            background: "linear-gradient(90deg, #111827, #374151)",
           }}
         />
         <ClientShell>{children}</ClientShell>

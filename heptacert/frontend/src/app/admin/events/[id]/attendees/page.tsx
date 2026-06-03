@@ -15,12 +15,15 @@ import FilterActionBar from "@/components/Admin/FilterActionBar";
 import { EmptyState as AdminEmptyState } from "@/components/Admin/AdminState";
 import { PlanGateCard, isPlanGateError } from "@/lib/useSubscription";
 import {
-  Users, Upload, Search, Trash2, Loader2, ChevronLeft, Download,
+  Users, Upload, Search, Trash2, Loader2, Download,
   Award, BarChart3, CheckSquare, XSquare, RefreshCw, AlertCircle,
-  UserCheck, UserX, CheckCircle2, QrCode, LockKeyhole, Hash, UserPlus,
-  Copy, Link2, ClipboardList, FileSpreadsheet,
-  ExternalLink, Unplug, ChevronDown, Calendar, FileText
+  UserCheck, CheckCircle2, UserPlus,
+  Link2, ClipboardList, FileSpreadsheet,
+  ExternalLink, Unplug,
 } from "lucide-react";
+import PageHeader from "@/components/Admin/PageHeader";
+import AddAttendeeModal from "@/components/Admin/AddAttendeeModal";
+import ImportAttendeeModal from "@/components/Admin/ImportAttendeeModal";
 import { AnimatePresence, motion } from "framer-motion";
 
 type Tab = "list" | "matrix" | "answers";
@@ -95,6 +98,10 @@ export default function AdminAttendeesPage() {
   // Bulk certify
   const [certifying, setCertifying] = useState(false);
   const [certResult, setCertResult] = useState<string | null>(null);
+
+  // Modal state
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   // Plan gate
   const [planOk, setPlanOk] = useState<boolean | null>(null);
@@ -607,7 +614,7 @@ export default function AdminAttendeesPage() {
     : [];
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-5 pb-16 px-4 sm:px-6 antialiased text-gray-900 w-full">
+    <div className="mx-auto flex max-w-7xl flex-col gap-5 pb-16 px-4 sm:px-6 antialiased text-surface-900 w-full">
       
       {/* 1. ÜST NAVİGASYON */}
       <EventAdminNav eventId={eventId} eventName={eventName} active="attendees" className="mb-2" />
@@ -622,57 +629,35 @@ export default function AdminAttendeesPage() {
 
       {planOk !== false && (
         <>
-          {/* 2. ANA SAYFA BAŞLIĞI KARTI */}
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-0.5">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Kayıt ve katılım</p>
-              <h1 className="text-xl font-bold tracking-tight text-gray-950 sm:text-2xl">Katılımcı Yönetimi</h1>
-              <p className="text-xs text-gray-400 font-medium">{eventName} · Minimum {minSessions} oturum katılım barajı</p>
-            </div>
-            
-            {/* Küresel Aksiyon Buton Çubuğu */}
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => void handleExportAttendance("xlsx")}
-                disabled={exporting}
-                className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-95 disabled:opacity-40"
-              >
-                {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5 stroke-[2]" />}
-                <span>Excel İndir</span>
-              </button>
-              
-              {hasFileRegistrationField && (
-                <button
-                  type="button"
-                  onClick={() => void handleExportRegistrationDocuments()}
-                  disabled={exportingDocuments}
-                  className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-95 disabled:opacity-40"
-                >
-                  {exportingDocuments ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5 stroke-[2]" />}
-                  <span>Belgeleri İndir (ZIP)</span>
+          {/* Page header */}
+          <PageHeader
+            title="Katılımcılar"
+            subtitle={`${eventName} · Minimum ${minSessions} oturum`}
+            actions={
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" onClick={() => setAddModalOpen(true)} className="btn-secondary text-xs">
+                  <UserPlus className="h-3.5 w-3.5" /> Katılımcı Ekle
                 </button>
-              )}
-              
-              <Link
-                href={`/admin/events/${eventId}/checkin`}
-                className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-95"
-              >
-                <UserCheck className="w-3.5 h-3.5 text-gray-400 stroke-[2]" />
-                <span>Manuel Check-in</span>
-              </Link>
-              
-              <button
-                type="button"
-                onClick={handleBulkCertify}
-                disabled={certifying}
-                className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-95 disabled:opacity-40"
-              >
-                {certifying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Award className="w-3.5 h-3.5 stroke-[2.5]" />}
-                <span>Sertifika Üret</span>
-              </button>
-            </div>
-          </div>
+                <button type="button" onClick={() => setImportModalOpen(true)} className="btn-secondary text-xs">
+                  <Upload className="h-3.5 w-3.5" /> İçe Aktar
+                </button>
+                <button type="button" onClick={() => void handleExportAttendance("xlsx")} disabled={exporting} className="btn-secondary text-xs disabled:opacity-40">
+                  {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                  Excel İndir
+                </button>
+                {hasFileRegistrationField && (
+                  <button type="button" onClick={() => void handleExportRegistrationDocuments()} disabled={exportingDocuments} className="btn-secondary text-xs disabled:opacity-40">
+                    {exportingDocuments ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                    Belgeler (ZIP)
+                  </button>
+                )}
+                <button type="button" onClick={handleBulkCertify} disabled={certifying} className="btn-primary text-xs disabled:opacity-40">
+                  {certifying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Award className="h-3.5 w-3.5" />}
+                  Sertifika Üret
+                </button>
+              </div>
+            }
+          />
 
           {/* ASENKRON İŞ BİLDİRİM ŞERİDİ */}
           {certResult && (
@@ -681,25 +666,24 @@ export default function AdminAttendeesPage() {
             </div>
           )}
 
-          {/* 3. CLOUD OTOMASYON DEPOLARI (Google Sheets & Excel) */}
+          {/* Cloud integrations */}
           <div className="grid gap-4 lg:grid-cols-2">
-            {/* Google Sheets Entegrasyon Kartı */}
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm flex flex-col justify-between sm:flex-row sm:items-center gap-4">
+            <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card flex flex-col justify-between sm:flex-row sm:items-center gap-4">
               <div className="flex items-start gap-3 min-w-0">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-600 shadow-sm">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-600 shadow-card">
                   <FileSpreadsheet className="h-4 w-4 stroke-[2]" />
                 </div>
                 <div className="min-w-0 space-y-0.5">
-                  <h2 className="text-xs font-bold text-gray-950 tracking-tight">Google Sheets Canlı Otomasyonu</h2>
-                  <p className="text-[11px] leading-relaxed text-gray-400 max-w-md">Kayıtlar anlık olarak Google E-Tablo dosyanıza satır bazında senkronize edilir.</p>
+                  <h2 className="text-xs font-bold text-surface-900 tracking-tight">Google Sheets Canlı Otomasyonu</h2>
+                  <p className="text-[11px] leading-relaxed text-surface-400 max-w-md">Kayıtlar anlık olarak Google E-Tablo dosyanıza satır bazında senkronize edilir.</p>
                   
-                  <div className="pt-1 flex flex-wrap items-center gap-2 text-[10px] font-bold text-gray-400">
+                  <div className="pt-1 flex flex-wrap items-center gap-2 text-[10px] font-bold text-surface-400">
                     {sheetsLoading ? (
                       <span className="inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Denetleniyor</span>
                     ) : sheetsStatus?.google_email ? (
                       <span className="rounded-md bg-emerald-50 border border-emerald-100/50 px-1.5 py-0.5 text-emerald-700">{sheetsStatus.google_email}</span>
                     ) : (
-                      <span className="text-gray-300">Google bağlantısı pasif</span>
+                      <span className="text-surface-300">Google bağlantısı pasif</span>
                     )}
                     {sheetsStatus?.last_synced_at && (
                       <span>Son eşitleme: {new Date(sheetsStatus.last_synced_at).toLocaleDateString("tr-TR", { hour: "2-digit", minute: "2-digit" })}</span>
@@ -717,74 +701,71 @@ export default function AdminAttendeesPage() {
                     type="button"
                     onClick={handleConnectGoogleSheetsAuth}
                     disabled={Boolean(sheetsAction)}
-                    className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
+                    className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white shadow-card transition hover:bg-emerald-700 disabled:opacity-50"
                   >
                     {sheetsAction === "auth" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5 stroke-[2]" />}
                     <span>Google Bağlantısı Kur</span>
                   </button>
                 ) : sheetsStatus.enabled && sheetsStatus.spreadsheet_url ? (
                   <div className="flex items-center gap-1.5 w-full sm:w-auto">
-                    <a href={sheetsStatus.spreadsheet_url} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 text-[11px] font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
+                    <a href={sheetsStatus.spreadsheet_url} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 text-[11px] font-semibold text-surface-700 shadow-card hover:bg-surface-50">
                       <ExternalLink className="h-3 w-3" /> Tabloyu Aç
                     </a>
-                    <button type="button" onClick={handleSyncGoogleSheet} disabled={Boolean(sheetsAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 text-[11px] font-semibold text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-40">
+                    <button type="button" onClick={handleSyncGoogleSheet} disabled={Boolean(sheetsAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 text-[11px] font-semibold text-surface-700 shadow-card hover:bg-surface-50 disabled:opacity-40">
                       {sheetsAction === "sync" ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />} Senkronla
                     </button>
-                    <button type="button" onClick={handleDisconnectGoogleSheet} disabled={Boolean(sheetsAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-red-100 bg-white px-2.5 text-[11px] font-semibold text-red-600 shadow-sm hover:bg-red-50 disabled:opacity-40">
+                    <button type="button" onClick={handleDisconnectGoogleSheet} disabled={Boolean(sheetsAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-red-100 bg-white px-2.5 text-[11px] font-semibold text-red-600 shadow-card hover:bg-red-50 disabled:opacity-40">
                       <Unplug className="h-3 w-3" /> Bağlantıyı Kes
                     </button>
                   </div>
                 ) : (
-                  <button type="button" onClick={handleCreateGoogleSheet} disabled={Boolean(sheetsAction)} className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50">
+                  <button type="button" onClick={handleCreateGoogleSheet} disabled={Boolean(sheetsAction)} className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white shadow-card transition hover:bg-emerald-700 disabled:opacity-50">
                     <FileSpreadsheet className="h-3.5 w-3.5 stroke-[2]" /> E-Tablo Oluştur
                   </button>
                 )}
               </div>
             </div>
 
-            {/* Microsoft Excel Entegrasyon Kartı */}
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm flex flex-col justify-between sm:flex-row sm:items-center gap-4 opacity-80">
+            <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card flex flex-col justify-between sm:flex-row sm:items-center gap-4 opacity-80">
               <div className="flex items-start gap-3 min-w-0">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-sky-100 bg-sky-50 text-sky-600 shadow-sm">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-sky-100 bg-sky-50 text-sky-600 shadow-card">
                   <FileSpreadsheet className="h-4 w-4 stroke-[2]" />
                 </div>
                 <div className="min-w-0 space-y-0.5">
-                  <h2 className="text-xs font-bold text-gray-950 tracking-tight">Microsoft 365 Excel Otomasyonu</h2>
-                  <p className="text-[11px] leading-relaxed text-gray-400 max-w-md">OneDrive üzerindeki kurumsal çalışma kitabına bilet ve bülten verilerini kurgular.</p>
+                  <h2 className="text-xs font-bold text-surface-900 tracking-tight">Microsoft 365 Excel Otomasyonu</h2>
+                  <p className="text-[11px] leading-relaxed text-surface-400 max-w-md">OneDrive üzerindeki kurumsal çalışma kitabına bilet ve bülten verilerini kurgular.</p>
                   <div className="pt-1 flex items-center gap-1.5 text-[10px] font-bold text-sky-600 bg-sky-50/40 border border-sky-100/30 rounded px-1.5 py-0.5 w-fit">
                     <span>İnşa Aşamasında (Yakında)</span>
                   </div>
                 </div>
               </div>
-              <button type="button" disabled className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-gray-100 bg-gray-50 px-3 text-xs font-semibold text-gray-400 cursor-not-allowed">
+              <button type="button" disabled className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-surface-100 bg-surface-50 px-3 text-xs font-semibold text-surface-400 cursor-not-allowed">
                 <span>Pasif</span>
               </button>
             </div>
           </div>
 
-          {/* 4. MODÜLER ADALI SEKME SEÇİCİ BAR (Segmented Control Stili) */}
+          {/* Tab switcher */}
           <div className="overflow-x-auto scrollbar-none">
-            <div className="flex min-w-max gap-1 border border-gray-200/80 bg-gray-50/60 p-1 rounded-xl lg:min-w-0">
+            <div className="flex min-w-max gap-1 rounded-xl border border-surface-200 bg-surface-50 p-1 lg:min-w-0">
               {[
                 { id: "list" as const, label: "Katılımcı Listesi", icon: Users },
                 { id: "matrix" as const, label: "Yoklama Matrisi", icon: BarChart3 },
                 { id: "answers" as const, label: "Soru Bazlı Cevaplar", icon: ClipboardList },
-              ].map((t) => {
-                const isAct = tab === t.id;
-                const Icon = t.icon;
+              ].map((item) => {
+                const isAct = tab === item.id;
+                const Icon = item.icon;
                 return (
                   <button
-                    key={t.id}
+                    key={item.id}
                     type="button"
-                    onClick={() => setTab(t.id)}
-                    className={`inline-flex items-center gap-2 rounded-lg px-4 py-1.5 text-xs font-semibold tracking-tight transition-all ${
-                      isAct
-                        ? "bg-white text-gray-950 shadow-sm border border-gray-200/60"
-                        : "border border-transparent text-gray-500 hover:text-gray-900 hover:bg-white/40"
+                    onClick={() => setTab(item.id)}
+                    className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                      isAct ? "bg-white text-surface-900 shadow-card border border-surface-200" : "text-surface-500 hover:text-surface-900 hover:bg-white/60"
                     }`}
                   >
-                    <Icon className={`h-3.5 w-3.5 shrink-0 ${isAct ? "text-gray-950 stroke-[2]" : "text-gray-400 stroke-[1.8]"}`} />
-                    <span>{t.label}</span>
+                    <Icon className={`h-3.5 w-3.5 shrink-0 ${isAct ? "text-surface-700" : "text-surface-400"}`} />
+                    <span>{item.label}</span>
                   </button>
                 );
               })}
@@ -796,49 +777,7 @@ export default function AdminAttendeesPage() {
           {/* SEKME A: KATILIMCI LİSTELEME VE YÜKLEME SEKMESİ */}
           {tab === "list" && (
             <div className="space-y-4 w-full">
-              <div className="grid gap-4 sm:grid-cols-2">
-                {/* Alt Blok 1: Manuel Katılımcı Kayıt İstasyonu */}
-                <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-3.5">
-                  <h2 className="text-xs font-bold uppercase tracking-wider text-gray-900 flex items-center gap-1.5 border-b border-gray-100 pb-2.5">
-                    <UserPlus className="w-4 h-4 text-emerald-500 stroke-[2]" /> Manuel Katılımcı Ekle
-                  </h2>
-                  <form onSubmit={handleManualAdd} className="flex flex-col gap-2.5">
-                    <input type="email" value={manualEmail} onChange={(e) => setManualEmail(e.target.value)} placeholder="E-posta adresi (ornek@mail.com)" className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-gray-900 placeholder:text-gray-400" />
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <input type="text" value={manualFirstName} onChange={(e) => setManualFirstName(e.target.value)} placeholder="Ad" className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-gray-900 placeholder:text-gray-400" />
-                      <input type="text" value={manualLastName} onChange={(e) => setManualLastName(e.target.value)} placeholder="Soyad" className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-gray-900 placeholder:text-gray-400" />
-                    </div>
-                    <button type="submit" disabled={addingManual} className="w-full inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 disabled:opacity-40">
-                      {addingManual ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />} <span>Hızlı Kaydet</span>
-                    </button>
-                  </form>
-                  {manualResult && <p className="text-[11px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-100/50 px-2.5 py-1 rounded-lg">✅ {manualResult}</p>}
-                </div>
-
-                {/* Alt Blok 2: Toplu Excel/CSV Dosya İçe Aktarım İstasyonu */}
-                <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-3.5">
-                  <h2 className="text-xs font-bold uppercase tracking-wider text-gray-900 flex items-center gap-1.5 border-b border-gray-100 pb-2.5">
-                    <Upload className="w-4 h-4 text-indigo-500 stroke-[2]" /> Excel / CSV Dosya İçe Aktar
-                  </h2>
-                  <div className="flex flex-col gap-3">
-                    <label className="w-full">
-                      <input
-                        type="file"
-                        accept=".xlsx,.xls,.csv"
-                        onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-                        className="w-full text-xs text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-gray-50 file:border-gray-100 file:text-gray-800 file:text-[11px] file:font-semibold hover:file:bg-gray-100 cursor-pointer"
-                      />
-                    </label>
-                    <button onClick={handleImport} disabled={!importFile || importing} className="w-full inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 disabled:opacity-40">
-                      {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />} <span>Listeyi İçeri Aktar</span>
-                    </button>
-                  </div>
-                  {importResult && <p className="text-[11px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-100/50 px-2.5 py-1 rounded-lg">✅ {importResult.added} ekleme yapıldı, {importResult.skipped} mükerrer atlandı.</p>}
-                  <p className="text-[10px] font-medium text-gray-400">Yükleyeceğiniz şablonda en azından <code>name</code> (veya ad) ile <code>email</code> sütunları yer almalıdır.</p>
-                </div>
-              </div>
-
-              {/* Filtre ve Arama Alanı */}
+              {/* Search */}
               <form onSubmit={handleSearchSubmit}>
                 <FilterActionBar
                   search={search}
@@ -846,7 +785,7 @@ export default function AdminAttendeesPage() {
                   searchPlaceholder="Ad, soyad veya e-posta sorgula..."
                   hasActiveFilters={Boolean(search.trim())}
                   onClear={() => setSearch("")}
-                  actions={<button type="submit" className="inline-flex min-h-[38px] items-center justify-center rounded-xl bg-gray-950 px-5 text-xs font-semibold text-white hover:bg-gray-900 transition-all shadow-sm">Sorgula</button>}
+                  actions={<button type="submit" className="inline-flex min-h-[38px] items-center justify-center rounded-xl bg-surface-900 px-5 text-xs font-semibold text-white hover:bg-surface-800 transition-all shadow-card">Sorgula</button>}
                 />
               </form>
 
@@ -854,38 +793,38 @@ export default function AdminAttendeesPage() {
 
               {/* Liste Sonuç Ana Veri Tablosu */}
               {loadingList ? (
-                <div className="flex justify-center py-14"><Loader2 className="w-6 h-6 animate-spin text-gray-400 stroke-[2.5]" /></div>
+                <div className="flex justify-center py-14"><Loader2 className="w-6 h-6 animate-spin text-surface-400 stroke-[2.5]" /></div>
               ) : attendees.length === 0 ? (
                 <AdminEmptyState
                   icon={<Users className="h-5 w-5 stroke-[1.8]" />}
                   title="Kayıtlı katılımcı bulunamadı"
                   description={search.trim() ? "Arama kriterlerinize uygun katılımcı eşleşmesi sağlanamadı." : "Etkinliğe henüz bir kayıt gelmedi. Manuel ekleme veya Excel yükleme ile başlayabilirsiniz."}
-                  className="border-gray-200 bg-white py-12"
+                  className="border-surface-200 bg-white py-12"
                 />
               ) : (
                 <div className="space-y-2">
-                  <span className="text-[11px] font-bold text-gray-400 tracking-wide uppercase px-0.5">{total} Toplam Katılımcı Kaydı</span>
-                  <div className="w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                  <span className="text-[11px] font-bold text-surface-400 tracking-wide uppercase px-0.5">{total} Toplam Katılımcı Kaydı</span>
+                  <div className="w-full overflow-hidden rounded-xl border border-surface-200 bg-white shadow-card">
                     <div className="overflow-x-auto scrollbar-none">
                       <table className="w-full text-left border-collapse">
                         <thead>
-                          <tr className="border-b border-gray-100 bg-gray-50/50">
-                            <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 select-none">Ad Soyad</th>
-                            <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 select-none hidden sm:table-cell">E-posta</th>
-                            <th className="text-center px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 select-none">Oturum</th>
-                            <th className="text-center px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 select-none">Sertifika</th>
-                            <th className="text-center px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 select-none hidden lg:table-cell">Anket</th>
+                          <tr className="border-b border-surface-100 bg-surface-50">
+                            <th className="px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-surface-400 select-none">Ad Soyad</th>
+                            <th className="px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-surface-400 select-none hidden sm:table-cell">E-posta</th>
+                            <th className="text-center px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-surface-400 select-none">Oturum</th>
+                            <th className="text-center px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-surface-400 select-none">Sertifika</th>
+                            <th className="text-center px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-surface-400 select-none hidden lg:table-cell">Anket</th>
                             <th className="px-5 py-3" />
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-surface-100">
                           {attendees.map((a) => (
-                            <tr key={a.id} className="transition-colors hover:bg-gray-50/40">
-                              <td className="px-5 py-3 text-xs font-bold text-gray-950 tracking-tight">
-                                <button type="button" onClick={() => setSelectedAttendee(a)} className="text-left font-bold text-gray-900 hover:text-gray-950 transition-colors">
+                            <tr key={a.id} className="transition-colors hover:bg-surface-50/60">
+                              <td className="px-5 py-3 text-xs font-bold text-surface-900 tracking-tight">
+                                <button type="button" onClick={() => setSelectedAttendee(a)} className="text-left font-bold text-surface-900 hover:text-surface-900 transition-colors">
                                   {a.name}
                                 </button>
-                                <span className={`ml-2 text-[9px] font-bold border rounded px-1.5 py-0.5 uppercase tracking-tight ${a.source === "self_register" ? "border-blue-100 bg-blue-50/50 text-blue-600" : "border-gray-100 bg-gray-50 text-gray-400"}`}>
+                                <span className={`ml-2 text-[9px] font-bold border rounded px-1.5 py-0.5 uppercase tracking-tight ${a.source === "self_register" ? "border-blue-100 bg-blue-50/50 text-blue-600" : "border-surface-100 bg-surface-50 text-surface-400"}`}>
                                   {a.source === "self_register" ? "Kendi" : "İmport"}
                                 </span>
                                 {a.public_member_name && (
@@ -896,38 +835,38 @@ export default function AdminAttendeesPage() {
                                 {getRegistrationPreview(a).length > 0 && (
                                   <div className="mt-1.5 space-y-0.5">
                                     {getRegistrationPreview(a).map((item) => (
-                                      <p key={`${a.id}-${item.label}`} className="max-w-xs truncate text-[10px] font-medium text-gray-400">
-                                        <span className="font-semibold text-gray-300">{item.label}:</span> {item.value}
+                                      <p key={`${a.id}-${item.label}`} className="max-w-xs truncate text-[10px] font-medium text-surface-400">
+                                        <span className="font-semibold text-surface-300">{item.label}:</span> {item.value}
                                       </p>
                                     ))}
                                   </div>
                                 )}
                               </td>
-                              <td className="px-5 py-3 text-xs font-medium text-gray-400 font-mono hidden sm:table-cell tracking-tight">{a.email}</td>
+                              <td className="px-5 py-3 text-xs font-medium text-surface-400 font-mono hidden sm:table-cell tracking-tight">{a.email}</td>
                               <td className="px-5 py-3 text-center text-xs font-medium">
-                                <span className={a.sessions_attended >= minSessions ? "text-emerald-500 font-bold" : "text-gray-400"}>{a.sessions_attended}</span>
-                                <span className="text-gray-300">/{minSessions}</span>
+                                <span className={a.sessions_attended >= minSessions ? "text-emerald-500 font-bold" : "text-surface-400"}>{a.sessions_attended}</span>
+                                <span className="text-surface-300">/{minSessions}</span>
                               </td>
                               <td className="px-5 py-3 text-center">
-                                {a.has_certificate ? <CheckCircle2 className="w-4 h-4 text-emerald-500 mx-auto stroke-[2.5]" /> : <span className="text-gray-200 text-xs">—</span>}
+                                {a.has_certificate ? <CheckCircle2 className="w-4 h-4 text-emerald-500 mx-auto stroke-[2.5]" /> : <span className="text-surface-200 text-xs">—</span>}
                               </td>
                               <td className="px-5 py-3 text-center hidden lg:table-cell">
                                 <button
                                   type="button"
                                   onClick={() => void handleCopySurveyLink(a.id)}
                                   disabled={copyingSurveyId === a.id}
-                                  className="inline-flex h-7 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 text-[11px] font-bold text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:opacity-50"
+                                  className="inline-flex h-7 items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-white px-2.5 text-[11px] font-bold text-surface-700 shadow-card transition hover:bg-surface-50 disabled:opacity-50"
                                 >
-                                  {copyingSurveyId === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : copiedSurveyId === a.id ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> : <Link2 className="w-3 h-3 text-gray-400" />}
+                                  {copyingSurveyId === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : copiedSurveyId === a.id ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> : <Link2 className="w-3 h-3 text-surface-400" />}
                                   <span>{copiedSurveyId === a.id ? "Kopyalandı" : "Anket Linki"}</span>
                                 </button>
                               </td>
                               <td className="px-5 py-3 text-right">
                                 <div className="flex items-center justify-end gap-1">
-                                  <button type="button" onClick={() => void handleCopySurveyLink(a.id)} disabled={copyingSurveyId === a.id} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-500 hover:bg-gray-50 lg:hidden">
+                                  <button type="button" onClick={() => void handleCopySurveyLink(a.id)} disabled={copyingSurveyId === a.id} className="inline-flex items-center gap-1 rounded-lg border border-surface-200 bg-white px-2 py-1 text-[11px] font-semibold text-surface-500 hover:bg-surface-50 lg:hidden">
                                     <span>{copiedSurveyId === a.id ? "Kopyalandı" : "Anket"}</span>
                                   </button>
-                                  <button type="button" onClick={() => handleDelete(a.id)} disabled={deletingId === a.id} className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all active:scale-90">
+                                  <button type="button" onClick={() => handleDelete(a.id)} disabled={deletingId === a.id} className="p-1.5 rounded-lg text-surface-400 hover:bg-red-50 hover:text-red-500 transition-all active:scale-90">
                                     {deletingId === a.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5 stroke-[1.8]" />}
                                   </button>
                                 </div>
@@ -941,10 +880,10 @@ export default function AdminAttendeesPage() {
                   
                   {/* Satır Sayfalama Düzeni */}
                   {totalPages > 1 && (
-                    <div className="mt-4 flex items-center justify-center gap-3 text-xs text-gray-400 font-semibold tracking-tight">
-                      <button onClick={() => loadAttendees(page - 1)} disabled={page === 1} className="flex h-7 px-2.5 items-center justify-center rounded-lg border border-gray-100 bg-white text-gray-400 transition-all hover:text-gray-900 disabled:opacity-30 shadow-sm">← Önceki</button>
+                    <div className="mt-4 flex items-center justify-center gap-3 text-xs text-surface-400 font-semibold tracking-tight">
+                      <button onClick={() => loadAttendees(page - 1)} disabled={page === 1} className="flex h-7 px-2.5 items-center justify-center rounded-lg border border-surface-100 bg-white text-surface-400 transition-all hover:text-surface-900 disabled:opacity-30 shadow-card">← Önceki</button>
                       <span>{page} / {totalPages}</span>
-                      <button onClick={() => loadAttendees(page + 1)} disabled={page === totalPages} className="flex h-7 px-2.5 items-center justify-center rounded-lg border border-gray-100 bg-white text-gray-400 transition-all hover:text-gray-900 disabled:opacity-30 shadow-sm">Sonraki →</button>
+                      <button onClick={() => loadAttendees(page + 1)} disabled={page === totalPages} className="flex h-7 px-2.5 items-center justify-center rounded-lg border border-surface-100 bg-white text-surface-400 transition-all hover:text-surface-900 disabled:opacity-30 shadow-card">Sonraki →</button>
                     </div>
                   )}
                 </div>
@@ -956,15 +895,15 @@ export default function AdminAttendeesPage() {
           {tab === "answers" && (
             <div className="grid gap-4 lg:grid-cols-[300px_1fr] items-start w-full">
               {/* Sol Taraf: Soru Seçim Paneli */}
-              <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-4">
-                <div className="flex items-start justify-between gap-3 border-b border-gray-100 pb-2.5">
+              <div className="rounded-xl border border-surface-200 bg-white p-4 shadow-card space-y-4">
+                <div className="flex items-start justify-between gap-3 border-b border-surface-100 pb-2.5">
                   <div className="min-w-0">
-                    <h2 className="text-xs font-bold uppercase tracking-wider text-gray-900 flex items-center gap-1.5">
-                      <ClipboardList className="h-4 w-4 text-gray-800 stroke-[2]" /> Form Soruları
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900 flex items-center gap-1.5">
+                      <ClipboardList className="h-4 w-4 text-surface-700 stroke-[2]" /> Form Soruları
                     </h2>
-                    <p className="mt-1 text-[11px] leading-relaxed text-gray-400">Sorgulamak istediğiniz kayıt form sorusunu işaretleyerek cevap matrisine odaklanın.</p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-surface-400">Sorgulamak istediğiniz kayıt form sorusunu işaretleyerek cevap matrisine odaklanın.</p>
                   </div>
-                  <button type="button" onClick={() => void loadQuestionAnswers()} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-gray-100 bg-gray-50 text-gray-400 hover:text-gray-900 transition-all shadow-sm">
+                  <button type="button" onClick={() => void loadQuestionAnswers()} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-surface-100 bg-surface-50 text-surface-400 hover:text-surface-900 transition-all shadow-card">
                     <RefreshCw className="h-3 w-3 stroke-[2]" />
                   </button>
                 </div>
@@ -974,7 +913,7 @@ export default function AdminAttendeesPage() {
                 </div>
 
                 {registrationFields.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-gray-200 px-4 py-8 text-center text-xs font-semibold text-gray-400">Bu etkinlik formunda özel soru tanımlı değil.</div>
+                  <div className="rounded-xl border border-dashed border-surface-200 px-4 py-8 text-center text-xs font-semibold text-surface-400">Bu etkinlik formunda özel soru tanımlı değil.</div>
                 ) : (
                   <div className="space-y-1 max-h-[380px] overflow-y-auto scrollbar-none">
                     {answerQuestionStats.map(({ field, answeredCount }) => (
@@ -984,17 +923,17 @@ export default function AdminAttendeesPage() {
                         onClick={() => setSelectedQuestionId(field.id)}
                         className={`w-full rounded-xl border p-3 text-left transition-all ${
                           selectedQuestion?.id === field.id
-                            ? "border-gray-900 bg-gray-950 text-white shadow-sm"
-                            : "border-transparent bg-white text-gray-700 hover:bg-gray-50"
+                            ? "border-surface-800 bg-surface-900 text-white shadow-card"
+                            : "border-transparent bg-white text-surface-700 hover:bg-surface-50"
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2.5">
                           <p className="text-xs font-bold truncate tracking-tight">{field.label}</p>
-                          <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold font-mono ${selectedQuestion?.id === field.id ? "bg-white/20 text-white" : "bg-gray-50 border border-gray-100 text-gray-400"}`}>
+                          <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold font-mono ${selectedQuestion?.id === field.id ? "bg-white/20 text-white" : "bg-surface-50 border border-surface-100 text-surface-400"}`}>
                             {answeredCount}/{answerAttendees.length}
                           </span>
                         </div>
-                        <p className={`text-[10px] font-medium mt-1 ${selectedQuestion?.id === field.id ? "text-white/60" : "text-gray-400"}`}>
+                        <p className={`text-[10px] font-medium mt-1 ${selectedQuestion?.id === field.id ? "text-white/60" : "text-surface-400"}`}>
                           {field.type === "textarea" ? "Uzun metin" : field.type === "select" ? "Çoktan seçmeli" : field.type === "file" ? "Dosya yükleme" : "Kısa cevap"}
                         </p>
                       </button>
@@ -1004,34 +943,34 @@ export default function AdminAttendeesPage() {
               </div>
 
               {/* Sağ Taraf: Katılımcı Cevap Satırları Akışı */}
-              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-                <div className="border-b border-gray-100 px-5 py-4 bg-white">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Seçili Form Sorusu</p>
-                  <h3 className="mt-1 text-sm font-bold tracking-tight text-gray-950">{selectedQuestion?.label || "Soru seçin"}</h3>
-                  <p className="text-[11px] font-medium text-gray-400">{answerAttendees.length} katılımcı içindeki dağılım matrisi.</p>
+              <div className="rounded-xl border border-surface-200 bg-white shadow-card">
+                <div className="border-b border-surface-100 px-5 py-4 bg-white">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-surface-400">Seçili Form Sorusu</p>
+                  <h3 className="mt-1 text-sm font-bold tracking-tight text-surface-900">{selectedQuestion?.label || "Soru seçin"}</h3>
+                  <p className="text-[11px] font-medium text-surface-400">{answerAttendees.length} katılımcı içindeki dağılım matrisi.</p>
                 </div>
 
                 {answersError && <div className="m-4 rounded-xl border border-red-100 bg-red-50/40 p-3 text-xs font-semibold text-red-600">{answersError}</div>}
 
                 {loadingAnswers ? (
-                  <div className="flex items-center justify-center py-14"><Loader2 className="h-6 h-6 animate-spin text-gray-400 stroke-[2.5]" /></div>
+                  <div className="flex items-center justify-center py-14"><Loader2 className="h-6 h-6 animate-spin text-surface-400 stroke-[2.5]" /></div>
                 ) : !selectedQuestion ? (
-                  <div className="py-14 text-center text-xs font-semibold text-gray-400 tracking-tight">İncelenecek form sorusu bulunamadı.</div>
+                  <div className="py-14 text-center text-xs font-semibold text-surface-400 tracking-tight">İncelenecek form sorusu bulunamadı.</div>
                 ) : selectedQuestionAnswers.length === 0 ? (
-                  <div className="py-14 text-center text-xs font-semibold text-gray-400 tracking-tight">Katılımcılardan gelen ham cevap bulunmuyor.</div>
+                  <div className="py-14 text-center text-xs font-semibold text-surface-400 tracking-tight">Katılımcılardan gelen ham cevap bulunmuyor.</div>
                 ) : (
-                  <div className="divide-y divide-gray-100 bg-white">
+                  <div className="divide-y divide-surface-100 bg-white">
                     {selectedQuestionAnswers.map(({ attendee, value }) => {
                       const hasAnswer = Array.isArray(value) ? value.length > 0 : value != null && value !== "";
                       return (
-                        <div key={`${selectedQuestion.id}-${attendee.id}`} className="grid gap-3 px-5 py-4 md:grid-cols-[220px_1fr] transition-colors hover:bg-gray-50/30">
+                        <div key={`${selectedQuestion.id}-${attendee.id}`} className="grid gap-3 px-5 py-4 md:grid-cols-[220px_1fr] transition-colors hover:bg-surface-50/30">
                           <div className="min-w-0">
-                            <button type="button" onClick={() => setSelectedAttendee(attendee)} className="text-left text-xs font-bold text-gray-950 hover:text-gray-900 truncate tracking-tight block">
+                            <button type="button" onClick={() => setSelectedAttendee(attendee)} className="text-left text-xs font-bold text-surface-900 hover:text-surface-900 truncate tracking-tight block">
                               {attendee.name}
                             </button>
-                            <p className="mt-0.5 truncate text-[10px] font-medium text-gray-400 font-mono">{attendee.email}</p>
+                            <p className="mt-0.5 truncate text-[10px] font-medium text-surface-400 font-mono">{attendee.email}</p>
                           </div>
-                          <div className={`rounded-xl border border-gray-100/70 px-4 py-2.5 text-xs font-medium leading-relaxed ${hasAnswer ? "bg-gray-50/50 text-gray-800" : "bg-gray-50/20 text-gray-300 italic"}`}>
+                          <div className={`rounded-xl border border-surface-100/70 px-4 py-2.5 text-xs font-medium leading-relaxed ${hasAnswer ? "bg-surface-50/50 text-surface-700" : "bg-surface-50/20 text-surface-300 italic"}`}>
                             {selectedQuestion.type === "file" ? (
                               <span>{hasAnswer ? "📁 Dosya eki katılımcı profil kartından görüntülenebilir." : "Yanıt yok"}</span>
                             ) : (
@@ -1051,8 +990,8 @@ export default function AdminAttendeesPage() {
           {tab === "matrix" && (
             <div className="w-full space-y-4">
               <div className="flex items-center justify-between gap-3 px-0.5">
-                <p className="text-xs font-medium text-gray-400">Tüm oturumlar bazında anlık check-in durum dökümü.</p>
-                <button onClick={loadMatrix} className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-400 hover:text-gray-950 transition-colors">
+                <p className="text-xs font-medium text-surface-400">Tüm oturumlar bazında anlık check-in durum dökümü.</p>
+                <button onClick={loadMatrix} className="inline-flex items-center gap-1 text-[11px] font-bold text-surface-400 hover:text-surface-900 transition-colors">
                   <RefreshCw className="w-3 h-3 stroke-[2.5]" /> <span>Yenile</span>
                 </button>
               </div>
@@ -1060,22 +999,22 @@ export default function AdminAttendeesPage() {
               {matrixError && <div className="rounded-xl border border-red-100 bg-red-50/40 p-3 text-xs font-semibold text-red-600">{matrixError}</div>}
 
               {loadingMatrix ? (
-                <div className="flex justify-center py-14"><Loader2 className="w-6 h-6 animate-spin text-gray-400 stroke-[2.5]" /></div>
+                <div className="flex justify-center py-14"><Loader2 className="w-6 h-6 animate-spin text-surface-400 stroke-[2.5]" /></div>
               ) : matrix && (
                 <>
                   {/* Mikro Sayaç Matris Hücreleri */}
                   <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-                    <div className="bg-white rounded-xl border border-gray-200 p-3 text-center shadow-sm">
-                      <p className="text-xl font-bold tracking-tight text-gray-950 tabular-nums">{matrix.rows.length}</p>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Toplam Havuz</p>
+                    <div className="bg-white rounded-xl border border-surface-200 p-3 text-center shadow-card">
+                      <p className="text-xl font-bold tracking-tight text-surface-900 tabular-nums">{matrix.rows.length}</p>
+                      <p className="text-[10px] font-bold text-surface-400 uppercase tracking-wide">Toplam Havuz</p>
                     </div>
-                    <div className="bg-white rounded-xl border border-emerald-200/60 bg-emerald-50/10 p-3 text-center shadow-sm">
+                    <div className="bg-white rounded-xl border border-emerald-200/60 bg-emerald-50/10 p-3 text-center shadow-card">
                       <p className="text-xl font-bold tracking-tight text-emerald-600 tabular-nums">{matrix.rows.filter((r) => r.meets_threshold).length}</p>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Eşiği Başarıyla Geçen</p>
+                      <p className="text-[10px] font-bold text-surface-400 uppercase tracking-wide">Eşiği Başarıyla Geçen</p>
                     </div>
-                    <div className="bg-white rounded-xl border border-gray-900 bg-white p-3 text-center shadow-sm">
-                      <p className="text-xl font-bold tracking-tight text-gray-900 tabular-nums">{matrix.rows.filter((r) => r.has_certificate).length}</p>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Sertifikalandırılan</p>
+                    <div className="bg-white rounded-xl border border-surface-800 bg-white p-3 text-center shadow-card">
+                      <p className="text-xl font-bold tracking-tight text-surface-900 tabular-nums">{matrix.rows.filter((r) => r.has_certificate).length}</p>
+                      <p className="text-[10px] font-bold text-surface-400 uppercase tracking-wide">Sertifikalandırılan</p>
                     </div>
                   </div>
 
@@ -1087,7 +1026,7 @@ export default function AdminAttendeesPage() {
                         type="button"
                         onClick={handleBulkCertify}
                         disabled={certifying}
-                        className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-3 text-xs font-bold text-white shadow-sm hover:bg-amber-700 disabled:opacity-50 transition-all active:scale-95"
+                        className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-3 text-xs font-bold text-white shadow-card hover:bg-amber-700 disabled:opacity-50 transition-all active:scale-95"
                       >
                         {certifying ? <Loader2 className="w-3 h-3 animate-spin" /> : <Award className="w-3 h-3 stroke-[2.5]" />}
                         <span>Kuyruğu İşle ve Üret</span>
@@ -1096,54 +1035,53 @@ export default function AdminAttendeesPage() {
                   )}
 
                   {matrix.rows.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400">
+                    <div className="text-center py-12 text-surface-400">
                       <Users className="w-10 h-10 mx-auto mb-2 opacity-30 stroke-[1.8]" />
                       <p className="text-xs font-semibold">Matris için katılımcı bulunamadı</p>
                     </div>
                   ) : (
-                    /* Büyük Matris Tablo Muhafazası */
-                    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+                    <div className="overflow-hidden rounded-xl border border-surface-200 bg-white shadow-card">
                       <div className="overflow-x-auto scrollbar-none">
                         <table className="text-left border-collapse w-full">
                           <thead>
-                            <tr className="border-b border-gray-100 bg-gray-50/50">
-                              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 select-none whitespace-nowrap">Ad Soyad</th>
+                            <tr className="border-b border-surface-100 bg-surface-50">
+                              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-surface-400 select-none whitespace-nowrap">Ad Soyad</th>
                               {matrix.sessions.map((s) => (
-                                <th key={s.id} className="text-center px-2 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 select-none whitespace-nowrap max-w-[96px]" title={s.session_date || ""}>
+                                <th key={s.id} className="text-center px-2 py-3 text-[11px] font-bold uppercase tracking-wider text-surface-400 select-none whitespace-nowrap max-w-[96px]" title={s.session_date || ""}>
                                   {s.name.length > 10 ? s.name.slice(0, 10) + "…" : s.name}
                                 </th>
                               ))}
-                              <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 select-none">Toplam Skal</th>
-                              <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 select-none">Durum</th>
+                              <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-surface-400 select-none">Toplam Skal</th>
+                              <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-surface-400 select-none">Durum</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-gray-100 bg-white">
+                          <tbody className="divide-y divide-surface-100 bg-white">
                             {matrix.rows.map((row) => (
-                              <tr key={row.attendee_id} className={`transition-colors hover:bg-gray-50/20 ${row.meets_threshold ? "bg-emerald-50/10" : ""}`}>
-                                <td className="px-4 py-3 text-xs font-bold text-gray-950 tracking-tight whitespace-nowrap">{row.name}</td>
+                              <tr key={row.attendee_id} className={`transition-colors hover:bg-surface-50/20 ${row.meets_threshold ? "bg-emerald-50/10" : ""}`}>
+                                <td className="px-4 py-3 text-xs font-bold text-surface-900 tracking-tight whitespace-nowrap">{row.name}</td>
                                 {matrix.sessions.map((s) => (
                                   <td key={s.id} className="text-center px-2 py-3">
                                     {row.checkins[String(s.id)] ? (
                                       <CheckSquare className="w-4 h-4 text-emerald-500 mx-auto stroke-[2.2]" />
                                     ) : (
-                                      <XSquare className="w-4 h-4 text-gray-100 mx-auto stroke-[1.8]" />
+                                      <XSquare className="w-4 h-4 text-surface-100 mx-auto stroke-[1.8]" />
                                     )}
                                   </td>
                                 ))}
-                                <td className="text-center px-4 py-3 text-xs font-bold text-gray-800 font-mono tabular-nums">
+                                <td className="text-center px-4 py-3 text-xs font-bold text-surface-700 font-mono tabular-nums">
                                   {row.sessions_attended}/{matrix.sessions.length}
                                 </td>
                                 <td className="text-center px-4 py-3 whitespace-nowrap">
                                   {row.has_certificate ? (
-                                    <span className="inline-flex items-center gap-1 rounded-md border border-gray-950 bg-gray-950 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                                    <span className="inline-flex items-center gap-1 rounded-md border border-surface-900 bg-surface-900 px-2 py-0.5 text-[10px] font-bold text-white shadow-card">
                                       <Award className="w-3 h-3" /> Sertifikalı
                                     </span>
                                   ) : row.meets_threshold ? (
-                                    <span className="inline-flex items-center gap-1 rounded-md border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 shadow-sm">
+                                    <span className="inline-flex items-center gap-1 rounded-md border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 shadow-card">
                                       ✓ Hak Kazandı
                                     </span>
                                   ) : (
-                                    <span className="text-gray-300 text-xs font-medium">—</span>
+                                    <span className="text-surface-300 text-xs font-medium">—</span>
                                   )}
                                 </td>
                               </tr>
@@ -1160,7 +1098,19 @@ export default function AdminAttendeesPage() {
         </>
       )}
 
-      {/* GLOBAL MODAL SELLERİ (ConfirmModal Entegrasyonu) */}
+      {/* Modals */}
+      <AddAttendeeModal
+        open={addModalOpen}
+        onClose={() => setAddModalOpen(false)}
+        onAdded={() => loadAttendees(1, "")}
+        eventId={eventId}
+      />
+      <ImportAttendeeModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onImported={() => loadAttendees(1, "")}
+        eventId={eventId}
+      />
       <ConfirmModal open={pendingDeleteId !== null} title="Katılımcıyı sil" description="Bu katılımcı kaydını HeptaCert veritabanından kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz." danger loading={deletingId !== null} onConfirm={confirmDelete} onCancel={() => setPendingDeleteId(null)} />
       <ConfirmModal open={showCertifyConfirm} title="Toplu Sertifika Basım Onayı" description="Yoklama baraj barajını başarıyla aşan tüm katılımcılar için sertifika basım iş kuyruğu (Bulk Queue) tetiklenecektir. Heptacoin harcamasını onaylıyor musunuz?" onConfirm={executeBulkCertify} onCancel={() => setShowCertifyConfirm(false)} />
 
@@ -1169,40 +1119,40 @@ export default function AdminAttendeesPage() {
         {selectedAttendee && (
           <div className="fixed inset-0 z-50 flex justify-end">
             {/* Arka Plan Cam Katmanı */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-gray-900/10 backdrop-blur-sm" onClick={() => setSelectedAttendee(null)} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-surface-800/10 backdrop-blur-sm" onClick={() => setSelectedAttendee(null)} />
             
             {/* Çekmece Gövdesi */}
-            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 220 }} className="relative h-full w-full max-w-sm overflow-y-auto border-l border-gray-200 bg-white/95 backdrop-blur-xl p-5 sm:p-6 shadow-2xl flex flex-col justify-between scrollbar-none">
+            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 220 }} className="relative h-full w-full max-w-sm overflow-y-auto border-l border-surface-200 bg-white/95 backdrop-blur-xl p-5 sm:p-6 shadow-2xl flex flex-col justify-between scrollbar-none">
               <div className="space-y-5">
                 {/* Üst Bilgi Başlığı */}
-                <div className="flex items-start justify-between gap-3 border-b border-gray-100 pb-3">
+                <div className="flex items-start justify-between gap-3 border-b border-surface-100 pb-3">
                   <div className="min-w-0 space-y-0.5">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Katılımcı Profil Kartı</p>
-                    <h3 className="text-base font-bold text-gray-950 tracking-tight truncate">{selectedAttendee.name}</h3>
-                    <p className="text-xs text-gray-400 font-mono truncate">{selectedAttendee.email}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-surface-400">Katılımcı Profil Kartı</p>
+                    <h3 className="text-base font-bold text-surface-900 tracking-tight truncate">{selectedAttendee.name}</h3>
+                    <p className="text-xs text-surface-400 font-mono truncate">{selectedAttendee.email}</p>
                   </div>
-                  <button type="button" onClick={() => setSelectedAttendee(null)} className="rounded-lg p-1 text-gray-400 hover:bg-gray-50 hover:text-gray-950 transition-colors">
+                  <button type="button" onClick={() => setSelectedAttendee(null)} className="rounded-lg p-1 text-surface-400 hover:bg-surface-50 hover:text-surface-900 transition-colors">
                     <XSquare className="h-4 w-4 stroke-[2]" />
                   </button>
                 </div>
 
                 {/* Hızlı Bilgi Matris Hücreleri */}
                 <div className="grid grid-cols-2 gap-2.5 text-xs font-semibold">
-                  <div className="rounded-xl border border-gray-100 bg-gray-50/50 p-3">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Kayıt Modeli</p>
-                    <p className="mt-1 text-xs font-bold text-gray-900">{selectedAttendee.source === "self_register" ? "Kendi formu" : "Excel aktarım"}</p>
+                  <div className="rounded-xl border border-surface-100 bg-surface-50/50 p-3">
+                    <p className="text-[10px] font-bold text-surface-400 uppercase tracking-wide">Kayıt Modeli</p>
+                    <p className="mt-1 text-xs font-bold text-surface-900">{selectedAttendee.source === "self_register" ? "Kendi formu" : "Excel aktarım"}</p>
                   </div>
-                  <div className="rounded-xl border border-gray-100 bg-gray-50/50 p-3">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Katıldığı Oturum</p>
-                    <p className="mt-1 text-sm font-bold text-gray-950 font-mono tabular-nums">{selectedAttendee.sessions_attended}</p>
+                  <div className="rounded-xl border border-surface-100 bg-surface-50/50 p-3">
+                    <p className="text-[10px] font-bold text-surface-400 uppercase tracking-wide">Katıldığı Oturum</p>
+                    <p className="mt-1 text-sm font-bold text-surface-900 font-mono tabular-nums">{selectedAttendee.sessions_attended}</p>
                   </div>
-                  <div className="rounded-xl border border-gray-100 bg-gray-50/50 p-3">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Sertifika Durumu</p>
-                    <p className={`mt-1 text-xs font-bold ${selectedAttendee.has_certificate ? "text-indigo-600" : "text-gray-400"}`}>{selectedAttendee.has_certificate ? "Üretildi" : "Üretilmedi"}</p>
+                  <div className="rounded-xl border border-surface-100 bg-surface-50/50 p-3">
+                    <p className="text-[10px] font-bold text-surface-400 uppercase tracking-wide">Sertifika Durumu</p>
+                    <p className={`mt-1 text-xs font-bold ${selectedAttendee.has_certificate ? "text-indigo-600" : "text-surface-400"}`}>{selectedAttendee.has_certificate ? "Üretildi" : "Üretilmedi"}</p>
                   </div>
-                  <div className="rounded-xl border border-gray-100 bg-gray-50/50 p-3">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Kayıt Zamanı</p>
-                    <p className="mt-1 text-[10px] font-mono font-bold text-gray-500 leading-none">{new Date(selectedAttendee.registered_at).toLocaleDateString("tr-TR")}</p>
+                  <div className="rounded-xl border border-surface-100 bg-surface-50/50 p-3">
+                    <p className="text-[10px] font-bold text-surface-400 uppercase tracking-wide">Kayıt Zamanı</p>
+                    <p className="mt-1 text-[10px] font-mono font-bold text-surface-500 leading-none">{new Date(selectedAttendee.registered_at).toLocaleDateString("tr-TR")}</p>
                   </div>
                 </div>
 
@@ -1210,15 +1160,15 @@ export default function AdminAttendeesPage() {
                 {selectedAttendee.public_member_name && (
                   <div className="rounded-xl border border-emerald-100 bg-emerald-50/30 p-3.5 space-y-1 text-xs font-medium">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Entegre Kurum Üye Bağlantısı</p>
-                    <p className="text-gray-900 font-bold tracking-tight">{selectedAttendee.public_member_name}</p>
-                    <p className="text-[11px] text-gray-400 font-mono truncate">{selectedAttendee.public_member_email}</p>
+                    <p className="text-surface-900 font-bold tracking-tight">{selectedAttendee.public_member_name}</p>
+                    <p className="text-[11px] text-surface-400 font-mono truncate">{selectedAttendee.public_member_email}</p>
                   </div>
                 )}
 
                 {/* Form Özel Cevap Listesi (Dynamic Fields) */}
                 {registrationFields.length > 0 && (
-                  <div className="rounded-xl border border-gray-100 bg-white p-3.5 space-y-3 shadow-inner">
-                    <p className="text-xs font-bold text-gray-950 tracking-tight">Kayıt Formu Soru Yanıtları</p>
+                  <div className="rounded-xl border border-surface-100 bg-white p-3.5 space-y-3 shadow-inner">
+                    <p className="text-xs font-bold text-surface-900 tracking-tight">Kayıt Formu Soru Yanıtları</p>
                     <div className="space-y-2 max-h-[220px] overflow-y-auto scrollbar-none">
                       {registrationFields.map((field) => {
                         const value = selectedAttendee.registration_answers?.[field.id];
@@ -1230,25 +1180,25 @@ export default function AdminAttendeesPage() {
                           : [];
                         const renderedValue = value == null ? "—" : String(value);
                         return (
-                          <div key={field.id} className="rounded-xl border border-gray-50 bg-gray-50/30 px-3 py-2 text-xs font-medium">
-                            <p className="text-[10px] font-bold text-gray-400 truncate">{field.label}</p>
+                          <div key={field.id} className="rounded-xl border border-surface-50 bg-surface-50/30 px-3 py-2 text-xs font-medium">
+                            <p className="text-[10px] font-bold text-surface-400 truncate">{field.label}</p>
                             {field.type === "file" ? (
                               docsForField.length === 0 ? (
-                                <p className="mt-1 text-gray-300 italic">—</p>
+                                <p className="mt-1 text-surface-300 italic">—</p>
                               ) : (
                                 <div className="mt-1 space-y-1">
                                   {docsForField.map((doc, index) => {
                                     const docName = String(doc.name || `Ek Belge ${index + 1}`);
                                     const docPath = String(doc.path || "");
                                     return docPath ? (
-                                      <button key={index} type="button" onClick={() => void handleDownloadRegistrationDocument(docPath, docName)} className="block max-w-full truncate text-left font-semibold text-gray-950 underline underline-offset-2 hover:text-gray-900">
+                                      <button key={index} type="button" onClick={() => void handleDownloadRegistrationDocument(docPath, docName)} className="block max-w-full truncate text-left font-semibold text-surface-900 underline underline-offset-2 hover:text-surface-900">
                                         📁 {docName}
                                       </button>
-                                    ) : <p key={index} className="text-gray-900 font-semibold truncate">{docName}</p>;
+                                    ) : <p key={index} className="text-surface-900 font-semibold truncate">{docName}</p>;
                                   })}
                                 </div>
                               )
-                            ) : <p className="mt-0.5 text-gray-800 font-semibold break-all whitespace-pre-wrap">{renderedValue}</p>}
+                            ) : <p className="mt-0.5 text-surface-700 font-semibold break-all whitespace-pre-wrap">{renderedValue}</p>}
                           </div>
                         );
                       })}
@@ -1258,9 +1208,9 @@ export default function AdminAttendeesPage() {
               </div>
 
               {/* Hızlı Profil Aksiyon Butonları */}
-              <div className="space-y-2 pt-4 border-t border-gray-100">
-                <button type="button" onClick={() => void handleCopySurveyLink(selectedAttendee.id)} className="w-full inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">
-                  <Link2 className="h-3.5 w-3.5 text-gray-400 stroke-[2]" /> <span>Kişisel Anket Linki</span>
+              <div className="space-y-2 pt-4 border-t border-surface-100">
+                <button type="button" onClick={() => void handleCopySurveyLink(selectedAttendee.id)} className="w-full inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white text-xs font-semibold text-surface-700 shadow-card transition hover:bg-surface-50">
+                  <Link2 className="h-3.5 w-3.5 text-surface-400 stroke-[2]" /> <span>Kişisel Anket Linki</span>
                 </button>
                 <button
                   type="button"

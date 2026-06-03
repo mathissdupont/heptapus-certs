@@ -147,11 +147,11 @@ function SidebarContent({
   return (
     <div className="flex h-full flex-col">
       <div className={`flex items-center border-b border-sidebar-border ${collapsed ? "justify-center px-0 py-5" : "gap-2.5 px-4 py-5"}`}>
-        <HeptaCertLogoMark className="h-8 w-8 rounded-lg shadow-brand" />
+        <HeptaCertLogoMark className="h-8 w-8 rounded-lg shadow-card" />
         {!collapsed && (
           <>
-            <span className="text-sm font-bold tracking-tight text-surface-900">HeptaCert</span>
-            <span className="ml-auto rounded-md bg-surface-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-surface-600">Admin</span>
+            <span className="text-sm font-semibold tracking-tight text-surface-900">HeptaCert</span>
+            <span className="ml-auto rounded-md bg-surface-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-surface-500">Admin</span>
           </>
         )}
       </div>
@@ -160,7 +160,7 @@ function SidebarContent({
         {NAV_GROUPS.map((group) => (
           <div key={group.label.en}>
             {!collapsed && (
-              <p className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-widest text-surface-400">
+              <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-wider text-surface-400">
                 {group.label[lang]}
               </p>
             )}
@@ -359,10 +359,10 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
             <LanguageToggle className="inline-flex items-center gap-2 rounded-lg border border-surface-200 bg-white px-3 py-1.5 text-xs font-bold text-surface-700 shadow-sm transition-colors hover:bg-surface-50 hover:text-surface-900" />
             <div className="hidden min-w-0 items-center gap-3 lg:flex">
               <div className="text-right">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-400">{topbarText.workspace}</div>
-                <div className="text-sm font-semibold text-surface-800">{currentSection}</div>
+                <div className="text-[10px] font-medium uppercase tracking-wider text-surface-400">{topbarText.workspace}</div>
+                <div className="text-sm font-medium text-surface-700">{currentSection}</div>
               </div>
-              <div className="rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-xs font-semibold text-surface-700">
+              <div className="rounded-full border border-surface-200 bg-surface-50 px-2.5 py-0.5 text-[11px] font-medium text-surface-500">
                 {topbarText.live}
               </div>
             </div>
