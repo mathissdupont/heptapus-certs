@@ -294,7 +294,7 @@ export default function AdminSessionsPage() {
             </h2>
             <form onSubmit={handleSaveSession} className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Oturum Adı *</label>
+                <label className="block text-xs font-medium text-surface-600 mb-1">Oturum Adı *</label>
                 <input
                   type="text"
                   value={formName}
@@ -320,7 +320,7 @@ export default function AdminSessionsPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Konum</label>
+                <label className="block text-xs font-medium text-surface-600 mb-1">Konum</label>
                 <input
                   type="text"
                   value={formLocation}
@@ -364,7 +364,7 @@ export default function AdminSessionsPage() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-gray-800">{s.name}</span>
+                      <span className="font-semibold text-surface-700">{s.name}</span>
                       {s.is_active && (
                         <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">
                           <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse inline-block" />
@@ -445,7 +445,7 @@ export default function AdminSessionsPage() {
       {qrModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setQrModal(null)}>
           <div className="bg-white rounded-3xl shadow-2xl p-6 max-w-xs w-full text-center" onClick={(e) => e.stopPropagation()}>
-            <h2 className="font-bold text-gray-800 mb-1">{qrModal.sessionName}</h2>
+            <h2 className="font-bold text-surface-700 mb-1">{qrModal.sessionName}</h2>
             <p className="text-xs text-gray-400 mb-4">QR kodu ekranınızda gösterin veya yazdırın</p>
             <img src={qrModal.url} alt="Check-in QR" className="w-48 h-48 mx-auto rounded-xl border" />
             <p className="text-xs text-gray-400 mt-3 break-all">{qrModal.checkinUrl}</p>
@@ -464,12 +464,12 @@ export default function AdminSessionsPage() {
                     "_blank"
                   );
                 }}
-                className="flex-1 inline-flex items-center justify-center gap-2 border border-gray-200 text-gray-700 text-sm font-semibold py-2 rounded-xl hover:bg-gray-50 transition"
+                className="flex-1 inline-flex items-center justify-center gap-2 border border-surface-200 text-gray-700 text-sm font-semibold py-2 rounded-xl hover:bg-gray-50 transition"
               >
                 <ExternalLink className="w-4 h-4" /> Sunum
               </button>
             </div>
-            <button onClick={() => setQrModal(null)} className="mt-2 w-full text-sm text-gray-400 hover:text-gray-600 py-1 transition">
+            <button onClick={() => setQrModal(null)} className="mt-2 w-full text-sm text-gray-400 hover:text-surface-600 py-1 transition">
               Kapat
             </button>
           </div>
