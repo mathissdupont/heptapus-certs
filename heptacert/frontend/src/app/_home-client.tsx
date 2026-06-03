@@ -714,7 +714,7 @@ function PublicFooter({
               <span className="text-[10px] font-medium uppercase tracking-widest text-slate-500">{footerCopy.subsidiary}</span>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="https://heptapusgroup.com/icons/heptapus_logo.png"
+                src="https://heptapusgroup.com/icons/heptapus_logo_white.png"
                 alt="Heptapus Group"
                 className="h-3.5 w-auto object-contain"
               />

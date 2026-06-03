@@ -1,6 +1,6 @@
 from typing import Dict, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,6 +26,7 @@ from .main import (
     get_db,
     get_optional_public_member,
     sanitize_event_description_html,
+    _organization_for_request_host,
 )
 
 router = APIRouter()
@@ -49,13 +50,24 @@ async def _load_community_enabled_user_ids(db: AsyncSession, user_ids: list[int]
     return enabled_user_ids
 
 
+async def _ensure_org_allowed_for_request_host(request: Request, db: AsyncSession, org: Organization) -> None:
+    host_org = await _organization_for_request_host(request, db)
+    if host_org and host_org.id != org.id:
+        raise HTTPException(status_code=404, detail="Organization not found.")
+
+
 @router.get("/api/public/organizations", response_model=list[PublicOrganizationListItemOut])
 async def list_public_organizations(
+    request: Request,
     limit: int = Query(default=24, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_db),
 ):
-    orgs_res = await db.execute(select(Organization).order_by(Organization.created_at.desc()))
+    host_org = await _organization_for_request_host(request, db)
+    stmt = select(Organization).order_by(Organization.created_at.desc())
+    if host_org:
+        stmt = stmt.where(Organization.id == host_org.id)
+    orgs_res = await db.execute(stmt)
     organizations = orgs_res.scalars().all()
     if not organizations:
         return []
@@ -89,6 +101,7 @@ async def list_public_organizations(
 @router.get("/api/public/organizations/{org_public_id}", response_model=PublicOrganizationDetailOut)
 async def get_public_organization_detail(
     org_public_id: str,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     member: Optional[CurrentPublicMember] = Depends(get_optional_public_member),
 ):
@@ -96,6 +109,7 @@ async def get_public_organization_detail(
     org = org_res.scalar_one_or_none()
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found.")
+    await _ensure_org_allowed_for_request_host(request, db, org)
 
     enabled_user_ids = await _load_community_enabled_user_ids(db, [org.user_id])
     if org.user_id not in enabled_user_ids:
@@ -167,6 +181,7 @@ async def get_public_organization_detail(
 @router.post("/api/public/organizations/{org_public_id}/follow")
 async def follow_public_organization(
     org_public_id: str,
+    request: Request,
     member: CurrentPublicMember = Depends(get_current_public_member),
     db: AsyncSession = Depends(get_db),
 ):
@@ -174,6 +189,7 @@ async def follow_public_organization(
     org = org_res.scalar_one_or_none()
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found.")
+    await _ensure_org_allowed_for_request_host(request, db, org)
 
     enabled_user_ids = await _load_community_enabled_user_ids(db, [org.user_id])
     if org.user_id not in enabled_user_ids:
@@ -194,6 +210,7 @@ async def follow_public_organization(
 @router.delete("/api/public/organizations/{org_public_id}/follow")
 async def unfollow_public_organization(
     org_public_id: str,
+    request: Request,
     member: CurrentPublicMember = Depends(get_current_public_member),
     db: AsyncSession = Depends(get_db),
 ):
@@ -201,6 +218,7 @@ async def unfollow_public_organization(
     org = org_res.scalar_one_or_none()
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found.")
+    await _ensure_org_allowed_for_request_host(request, db, org)
 
     enabled_user_ids = await _load_community_enabled_user_ids(db, [org.user_id])
     if org.user_id not in enabled_user_ids:

@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertCircle,
   Building2,
+  CheckCircle2,
   Globe,
   ImageIcon,
   Loader2,
@@ -12,6 +13,7 @@ import {
   Plus,
   Save,
   Trash2,
+  XCircle,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import PageHeader from "@/components/Admin/PageHeader";
@@ -28,6 +30,11 @@ type OrgRow = {
   brand_logo: string | null;
   brand_color: string;
   created_at: string;
+  domain_status: string | null;
+  domain_token: string | null;
+  verification_host: string | null;
+  dns_target: string | null;
+  caddy_authorized: boolean;
 };
 
 const EMPTY_FORM = {
@@ -49,6 +56,7 @@ export default function SuperadminOrgsPage() {
   const [editId, setEditId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [domainActionId, setDomainActionId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
 
   const copy = lang === "tr"
@@ -64,6 +72,9 @@ export default function SuperadminOrgsPage() {
         loadFailed: "Kurumlar yüklenemedi",
         saveFailed: "Kurum kaydedilemedi",
         deleteFailed: "Kurum silinemedi",
+        domainApproveSuccess: "Domain onaylandı ve Caddy için aktif edildi",
+        domainRevokeSuccess: "Domain yayından kaldırıldı",
+        domainActionFailed: "Domain işlemi tamamlanamadı",
         total: "Toplam kurum",
         domains: "Özel domain",
         branded: "Logo tanımlı",
@@ -81,6 +92,13 @@ export default function SuperadminOrgsPage() {
         deleteDescription: "Bu işlem geri alınamaz. Kurum kaydını kalıcı olarak silmek istediğinizden emin misiniz?",
         noDomain: "Domain yok",
         noLogo: "Logo yok",
+        domainStatus: "Domain durumu",
+        approveDomain: "Domaini onayla",
+        revokeDomain: "Yayından kaldır",
+        caddyReady: "Caddy hazır",
+        caddyWaiting: "Caddy bekliyor",
+        dnsTarget: "DNS hedefi",
+        verificationRecord: "Doğrulama kaydı",
         locale: "tr-TR",
       }
     : {
@@ -95,6 +113,9 @@ export default function SuperadminOrgsPage() {
         loadFailed: "Failed to load organizations",
         saveFailed: "Failed to save organization",
         deleteFailed: "Failed to delete organization",
+        domainApproveSuccess: "Domain approved and enabled for Caddy",
+        domainRevokeSuccess: "Domain unpublished",
+        domainActionFailed: "Domain action failed",
         total: "Organizations",
         domains: "Custom domains",
         branded: "With logo",
@@ -112,6 +133,13 @@ export default function SuperadminOrgsPage() {
         deleteDescription: "This action cannot be undone. Are you sure you want to permanently delete this organization?",
         noDomain: "No domain",
         noLogo: "No logo",
+        domainStatus: "Domain status",
+        approveDomain: "Approve domain",
+        revokeDomain: "Unpublish",
+        caddyReady: "Caddy ready",
+        caddyWaiting: "Waiting for Caddy",
+        dnsTarget: "DNS target",
+        verificationRecord: "Verification record",
         locale: "en-US",
       };
 
@@ -222,6 +250,24 @@ export default function SuperadminOrgsPage() {
       toast.error(message);
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const runDomainAction = async (org: OrgRow, action: "approve" | "revoke") => {
+    try {
+      setDomainActionId(org.id);
+      setError(null);
+      const response = await apiFetch(`/superadmin/organizations/${org.id}/domain/${action}`, { method: "POST" });
+      const updated = await response.json();
+      setOrgs((current) => current.map((item) => (item.id === org.id ? { ...item, ...updated } : item)));
+      toast.success(action === "approve" ? copy.domainApproveSuccess : copy.domainRevokeSuccess);
+      await load();
+    } catch (e: any) {
+      const message = e?.message || copy.domainActionFailed;
+      setError(message);
+      toast.error(message);
+    } finally {
+      setDomainActionId(null);
     }
   };
 
@@ -385,6 +431,35 @@ export default function SuperadminOrgsPage() {
                     <Globe className="h-3.5 w-3.5" /> {copy.customDomain}
                   </div>
                   <p className="mt-2 break-all text-sm font-medium text-surface-800">{org.custom_domain || copy.noDomain}</p>
+                  {org.custom_domain && (
+                    <div className="mt-3 space-y-2 text-xs text-surface-500">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-semibold text-surface-600">{copy.domainStatus}:</span>
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-semibold ${
+                            org.domain_status === "active"
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                              : org.domain_status === "revoked"
+                                ? "border-rose-200 bg-rose-50 text-rose-700"
+                                : "border-amber-200 bg-amber-50 text-amber-700"
+                          }`}
+                        >
+                          {org.domain_status === "active" ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+                          {org.domain_status || "pending"}
+                        </span>
+                      </div>
+                      {org.dns_target && (
+                        <p className="break-all">
+                          <span className="font-semibold text-surface-600">{copy.dnsTarget}:</span> {org.dns_target}
+                        </p>
+                      )}
+                      {org.verification_host && (
+                        <p className="break-all">
+                          <span className="font-semibold text-surface-600">{copy.verificationRecord}:</span> {org.verification_host}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="rounded-2xl border border-surface-200 bg-surface-50 p-4">
                   <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-surface-400">
@@ -398,6 +473,41 @@ export default function SuperadminOrgsPage() {
                 <span>{new Date(org.created_at).toLocaleDateString(copy.locale)}</span>
                 <span>{org.brand_color}</span>
               </div>
+              {org.custom_domain && (
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-surface-200 bg-white p-3">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-surface-500">
+                    {org.caddy_authorized ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-amber-600" />
+                    )}
+                    {org.caddy_authorized ? copy.caddyReady : copy.caddyWaiting}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {org.domain_status !== "active" && (
+                      <button
+                        type="button"
+                        onClick={() => runDomainAction(org, "approve")}
+                        disabled={domainActionId === org.id}
+                        className="btn-primary gap-2 text-xs"
+                      >
+                        {domainActionId === org.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                        {copy.approveDomain}
+                      </button>
+                    )}
+                    {org.domain_status === "active" && (
+                      <button
+                        type="button"
+                        onClick={() => runDomainAction(org, "revoke")}
+                        disabled={domainActionId === org.id}
+                        className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
+                      >
+                        {domainActionId === org.id ? <Loader2 className="inline h-3.5 w-3.5 animate-spin" /> : copy.revokeDomain}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </article>
           ))}
         </div>

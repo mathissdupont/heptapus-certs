@@ -3069,6 +3069,11 @@ class OrgOut(BaseModel):
     brand_logo: Optional[str] = None
     brand_color: str
     created_at: datetime
+    domain_status: Optional[str] = None
+    domain_token: Optional[str] = None
+    verification_host: Optional[str] = None
+    dns_target: Optional[str] = None
+    caddy_authorized: bool = False
 
 
 class AuditLogOut(BaseModel):
@@ -19412,6 +19417,67 @@ async def organization_google_calendar_sync(
 
 # ═════ SUPERADMIN: ORGANIZATIONS ═════
 
+def _white_label_dns_target() -> str:
+    parsed = urlparse(settings.frontend_base_url)
+    return (parsed.hostname or settings.frontend_base_url.replace("https://", "").replace("http://", "").split("/", 1)[0]).strip()
+
+
+def _white_label_verification_host(domain: Optional[str]) -> Optional[str]:
+    return f"_heptacert-verify.{domain}" if domain else None
+
+
+def _serialize_superadmin_org(org: Organization, domain_row: Optional[Any] = None) -> dict[str, Any]:
+    domain_status = getattr(domain_row, "status", None) if domain_row else None
+    return {
+        "id": org.id,
+        "user_id": org.user_id,
+        "public_id": org.public_id,
+        "org_name": org.org_name,
+        "custom_domain": org.custom_domain,
+        "brand_logo": org.brand_logo,
+        "brand_color": org.brand_color,
+        "created_at": org.created_at.isoformat() if org.created_at else None,
+        "domain_status": domain_status,
+        "domain_token": getattr(domain_row, "token", None) if domain_row else None,
+        "verification_host": _white_label_verification_host(org.custom_domain),
+        "dns_target": _white_label_dns_target() if org.custom_domain else None,
+        "caddy_authorized": bool(org.custom_domain and domain_status == "active"),
+    }
+
+
+async def _domain_row_for_org(db: AsyncSession, org: Organization) -> Optional[Any]:
+    if not org.custom_domain:
+        return None
+    from .domains import Domain
+
+    return await Domain.get_by_domain(db, org.custom_domain)
+
+
+async def _ensure_domain_row_for_org(db: AsyncSession, org: Organization) -> Optional[Any]:
+    if not org.custom_domain:
+        return None
+    from .domains import Domain
+
+    dom = await Domain.get_by_domain(db, org.custom_domain)
+    if dom:
+        dom.owner = str(org.user_id)
+        db.add(dom)
+        await db.flush()
+        return dom
+    return await Domain.create(db, org.custom_domain, owner=str(org.user_id))
+
+
+async def _sync_superadmin_org_domain(db: AsyncSession, org: Organization, old_domain: Optional[str]) -> None:
+    from .domains import Domain, DomainStatus
+
+    if old_domain and old_domain != org.custom_domain:
+        old = await Domain.get_by_domain(db, old_domain)
+        if old:
+            old.status = DomainStatus.revoked
+            db.add(old)
+    await _ensure_domain_row_for_org(db, org)
+
+
 @app.get("/api/superadmin/organizations", dependencies=[Depends(require_role(Role.superadmin))])
 async def get_organizations(
     page: int = Query(default=1, ge=1),
@@ -19427,24 +19493,19 @@ async def get_organizations(
     q = q.order_by(Organization.created_at.desc()).offset((page - 1) * limit).limit(limit)
     res = await db.execute(q)
     organizations = res.scalars().all()
+    domains_by_name: dict[str, Any] = {}
+    custom_domains = [org.custom_domain for org in organizations if org.custom_domain]
+    if custom_domains:
+        from .domains import Domain
+
+        domain_res = await db.execute(select(Domain).where(Domain.domain.in_(custom_domains)))
+        domains_by_name = {dom.domain: dom for dom in domain_res.scalars().all()}
     
     return {
         "total": total,
         "page": page,
         "limit": limit,
-        "items": [
-            {
-                "id": org.id,
-                "user_id": org.user_id,
-                "public_id": org.public_id,
-                "org_name": org.org_name,
-                "custom_domain": org.custom_domain,
-                "brand_logo": org.brand_logo,
-                "brand_color": org.brand_color,
-                "created_at": org.created_at.isoformat() if org.created_at else None,
-            }
-            for org in organizations
-        ]
+        "items": [_serialize_superadmin_org(org, domains_by_name.get(org.custom_domain or "")) for org in organizations],
     }
 
 
@@ -19482,10 +19543,12 @@ async def create_organization(
         settings={},
     )
     db.add(org)
+    await db.flush()
+    await _ensure_domain_row_for_org(db, org)
     await write_audit_log(db, user_id=me.id, action="organization.create", resource_type="organization", resource_id=str(payload.user_id))
     await db.commit()
     await db.refresh(org)
-    return org
+    return _serialize_superadmin_org(org, await _domain_row_for_org(db, org))
 
 
 @app.patch("/api/superadmin/organizations/{org_id}", dependencies=[Depends(require_role(Role.superadmin))])
@@ -19512,6 +19575,7 @@ async def update_organization(
             raise HTTPException(status_code=400, detail="Organization already exists for this user")
         org.user_id = payload.user_id
 
+    old_domain = org.custom_domain
     custom_domain = payload.custom_domain.strip().lower() if payload.custom_domain else None
     if custom_domain:
         domain_res = await db.execute(
@@ -19524,10 +19588,75 @@ async def update_organization(
     org.custom_domain = custom_domain
     org.brand_logo = payload.brand_logo.strip() if payload.brand_logo else None
     org.brand_color = payload.brand_color
+    await _sync_superadmin_org_domain(db, org, old_domain)
     await write_audit_log(db, user_id=me.id, action="organization.update", resource_type="organization", resource_id=str(org_id))
     await db.commit()
     await db.refresh(org)
-    return org
+    return _serialize_superadmin_org(org, await _domain_row_for_org(db, org))
+
+
+@app.post("/api/superadmin/organizations/{org_id}/domain/approve", dependencies=[Depends(require_role(Role.superadmin))])
+async def approve_organization_domain(
+    org_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from .domains import DomainStatus
+
+    org_res = await db.execute(select(Organization).where(Organization.id == org_id))
+    org = org_res.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    if not org.custom_domain:
+        raise HTTPException(status_code=400, detail="Organization has no custom domain")
+
+    dom = await _ensure_domain_row_for_org(db, org)
+    dom.status = DomainStatus.active
+    db.add(dom)
+    await write_audit_log(
+        db,
+        user_id=me.id,
+        action="organization.domain.approve",
+        resource_type="organization",
+        resource_id=str(org.id),
+        extra={"domain": org.custom_domain},
+    )
+    await db.commit()
+    await db.refresh(org)
+    return _serialize_superadmin_org(org, await _domain_row_for_org(db, org))
+
+
+@app.post("/api/superadmin/organizations/{org_id}/domain/revoke", dependencies=[Depends(require_role(Role.superadmin))])
+async def revoke_organization_domain(
+    org_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from .domains import Domain, DomainStatus
+
+    org_res = await db.execute(select(Organization).where(Organization.id == org_id))
+    org = org_res.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    old_domain = org.custom_domain
+    if old_domain:
+        dom = await Domain.get_by_domain(db, old_domain)
+        if dom:
+            dom.status = DomainStatus.revoked
+            db.add(dom)
+    org.custom_domain = None
+    await write_audit_log(
+        db,
+        user_id=me.id,
+        action="organization.domain.revoke",
+        resource_type="organization",
+        resource_id=str(org.id),
+        extra={"domain": old_domain},
+    )
+    await db.commit()
+    await db.refresh(org)
+    return _serialize_superadmin_org(org, None)
 
 
 @app.delete("/api/superadmin/organizations/{org_id}", dependencies=[Depends(require_role(Role.superadmin))])
@@ -19540,6 +19669,13 @@ async def delete_organization(
     org = org_res.scalar_one_or_none()
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
+    if org.custom_domain:
+        from .domains import Domain, DomainStatus
+
+        dom = await Domain.get_by_domain(db, org.custom_domain)
+        if dom:
+            dom.status = DomainStatus.revoked
+            db.add(dom)
     await db.delete(org)
     await write_audit_log(db, user_id=me.id, action="organization.delete", resource_type="organization", resource_id=str(org_id))
     await db.commit()

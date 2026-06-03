@@ -1,0 +1,46 @@
+# HeptaCert white-label automation for the shared Worldpass Caddy
+#
+# The HeptaCert compose file joins the external Caddy network with stable aliases:
+#   heptacert-backend  -> backend:8000
+#   heptacert-frontend -> frontend:3000
+#
+# In production keep the Caddy container inside the Worldpass stack. Do not run a
+# second HeptaCert Caddy. Add the global on-demand block once, then keep the
+# catch-all :443 block below your explicit host blocks.
+
+{
+	email contact@heptapusgroup.com
+
+	on_demand_tls {
+		ask http://heptacert-backend:8000/.internal/caddy/authorize
+	}
+}
+
+# Keep explicit hostnames such as worldpass-beta.heptapusgroup.com,
+# cert.heptapusgroup.com, heptapusgroup.com, mail.heptapusgroup.com, etc. as
+# normal site blocks. They stay above this catch-all and take priority.
+
+:443 {
+	tls {
+		on_demand
+	}
+
+	@api path /api/* /docs* /redoc*
+	handle @api {
+		reverse_proxy heptacert-backend:8000
+	}
+
+	handle {
+		reverse_proxy heptacert-frontend:3000
+	}
+}
+
+# Customer DNS:
+#   CNAME certs.customer.com -> cert.heptapusgroup.com
+# or A/AAAA -> the same server running the Worldpass Caddy.
+#
+# Superadmin flow:
+#   1. Add custom_domain on /admin/superadmin/orgs.
+#   2. Ask customer to point DNS.
+#   3. Click "Approve domain".
+#   4. Caddy asks HeptaCert and gets 200 only for approved active domains.

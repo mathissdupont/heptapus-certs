@@ -106,8 +106,10 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - default
-      - caddy_net
+      default:
+      caddy_net:
+        aliases:
+          - heptacert-backend
     restart: unless-stopped
 
   backend_jobs:
@@ -165,8 +167,10 @@ services:
       backend:
         condition: service_healthy
     networks:
-      - default
-      - caddy_net
+      default:
+      caddy_net:
+        aliases:
+          - heptacert-backend-jobs
     restart: unless-stopped
 
   frontend:
@@ -182,8 +186,10 @@ services:
       backend:
         condition: service_healthy
     networks:
-      - default
-      - caddy_net
+      default:
+      caddy_net:
+        aliases:
+          - heptacert-frontend
     restart: unless-stopped
 
 

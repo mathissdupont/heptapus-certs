@@ -109,3 +109,61 @@ async def test_delete_domain_clears_custom_domain_and_blocks_other_users():
         )
         assert org_resp.status_code == 200
         assert org_resp.json()["custom_domain"] is None
+
+
+@pytest.mark.asyncio
+async def test_superadmin_approves_and_revokes_white_label_domain():
+    owner = await _create_user("domain-org-owner@example.com")
+    async with SessionLocal() as sess:
+        async with sess.begin():
+            superadmin = User(email="domain-superadmin@example.com", password_hash="x", role=Role.superadmin)
+            sess.add(superadmin)
+            await sess.flush()
+            superadmin_id = superadmin.id
+            org = Organization(
+                user_id=owner.id,
+                public_id="org_domain_approve",
+                org_name="ApproveOrg",
+                custom_domain="approve.example.test",
+                brand_color="#123456",
+            )
+            sess.add(org)
+            await sess.flush()
+            org_id = org.id
+
+    token = create_access_token(user_id=superadmin_id, role=Role.superadmin)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        before = await ac.get(
+            "/.internal/caddy/authorize",
+            params={"domain": "approve.example.test"},
+        )
+        assert before.status_code == 403
+
+        approved = await ac.post(
+            f"/api/superadmin/organizations/{org_id}/domain/approve",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert approved.status_code == 200
+        approved_data = approved.json()
+        assert approved_data["domain_status"] == "active"
+        assert approved_data["caddy_authorized"] is True
+
+        after = await ac.get(
+            "/.internal/caddy/authorize",
+            params={"domain": "approve.example.test"},
+        )
+        assert after.status_code == 200
+
+        revoked = await ac.post(
+            f"/api/superadmin/organizations/{org_id}/domain/revoke",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert revoked.status_code == 200
+        assert revoked.json()["custom_domain"] is None
+
+        blocked = await ac.get(
+            "/.internal/caddy/authorize",
+            params={"domain": "approve.example.test"},
+        )
+        assert blocked.status_code == 403
