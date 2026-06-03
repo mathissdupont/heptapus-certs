@@ -334,6 +334,15 @@ async def preview_email_template(
         subject = template.subject_tr
     
     body_html = template.body_html
+    common_variables = build_email_template_vars(
+        settings=settings,
+        event=event,
+        recipient_name=sample_attendee.get("name", "Örnek Katılımcı"),
+        recipient_email=sample_attendee.get("email", "ornek@example.com"),
+        cert_uuid="sample-certificate-uuid",
+    )
+    subject = render_template_string(subject, common_variables)
+    body_html = render_template_string(body_html, common_variables)
     
     # Replace variables
     for var, value in variables.items():
