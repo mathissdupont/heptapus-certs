@@ -180,6 +180,7 @@ services:
         NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-http://localhost:8765/api}
     environment:
       NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-http://localhost:8765/api}
+      NEXT_SERVER_API_BASE: ${NEXT_SERVER_API_BASE:-http://heptacert-backend:8000/api}
     ports:
       - "3030:3000"
     depends_on:

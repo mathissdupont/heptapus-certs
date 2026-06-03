@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ExternalLink,
@@ -35,6 +35,7 @@ import {
 } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { normalizeExternalUrl } from "@/lib/url";
+import { fetchCurrentBranding, isWhiteLabelBranding } from "@/lib/whiteLabel";
 
 function formatTimestamp(value: string, lang: "tr" | "en") {
   return new Intl.DateTimeFormat(lang === "tr" ? "tr-TR" : "en-US", {
@@ -48,6 +49,7 @@ function formatTimestamp(value: string, lang: "tr" | "en") {
 
 export default function PublicOrganizationDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const orgPublicId = Array.isArray(params?.id) ? params.id[0] : params?.id;
   const { lang } = useI18n();
   const [org, setOrg] = useState<PublicOrganizationDetail | null>(null);
@@ -62,9 +64,11 @@ export default function PublicOrganizationDetailPage() {
   const [posting, setPosting] = useState(false);
   const [busyPostId, setBusyPostId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isWhiteLabel, setIsWhiteLabel] = useState(false);
 
   const copy = useMemo(() => lang === "tr" ? {
     back: "Topluluklara Dön",
+    organizationBack: "Kurum etkinliklerine dön",
     loading: "Topluluk yükleniyor...",
     error: "Topluluk bulunamadı.",
     followers: "Takipçi",
@@ -77,6 +81,7 @@ export default function PublicOrganizationDetailPage() {
     social: "İletişim",
   } : {
     back: "Back to Communities",
+    organizationBack: "Back to organization events",
     loading: "Loading community...",
     error: "Community not found.",
     followers: "Followers",
@@ -101,20 +106,33 @@ export default function PublicOrganizationDetailPage() {
     setError(null);
     Promise.all([
       getPublicOrganizationDetail(orgPublicId),
-      listOrganizationFeed(orgPublicId, { limit: 20 }),
       getPublicMemberToken() ? getPublicMemberMe().catch(() => null) : Promise.resolve(null),
+      fetchCurrentBranding().catch(() => null),
     ])
-      .then(([orgData, feedData, viewerData]) => {
+      .then(([orgData, viewerData, brandingData]) => {
+        const whiteLabel = isWhiteLabelBranding(brandingData, typeof window !== "undefined" ? window.location.hostname : "");
+        if (whiteLabel && brandingData?.public_id && brandingData.public_id !== orgData.public_id) {
+          router.replace("/");
+          return;
+        }
+        setIsWhiteLabel(whiteLabel);
         setOrg(orgData);
-        setPosts(feedData);
         setViewer(viewerData);
+        if (whiteLabel) {
+          setPosts([]);
+          setLoadingFeed(false);
+          return;
+        }
+        listOrganizationFeed(orgPublicId, { limit: 20 })
+          .then((feedData) => setPosts(feedData))
+          .catch((err: any) => setError(err?.message || copy.error))
+          .finally(() => setLoadingFeed(false));
       })
       .catch((err: any) => setError(err?.message || copy.error))
       .finally(() => {
         setLoading(false);
-        setLoadingFeed(false);
       });
-  }, [copy.error, orgPublicId]);
+  }, [copy.error, orgPublicId, router]);
 
   async function handleFollowToggle() {
     if (!org) return;
@@ -212,6 +230,8 @@ export default function PublicOrganizationDetailPage() {
     { href: normalizeExternalUrl(org.x_url), label: "X", icon: ExternalLink },
     { href: normalizeExternalUrl(org.instagram_url), label: "Instagram", icon: Instagram },
   ].filter((item) => !!item.href) : [];
+  const backHref = isWhiteLabel ? "/" : "/organizations";
+  const backLabel = isWhiteLabel ? copy.organizationBack : copy.back;
 
   if (loading) {
     return (
@@ -230,11 +250,11 @@ export default function PublicOrganizationDetailPage() {
         <div className="text-center max-w-md px-6">
           <h1 className="text-xl font-semibold text-gray-900 mb-2">{copy.error || error}</h1>
           <Link
-            href="/organizations"
+            href={backHref}
             className="inline-flex items-center gap-2 px-4 py-2 mt-4 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium shadow-sm"
           >
             <ArrowLeft className="h-4 w-4" />
-            {copy.back}
+            {backLabel}
           </Link>
         </div>
       </div>
@@ -247,11 +267,11 @@ export default function PublicOrganizationDetailPage() {
       <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200 px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center">
           <Link
-            href="/organizations"
+            href={backHref}
             className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition"
           >
             <ArrowLeft className="h-4 w-4" />
-            {copy.back}
+            {backLabel}
           </Link>
         </div>
       </div>
@@ -336,40 +356,42 @@ export default function PublicOrganizationDetailPage() {
                   )}
                 </div>
 
-                {/* Follow Button */}
-                <button
-                  type="button"
-                  onClick={() => void handleFollowToggle()}
-                  disabled={busy}
-                  className="inline-flex items-center justify-center rounded-lg px-6 py-2.5 text-sm font-medium transition disabled:opacity-60 shrink-0 whitespace-nowrap shadow-sm w-full sm:w-auto"
-                  style={{
-                    backgroundColor: getPublicMemberToken()
+                {!isWhiteLabel && (
+                  <button
+                    type="button"
+                    onClick={() => void handleFollowToggle()}
+                    disabled={busy}
+                    className="inline-flex items-center justify-center rounded-lg px-6 py-2.5 text-sm font-medium transition disabled:opacity-60 shrink-0 whitespace-nowrap shadow-sm w-full sm:w-auto"
+                    style={{
+                      backgroundColor: getPublicMemberToken()
+                        ? org.is_following
+                          ? "#f3f4f6"
+                          : org.brand_color || "#0f172a"
+                        : org.brand_color || "#0f172a",
+                      color: getPublicMemberToken()
+                        ? org.is_following
+                          ? "#374151"
+                          : "#ffffff"
+                        : "#ffffff",
+                      border: getPublicMemberToken() && org.is_following ? "1px solid #e5e7eb" : "1px solid transparent",
+                    }}
+                  >
+                    {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {getPublicMemberToken()
                       ? org.is_following
-                        ? "#f3f4f6" // gray-100
-                        : org.brand_color || "#0f172a" // slate-900 fallback
-                      : org.brand_color || "#0f172a",
-                    color: getPublicMemberToken()
-                      ? org.is_following
-                        ? "#374151" // gray-700
-                        : "#ffffff"
-                      : "#ffffff",
-                    border: getPublicMemberToken() && org.is_following ? "1px solid #e5e7eb" : "1px solid transparent",
-                  }}
-                >
-                  {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {getPublicMemberToken()
-                    ? org.is_following
-                      ? copy.unfollow
-                      : copy.follow
-                    : copy.loginToFollow}
-                </button>
+                        ? copy.unfollow
+                        : copy.follow
+                      : copy.loginToFollow}
+                  </button>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className={`grid grid-cols-1 gap-8 ${isWhiteLabel ? "" : "lg:grid-cols-3"}`}>
           {/* Main Feed Column (Left / 2-cols wide) */}
+          {!isWhiteLabel && (
           <div className="lg:col-span-2 space-y-6">
             <h2 className="text-lg font-bold text-gray-900 px-1">
               {copy.feed}
@@ -574,6 +596,7 @@ export default function PublicOrganizationDetailPage() {
               </div>
             )}
           </div>
+          )}
 
           {/* Sidebar / Events Column */}
           <div className="space-y-6">
@@ -586,7 +609,7 @@ export default function PublicOrganizationDetailPage() {
                 {copy.noEvents}
               </div>
             ) : (
-              <div className="flex flex-col gap-4">
+              <div className={isWhiteLabel ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col gap-4"}>
                 {org.events.map((event) => (
                   <Link
                     key={event.public_id}
