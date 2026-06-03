@@ -329,7 +329,7 @@ export default function SurveysPage() {
           <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
             <Link
               href={`/admin/events/${eventId}/certificates`}
-              className="inline-flex rounded-xl border border-surface-200 bg-white p-2.5 text-surface-700 shadow-sm transition hover:border-surface-300 hover:text-surface-700"
+              className="inline-flex rounded-xl border border-surface-200 bg-white p-2.5 text-surface-700 shadow-card transition hover:border-surface-300 hover:text-surface-700"
             >
               <ChevronLeft className="h-5 w-5" />
             </Link>
@@ -463,7 +463,7 @@ export default function SurveysPage() {
                   </label>
                 </div>
 
-                <div className="mt-4 rounded-2xl border border-surface-200 bg-surface-50 p-4">
+                <div className="mt-4 rounded-xl border border-surface-200 bg-surface-50 p-4">
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
                       <p className="text-sm font-semibold text-surface-900">Anketi tamamen kapat</p>
@@ -498,7 +498,7 @@ export default function SurveysPage() {
                       key={item.value}
                       type="button"
                       onClick={() => setSurveyType(item.value as "builtin" | "external" | "both")}
-                      className={`rounded-2xl border p-4 text-left transition ${
+                      className={`rounded-xl border p-4 text-left transition ${
                         surveyType === item.value
                           ? "border-surface-900 bg-surface-50 shadow-card"
                           : "border-surface-200 bg-surface-50 hover:border-surface-300 hover:bg-white"
@@ -524,7 +524,7 @@ export default function SurveysPage() {
                   </div>
 
                   {builtinQuestions.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-surface-300 bg-surface-50 p-6 text-sm text-surface-500">
+                    <div className="rounded-xl border border-dashed border-surface-300 bg-surface-50 p-6 text-sm text-surface-500">
                       Henüz soru eklenmedi. İlk soruyu aşağıdaki formdan oluşturabilirsiniz.
                     </div>
                   ) : (
@@ -534,7 +534,7 @@ export default function SurveysPage() {
                           key={`${question.id}-${index}`}
                           initial={{ opacity: 0, y: 4 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="rounded-2xl border border-surface-200 bg-surface-50 p-4"
+                          className="rounded-xl border border-surface-200 bg-surface-50 p-4"
                         >
                           <div className="flex items-start justify-between gap-4">
                             <div className="space-y-3">
@@ -568,7 +568,7 @@ export default function SurveysPage() {
                     </div>
                   )}
 
-                  <div className="rounded-2xl border-2 border-dashed border-surface-300 bg-surface-50 p-5">
+                  <div className="rounded-xl border-2 border-dashed border-surface-200 bg-surface-50 p-5">
                     <h3 className="text-base font-semibold text-surface-900">Yeni Soru Ekle</h3>
                     <div className="mt-4 grid gap-4 md:grid-cols-2">
                       <div>
@@ -578,7 +578,7 @@ export default function SurveysPage() {
                           placeholder="q1"
                           value={newQuestion.id || ""}
                           onChange={(event) => setNewQuestion({ ...newQuestion, id: event.target.value })}
-                          className="w-full rounded-xl border border-surface-300 px-3 py-2.5 text-sm"
+                          className="input-field"
                         />
                       </div>
                       <div>
@@ -586,7 +586,7 @@ export default function SurveysPage() {
                         <select
                           value={newQuestion.type || "text"}
                           onChange={(event) => setNewQuestion({ ...newQuestion, type: event.target.value })}
-                          className="w-full rounded-xl border border-surface-300 px-3 py-2.5 text-sm"
+                          className="input-field"
                         >
                           {QUESTION_TYPES.map((type) => (
                             <option key={type.value} value={type.value}>{type.label}</option>
@@ -601,14 +601,14 @@ export default function SurveysPage() {
                         placeholder="Sorunuzu yazın"
                         value={newQuestion.question || ""}
                         onChange={(event) => setNewQuestion({ ...newQuestion, question: event.target.value })}
-                        className="min-h-24 w-full rounded-xl border border-surface-300 px-3 py-2.5 text-sm"
+                        className="min-h-24 input-field"
                       />
                     </div>
 
                     {newQuestion.type === "multiple_choice" && (
                       <div className="mt-4">
                         <label className="mb-2 block text-sm font-semibold text-surface-700">Seçenekler</label>
-                        <div className="rounded-2xl border border-surface-200 bg-white p-4">
+                        <div className="rounded-xl border border-surface-200 bg-white p-4">
                           <div className="flex gap-2">
                             <input
                               type="text"
@@ -621,7 +621,7 @@ export default function SurveysPage() {
                                   addMultipleChoiceOption();
                                 }
                               }}
-                              className="w-full rounded-xl border border-surface-300 px-3 py-2.5 text-sm"
+                              className="input-field"
                             />
                             <button
                               type="button"
@@ -702,7 +702,7 @@ export default function SurveysPage() {
                       <select
                         value={externalProvider}
                         onChange={(event) => setExternalProvider(event.target.value)}
-                        className="w-full rounded-xl border border-surface-300 px-3 py-2.5 text-sm"
+                        className="input-field"
                       >
                         <option value="">Seçin</option>
                         {EXTERNAL_PROVIDERS.map((provider) => (
@@ -718,7 +718,7 @@ export default function SurveysPage() {
                         placeholder="https://example.typeform.com/..."
                         value={externalUrl}
                         onChange={(event) => setExternalUrl(event.target.value)}
-                        className="w-full rounded-xl border border-surface-300 px-3 py-2.5 text-sm"
+                        className="input-field"
                       />
                     </div>
 
@@ -735,7 +735,7 @@ export default function SurveysPage() {
                     </div>
                   </div>
 
-                  <div className="mt-5 rounded-2xl border border-surface-200 bg-surface-50 p-4">
+                  <div className="mt-5 rounded-xl border border-surface-200 bg-surface-50 p-4">
                     <div className="flex items-center gap-2 text-sm font-semibold text-gray-800">
                       <ExternalLink className="h-4 w-4 text-surface-600" />
                       Webhook Bağlantı Bilgisi
@@ -760,12 +760,12 @@ export default function SurveysPage() {
                 </div>
 
                 {surveyType === "disabled" ? (
-                  <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-surface-50 px-4 py-6 text-sm text-surface-600">
+                  <div className="mt-5 rounded-xl border border-dashed border-slate-300 bg-surface-50 px-4 py-6 text-sm text-surface-600">
                     Anket kapalı olduğu için katılımcıya ayrı bir anket bağlantısı gösterilmez.
                   </div>
                 ) : (
                   <>
-                <div className="mt-5 rounded-2xl border border-surface-200 bg-surface-50 p-4">
+                <div className="mt-5 rounded-xl border border-surface-200 bg-surface-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-surface-500">Genel giriş adresi</p>
                   <code className="mt-3 block break-all rounded-xl bg-white p-3 text-xs text-slate-700">
                     {surveyLandingUrl}
@@ -789,20 +789,20 @@ export default function SurveysPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                   Kişiye özel anket bağlantısını katılımcılar ekranındaki ilgili kişi satırından kopyalayın.
                 </div>
                   </>
                 )}
               </div>
-              <div className="rounded-2xl border border-surface-200 bg-slate-950 p-6 text-white shadow-sm">
+              <div className="rounded-xl border border-surface-200 bg-surface-900 p-6 text-white shadow-card">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-sm font-medium text-slate-300">Canlı Özet</p>
                     <h3 className="mt-2 text-xl font-semibold">Katılımcı akışı hazır</h3>
                     <p className="mt-2 text-sm text-slate-300">Mevcut kurguda katılımcı {isRequired ? "anketi bitirince" : "isterse ankete girip"} sertifika adımına devam edecek.</p>
                   </div>
-                  <div className="rounded-2xl bg-white/10 p-3">
+                  <div className="rounded-xl bg-white/10 p-3">
                     <BarChart3 className="h-5 w-5" />
                   </div>
                 </div>
@@ -846,7 +846,7 @@ export default function SurveysPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-surface-200 bg-white p-4 shadow-sm">
+          <div className="rounded-xl border border-surface-200 bg-white p-4 shadow-card">
             <div className="grid gap-3 md:grid-cols-[1fr,200px]">
               <label className="relative block">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
@@ -861,7 +861,7 @@ export default function SurveysPage() {
               <select
                 value={responseTypeFilter}
                 onChange={(event) => setResponseTypeFilter(event.target.value as "all" | "builtin" | "external")}
-                className="w-full rounded-xl border border-surface-300 px-3 py-2.5 text-sm"
+                className="input-field"
               >
                 <option value="all">Tüm Yanıtlar</option>
                 <option value="builtin">Yerleşik</option>
@@ -871,7 +871,7 @@ export default function SurveysPage() {
           </div>
 
           {filteredResponses.length === 0 ? (
-            <div className="rounded-2xl border border-surface-200 bg-white px-6 py-12 text-center shadow-sm">
+            <div className="rounded-xl border border-surface-200 bg-white px-6 py-12 text-center shadow-card">
               <FileText className="mx-auto mb-4 h-16 w-16 text-gray-300" />
               <p className="text-base font-semibold text-gray-800">Henüz gösterilecek anket cevabı yok</p>
               <p className="mt-2 text-sm text-surface-500">Filtreleri temizleyin veya katılımcıların anketi tamamlamasını bekleyin.</p>

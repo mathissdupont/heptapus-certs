@@ -145,7 +145,7 @@ export default function EventOperationsPage() {
         <div className="hidden flex-wrap items-center gap-2 sm:flex">
           <Link 
             href={`/admin/events/${eventId}/checkin?staff=1`} 
-            className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-95"
+            className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-surface-900 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-surface-800 active:scale-95"
           >
             <QrCode className="h-3.5 w-3.5 stroke-[2.5]" />
             <span>Görevli Modu</span>
@@ -154,7 +154,7 @@ export default function EventOperationsPage() {
             type="button"
             onClick={() => void load({ soft: true })}
             disabled={refreshing}
-            className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-95 disabled:opacity-40"
+            className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-surface-50 active:scale-95 disabled:opacity-40"
           >
             {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 stroke-[2]" />}
             <span>Yenile</span>
@@ -186,8 +186,8 @@ export default function EventOperationsPage() {
             <StatCard title="Bilet Kullanımı" value={`${snapshot.overview.tickets_used}/${snapshot.overview.tickets_total}`} note="Giriş yapan davetli biletleri" icon={Ticket} />
           </div>
 
-          {/* İKİLİ ÇALIŞMA SÜTUN DÜZENİ */}
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] items-start">
+          {/* Sessions + checkin log */}
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] items-start">
             
             {/* SOL SÜTUN: OTURUM KAPASİTE DURUMLARI */}
             <section className="rounded-xl border border-surface-200 bg-white p-5 shadow-card space-y-4">
@@ -277,7 +277,7 @@ export default function EventOperationsPage() {
       <MobileActionBar>
         <Link 
           href={`/admin/events/${eventId}/checkin?staff=1`} 
-          className="flex-1 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-gray-950 px-4 text-xs font-bold text-white shadow-sm transition active:scale-[0.98]"
+          className="flex-1 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-surface-900 px-4 text-xs font-bold text-white shadow-sm transition active:scale-[0.98]"
         >
           <QrCode className="h-4 w-4 stroke-[2.5]" />
           <span>Görevli Modu</span>

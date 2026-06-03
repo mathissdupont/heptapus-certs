@@ -214,7 +214,7 @@ export default function AdminSessionsPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-surface-400" />
       </div>
     );
   }
@@ -237,7 +237,7 @@ export default function AdminSessionsPage() {
         <div className="surface-panel p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-500">Check-in altyapısı</p>
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-surface-500">Check-in altyapısı</p>
             <h1 className="mt-2 text-2xl font-black text-surface-950">Oturum Yönetimi</h1>
             <p className="mt-1 text-sm text-surface-500">{eventName}</p>
           </div>
@@ -263,7 +263,7 @@ export default function AdminSessionsPage() {
 
         {/* Min sessions required setting */}
         <div className="card flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
-          <Hash className="w-5 h-5 text-brand-500 shrink-0" />
+          <Hash className="w-5 h-5 text-surface-500 shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-surface-900">Sertifika İçin Gereken Minimum Oturum Sayısı</p>
             <p className="mt-0.5 text-xs text-surface-500">Katılımcının sertifika alabilmesi için katılması gereken minimum oturum adedi</p>
@@ -278,7 +278,7 @@ export default function AdminSessionsPage() {
               onBlur={(e) => handleSaveMinSessions(+e.target.value || 1)}
               className="input-field w-24 text-center font-semibold"
             />
-            {savingMin && <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />}
+            {savingMin && <Loader2 className="w-4 h-4 animate-spin text-surface-400" />}
           </div>
         </div>
 
@@ -391,7 +391,7 @@ export default function AdminSessionsPage() {
                           {s.session_location}
                         </span>
                       )}
-                      <span className="text-indigo-600 font-medium">{s.attendance_count} kişi katıldı</span>
+                      <span className="text-emerald-600 font-medium">{s.attendance_count} kişi katıldı</span>
                     </div>
                   </div>
 
@@ -401,7 +401,7 @@ export default function AdminSessionsPage() {
                       onClick={() => handleShowQr(s)}
                       disabled={qrLoading === s.id}
                       title="QR Göster"
-                      className="p-2 rounded-lg hover:bg-indigo-50 text-indigo-600 transition disabled:opacity-40"
+                      className="p-2 rounded-lg hover:bg-surface-100 text-surface-600 transition disabled:opacity-40"
                     >
                       {qrLoading === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
                     </button>
@@ -411,7 +411,7 @@ export default function AdminSessionsPage() {
                       onClick={() => handleToggle(s)}
                       disabled={toggling === s.id}
                       title={s.is_active ? "Check-in kapat" : "Check-in aç"}
-                      className={`p-2 rounded-lg transition ${s.is_active ? "text-green-600 hover:bg-green-50" : "text-surface-400 hover:bg-gray-50"}`}
+                      className={`p-2 rounded-lg transition ${s.is_active ? "text-green-600 hover:bg-green-50" : "text-surface-400 hover:bg-surface-50"}`}
                     >
                       {toggling === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : s.is_active ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
                     </button>
@@ -420,7 +420,7 @@ export default function AdminSessionsPage() {
                     <button
                       onClick={() => openEdit(s)}
                       title="Düzenle"
-                      className="p-2 rounded-lg hover:bg-gray-50 text-surface-500 hover:text-gray-700 transition"
+                      className="p-2 rounded-lg hover:bg-surface-50 text-surface-500 hover:text-surface-700 transition"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
@@ -444,7 +444,7 @@ export default function AdminSessionsPage() {
       {/* QR Modal */}
       {qrModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setQrModal(null)}>
-          <div className="bg-white rounded-3xl shadow-2xl p-6 max-w-xs w-full text-center" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl shadow-modal p-6 max-w-xs w-full text-center" onClick={(e) => e.stopPropagation()}>
             <h2 className="font-bold text-surface-700 mb-1">{qrModal.sessionName}</h2>
             <p className="text-xs text-surface-400 mb-4">QR kodu ekranınızda gösterin veya yazdırın</p>
             <img src={qrModal.url} alt="Check-in QR" className="w-48 h-48 mx-auto rounded-xl border" />
@@ -453,7 +453,7 @@ export default function AdminSessionsPage() {
               <a
                 href={qrModal.url}
                 download={`checkin-qr.png`}
-                className="flex-1 inline-flex items-center justify-center gap-2 bg-indigo-600 text-white text-sm font-semibold py-2 rounded-xl hover:bg-indigo-700 transition"
+                className="flex-1 inline-flex items-center justify-center gap-2 btn-primary justify-center text-sm"
               >
                 <Download className="w-4 h-4" /> İndir
               </a>
@@ -464,7 +464,7 @@ export default function AdminSessionsPage() {
                     "_blank"
                   );
                 }}
-                className="flex-1 inline-flex items-center justify-center gap-2 border border-surface-200 text-gray-700 text-sm font-semibold py-2 rounded-xl hover:bg-gray-50 transition"
+                className="flex-1 inline-flex items-center justify-center gap-2 border border-surface-200 text-surface-700 text-sm font-semibold py-2 rounded-xl hover:bg-surface-50 transition"
               >
                 <ExternalLink className="w-4 h-4" /> Sunum
               </button>

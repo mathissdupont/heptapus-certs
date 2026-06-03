@@ -361,12 +361,12 @@ export default function AdminCheckinPage() {
         {/* ÜST MODÜL DEKORASYONU */}
         {!staffMode && <EventAdminNav eventId={eventId} eventName={eventName} active="checkin" />}
         {staffMode && (
-          <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl border border-surface-200 bg-white p-3 shadow-sm">
+          <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-surface-200 bg-white p-3 shadow-card">
             <Link href={`/admin/events/${eventId}/ops`} className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-white px-3 text-xs font-bold text-surface-700 hover:bg-surface-50 active:scale-95">
               <ArrowLeft className="h-3.5 w-3.5 stroke-[2.5]" />
               <span>Operasyon</span>
             </Link>
-            <span className="inline-flex rounded-md border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 uppercase tracking-tight shadow-sm animate-pulse">Görevli Modu</span>
+            <span className="inline-flex rounded-md border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 uppercase tracking-tight shadow-card animate-pulse">Görevli Modu</span>
           </div>
         )}
 
@@ -387,7 +387,7 @@ export default function AdminCheckinPage() {
                   <p className="text-xs text-surface-400 font-medium truncate max-w-xs sm:max-w-md">{eventName}</p>
                 </div>
                 
-                <div className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-tight shadow-sm self-start ${
+                <div className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-tight shadow-card self-start ${
                   isOnline ? "border-emerald-100 bg-emerald-50 text-emerald-700" : "border-amber-100 bg-amber-50 text-amber-700"
                 }`}>
                   {isOnline ? <Wifi className="h-3.5 w-3.5 mr-1" /> : <WifiOff className="h-3.5 w-3.5 mr-1" />}
@@ -468,7 +468,7 @@ export default function AdminCheckinPage() {
                     const isSessSel = selectedSession === s.id;
                     return (
                       <label key={s.id} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all duration-200 ${
-                        isSessSel ? "border-gray-950 bg-white ring-1 ring-gray-950 shadow-sm" : "border-surface-100 bg-white hover:border-surface-300"
+                        isSessSel ? "border-gray-950 bg-white ring-1 ring-gray-950 shadow-card" : "border-surface-100 bg-white hover:border-surface-300"
                       }`}>
                         <input type="radio" name="session" value={s.id} checked={isSessSel} onChange={() => setSelectedSession(s.id)} className="h-3.5 w-3.5 text-surface-900 focus:ring-0 focus:ring-offset-0 cursor-pointer" />
                         <div className="min-w-0 flex-1 space-y-0.5">
@@ -478,7 +478,7 @@ export default function AdminCheckinPage() {
                             {s.session_start && <span>· {s.session_start}</span>}
                           </div>
                         </div>
-                        <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 border rounded-md shadow-sm ${isSessSel ? "border-gray-950 bg-gray-50 text-surface-900" : "border-surface-100 bg-gray-50 text-surface-400"}`}>
+                        <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 border rounded-md shadow-card ${isSessSel ? "border-gray-950 bg-gray-50 text-surface-900" : "border-surface-100 bg-gray-50 text-surface-400"}`}>
                           {s.attendance_count} Kabul
                         </span>
                       </label>
@@ -497,7 +497,7 @@ export default function AdminCheckinPage() {
                     <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">Giriş Yetkilendirme Kapısı</h2>
                   </div>
                   
-                  <button type="button" onClick={() => setScannerOpen((v) => !v)} className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-white px-3 text-xs font-bold text-surface-700 shadow-sm transition hover:bg-surface-50 active:scale-95">
+                  <button type="button" onClick={() => setScannerOpen((v) => !v)} className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-white px-3 text-xs font-bold text-surface-700 shadow-card transition hover:bg-surface-50 active:scale-95">
                     <Camera className="h-3.5 w-3.5 text-surface-500 stroke-[1.8]" />
                     <span>{scannerOpen ? "Kamerayı Kapat" : "Canlı QR Tarayıcı Aç"}</span>
                   </button>
@@ -534,7 +534,7 @@ export default function AdminCheckinPage() {
                   <button 
                     type="submit" 
                     disabled={submitting || !email.trim()} 
-                    className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-surface-900 px-5 text-xs font-bold text-white shadow-sm transition hover:bg-surface-800 disabled:opacity-40 active:scale-[0.98]"
+                    className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-surface-900 px-5 text-xs font-bold text-white shadow-card transition hover:bg-surface-800 disabled:opacity-40 active:scale-[0.98]"
                   >
                     {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserCheck className="h-3.5 w-3.5 stroke-[2.5]" />}
                     <span>Kabul Et (Check-in)</span>
@@ -551,10 +551,10 @@ export default function AdminCheckinPage() {
                   <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">Yerel Çevrimdışı Bellek Havuzu</h3>
                 </div>
                 <div className="flex gap-1.5">
-                  <button type="button" onClick={() => void syncQueue()} disabled={!isOnline || syncing || offlineQueue.length === 0} className="rounded-lg border border-surface-200 bg-white px-2.5 py-1 text-[10px] font-bold text-surface-700 shadow-sm hover:bg-surface-50 disabled:opacity-40">
+                  <button type="button" onClick={() => void syncQueue()} disabled={!isOnline || syncing || offlineQueue.length === 0} className="rounded-lg border border-surface-200 bg-white px-2.5 py-1 text-[10px] font-bold text-surface-700 shadow-card hover:bg-surface-50 disabled:opacity-40">
                     Kuyruğu Eşitle
                   </button>
-                  <button type="button" onClick={clearQueue} disabled={offlineQueue.length === 0} className="rounded-lg border border-red-100 bg-white px-2 py-1 text-[10px] font-bold text-red-600 shadow-sm hover:bg-red-50 disabled:opacity-40">
+                  <button type="button" onClick={clearQueue} disabled={offlineQueue.length === 0} className="rounded-lg border border-red-100 bg-white px-2 py-1 text-[10px] font-bold text-red-600 shadow-card hover:bg-red-50 disabled:opacity-40">
                     <Trash2 className="h-3.5 w-3.5 stroke-[1.8]" />
                   </button>
                 </div>
@@ -580,7 +580,7 @@ export default function AdminCheckinPage() {
 
             {/* GÜNLÜK ANLIK KAYIT GÜNLÜĞÜ GEÇMİŞİ */}
             {log.length > 0 && (
-              <div className="rounded-2xl border border-surface-200 bg-white shadow-sm overflow-hidden flex flex-col">
+              <div className="rounded-xl border border-surface-200 bg-white shadow-card overflow-hidden flex flex-col">
                 <div className="flex items-center justify-between border-b border-surface-100 bg-surface-50 px-4.5 py-3">
                   <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-surface-900">
                     <History className="h-3.5 w-3.5 text-surface-400 stroke-[2]" />
