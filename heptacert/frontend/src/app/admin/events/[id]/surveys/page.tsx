@@ -312,7 +312,7 @@ export default function SurveysPage() {
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-surface-600" />
       </div>
     );
   }
@@ -329,19 +329,19 @@ export default function SurveysPage() {
           <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
             <Link
               href={`/admin/events/${eventId}/certificates`}
-              className="inline-flex rounded-xl border border-gray-200 bg-white p-2.5 text-gray-700 shadow-sm transition hover:border-brand-200 hover:text-brand-700"
+              className="inline-flex rounded-xl border border-surface-200 bg-white p-2.5 text-surface-700 shadow-sm transition hover:border-surface-300 hover:text-surface-700"
             >
               <ChevronLeft className="h-5 w-5" />
             </Link>
           </motion.div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Katılımcı Anketleri</h1>
-            <p className="mt-1 text-sm text-gray-500">Anket kurgusunu yönetin, cevapları izleyin ve sertifika akışına etkisini kontrol edin.</p>
+            <h1 className="text-3xl font-bold text-surface-900">Katılımcı Anketleri</h1>
+            <p className="mt-1 text-sm text-surface-500">Anket kurgusunu yönetin, cevapları izleyin ve sertifika akışına etkisini kontrol edin.</p>
           </div>
         </div>
       </div>
 
-      <EventAdminNav eventId={eventId} active="surveys" className="mb-2 flex flex-col gap-2 border-b border-gray-200 pb-4" />
+      <EventAdminNav eventId={eventId} active="surveys" className="mb-2 flex flex-col gap-2 border-b border-surface-200 pb-4" />
 
       <div className="grid gap-4 md:grid-cols-4">
         {[
@@ -372,14 +372,14 @@ export default function SurveysPage() {
         ].map((item) => {
           const Icon = item.icon;
           return (
-            <div key={item.label} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div key={item.label} className="rounded-xl border border-surface-200 bg-white p-5 shadow-card">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">{item.label}</p>
-                  <p className="mt-3 text-3xl font-semibold text-gray-900">{item.value}</p>
-                  <p className="mt-2 text-sm text-gray-500">{item.hint}</p>
+                  <p className="text-sm font-medium text-surface-500">{item.label}</p>
+                  <p className="mt-3 text-3xl font-semibold text-surface-900">{item.value}</p>
+                  <p className="mt-2 text-sm text-surface-500">{item.hint}</p>
                 </div>
-                <div className="rounded-xl bg-brand-50 p-3 text-brand-600">
+                <div className="rounded-lg border border-surface-150 bg-surface-50 p-3 text-surface-600">
                   <Icon className="h-5 w-5" />
                 </div>
               </div>
@@ -388,7 +388,7 @@ export default function SurveysPage() {
         })}
       </div>
 
-      <div className="flex gap-2 border-b border-gray-200">
+      <div className="flex gap-2 border-b border-surface-200">
         {[
           { key: "config", label: "Anket Ayarları" },
           { key: "responses", label: `Cevaplar (${responses.length})` },
@@ -398,8 +398,8 @@ export default function SurveysPage() {
             onClick={() => setActiveTab(tab.key as "config" | "responses")}
             className={`px-4 py-3 text-sm font-semibold transition-colors ${
               activeTab === tab.key
-                ? "border-b-2 border-brand-600 text-brand-600"
-                : "text-gray-600 hover:text-gray-900"
+                ? "border-b-2 border-surface-900 text-surface-900"
+                : "text-surface-600 hover:text-surface-900"
             }`}
           >
             {tab.label}
@@ -433,18 +433,18 @@ export default function SurveysPage() {
         <div className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-[1.4fr,0.9fr]">
             <div className="space-y-6">
-              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="rounded-xl border border-surface-200 bg-white p-6 shadow-card">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Genel Kurgu</h2>
-                    <p className="mt-1 text-sm text-gray-500">Anketin sertifika akışını nasıl etkileyeceğini ve hangi kanal ile toplanacağını belirleyin.</p>
+                    <h2 className="text-lg font-semibold text-surface-900">Genel Kurgu</h2>
+                    <p className="mt-1 text-sm text-surface-500">Anketin sertifika akışını nasıl etkileyeceğini ve hangi kanal ile toplanacağını belirleyin.</p>
                   </div>
                   <div className={`rounded-full px-3 py-1 text-xs font-semibold ${isRequired ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-700"}`}>
                     {isRequired ? "Zorunlu" : "Opsiyonel"}
                   </div>
                 </div>
 
-                <div className="mt-6 rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50 via-white to-amber-50 p-5">
+                <div className="mt-6 rounded-xl border border-surface-150 bg-surface-50 p-5">
                   <label className="flex cursor-pointer items-start gap-3">
                     <input
                       type="checkbox"
@@ -454,20 +454,20 @@ export default function SurveysPage() {
                       className="mt-1 h-4 w-4 rounded"
                     />
                     <div>
-                      <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-                        <LockKeyhole className="h-4 w-4 text-brand-600" />
+                      <div className="flex items-center gap-2 text-sm font-semibold text-surface-900">
+                        <LockKeyhole className="h-4 w-4 text-surface-600" />
                         Sertifika öncesi anketi zorunlu tut
                       </div>
-                      <p className="mt-1 text-sm text-gray-600">Açılırsa katılımcı sertifika indirmeden önce anketi tamamlamak zorunda olur. Kapatılırsa anket sadece geri bildirim aracı olarak kalır.</p>
+                      <p className="mt-1 text-sm text-surface-600">Açılırsa katılımcı sertifika indirmeden önce anketi tamamlamak zorunda olur. Kapatılırsa anket sadece geri bildirim aracı olarak kalır.</p>
                     </div>
                   </label>
                 </div>
 
-                <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="mt-4 rounded-2xl border border-surface-200 bg-surface-50 p-4">
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">Anketi tamamen kapat</p>
-                      <p className="mt-1 text-sm text-slate-600">
+                      <p className="text-sm font-semibold text-surface-900">Anketi tamamen kapat</p>
+                      <p className="mt-1 text-sm text-surface-600">
                         Bu mod açıksa katılımcı kartında ve kayıt sonrası akışta anket adımı hiç gösterilmez.
                       </p>
                     </div>
@@ -479,8 +479,8 @@ export default function SurveysPage() {
                       }}
                       className={`inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
                         surveyType === "disabled"
-                          ? "bg-slate-900 text-white"
-                          : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
+                          ? "bg-surface-900 text-white"
+                          : "border border-surface-200 bg-white text-slate-700 hover:bg-slate-100"
                       }`}
                     >
                       {surveyType === "disabled" ? "Anket kapalı" : "Anketi kapat"}
@@ -500,31 +500,31 @@ export default function SurveysPage() {
                       onClick={() => setSurveyType(item.value as "builtin" | "external" | "both")}
                       className={`rounded-2xl border p-4 text-left transition ${
                         surveyType === item.value
-                          ? "border-brand-500 bg-brand-50 shadow-sm"
-                          : "border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white"
+                          ? "border-surface-900 bg-surface-50 shadow-card"
+                          : "border-surface-200 bg-surface-50 hover:border-surface-300 hover:bg-white"
                       }`}
                     >
-                      <div className="font-semibold text-gray-900">{item.title}</div>
-                      <p className="mt-1 text-sm text-gray-500">{item.description}</p>
+                      <div className="font-semibold text-surface-900">{item.title}</div>
+                      <p className="mt-1 text-sm text-surface-500">{item.description}</p>
                     </button>
                   ))}
                 </div>
               </div>
 
               {(surveyType === "builtin" || surveyType === "both") && (
-                <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="space-y-4 rounded-xl border border-surface-200 bg-white p-6 shadow-card">
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <h2 className="text-lg font-semibold text-gray-900">Yerleşik Sorular</h2>
-                      <p className="mt-1 text-sm text-gray-500">Katılımcılardan toplayacağınız soru setini oluşturun.</p>
+                      <h2 className="text-lg font-semibold text-surface-900">Yerleşik Sorular</h2>
+                      <p className="mt-1 text-sm text-surface-500">Katılımcılardan toplayacağınız soru setini oluşturun.</p>
                     </div>
-                    <div className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">
+                    <div className="rounded-full bg-surface-100 px-3 py-1 text-xs font-semibold text-surface-600">
                       {builtinQuestionCount} soru
                     </div>
                   </div>
 
                   {builtinQuestions.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-6 text-sm text-gray-500">
+                    <div className="rounded-2xl border border-dashed border-surface-300 bg-surface-50 p-6 text-sm text-surface-500">
                       Henüz soru eklenmedi. İlk soruyu aşağıdaki formdan oluşturabilirsiniz.
                     </div>
                   ) : (
@@ -534,13 +534,13 @@ export default function SurveysPage() {
                           key={`${question.id}-${index}`}
                           initial={{ opacity: 0, y: 4 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
+                          className="rounded-2xl border border-surface-200 bg-surface-50 p-4"
                         >
                           <div className="flex items-start justify-between gap-4">
                             <div className="space-y-3">
                               <div className="flex flex-wrap items-center gap-2">
-                                <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-gray-600">#{question.id}</span>
-                                <span className="rounded-full bg-brand-100 px-2.5 py-1 text-xs font-semibold text-brand-700">{getQuestionTypeLabel(question.type)}</span>
+                                <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-surface-600">#{question.id}</span>
+                                <span className="rounded-full bg-surface-100 px-2.5 py-1 text-xs font-semibold text-surface-700">{getQuestionTypeLabel(question.type)}</span>
                                 {question.required ? (
                                   <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">Zorunlu</span>
                                 ) : (
@@ -548,9 +548,9 @@ export default function SurveysPage() {
                                 )}
                               </div>
                               <div>
-                                <p className="font-semibold text-gray-900">{question.question}</p>
+                                <p className="font-semibold text-surface-900">{question.question}</p>
                                 {question.type === "multiple_choice" && question.options?.length ? (
-                                  <p className="mt-2 text-sm text-gray-500">Seçenekler: {question.options.join(", ")}</p>
+                                  <p className="mt-2 text-sm text-surface-500">Seçenekler: {question.options.join(", ")}</p>
                                 ) : null}
                               </div>
                             </div>
@@ -568,25 +568,25 @@ export default function SurveysPage() {
                     </div>
                   )}
 
-                  <div className="rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 p-5">
-                    <h3 className="text-base font-semibold text-gray-900">Yeni Soru Ekle</h3>
+                  <div className="rounded-2xl border-2 border-dashed border-surface-300 bg-surface-50 p-5">
+                    <h3 className="text-base font-semibold text-surface-900">Yeni Soru Ekle</h3>
                     <div className="mt-4 grid gap-4 md:grid-cols-2">
                       <div>
-                        <label className="mb-2 block text-sm font-semibold text-gray-700">Soru ID</label>
+                        <label className="mb-2 block text-sm font-semibold text-surface-700">Soru ID</label>
                         <input
                           type="text"
                           placeholder="q1"
                           value={newQuestion.id || ""}
                           onChange={(event) => setNewQuestion({ ...newQuestion, id: event.target.value })}
-                          className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm"
+                          className="w-full rounded-xl border border-surface-300 px-3 py-2.5 text-sm"
                         />
                       </div>
                       <div>
-                        <label className="mb-2 block text-sm font-semibold text-gray-700">Soru Türü</label>
+                        <label className="mb-2 block text-sm font-semibold text-surface-700">Soru Türü</label>
                         <select
                           value={newQuestion.type || "text"}
                           onChange={(event) => setNewQuestion({ ...newQuestion, type: event.target.value })}
-                          className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm"
+                          className="w-full rounded-xl border border-surface-300 px-3 py-2.5 text-sm"
                         >
                           {QUESTION_TYPES.map((type) => (
                             <option key={type.value} value={type.value}>{type.label}</option>
@@ -596,19 +596,19 @@ export default function SurveysPage() {
                     </div>
 
                     <div className="mt-4">
-                      <label className="mb-2 block text-sm font-semibold text-gray-700">Soru Metni</label>
+                      <label className="mb-2 block text-sm font-semibold text-surface-700">Soru Metni</label>
                       <textarea
                         placeholder="Sorunuzu yazın"
                         value={newQuestion.question || ""}
                         onChange={(event) => setNewQuestion({ ...newQuestion, question: event.target.value })}
-                        className="min-h-24 w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm"
+                        className="min-h-24 w-full rounded-xl border border-surface-300 px-3 py-2.5 text-sm"
                       />
                     </div>
 
                     {newQuestion.type === "multiple_choice" && (
                       <div className="mt-4">
-                        <label className="mb-2 block text-sm font-semibold text-gray-700">Seçenekler</label>
-                        <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                        <label className="mb-2 block text-sm font-semibold text-surface-700">Seçenekler</label>
+                        <div className="rounded-2xl border border-surface-200 bg-white p-4">
                           <div className="flex gap-2">
                             <input
                               type="text"
@@ -621,12 +621,12 @@ export default function SurveysPage() {
                                   addMultipleChoiceOption();
                                 }
                               }}
-                              className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm"
+                              className="w-full rounded-xl border border-surface-300 px-3 py-2.5 text-sm"
                             />
                             <button
                               type="button"
                               onClick={addMultipleChoiceOption}
-                              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                              className="inline-flex items-center gap-2 rounded-xl bg-surface-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
                             >
                               <Plus className="h-4 w-4" />
                               Ekle
@@ -635,14 +635,14 @@ export default function SurveysPage() {
 
                           <div className="mt-3 flex flex-wrap gap-2">
                             {(newQuestion.options || []).length === 0 ? (
-                              <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-500">
+                              <div className="rounded-xl border border-dashed border-surface-300 bg-surface-50 px-4 py-3 text-sm text-surface-500">
                                 Henüz seçenek eklenmedi.
                               </div>
                             ) : (
                               (newQuestion.options || []).map((option) => (
                                 <div
                                   key={option}
-                                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700"
+                                  className="inline-flex items-center gap-2 rounded-full border border-surface-200 bg-surface-50 px-3 py-1.5 text-sm font-medium text-slate-700"
                                 >
                                   <span>{option}</span>
                                   <button
@@ -660,7 +660,7 @@ export default function SurveysPage() {
                       </div>
                     )}
 
-                    <label className="mt-4 flex items-center gap-3 text-sm text-gray-700">
+                    <label className="mt-4 flex items-center gap-3 text-sm text-surface-700">
                       <input
                         type="checkbox"
                         checked={Boolean(newQuestion.required)}
@@ -673,7 +673,7 @@ export default function SurveysPage() {
                     <button
                       type="button"
                       onClick={addQuestion}
-                      className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
+                      className="mt-4 inline-flex items-center gap-2 rounded-xl bg-surface-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-surface-800"
                     >
                       <Plus className="h-4 w-4" />
                       Soruyu Ekle
@@ -685,11 +685,11 @@ export default function SurveysPage() {
 
             <div className="space-y-6">
               {(surveyType === "external" || surveyType === "both") && (
-                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="rounded-xl border border-surface-200 bg-white p-6 shadow-card">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h2 className="text-lg font-semibold text-gray-900">Harici Sağlayıcı</h2>
-                      <p className="mt-1 text-sm text-gray-500">Typeform veya benzeri bir araçtan yanıt alıp sertifika akışına bağlayın.</p>
+                      <h2 className="text-lg font-semibold text-surface-900">Harici Sağlayıcı</h2>
+                      <p className="mt-1 text-sm text-surface-500">Typeform veya benzeri bir araçtan yanıt alıp sertifika akışına bağlayın.</p>
                     </div>
                     <div className="rounded-xl bg-amber-50 p-3 text-amber-600">
                       <Link2 className="h-5 w-5" />
@@ -698,11 +698,11 @@ export default function SurveysPage() {
 
                   <div className="mt-5 space-y-4">
                     <div>
-                      <label className="mb-2 block text-sm font-semibold text-gray-700">Sağlayıcı</label>
+                      <label className="mb-2 block text-sm font-semibold text-surface-700">Sağlayıcı</label>
                       <select
                         value={externalProvider}
                         onChange={(event) => setExternalProvider(event.target.value)}
-                        className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm"
+                        className="w-full rounded-xl border border-surface-300 px-3 py-2.5 text-sm"
                       >
                         <option value="">Seçin</option>
                         {EXTERNAL_PROVIDERS.map((provider) => (
@@ -712,45 +712,45 @@ export default function SurveysPage() {
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-semibold text-gray-700">Anket URL</label>
+                      <label className="mb-2 block text-sm font-semibold text-surface-700">Anket URL</label>
                       <input
                         type="url"
                         placeholder="https://example.typeform.com/..."
                         value={externalUrl}
                         onChange={(event) => setExternalUrl(event.target.value)}
-                        className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm"
+                        className="w-full rounded-xl border border-surface-300 px-3 py-2.5 text-sm"
                       />
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-semibold text-gray-700">Webhook Anahtarı</label>
+                      <label className="mb-2 block text-sm font-semibold text-surface-700">Webhook Anahtarı</label>
                       <input
                         type="text"
                         placeholder="Webhook verification key"
                         value={externalWebhookKey}
                         onChange={(event) => setExternalWebhookKey(event.target.value)}
-                        className="w-full rounded-xl border border-gray-300 px-3 py-2.5 font-mono text-sm"
+                        className="w-full rounded-xl border border-surface-300 px-3 py-2.5 font-mono text-sm"
                       />
-                      <p className="mt-2 text-xs text-gray-500">Boş bırakırsanız sistem otomatik anahtar üretir.</p>
+                      <p className="mt-2 text-xs text-surface-500">Boş bırakırsanız sistem otomatik anahtar üretir.</p>
                     </div>
                   </div>
 
-                  <div className="mt-5 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                  <div className="mt-5 rounded-2xl border border-surface-200 bg-surface-50 p-4">
                     <div className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                      <ExternalLink className="h-4 w-4 text-brand-600" />
+                      <ExternalLink className="h-4 w-4 text-surface-600" />
                       Webhook Bağlantı Bilgisi
                     </div>
-                    <code className="mt-3 block rounded-xl bg-white p-3 text-xs text-gray-700 break-all">POST {webhookEndpoint}</code>
-                    <p className="mt-2 text-xs text-gray-500">Harici sağlayıcınız her tamamlanan anketten sonra bu endpointi çağırmalı ve <span className="font-mono">X-Webhook-Key</span> header'ı ile anahtarı göndermeli.</p>
+                    <code className="mt-3 block rounded-xl bg-white p-3 text-xs text-surface-700 break-all">POST {webhookEndpoint}</code>
+                    <p className="mt-2 text-xs text-surface-500">Harici sağlayıcınız her tamamlanan anketten sonra bu endpointi çağırmalı ve <span className="font-mono">X-Webhook-Key</span> header'ı ile anahtarı göndermeli.</p>
                   </div>
                 </div>
               )}
 
-              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="rounded-xl border border-surface-200 bg-white p-6 shadow-card">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Katılımcı bağlantıları</h2>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <h2 className="text-lg font-semibold text-surface-900">Katılımcı bağlantıları</h2>
+                    <p className="mt-1 text-sm text-surface-500">
                       Genel anket adresi sadece giriş noktasıdır. Form, yalnızca kişiye özel token ile açılır.
                     </p>
                   </div>
@@ -760,13 +760,13 @@ export default function SurveysPage() {
                 </div>
 
                 {surveyType === "disabled" ? (
-                  <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-600">
+                  <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-surface-50 px-4 py-6 text-sm text-surface-600">
                     Anket kapalı olduğu için katılımcıya ayrı bir anket bağlantısı gösterilmez.
                   </div>
                 ) : (
                   <>
-                <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Genel giriş adresi</p>
+                <div className="mt-5 rounded-2xl border border-surface-200 bg-surface-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-surface-500">Genel giriş adresi</p>
                   <code className="mt-3 block break-all rounded-xl bg-white p-3 text-xs text-slate-700">
                     {surveyLandingUrl}
                   </code>
@@ -774,7 +774,7 @@ export default function SurveysPage() {
                     <button
                       type="button"
                       onClick={() => copyText(surveyLandingUrl, "Genel anket adresi panoya kopyalandı")}
-                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                      className="inline-flex items-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-surface-50"
                     >
                       <Copy className="h-4 w-4" />
                       Linki kopyala
@@ -795,7 +795,7 @@ export default function SurveysPage() {
                   </>
                 )}
               </div>
-              <div className="rounded-2xl border border-gray-200 bg-slate-950 p-6 text-white shadow-sm">
+              <div className="rounded-2xl border border-surface-200 bg-slate-950 p-6 text-white shadow-sm">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-sm font-medium text-slate-300">Canlı Özet</p>
@@ -806,7 +806,7 @@ export default function SurveysPage() {
                     <BarChart3 className="h-5 w-5" />
                   </div>
                 </div>
-                <div className="mt-5 grid gap-3 text-sm text-slate-200">
+                <div className="mt-5 grid gap-3 text-sm text-surface-200">
                   <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">Mod: <span className="font-semibold">{surveyType === "both" ? "Yerleşik + Harici" : surveyType === "builtin" ? "Yerleşik" : "Harici"}</span></div>
                   <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">Soru sayısı: <span className="font-semibold">{builtinQuestionCount}</span></div>
                   <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">Webhook: <span className="font-semibold">{externalWebhookKey ? "Hazır" : surveyType === "builtin" ? "Gerekmiyor" : "Kayıt anında üretilecek"}</span></div>
@@ -820,7 +820,7 @@ export default function SurveysPage() {
             <button
               onClick={saveConfig}
               disabled={saving}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-surface-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-surface-800 disabled:opacity-50"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Anket Ayarlarını Kaydet
@@ -832,36 +832,36 @@ export default function SurveysPage() {
       {activeTab === "responses" && (
         <div className="space-y-6">
           <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-              <p className="text-sm font-medium text-gray-500">Toplam Yanıt</p>
-              <p className="mt-3 text-3xl font-semibold text-gray-900">{responses.length}</p>
+            <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card">
+              <p className="text-sm font-medium text-surface-500">Toplam Yanıt</p>
+              <p className="mt-3 text-3xl font-semibold text-surface-900">{responses.length}</p>
             </div>
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-              <p className="text-sm font-medium text-gray-500">Tamamlama Oranı</p>
-              <p className="mt-3 text-3xl font-semibold text-gray-900">%{completionRate}</p>
+            <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card">
+              <p className="text-sm font-medium text-surface-500">Tamamlama Oranı</p>
+              <p className="mt-3 text-3xl font-semibold text-surface-900">%{completionRate}</p>
             </div>
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-              <p className="text-sm font-medium text-gray-500">Filtre Sonucu</p>
-              <p className="mt-3 text-3xl font-semibold text-gray-900">{filteredResponses.length}</p>
+            <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card">
+              <p className="text-sm font-medium text-surface-500">Filtre Sonucu</p>
+              <p className="mt-3 text-3xl font-semibold text-surface-900">{filteredResponses.length}</p>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="rounded-2xl border border-surface-200 bg-white p-4 shadow-sm">
             <div className="grid gap-3 md:grid-cols-[1fr,200px]">
               <label className="relative block">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
                 <input
                   type="text"
                   value={responseQuery}
                   onChange={(event) => setResponseQuery(event.target.value)}
                   placeholder="Ad, e-posta veya external response ID ara"
-                  className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 text-sm"
+                  className="w-full rounded-xl border border-surface-300 py-2.5 pl-10 pr-3 text-sm"
                 />
               </label>
               <select
                 value={responseTypeFilter}
                 onChange={(event) => setResponseTypeFilter(event.target.value as "all" | "builtin" | "external")}
-                className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm"
+                className="w-full rounded-xl border border-surface-300 px-3 py-2.5 text-sm"
               >
                 <option value="all">Tüm Yanıtlar</option>
                 <option value="builtin">Yerleşik</option>
@@ -871,10 +871,10 @@ export default function SurveysPage() {
           </div>
 
           {filteredResponses.length === 0 ? (
-            <div className="rounded-2xl border border-gray-200 bg-white px-6 py-12 text-center shadow-sm">
+            <div className="rounded-2xl border border-surface-200 bg-white px-6 py-12 text-center shadow-sm">
               <FileText className="mx-auto mb-4 h-16 w-16 text-gray-300" />
               <p className="text-base font-semibold text-gray-800">Henüz gösterilecek anket cevabı yok</p>
-              <p className="mt-2 text-sm text-gray-500">Filtreleri temizleyin veya katılımcıların anketi tamamlamasını bekleyin.</p>
+              <p className="mt-2 text-sm text-surface-500">Filtreleri temizleyin veya katılımcıların anketi tamamlamasını bekleyin.</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -885,22 +885,22 @@ export default function SurveysPage() {
                     key={response.id}
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+                    className="rounded-xl border border-surface-200 bg-white p-5 shadow-card"
                   >
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-lg font-semibold text-gray-900">
+                          <h3 className="text-lg font-semibold text-surface-900">
                             {response.attendee_name || `Katılımcı #${response.attendee_id}`}
                           </h3>
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${response.survey_type === "external" ? "bg-amber-100 text-amber-800" : "bg-brand-100 text-brand-700"}`}>
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${response.survey_type === "external" ? "bg-amber-100 text-amber-800" : "bg-surface-100 text-surface-700"}`}>
                             {response.survey_type === "external" ? "Harici" : "Yerleşik"}
                           </span>
                         </div>
-                        <p className="mt-1 text-sm text-gray-500">{response.attendee_email || "E-posta bilgisi yok"}</p>
-                        <p className="mt-2 text-xs text-gray-400">{new Date(response.completed_at).toLocaleString("tr-TR")}</p>
+                        <p className="mt-1 text-sm text-surface-500">{response.attendee_email || "E-posta bilgisi yok"}</p>
+                        <p className="mt-2 text-xs text-surface-400">{new Date(response.completed_at).toLocaleString("tr-TR")}</p>
                         {response.external_response_id ? (
-                          <p className="mt-2 text-xs font-medium text-gray-500">External Response ID: <span className="font-mono text-gray-700">{response.external_response_id}</span></p>
+                          <p className="mt-2 text-xs font-medium text-surface-500">External Response ID: <span className="font-mono text-surface-700">{response.external_response_id}</span></p>
                         ) : null}
                       </div>
                       <div className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">
@@ -911,15 +911,15 @@ export default function SurveysPage() {
                     {answerEntries.length > 0 ? (
                       <div className="mt-5 grid gap-3 md:grid-cols-2">
                         {answerEntries.map(([questionId, answer]) => (
-                          <div key={questionId} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{questionId}</p>
-                            <p className="mt-1 text-sm font-semibold text-gray-900">{questionLabelMap[questionId] || questionId}</p>
-                            <p className="mt-2 text-sm text-gray-600">{formatAnswer(answer)}</p>
+                          <div key={questionId} className="rounded-xl border border-surface-200 bg-surface-50 p-4">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-surface-500">{questionId}</p>
+                            <p className="mt-1 text-sm font-semibold text-surface-900">{questionLabelMap[questionId] || questionId}</p>
+                            <p className="mt-2 text-sm text-surface-600">{formatAnswer(answer)}</p>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="mt-5 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">
+                      <div className="mt-5 rounded-xl border border-dashed border-surface-300 bg-surface-50 p-4 text-sm text-surface-500">
                         Bu yanıt kaydında gösterilecek yerleşik soru cevabı bulunmuyor.
                       </div>
                     )}

@@ -50,14 +50,14 @@ function StatCard({
   icon: ElementType;
 }) {
   return (
-    <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm flex items-start justify-between gap-4">
+    <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card flex items-start justify-between gap-4">
       <div className="min-w-0 flex-1 space-y-1">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 truncate">{title}</p>
-        <p className="text-2xl font-bold tracking-tight text-gray-950 font-mono tabular-nums">{value}</p>
-        {note && <p className="text-[11px] font-medium text-gray-400 truncate leading-none pt-0.5">{note}</p>}
+        <p className="text-[10px] font-bold uppercase tracking-widest text-surface-400 truncate">{title}</p>
+        <p className="text-2xl font-bold tracking-tight text-surface-900 font-mono tabular-nums">{value}</p>
+        {note && <p className="text-[11px] font-medium text-surface-400 truncate leading-none pt-0.5">{note}</p>}
       </div>
-      <div className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-gray-50 bg-gray-50/50 text-gray-900 shadow-sm sm:flex">
-        <Icon className="h-4 w-4 stroke-[2]" />
+      <div className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-surface-150 bg-surface-50 text-surface-600 sm:flex">
+        <Icon className="h-4 w-4" />
       </div>
     </div>
   );
@@ -118,25 +118,25 @@ export default function EventOperationsPage() {
   if (loading && !snapshot) {
     return (
       <div className="flex w-full min-h-[340px] items-center justify-center antialiased">
-        <Loader2 className="h-6 w-6 animate-spin text-gray-400 stroke-[2.5]" />
+        <Loader2 className="h-6 w-6 animate-spin text-surface-400 stroke-[2.5]" />
       </div>
     );
   }
 
   return (
-    <div className="w-full mx-auto max-w-7xl pb-24 md:pb-8 antialiased text-gray-900 space-y-5">
+    <div className="w-full mx-auto max-w-7xl pb-24 md:pb-8 antialiased text-surface-900 space-y-5">
       
       {/* ÜST ETKİNLİK NAVİGASYONU */}
       <EventAdminNav eventId={eventId} eventName={snapshot?.event_name} active="ops" />
 
       {/* ANA SAYFA BAŞLIK ALANI */}
-      <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-0.5">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Canlı operasyon ekranı</p>
-          <h1 className="text-xl font-bold tracking-tight text-gray-950 sm:text-2xl">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-surface-400">Canlı operasyon ekranı</p>
+          <h1 className="text-xl font-bold tracking-tight text-surface-900 sm:text-2xl">
             {snapshot?.event_name || `Etkinlik #${eventId}`}
           </h1>
-          <div className="flex items-center gap-1 text-[11px] font-semibold text-gray-400 font-mono uppercase">
+          <div className="flex items-center gap-1 text-[11px] font-semibold text-surface-400 font-mono uppercase">
             <span>Son Güncelleme: {formatTime(snapshot?.generated_at)}</span>
           </div>
         </div>
@@ -190,37 +190,37 @@ export default function EventOperationsPage() {
           <div className="grid gap-4 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] items-start">
             
             {/* SOL SÜTUN: OTURUM KAPASİTE DURUMLARI */}
-            <section className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm space-y-4">
-              <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-3">
+            <section className="rounded-xl border border-surface-200 bg-white p-5 shadow-card space-y-4">
+              <div className="flex items-center justify-between gap-3 border-b border-surface-100 pb-3">
                 <div className="space-y-0.5">
-                  <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950">Seans Yoklama Durumları</h2>
-                  <p className="text-[11px] font-medium text-gray-400">Oturum bazında canlı katılım sayıları</p>
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">Seans Yoklama Durumları</h2>
+                  <p className="text-[11px] font-medium text-surface-400">Oturum bazında canlı katılım sayıları</p>
                 </div>
-                <Clock3 className="h-4 w-4 text-gray-400 stroke-[1.8]" />
+                <Clock3 className="h-4 w-4 text-surface-400 stroke-[1.8]" />
               </div>
               
               <div className="space-y-2.5">
                 {snapshot.sessions.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-surface-200 p-6 text-center text-xs font-semibold text-gray-400">
+                  <div className="rounded-xl border border-dashed border-surface-200 p-6 text-center text-xs font-semibold text-surface-400">
                     Henüz tanımlanmış bir seans akışı bulunmuyor.
                   </div>
                 ) : (
                   snapshot.sessions.map((session) => (
-                    <div key={session.id} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm flex items-center justify-between gap-4 transition-colors hover:border-surface-200">
+                    <div key={session.id} className="rounded-xl border border-surface-100 bg-white p-4 shadow-sm flex items-center justify-between gap-4 transition-colors hover:border-surface-200">
                       <div className="min-w-0 space-y-1 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-xs font-bold text-gray-950 truncate tracking-tight">{session.name}</p>
+                          <p className="text-xs font-bold text-surface-900 truncate tracking-tight">{session.name}</p>
                           {session.is_active && (
                             <span className="inline-flex rounded-md border border-emerald-100 bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold uppercase text-emerald-700 animate-pulse shadow-sm">
                               Canlı
                             </span>
                           )}
                         </div>
-                        <p className="text-[10px] font-semibold text-gray-400 font-mono uppercase">
+                        <p className="text-[10px] font-semibold text-surface-400 font-mono uppercase">
                           {[session.session_date, session.session_start].filter(Boolean).join(" · ") || "Zaman Planı Yok"}
                         </p>
                       </div>
-                      <p className="text-xl font-bold tracking-tight text-gray-950 font-mono tabular-nums shrink-0">{session.attendance_count}</p>
+                      <p className="text-xl font-bold tracking-tight text-surface-900 font-mono tabular-nums shrink-0">{session.attendance_count}</p>
                     </div>
                   ))
                 )}
@@ -228,30 +228,30 @@ export default function EventOperationsPage() {
             </section>
 
             {/* SAĞ SÜTUN: GERÇEK ZAMANLI LOG AKIŞI VE GERİ ALMA MERKEZİ */}
-            <section className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm space-y-4">
-              <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-3">
+            <section className="rounded-xl border border-surface-200 bg-white p-5 shadow-card space-y-4">
+              <div className="flex items-center justify-between gap-3 border-b border-surface-100 pb-3">
                 <div className="space-y-0.5">
-                  <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950">Son Giriş Hareketleri</h2>
-                  <p className="text-[11px] font-medium text-gray-400">Hatalı okutma iptalleri ve kapı sevk günlüğü</p>
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">Son Giriş Hareketleri</h2>
+                  <p className="text-[11px] font-medium text-surface-400">Hatalı okutma iptalleri ve kapı sevk günlüğü</p>
                 </div>
-                <UserCheck className="h-4 w-4 text-gray-400 stroke-[1.8]" />
+                <UserCheck className="h-4 w-4 text-surface-400 stroke-[1.8]" />
               </div>
               
-              <div className="max-h-[580px] divide-y divide-gray-100 overflow-y-auto pr-0.5 scrollbar-none bg-white">
+              <div className="max-h-[580px] divide-y divide-surface-100 overflow-y-auto pr-0.5 scrollbar-none bg-white">
                 {snapshot.recent_checkins.length === 0 ? (
-                  <div className="py-12 text-center text-xs font-semibold text-gray-400 tracking-tight">
+                  <div className="py-12 text-center text-xs font-semibold text-surface-400 tracking-tight">
                     Kapılardan henüz bir check-in sinyali alınmadı.
                   </div>
                 ) : (
                   snapshot.recent_checkins.map((record) => (
-                    <div key={record.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 py-3.5 bg-white transition-colors hover:bg-gray-50/20 first:pt-0 last:pb-0">
+                    <div key={record.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 py-3.5 bg-white transition-colors hover:bg-surface-50/30 first:pt-0 last:pb-0">
                       <div className="min-w-0 space-y-0.5 flex-1">
-                        <p className="text-xs font-bold text-gray-950 tracking-tight truncate">{record.attendee_name}</p>
-                        <p className="text-[10px] font-medium text-gray-400 font-mono truncate">{record.attendee_email}</p>
-                        <div className="pt-1 flex flex-wrap gap-x-2 text-[10px] font-bold text-gray-400">
-                          <span className="text-gray-950">{record.session_name}</span>
+                        <p className="text-xs font-bold text-surface-900 tracking-tight truncate">{record.attendee_name}</p>
+                        <p className="text-[10px] font-medium text-surface-400 font-mono truncate">{record.attendee_email}</p>
+                        <div className="pt-1 flex flex-wrap gap-x-2 text-[10px] font-bold text-surface-400">
+                          <span className="text-surface-900">{record.session_name}</span>
                           <span>·</span>
-                          <span className="font-mono text-gray-400">{formatTime(record.checked_in_at)}</span>
+                          <span className="font-mono text-surface-400">{formatTime(record.checked_in_at)}</span>
                         </div>
                       </div>
                       
