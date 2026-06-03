@@ -18995,8 +18995,35 @@ async def export_audit_logs(
     category: Optional[str] = Query(default=None, pattern="^(legal|security)$"),
     action: Optional[str] = Query(None),
     resource_type: Optional[str] = Query(None),
+    me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    if format == "pdf":
+        from .document_export_jobs import DocumentExportJob
+
+        job = DocumentExportJob(
+            export_type="audit_logs",
+            export_format="pdf",
+            requested_by=me.id,
+            filters={"category": category, "action": action, "resource_type": resource_type},
+            status="pending",
+        )
+        db.add(job)
+        await db.flush()
+        await write_audit_log(
+            db,
+            user_id=me.id,
+            action="document_export.enqueue",
+            resource_type="document_export_job",
+            resource_id=str(job.id),
+            extra={"export_type": "audit_logs", "format": "pdf", "legacy_endpoint": True},
+        )
+        await db.commit()
+        return JSONResponse(
+            {"id": job.id, "status": "pending", "message": "PDF export queued. You will receive an email when it is ready."},
+            status_code=202,
+        )
+
     q = select(AuditLog, User.email).outerjoin(User, User.id == AuditLog.user_id)
     if action:
         q = q.where(AuditLog.action.ilike(f"%{action}%"))
@@ -19006,8 +19033,6 @@ async def export_audit_logs(
     q = q.order_by(AuditLog.created_at.desc()).limit(5000)
     rows = [_audit_row_payload(log, email) for log, email in (await db.execute(q)).all()]
     suffix = category or "all"
-    if format == "pdf":
-        return _minimal_pdf_response(rows, "HeptaCert Audit Logs", f"audit-logs-{suffix}.pdf")
     return _audit_csv_response(rows, f"audit-logs-{suffix}.csv")
 
 
@@ -19021,6 +19046,33 @@ async def export_organization_legal_consents(
     from .organization_access_api import get_organization_for_access, organization_id_from_request
 
     organization = await get_organization_for_access(db, me, "organization:view", organization_id_from_request(request))
+    if format == "pdf":
+        from .document_export_jobs import DocumentExportJob
+
+        job = DocumentExportJob(
+            export_type="organization_legal_consents",
+            export_format="pdf",
+            requested_by=me.id,
+            organization_id=organization.id,
+            filters={},
+            status="pending",
+        )
+        db.add(job)
+        await db.flush()
+        await write_audit_log(
+            db,
+            user_id=me.id,
+            action="document_export.enqueue",
+            resource_type="document_export_job",
+            resource_id=str(job.id),
+            extra={"export_type": "organization_legal_consents", "format": "pdf", "legacy_endpoint": True},
+        )
+        await db.commit()
+        return JSONResponse(
+            {"id": job.id, "status": "pending", "message": "PDF export queued. You will receive an email when it is ready."},
+            status_code=202,
+        )
+
     event_ids = set((await db.execute(select(Event.id).where(Event.admin_id == organization.user_id))).scalars().all())
     rows: List[Dict[str, Any]] = []
     if event_ids:
@@ -19048,8 +19100,6 @@ async def export_organization_legal_consents(
         extra={"format": format, "row_count": len(rows)},
     )
     await db.commit()
-    if format == "pdf":
-        return _minimal_pdf_response(rows, "Organization Consent Logs", f"organization-consent-logs-{organization.id}.pdf")
     return _audit_csv_response(rows, f"organization-consent-logs-{organization.id}.csv")
 
 
