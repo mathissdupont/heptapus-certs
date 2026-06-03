@@ -17,7 +17,6 @@ import {
   Lock,
   ListChecks,
   FileText,
-  LogIn,
   CheckCircle2,
   Ticket,
 } from "lucide-react";
@@ -33,6 +32,7 @@ import {
   type PublicMemberMe,
 } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import { fetchCurrentBranding, isWhiteLabelBranding } from "@/lib/whiteLabel";
 
 function formatDate(value: string | null | undefined, lang: "tr" | "en") {
   if (!value) return "-";
@@ -59,12 +59,14 @@ export default function PublicEventDetailClient() {
   const [commentBody, setCommentBody] = useState("");
   const [commentBusy, setCommentBusy] = useState(false);
   const [reportingId, setReportingId] = useState<number | null>(null);
+  const [isWhiteLabel, setIsWhiteLabel] = useState(false);
 
   const copy = useMemo(
     () =>
       lang === "tr"
         ? {
             back: "Etkinliklere dön",
+            organizationBack: "Kurum etkinliklerine dön",
             loading: "Etkinlik detayları yükleniyor...",
             error: "Etkinlik detayları yüklenemedi.",
             register: "Kayıt Ol",
@@ -95,6 +97,7 @@ export default function PublicEventDetailClient() {
           }
         : {
             back: "Back to events",
+            organizationBack: "Back to organization events",
             loading: "Loading event details...",
             error: "Failed to load event details.",
             register: "Register",
@@ -147,12 +150,14 @@ export default function PublicEventDetailClient() {
       getPublicEventDetail(eventId),
       listPublicEventComments(eventId).catch(() => []),
       getPublicMemberToken() ? getPublicMemberMe().catch(() => null) : Promise.resolve(null),
+      fetchCurrentBranding().catch(() => null),
     ])
-      .then(([eventData, commentData, memberData]) => {
+      .then(([eventData, commentData, memberData, brandingData]) => {
         if (!active) return;
         setEvent(eventData);
         setComments(commentData);
         setMember(memberData);
+        setIsWhiteLabel(isWhiteLabelBranding(brandingData, typeof window !== "undefined" ? window.location.hostname : ""));
       })
       .catch((err: any) => {
         if (!active) return;
@@ -203,6 +208,9 @@ export default function PublicEventDetailClient() {
   const statusLinkHref = member
     ? statusHref
     : `/login?mode=member&next=${encodeURIComponent(statusHref)}`;
+  const backHref = isWhiteLabel ? "/" : "/events";
+  const backLabel = isWhiteLabel ? copy.organizationBack : copy.back;
+  const showStatusButton = !isWhiteLabel || Boolean(member);
   const isTicketedEvent = event?.ticketing_enabled === true;
   const isCertificateEvent = event?.certificate_enabled !== false;
   const flowLabel = isTicketedEvent ? copy.ticketFlow : isCertificateEvent ? copy.certificateFlow : copy.standardFlow;
@@ -225,11 +233,11 @@ export default function PublicEventDetailClient() {
         <h1 className="text-xl font-semibold text-gray-900 mb-2">{copy.error}</h1>
         <p className="text-gray-500 text-sm mb-6">{error}</p>
         <Link
-          href="/events"
+          href={backHref}
           className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium shadow-sm"
         >
           <ArrowLeft className="h-4 w-4" />
-          {copy.back}
+          {backLabel}
         </Link>
       </div>
     );
@@ -241,11 +249,11 @@ export default function PublicEventDetailClient() {
       <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200 px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center">
           <Link
-            href="/events"
+            href={backHref}
             className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition"
           >
             <ArrowLeft className="h-4 w-4" />
-            {copy.back}
+            {backLabel}
           </Link>
         </div>
       </div>
@@ -297,7 +305,7 @@ export default function PublicEventDetailClient() {
               {/* Organization Info */}
               {event.organization_public_id && event.organization_name && (
                 <Link
-                  href={`/organizations/${event.organization_public_id}`}
+                  href={isWhiteLabel ? "/" : `/organizations/${event.organization_public_id}`}
                   className="inline-flex items-center gap-2.5 mb-6 group"
                 >
                   <div className="h-8 w-8 rounded-full bg-slate-100 border border-gray-200 overflow-hidden flex items-center justify-center">
@@ -371,12 +379,14 @@ export default function PublicEventDetailClient() {
                   {copy.register}
                 </Link>
               )}
-              <Link
-                href={statusLinkHref}
-                className="inline-flex items-center justify-center px-6 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
-              >
-                {copy.viewStatus}
-              </Link>
+              {showStatusButton && (
+                <Link
+                  href={statusLinkHref}
+                  className="inline-flex items-center justify-center px-6 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
+                >
+                  {copy.viewStatus}
+                </Link>
+              )}
             </div>
           </div>
         </section>
@@ -472,6 +482,7 @@ export default function PublicEventDetailClient() {
         </div>
 
         {/* Comments Section */}
+        {!isWhiteLabel && (
         <section className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="px-6 py-6 sm:px-8 border-b border-gray-100 bg-gray-50/50">
             <h2 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
@@ -529,7 +540,6 @@ export default function PublicEventDetailClient() {
               </form>
             ) : (
               <div className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-center mb-8">
-                <LogIn className="h-6 w-6 text-gray-400 mx-auto mb-3" />
                 <p className="text-sm text-gray-600 mb-4">{copy.loginPrompt}</p>
                 <Link
                   href="/login?mode=member"
@@ -609,6 +619,7 @@ export default function PublicEventDetailClient() {
             )}
           </div>
         </section>
+        )}
       </div>
     </div>
   );

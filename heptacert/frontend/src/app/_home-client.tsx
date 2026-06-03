@@ -13,9 +13,10 @@ import {
 } from "framer-motion";
 import { getApiBase, normalizeApiAssetUrl } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import { isWhiteLabelBranding, type PublicBranding } from "@/lib/whiteLabel";
 
 // ── Types ─────────────────────────────────────────────────────────────
-type Branding = {
+type Branding = PublicBranding & {
   public_id?: string | null;
   org_name?: string;
   brand_logo?: string | null;
@@ -56,24 +57,20 @@ type StatsData = {
 
 const HOSTS = new Set(["heptacert.com", "www.heptacert.com", "cert.heptapusgroup.com", "localhost", "127.0.0.1"]);
 
-// ── Light creative hero background ─────────────────────────────────────
+// ── Premium Dark Minimalist Hero ───────────────────────────────────────
 function ParallaxHero({ children }: { children: React.ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rawX = useMotionValue(0.5);
   const rawY = useMotionValue(0.5);
-  const smoothX = useSpring(rawX, { stiffness: 55, damping: 22 });
-  const smoothY = useSpring(rawY, { stiffness: 55, damping: 22 });
-
-  const orb1X = useTransform(smoothX, [0, 1], [-28, 28]);
-  const orb1Y = useTransform(smoothY, [0, 1], [-22, 22]);
-  const orb2X = useTransform(smoothX, [0, 1], [24, -24]);
-  const orb2Y = useTransform(smoothY, [0, 1], [18, -18]);
-  const cardX = useTransform(smoothX, [0, 1], [-10, 10]);
-  const cardY = useTransform(smoothY, [0, 1], [-8, 8]);
+  const smoothX = useSpring(rawX, { stiffness: 40, damping: 30 });
+  const smoothY = useSpring(rawY, { stiffness: 40, damping: 30 });
 
   const { scrollY } = useScroll();
-  const contentY = useTransform(scrollY, [0, 620], [0, -56]);
-  const contentOpacity = useTransform(scrollY, [0, 520], [1, 0]);
+  const contentY = useTransform(scrollY, [0, 800], [0, -80]);
+  const contentOpacity = useTransform(scrollY, [0, 600], [1, 0]);
+
+  const hep1X = useTransform(smoothX, [0, 1], [-40, 40]);
+  const hep1Y = useTransform(smoothY, [0, 1], [-30, 30]);
 
   function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -87,72 +84,54 @@ function ParallaxHero({ children }: { children: React.ReactNode }) {
     rawY.set(0.5);
   }
 
+  // 7-sided polygon path for branding consistency
+  const heptagonPath = "polygon(50% 0%, 90% 20%, 100% 60%, 75% 100%, 25% 100%, 0% 60%, 10% 20%)";
+
   return (
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className="relative min-h-[100svh] overflow-hidden bg-[linear-gradient(180deg,#FFFFFF_0%,#F8FAFC_58%,#EEF6FF_100%)]"
+      className="relative min-h-[100svh] overflow-hidden bg-[#09090b] selection:bg-zinc-800 selection:text-zinc-100"
     >
-      {/* Fine paper texture */}
+      {/* Absolute dark noise texture */}
+      <div 
+        className="pointer-events-none absolute inset-0 z-0 opacity-20"
+        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
+      />
+
+      {/* Subtle geometric grid */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.35]"
+        className="pointer-events-none absolute inset-0 z-0 opacity-[0.15]"
         style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, rgba(15,23,42,0.05) 1px, transparent 0)`,
-          backgroundSize: "22px 22px",
+          backgroundImage: `linear-gradient(to right, #27272a 1px, transparent 1px), linear-gradient(to bottom, #27272a 1px, transparent 1px)`,
+          backgroundSize: "64px 64px",
+          maskImage: "radial-gradient(ellipse at center, black 10%, transparent 80%)",
+          WebkitMaskImage: "radial-gradient(ellipse at center, black 10%, transparent 80%)",
         }}
       />
 
-      {/* Soft daylight orbs — no dark mode, no AI purple */}
+      {/* Rotating Heptagonal ambient light (Replacing the cliché orbs) */}
       <motion.div
-        style={{ x: orb1X, y: orb1Y }}
-        className="pointer-events-none absolute -left-24 top-16 h-[460px] w-[460px] rounded-full bg-[radial-gradient(circle,rgba(59,130,246,0.18)_0%,rgba(59,130,246,0.08)_38%,transparent_70%)]"
-      />
-      <motion.div
-        style={{ x: orb2X, y: orb2Y }}
-        className="pointer-events-none absolute -right-28 top-28 h-[520px] w-[520px] rounded-full bg-[radial-gradient(circle,rgba(14,165,233,0.14)_0%,rgba(125,211,252,0.08)_42%,transparent_72%)]"
-      />
-      <div className="pointer-events-none absolute bottom-[-180px] left-1/2 h-[420px] w-[900px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(226,232,240,0.95)_0%,transparent_70%)]" />
+        style={{ x: hep1X, y: hep1Y }}
+        animate={{ rotate: 360 }}
+        transition={{ duration: 120, repeat: Infinity, ease: "linear" }}
+        className="pointer-events-none absolute left-[10%] top-[10%] z-0 h-[600px] w-[600px] opacity-10 blur-3xl"
+      >
+        <div 
+          className="h-full w-full bg-zinc-400" 
+          style={{ clipPath: heptagonPath }} 
+        />
+      </motion.div>
 
-      {/* Architectural lines */}
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-[620px] opacity-[0.42]"
-        style={{
-          backgroundImage:
-            "linear-gradient(90deg, rgba(148,163,184,0.18) 1px, transparent 1px), linear-gradient(rgba(148,163,184,0.14) 1px, transparent 1px)",
-          backgroundSize: "96px 96px",
-          maskImage: "linear-gradient(to bottom, black, transparent)",
-        }}
-      />
+      {/* Architectural bottom glow */}
+      <div className="pointer-events-none absolute bottom-0 left-1/2 h-[300px] w-full -translate-x-1/2 bg-[radial-gradient(ellipse_at_bottom,rgba(39,39,42,0.4)_0%,transparent_60%)] z-0" />
 
       <motion.div
         style={{ y: contentY, opacity: contentOpacity }}
-        className="relative z-10 flex min-h-[100svh] items-center"
+        className="relative z-10 flex min-h-[100svh] items-center pt-20 pb-12"
       >
         {children}
-      </motion.div>
-
-      <motion.div
-        style={{ x: cardX, y: cardY }}
-        className="pointer-events-none absolute right-[8%] top-[18%] hidden h-16 w-16 rounded-2xl border border-slate-200/80 bg-white/80 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur md:block"
-      />
-      <motion.div
-        style={{ x: orb2X, y: orb1Y }}
-        className="pointer-events-none absolute left-[8%] bottom-[18%] hidden h-10 w-10 rounded-full border border-blue-100 bg-white/70 shadow-[0_18px_60px_rgba(59,130,246,0.12)] backdrop-blur md:block"
-      />
-
-      {/* Light scroll cue */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.2 }}
-        className="absolute bottom-7 left-1/2 z-20 -translate-x-1/2"
-      >
-        <motion.div
-          animate={{ y: [0, 7, 0] }}
-          transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-          className="h-10 w-[1px] bg-gradient-to-b from-transparent via-slate-300 to-transparent"
-        />
       </motion.div>
     </div>
   );
@@ -166,87 +145,78 @@ function HeroPreview({ lang }: { lang: string }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.75, delay: 0.55, ease: [0.16, 1, 0.3, 1] }}
-      className="relative mx-auto w-full max-w-[440px]"
+      initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      transition={{ duration: 0.9, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+      className="relative mx-auto w-full max-w-[440px] perspective-1000"
     >
       <motion.div
-        animate={{ y: [0, -10, 0] }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        className="rounded-[2rem] border border-slate-200 bg-white/85 p-4 shadow-[0_28px_90px_rgba(15,23,42,0.12)] backdrop-blur-xl"
+        animate={{ y: [0, -6, 0] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        className="rounded-3xl border border-zinc-800/60 bg-zinc-900/40 p-4 shadow-[0_0_80px_-20px_rgba(255,255,255,0.05)] backdrop-blur-2xl"
       >
-        <div className="rounded-[1.45rem] border border-slate-100 bg-slate-50/80 p-4">
-          <div className="mb-4 flex items-center justify-between">
+        <div className="rounded-[1.25rem] border border-zinc-800/40 bg-zinc-950/80 p-5">
+          <div className="mb-5 flex items-center justify-between">
             <div>
-              <div className="h-2.5 w-20 rounded-full bg-slate-200" />
-              <div className="mt-2 h-2 w-32 rounded-full bg-slate-100" />
+              <div className="h-2 w-16 rounded-full bg-zinc-700" />
+              <div className="mt-2.5 h-1.5 w-24 rounded-full bg-zinc-800" />
             </div>
-            <div className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[11px] font-medium text-blue-700">
+            <div className="flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-800/50 px-3 py-1 text-[11px] font-medium tracking-wide text-zinc-300">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-zinc-400 opacity-75"></span>
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-zinc-300"></span>
+              </span>
               Live
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-3">
             {["148", "92%", "320"].map((value, i) => (
               <motion.div
                 key={value}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 + i * 0.08 }}
-                className="rounded-2xl border border-slate-100 bg-white p-3"
+                transition={{ delay: 0.5 + i * 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                className="rounded-xl border border-zinc-800/50 bg-zinc-900/50 p-3"
               >
-                <p className="text-lg font-semibold text-slate-950">{value}</p>
-                <div className="mt-2 h-1.5 rounded-full bg-slate-100">
-                  <div className="h-1.5 rounded-full bg-blue-500" style={{ width: `${55 + i * 14}%` }} />
+                <p className="text-lg font-medium tracking-tight text-zinc-100">{value}</p>
+                <div className="mt-2.5 h-1 rounded-full bg-zinc-800">
+                  <div className="h-1 rounded-full bg-zinc-400" style={{ width: `${55 + i * 14}%` }} />
                 </div>
               </motion.div>
             ))}
           </div>
 
-          <div className="mt-3 space-y-2">
+          <div className="mt-4 space-y-2.5">
             {rows.map((row, i) => (
               <motion.div
                 key={row}
-                initial={{ opacity: 0, x: 16 }}
+                initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 1 + i * 0.1 }}
-                className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white px-3 py-2.5"
+                transition={{ delay: 0.8 + i * 0.1, duration: 0.5 }}
+                className="flex items-center gap-3 rounded-xl border border-zinc-800/40 bg-zinc-900/30 px-3 py-3"
               >
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-                  <CheckCircle2 className="h-4 w-4" />
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-800/80 text-zinc-300">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
                 </span>
-                <span className="text-sm font-medium text-slate-700">{row}</span>
+                <span className="text-xs font-medium text-zinc-400">{row}</span>
               </motion.div>
             ))}
           </div>
         </div>
       </motion.div>
 
+      {/* Abstract geometric accents instead of soft floating cards */}
       <motion.div
-        animate={{ y: [0, 12, 0], rotate: [0, -1.5, 0] }}
-        transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -bottom-8 -left-8 hidden rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-[0_18px_60px_rgba(15,23,42,0.10)] sm:block"
+        animate={{ y: [0, 8, 0], rotate: [0, -2, 0] }}
+        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute -bottom-6 -left-6 hidden rounded-xl border border-zinc-800/60 bg-zinc-900/80 px-4 py-3 shadow-2xl backdrop-blur-xl sm:block"
       >
         <div className="flex items-center gap-3">
-          <QrCode className="h-5 w-5 text-blue-600" />
+          <QrCode className="h-4 w-4 text-zinc-300" />
           <div>
-            <p className="text-xs font-semibold text-slate-900">QR Check-in</p>
-            <p className="text-[11px] text-slate-500">{lang === "tr" ? "Oturum bazlı" : "Session-based"}</p>
-          </div>
-        </div>
-      </motion.div>
-
-      <motion.div
-        animate={{ y: [0, -12, 0], rotate: [0, 1.5, 0] }}
-        transition={{ duration: 5.8, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -right-7 -top-7 hidden rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-[0_18px_60px_rgba(15,23,42,0.10)] sm:block"
-      >
-        <div className="flex items-center gap-3">
-          <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-          <div>
-            <p className="text-xs font-semibold text-slate-900">{lang === "tr" ? "Doğrulandı" : "Verified"}</p>
-            <p className="text-[11px] text-slate-500">heptacert.com/verify</p>
+            <p className="text-xs font-medium tracking-tight text-zinc-100">QR Check-in</p>
+            <p className="mt-0.5 text-[10px] text-zinc-500">{lang === "tr" ? "Oturum bazlı" : "Session-based"}</p>
           </div>
         </div>
       </motion.div>
@@ -254,7 +224,7 @@ function HeroPreview({ lang }: { lang: string }) {
   );
 }
 
-// ── Scroll reveal wrapper ─────────────────────────────────────────────
+// ── Smooth Reveal Wrapper ─────────────────────────────────────────────
 function Reveal({
   children,
   delay = 0,
@@ -265,14 +235,14 @@ function Reveal({
   className?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-60px" });
+  const inView = useInView(ref, { once: true, margin: "-50px" });
 
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: 30 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.8, delay, ease: [0.22, 1, 0.36, 1] }}
       className={className}
     >
       {children}
@@ -294,12 +264,12 @@ function FeatureCard({
 }) {
   return (
     <Reveal delay={delay}>
-      <div className="group rounded-2xl border border-surface-200 bg-white p-6 shadow-card transition-shadow hover:shadow-raised">
-        <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-surface-200 bg-surface-50 text-surface-600 transition-colors group-hover:border-surface-300 group-hover:bg-surface-100">
-          <Icon className="h-5 w-5" />
+      <div className="group relative overflow-hidden rounded-2xl border border-zinc-800/60 bg-zinc-900/20 p-6 transition-colors hover:bg-zinc-900/40">
+        <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-700/50 bg-zinc-800/50 text-zinc-300 transition-colors group-hover:bg-zinc-800 group-hover:text-zinc-100">
+          <Icon className="h-4 w-4" />
         </div>
-        <h3 className="text-sm font-semibold text-surface-900">{title}</h3>
-        <p className="mt-2 text-sm leading-relaxed text-surface-500">{desc}</p>
+        <h3 className="text-sm font-medium tracking-tight text-zinc-100">{title}</h3>
+        <p className="mt-2 text-sm leading-relaxed text-zinc-500">{desc}</p>
       </div>
     </Reveal>
   );
@@ -346,11 +316,6 @@ export default function LandingPage() {
   );
   const showPlatformLinks = !isWhiteLabel;
 
-  // ── Copy ──────────────────────────────────────────────────────────
-  // NOTE: This useMemo must stay ABOVE the white-label early return below.
-  // React's Rules of Hooks require every hook to run on every render in the
-  // same order; placing it after a conditional `return` crashes the app when
-  // isWhiteLabel flips after the branding fetch resolves.
   const copy = useMemo(
     () =>
       lang === "tr"
@@ -367,7 +332,7 @@ export default function LandingPage() {
             statsCerts: "Verilen Sertifika",
             featLabel: "Platform özellikleri",
             featTitle: "Tek araç, tüm etkinlik akışı",
-            featDesc: "Ayrı araçlara, kopyala-yapıştıra ve Excel labyrentine son verin.",
+            featDesc: "Ayrı araçlara, kopyala-yapıştıra ve Excel labirentine son verin.",
             features: [
               { title: "Kayıt & Form Yönetimi", desc: "Özel kayıt formları, onay akışları, belge yüklemeleri ve katılımcı listeleri." },
               { title: "QR Yoklama & Oturum", desc: "Oturum bazlı QR check-in, canlı operasyon ekranı ve kapı kontrolü." },
@@ -386,13 +351,8 @@ export default function LandingPage() {
             ],
             ctaTitle: "Sonraki etkinliğinizi bugün başlatın",
             ctaDesc: "Kurulum dakikalar içinde. Ücretsiz başlayın.",
-            ctaPrimary: "Ücretsiz Başla",
+            ctaPrimary: "Hemen Başla",
             ctaSecondary: "Fiyatlandırma",
-            footerVerify: "Sertifika Doğrula",
-            footerContact: "İletişim",
-            footerPrivacy: "Gizlilik",
-            footerTerms: "Koşullar",
-            subsidiary: "Heptapus Group ürünü",
           }
         : {
             eyebrow: "Event, certificate & community management",
@@ -428,11 +388,6 @@ export default function LandingPage() {
             ctaDesc: "Set up in minutes. Free to start.",
             ctaPrimary: "Start Free",
             ctaSecondary: "Pricing",
-            footerVerify: "Verify Certificate",
-            footerContact: "Contact",
-            footerPrivacy: "Privacy",
-            footerTerms: "Terms",
-            subsidiary: "A Heptapus Group product",
           },
     [lang],
   );
@@ -444,8 +399,8 @@ export default function LandingPage() {
     const websiteUrl = orgDetail?.website_url || branding?.settings?.public_website_url || "";
 
     return (
-      <div className="flex min-h-screen flex-col bg-surface-50 text-surface-900">
-        <section className="border-b border-surface-200 bg-white">
+      <div className="flex min-h-screen flex-col bg-[#09090b] text-zinc-100">
+        <section className="border-b border-zinc-800/60 bg-zinc-950/50">
           <div className="mx-auto max-w-5xl px-4 py-14 sm:px-6 lg:py-20">
             <div className="flex flex-col gap-6 md:flex-row md:items-center md:gap-12">
               <div className="flex-1">
@@ -454,31 +409,31 @@ export default function LandingPage() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={branding.brand_logo} alt={brandName} className="h-12 w-auto object-contain" />
                   ) : (
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-surface-200 bg-white text-lg font-bold text-surface-900 shadow-sm">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 text-lg font-bold text-zinc-100 shadow-sm">
                       {brandName.charAt(0).toUpperCase()}
                     </div>
                   )}
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-surface-400">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
                       {lang === "tr" ? "Kurumsal etkinlik alanı" : "Organization workspace"}
                     </p>
-                    <h1 className="text-2xl font-bold tracking-tight text-surface-900 sm:text-3xl">{brandName}</h1>
+                    <h1 className="text-2xl font-semibold tracking-tight text-zinc-100 sm:text-3xl">{brandName}</h1>
                   </div>
                 </div>
-                <p className="max-w-xl text-base leading-relaxed text-surface-600">{bio}</p>
+                <p className="max-w-xl text-sm leading-relaxed text-zinc-400">{bio}</p>
                 <div className="mt-7 flex flex-wrap gap-3">
-                  <Link href="/verify" className="btn-primary">
+                  <Link href="/verify" className="inline-flex items-center gap-2 rounded-lg bg-zinc-100 px-5 py-2.5 text-xs font-semibold text-zinc-950 transition-colors hover:bg-white">
                     <QrCode className="h-4 w-4" />
                     {lang === "tr" ? "Sertifika Doğrula" : "Verify Certificate"}
                   </Link>
                   {orgDetail?.public_id && (
-                    <Link href={`/organizations/${orgDetail.public_id}`} className="btn-secondary">
+                    <Link href={`/organizations/${orgDetail.public_id}`} className="inline-flex items-center gap-2 rounded-lg border border-zinc-800 bg-transparent px-5 py-2.5 text-xs font-medium text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-zinc-100">
                       <Users className="h-4 w-4" />
                       {lang === "tr" ? "Kurum Sayfası" : "Organization Page"}
                     </Link>
                   )}
                   {websiteUrl && (
-                    <a href={websiteUrl} target="_blank" rel="noreferrer" className="btn-secondary">
+                    <a href={websiteUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-zinc-800 bg-transparent px-5 py-2.5 text-xs font-medium text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-zinc-100">
                       <ExternalLink className="h-4 w-4" />
                       {lang === "tr" ? "Web Sitesi" : "Website"}
                     </a>
@@ -490,20 +445,20 @@ export default function LandingPage() {
         </section>
 
         {events.length > 0 && (
-          <section className="flex-1 py-12">
+          <section className="flex-1 py-16">
             <div className="mx-auto max-w-5xl px-4 sm:px-6">
-              <h2 className="mb-6 text-xl font-semibold text-surface-900">
+              <h2 className="mb-6 text-lg font-medium tracking-tight text-zinc-100">
                 {lang === "tr" ? "Etkinlikler" : "Events"}
               </h2>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {events.slice(0, 6).map((event) => (
-                  <Link key={event.public_id || event.id} href={`/events/${event.public_id || event.id}`} className="card-hover p-5">
-                    <CalendarDays className="h-4 w-4 text-surface-400" />
-                    <h3 className="mt-3 text-sm font-semibold text-surface-900">{event.name}</h3>
-                    <p className="mt-1.5 text-xs text-surface-500">
+                  <Link key={event.public_id || event.id} href={`/events/${event.public_id || event.id}`} className="group rounded-xl border border-zinc-800/60 bg-zinc-900/30 p-5 transition-colors hover:bg-zinc-800/50">
+                    <CalendarDays className="h-4 w-4 text-zinc-500 transition-colors group-hover:text-zinc-300" />
+                    <h3 className="mt-4 text-sm font-medium tracking-tight text-zinc-100">{event.name}</h3>
+                    <p className="mt-1.5 text-xs text-zinc-500">
                       {event.event_date ? new Date(event.event_date).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US") : (lang === "tr" ? "Tarih yakında" : "Date TBA")}
                     </p>
-                    {event.event_location && <p className="mt-0.5 text-xs text-surface-400">{event.event_location}</p>}
+                    {event.event_location && <p className="mt-1 text-xs text-zinc-600">{event.event_location}</p>}
                   </Link>
                 ))}
               </div>
@@ -518,47 +473,45 @@ export default function LandingPage() {
 
   const statItems = [
     { label: copy.statsUsers,  value: stats?.active_members ?? "—" },
-    { label: copy.statsEvents, value: stats?.hosted_events   ?? "—" },
+    { label: copy.statsEvents, value: stats?.hosted_events  ?? "—" },
     { label: copy.statsCerts,  value: stats?.issued_certificates ?? stats?.certs_issued ?? "—" },
   ];
 
   const featureIcons = [Users, QrCode, CheckCircle2, Mail, Layers, BarChart3];
 
   return (
-    <div className="flex min-h-screen flex-col bg-surface-50 text-surface-900">
+    <div className="flex min-h-screen flex-col bg-[#09090b] text-zinc-100">
       {/* ── HERO ─────────────────────────────────────────────────────── */}
       <ParallaxHero>
-        <div className="mx-auto grid w-full max-w-6xl items-center gap-14 px-4 py-24 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:py-28">
+        <div className="mx-auto grid w-full max-w-6xl items-center gap-16 px-4 py-12 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:py-20">
           <div className="text-center lg:text-left">
-            {/* Eyebrow */}
             <motion.div
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut" }}
-              className="mb-7 flex justify-center lg:justify-start"
+              className="mb-8 flex justify-center lg:justify-start"
             >
-              <span className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/80 px-4 py-1.5 text-xs font-medium text-slate-600 shadow-sm backdrop-blur">
-                <Sparkles className="h-3.5 w-3.5 text-blue-500" />
+              <span className="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/50 px-3 py-1 text-[11px] font-medium tracking-wide text-zinc-400 backdrop-blur-md">
+                <Sparkles className="h-3 w-3 text-zinc-500" />
                 {copy.eyebrow}
               </span>
             </motion.div>
 
-            {/* Headline — 3 animated lines */}
             <div className="overflow-hidden">
               {[copy.heroLine1, copy.heroLine2, copy.heroLine3].map((line, i) => (
                 <motion.div
                   key={i}
                   initial={{ y: "110%", opacity: 0 }}
                   animate={{ y: "0%", opacity: 1 }}
-                  transition={{ duration: 0.72, delay: 0.18 + i * 0.12, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ duration: 0.8, delay: 0.1 + i * 0.1, ease: [0.16, 1, 0.3, 1] }}
                   className="block"
                 >
                   <span
-                    className="block text-5xl font-bold tracking-[-0.045em] text-slate-950 sm:text-6xl lg:text-7xl xl:text-[5rem]"
-                    style={{ lineHeight: 1.04 }}
+                    className="block text-5xl font-semibold tracking-[-0.04em] text-zinc-100 sm:text-6xl lg:text-7xl"
+                    style={{ lineHeight: 1.1 }}
                   >
                     {i === 2 ? (
-                      <span className="bg-gradient-to-r from-slate-950 via-blue-700 to-slate-500 bg-clip-text text-transparent">
+                      <span className="text-zinc-500">
                         {line}
                       </span>
                     ) : (
@@ -569,26 +522,24 @@ export default function LandingPage() {
               ))}
             </div>
 
-            {/* Description */}
             <motion.p
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.64 }}
-              className="mx-auto mt-7 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg lg:mx-0"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.5 }}
+              className="mx-auto mt-8 max-w-lg text-sm leading-relaxed text-zinc-400 sm:text-base lg:mx-0"
             >
               {copy.heroDesc}
             </motion.p>
 
-            {/* CTAs */}
             <motion.div
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.78 }}
-              className="mt-10 flex flex-wrap items-center justify-center gap-3 lg:justify-start"
+              transition={{ duration: 0.6, delay: 0.6 }}
+              className="mt-10 flex flex-wrap items-center justify-center gap-4 lg:justify-start"
             >
               <Link
                 href="/register?mode=organizer"
-                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-[0_14px_40px_rgba(37,99,235,0.22)] transition-all hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-[0_18px_50px_rgba(37,99,235,0.28)]"
+                className="inline-flex items-center gap-2 rounded-xl bg-zinc-100 px-6 py-3 text-sm font-semibold text-zinc-950 transition-transform hover:scale-[1.02] active:scale-[0.98]"
               >
                 {copy.primaryBtn}
                 <ArrowRight className="h-4 w-4" />
@@ -596,7 +547,7 @@ export default function LandingPage() {
               {showPlatformLinks && (
                 <Link
                   href="/events"
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-6 py-3 text-sm font-medium text-slate-700 shadow-sm backdrop-blur transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white hover:text-slate-950"
+                  className="inline-flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/50 px-6 py-3 text-sm font-medium text-zinc-300 backdrop-blur transition-colors hover:bg-zinc-800 hover:text-zinc-100"
                 >
                   {copy.secondaryBtn}
                 </Link>
@@ -610,15 +561,15 @@ export default function LandingPage() {
 
       {/* ── STATS ────────────────────────────────────────────────────── */}
       {showPlatformLinks && (
-        <section className="border-b border-surface-200 bg-white">
-          <div className="mx-auto grid max-w-4xl grid-cols-3 divide-x divide-surface-100 px-4 sm:px-6">
+        <section className="border-y border-zinc-800/60 bg-[#09090b]">
+          <div className="mx-auto grid max-w-5xl grid-cols-3 divide-x divide-zinc-800/60 px-4 sm:px-6">
             {statItems.map((item, i) => (
-              <Reveal key={item.label} delay={i * 0.08}>
-                <div className="py-10 text-center">
-                  <p className="text-3xl font-bold tracking-tight text-surface-900 sm:text-4xl">
+              <Reveal key={item.label} delay={i * 0.1}>
+                <div className="py-12 text-center">
+                  <p className="text-3xl font-medium tracking-tight text-zinc-100 sm:text-4xl">
                     {item.value}
                   </p>
-                  <p className="mt-1.5 text-sm text-surface-400">{item.label}</p>
+                  <p className="mt-2 text-xs uppercase tracking-widest text-zinc-500">{item.label}</p>
                 </div>
               </Reveal>
             ))}
@@ -627,17 +578,17 @@ export default function LandingPage() {
       )}
 
       {/* ── FEATURES ─────────────────────────────────────────────────── */}
-      <section className="py-20 sm:py-28">
+      <section className="bg-[#09090b] py-24 sm:py-32">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <Reveal>
-            <div className="mb-12 text-center">
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-surface-400">
+            <div className="mb-16 text-center">
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
                 {copy.featLabel}
               </p>
-              <h2 className="text-2xl font-bold tracking-tight text-surface-900 sm:text-3xl lg:text-4xl">
+              <h2 className="text-2xl font-medium tracking-tight text-zinc-100 sm:text-4xl">
                 {copy.featTitle}
               </h2>
-              <p className="mx-auto mt-4 max-w-xl text-base text-surface-500">{copy.featDesc}</p>
+              <p className="mx-auto mt-4 max-w-xl text-sm text-zinc-400">{copy.featDesc}</p>
             </div>
           </Reveal>
 
@@ -650,7 +601,7 @@ export default function LandingPage() {
                   icon={Icon}
                   title={feat.title}
                   desc={feat.desc}
-                  delay={i * 0.07}
+                  delay={i * 0.05}
                 />
               );
             })}
@@ -658,71 +609,37 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── FOR WHOM ─────────────────────────────────────────────────── */}
-      <section className="border-t border-surface-200 bg-white py-20 sm:py-24">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6">
-          <Reveal>
-            <div className="mb-12 text-center">
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-surface-400">
-                {copy.forLabel}
-              </p>
-              <h2 className="text-2xl font-bold tracking-tight text-surface-900 sm:text-3xl">
-                {copy.forTitle}
-              </h2>
-            </div>
-          </Reveal>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {copy.audiences.map((audience, i) => (
-              <Reveal key={audience.title} delay={i * 0.08}>
-                <div className="rounded-2xl border border-surface-100 bg-surface-50 p-6">
-                  <span className="text-3xl">{audience.icon}</span>
-                  <h3 className="mt-4 text-sm font-semibold text-surface-900">{audience.title}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-surface-500">{audience.desc}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── CTA ──────────────────────────────────────────────────────── */}
       {showPlatformLinks && (
-        <section className="px-4 py-20 sm:px-6">
-          <div className="mx-auto max-w-5xl">
+        <section className="border-t border-zinc-800/60 bg-[#09090b] px-4 py-24 sm:px-6">
+          <div className="mx-auto max-w-4xl">
             <Reveal>
-              <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white px-8 py-16 text-center shadow-[0_28px_90px_rgba(15,23,42,0.08)] sm:px-16">
-                {/* Light creative background decoration */}
-                <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-blue-100/70 blur-3xl" />
-                <div className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-sky-100/80 blur-3xl" />
+              <div className="relative overflow-hidden rounded-3xl border border-zinc-800/60 bg-zinc-900/30 px-8 py-20 text-center sm:px-16">
+                {/* Geometric overlay instead of blobs */}
                 <div
-                  className="pointer-events-none absolute inset-0 opacity-[0.32]"
+                  className="pointer-events-none absolute inset-0 opacity-[0.15]"
                   style={{
-                    backgroundImage:
-                      "linear-gradient(90deg, rgba(148,163,184,0.16) 1px, transparent 1px), linear-gradient(rgba(148,163,184,0.14) 1px, transparent 1px)",
-                    backgroundSize: "72px 72px",
-                    maskImage: "radial-gradient(circle at center, black, transparent 72%)",
+                    backgroundImage: `linear-gradient(to right, #27272a 1px, transparent 1px), linear-gradient(to bottom, #27272a 1px, transparent 1px)`,
+                    backgroundSize: "48px 48px",
+                    maskImage: "radial-gradient(ellipse at center, black, transparent 70%)",
                   }}
                 />
                 <div className="relative z-10">
-                  <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 text-blue-600">
-                    <Sparkles className="h-5 w-5" />
-                  </div>
-                  <h2 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl lg:text-4xl">
+                  <h2 className="text-3xl font-medium tracking-tight text-zinc-100 sm:text-4xl">
                     {copy.ctaTitle}
                   </h2>
-                  <p className="mx-auto mt-4 max-w-md text-base text-slate-600">{copy.ctaDesc}</p>
-                  <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+                  <p className="mx-auto mt-4 max-w-md text-sm text-zinc-400">{copy.ctaDesc}</p>
+                  <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
                     <Link
                       href="/register?mode=organizer"
-                      className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-[0_14px_40px_rgba(37,99,235,0.22)] transition-all hover:-translate-y-0.5 hover:bg-blue-700"
+                      className="inline-flex items-center gap-2 rounded-xl bg-zinc-100 px-6 py-3 text-sm font-semibold text-zinc-950 transition-transform hover:scale-[1.02] active:scale-[0.98]"
                     >
                       {copy.ctaPrimary}
                       <ArrowRight className="h-4 w-4" />
                     </Link>
                     <Link
                       href="/pricing"
-                      className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-medium text-slate-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:text-slate-950"
+                      className="inline-flex items-center rounded-xl border border-zinc-700 bg-transparent px-6 py-3 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
                     >
                       {copy.ctaSecondary}
                     </Link>
@@ -759,50 +676,47 @@ function PublicFooter({
     : { verify: "Verify Certificate", contact: "Contact", privacy: "Privacy", terms: "Terms", pricing: "Pricing", subsidiary: "A Heptapus Group product" };
 
   return (
-    <footer className="mt-auto border-t border-surface-200 bg-white py-8">
+    <footer className="mt-auto border-t border-zinc-800/60 bg-[#09090b] py-12">
       <div className="mx-auto max-w-5xl px-4 sm:px-6">
-        <div className="flex flex-col items-center justify-between gap-5 sm:flex-row">
-          {/* Logo + year */}
+        <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
           <div className="flex items-center gap-3">
             {branding?.brand_logo ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={branding.brand_logo} alt={branding.org_name || "Logo"} className="h-7 w-auto" />
+              <img src={branding.brand_logo} alt={branding.org_name || "Logo"} className="h-6 w-auto grayscale opacity-80" />
             ) : isWhiteLabel ? (
-              <span className="text-sm font-semibold text-surface-900">{brandName}</span>
+              <span className="text-sm font-semibold text-zinc-100">{brandName}</span>
             ) : (
-              <Image src="/logo.svg" alt="HeptaCert" width={120} height={32} className="h-7 w-auto" />
+              <Image src="/logo.svg" alt="HeptaCert" width={120} height={32} className="h-6 w-auto grayscale opacity-80" />
             )}
-            <span className="text-xs text-surface-400">© {new Date().getFullYear()}</span>
+            <span className="text-xs text-zinc-600">© {new Date().getFullYear()}</span>
           </div>
 
-          {/* Links */}
-          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-sm text-surface-500">
-            <Link href="/verify" className="transition-colors hover:text-surface-900">{footerCopy.verify}</Link>
-            <Link href="/iletisim" className="transition-colors hover:text-surface-900">{footerCopy.contact}</Link>
-            <Link href="/kullanim-kosullari" className="transition-colors hover:text-surface-900">{footerCopy.terms}</Link>
-            <Link href="/gizlilik" className="transition-colors hover:text-surface-900">{footerCopy.privacy}</Link>
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-medium text-zinc-500">
+            <Link href="/verify" className="transition-colors hover:text-zinc-300">{footerCopy.verify}</Link>
+            <Link href="/iletisim" className="transition-colors hover:text-zinc-300">{footerCopy.contact}</Link>
+            <Link href="/kullanim-kosullari" className="transition-colors hover:text-zinc-300">{footerCopy.terms}</Link>
+            <Link href="/gizlilik" className="transition-colors hover:text-zinc-300">{footerCopy.privacy}</Link>
             {!isWhiteLabel && (
-              <Link href="/pricing" className="transition-colors hover:text-surface-900">{footerCopy.pricing}</Link>
+              <Link href="/pricing" className="transition-colors hover:text-zinc-300">{footerCopy.pricing}</Link>
             )}
           </div>
         </div>
 
-        {/* Heptapus Group subsidiary badge */}
         {showSubsidiary && (
-          <div className="mt-6 flex items-center justify-center sm:justify-end">
+          <div className="mt-10 flex items-center justify-center sm:justify-end">
             <a
               href="https://heptapusgroup.com"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-2.5 rounded-full border border-surface-200 bg-white px-4 py-2 shadow-sm transition-colors hover:border-surface-300"
+              className="inline-flex items-center gap-2.5 rounded-lg border border-zinc-800/60 bg-zinc-900/50 px-3 py-1.5 transition-colors hover:bg-zinc-800"
               title="Heptapus Group"
             >
-              <span className="text-[11px] font-medium text-surface-500">{footerCopy.subsidiary}</span>
+              <span className="text-[10px] font-medium uppercase tracking-widest text-zinc-500">{footerCopy.subsidiary}</span>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="https://heptapusgroup.com/icons/heptapus_logo.png"
                 alt="Heptapus Group"
-                className="h-4 w-auto object-contain"
+                className="h-3.5 w-auto object-contain grayscale opacity-80"
               />
             </a>
           </div>

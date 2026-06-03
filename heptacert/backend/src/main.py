@@ -13581,6 +13581,18 @@ async def serve_file(path: str):
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(abs_path)
 
+async def _organization_for_request_host(request: Request, db: AsyncSession) -> Optional[Organization]:
+    host = (request.headers.get("host") or "").split(":")[0].strip().lower()
+    if not host:
+        return None
+    res = await db.execute(select(Organization).where(Organization.custom_domain == host))
+    return res.scalar_one_or_none()
+
+
+async def _ensure_event_allowed_for_request_host(request: Request, db: AsyncSession, event: Event) -> None:
+    host_org = await _organization_for_request_host(request, db)
+    if host_org and event.admin_id != host_org.user_id:
+        raise HTTPException(status_code=404, detail="Event not found")
 
 
 @app.get("/api/branding")
@@ -13603,8 +13615,7 @@ async def get_branding(request: Request, db: AsyncSession = Depends(get_db)):
         return f"https://{host}{marker}{suffix}"
 
     try:
-        res = await db.execute(select(Organization).where(Organization.custom_domain == host))
-        org = res.scalar_one_or_none()
+        org = await _organization_for_request_host(request, db)
         if not org:
             return {"org_name": None, "brand_logo": None, "brand_color": None, "settings": {}}
         return {
@@ -15805,6 +15816,7 @@ def _event_comment_to_out(comment: EventComment) -> PublicEventCommentOut:
 
 @app.get("/api/public/events", response_model=list[PublicEventListItemOut])
 async def list_public_events(
+    request: Request,
     scope: str = Query(default="all", pattern="^(all|upcoming|past)$"),
     limit: int = Query(default=24, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
@@ -15829,7 +15841,10 @@ async def list_public_events(
     else:
         visibility_clause = None
 
+    host_org = await _organization_for_request_host(request, db)
     stmt = select(Event, Organization).outerjoin(Organization, Organization.user_id == Event.admin_id)
+    if host_org:
+        stmt = stmt.where(Event.admin_id == host_org.user_id)
 
     if visibility_clause is not None:
         stmt = stmt.where(visibility_clause)
@@ -15906,10 +15921,11 @@ async def list_public_events(
 
 
 @app.get("/api/public/events/{event_id}", response_model=PublicEventDetailOut)
-async def get_public_event_detail(event_id: str, db: AsyncSession = Depends(get_db)):
+async def get_public_event_detail(event_id: str, request: Request, db: AsyncSession = Depends(get_db)):
     event = await _resolve_public_event(db, event_id)
     if not event or _get_event_visibility(event) == "private":
         raise HTTPException(status_code=404, detail="Event not found")
+    await _ensure_event_allowed_for_request_host(request, db, event)
 
     sessions_res = await db.execute(
         select(EventSession).where(EventSession.event_id == event.id).order_by(EventSession.session_date, EventSession.session_start)
@@ -15920,10 +15936,11 @@ async def get_public_event_detail(event_id: str, db: AsyncSession = Depends(get_
 
 
 @app.get("/api/public/events/{event_id}/comments", response_model=list[PublicEventCommentOut])
-async def list_public_event_comments(event_id: str, db: AsyncSession = Depends(get_db)):
+async def list_public_event_comments(event_id: str, request: Request, db: AsyncSession = Depends(get_db)):
     event = await _resolve_public_event(db, event_id)
     if not event or _get_event_visibility(event) == "private":
         raise HTTPException(status_code=404, detail="Event not found")
+    await _ensure_event_allowed_for_request_host(request, db, event)
 
     comments_res = await db.execute(
         select(EventComment)
@@ -15946,6 +15963,7 @@ async def create_public_event_comment(
     event = await _resolve_public_event(db, event_id)
     if not event or _get_event_visibility(event) == "private":
         raise HTTPException(status_code=404, detail="Event not found")
+    await _ensure_event_allowed_for_request_host(request, db, event)
     body = moderate_public_text(payload.body)
 
     comment = EventComment(
@@ -15985,6 +16003,7 @@ async def report_public_event_comment(
     event = await _resolve_public_event(db, event_id)
     if not event or _get_event_visibility(event) == "private":
         raise HTTPException(status_code=404, detail="Event not found")
+    await _ensure_event_allowed_for_request_host(request, db, event)
     comment_res = await db.execute(
         select(EventComment).where(EventComment.id == comment_id, EventComment.event_id == event.id)
     )

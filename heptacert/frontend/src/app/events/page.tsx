@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CalendarDays, MapPin, Search, Building2, ArrowRight, ShieldCheck, Ticket } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { listPublicEvents, type PublicEventListItem } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { stripRichTextToPlainText } from "@/lib/richText";
+import { fetchCurrentBranding, isWhiteLabelBranding } from "@/lib/whiteLabel";
 
 function formatDate(value: string | null | undefined, lang: "tr" | "en") {
   if (!value) return null;
@@ -47,11 +49,13 @@ const cardAnim = {
 
 export default function PublicEventsPage() {
   const { lang } = useI18n();
+  const router = useRouter();
   const [upcomingItems, setUpcomingItems] = useState<PublicEventListItem[]>([]);
   const [pastItems, setPastItems] = useState<PublicEventListItem[]>([]);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [whiteLabelChecked, setWhiteLabelChecked] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const copy = useMemo(
@@ -122,6 +126,26 @@ export default function PublicEventsPage() {
   }, [typeFilter, typeOptions]);
 
   useEffect(() => {
+    let active = true;
+    fetchCurrentBranding()
+      .then((branding) => {
+        if (!active) return;
+        if (isWhiteLabelBranding(branding, typeof window !== "undefined" ? window.location.hostname : "")) {
+          router.replace("/");
+          return;
+        }
+        setWhiteLabelChecked(true);
+      })
+      .catch(() => {
+        if (active) setWhiteLabelChecked(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [router]);
+
+  useEffect(() => {
+    if (!whiteLabelChecked) return;
     setLoading(true);
     const handle = window.setTimeout(() => {
       const q = search.trim();
@@ -143,7 +167,7 @@ export default function PublicEventsPage() {
     }, search.trim() ? 250 : 0);
 
     return () => window.clearTimeout(handle);
-  }, [copy.error, search]);
+  }, [copy.error, search, whiteLabelChecked]);
 
   return (
     <div className="flex min-h-screen flex-col bg-surface-50 pb-24">

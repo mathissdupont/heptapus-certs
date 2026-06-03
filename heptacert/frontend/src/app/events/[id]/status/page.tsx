@@ -17,14 +17,11 @@ import {
   Copy,
   IdCard,
 } from "lucide-react";
-import { apiUrl, getMyPublicParticipantStatus, getPublicMemberToken, getPublicParticipantStatus, normalizeApiAssetUrl, type PublicParticipantStatus } from "@/lib/api";
+import { apiUrl, getMyPublicParticipantStatus, getPublicMemberToken, getPublicParticipantStatus, type PublicParticipantStatus } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import { fetchCurrentBranding, isWhiteLabelBranding, type PublicBranding } from "@/lib/whiteLabel";
 
-type BrandingData = {
-  org_name?: string;
-  brand_logo?: string | null;
-  brand_color?: string | null;
-};
+type BrandingData = PublicBranding;
 
 function readStoredSurveyToken(eventId: string) {
   if (typeof window === "undefined") return "";
@@ -194,18 +191,32 @@ export default function EventParticipantStatusPage() {
   const [status, setStatus] = useState<PublicParticipantStatus | null>(null);
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(true);
+  const [brandingChecked, setBrandingChecked] = useState(false);
+  const [isWhiteLabel, setIsWhiteLabel] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ticketCopied, setTicketCopied] = useState(false);
 
   useEffect(() => {
-    fetch(apiUrl("/branding"), { credentials: "include", cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => data && setBranding({ ...data, brand_logo: normalizeApiAssetUrl(data.brand_logo) }))
-      .catch(() => {});
+    let active = true;
+    fetchCurrentBranding()
+      .then((data) => {
+        if (!active) return;
+        if (data) {
+          setBranding(data);
+          setIsWhiteLabel(isWhiteLabelBranding(data, typeof window !== "undefined" ? window.location.hostname : ""));
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setBrandingChecked(true);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
-    if (!eventId) return;
+    if (!eventId || !brandingChecked) return;
     const nextToken = readStoredSurveyToken(eventId);
     setToken(nextToken);
     setLoading(true);
@@ -217,6 +228,12 @@ export default function EventParticipantStatusPage() {
         : null;
 
     if (!loadStatus) {
+      if (isWhiteLabel) {
+        setStatus(null);
+        setError(copy.loadFailed);
+        setLoading(false);
+        return;
+      }
       const nextPath = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : `/events/${eventId}/status`;
       router.replace(`/login?mode=member&next=${encodeURIComponent(nextPath)}`);
       return;
@@ -229,6 +246,11 @@ export default function EventParticipantStatusPage() {
       })
       .catch((err: any) => {
         if (!nextToken && err?.status === 401) {
+          if (isWhiteLabel) {
+            setStatus(null);
+            setError(copy.loadFailed);
+            return;
+          }
           const nextPath = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : `/events/${eventId}/status`;
           router.replace(`/login?mode=member&next=${encodeURIComponent(nextPath)}`);
           return;
@@ -237,7 +259,7 @@ export default function EventParticipantStatusPage() {
         setError(err?.message || copy.loadFailed);
       })
       .finally(() => setLoading(false));
-  }, [eventId, copy.loadFailed, router]);
+  }, [eventId, copy.loadFailed, router, brandingChecked, isWhiteLabel]);
 
   const brandColor = branding?.brand_color || "#4f46e5";
   const brandName = branding?.org_name || "HeptaCert";
