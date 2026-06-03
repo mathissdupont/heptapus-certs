@@ -357,12 +357,14 @@ export default function EventAdminNav({
           )}
         </div>
 
-        {/* Tab row */}
-        <div
-          ref={scrollerRef}
-          onWheel={handleWheel}
-          className="overflow-x-auto scrollbar-none px-2"
-        >
+        {/* Tab row — scroll area + "More" button side by side */}
+        <div className="flex items-end">
+          {/* Scrollable primary tabs */}
+          <div
+            ref={scrollerRef}
+            onWheel={handleWheel}
+            className="min-w-0 flex-1 overflow-x-auto scrollbar-none px-2"
+          >
           {loadingEventMeta && !eventMeta ? (
             <div className="flex gap-1 py-2">
               <NavSkeleton variant="inline" />
@@ -386,27 +388,30 @@ export default function EventAdminNav({
                   </Link>
                 );
               })}
+            </div>
+          )}
+          </div>
 
-              {/* "More" dropdown for overflow tabs */}
-              {overflowItems.length > 0 && (
-                <div ref={moreRef} className="relative">
-                  <button
-                    onClick={() => setMoreOpen((v) => !v)}
-                    aria-haspopup="menu"
-                    aria-expanded={moreOpen}
-                    aria-label={copy.more}
-                    className={`inline-flex items-center gap-1 whitespace-nowrap px-3.5 py-3 text-sm font-medium transition-colors ${
-                      activeIsOverflow
-                        ? "text-surface-900 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-full after:bg-surface-900 after:content-[''] relative"
-                        : "text-surface-500 hover:text-surface-800"
-                    }`}
-                  >
-                    {copy.more}
-                    <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-150 ${moreOpen ? "rotate-180" : ""}`} />
-                  </button>
+          {/* "More" dropdown — outside scroll area so it never gets clipped */}
+          {overflowItems.length > 0 && !loadingEventMeta && (
+            <div ref={moreRef} className="relative shrink-0 border-l border-surface-100 px-1">
+              <button
+                onClick={() => setMoreOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={moreOpen}
+                aria-label={copy.more}
+                className={`inline-flex items-center gap-1 whitespace-nowrap px-3 py-3 text-sm font-medium transition-colors ${
+                  activeIsOverflow
+                    ? "text-surface-900"
+                    : "text-surface-500 hover:text-surface-800"
+                }`}
+              >
+                {copy.more}
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-150 ${moreOpen ? "rotate-180" : ""}`} />
+              </button>
 
-                  {moreOpen && (
-                    <div role="menu" className="absolute left-0 top-full z-30 mt-1 w-48 overflow-hidden rounded-xl border border-surface-200 bg-white py-1 shadow-float">
+              {moreOpen && (
+                <div role="menu" className="absolute right-0 top-full z-50 mt-1 w-52 overflow-hidden rounded-xl border border-surface-200 bg-white py-1 shadow-float">
                       {overflowItems.map(({ tab, label, icon: Icon, href }) => {
                         const isAct = resolvedActive === tab;
                         return (
@@ -425,8 +430,6 @@ export default function EventAdminNav({
                           </Link>
                         );
                       })}
-                    </div>
-                  )}
                 </div>
               )}
             </div>
