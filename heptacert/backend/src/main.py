@@ -284,6 +284,8 @@ class Settings(BaseSettings):
     smtp_user: str = Field(default="", alias="SMTP_USER")
     smtp_password: str = Field(default="", alias="SMTP_PASSWORD")
     smtp_from: str = Field(default="noreply@heptapus.com", alias="SMTP_FROM")
+    email_batch_size: int = Field(default=10, ge=1, le=100, alias="EMAIL_BATCH_SIZE")
+    email_batch_pause_seconds: float = Field(default=2.0, ge=0, le=60, alias="EMAIL_BATCH_PAUSE_SECONDS")
 
     email_token_secret: str = Field(min_length=32, alias="EMAIL_TOKEN_SECRET")
 
@@ -6055,8 +6057,6 @@ async def startup():
                         if not job.started_at:
                             job.started_at = now_job
                         job.error_message = None
-                        job.sent_count = 0
-                        job.failed_count = 0
                         db_bulk.add(job)
                         await db_bulk.commit()
                         
@@ -6129,19 +6129,62 @@ async def startup():
                             ]
                         else:
                             attendees = all_attendees
-                        job.recipients_count = len(attendees)
+                        target_count = len(attendees)
+                        job.recipients_count = target_count
 
-                        if not attendees:
+                        processed_res = await db_bulk.execute(
+                            select(EmailDeliveryLog.attendee_id).where(
+                                EmailDeliveryLog.bulk_job_id == job.id,
+                                EmailDeliveryLog.status.in_(["sent", "failed"]),
+                            )
+                        )
+                        processed_attendee_ids = {int(item) for item in processed_res.scalars().all() if item}
+                        sent_count_res = await db_bulk.execute(
+                            select(func.count(EmailDeliveryLog.id)).where(
+                                EmailDeliveryLog.bulk_job_id == job.id,
+                                EmailDeliveryLog.status == "sent",
+                            )
+                        )
+                        failed_count_res = await db_bulk.execute(
+                            select(func.count(EmailDeliveryLog.id)).where(
+                                EmailDeliveryLog.bulk_job_id == job.id,
+                                EmailDeliveryLog.status == "failed",
+                            )
+                        )
+                        sent = int(sent_count_res.scalar_one() or 0)
+                        failed = int(failed_count_res.scalar_one() or 0)
+                        attendees = [attendee for attendee in attendees if attendee.id not in processed_attendee_ids]
+
+                        if not attendees and target_count == 0:
                             job.status = "completed"
                             job.sent_count = 0
                             db_bulk.add(job)
                             await db_bulk.commit()
                             continue
+                        if not attendees:
+                            sent_count_res = await db_bulk.execute(
+                                select(func.count(EmailDeliveryLog.id)).where(
+                                    EmailDeliveryLog.bulk_job_id == job.id,
+                                    EmailDeliveryLog.status == "sent",
+                                )
+                            )
+                            failed_count_res = await db_bulk.execute(
+                                select(func.count(EmailDeliveryLog.id)).where(
+                                    EmailDeliveryLog.bulk_job_id == job.id,
+                                    EmailDeliveryLog.status == "failed",
+                                )
+                            )
+                            job.sent_count = int(sent_count_res.scalar_one() or 0)
+                            job.failed_count = int(failed_count_res.scalar_one() or 0)
+                            job.status = "scheduled" if job.cron_expression else "completed"
+                            job.completed_at = datetime.now(timezone.utc)
+                            db_bulk.add(job)
+                            await db_bulk.commit()
+                            continue
                         
                         # Process in batches for rate limiting
-                        batch_size = 50
-                        sent = 0
-                        failed = 0
+                        batch_size = max(1, int(settings.email_batch_size or 10))
+                        attendees = attendees[:batch_size]
                         
                         for i in range(0, len(attendees), batch_size):
                             batch = attendees[i:i+batch_size]
@@ -6251,22 +6294,19 @@ async def startup():
                             db_bulk.add(job)
                             await db_bulk.commit()
                             
-                            # Rate limiting - wait between batches
-                            if i + batch_size < len(attendees):
-                                import asyncio
-                                await asyncio.sleep(5)
-                        
-                        # Mark one-off jobs as completed. Cron jobs remain scheduled for the next fire time.
-                        if job.cron_expression:
-                            job.status = "scheduled"
+                        # Mark completed only when all targets have a delivery log. Otherwise the next scheduler
+                        # cycle will continue with the next chunk.
+                        if sent + failed >= target_count:
+                            job.status = "scheduled" if job.cron_expression else "completed"
+                            job.completed_at = datetime.now(timezone.utc)
                         else:
-                            job.status = "completed"
-                        job.completed_at = datetime.now(timezone.utc)
+                            job.status = "sending"
+                            job.completed_at = None
                         job.sent_count = sent
                         job.failed_count = failed
                         db_bulk.add(job)
                         await db_bulk.commit()
-                        logger.info("Bulk email job %d completed: %d sent, %d failed", job.id, sent, failed)
+                        logger.info("Bulk email job %d progressed: %d/%d sent, %d failed", job.id, sent, target_count, failed)
                         
                     except Exception as e:
                         logger.error("Bulk email job %d failed: %s", job.id, e)
@@ -10299,7 +10339,7 @@ async def _run_superadmin_bulk_email_job(job_id: int) -> None:
                 select(SuperadminBulkEmailJob).where(SuperadminBulkEmailJob.id == job_id)
             )
             job = res.scalar_one_or_none()
-            if not job or job.status != "pending":
+            if not job or job.status not in {"pending", "sending"}:
                 return
 
             if job.cancel_requested:
@@ -10310,7 +10350,8 @@ async def _run_superadmin_bulk_email_job(job_id: int) -> None:
                 return
 
             job.status = "sending"
-            job.started_at = datetime.now(timezone.utc)
+            if not job.started_at:
+                job.started_at = datetime.now(timezone.utc)
             job.error_message = None
             db_job.add(job)
             await db_job.commit()
@@ -10331,10 +10372,13 @@ async def _run_superadmin_bulk_email_job(job_id: int) -> None:
                 await db_job.commit()
                 return
 
-            sent_count = 0
-            failed_count = 0
+            batch_size = max(1, int(settings.email_batch_size or 10))
+            sent_count = int(job.sent_count or 0)
+            failed_count = int(job.failed_count or 0)
+            start_index = max(0, min(sent_count + failed_count, len(recipients)))
+            batch_recipients = recipients[start_index:start_index + batch_size]
 
-            for idx, recipient in enumerate(recipients):
+            for idx, recipient in enumerate(batch_recipients):
                 check_res = await db_job.execute(
                     select(SuperadminBulkEmailJob).where(SuperadminBulkEmailJob.id == job_id)
                 )
@@ -10363,11 +10407,30 @@ async def _run_superadmin_bulk_email_job(job_id: int) -> None:
                 except Exception:
                     failed_count += 1
 
-                if idx % 10 == 0 or idx == len(recipients) - 1:
+                if (idx + 1) % batch_size == 0 or start_index + idx == len(recipients) - 1:
                     fresh_job.sent_count = sent_count
                     fresh_job.failed_count = failed_count
                     db_job.add(fresh_job)
                     await db_job.commit()
+
+            if sent_count + failed_count < len(recipients):
+                resume_res = await db_job.execute(
+                    select(SuperadminBulkEmailJob).where(SuperadminBulkEmailJob.id == job_id)
+                )
+                resume_job = resume_res.scalar_one_or_none()
+                if resume_job:
+                    resume_job.sent_count = sent_count
+                    resume_job.failed_count = failed_count
+                    resume_job.status = "pending"
+                    db_job.add(resume_job)
+                    await db_job.commit()
+
+                    async def _resume_superadmin_bulk_email() -> None:
+                        await asyncio.sleep(float(settings.email_batch_pause_seconds or 0))
+                        await _enqueue_superadmin_bulk_email_job(job_id)
+
+                    asyncio.create_task(_resume_superadmin_bulk_email())
+                return
 
             finish_res = await db_job.execute(
                 select(SuperadminBulkEmailJob).where(SuperadminBulkEmailJob.id == job_id)

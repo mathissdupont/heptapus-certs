@@ -144,6 +144,7 @@ class AutomationDryRunOut(BaseModel):
 AUTOMATION_EVENT_LIMIT_PER_HOUR = 250
 AUTOMATION_ORG_LIMIT_PER_HOUR = 1000
 AUTOMATION_MAX_ATTEMPTS = 3
+AUTOMATION_DEFAULT_EMAIL_BATCH_SIZE = 10
 
 
 def _automation_key(event_id: int) -> str:
@@ -548,8 +549,12 @@ async def _process_automation_dispatches(*, event_id: Optional[int] = None, limi
         rows_res = await db.execute(query.distinct().limit(limit_events))
         events = rows_res.scalars().all()
         stats = {"events": 0, "rules": 0, "targets": 0, "sent": 0, "failed": 0, "skipped": 0}
+        max_email_sends = max(1, int(getattr(settings, "email_batch_size", AUTOMATION_DEFAULT_EMAIL_BATCH_SIZE) or AUTOMATION_DEFAULT_EMAIL_BATCH_SIZE))
+        email_sends_this_run = 0
 
         for event in events:
+            if email_sends_this_run >= max_email_sends:
+                break
             rule_rows = await _load_rule_rows(db, event.id)
             rules = [_rule_to_dict(rule) for rule in rule_rows if rule.enabled]
             stats["events"] += 1
@@ -585,8 +590,12 @@ async def _process_automation_dispatches(*, event_id: Optional[int] = None, limi
                 stats["targets"] += len(targets)
 
                 for attendee in targets:
+                    if email_sends_this_run >= max_email_sends:
+                        break
                     for action_index, action in enumerate(actions):
                         action_type = str(action.get("type") or "")
+                        if action_type == "send_email" and email_sends_this_run >= max_email_sends:
+                            break
                         log_row = await _execution_log_for_action(db, event, rule_id, attendee, action_index, action_type)
                         next_attempt_at = log_row.next_attempt_at
                         if log_row.status == "sent":
@@ -617,6 +626,7 @@ async def _process_automation_dispatches(*, event_id: Optional[int] = None, limi
                         try:
                             if action_type == "send_email":
                                 ok, message = await _dispatch_email_action(db, event, attendee, action, cert_uuid_by_name)
+                                email_sends_this_run += 1
                             elif action_type == "webhook_dispatch":
                                 ok, message = await _dispatch_webhook_action(event, attendee, rule, action)
                             elif action_type == "create_reminder":
