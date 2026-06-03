@@ -272,6 +272,9 @@ export default function AdminEvents() {
         if (selected) {
           setSelectedOrganizationIdState(String(selected.id));
           setSelectedOrganizationId(selected.id);
+        } else {
+          setSelectedOrganizationIdState("");
+          setSelectedOrganizationId(null);
         }
       }
 

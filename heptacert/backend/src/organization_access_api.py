@@ -188,6 +188,9 @@ async def _active_member_for_org(db: AsyncSession, organization_id: int, me: Cur
 
 
 async def organization_owner_has_enterprise_plan(db: AsyncSession, organization: Organization) -> bool:
+    owner = await db.get(User, organization.user_id)
+    if owner and owner.role == Role.superadmin:
+        return True
     result = await db.execute(
         select(Subscription)
         .where(Subscription.user_id == organization.user_id, Subscription.is_active == True)

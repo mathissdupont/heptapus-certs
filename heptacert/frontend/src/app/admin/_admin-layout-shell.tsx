@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { clearToken, getRoleFromToken } from "@/lib/api";
+import { apiFetch, clearToken, getRoleFromToken, getSelectedOrganizationId, setSelectedOrganizationId } from "@/lib/api";
 import { LanguageToggle, useI18n } from "@/lib/i18n";
 import InAppTourGuide from "@/components/Admin/InAppTourGuide";
 import AIAssistant from "@/components/Admin/AIAssistant";
@@ -42,6 +42,14 @@ type NavItem = {
 type NavGroup = {
   label: { tr: string; en: string };
   items: NavItem[];
+};
+
+type OrganizationContext = {
+  id: number;
+  org_name: string;
+  role: string;
+  owned: boolean;
+  permissions: string[];
 };
 
 const NAV_GROUPS: NavGroup[] = [
@@ -217,9 +225,12 @@ function SidebarContent({
 }
 
 export function AdminLayoutShell({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const pathname = usePathname() || "";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [organizationContexts, setOrganizationContexts] = useState<OrganizationContext[]>([]);
+  const [activeOrganizationId, setActiveOrganizationId] = useState("");
   const currentSection = getCurrentSection(pathname);
   const { lang } = useI18n();
   const role = getRoleFromToken();
@@ -235,12 +246,36 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
       openMenu: lang === "tr" ? "Menüyü Aç" : "Open menu",
       expandMenu: lang === "tr" ? "Menüyü Genişlet" : "Expand menu",
       collapseMenu: lang === "tr" ? "Menüyü Daralt" : "Collapse menu",
+      organization: lang === "tr" ? "Organizasyon" : "Organization",
+      ownOrg: lang === "tr" ? "kendi kurumum" : "own org",
     }),
     [lang]
   );
 
   useEffect(() => {
     setMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (isAuthPage(pathname)) return;
+    apiFetch("/admin/organization/contexts", { method: "GET" })
+      .then((response) => response.json())
+      .then((items: OrganizationContext[]) => {
+        const contexts = items || [];
+        setOrganizationContexts(contexts);
+        const stored = getSelectedOrganizationId();
+        const selected = contexts.find((ctx) => String(ctx.id) === stored) || contexts[0];
+        if (selected) {
+          setActiveOrganizationId(String(selected.id));
+          setSelectedOrganizationId(selected.id);
+        } else {
+          setActiveOrganizationId("");
+          setSelectedOrganizationId(null);
+        }
+      })
+      .catch(() => {
+        setOrganizationContexts([]);
+      });
   }, [pathname]);
 
   if (isAuthPage(pathname)) {
@@ -295,6 +330,32 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
 
           <div className="ml-auto flex min-w-0 items-center gap-3">
             <CommandPalette />
+            {organizationContexts.length > 1 && (
+              <label className="hidden min-w-[220px] max-w-[300px] items-center gap-2 rounded-lg border border-surface-200 bg-white px-2.5 py-1.5 shadow-sm md:flex">
+                <Building2 className="h-4 w-4 shrink-0 text-surface-400" />
+                <span className="sr-only">{topbarText.organization}</span>
+                <select
+                  value={activeOrganizationId}
+                  onChange={(event) => {
+                    const nextId = event.target.value;
+                    setActiveOrganizationId(nextId);
+                    setSelectedOrganizationId(nextId || null);
+                    router.refresh();
+                    if (pathname.startsWith("/admin/events")) {
+                      window.location.reload();
+                    }
+                  }}
+                  className="min-w-0 flex-1 bg-transparent text-xs font-bold text-surface-700 outline-none"
+                  aria-label={topbarText.organization}
+                >
+                  {organizationContexts.map((ctx) => (
+                    <option key={ctx.id} value={ctx.id}>
+                      {ctx.org_name} {ctx.owned ? `(${topbarText.ownOrg})` : `(${ctx.role})`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <LanguageToggle className="inline-flex items-center gap-2 rounded-lg border border-surface-200 bg-white px-3 py-1.5 text-xs font-bold text-surface-700 shadow-sm transition-colors hover:bg-surface-50 hover:text-surface-900" />
             <div className="hidden min-w-0 items-center gap-3 lg:flex">
               <div className="text-right">

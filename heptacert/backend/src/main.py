@@ -5147,6 +5147,9 @@ async def _event_owner_has_enterprise_plan(event_id: int, db: AsyncSession) -> b
     event_owner_id = event_owner_res.scalar_one_or_none()
     if event_owner_id is None:
         return False
+    owner = await db.get(User, int(event_owner_id))
+    if owner and owner.role == Role.superadmin:
+        return True
     sub = await _get_active_subscription_for_user(int(event_owner_id), db)
     return _subscription_is_active_plan(sub, {"enterprise"})
 
@@ -5173,6 +5176,9 @@ async def require_paid_plan(
         if event_owner_id is None:
             raise HTTPException(status_code=404, detail="Event not found")
         billing_user_id = int(event_owner_id)
+        owner = await db.get(User, billing_user_id)
+        if owner and owner.role == Role.superadmin:
+            return me
         if billing_user_id != me.id:
             allowed_plans = {"enterprise"}
 
@@ -5237,6 +5243,14 @@ async def _check_event_owner_has_premium_for_teams(
     db: AsyncSession,
 ) -> bool:
     """Check if event owner has Enterprise plan for organization/team features."""
+    owner_res = await db.execute(
+        select(User.role)
+        .join(Event, Event.admin_id == User.id)
+        .where(Event.id == event_id)
+    )
+    owner_role = owner_res.scalar_one_or_none()
+    if owner_role == Role.superadmin:
+        return True
     res = await db.execute(
         select(Event, Subscription)
         .outerjoin(Subscription, Subscription.user_id == Event.admin_id)

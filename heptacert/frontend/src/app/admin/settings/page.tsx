@@ -1511,6 +1511,9 @@ export default function AdminSettingsPage() {
         if (selected) {
           setSelectedOrganizationIdState(String(selected.id));
           setSelectedOrganizationId(selected.id);
+        } else {
+          setSelectedOrganizationIdState("");
+          setSelectedOrganizationId(null);
         }
       })
       .catch(() => null);
