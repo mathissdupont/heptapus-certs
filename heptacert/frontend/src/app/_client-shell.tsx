@@ -150,6 +150,41 @@ function Navbar() {
       : orgName;
   }, [isWhiteLabel, orgName]);
 
+  useEffect(() => {
+    if (!isWhiteLabel || !brandLogo || typeof document === "undefined") return;
+
+    function withIconCacheKey(value: string) {
+      try {
+        const url = new URL(value, window.location.origin);
+        url.searchParams.set("wl_icon", orgName || "brand");
+        return url.toString();
+      } catch {
+        return value;
+      }
+    }
+
+    const iconHref = withIconCacheKey(brandLogo);
+    const iconLinks = Array.from(document.querySelectorAll<HTMLLinkElement>("link[rel~='icon']"));
+    if (iconLinks.length === 0) {
+      const link = document.createElement("link");
+      link.rel = "icon";
+      document.head.appendChild(link);
+      iconLinks.push(link);
+    }
+    iconLinks.forEach((link) => {
+      link.href = iconHref;
+      link.type = "";
+    });
+
+    let appleLink = document.querySelector<HTMLLinkElement>("link[rel='apple-touch-icon']");
+    if (!appleLink) {
+      appleLink = document.createElement("link");
+      appleLink.rel = "apple-touch-icon";
+      document.head.appendChild(appleLink);
+    }
+    appleLink.href = iconHref;
+  }, [brandLogo, isWhiteLabel, orgName]);
+
   function handleLogout() {
     clearPublicMemberToken();
     setMember(null);
