@@ -50,7 +50,7 @@ function StatCard({
   icon: ElementType;
 }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm flex items-start justify-between gap-4">
+    <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm flex items-start justify-between gap-4">
       <div className="min-w-0 flex-1 space-y-1">
         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 truncate">{title}</p>
         <p className="text-2xl font-bold tracking-tight text-gray-950 font-mono tabular-nums">{value}</p>
@@ -130,7 +130,7 @@ export default function EventOperationsPage() {
       <EventAdminNav eventId={eventId} eventName={snapshot?.event_name} active="ops" />
 
       {/* ANA SAYFA BAŞLIK ALANI */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-0.5">
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Canlı operasyon ekranı</p>
           <h1 className="text-xl font-bold tracking-tight text-gray-950 sm:text-2xl">
@@ -154,7 +154,7 @@ export default function EventOperationsPage() {
             type="button"
             onClick={() => void load({ soft: true })}
             disabled={refreshing}
-            className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-95 disabled:opacity-40"
+            className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-95 disabled:opacity-40"
           >
             {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 stroke-[2]" />}
             <span>Yenile</span>
@@ -190,7 +190,7 @@ export default function EventOperationsPage() {
           <div className="grid gap-4 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] items-start">
             
             {/* SOL SÜTUN: OTURUM KAPASİTE DURUMLARI */}
-            <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+            <section className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm space-y-4">
               <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-3">
                 <div className="space-y-0.5">
                   <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950">Seans Yoklama Durumları</h2>
@@ -201,12 +201,12 @@ export default function EventOperationsPage() {
               
               <div className="space-y-2.5">
                 {snapshot.sessions.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-gray-200 p-6 text-center text-xs font-semibold text-gray-400">
+                  <div className="rounded-xl border border-dashed border-surface-200 p-6 text-center text-xs font-semibold text-gray-400">
                     Henüz tanımlanmış bir seans akışı bulunmuyor.
                   </div>
                 ) : (
                   snapshot.sessions.map((session) => (
-                    <div key={session.id} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm flex items-center justify-between gap-4 transition-colors hover:border-gray-200">
+                    <div key={session.id} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm flex items-center justify-between gap-4 transition-colors hover:border-surface-200">
                       <div className="min-w-0 space-y-1 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="text-xs font-bold text-gray-950 truncate tracking-tight">{session.name}</p>
@@ -228,7 +228,7 @@ export default function EventOperationsPage() {
             </section>
 
             {/* SAĞ SÜTUN: GERÇEK ZAMANLI LOG AKIŞI VE GERİ ALMA MERKEZİ */}
-            <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+            <section className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm space-y-4">
               <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-3">
                 <div className="space-y-0.5">
                   <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950">Son Giriş Hareketleri</h2>
@@ -286,7 +286,7 @@ export default function EventOperationsPage() {
           type="button"
           onClick={() => void load({ soft: true })}
           disabled={refreshing}
-          className="flex-1 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-xs font-bold text-gray-700 shadow-sm transition active:scale-[0.98] disabled:opacity-40"
+          className="flex-1 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-surface-200 bg-white px-4 text-xs font-bold text-gray-700 shadow-sm transition active:scale-[0.98] disabled:opacity-40"
         >
           {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4 stroke-[2]" />}
           <span>Yenile</span>

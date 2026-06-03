@@ -421,7 +421,7 @@ function InstallPrompt() {
             </div>
           )}
           <div className="mt-3 flex gap-2">
-            {promptEvent && (
+            {promptEvent !== null && (
               <button type="button" onClick={install} className="btn-primary text-xs">
                 Ekle
               </button>
