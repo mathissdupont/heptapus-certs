@@ -4792,6 +4792,12 @@ async def send_certificate_delivery_email_task(
         verify_url = build_certificate_verify_url(cert.uuid)
         pdf_url = cert.pdf_url if cert.status == CertStatus.active else None
         png_url = _certificate_png_public_url(event_id, cert_uuid)
+        event_public_id = _get_public_event_identifier(event)
+        event_link = f"{settings.frontend_base_url.rstrip('/')}/events/{event_public_id}/register"
+        linkedin_share_link = build_linkedin_share_url(
+            verify_url,
+            f"{event.name} sertifikamı HeptaCert üzerinden doğrulanabilir şekilde paylaşıyorum.",
+        )
         template_vars = {
             "recipient_name": recipient_name,
             "recipient_email": recipient_email,
@@ -4803,7 +4809,12 @@ async def send_certificate_delivery_email_task(
             "certificate_pdf_url": pdf_url or verify_url,
             "certificate_png_url": png_url or pdf_url or verify_url,
             "certificate_public_id": cert.public_id or "",
-            "event_link": f"{settings.public_base_url}/events/{event.id}/register",
+            "certificate_uuid": cert.uuid,
+            "event_link": event_link,
+            "registration_link": event_link,
+            "linkedin_share_link": linkedin_share_link,
+            "linkedin_share_url": linkedin_share_link,
+            "wallet_link": f"{settings.frontend_base_url.rstrip('/')}/profile",
             "logo_url": f"{settings.public_base_url}/static/images/email-logo.png",
         }
 
@@ -5324,6 +5335,15 @@ def build_certificate_verify_url(
         return f"{scheme}://{host}{path.rstrip('/')}/{cert_uuid}"
 
     return f"{settings.frontend_base_url.rstrip('/')}{path.rstrip('/')}/{cert_uuid}"
+
+
+def build_linkedin_share_url(target_url: str, text: str = "") -> str:
+    if not target_url:
+        return ""
+    query = f"url={quote(target_url, safe='')}"
+    if text:
+        query += f"&summary={quote(text, safe='')}"
+    return f"https://www.linkedin.com/sharing/share-offsite/?{query}"
 
 
 app = FastAPI(title="HeptaCert API", version="2.0.0")
@@ -6113,20 +6133,33 @@ async def startup():
                             for attendee in batch:
                                 try:
                                     # Render template with variables
+                                    name_key = (attendee.name or "").strip().lower()
+                                    public_event_id = _get_public_event_identifier(event)
+                                    certificate_link = (
+                                        build_certificate_verify_url(cert_uuid_by_name[name_key])
+                                        if name_key in cert_uuid_by_name
+                                        else f"{settings.frontend_base_url.rstrip('/')}/events/{public_event_id}/register"
+                                    )
+                                    linkedin_share_link = build_linkedin_share_url(
+                                        certificate_link,
+                                        f"{event.name} sertifikamı HeptaCert üzerinden doğrulanabilir şekilde paylaşıyorum.",
+                                    )
                                     template_vars = {
                                         "recipient_name": attendee.name,
                                         "recipient_email": attendee.email,
                                         "event_name": event.name,
                                         "event_date": event.event_date.isoformat() if event.event_date else "TBD",
                                         "event_location": event.event_location or "Online",
-                                        "certificate_link": (
-                                            build_certificate_verify_url(cert_uuid_by_name[(attendee.name or '').strip().lower()])
-                                            if (attendee.name or "").strip().lower() in cert_uuid_by_name
-                                            else f"{settings.public_base_url}/events/{_get_public_event_identifier(event)}/register"
-                                        ),
-                                        "event_link": f"{settings.public_base_url}/events/{_get_public_event_identifier(event)}/register",
+                                        "certificate_link": certificate_link,
+                                        "certificate_verify_url": certificate_link,
+                                        "certificate_uuid": cert_uuid_by_name.get(name_key, ""),
+                                        "event_link": f"{settings.frontend_base_url.rstrip('/')}/events/{public_event_id}/register",
+                                        "registration_link": f"{settings.frontend_base_url.rstrip('/')}/events/{public_event_id}/register",
+                                        "linkedin_share_link": linkedin_share_link,
+                                        "linkedin_share_url": linkedin_share_link,
+                                        "wallet_link": f"{settings.frontend_base_url.rstrip('/')}/profile",
                                         "survey_link": build_public_survey_url(
-                                            event_id=_get_public_event_identifier(event),
+                                            event_id=public_event_id,
                                             attendee_id=attendee.id,
                                             email=attendee.email,
                                         ),
@@ -8574,6 +8607,36 @@ async def login(request: Request, data: LoginIn, db: AsyncSession = Depends(get_
         await db.commit()
         raise HTTPException(status_code=403, detail="E-posta adresinizi doğrulamanız gerekiyor. Lütfen gelen kutunuzu kontrol edin.")
         raise HTTPException(status_code=403, detail="E-posta adresinizi doÃ„Å¸rulamanÃ„Â±z gerekiyor. LÃƒÂ¼tfen gelen kutunuzu kontrol edin.")
+
+    # Organization employees need admin-panel access even if they registered as a public member first.
+    if user.role not in (Role.admin, Role.superadmin):
+        try:
+            from .organization_access_api import OrganizationMember
+
+            normalized_email = (user.email or "").strip().lower()
+            org_member_res = await db.execute(
+                select(OrganizationMember.id).where(
+                    OrganizationMember.status == "active",
+                    or_(
+                        OrganizationMember.user_id == user.id,
+                        func.lower(func.trim(OrganizationMember.email)) == normalized_email,
+                    ),
+                ).limit(1)
+            )
+            event_member_res = await db.execute(
+                select(EventTeamMember.id).where(
+                    EventTeamMember.status == "active",
+                    or_(
+                        EventTeamMember.user_id == user.id,
+                        func.lower(func.trim(EventTeamMember.email)) == normalized_email,
+                    ),
+                ).limit(1)
+            )
+            if org_member_res.scalar_one_or_none() is not None or event_member_res.scalar_one_or_none() is not None:
+                user.role = Role.admin
+                await db.flush()
+        except Exception:
+            logger.exception("Failed to synchronize organization employee role for user %s", user.id)
 
     # Check if 2FA is enabled for this user
     totp_res = await db.execute(select(TotpSecret).where(TotpSecret.user_id == user.id, TotpSecret.enabled.is_(True)))
@@ -12207,6 +12270,8 @@ async def add_event_team_member(
 
     user_res = await db.execute(select(User).where(func.lower(func.trim(User.email)) == normalized_email))
     user = user_res.scalar_one_or_none()
+    if user and user.role not in (Role.admin, Role.superadmin):
+        user.role = Role.admin
 
     existing_res = await db.execute(
         select(EventTeamMember).where(
@@ -12281,6 +12346,8 @@ async def accept_event_team_invite(
     user = user_res.scalar_one_or_none()
     if user:
         member.user_id = user.id
+        if user.role not in (Role.admin, Role.superadmin):
+            user.role = Role.admin
     member.status = "active"
     db.add(member)
     await write_audit_log(

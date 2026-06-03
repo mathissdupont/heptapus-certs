@@ -3453,8 +3453,11 @@ export async function sendSystemDigestTest(to_email: string): Promise<{ sent: bo
 // -----------------------------------------------------------------------------
 
 export interface TwoFAStatusOut {
+  enabled?: boolean;
+  configured?: boolean;
   is_enabled: boolean;
   secret?: string;
+  otp_auth_url?: string;
   qr_code?: string;
   recovery_codes?: string[];
 }
@@ -3472,15 +3475,15 @@ export async function setup2FA(): Promise<TwoFAStatusOut> {
 export async function enable2FA(token: string): Promise<{ success: boolean }> {
   const res = await apiFetch(`/auth/2fa/enable`, {
     method: "POST",
-    body: JSON.stringify({ token }),
+    body: JSON.stringify({ code: token }),
   });
   return res.json();
 }
 
-export async function disable2FA(password: string): Promise<{ success: boolean }> {
+export async function disable2FA(code: string): Promise<{ success: boolean }> {
   const res = await apiFetch(`/auth/2fa/disable`, {
-    method: "POST",
-    body: JSON.stringify({ password }),
+    method: "PATCH",
+    body: JSON.stringify({ code }),
   });
   return res.json();
 }

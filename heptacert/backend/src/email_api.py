@@ -13,6 +13,7 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import distinct, func, literal, or_, select, union_all
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .email_rendering import build_email_template_vars, render_template_string
 from .email_template_presets import SYSTEM_EMAIL_TEMPLATE_PRESETS
 from .main import (
     Attendee,
@@ -74,12 +75,9 @@ SUPERADMIN_DIGEST_MANUAL_DAILY_QUOTA = 1
 
 async def _ensure_system_email_template_presets(db: AsyncSession) -> None:
     existing_res = await db.execute(
-        select(EmailTemplate.name).where(EmailTemplate.template_type == "system", EmailTemplate.is_default == True)
+        select(EmailTemplate).where(EmailTemplate.template_type == "system", EmailTemplate.is_default == True)
     )
-    existing_names = {str(row[0]) for row in existing_res.all()}
-    missing = [item for item in SYSTEM_EMAIL_TEMPLATE_PRESETS if item["name"] not in existing_names]
-    if not missing:
-        return
+    existing_by_name = {str(item.name): item for item in existing_res.scalars().all()}
 
     creator_res = await db.execute(
         select(User)
@@ -91,7 +89,15 @@ async def _ensure_system_email_template_presets(db: AsyncSession) -> None:
     if not creator:
         return
 
-    for item in missing:
+    changed = False
+    for item in SYSTEM_EMAIL_TEMPLATE_PRESETS:
+        existing = existing_by_name.get(item["name"])
+        if existing:
+            for field in ("subject_tr", "subject_en", "body_html"):
+                if getattr(existing, field) != item[field]:
+                    setattr(existing, field, item[field])
+                    changed = True
+            continue
         db.add(
             EmailTemplate(
                 event_id=None,
@@ -104,7 +110,9 @@ async def _ensure_system_email_template_presets(db: AsyncSession) -> None:
                 is_default=True,
             )
         )
-    await db.commit()
+        changed = True
+    if changed:
+        await db.commit()
 
 
 class SuperadminBulkEmailTestIn(BaseModel):

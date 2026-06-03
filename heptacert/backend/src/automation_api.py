@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import and_, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .email_rendering import build_email_template_vars, render_template_string
 from .main import (
     Attendee,
     AttendaonceRecord,
@@ -30,7 +31,6 @@ from .main import (
     Role,
     SurveyResponse,
     WebhookEndpointIn,
-    build_certificate_verify_url,
     build_public_survey_url,
     logger,
     send_email_async,
@@ -462,24 +462,17 @@ async def _certificate_uuid_by_name(db: AsyncSession, event_id: int) -> dict[str
 def _template_vars(event: Event, attendee: Attendee, cert_uuid_by_name: dict[str, str]) -> dict[str, Any]:
     name_key = (attendee.name or "").strip().lower()
     public_event_id = _get_public_event_identifier(event)
-    return {
-        "recipient_name": attendee.name,
-        "recipient_email": attendee.email,
-        "event_name": event.name,
-        "event_date": event.event_date.isoformat() if event.event_date else "TBD",
-        "event_location": event.event_location or "Online",
-        "certificate_link": (
-            build_certificate_verify_url(cert_uuid_by_name[name_key])
-            if name_key in cert_uuid_by_name
-            else f"{settings.public_base_url}/events/{public_event_id}/register"
-        ),
-        "event_link": f"{settings.public_base_url}/events/{public_event_id}/register",
-        "survey_link": build_public_survey_url(
+    return build_email_template_vars(
+        settings=settings,
+        event=event,
+        attendee=attendee,
+        cert_uuid=cert_uuid_by_name.get(name_key),
+        survey_link=build_public_survey_url(
             event_id=public_event_id,
             attendee_id=attendee.id,
             email=attendee.email,
         ),
-    }
+    )
 
 
 async def _dispatch_email_action(
@@ -489,8 +482,6 @@ async def _dispatch_email_action(
     action: dict[str, Any],
     cert_uuid_by_name: dict[str, str],
 ) -> tuple[bool, str]:
-    from jinja2 import Template
-
     template_id = action.get("email_template_id")
     if not template_id:
         return False, "email_template_id missing"
@@ -502,8 +493,8 @@ async def _dispatch_email_action(
         return False, "recipient unavailable or unsubscribed"
 
     variables = _template_vars(event, attendee, cert_uuid_by_name)
-    subject = Template(template.subject_tr).render(**variables)
-    body = Template(template.body_html).render(**variables)
+    subject = render_template_string(template.subject_tr, variables)
+    body = render_template_string(template.body_html, variables)
     await send_email_async(attendee.email, subject, body)
     return True, "email sent"
 

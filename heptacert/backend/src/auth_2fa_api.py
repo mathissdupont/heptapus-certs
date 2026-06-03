@@ -1,5 +1,8 @@
 """Authenticated 2FA setup and account security endpoints."""
 
+import base64
+from io import BytesIO
+
 import pyotp
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -21,11 +24,14 @@ router = APIRouter(prefix="/api/auth/2fa", tags=["auth-2fa"])
 class TwoFAStatusOut(BaseModel):
     enabled: bool
     configured: bool
+    is_enabled: bool = False
 
 
 class TwoFASetupOut(BaseModel):
     secret: str
     otp_auth_url: str
+    qr_code: str
+    is_enabled: bool = False
 
 
 class TwoFACodeIn(BaseModel):
@@ -56,13 +62,35 @@ def _verify_code(secret: str, code: str) -> bool:
     return pyotp.TOTP(secret).verify(_normalize_code(code), valid_window=1)
 
 
+def _qr_data_url(value: str) -> str:
+    try:
+        import qrcode
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="QR kod kütüphanesi kullanılamıyor.") from exc
+
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=8,
+        border=2,
+    )
+    qr.add_data(value)
+    qr.make(fit=True)
+    image = qr.make_image(fill_color="#111827", back_color="white")
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+    return f"data:image/png;base64,{encoded}"
+
+
 @router.get("/status", response_model=TwoFAStatusOut)
 async def two_fa_status(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     totp = await _get_totp_secret(db, me.id)
-    return TwoFAStatusOut(enabled=bool(totp and totp.enabled), configured=bool(totp))
+    enabled = bool(totp and totp.enabled)
+    return TwoFAStatusOut(enabled=enabled, configured=bool(totp), is_enabled=enabled)
 
 
 @router.post("/setup", response_model=TwoFASetupOut)
@@ -86,6 +114,7 @@ async def setup_two_fa(
 
     issuer = "HeptaCert"
     otp_auth_url = pyotp.TOTP(secret).provisioning_uri(name=user.email, issuer_name=issuer)
+    qr_code = _qr_data_url(otp_auth_url)
     await write_audit_log(
         db,
         user_id=me.id,
@@ -96,7 +125,7 @@ async def setup_two_fa(
         user_agent=request.headers.get("User-Agent"),
     )
     await db.commit()
-    return TwoFASetupOut(secret=secret, otp_auth_url=otp_auth_url)
+    return TwoFASetupOut(secret=secret, otp_auth_url=otp_auth_url, qr_code=qr_code, is_enabled=False)
 
 
 async def _confirm_two_fa(

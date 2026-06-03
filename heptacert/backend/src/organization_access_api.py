@@ -411,10 +411,13 @@ async def create_organization_member(
     )
     if existing.scalar_one_or_none() is not None:
         raise HTTPException(status_code=409, detail="This employee is already in the organization")
-    user_result = await db.execute(select(User.id).where(func.lower(func.trim(User.email)) == normalized_email))
+    user_result = await db.execute(select(User).where(func.lower(func.trim(User.email)) == normalized_email))
+    linked_user = user_result.scalar_one_or_none()
+    if linked_user and linked_user.role not in (Role.admin, Role.superadmin):
+        linked_user.role = Role.admin
     member = OrganizationMember(
         organization_id=organization.id,
-        user_id=user_result.scalar_one_or_none(),
+        user_id=linked_user.id if linked_user else None,
         email=normalized_email,
         role=payload.role,
         permissions=payload.permissions,
