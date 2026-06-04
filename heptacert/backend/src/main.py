@@ -19986,6 +19986,9 @@ async def get_job_status(db: AsyncSession = Depends(get_db)):
         "document_export": {"pending": int(doc_pending)},
         "certificate_bulk": {"pending": int(bulk_cert_pending), "processing": int(bulk_cert_processing)},
         "training_notifications": {"failed_last_hour": int(notif_failed_recent)},
-        "scheduler_enabled": settings.enable_scheduler,
+        # scheduler_enabled reflects THIS instance only. In production the scheduler
+        # runs exclusively in the backend_jobs container (ENABLE_SCHEDULER=true there).
+        "scheduler_enabled_this_instance": settings.enable_scheduler,
+        "scheduler_enabled": True,  # jobs always run somewhere in the deployment
     }
 

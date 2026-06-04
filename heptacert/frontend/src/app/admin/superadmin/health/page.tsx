@@ -265,10 +265,8 @@ export default function SuperadminHealthPage() {
               <h2 className="text-sm font-bold text-surface-900">
                 {lang === "tr" ? "Arkaplan İş Kuyruğu" : "Background Job Queue"}
               </h2>
-              <span className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                jobs.scheduler_enabled ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
-              }`}>
-                {jobs.scheduler_enabled ? (lang === "tr" ? "Aktif" : "Active") : (lang === "tr" ? "Devre Dışı" : "Disabled")}
+              <span className="ml-auto rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                {lang === "tr" ? "Ayrı worker container'da çalışıyor" : "Runs in dedicated worker container"}
               </span>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
