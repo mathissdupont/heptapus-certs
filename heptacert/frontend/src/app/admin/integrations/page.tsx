@@ -343,25 +343,6 @@ function CatalogCard({ item, lang }: { item: IntegrationCatalogItem; lang: strin
           </a>
         )}
       </div>
-      {item.app_required && (
-        <div className="mt-3 space-y-2 rounded-lg border border-surface-200 bg-surface-50 p-3 text-xs text-surface-600">
-          <p className="font-bold text-surface-800">Provider app required: {item.app_provider || item.name}</p>
-          {item.callback_urls.length > 0 && (
-            <div>
-              <p className="font-semibold text-surface-500">Callback URL</p>
-              {item.callback_urls.map(url => (
-                <code key={url} className="mt-1 block break-all rounded-md bg-white px-2 py-1 text-[11px] text-surface-700">{url}</code>
-              ))}
-            </div>
-          )}
-          {item.required_scopes.length > 0 && (
-            <p><span className="font-semibold text-surface-500">Scopes:</span> {item.required_scopes.join(", ")}</p>
-          )}
-          {item.credential_fields.length > 0 && (
-            <p><span className="font-semibold text-surface-500">Credentials:</span> {item.credential_fields.join(", ")}</p>
-          )}
-        </div>
-      )}
     </div>
   );
 }
