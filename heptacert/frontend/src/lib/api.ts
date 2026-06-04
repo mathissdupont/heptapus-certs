@@ -3530,6 +3530,12 @@ export interface IntegrationCatalogItem {
   connected: boolean;
   docs_url?: string | null;
   settings_href?: string | null;
+  app_required: boolean;
+  app_provider?: string | null;
+  setup_url?: string | null;
+  required_scopes: string[];
+  callback_urls: string[];
+  credential_fields: string[];
 }
 
 export interface IntegrationCatalogResponse {

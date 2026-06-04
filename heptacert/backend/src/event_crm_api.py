@@ -32,6 +32,8 @@ from .main import (
     Role,
     SurveyResponse,
     User,
+    _decrypt_secret,
+    _encrypt_secret,
     get_current_user,
     get_db,
     require_role,
@@ -435,6 +437,16 @@ async def _save_crm_integrations_settings(db: AsyncSession, org: Organization, d
 
 def _hubspot_config(org: Organization) -> dict[str, Any]:
     return (_crm_integrations_settings(org).get("hubspot") or {}) if org else {}
+
+
+def _encrypt_crm_secret(value: str) -> str:
+    encrypted = _encrypt_secret(value.strip()) if value else None
+    return encrypted or ""
+
+
+def _decrypt_crm_secret(value: Any) -> str:
+    decrypted = _decrypt_secret(str(value)) if value else None
+    return decrypted or ""
 
 
 def _token_preview(token: str) -> str:
@@ -967,7 +979,7 @@ async def get_hubspot_integration(
 ):
     org = await _admin_org(db, me, request)
     cfg = _hubspot_config(org)
-    token = str(cfg.get("private_app_token") or "")
+    token = _decrypt_crm_secret(cfg.get("private_app_token"))
     return HubSpotIntegrationOut(
         configured=bool(token),
         enabled=bool(cfg.get("enabled", True)),
@@ -989,7 +1001,7 @@ async def update_hubspot_integration(
     org = await _admin_org(db, me, request)
     data = _crm_integrations_settings(org)
     data["hubspot"] = {
-        "private_app_token": payload.private_app_token.strip(),
+        "private_app_token": _encrypt_crm_secret(payload.private_app_token),
         "enabled": bool(payload.enabled),
         "updated_at": datetime.now(timezone.utc).isoformat(),
         "updated_by": me.id,
@@ -1026,7 +1038,7 @@ async def test_hubspot_integration(
 ):
     org = await _admin_org(db, me, request)
     cfg = _hubspot_config(org)
-    token = str(cfg.get("private_app_token") or "")
+    token = _decrypt_crm_secret(cfg.get("private_app_token"))
     if not token or not cfg.get("enabled", True):
         raise HTTPException(status_code=400, detail="HubSpot integration is not configured")
     async with httpx.AsyncClient(timeout=10.0) as client:
@@ -1053,7 +1065,7 @@ async def push_crm_participants_to_hubspot(
 ):
     org = await _admin_org(db, me, request)
     cfg = _hubspot_config(org)
-    token = str(cfg.get("private_app_token") or "")
+    token = _decrypt_crm_secret(cfg.get("private_app_token"))
     if not token or not cfg.get("enabled", True):
         raise HTTPException(status_code=400, detail="HubSpot integration is not configured")
     emails = list(dict.fromkeys(_normalize_email(email) for email in payload.emails if _normalize_email(email)))[:1000]
@@ -1739,3 +1751,408 @@ async def filter_crm_by_lead_score(
         stmt = stmt.where(ParticipantCrmProfile.lifecycle_status == lifecycle_status.strip())
     emails = (await db.execute(stmt)).scalars().all()
     return CrmLeadScoreFilterOut(emails=list(emails), count=len(emails))
+
+
+# ── Salesforce CRM integration ────────────────────────────────────────────────
+
+class SalesforceIntegrationIn(BaseModel):
+    access_token: str = Field(min_length=8, max_length=2000)
+    instance_url: str = Field(min_length=10, max_length=500)
+    enabled: bool = True
+
+
+class SalesforceIntegrationOut(BaseModel):
+    configured: bool
+    enabled: bool
+    instance_url: Optional[str] = None
+    token_preview: Optional[str] = None
+
+
+class SalesforcePushIn(ParticipantCrmSelectionIn):
+    object_type: str = Field(default="Contact", pattern="^(Contact|Lead)$")
+    create_missing: bool = True
+
+
+class SalesforcePushOut(BaseModel):
+    pushed: int
+    created: int
+    updated: int
+    failed: int
+    errors: list[str] = []
+
+
+def _salesforce_config(org: Organization) -> dict[str, Any]:
+    return (_crm_integrations_settings(org).get("salesforce") or {}) if org else {}
+
+
+async def _sf_query(client: httpx.AsyncClient, instance_url: str, token: str, soql: str) -> list[dict]:
+    res = await client.get(
+        f"{instance_url.rstrip('/')}/services/data/v60.0/query",
+        headers={"Authorization": f"Bearer {token}"},
+        params={"q": soql},
+    )
+    if res.status_code >= 400:
+        return []
+    return res.json().get("records") or []
+
+
+async def _sf_upsert_contact(
+    client: httpx.AsyncClient,
+    instance_url: str,
+    token: str,
+    email: str,
+    properties: dict[str, str],
+    object_type: str,
+    create_missing: bool,
+) -> str:
+    base = f"{instance_url.rstrip('/')}/services/data/v60.0/sobjects/{object_type}"
+    records = await _sf_query(
+        client, instance_url, token,
+        f"SELECT Id FROM {object_type} WHERE Email = '{email}' LIMIT 1",
+    )
+    if records:
+        sf_id = records[0]["Id"]
+        res = await client.patch(
+            f"{base}/{sf_id}",
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            json=properties,
+        )
+        return "updated" if res.status_code < 400 else f"error:{res.status_code}"
+    if not create_missing:
+        return "skipped"
+    res = await client.post(
+        base,
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        json={**properties, "Email": email},
+    )
+    return "created" if res.status_code < 400 else f"error:{res.status_code}"
+
+
+@router.get(
+    "/api/admin/crm/integrations/salesforce",
+    response_model=SalesforceIntegrationOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def get_salesforce_integration(
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _admin_org(db, me, request)
+    cfg = _salesforce_config(org)
+    token = _decrypt_crm_secret(cfg.get("access_token"))
+    return SalesforceIntegrationOut(
+        configured=bool(token and cfg.get("instance_url")),
+        enabled=bool(cfg.get("enabled", True)),
+        instance_url=str(cfg.get("instance_url") or "") or None,
+        token_preview=_token_preview(token) if token else None,
+    )
+
+
+@router.patch(
+    "/api/admin/crm/integrations/salesforce",
+    response_model=SalesforceIntegrationOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def update_salesforce_integration(
+    request: Request,
+    payload: SalesforceIntegrationIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _admin_org(db, me, request)
+    data = _crm_integrations_settings(org)
+    data["salesforce"] = {
+        "access_token": _encrypt_crm_secret(payload.access_token),
+        "instance_url": payload.instance_url.rstrip("/"),
+        "enabled": bool(payload.enabled),
+    }
+    await _save_crm_integrations_settings(db, org, data)
+    await db.refresh(org)
+    return await get_salesforce_integration(request, me=me, db=db)
+
+
+@router.delete(
+    "/api/admin/crm/integrations/salesforce",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def delete_salesforce_integration(
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _admin_org(db, me, request)
+    data = _crm_integrations_settings(org)
+    data.pop("salesforce", None)
+    await _save_crm_integrations_settings(db, org, data)
+    return {"ok": True}
+
+
+@router.post(
+    "/api/admin/crm/integrations/salesforce/push",
+    response_model=SalesforcePushOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def push_crm_participants_to_salesforce(
+    request: Request,
+    payload: SalesforcePushIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _admin_org(db, me, request)
+    cfg = _salesforce_config(org)
+    token = _decrypt_crm_secret(cfg.get("access_token"))
+    instance_url = str(cfg.get("instance_url") or "")
+    if not token or not instance_url or not cfg.get("enabled", True):
+        raise HTTPException(status_code=400, detail="Salesforce integration is not configured or disabled.")
+
+    emails = list(dict.fromkeys(_normalize_email(e) for e in payload.emails if _normalize_email(e)))[:500]
+    if not emails:
+        raise HTTPException(status_code=400, detail="At least one valid email is required.")
+
+    pushed = created = updated = failed = 0
+    errors: list[str] = []
+
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        profiles_res = await db.execute(
+            select(ParticipantCrmProfile).where(
+                ParticipantCrmProfile.organization_id == org.id,
+                ParticipantCrmProfile.email.in_(emails),
+            )
+        )
+        profiles_by_email = {p.email: p for p in profiles_res.scalars().all()}
+
+        for email in emails:
+            profile = profiles_by_email.get(email)
+            if not profile:
+                if payload.create_missing:
+                    name_parts = email.split("@")[0].replace(".", " ").split()
+                    properties = {
+                        "FirstName": name_parts[0].capitalize() if name_parts else "",
+                        "LastName": name_parts[-1].capitalize() if len(name_parts) > 1 else email.split("@")[0],
+                    }
+                else:
+                    continue
+            else:
+                name_parts = (profile.cached_name or email.split("@")[0]).split()
+                properties = {
+                    "FirstName": name_parts[0] if name_parts else "",
+                    "LastName": " ".join(name_parts[1:]) if len(name_parts) > 1 else (name_parts[0] if name_parts else ""),
+                    "Description": profile.notes or "",
+                }
+                if profile.lead_score is not None:
+                    properties["HeptaCert_Lead_Score__c"] = str(profile.lead_score)
+
+            try:
+                result = await _sf_upsert_contact(
+                    client, instance_url, token, email, properties,
+                    payload.object_type, payload.create_missing,
+                )
+                if result == "created":
+                    pushed += 1
+                    created += 1
+                elif result == "updated":
+                    pushed += 1
+                    updated += 1
+                elif result == "skipped":
+                    pass
+                else:
+                    failed += 1
+                    errors.append(f"{email}: {result}")
+            except Exception as exc:
+                failed += 1
+                errors.append(f"{email}: {exc}")
+
+    db.add(ParticipantCrmAuditLog(
+        organization_id=org.id, email="*", actor_user_id=me.id,
+        action="salesforce.push", before=None,
+        after={"requested": len(emails), "pushed": pushed, "created": created, "updated": updated, "failed": failed},
+    ))
+    await db.commit()
+    return SalesforcePushOut(pushed=pushed, created=created, updated=updated, failed=failed, errors=errors[:20])
+
+
+# ── Mailchimp / Brevo integration ─────────────────────────────────────────────
+
+class MailchimpIntegrationIn(BaseModel):
+    api_key: str = Field(min_length=8, max_length=512)
+    list_id: str = Field(min_length=1, max_length=128)
+    provider: str = Field(default="mailchimp", pattern="^(mailchimp|brevo)$")
+    enabled: bool = True
+
+
+class MailchimpIntegrationOut(BaseModel):
+    configured: bool
+    enabled: bool
+    provider: str = "mailchimp"
+    list_id: Optional[str] = None
+    token_preview: Optional[str] = None
+
+
+class MailchimpPushIn(ParticipantCrmSelectionIn):
+    pass
+
+
+class MailchimpPushOut(BaseModel):
+    pushed: int
+    failed: int
+    errors: list[str] = []
+
+
+def _mailchimp_config(org: Organization) -> dict[str, Any]:
+    return (_crm_integrations_settings(org).get("mailchimp") or {}) if org else {}
+
+
+def _mailchimp_subscriber_hash(email: str) -> str:
+    import hashlib
+    return hashlib.md5(email.strip().lower().encode()).hexdigest()
+
+
+def _mailchimp_datacenter(api_key: str) -> str:
+    parts = api_key.rsplit("-", 1)
+    return parts[-1] if len(parts) == 2 else "us1"
+
+
+@router.get(
+    "/api/admin/crm/integrations/mailchimp",
+    response_model=MailchimpIntegrationOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def get_mailchimp_integration(
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _admin_org(db, me, request)
+    cfg = _mailchimp_config(org)
+    api_key = _decrypt_crm_secret(cfg.get("api_key"))
+    return MailchimpIntegrationOut(
+        configured=bool(api_key and cfg.get("list_id")),
+        enabled=bool(cfg.get("enabled", True)),
+        provider=str(cfg.get("provider") or "mailchimp"),
+        list_id=str(cfg.get("list_id") or "") or None,
+        token_preview=_token_preview(api_key) if api_key else None,
+    )
+
+
+@router.patch(
+    "/api/admin/crm/integrations/mailchimp",
+    response_model=MailchimpIntegrationOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def update_mailchimp_integration(
+    request: Request,
+    payload: MailchimpIntegrationIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _admin_org(db, me, request)
+    data = _crm_integrations_settings(org)
+    data["mailchimp"] = {
+        "api_key": _encrypt_crm_secret(payload.api_key),
+        "list_id": payload.list_id.strip(),
+        "provider": payload.provider,
+        "enabled": bool(payload.enabled),
+    }
+    await _save_crm_integrations_settings(db, org, data)
+    await db.refresh(org)
+    return await get_mailchimp_integration(request, me=me, db=db)
+
+
+@router.delete(
+    "/api/admin/crm/integrations/mailchimp",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def delete_mailchimp_integration(
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _admin_org(db, me, request)
+    data = _crm_integrations_settings(org)
+    data.pop("mailchimp", None)
+    await _save_crm_integrations_settings(db, org, data)
+    return {"ok": True}
+
+
+@router.post(
+    "/api/admin/crm/integrations/mailchimp/push",
+    response_model=MailchimpPushOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def push_crm_participants_to_mailchimp(
+    request: Request,
+    payload: MailchimpPushIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _admin_org(db, me, request)
+    cfg = _mailchimp_config(org)
+    api_key = _decrypt_crm_secret(cfg.get("api_key"))
+    list_id = str(cfg.get("list_id") or "")
+    provider = str(cfg.get("provider") or "mailchimp")
+    if not api_key or not list_id or not cfg.get("enabled", True):
+        raise HTTPException(status_code=400, detail="Mailchimp/Brevo integration is not configured or disabled.")
+
+    emails = list(dict.fromkeys(_normalize_email(e) for e in payload.emails if _normalize_email(e)))[:1000]
+    if not emails:
+        raise HTTPException(status_code=400, detail="At least one valid email is required.")
+
+    pushed = failed = 0
+    errors: list[str] = []
+
+    profiles_res = await db.execute(
+        select(ParticipantCrmProfile).where(
+            ParticipantCrmProfile.organization_id == org.id,
+            ParticipantCrmProfile.email.in_(emails),
+        )
+    )
+    profiles_by_email = {p.email: p for p in profiles_res.scalars().all()}
+
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        for email in emails:
+            profile = profiles_by_email.get(email)
+            name_parts = ((profile.cached_name if profile else None) or email.split("@")[0]).split()
+            first = name_parts[0] if name_parts else ""
+            last = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
+
+            try:
+                if provider == "brevo":
+                    res = await client.post(
+                        "https://api.brevo.com/v3/contacts",
+                        headers={"api-key": api_key, "Content-Type": "application/json"},
+                        json={
+                            "email": email,
+                            "attributes": {"FIRSTNAME": first, "LASTNAME": last},
+                            "listIds": [int(list_id)] if list_id.isdigit() else [],
+                            "updateEnabled": True,
+                        },
+                    )
+                else:
+                    dc = _mailchimp_datacenter(api_key)
+                    subscriber_hash = _mailchimp_subscriber_hash(email)
+                    res = await client.put(
+                        f"https://{dc}.api.mailchimp.com/3.0/lists/{list_id}/members/{subscriber_hash}",
+                        auth=("anystring", api_key),
+                        json={
+                            "email_address": email,
+                            "status_if_new": "subscribed",
+                            "merge_fields": {"FNAME": first, "LNAME": last},
+                        },
+                    )
+                if res.status_code < 400:
+                    pushed += 1
+                else:
+                    failed += 1
+                    errors.append(f"{email}: HTTP {res.status_code}")
+            except Exception as exc:
+                failed += 1
+                errors.append(f"{email}: {exc}")
+
+    db.add(ParticipantCrmAuditLog(
+        organization_id=org.id, email="*", actor_user_id=me.id,
+        action=f"{provider}.push", before=None,
+        after={"requested": len(emails), "pushed": pushed, "failed": failed},
+    ))
+    await db.commit()
+    return MailchimpPushOut(pushed=pushed, failed=failed, errors=errors[:20])

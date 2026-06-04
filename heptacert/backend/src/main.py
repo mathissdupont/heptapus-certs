@@ -19925,6 +19925,9 @@ app.include_router(_automation_api.router)
 from . import audience_segments_api as _audience_segments_api
 app.include_router(_audience_segments_api.router)
 
+from . import oidc_sso_api as _oidc_sso_api
+app.include_router(_oidc_sso_api.router)
+
 from . import event_crm_api as _event_crm_api
 app.include_router(_event_crm_api.router)
 

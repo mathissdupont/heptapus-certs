@@ -38,6 +38,9 @@ from .main import (
     require_email_system_access,
     require_role,
     settings,
+    _get_ms365_access_token_for_excel,
+    _ms365_upload_workbook,
+    _safe_ms365_filename,
 )
 
 router = APIRouter()
@@ -1230,3 +1233,68 @@ async def process_segment_export_jobs_once(limit: int = 5) -> dict[str, int]:
                 stats["failed"] += 1
                 await db.commit()
     return stats
+
+
+# ── Microsoft Excel segment export ───────────────────────────────────────────
+
+class SegmentExcelExportOut(BaseModel):
+    workbook_url: str
+    workbook_name: str
+    row_count: int
+
+
+@router.post(
+    "/api/admin/events/{event_id}/segments/{segment_key}/export-to-excel",
+    response_model=SegmentExcelExportOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_email_system_access)],
+)
+async def export_segment_to_microsoft_excel(
+    event_id: int,
+    segment_key: str,
+    field_id: Optional[str] = Query(default=None),
+    answer: Optional[str] = Query(default=None),
+    location: Optional[str] = Query(default=None),
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Export a segment to a new Microsoft Excel workbook in the user's OneDrive."""
+    import openpyxl
+
+    event = await _get_event_for_admin(event_id, me, db, "attendees:read")
+
+    stmt = _segment_stmt(event, segment_key, field_id=field_id, answer=answer, location=location)
+    attendees_res = await db.execute(stmt)
+    attendees = list(attendees_res.scalars().all())
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Segment Export"
+    ws.append(["ID", "Name", "Email", "Registered At", "Email Verified", "Survey Completed"])
+    for attendee in attendees:
+        ws.append([
+            attendee.id,
+            attendee.name or "",
+            attendee.email,
+            attendee.registered_at.isoformat() if attendee.registered_at else "",
+            "yes" if attendee.email_verified else "no",
+            "yes" if attendee.survey_completed_at else "no",
+        ])
+    for col in ws.columns:
+        width = max((len(str(cell.value or "")) for cell in col), default=10)
+        ws.column_dimensions[col[0].column_letter].width = min(max(width + 2, 12), 48)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    workbook_bytes = buf.getvalue()
+
+    filename = _safe_ms365_filename(f"HeptaCert - {event.name} - {segment_key} segment.xlsx")
+    access_token = await _get_ms365_access_token_for_excel(db, me.id)
+    item = await _ms365_upload_workbook(access_token, workbook_bytes, filename=filename)
+    workbook_url = str(item.get("webUrl") or "")
+    workbook_name = str(item.get("name") or filename)
+
+    return SegmentExcelExportOut(
+        workbook_url=workbook_url,
+        workbook_name=workbook_name,
+        row_count=len(attendees),
+    )

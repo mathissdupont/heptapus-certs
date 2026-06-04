@@ -90,7 +90,19 @@ const categoryIcons: Record<string, React.ElementType> = {
   Accounting: Database,
 };
 
-const providerDefaults: Record<GenericProviderKey, { name: string; provider: string; auth_type: GenericProviderConfig["auth_type"]; base_url: string; primaryId: keyof GenericProviderConfig; placeholder: string }> = {
+const providerDefaults: Record<
+  GenericProviderKey,
+  {
+    name: string;
+    provider: string;
+    auth_type: GenericProviderConfig["auth_type"];
+    base_url: string;
+    primaryId: keyof GenericProviderConfig;
+    placeholder: string;
+    purposeTr: string;
+    purposeEn: string;
+  }
+> = {
   salesforce: {
     name: "Salesforce",
     provider: "salesforce",
@@ -98,6 +110,8 @@ const providerDefaults: Record<GenericProviderKey, { name: string; provider: str
     base_url: "https://your-instance.my.salesforce.com/services/data/v60.0",
     primaryId: "account_id",
     placeholder: "Salesforce instance / account id",
+    purposeTr: "Katılımcıları lead/contact olarak aktarır, sertifika durumunu CRM kaydına işler.",
+    purposeEn: "Sync event participants and certificate status into Salesforce leads or contacts.",
   },
   mailchimp_brevo: {
     name: "Mailchimp / Brevo",
@@ -106,6 +120,8 @@ const providerDefaults: Record<GenericProviderKey, { name: string; provider: str
     base_url: "https://api.mailchimp.com/3.0",
     primaryId: "list_id",
     placeholder: "Audience/List ID",
+    purposeTr: "Etkinlik segmentlerini mailing listelerine ve kampanya otomasyonlarına aktarır.",
+    purposeEn: "Export event segments to mailing lists and campaign automation.",
   },
   whatsapp_sms: {
     name: "WhatsApp Business / SMS",
@@ -114,6 +130,8 @@ const providerDefaults: Record<GenericProviderKey, { name: string; provider: str
     base_url: "https://api.twilio.com/2010-04-01",
     primaryId: "account_id",
     placeholder: "Twilio SID or WhatsApp Business account",
+    purposeTr: "Bilet, hatırlatma ve sertifika bildirimlerini SMS/WhatsApp kanalına taşır.",
+    purposeEn: "Send ticket, reminder, and certificate notifications via SMS or WhatsApp.",
   },
   drive_sharepoint_archive: {
     name: "Drive / SharePoint Archive",
@@ -122,6 +140,8 @@ const providerDefaults: Record<GenericProviderKey, { name: string; provider: str
     base_url: "https://graph.microsoft.com/v1.0",
     primaryId: "folder_id",
     placeholder: "Drive/SharePoint folder ID",
+    purposeTr: "Oluşturulan sertifikaları ve raporları kurum klasörlerine arşivler.",
+    purposeEn: "Archive generated certificates and reports into organization folders.",
   },
   power_bi_looker: {
     name: "Power BI / Looker Studio",
@@ -130,6 +150,8 @@ const providerDefaults: Record<GenericProviderKey, { name: string; provider: str
     base_url: "https://api.powerbi.com/v1.0/myorg",
     primaryId: "report_id",
     placeholder: "Workspace/Report/Dataset ID",
+    purposeTr: "Etkinlik ve sertifika metriklerini yönetici dashboardlarına aktarır.",
+    purposeEn: "Push event and certificate metrics into executive dashboards.",
   },
   lms: {
     name: "Moodle / Canvas LMS",
@@ -138,6 +160,8 @@ const providerDefaults: Record<GenericProviderKey, { name: string; provider: str
     base_url: "https://lms.example.com",
     primaryId: "course_id",
     placeholder: "Course ID",
+    purposeTr: "Kurs tamamlama verisini sertifika uygunluğu ile eşleştirir.",
+    purposeEn: "Match course completion data with certificate eligibility.",
   },
   accounting_tr: {
     name: "Logo / Parasut / Mikro",
@@ -146,6 +170,8 @@ const providerDefaults: Record<GenericProviderKey, { name: string; provider: str
     base_url: "https://api.parasut.com",
     primaryId: "account_id",
     placeholder: "Company/account ID",
+    purposeTr: "Kurumsal ödeme, fatura ve cari referanslarını muhasebe sistemine bağlar.",
+    purposeEn: "Link institutional payments, invoices, and billing references to your accounting system.",
   },
 };
 
@@ -311,7 +337,31 @@ function CatalogCard({ item, lang }: { item: IntegrationCatalogItem; lang: strin
             Docs <ExternalLink className="h-3 w-3" />
           </a>
         )}
+        {item.setup_url && (
+          <a href={item.setup_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-surface-600 hover:text-brand-700">
+            App setup <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
       </div>
+      {item.app_required && (
+        <div className="mt-3 space-y-2 rounded-lg border border-surface-200 bg-surface-50 p-3 text-xs text-surface-600">
+          <p className="font-bold text-surface-800">Provider app required: {item.app_provider || item.name}</p>
+          {item.callback_urls.length > 0 && (
+            <div>
+              <p className="font-semibold text-surface-500">Callback URL</p>
+              {item.callback_urls.map(url => (
+                <code key={url} className="mt-1 block break-all rounded-md bg-white px-2 py-1 text-[11px] text-surface-700">{url}</code>
+              ))}
+            </div>
+          )}
+          {item.required_scopes.length > 0 && (
+            <p><span className="font-semibold text-surface-500">Scopes:</span> {item.required_scopes.join(", ")}</p>
+          )}
+          {item.credential_fields.length > 0 && (
+            <p><span className="font-semibold text-surface-500">Credentials:</span> {item.credential_fields.join(", ")}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -543,8 +593,22 @@ export default function AdminIntegrationsPage() {
             {connectedCount} / {catalog.length || 18} {isTr ? "baglanti aktif" : "connections active"}
           </p>
           <p className="text-xs text-surface-500">
-            {isTr ? "Ilk faz: bildirimler, no-code otomasyon ve veri senkronu. Sonraki faz: CRM, SSO, webinar, LMS ve muhasebe." : "First phase: notifications, no-code automation, and data sync. Next phase: CRM, SSO, webinar, LMS, and accounting."}
+            {isTr ? "Aktif bağlantıları yönetin, yeni entegrasyon ekleyin veya mevcut bağlantıları test edin." : "Manage active connections, add new integrations, or test existing ones."}
           </p>
+        </div>
+      </div>
+
+      <div className="card border-amber-200 bg-amber-50 p-4">
+        <div className="flex gap-3">
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
+          <div>
+            <p className="text-sm font-bold text-amber-900">{isTr ? "Credential guvenligi" : "Credential security"}</p>
+            <p className="mt-1 text-xs leading-relaxed text-amber-800">
+              {isTr
+                ? "Secret, token ve API key alanları kaydedildikten sonra maskelenir. Alan boş veya ******** bırakılırsa mevcut değer korunur; yeni değer yazarsanız güncellenir."
+                : "Secret, token, and API key fields are masked after saving. Leaving a field empty or as ******** keeps the current value; entering a new value replaces it."}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -554,7 +618,7 @@ export default function AdminIntegrationsPage() {
           <OauthCard
             icon={FileSpreadsheet}
             name="Google Sheets"
-            description={isTr ? "Etkinlik katilimcilarini ve segmentleri Sheets'e senkronla." : "Sync attendees and segments to Sheets."}
+            description={isTr ? "Etkinlik katılımcılarını ve segmentleri Sheets'e senkronla." : "Sync attendees and segments to Sheets."}
             status={loading ? "loading" : getStatus(sheetsStatus)}
             connectedAs={sheetsStatus?.connected ? sheetsStatus.google_email : null}
             onConnect={() => void startOAuth("sheets")}
@@ -576,7 +640,7 @@ export default function AdminIntegrationsPage() {
           <OauthCard
             icon={CalendarDays}
             name="Google Calendar"
-            description={isTr ? "Salon rezervasyonlarini Calendar ile cift yonlu senkronla." : "Two-way sync venue reservations with Calendar."}
+            description={isTr ? "Salon rezervasyonlarını Calendar ile çift yönlü senkronla." : "Two-way sync venue reservations with Calendar."}
             status={loading ? "loading" : getStatus(calendarStatus)}
             connectedAs={calendarStatus?.connected ? calendarStatus.google_email : null}
             onConnect={() => void startOAuth("calendar")}
@@ -587,6 +651,16 @@ export default function AdminIntegrationsPage() {
             lang={lang}
           />
         </div>
+        {!loading && (getStatus(sheetsStatus) === "not_configured" || getStatus(excelStatus) === "not_configured") && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-800">
+            <p className="font-bold text-amber-900">{isTr ? "OAuth kimlik bilgileri yapılandırılmamış" : "OAuth credentials not configured"}</p>
+            <p className="mt-1">
+              {isTr
+                ? "Google entegrasyonları için backend .env dosyasına GOOGLE_OAUTH_CLIENT_ID ve GOOGLE_OAUTH_CLIENT_SECRET, Microsoft entegrasyonları için MS365_OAUTH_CLIENT_ID ve MS365_OAUTH_CLIENT_SECRET değerlerini ekleyin."
+                : "To enable Google integrations, set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET in the backend .env file. For Microsoft integrations, set MS365_OAUTH_CLIENT_ID and MS365_OAUTH_CLIENT_SECRET."}
+            </p>
+          </div>
+        )}
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
@@ -632,6 +706,7 @@ export default function AdminIntegrationsPage() {
           <label className="mt-3 block space-y-1">
             <span className="text-xs font-semibold uppercase tracking-[0.12em] text-surface-500">Secret</span>
             <input
+              type="password"
               className="input"
               value={form.secret || ""}
               onChange={event => setForm(prev => ({ ...prev, secret: event.target.value }))}
@@ -702,7 +777,7 @@ export default function AdminIntegrationsPage() {
               </label>
               <input className="input" value={oidcForm.issuer_url} onChange={event => setOidcForm(prev => ({ ...prev, issuer_url: event.target.value }))} placeholder="https://login.microsoftonline.com/{tenant}/v2.0" />
               <input className="input" value={oidcForm.client_id} onChange={event => setOidcForm(prev => ({ ...prev, client_id: event.target.value }))} placeholder="Client ID" />
-              <input className="input" value={oidcForm.client_secret} onChange={event => setOidcForm(prev => ({ ...prev, client_secret: event.target.value }))} placeholder="Client secret" />
+              <input type="password" className="input" value={oidcForm.client_secret} onChange={event => setOidcForm(prev => ({ ...prev, client_secret: event.target.value }))} placeholder="Client secret" />
               <input className="input" value={oidcDomainsText} onChange={event => setOidcDomainsText(event.target.value)} placeholder="example.com, kurum.com" />
               <button type="button" onClick={() => void handleSaveOidc()} disabled={Boolean(saving)} className="btn-primary w-fit px-3 py-2 text-xs">
                 {saving === "oidc" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
@@ -737,7 +812,7 @@ export default function AdminIntegrationsPage() {
               </select>
               <input className="input" value={webinarForm.account_id} onChange={event => setWebinarForm(prev => ({ ...prev, account_id: event.target.value }))} placeholder={webinarForm.provider === "zoom" ? "Zoom account ID" : "Tenant ID"} />
               <input className="input" value={webinarForm.client_id} onChange={event => setWebinarForm(prev => ({ ...prev, client_id: event.target.value }))} placeholder="Client ID" />
-              <input className="input" value={webinarForm.client_secret} onChange={event => setWebinarForm(prev => ({ ...prev, client_secret: event.target.value }))} placeholder="Client secret" />
+              <input type="password" className="input" value={webinarForm.client_secret} onChange={event => setWebinarForm(prev => ({ ...prev, client_secret: event.target.value }))} placeholder="Client secret" />
               <button type="button" onClick={() => void handleSaveWebinar()} disabled={Boolean(saving)} className="btn-primary w-fit px-3 py-2 text-xs">
                 {saving === "webinar" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                 {isTr ? "Webinar ayarlarini kaydet" : "Save webinar settings"}
@@ -762,7 +837,7 @@ export default function AdminIntegrationsPage() {
                     </div>
                     <div>
                       <h3 className="text-sm font-bold text-surface-900">{def.name}</h3>
-                      <p className="mt-1 text-xs text-surface-500">{key.replace(/_/g, " ")}</p>
+                      <p className="mt-1 text-xs text-surface-500">{isTr ? def.purposeTr : def.purposeEn}</p>
                     </div>
                   </div>
                   {statusBadge(cfg.enabled ? "connected" : "available", lang)}
@@ -773,27 +848,16 @@ export default function AdminIntegrationsPage() {
                     <input type="checkbox" checked={cfg.enabled} onChange={event => updateProviderForm(key, { enabled: event.target.checked })} />
                     {isTr ? "Aktif" : "Enabled"}
                   </label>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <input className="input" value={cfg.provider} onChange={event => updateProviderForm(key, { provider: event.target.value })} placeholder="provider" />
-                    <select className="input" value={cfg.auth_type} onChange={event => updateProviderForm(key, { auth_type: event.target.value as GenericProviderConfig["auth_type"] })}>
-                      <option value="api_key">api_key</option>
-                      <option value="bearer_token">bearer_token</option>
-                      <option value="oauth">oauth</option>
-                      <option value="basic">basic</option>
-                      <option value="webhook">webhook</option>
-                      <option value="none">none</option>
-                    </select>
-                  </div>
                   <input className="input" value={cfg.base_url} onChange={event => updateProviderForm(key, { base_url: event.target.value })} placeholder="Base API URL" />
                   <div className="grid gap-2 sm:grid-cols-2">
                     <input className="input" value={String(cfg[def.primaryId] || "")} onChange={event => updateProviderForm(key, { [def.primaryId]: event.target.value } as Partial<GenericProviderConfig>)} placeholder={def.placeholder} />
                     <input className="input" value={cfg.client_id} onChange={event => updateProviderForm(key, { client_id: event.target.value })} placeholder="Client ID" />
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <input className="input" value={cfg.api_key} onChange={event => updateProviderForm(key, { api_key: event.target.value })} placeholder="API key" />
-                    <input className="input" value={cfg.access_token} onChange={event => updateProviderForm(key, { access_token: event.target.value })} placeholder="Access token" />
+                    <input type="password" className="input" value={cfg.api_key} onChange={event => updateProviderForm(key, { api_key: event.target.value })} placeholder="API key" />
+                    <input type="password" className="input" value={cfg.access_token} onChange={event => updateProviderForm(key, { access_token: event.target.value })} placeholder="Access token" />
                   </div>
-                  <input className="input" value={cfg.client_secret} onChange={event => updateProviderForm(key, { client_secret: event.target.value })} placeholder="Client secret" />
+                  <input type="password" className="input" value={cfg.client_secret} onChange={event => updateProviderForm(key, { client_secret: event.target.value })} placeholder="Client secret" />
                   <textarea className="input min-h-[70px] py-2" value={cfg.notes} onChange={event => updateProviderForm(key, { notes: event.target.value })} placeholder={isTr ? "Notlar, mapping detaylari, ortam bilgisi" : "Notes, mapping details, environment info"} />
                 </div>
 
