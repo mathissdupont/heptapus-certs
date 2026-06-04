@@ -565,7 +565,7 @@ export default function AdminCrmPage() {
                             <span key={t} className="rounded-md bg-gray-50 px-1.5 py-0.5 text-[9px] font-semibold text-gray-500">{t}</span>
                           ))}
                         </div>
-                        {p.meta.lead_score > 0 && (
+                        {(p.meta.lead_score ?? 0) > 0 && (
                           <p className="mt-1.5 text-[10px] font-bold text-gray-400">Skor: {p.meta.lead_score}</p>
                         )}
                       </button>
