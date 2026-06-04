@@ -6262,7 +6262,27 @@ async def startup():
                                     # Render subject and body
                                     subj = Template(template.subject_tr).render(**template_vars)
                                     body = Template(template.body_html).render(**template_vars)
-                                    
+
+                                    # Create delivery log first to get its ID for tracking pixel
+                                    delivery_log = EmailDeliveryLog(
+                                        bulk_job_id=job.id,
+                                        attendee_id=attendee.id,
+                                        recipient_email=attendee.email,
+                                        status="pending",
+                                    )
+                                    db_bulk.add(delivery_log)
+                                    await db_bulk.flush()  # assigns delivery_log.id
+
+                                    # Inject tracking pixel if enabled in sender's email config
+                                    _email_cfg_res = await db_bulk.execute(
+                                        select(UserEmailConfig).where(UserEmailConfig.user_id == event.admin_id)
+                                    )
+                                    _email_cfg = _email_cfg_res.scalar_one_or_none()
+                                    if _email_cfg and _email_cfg.enable_tracking_pixel:
+                                        pixel_token = make_email_token({"log_id": delivery_log.id, "action": "open"})
+                                        pixel_url = f"{settings.public_base_url}/api/public/track/open/{delivery_log.id}?t={pixel_token}"
+                                        body = body.rstrip() + f'\n<img src="{escape(pixel_url)}" width="1" height="1" style="display:none" alt="" />'
+
                                     # Send mail
                                     await send_email_async(
                                         to=attendee.email,
@@ -6271,15 +6291,8 @@ async def startup():
                                         raise_on_error=True,
                                         sender_user_id=event.admin_id,
                                     )
-                                    
-                                    # Log delivery
-                                    delivery_log = EmailDeliveryLog(
-                                        bulk_job_id=job.id,
-                                        attendee_id=attendee.id,
-                                        recipient_email=attendee.email,
-                                        status="sent",
-                                    )
-                                    db_bulk.add(delivery_log)
+
+                                    delivery_log.status = "sent"
                                     await db_bulk.commit()
                                     
                                     # Trigger webhook
@@ -6296,15 +6309,19 @@ async def startup():
                                     
                                     sent += 1
                                 except Exception as e:
-                                    # Log failed delivery
-                                    delivery_log = EmailDeliveryLog(
-                                        bulk_job_id=job.id,
-                                        attendee_id=attendee.id,
-                                        recipient_email=attendee.email,
-                                        status="failed",
-                                        reason=str(e),
-                                    )
-                                    db_bulk.add(delivery_log)
+                                    # Update or create delivery log as failed
+                                    try:
+                                        delivery_log.status = "failed"
+                                        delivery_log.reason = str(e)[:500]
+                                    except Exception:
+                                        delivery_log = EmailDeliveryLog(
+                                            bulk_job_id=job.id,
+                                            attendee_id=attendee.id,
+                                            recipient_email=attendee.email,
+                                            status="failed",
+                                            reason=str(e)[:500],
+                                        )
+                                        db_bulk.add(delivery_log)
                                     await db_bulk.commit()
                                     
                                     # Trigger failure webhook
