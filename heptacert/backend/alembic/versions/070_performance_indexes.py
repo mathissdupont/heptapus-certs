@@ -27,8 +27,8 @@ def upgrade() -> None:
     # Certificate student_name — searched in _infer_certificate and CRM snapshot hooks
     op.create_index("ix_certificates_event_student", "certificates", ["event_id", "student_name"])
 
-    # Email delivery log scans — bulk job progress queries
-    op.create_index("ix_email_delivery_logs_job_status", "email_delivery_logs", ["bulk_email_job_id", "status"])
+    # Email delivery log scans — bulk_job_id (correct column name)
+    op.create_index("ix_email_delivery_logs_job_status", "email_delivery_logs", ["bulk_job_id", "status"])
 
     # CRM profile filtering — list endpoint filters by lifecycle_status
     op.create_index("ix_crm_profiles_org_status", "participant_crm_profiles", ["organization_id", "lifecycle_status"])
@@ -47,20 +47,19 @@ def upgrade() -> None:
     # Survey responses — per attendee lookup
     op.create_index("ix_survey_responses_attendee", "survey_responses", ["attendee_id"])
 
-    # CRM audit log per-email lookup
-    op.create_index("ix_crm_audit_org_email", "participant_crm_audit_logs", ["organization_id", "email"])
-
-    # Automation execution logs — rule dispatch filtering
-    op.create_index("ix_automation_exec_created", "event_automation_executions", ["created_at"])
+    # Automation execution logs — correct table name: event_automation_execution_logs
+    op.create_index("ix_automation_exec_created", "event_automation_execution_logs", ["created_at"])
 
     # Bulk email jobs — admin event list
     op.create_index("ix_bulk_email_jobs_event_status", "bulk_email_jobs", ["event_id", "status"])
 
+    # NOTE: participant_crm_audit_logs already has ix_participant_crm_audit_org_email_created
+    # defined in the ORM model — no duplicate needed here.
+
 
 def downgrade() -> None:
     op.drop_index("ix_bulk_email_jobs_event_status", table_name="bulk_email_jobs")
-    op.drop_index("ix_automation_exec_created", table_name="event_automation_executions")
-    op.drop_index("ix_crm_audit_org_email", table_name="participant_crm_audit_logs")
+    op.drop_index("ix_automation_exec_created", table_name="event_automation_execution_logs")
     op.drop_index("ix_survey_responses_attendee", table_name="survey_responses")
     op.drop_index("ix_event_tickets_attendee_checkin", table_name="event_tickets")
     op.drop_index("ix_attendance_records_attendee", table_name="attendance_records")
