@@ -5,6 +5,8 @@ import io
 from datetime import datetime, timezone
 from typing import Any, Optional
 
+from fastapi import UploadFile
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -33,8 +35,9 @@ from .main import (
     get_db,
     require_role,
     send_email_async,
+    settings,
 )
-from .organization_access_api import ensure_organization_enterprise, get_organization_for_access, organization_id_from_request
+from .organization_access_api import OrganizationMember, ensure_organization_enterprise, get_organization_for_access, organization_id_from_request
 
 router = APIRouter()
 
@@ -311,6 +314,18 @@ async def _save_meta(db: AsyncSession, org_id: int, payload: ParticipantCrmIn, a
         owner = await db.get(User, payload.owner_user_id)
         if not owner:
             raise HTTPException(status_code=404, detail="Owner user not found")
+        org_row = await db.get(Organization, org_id)
+        is_org_owner = org_row is not None and org_row.user_id == owner.id
+        if not is_org_owner:
+            member_res = await db.execute(
+                select(OrganizationMember).where(
+                    OrganizationMember.organization_id == org_id,
+                    OrganizationMember.user_id == owner.id,
+                    OrganizationMember.status == "active",
+                )
+            )
+            if not member_res.scalar_one_or_none():
+                raise HTTPException(status_code=400, detail="Owner must be a member of this organization")
         row.owner_user_id = payload.owner_user_id
     if payload.priority is not None:
         priority = payload.priority.strip().lower() or "normal"
@@ -337,6 +352,21 @@ async def _save_meta(db: AsyncSession, org_id: int, payload: ParticipantCrmIn, a
             )
         )
     await db.commit()
+    if before != after and actor_user_id:
+        try:
+            from .webhooks import WebhookEvent, deliver_webhook
+            org_row = await db.get(Organization, org_id)
+            if org_row:
+                webhook_payload: dict[str, Any] = {"email": email, "before": before, "after": after}
+                await deliver_webhook(db, org_row.user_id, WebhookEvent.crm_profile_updated, webhook_payload)
+                if before and after and before.get("lead_score") != after.get("lead_score"):
+                    await deliver_webhook(db, org_row.user_id, WebhookEvent.crm_lead_score_changed, {
+                        "email": email,
+                        "old_score": before.get("lead_score"),
+                        "new_score": after.get("lead_score"),
+                    })
+        except Exception:
+            pass
     return await _load_meta(db, org_id, email)
 
 
@@ -427,6 +457,24 @@ async def _upsert_snapshot(
     snapshot.ticket_count = ticket_count
     snapshot.latest_activity_at = latest_activity
     snapshot.computed_at = datetime.now(timezone.utc)
+
+    # Repeat attendee auto-score boost: 2+ events → +20 lead score (only if unset)
+    event_count = len({event.id for _, event in rows})
+    if event_count >= 2:
+        profile_res = await db.execute(
+            select(ParticipantCrmProfile).where(
+                ParticipantCrmProfile.organization_id == org.id,
+                ParticipantCrmProfile.email == normalized,
+            )
+        )
+        profile = profile_res.scalar_one_or_none()
+        if not profile:
+            profile = ParticipantCrmProfile(organization_id=org.id, email=normalized, notes="", tags=[], lifecycle_status="lead", lead_score=20)
+            db.add(profile)
+        elif (profile.lead_score or 0) == 0:
+            profile.lead_score = 20
+            profile.updated_at = datetime.now(timezone.utc)
+
     if commit:
         await db.commit()
         await db.refresh(snapshot)
@@ -831,6 +879,18 @@ async def bulk_update_crm_participants(
         owner_user = await db.get(User, payload.owner_user_id)
         if not owner_user:
             raise HTTPException(status_code=404, detail="Owner user not found")
+        org_row = await db.get(Organization, org.id)
+        is_org_owner = org_row is not None and org_row.user_id == owner_user.id
+        if not is_org_owner:
+            member_res = await db.execute(
+                select(OrganizationMember).where(
+                    OrganizationMember.organization_id == org.id,
+                    OrganizationMember.user_id == owner_user.id,
+                    OrganizationMember.status == "active",
+                )
+            )
+            if not member_res.scalar_one_or_none():
+                raise HTTPException(status_code=400, detail="Owner must be a member of this organization")
     priority = None
     if payload.priority is not None:
         priority = payload.priority.strip().lower() or "normal"
@@ -946,7 +1006,7 @@ async def export_selected_crm_participants(
     output.seek(0)
     filename = f"crm-selected-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}.csv"
     headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
-    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv; charset=utf-8", headers=headers)
+    return StreamingResponse(iter([output.getvalue().encode("utf-8-sig")]), media_type="text/csv; charset=utf-8", headers=headers)
 
 
 @router.post(
@@ -1224,3 +1284,223 @@ async def list_crm_audit_logs(
         )
         for row, user in rows
     ]
+
+
+# ── No-show detection ────────────────────────────────────────────────────────
+
+class CrmNoShowTagOut(BaseModel):
+    tagged: int
+    skipped: int
+
+
+@router.post(
+    "/api/admin/crm/tag-no-shows",
+    response_model=CrmNoShowTagOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def tag_crm_no_shows(
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Tag participants who registered but never checked in as 'no_show' in CRM."""
+    from datetime import date
+    org = await _admin_org(db, me, request)
+    today = date.today()
+    past_event_ids_res = await db.execute(
+        select(Event.id).where(Event.admin_id == org.user_id, Event.event_date < today)
+    )
+    past_event_ids = [int(item) for item in past_event_ids_res.scalars().all()]
+    if not past_event_ids:
+        return CrmNoShowTagOut(tagged=0, skipped=0)
+
+    attended_attendee_ids_res = await db.execute(
+        select(AttendaonceRecord.attendee_id).where(
+            AttendaonceRecord.attendee_id.in_(
+                select(Attendee.id).where(Attendee.event_id.in_(past_event_ids))
+            )
+        )
+    )
+    ticket_checkin_ids_res = await db.execute(
+        select(EventTicket.attendee_id).where(
+            EventTicket.attendee_id.in_(
+                select(Attendee.id).where(Attendee.event_id.in_(past_event_ids))
+            ),
+            EventTicket.checked_in_at.is_not(None),
+        )
+    )
+    attended_ids = {int(item) for item in attended_attendee_ids_res.scalars().all()}
+    attended_ids.update(int(item) for item in ticket_checkin_ids_res.scalars().all())
+
+    no_show_rows = (
+        await db.execute(
+            select(Attendee.email).where(
+                Attendee.event_id.in_(past_event_ids),
+                Attendee.id.not_in(list(attended_ids)) if attended_ids else True,
+                Attendee.email.is_not(None),
+                func.trim(Attendee.email) != "",
+            ).distinct()
+        )
+    ).scalars().all()
+
+    tagged = skipped = 0
+    for raw_email in no_show_rows:
+        email = _normalize_email(raw_email)
+        if not email:
+            continue
+        canonical = await _canonical_email(db, org.id, email)
+        profile_res = await db.execute(
+            select(ParticipantCrmProfile).where(
+                ParticipantCrmProfile.organization_id == org.id,
+                ParticipantCrmProfile.email == canonical,
+            )
+        )
+        profile = profile_res.scalar_one_or_none()
+        if not profile:
+            profile = ParticipantCrmProfile(organization_id=org.id, email=canonical, notes="", tags=[], lifecycle_status="lead")
+            db.add(profile)
+        existing_tags = list(profile.tags or [])
+        if "no_show" in existing_tags:
+            skipped += 1
+            continue
+        profile.tags = list(dict.fromkeys([*existing_tags, "no_show"]))[:20]
+        profile.updated_at = datetime.now(timezone.utc)
+        tagged += 1
+    await db.commit()
+    return CrmNoShowTagOut(tagged=tagged, skipped=skipped)
+
+
+# ── CSV Import ───────────────────────────────────────────────────────────────
+
+class CrmImportOut(BaseModel):
+    created: int
+    updated: int
+    skipped: int
+    errors: list[str]
+
+
+@router.post(
+    "/api/admin/crm/import-csv",
+    response_model=CrmImportOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def import_crm_from_csv(
+    request: Request,
+    file: UploadFile,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Import CRM profiles from CSV. Columns: email (required), tags, lifecycle_status, priority, lead_score, notes."""
+    org = await _admin_org(db, me, request)
+    raw = await file.read()
+    if len(raw) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="CSV dosyası 5 MB'ı geçemez.")
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        text = raw.decode("latin-1", errors="replace")
+
+    reader = csv.DictReader(io.StringIO(text))
+    created = updated = skipped = 0
+    errors: list[str] = []
+    VALID_PRIORITIES = {"low", "normal", "high", "urgent"}
+    VALID_STATUSES = {"lead", "active", "vip", "renewal", "inactive"}
+
+    for i, row in enumerate(reader, start=2):
+        email = _normalize_email(row.get("email") or "")
+        if not email or "@" not in email:
+            errors.append(f"Satır {i}: Geçersiz e-posta '{row.get('email', '')}'")
+            skipped += 1
+            continue
+        canonical = await _canonical_email(db, org.id, email)
+        profile_res = await db.execute(
+            select(ParticipantCrmProfile).where(
+                ParticipantCrmProfile.organization_id == org.id,
+                ParticipantCrmProfile.email == canonical,
+            )
+        )
+        profile = profile_res.scalar_one_or_none()
+        is_new = profile is None
+        if not profile:
+            profile = ParticipantCrmProfile(organization_id=org.id, email=canonical, notes="", tags=[], lifecycle_status="lead")
+            db.add(profile)
+        before = None if is_new else _profile_state(profile)
+
+        tags_raw = row.get("tags", "")
+        if tags_raw.strip():
+            profile.tags = _clean_tags([t.strip() for t in tags_raw.split(",")])
+
+        status_raw = (row.get("lifecycle_status") or "").strip().lower()
+        if status_raw and status_raw in VALID_STATUSES:
+            profile.lifecycle_status = status_raw
+
+        priority_raw = (row.get("priority") or "").strip().lower()
+        if priority_raw and priority_raw in VALID_PRIORITIES:
+            profile.priority = priority_raw
+
+        score_raw = row.get("lead_score", "").strip()
+        if score_raw:
+            try:
+                score = int(score_raw)
+                if 0 <= score <= 100:
+                    profile.lead_score = score
+            except ValueError:
+                pass
+
+        notes_raw = (row.get("notes") or "").strip()
+        if notes_raw:
+            profile.notes = notes_raw[:5000]
+
+        profile.updated_at = datetime.now(timezone.utc)
+        after = _profile_state(profile)
+        if before != after or is_new:
+            db.add(ParticipantCrmAuditLog(
+                organization_id=org.id,
+                email=canonical,
+                actor_user_id=me.id,
+                action="profile.csv_imported",
+                before=before,
+                after=after,
+            ))
+            if is_new:
+                created += 1
+            else:
+                updated += 1
+        else:
+            skipped += 1
+
+    await db.commit()
+    return CrmImportOut(created=created, updated=updated, skipped=skipped, errors=errors[:50])
+
+
+# ── CRM → Automation bridge ──────────────────────────────────────────────────
+
+class CrmLeadScoreFilterOut(BaseModel):
+    emails: list[str]
+    count: int
+
+
+@router.get(
+    "/api/admin/crm/filter-by-score",
+    response_model=CrmLeadScoreFilterOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def filter_crm_by_lead_score(
+    request: Request,
+    min_score: int = Query(default=0, ge=0, le=100),
+    max_score: int = Query(default=100, ge=0, le=100),
+    lifecycle_status: str = Query(default=""),
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return emails matching CRM lead score range — used by automation rules."""
+    org = await _admin_org(db, me, request)
+    stmt = select(ParticipantCrmProfile.email).where(
+        ParticipantCrmProfile.organization_id == org.id,
+        ParticipantCrmProfile.lead_score >= min_score,
+        ParticipantCrmProfile.lead_score <= max_score,
+    )
+    if lifecycle_status.strip():
+        stmt = stmt.where(ParticipantCrmProfile.lifecycle_status == lifecycle_status.strip())
+    emails = (await db.execute(stmt)).scalars().all()
+    return CrmLeadScoreFilterOut(emails=list(emails), count=len(emails))

@@ -35,6 +35,17 @@ def _sync_additive_schema(sync_conn: sa.Connection) -> None:
     if "attendees" in table_names:
         _add_column_if_missing(sync_conn, inspector, "attendees", '"unsubscribed_at" TIMESTAMP WITH TIME ZONE')
 
+    if "users" in table_names:
+        _add_column_if_missing(sync_conn, inspector, "users", '"deleted_at" TIMESTAMP WITH TIME ZONE')
+
+    if "public_members" in table_names:
+        _add_column_if_missing(sync_conn, inspector, "public_members", '"deleted_at" TIMESTAMP WITH TIME ZONE')
+
+    if "email_delivery_logs" in table_names:
+        _add_column_if_missing(sync_conn, inspector, "email_delivery_logs", '"clicked_at" TIMESTAMP WITH TIME ZONE')
+        _add_column_if_missing(sync_conn, inspector, "email_delivery_logs", '"click_count" INTEGER NOT NULL DEFAULT 0')
+        _add_column_if_missing(sync_conn, inspector, "email_delivery_logs", '"open_count" INTEGER NOT NULL DEFAULT 0')
+
     if "bulk_email_jobs" in table_names:
         _add_column_if_missing(sync_conn, inspector, "bulk_email_jobs", '"scheduled_at" TIMESTAMP WITH TIME ZONE')
         _add_column_if_missing(sync_conn, inspector, "bulk_email_jobs", '"cron_expression" VARCHAR(120)')

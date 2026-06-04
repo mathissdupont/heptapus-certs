@@ -1131,23 +1131,64 @@ async def process_segment_export_jobs_once(limit: int = 5) -> dict[str, int]:
 
                 pii_mode = _normalize_pii_mode((job.filters or {}).get("_export_pii_mode"))
                 await _ensure_full_pii_export_allowed(db, event, pii_mode)
-                attendees = await _segment_rows_for_export(db, event, job.segment_key, job.filters or {})
-                values = _segment_export_values(attendees, pii_mode=pii_mode)
                 rel_dir = Path("segment_exports") / f"event_{event.id}"
                 file_name = f"segment-{event.id}-{job.segment_key}-{job.id}.csv"
                 rel_path = rel_dir / file_name
                 abs_path = Path(settings.local_storage_dir) / rel_path
                 abs_path.parent.mkdir(parents=True, exist_ok=True)
-                output = io.StringIO()
-                writer = csv.writer(output)
-                writer.writerows(values)
-                abs_path.write_bytes(output.getvalue().encode("utf-8-sig"))
 
-                job.row_count = max(0, len(values) - 1)
+                # Stream rows in chunks to avoid loading 100K objects into RAM at once
+                query_filters = _filters_for_query(job.filters or {})
+                base_stmt = _segment_stmt(
+                    event,
+                    job.segment_key,
+                    field_id=query_filters["field_id"],
+                    answer=query_filters["answer"],
+                    location=query_filters["location"],
+                    composition=query_filters["composition"],
+                )
+                include_full_pii = pii_mode == "full"
+                row_count = 0
+                chunk_size = 2000
+                with abs_path.open("wb") as fout:
+                    fout.write("﻿".encode("utf-8"))  # BOM for Excel
+                    buf = io.StringIO()
+                    w = csv.writer(buf)
+                    w.writerow(["id", "name", "email", "registered_at", "email_verified", "survey_completed"])
+                    fout.write(buf.getvalue().encode("utf-8"))
+                    offset = 0
+                    while True:
+                        chunk_res = await db.execute(base_stmt.offset(offset).limit(chunk_size))
+                        chunk = chunk_res.scalars().all()
+                        if not chunk:
+                            break
+                        buf = io.StringIO()
+                        w = csv.writer(buf)
+                        for att in chunk:
+                            w.writerow([
+                                att.id,
+                                att.name if include_full_pii else _mask_name(att.name),
+                                att.email if include_full_pii else _mask_email(att.email),
+                                att.registered_at.isoformat() if att.registered_at else "",
+                                bool(att.email_verified),
+                                att.survey_completed_at is not None,
+                            ])
+                        fout.write(buf.getvalue().encode("utf-8"))
+                        row_count += len(chunk)
+                        offset += chunk_size
+                        if len(chunk) < chunk_size:
+                            break
+
+                values = None  # freed — no longer needed for Google Sheets path below
+                if job.sync_google_sheets:
+                    # For GSheets sync, we still need the values list — reload (accept memory cost for this path)
+                    attendees_gs = await _segment_rows_for_export(db, event, job.segment_key, job.filters or {})
+                    values = _segment_export_values(attendees_gs, pii_mode=pii_mode)
+                    await _sync_segment_export_to_google_sheet(db, event, job, values)
+
+                job.row_count = row_count
                 job.file_path = str(rel_path).replace("\\", "/")
                 job.file_name = file_name
-                if job.sync_google_sheets:
-                    await _sync_segment_export_to_google_sheet(db, event, job, values)
                 job.status = "completed"
                 job.completed_at = datetime.now(timezone.utc)
                 await write_audit_log(

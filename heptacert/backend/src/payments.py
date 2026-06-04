@@ -126,6 +126,11 @@ class IyzicoProvider(PaymentProvider):
                 "id": req.order_id,
                 "name": req.customer_name.split()[0] if req.customer_name else "Customer",
                 "surname": req.customer_name.split()[-1] if " " in req.customer_name else "User",
+                # iyzico requires gsmNumber and identityNumber for all payment types but HeptaCert
+                # sells digital goods (SaaS subscriptions) and does not collect national ID or phone
+                # from buyers. Placeholder values below are accepted by iyzico for virtual/digital
+                # product categories (itemType: VIRTUAL). If you add physical goods or require
+                # stricter fraud scoring, collect real values from users at checkout.
                 "gsmNumber": "+905350000000",
                 "email": req.customer_email,
                 "identityNumber": "11111111111",

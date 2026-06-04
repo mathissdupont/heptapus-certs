@@ -706,6 +706,31 @@ async def list_event_automations(
     return await _summary(db, event_id, rules)
 
 
+async def _validate_no_circular_trigger(
+    db: AsyncSession,
+    event_id: int,
+    payload: "AutomationRuleIn",
+    exclude_rule_id: Optional[str],
+) -> None:
+    if payload.trigger != "audience_segment":
+        return
+    incoming_segment = str((payload.trigger_config or {}).get("segment_key") or "")
+    if not incoming_segment:
+        return
+    existing_rules = await _load_rule_rows(db, event_id)
+    for rule in existing_rules:
+        if exclude_rule_id and rule.id == exclude_rule_id:
+            continue
+        if rule.trigger != "audience_segment":
+            continue
+        existing_segment = str((rule.trigger_config or {}).get("segment_key") or "")
+        if existing_segment == incoming_segment and rule.enabled:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Bu etkinlikte '{incoming_segment}' segmenti zaten başka bir etkin kuralı tetikliyor. Aynı segment iki aktif kuralı tetikleyemez.",
+            )
+
+
 @router.post(
     "/api/admin/events/{event_id}/automations",
     response_model=AutomationSummaryOut,
@@ -719,6 +744,7 @@ async def create_event_automation(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_event_for_admin(event_id, me, db, "email:write")
+    await _validate_no_circular_trigger(db, event_id, payload, exclude_rule_id=None)
     rule = EventAutomationRule(
         id=uuid4().hex,
         event_id=event_id,
@@ -752,6 +778,7 @@ async def update_event_automation(
     rule = await db.get(EventAutomationRule, rule_id)
     if not rule or rule.event_id != event_id:
         raise HTTPException(status_code=404, detail="Automation rule not found")
+    await _validate_no_circular_trigger(db, event_id, payload, exclude_rule_id=rule_id)
     rule.name = payload.name
     rule.trigger = payload.trigger
     rule.trigger_config = payload.trigger_config or {}

@@ -3,6 +3,7 @@
 import csv
 import io
 from datetime import datetime, timedelta, timezone
+from html import escape as _he
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -1062,15 +1063,16 @@ async def process_training_renewal_notifications_once(
             db.add(log)
             subject = f"HeptaCert eğitim hatırlatması: {row.title}"
             html = f"""
-            <h2>{row.title}</h2>
-            <p>Merhaba {row.assignee_name},</p>
+            <h2>{_he(row.title)}</h2>
+            <p>Merhaba {_he(row.assignee_name)},</p>
             <p>Size atanmış eğitim veya sertifika yenileme takibinde yaklaşan bir tarih var.</p>
             <ul>
-              <li>Durum: {_effective_status(row)}</li>
+              <li>Durum: {_he(_effective_status(row))}</li>
               <li>Son tarih: {target_date.strftime("%d.%m.%Y")}</li>
-              <li>Etkinlik: {(event.name if event else "Belirtilmedi")}</li>
+              <li>Etkinlik: {_he(event.name if event else "Belirtilmedi")}</li>
             </ul>
-            <p>Detaylar icin kurum yoneticinizle iletisime gecebilirsiniz.</p>
+            <p>Detaylar için kurum yöneticinizle iletişime geçebilirsiniz.
+               Bu bildirimleri almak istemiyorsanız yöneticinizden atamayı kaldırmasını talep edebilirsiniz.</p>
             """
             try:
                 await send_email_async(row.assignee_email, subject, html, raise_on_error=True)

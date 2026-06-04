@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
-import { Mail, TrendingUp, Loader2, AlertCircle, Send, BarChart3, ChevronRight } from "lucide-react";
+import { Mail, TrendingUp, Loader2, AlertCircle, Send, BarChart3, MousePointerClick, Eye, Percent } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { apiFetch } from "@/lib/api";
@@ -12,9 +12,20 @@ import { useI18n } from "@/lib/i18n";
 
 type Event = { id: number; name: string; event_date: string | null };
 
+type TrackingSummary = {
+  total_sent: number;
+  unique_opens: number;
+  unique_clicks: number;
+  open_rate: number;
+  click_rate: number;
+  click_to_open_rate: number;
+  days: number;
+};
+
 export default function EmailAnalyticsPage() {
   const { lang } = useI18n();
   const [events, setEvents] = useState<Event[]>([]);
+  const [summary, setSummary] = useState<TrackingSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,9 +69,13 @@ export default function EmailAnalyticsPage() {
   const fetchEvents = async () => {
     try {
       setError(null);
-      const res = await apiFetch("/admin/events");
-      const data = await res.json();
+      const [evRes, sumRes] = await Promise.all([
+        apiFetch("/admin/events"),
+        apiFetch("/admin/email-analytics/summary?days=30").catch(() => null),
+      ]);
+      const data = await evRes.json();
       setEvents(Array.isArray(data) ? data : []);
+      if (sumRes) setSummary(await sumRes.json().catch(() => null));
     } catch (e: any) {
       setError(e?.message || copy.loadFailed);
     } finally {
@@ -93,6 +108,28 @@ export default function EmailAnalyticsPage() {
           <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 text-xs font-semibold text-red-600 flex items-center gap-2">
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
+          </div>
+        )}
+
+        {/* 30 GÜNLÜK TRACKING ÖZET KARTLARI */}
+        {summary && summary.total_sent > 0 && (
+          <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+            {[
+              { label: lang === "tr" ? "Gönderilen" : "Sent", value: summary.total_sent.toLocaleString(), icon: Send, color: "text-gray-700" },
+              { label: lang === "tr" ? "Tekil Açılma" : "Unique Opens", value: summary.unique_opens.toLocaleString(), icon: Eye, color: "text-blue-600" },
+              { label: lang === "tr" ? "Tekil Tıklama" : "Unique Clicks", value: summary.unique_clicks.toLocaleString(), icon: MousePointerClick, color: "text-violet-600" },
+              { label: lang === "tr" ? "Açılma Oranı" : "Open Rate", value: `${summary.open_rate}%`, icon: Percent, color: "text-emerald-600" },
+              { label: lang === "tr" ? "Tıklama Oranı" : "Click Rate", value: `${summary.click_rate}%`, icon: Percent, color: "text-amber-600" },
+              { label: "CTOR", value: `${summary.click_to_open_rate}%`, icon: TrendingUp, color: "text-rose-600" },
+            ].map(({ label, value, icon: Icon, color }) => (
+              <div key={label} className="rounded-2xl border border-gray-100 bg-white p-3.5 shadow-sm">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Icon className={`h-3.5 w-3.5 ${color}`} />
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{label}</p>
+                </div>
+                <p className={`text-xl font-black tracking-tight ${color}`}>{value}</p>
+              </div>
+            ))}
           </div>
         )}
 

@@ -7,7 +7,9 @@ import {
   apiFetch,
   adminManualCheckin,
   checkInEventTicket,
+  getApiBase,
   getCheckinMetrics,
+  getToken,
   listSessions,
   type CheckinMetrics,
   type SessionOut,
@@ -114,8 +116,10 @@ export default function AdminCheckinPage() {
   const [scannerError, setScannerError] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<CheckinMetrics | null>(null);
 
+  const [liveCount, setLiveCount] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const scannerRef = useRef<any>(null);
+  const sseRef = useRef<EventSource | null>(null);
   const scannerRegionId = `heptacert-checkin-scanner-${eventId || "new"}`;
 
   async function load() {
@@ -148,6 +152,41 @@ export default function AdminCheckinPage() {
   useEffect(() => {
     if (eventId) void load();
   }, [eventId]);
+
+  // SSE real-time check-in stream
+  useEffect(() => {
+    if (!eventId || !planOk) return;
+    const token = getToken();
+    if (!token) return;
+    const url = `${getApiBase()}/admin/events/${eventId}/checkin/stream`;
+    const es = new EventSource(`${url}?token=${encodeURIComponent(token)}`);
+    sseRef.current = es;
+    es.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "checkin") {
+          setLiveCount((n) => n + 1);
+          setLog((prev) => [
+            {
+              email: data.attendee_name || data.attendee_id,
+              type: "manual" as CheckinType,
+              success: true,
+              message: `✓ ${data.attendee_name || "—"} (canlı)`,
+              time: new Date(data.checked_in_at).toLocaleTimeString("tr-TR"),
+            },
+            ...prev.slice(0, 49),
+          ]);
+          getCheckinMetrics(eventId).then(setMetrics).catch(() => undefined);
+        }
+      } catch {
+        // ignore parse errors
+      }
+    };
+    return () => {
+      es.close();
+      sseRef.current = null;
+    };
+  }, [eventId, planOk]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -387,11 +426,19 @@ export default function AdminCheckinPage() {
                   <p className="text-xs text-surface-400 font-medium truncate max-w-xs sm:max-w-md">{eventName}</p>
                 </div>
                 
-                <div className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-tight shadow-card self-start ${
-                  isOnline ? "border-emerald-100 bg-emerald-50 text-emerald-700" : "border-amber-100 bg-amber-50 text-amber-700"
-                }`}>
-                  {isOnline ? <Wifi className="h-3.5 w-3.5 mr-1" /> : <WifiOff className="h-3.5 w-3.5 mr-1" />}
-                  <span>{isOnline ? "Canlı (Online)" : "Offline Mod"}</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-tight shadow-card ${
+                    isOnline ? "border-emerald-100 bg-emerald-50 text-emerald-700" : "border-amber-100 bg-amber-50 text-amber-700"
+                  }`}>
+                    {isOnline ? <Wifi className="h-3.5 w-3.5 mr-1" /> : <WifiOff className="h-3.5 w-3.5 mr-1" />}
+                    <span>{isOnline ? "Online" : "Offline"}</span>
+                  </div>
+                  {liveCount > 0 && (
+                    <div className="inline-flex items-center gap-1 rounded-full border border-violet-100 bg-violet-50 px-2.5 py-0.5 text-[10px] font-bold text-violet-700">
+                      <span className="h-1.5 w-1.5 rounded-full bg-violet-500 animate-ping inline-block" />
+                      <span>+{liveCount} canlı</span>
+                    </div>
+                  )}
                 </div>
               </div>
 

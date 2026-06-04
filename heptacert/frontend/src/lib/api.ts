@@ -912,6 +912,32 @@ export async function mergeCrmParticipants(payload: {
   return res.json();
 }
 
+export async function tagCrmNoShows(): Promise<{ tagged: number; skipped: number }> {
+  const res = await apiFetch("/admin/crm/tag-no-shows", { method: "POST" });
+  return res.json();
+}
+
+export async function importCrmFromCsv(file: File): Promise<{ created: number; updated: number; skipped: number; errors: string[] }> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await apiFetch("/admin/crm/import-csv", { method: "POST", body: form });
+  return res.json();
+}
+
+export async function filterCrmByLeadScore(params: {
+  min_score?: number;
+  max_score?: number;
+  lifecycle_status?: string;
+}): Promise<{ emails: string[]; count: number }> {
+  const qs = new URLSearchParams();
+  if (params.min_score !== undefined) qs.set("min_score", String(params.min_score));
+  if (params.max_score !== undefined) qs.set("max_score", String(params.max_score));
+  if (params.lifecycle_status) qs.set("lifecycle_status", params.lifecycle_status);
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await apiFetch(`/admin/crm/filter-by-score${suffix}`);
+  return res.json();
+}
+
 export type TrainingStatus = "assigned" | "in_progress" | "completed" | "overdue" | "waived";
 
 export interface TrainingAssignment {

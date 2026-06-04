@@ -15,17 +15,22 @@ import {
   Ticket,
   UsersRound,
   User,
-  ChevronRight,
   AlertCircle,
   Calendar,
+  Columns3,
+  List,
+  Upload,
+  UserX,
 } from "lucide-react";
 import {
   exportSelectedCrmParticipants,
   getCrmParticipant,
+  importCrmFromCsv,
   listCrmDuplicateCandidates,
   listCrmParticipants,
   mergeCrmParticipants,
   sendCrmBulkEmail,
+  tagCrmNoShows,
   updateCrmParticipant,
   type CrmDuplicateCandidate,
   type CrmParticipantDetail,
@@ -197,6 +202,7 @@ export default function AdminCrmPage() {
   const [bulkWorking, setBulkWorking] = useState(false);
   const [bulkNotice, setBulkNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<"list" | "kanban">("list");
   const searchDebounceReady = useRef(false);
 
   const knownTags = useMemo(() => {
@@ -215,6 +221,39 @@ export default function AdminCrmPage() {
 
   function selectVisibleParticipants() {
     setSelectedEmails((items) => Array.from(new Set([...items, ...visibleEmails])));
+  }
+
+  async function runTagNoShows() {
+    setBulkWorking(true);
+    setBulkNotice(null);
+    setError(null);
+    try {
+      const result = await tagCrmNoShows();
+      setBulkNotice(`No-show taglama: ${result.tagged} etiketlendi, ${result.skipped} atlandı.`);
+      await loadParticipants(null);
+    } catch (ex: any) {
+      setError(ex?.message || "No-show taglama başarısız.");
+    } finally {
+      setBulkWorking(false);
+    }
+  }
+
+  async function handleCsvImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBulkWorking(true);
+    setBulkNotice(null);
+    setError(null);
+    try {
+      const result = await importCrmFromCsv(file);
+      setBulkNotice(`CSV import: ${result.created} yeni, ${result.updated} güncellendi, ${result.skipped} atlandı.${result.errors.length ? ` Hata: ${result.errors[0]}` : ""}`);
+      await loadParticipants(null);
+    } catch (ex: any) {
+      setError(ex?.message || "CSV import başarısız.");
+    } finally {
+      setBulkWorking(false);
+      e.target.value = "";
+    }
   }
 
   async function exportSelected() {
@@ -369,10 +408,49 @@ export default function AdminCrmPage() {
     <div className="w-full space-y-5 antialiased text-gray-900">
       
       {/* BAŞLIK GRUBU */}
-      <div className="w-full">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{copy.eyebrow}</p>
-        <h1 className="mt-1 text-xl font-bold tracking-tight text-gray-950 sm:text-2xl">{copy.title}</h1>
-        <p className="mt-1.5 max-w-3xl text-xs leading-relaxed text-gray-400">{copy.subtitle}</p>
+      <div className="w-full flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{copy.eyebrow}</p>
+          <h1 className="mt-1 text-xl font-bold tracking-tight text-gray-950 sm:text-2xl">{copy.title}</h1>
+          <p className="mt-1.5 max-w-3xl text-xs leading-relaxed text-gray-400">{copy.subtitle}</p>
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {/* View toggle */}
+          <div className="flex rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setView("list")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold transition ${view === "list" ? "bg-gray-950 text-white" : "text-gray-500 hover:bg-gray-50"}`}
+            >
+              <List className="h-3.5 w-3.5" />
+              Liste
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("kanban")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold transition ${view === "kanban" ? "bg-gray-950 text-white" : "text-gray-500 hover:bg-gray-50"}`}
+            >
+              <Columns3 className="h-3.5 w-3.5" />
+              Kanban
+            </button>
+          </div>
+          {/* No-show tagger */}
+          <button
+            type="button"
+            onClick={() => void runTagNoShows()}
+            disabled={bulkWorking}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-40"
+          >
+            <UserX className="h-3.5 w-3.5" />
+            No-Show Etiketle
+          </button>
+          {/* CSV Import */}
+          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
+            <Upload className="h-3.5 w-3.5" />
+            CSV İçe Aktar
+            <input type="file" accept=".csv" className="sr-only" onChange={handleCsvImport} />
+          </label>
+        </div>
       </div>
 
       {/* GLOBAL ERROR BANNER */}
@@ -457,8 +535,51 @@ export default function AdminCrmPage() {
         </div>
       </section>
 
+      {/* KANBAN GÖRÜNÜMÜ */}
+      {view === "kanban" && (
+        <div className="overflow-x-auto pb-4">
+          <div className="flex gap-3 min-w-max">
+            {LIFECYCLE_OPTIONS.map((col) => {
+              const colItems = participants.filter((p) => p.meta.lifecycle_status === col.value);
+              return (
+                <div key={col.value} className="w-64 shrink-0 rounded-2xl border border-gray-200 bg-gray-50/50 overflow-hidden shadow-sm">
+                  <div className="flex items-center justify-between border-b border-gray-100 bg-white px-4 py-3">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-gray-700">{col.label}</span>
+                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-500">{colItems.length}</span>
+                  </div>
+                  <div className="p-2 space-y-2 max-h-[600px] overflow-y-auto scrollbar-none">
+                    {colItems.length === 0 && (
+                      <p className="py-8 text-center text-[11px] text-gray-400">—</p>
+                    )}
+                    {colItems.map((p) => (
+                      <button
+                        key={p.email}
+                        type="button"
+                        onClick={() => { setSelectedEmail(p.email); void loadDetail(p.email); setView("list"); }}
+                        className="w-full text-left rounded-xl border border-gray-200 bg-white p-3 shadow-sm hover:border-gray-300 transition-colors"
+                      >
+                        <p className="truncate text-[11px] font-bold text-gray-950">{p.name}</p>
+                        <p className="truncate text-[10px] text-gray-400">{p.email}</p>
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {p.meta.tags.slice(0, 3).map((t) => (
+                            <span key={t} className="rounded-md bg-gray-50 px-1.5 py-0.5 text-[9px] font-semibold text-gray-500">{t}</span>
+                          ))}
+                        </div>
+                        {p.meta.lead_score > 0 && (
+                          <p className="mt-1.5 text-[10px] font-bold text-gray-400">Skor: {p.meta.lead_score}</p>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* CRM ANA ÇİFT SÜTUN DÜZENİ */}
-      <div className="grid gap-4 xl:grid-cols-[380px_minmax(0,1fr)] items-start">
+      {view === "list" && <div className="grid gap-4 xl:grid-cols-[380px_minmax(0,1fr)] items-start">
         
         {/* SOL TARAF: KATILIMCI SEÇİM LİSTESİ */}
         <section className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm flex flex-col">
@@ -791,7 +912,7 @@ export default function AdminCrmPage() {
             </>
           )}
         </section>
-      </div>
+      </div>}
 
     </div>
     </FeatureGate>

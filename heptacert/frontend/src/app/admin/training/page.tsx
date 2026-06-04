@@ -204,7 +204,7 @@ export default function AdminTrainingPage() {
       if (item.department) values.add(item.department);
     });
     return Array.from(values).sort((a, b) => a.localeCompare(b));
-  }, [assignments]);
+  }, [assignments, orgDepartments]);
 
   function fillForm(item: TrainingAssignment | null) {
     if (!item) {
@@ -635,14 +635,14 @@ export default function AdminTrainingPage() {
               </label>
               <div className="grid gap-3 sm:grid-cols-2">
                 <input
-                  value={(form as any).evidence_url || ""}
-                  onChange={(event) => setForm({ ...form, evidence_url: event.target.value } as typeof form)}
+                  value={form.evidence_url || ""}
+                  onChange={(event) => setForm({ ...form, evidence_url: event.target.value })}
                   className="input-field"
                   placeholder="Kanıt linki"
                 />
                 <input
-                  value={(form as any).evidence_label || ""}
-                  onChange={(event) => setForm({ ...form, evidence_label: event.target.value } as typeof form)}
+                  value={form.evidence_label || ""}
+                  onChange={(event) => setForm({ ...form, evidence_label: event.target.value })}
                   className="input-field"
                   placeholder="Kanıt etiketi"
                 />

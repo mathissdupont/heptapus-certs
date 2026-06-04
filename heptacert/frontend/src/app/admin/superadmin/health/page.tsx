@@ -5,12 +5,14 @@ import { motion } from "framer-motion";
 import {
   Activity,
   AlertCircle,
+  CheckCircle2,
   Clock3,
   Database,
   HardDrive,
   Loader2,
   RefreshCw,
   ServerCog,
+  XCircle,
 } from "lucide-react";
 import { apiFetch, getPlatformHealth } from "@/lib/api";
 import PageHeader from "@/components/Admin/PageHeader";
@@ -43,6 +45,7 @@ export default function SuperadminHealthPage() {
   const { lang } = useI18n();
   const [data, setData] = useState<SystemHealth | null>(null);
   const [platform, setPlatform] = useState<PlatformHealth | null>(null);
+  const [jobs, setJobs] = useState<Record<string, any> | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,12 +93,14 @@ export default function SuperadminHealthPage() {
       if (mode === "load") setLoading(true);
       if (mode === "refresh") setRefreshing(true);
       setError(null);
-      const [response, platformHealth] = await Promise.all([
+      const [response, platformHealth, jobsResponse] = await Promise.all([
         apiFetch("/superadmin/system-health"),
         getPlatformHealth().catch(() => null),
+        apiFetch("/superadmin/job-status").catch(() => null),
       ]);
       setData(await response.json());
       setPlatform(platformHealth);
+      if (jobsResponse) setJobs(await jobsResponse.json().catch(() => null));
     } catch (e: any) {
       setError(e?.message || copy.loadFailed);
     } finally {
@@ -251,6 +256,53 @@ export default function SuperadminHealthPage() {
             <p className="mt-1">{new Date().toLocaleString(copy.locale)}</p>
           </div>
         </div>
+
+        {/* Background Job Status */}
+        {jobs && (
+          <div className="card p-5">
+            <div className="flex items-center gap-2 border-b border-surface-100 pb-3 mb-4">
+              <Activity className="h-4 w-4 text-brand-600" />
+              <h2 className="text-sm font-bold text-surface-900">
+                {lang === "tr" ? "Arkaplan İş Kuyruğu" : "Background Job Queue"}
+              </h2>
+              <span className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                jobs.scheduler_enabled ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+              }`}>
+                {jobs.scheduler_enabled ? (lang === "tr" ? "Aktif" : "Active") : (lang === "tr" ? "Devre Dışı" : "Disabled")}
+              </span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+              {[
+                { key: "bulk_email", label: lang === "tr" ? "Toplu E-posta" : "Bulk Email" },
+                { key: "segment_export", label: lang === "tr" ? "Segment Export" : "Segment Export" },
+                { key: "document_export", label: lang === "tr" ? "Doküman Export" : "Document Export" },
+                { key: "certificate_bulk", label: lang === "tr" ? "Sertifika Bulk" : "Certificate Bulk" },
+                { key: "training_notifications", label: lang === "tr" ? "Eğitim Bildirimleri" : "Training Notifs" },
+              ].map(({ key, label }) => {
+                const q = jobs[key] || {};
+                const hasPending = (q.pending || 0) > 0 || (q.processing || 0) > 0;
+                const hasFailed = (q.failed_last_hour || 0) > 0;
+                return (
+                  <div key={key} className={`rounded-xl border p-3 ${hasFailed ? "border-rose-200 bg-rose-50/50" : hasPending ? "border-amber-200 bg-amber-50/50" : "border-surface-200 bg-white"}`}>
+                    <div className="flex items-center gap-1.5 mb-2">
+                      {hasFailed
+                        ? <XCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                        : hasPending
+                        ? <Loader2 className="h-3.5 w-3.5 text-amber-500 animate-spin shrink-0" />
+                        : <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />}
+                      <p className="text-[11px] font-bold text-surface-700 truncate">{label}</p>
+                    </div>
+                    <div className="space-y-0.5 text-[10px] text-surface-500">
+                      {q.pending !== undefined && <p>{lang === "tr" ? "Bekleyen" : "Pending"}: <span className="font-bold text-surface-700">{q.pending}</span></p>}
+                      {q.processing !== undefined && <p>{lang === "tr" ? "İşleniyor" : "Processing"}: <span className="font-bold text-surface-700">{q.processing}</span></p>}
+                      {q.failed_last_hour !== undefined && <p className={q.failed_last_hour > 0 ? "text-rose-600 font-bold" : ""}>{lang === "tr" ? "Hata (1s)" : "Failed (1h)"}: <span className="font-bold">{q.failed_last_hour}</span></p>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

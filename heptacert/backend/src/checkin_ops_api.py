@@ -1,11 +1,14 @@
 """Check-in activity logging, lookup, kiosk sessions, and operations metrics."""
 
+import asyncio
 import hashlib
+import json
 import secrets
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import AsyncGenerator, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import Integer, cast, func, literal_column, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,6 +33,18 @@ from .main import (
 from .organization_access_api import ensure_organization_enterprise
 
 router = APIRouter()
+
+# In-memory SSE event bus: event_id → list of queues
+_checkin_sse_queues: dict[int, list[asyncio.Queue]] = {}
+
+
+def publish_checkin_event(event_id: int, payload: dict) -> None:
+    """Push a check-in event to all SSE listeners for the given event_id."""
+    for queue in _checkin_sse_queues.get(event_id, []):
+        try:
+            queue.put_nowait(payload)
+        except asyncio.QueueFull:
+            pass
 
 
 class CheckinLookupItem(BaseModel):
@@ -527,3 +542,47 @@ async def list_checkin_activity(
         )
         for row, attendee, session, user in rows
     ]
+
+
+# ── Real-time check-in SSE ──────────────────────────────────────────────────
+
+@router.get(
+    "/api/admin/events/{event_id}/checkin/stream",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def checkin_event_stream(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Server-Sent Events stream for real-time check-in updates on an event."""
+    await _get_event_for_admin(event_id, me, db, "checkin:write")
+
+    queue: asyncio.Queue = asyncio.Queue(maxsize=200)
+    event_queues = _checkin_sse_queues.setdefault(event_id, [])
+    event_queues.append(queue)
+
+    async def generator() -> AsyncGenerator[str, None]:
+        yield f"data: {json.dumps({'type': 'connected', 'event_id': event_id})}\n\n"
+        try:
+            while True:
+                try:
+                    payload = await asyncio.wait_for(queue.get(), timeout=25.0)
+                    yield f"data: {json.dumps(payload, default=str)}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": heartbeat\n\n"
+        finally:
+            try:
+                event_queues.remove(queue)
+            except ValueError:
+                pass
+
+    return StreamingResponse(
+        generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )

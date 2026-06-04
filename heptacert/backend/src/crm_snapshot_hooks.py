@@ -12,7 +12,9 @@ from .main import (
     Event,
     EventTicket,
     Organization,
+    ParticipantCrmAuditLog,
     ParticipantCrmEmailAlias,
+    ParticipantCrmProfile,
     ParticipantCrmSnapshot,
 )
 
@@ -153,6 +155,45 @@ async def refresh_crm_snapshot_for_attendee(db: AsyncSession, attendee: Attendee
     if not row:
         return None
     return await refresh_crm_snapshot_for_event_email(db, event_id=row.event_id, email=row.email)
+
+
+async def auto_tag_certified_for_attendee_email(
+    db: AsyncSession,
+    *,
+    org_id: int,
+    email: str,
+) -> bool:
+    """Add the 'certified' tag to the CRM profile of an attendee when a certificate is issued."""
+    canonical = await _canonical_email(db, org_id, email)
+    if not canonical:
+        return False
+    profile_res = await db.execute(
+        select(ParticipantCrmProfile).where(
+            ParticipantCrmProfile.organization_id == org_id,
+            ParticipantCrmProfile.email == canonical,
+        )
+    )
+    profile = profile_res.scalar_one_or_none()
+    if not profile:
+        profile = ParticipantCrmProfile(organization_id=org_id, email=canonical, notes="", tags=[], lifecycle_status="lead")
+        db.add(profile)
+        before = None
+    else:
+        before = list(profile.tags or [])
+    tags = list(dict.fromkeys([*(profile.tags or []), "certified"]))
+    if tags == (before or []):
+        return False
+    profile.tags = tags
+    profile.updated_at = datetime.now(timezone.utc)
+    db.add(ParticipantCrmAuditLog(
+        organization_id=org_id,
+        email=canonical,
+        actor_user_id=None,
+        action="profile.auto_tag_certified",
+        before={"tags": before or []},
+        after={"tags": tags},
+    ))
+    return True
 
 
 async def refresh_crm_snapshots_for_certificate_name(

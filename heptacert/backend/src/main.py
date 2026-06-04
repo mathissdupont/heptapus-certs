@@ -261,6 +261,7 @@ class Settings(BaseSettings):
     clamav_enabled: bool = Field(default=False, alias="CLAMAV_ENABLED")
     clamav_host: str = Field(default="127.0.0.1", alias="CLAMAV_HOST")
     clamav_port: int = Field(default=3310, alias="CLAMAV_PORT")
+    require_clamav: bool = Field(default=False, alias="REQUIRE_CLAMAV")
     trusted_proxy_networks: str = Field(default="", alias="TRUSTED_PROXY_NETWORKS")
     redis_url: str = Field(default="", alias="REDIS_URL")
     rate_limit_storage_uri: str = Field(default="", alias="RATE_LIMIT_STORAGE_URI")
@@ -364,6 +365,7 @@ class User(Base):
     role: Mapped[Role] = mapped_column(SAEnum(Role, name="role_enum"), index=True)
     heptacoin_balaonce: Mapped[int] = mapped_column("heptacoin_balance", Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     verification_token: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
     password_reset_token: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
@@ -414,6 +416,7 @@ class PublicMember(Base):
     digest_opt_in: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     verification_token: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
     password_reset_token: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
@@ -1673,6 +1676,9 @@ class EmailDeliveryLog(Base):
     reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     opened_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    clicked_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    click_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    open_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
     bulk_job: Mapped["BulkEmailJob"] = relationship()
     attendee: Mapped["Attendee"] = relationship()
@@ -5069,10 +5075,19 @@ async def get_current_user(db: AsyncSession = Depends(get_db), Authorization: Op
     except (JWTError, ValueError, TypeError):
         raise HTTPException(status_code=401, detail="Invalid token")
 
+    from .cache import cache, USER_TTL
+    cached_user = await cache.get(f"user:{user_id}")
+    if cached_user:
+        if cached_user.get("deleted_at"):
+            raise HTTPException(status_code=401, detail="Bu hesap silinmiştir.")
+        return CurrentUser(id=cached_user["id"], role=Role(cached_user["role"]), email=cached_user["email"])
     res = await db.execute(select(User).where(User.id == user_id))
     user = res.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
+    if user.deleted_at is not None:
+        raise HTTPException(status_code=401, detail="Bu hesap silinmiştir.")
+    await cache.set(f"user:{user_id}", {"id": user.id, "role": str(user.role.value), "email": user.email, "deleted_at": None}, ttl=USER_TTL)
     return CurrentUser(id=user.id, role=user.role, email=user.email)
 
 
@@ -5437,10 +5452,25 @@ async def _heptacert_rate_limit_handler(request: Request, exc: RateLimitExceeded
     )
 
 
-# Rate limiter
+# Rate limiter — uses IP for anonymous, user_id for authenticated requests
+def _rate_limit_key(request: Request) -> str:
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        token = auth[7:]
+        try:
+            import jose.jwt as _jwt
+            payload = _jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+            uid = payload.get("sub")
+            if uid:
+                return f"user:{uid}"
+        except Exception:
+            pass
+    return f"ip:{_client_ip_for_rate_limit(request)}"
+
+
 rate_limit_storage_uri = settings.rate_limit_storage_uri or settings.redis_url or "memory://"
 limiter = Limiter(
-    key_func=_client_ip_for_rate_limit,
+    key_func=_rate_limit_key,
     default_limits=["200/minute"],
     storage_uri=rate_limit_storage_uri,
 )
@@ -5928,7 +5958,7 @@ async def startup():
                     for _, data in by_admin.items():
                         days_left = int((threshold - now).total_seconds() / 86400)
                         rows_html = "".join(
-                            f"<tr><td>{c['name']}</td><td>{c['event']}</td><td>{c['ends']}</td></tr>"
+                            f"<tr><td>{escape(c['name'])}</td><td>{escape(c['event'])}</td><td>{escape(c['ends'])}</td></tr>"
                             for c in data["certs"]
                         )
                         html = f"""
@@ -5991,28 +6021,28 @@ async def startup():
             now_r = datetime.now(timezone.utc)
             cutoff = now_r - timedelta(days=30)
             async with SessionLocal() as db_r:
+                # Single query: join Subscription + User to avoid N+1
                 res_subs = await db_r.execute(
-                    select(Subscription).where(
+                    select(Subscription, User)
+                    .join(User, User.id == Subscription.user_id)
+                    .where(
                         Subscription.is_active == True,
                         Subscription.plan_id.in_(["pro", "growth", "enterprise"]),
                         Subscription.expires_at > now_r,
+                        User.deleted_at.is_(None),
                     )
                 )
-                subs_list = res_subs.scalars().all()
-                for sub_r2 in subs_list:
+                rows = res_subs.all()
+                for sub_r2, usr in rows:
                     if sub_r2.last_hc_credited_at and sub_r2.last_hc_credited_at > cutoff:
                         continue
                     quota = _get_hc_quota(sub_r2.plan_id)
                     if not quota:
                         continue
-                    usr_res = await db_r.execute(select(User).where(User.id == sub_r2.user_id))
-                    usr = usr_res.scalar_one_or_none()
-                    if not usr:
-                        continue
                     usr.heptacoin_balaonce += quota
                     db_r.add(Transaction(
                         user_id=usr.id, amount=quota, type=TxType.credit,
-                        description=f"AylÃ„Â±k HC yenileme: {sub_r2.plan_id}",
+                        description=f"Aylık HC yenileme: {sub_r2.plan_id}",
                     ))
                     sub_r2.last_hc_credited_at = now_r
                     logger.info("Monthly HC renewal: user %s +%d HC (%s)", usr.email, quota, sub_r2.plan_id)
@@ -8661,7 +8691,8 @@ async def login(request: Request, data: LoginIn, db: AsyncSession = Depends(get_
         )
         await db.commit()
         raise HTTPException(status_code=401, detail="E-posta veya şifre hatalı.")
-        raise HTTPException(status_code=401, detail="GeÃ§ersiz e-posta veya ÅŸifre.")
+    if user.deleted_at is not None:
+        raise HTTPException(status_code=401, detail="Bu hesap silinmiştir. Destek için iletişime geçin.")
     if not user.is_verified:
         await write_audit_log(
             db,
@@ -8675,7 +8706,6 @@ async def login(request: Request, data: LoginIn, db: AsyncSession = Depends(get_
         )
         await db.commit()
         raise HTTPException(status_code=403, detail="E-posta adresinizi doğrulamanız gerekiyor. Lütfen gelen kutunuzu kontrol edin.")
-        raise HTTPException(status_code=403, detail="E-posta adresinizi doÃ„Å¸rulamanÃ„Â±z gerekiyor. LÃƒÂ¼tfen gelen kutunuzu kontrol edin.")
 
     # Organization employees need admin-panel access even if they registered as a public member first.
     if user.role not in (Role.admin, Role.superadmin):
@@ -9014,7 +9044,7 @@ async def google_oauth_callback(
     if not settings.google_oauth_client_id or not settings.google_oauth_client_secret:
         raise HTTPException(status_code=503, detail="Google OAuth is not configured.")
     try:
-        state_payload = verify_email_token(state, max_age=600)
+        state_payload = verify_email_token(state, max_age=300)
     except Exception:
         raise bad_request("Google OAuth state is invalid or expired.")
     if state_payload.get("action") != "google_oauth":
@@ -9178,7 +9208,7 @@ async def google_sheets_auth_callback(
     if not settings.google_oauth_client_id or not settings.google_oauth_client_secret:
         raise HTTPException(status_code=503, detail="Google OAuth is not configured.")
     try:
-        state_payload = verify_email_token(state, max_age=600)
+        state_payload = verify_email_token(state, max_age=300)
     except Exception:
         raise bad_request("Google Sheets OAuth state is invalid or expired.")
     oauth_action = state_payload.get("action")
@@ -9313,7 +9343,7 @@ async def microsoft_excel_auth_callback(
     if not settings.ms365_oauth_client_id or not settings.ms365_oauth_client_secret:
         raise HTTPException(status_code=503, detail="Microsoft OAuth is not configured.")
     try:
-        state_payload = verify_email_token(state, max_age=600)
+        state_payload = verify_email_token(state, max_age=300)
     except Exception:
         raise bad_request("Microsoft Excel OAuth state is invalid or expired.")
     if state_payload.get("action") != "ms365_excel_oauth":
@@ -9429,10 +9459,10 @@ async def public_member_login(request: Request, data: PublicMemberLoginIn, db: A
     member = res.scalar_one_or_none()
     if not member or not verify_password(data.password, member.password_hash):
         raise HTTPException(status_code=401, detail="E-posta veya şifre hatalı.")
-        raise HTTPException(status_code=401, detail="Invalid email or password.")
+    if member.deleted_at is not None:
+        raise HTTPException(status_code=401, detail="Bu hesap silinmiştir. Destek için iletişime geçin.")
     if not member.is_verified:
         raise HTTPException(status_code=403, detail="E-posta adresinizi doğrulamanız gerekiyor. Lütfen gelen kutunuzu kontrol edin.")
-        raise HTTPException(status_code=403, detail="Please verify your email before signing in.")
 
     member_out = PublicMemberMeOut(
         id=member.id,
@@ -9603,7 +9633,7 @@ async def reset_password(request: Request, data: ResetPasswordIn, db: AsyncSessi
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
 
     # Validate that the token matches the one stored in DB (prevents replay attacks)
-    if not user.password_reset_token or user.password_reset_token != data.token:
+    if not user.password_reset_token or not hmac.compare_digest(str(user.password_reset_token), str(data.token)):
         raise bad_request("Bu sıfırlama bağlantısı zaten kullanılmış.")
 
     user.password_hash = hash_password(data.new_password)
@@ -11319,6 +11349,112 @@ async def me(me: CurrentUser = Depends(get_current_user), db: AsyncSession = Dep
     return MeOut(id=u.id, email=u.email, role=u.role, heptacoin_balance=u.heptacoin_balaonce)
 
 
+@app.get("/api/me/export", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def export_admin_data(
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """KVKK md. 11 / GDPR Art. 20 — data portability export for admin accounts."""
+    import json as _json
+    from fastapi.responses import Response as _Response
+
+    user_res = await db.execute(select(User).where(User.id == me.id))
+    user = user_res.scalar_one()
+
+    events_res = await db.execute(select(Event).where(Event.admin_id == me.id))
+    events = events_res.scalars().all()
+
+    event_ids = [e.id for e in events]
+    certs_res = await db.execute(select(Certificate).where(Certificate.event_id.in_(event_ids), Certificate.deleted_at.is_(None))) if event_ids else None
+    certs = certs_res.scalars().all() if certs_res else []
+
+    payload = {
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "account": {
+            "id": user.id,
+            "email": user.email,
+            "role": str(user.role),
+            "created_at": user.created_at.isoformat() if user.created_at else None,
+        },
+        "events": [
+            {
+                "id": e.id,
+                "name": e.name,
+                "event_date": e.event_date.isoformat() if e.event_date else None,
+                "created_at": e.created_at.isoformat() if e.created_at else None,
+            }
+            for e in events
+        ],
+        "certificates_issued": len(certs),
+    }
+    await write_audit_log(
+        db,
+        user_id=me.id,
+        action="user.data_export",
+        resource_type="user",
+        resource_id=str(me.id),
+    )
+    await db.commit()
+    body = _json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
+    return _Response(
+        content=body,
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="heptacert-data-export-{me.id}.json"'},
+    )
+
+
+@app.get("/api/public/me/export")
+async def export_public_member_data(
+    member: CurrentPublicMember = Depends(get_current_public_member),
+    db: AsyncSession = Depends(get_db),
+):
+    """KVKK md. 11 / GDPR Art. 20 — data portability export for public members."""
+    import json as _json
+    from fastapi.responses import Response as _Response
+
+    member_res = await db.execute(select(PublicMember).where(PublicMember.id == member.id))
+    db_member = member_res.scalar_one_or_none()
+    if not db_member:
+        raise HTTPException(status_code=404, detail="Member not found.")
+
+    attendees_res = await db.execute(
+        select(Attendee, Event)
+        .join(Event, Event.id == Attendee.event_id)
+        .where(func.lower(func.trim(Attendee.email)) == (db_member.email or "").strip().lower())
+        .order_by(Attendee.registered_at.desc())
+        .limit(500)
+    )
+    attendee_rows = attendees_res.all()
+
+    payload = {
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "profile": {
+            "email": db_member.email,
+            "display_name": db_member.display_name,
+            "bio": db_member.bio,
+            "location": db_member.location,
+            "created_at": db_member.created_at.isoformat() if db_member.created_at else None,
+        },
+        "event_registrations": [
+            {
+                "event_id": event.id,
+                "event_name": event.name,
+                "event_date": event.event_date.isoformat() if event.event_date else None,
+                "registered_at": attendee.registered_at.isoformat() if attendee.registered_at else None,
+                "email_verified": bool(attendee.email_verified),
+                "unsubscribed": attendee.unsubscribed_at is not None,
+            }
+            for attendee, event in attendee_rows
+        ],
+    }
+    body = _json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
+    return _Response(
+        content=body,
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="heptacert-member-data-export.json"'},
+    )
+
+
 @app.get("/api/public/me", response_model=PublicMemberMeOut)
 async def public_me(
     member: CurrentPublicMember = Depends(get_current_public_member),
@@ -11521,14 +11657,22 @@ async def delete_public_member_account(
     if not verify_password(data.current_password, db_member.password_hash):
         raise HTTPException(status_code=400, detail="Current password is incorrect.")
 
-    await db.execute(update(Attendee).where(Attendee.public_member_id == db_member.id).values(public_member_id=None))
+    now = datetime.now(timezone.utc)
+    db_member.deleted_at = now
+    db_member.display_name = "Silinmiş Üye"
+    db_member.bio = None
+    db_member.avatar_url = None
+    db_member.headline = None
+    db_member.location = None
+    db_member.website_url = None
+    db_member.contact_email = None
+    db_member.password_hash = hash_password(secrets.token_hex(32))
+    db_member.password_reset_token = None
+    db_member.verification_token = None
     await db.execute(delete(OrganizationFollower).where(OrganizationFollower.public_member_id == db_member.id))
     await db.execute(delete(CommunityPostLike).where(CommunityPostLike.public_member_id == db_member.id))
-    await db.execute(delete(CommunityPostComment).where(CommunityPostComment.public_member_id == db_member.id))
-    await db.execute(delete(CommunityPost).where(CommunityPost.author_public_member_id == db_member.id))
-    await db.delete(db_member)
     await db.commit()
-    return {"detail": "Account and personal data deleted successfully."}
+    return {"detail": "Hesabınız ve kişisel verileriniz silinmiştir. Yasal saklama süresi dolan veriler 30 gün içinde kalıcı olarak temizlenecektir."}
 
 
 @app.get("/api/public/my-events", response_model=list[PublicMemberEventOut])
@@ -11635,9 +11779,24 @@ async def delete_admin_account(
     if not verify_password(data.current_password, user.password_hash):
         raise HTTPException(status_code=400, detail="Mevcut şifre hatalı.")
 
-    await db.delete(user)
+    now = datetime.now(timezone.utc)
+    user.deleted_at = now
+    user.password_hash = hash_password(secrets.token_hex(32))
+    user.verification_token = None
+    user.password_reset_token = None
+    user.magic_link_token = None
+    from .cache import cache
+    await cache.delete(f"user:{me.id}")
+    await write_audit_log(
+        db,
+        user_id=me.id,
+        action="user.soft_deleted",
+        resource_type="user",
+        resource_id=str(me.id),
+        extra={"email": user.email},
+    )
     await db.commit()
-    return {"detail": "Hesap ve iliskili veriler silindi."}
+    return {"detail": "Hesabınız silinmiştir. Yasal saklama süresi dolan veriler 30 gün içinde kalıcı olarak temizlenecektir."}
 
 
 @app.get("/api/admin/events", response_model=list[EventOut], dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
@@ -13760,8 +13919,9 @@ async def list_api_keys(me: CurrentUser = Depends(get_current_user), db: AsyncSe
 
 @app.post("/api/admin/api-keys", response_model=ApiKeyCreateOut, status_code=201, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
 async def create_api_key(payload: ApiKeyCreateIn, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    full_key = f"hc_live_{secrets.token_urlsafe(32)}"
-    key_prefix = full_key[:12]
+    rand_prefix = secrets.token_hex(4)
+    full_key = f"hc_{rand_prefix}_{secrets.token_urlsafe(32)}"
+    key_prefix = full_key[:16]
     expires_at = None
     if payload.expires_days is not None:
         expires_at = datetime.now(timezone.utc) + timedelta(days=payload.expires_days)
@@ -14104,8 +14264,22 @@ async def issue_certificate(
         user_agent=None,
         extra={"event_id": ev.id, "public_id": public_id, "student_name": payload.student_name},
     )
-    from .crm_snapshot_hooks import refresh_crm_snapshots_for_certificate_name
+    from .crm_snapshot_hooks import auto_tag_certified_for_attendee_email, refresh_crm_snapshots_for_certificate_name
     await refresh_crm_snapshots_for_certificate_name(db, event_id=ev.id, student_name=payload.student_name)
+    attendee_email_res = await db.execute(
+        select(Attendee.email).where(
+            Attendee.event_id == ev.id,
+            func.lower(func.trim(Attendee.name)) == payload.student_name.strip().lower(),
+            Attendee.email.is_not(None),
+            func.trim(Attendee.email) != "",
+        ).limit(1)
+    )
+    _cert_email = attendee_email_res.scalar_one_or_none()
+    if _cert_email:
+        _org_res = await db.execute(select(Organization).where(Organization.user_id == ev.admin_id).limit(1))
+        _cert_org = _org_res.scalar_one_or_none()
+        if _cert_org:
+            await auto_tag_certified_for_attendee_email(db, org_id=_cert_org.id, email=_cert_email)
 
     await db.commit()
     await db.refresh(cert)
@@ -14667,7 +14841,7 @@ async def request_magic_link(
         user.magic_link_token = token
         await db.commit()
 
-        verify_link = f"{settings.frontend_base_url}/admin/magic-verifytoken={token}"
+        verify_link = f"{settings.frontend_base_url}/admin/magic-verify?token={token}"
         await send_email_async(
             to=str(data.email),
             subject="HeptaCert - Giriş Bağlantısı",
@@ -16109,7 +16283,9 @@ async def _scan_upload_with_clamav(raw: bytes) -> None:
         raise
     except Exception as exc:
         logger.warning("ClamAV scan failed: %s", exc)
-        raise HTTPException(status_code=502, detail="Antivirus scan is temporarily unavailable")
+        if settings.require_clamav:
+            raise HTTPException(status_code=503, detail="Antivirus scan is required but temporarily unavailable. Please try again.")
+        logger.warning("ClamAV unavailable — REQUIRE_CLAMAV=false so upload proceeds without scan")
 
 
 @app.post("/api/events/{event_id}/registration-document")
@@ -16904,13 +17080,13 @@ async def send_ticket_notification_email(ticket: SupportTicket, user_email: str)
             html = f"""
             <html>
                 <body style="font-family: Arial, sans-serif;">
-                    <h2>Yeni Destek Talebineği</h2>
-                    <p><strong>Organizasyon:</strong> {org.org_name if org else 'Bilinmiyor'}</p>
-                    <p><strong>Kullanıcı:</strong> {user_email}</p>
-                    <p><strong>Konu:</strong> {ticket.subject}</p>
-                    <p><strong>Durum:</strong> {ticket.status}</p>
+                    <h2>Yeni Destek Talebi</h2>
+                    <p><strong>Organizasyon:</strong> {escape(org.org_name) if org else 'Bilinmiyor'}</p>
+                    <p><strong>Kullanıcı:</strong> {escape(user_email)}</p>
+                    <p><strong>Konu:</strong> {escape(ticket.subject)}</p>
+                    <p><strong>Durum:</strong> {escape(ticket.status)}</p>
                     <hr>
-                    <p><a href="{settings.frontend_base_url}/admin/superadmin/support-tickets/{ticket.id}">Talepleri Grnt-leme</a></p>
+                    <p><a href="{escape(settings.frontend_base_url)}/admin/superadmin/support-tickets/{ticket.id}">Talebi Görüntüle</a></p>
                 </body>
             </html>
             """
@@ -17916,6 +18092,19 @@ async def admin_manual_checkin(
 
     if inserted_id is None:
         return {"ok": False, "message": "Bu katılımcı bu oturum için zaten check-in yapılmış."}
+
+    try:
+        from .checkin_ops_api import publish_checkin_event
+        publish_checkin_event(event_id, {
+            "type": "checkin",
+            "attendee_id": attendee.id,
+            "attendee_name": attendee.name,
+            "session_id": session_id,
+            "checked_in_at": datetime.now(timezone.utc).isoformat(),
+            "method": "manual",
+        })
+    except Exception:
+        pass
 
     return {"ok": True, "message": f"Check-in başarılı: {attendee.name}"}
 
@@ -19718,6 +19907,9 @@ app.include_router(_audience_segments_api.router)
 from . import event_crm_api as _event_crm_api
 app.include_router(_event_crm_api.router)
 
+from . import crm_sequences_api as _crm_sequences_api
+app.include_router(_crm_sequences_api.router)
+
 from . import training_api as _training_api
 app.include_router(_training_api.router)
 
@@ -19758,4 +19950,42 @@ app.include_router(_venues_api.router)
 from . import venue_reservations_api as _venue_reservations_api
 app.include_router(_venue_reservations_api.router)
 
+
+# ── Background job status dashboard ──────────────────────────────────────────
+
+@app.get("/api/superadmin/job-status", dependencies=[Depends(require_role(Role.superadmin))])
+async def get_job_status(db: AsyncSession = Depends(get_db)):
+    """Real-time status of all background job queues — for ops/monitoring."""
+    now = datetime.now(timezone.utc)
+    since_hour = now - timedelta(hours=1)
+
+    bulk_pending = (await db.execute(select(func.count(BulkEmailJob.id)).where(BulkEmailJob.status == "pending"))).scalar_one()
+    bulk_processing = (await db.execute(select(func.count(BulkEmailJob.id)).where(BulkEmailJob.status == "processing"))).scalar_one()
+    bulk_failed_recent = (await db.execute(select(func.count(BulkEmailJob.id)).where(BulkEmailJob.status == "failed", BulkEmailJob.created_at >= since_hour))).scalar_one()
+
+    from .audience_segments_api import SegmentExportJob
+    seg_pending = (await db.execute(select(func.count(SegmentExportJob.id)).where(SegmentExportJob.status == "pending"))).scalar_one()
+    seg_processing = (await db.execute(select(func.count(SegmentExportJob.id)).where(SegmentExportJob.status == "processing"))).scalar_one()
+
+    from .document_export_jobs import DocumentExportJob
+    doc_pending = (await db.execute(select(func.count(DocumentExportJob.id)).where(DocumentExportJob.status == "pending"))).scalar_one()
+
+    bulk_cert_pending = (await db.execute(select(func.count(BulkCertificateJob.id)).where(BulkCertificateJob.status == "pending"))).scalar_one()
+    bulk_cert_processing = (await db.execute(select(func.count(BulkCertificateJob.id)).where(BulkCertificateJob.status == "processing"))).scalar_one()
+
+    from .training_api import TrainingRenewalNotificationLog
+    notif_failed_recent = (await db.execute(select(func.count(TrainingRenewalNotificationLog.id)).where(
+        TrainingRenewalNotificationLog.status == "failed",
+        TrainingRenewalNotificationLog.created_at >= since_hour,
+    ))).scalar_one()
+
+    return {
+        "timestamp": now.isoformat(),
+        "bulk_email": {"pending": int(bulk_pending), "processing": int(bulk_processing), "failed_last_hour": int(bulk_failed_recent)},
+        "segment_export": {"pending": int(seg_pending), "processing": int(seg_processing)},
+        "document_export": {"pending": int(doc_pending)},
+        "certificate_bulk": {"pending": int(bulk_cert_pending), "processing": int(bulk_cert_processing)},
+        "training_notifications": {"failed_last_hour": int(notif_failed_recent)},
+        "scheduler_enabled": settings.enable_scheduler,
+    }
 

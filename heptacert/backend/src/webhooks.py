@@ -27,6 +27,8 @@ class WebhookEvent(str, Enum):
     cert_revoked         = "cert.revoked"
     cert_bulk_completed  = "cert.bulk_completed"
     cert_expiring_soon   = "cert.expiring_soon"
+    crm_profile_updated  = "crm.profile_updated"
+    crm_lead_score_changed = "crm.lead_score_changed"
 
 
 def generate_webhook_secret() -> str:
@@ -50,10 +52,12 @@ async def _try_deliver(
     """Single delivery attempt. Returns (http_status, response_body_truncated)."""
     body = json.dumps(payload, default=str).encode()
     signature = sign_payload(secret, body)
+    ts = payload.get("timestamp", "") if isinstance(payload, dict) else ""
     headers = {
         "Content-Type": "application/json",
         "X-HeptaCert-Event": event_type,
         "X-HeptaCert-Signature": signature,
+        "X-HeptaCert-Timestamp": str(ts),
         "X-HeptaCert-Attempt": str(attempt),
     }
     try:

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import os
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,9 +27,13 @@ from .main import (
 
 router = APIRouter()
 
+_QA_SEED_ALLOWED = os.getenv("ALLOW_QA_SEED", "false").strip().lower() == "true"
+
 
 @router.post("/api/superadmin/qa-seed", dependencies=[Depends(require_role(Role.superadmin))])
 async def seed_qa_data(me: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if not _QA_SEED_ALLOWED:
+        raise HTTPException(status_code=403, detail="QA seed is disabled in this environment. Set ALLOW_QA_SEED=true to enable.")
     event = (await db.execute(select(Event).where(Event.name == "QA Phase 16 Demo Event", Event.admin_id == me.id))).scalar_one_or_none()
     if not event:
         event = Event(

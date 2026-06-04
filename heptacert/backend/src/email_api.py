@@ -72,6 +72,9 @@ SUPERADMIN_BULK_EMAIL_DAILY_JOB_QUOTA = 10
 SUPERADMIN_BULK_EMAIL_DAILY_RECIPIENT_QUOTA = 2000
 SUPERADMIN_DIGEST_MANUAL_DAILY_QUOTA = 1
 
+EVENT_ADMIN_BULK_EMAIL_DAILY_JOB_QUOTA = 5
+EVENT_ADMIN_BULK_EMAIL_DAILY_RECIPIENT_QUOTA = 2000
+
 
 async def _ensure_system_email_template_presets(db: AsyncSession) -> None:
     existing_res = await db.execute(
@@ -174,6 +177,44 @@ async def _enforce_superadmin_email_quota(
             status_code=429,
             detail=f"Superadmin toplu e-posta alıcı kotası doldu. Kalan günlük alıcı hakkı: {remaining}.",
         )
+
+
+async def _enforce_event_admin_email_quota(
+    db: AsyncSession,
+    *,
+    user_id: int,
+    target_count: int,
+) -> None:
+    """Per-user daily rate limit for event-level bulk email jobs."""
+    now = datetime.now(timezone.utc)
+    since = now - timedelta(days=1)
+    count_res = await db.execute(
+        select(
+            func.count(BulkEmailJob.id),
+            func.coalesce(func.sum(BulkEmailJob.recipients_count), 0),
+        ).where(
+            BulkEmailJob.created_by == user_id,
+            BulkEmailJob.created_at >= since,
+            BulkEmailJob.status.notin_(["cancelled", "failed"]),
+        )
+    )
+    jobs_used, recipients_used = count_res.one()
+    jobs_used = int(jobs_used or 0)
+    recipients_used = int(recipients_used or 0)
+
+    if jobs_used >= EVENT_ADMIN_BULK_EMAIL_DAILY_JOB_QUOTA:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Günlük toplu e-posta kampanya kotası doldu: 24 saatte en fazla {EVENT_ADMIN_BULK_EMAIL_DAILY_JOB_QUOTA} kampanya başlatılabilir.",
+        )
+    if recipients_used + target_count > EVENT_ADMIN_BULK_EMAIL_DAILY_RECIPIENT_QUOTA:
+        remaining = max(EVENT_ADMIN_BULK_EMAIL_DAILY_RECIPIENT_QUOTA - recipients_used, 0)
+        raise HTTPException(
+            status_code=429,
+            detail=f"Günlük toplu e-posta alıcı kotası doldu. Kalan günlük alıcı hakkı: {remaining}.",
+        )
+
+
 @router.get(
     "/api/admin/events/{event_id}/email-templates",
     response_model=list[EmailTemplateOut],
@@ -574,7 +615,9 @@ async def start_bulk_email(
         }
         recipients_count = len(attendee_names & certified_names)
     if recipients_count == 0:
-        raise HTTPException(status_code=400, detail="Al??c?? bulunamad??")
+        raise HTTPException(status_code=400, detail="Alıcı bulunamadı")
+    if me.role != Role.superadmin:
+        await _enforce_event_admin_email_quota(db, user_id=me.id, target_count=recipients_count)
     # Create job
     job = BulkEmailJob(
         event_id=event_id,
@@ -1198,6 +1241,115 @@ async def create_superadmin_bulk_email_job(
 
     await _enqueue_superadmin_bulk_email_job(job.id)
     return job
+
+
+# ── Email tracking analytics summary ────────────────────────────────────────
+
+@router.get(
+    "/api/admin/email-analytics/summary",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def get_email_analytics_summary(
+    event_id: Optional[int] = Query(default=None),
+    days: int = Query(default=30, ge=1, le=365),
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Aggregate email open/click/delivery rates for the current admin."""
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+    stmt = (
+        select(
+            func.count(EmailDeliveryLog.id).label("total"),
+            func.count(EmailDeliveryLog.opened_at).label("opened"),
+            func.count(EmailDeliveryLog.clicked_at).label("clicked"),
+            func.coalesce(func.sum(EmailDeliveryLog.open_count), 0).label("total_opens"),
+            func.coalesce(func.sum(EmailDeliveryLog.click_count), 0).label("total_clicks"),
+        )
+        .join(BulkEmailJob, BulkEmailJob.id == EmailDeliveryLog.bulk_job_id)
+        .where(
+            BulkEmailJob.created_by == me.id,
+            BulkEmailJob.status.in_(["completed", "in_progress"]),
+            EmailDeliveryLog.sent_at >= since,
+        )
+    )
+    if event_id:
+        stmt = stmt.where(BulkEmailJob.event_id == event_id)
+    row = (await db.execute(stmt)).one()
+    total = int(row.total or 0)
+    opened = int(row.opened or 0)
+    clicked = int(row.clicked or 0)
+    return {
+        "total_sent": total,
+        "unique_opens": opened,
+        "unique_clicks": clicked,
+        "total_opens": int(row.total_opens or 0),
+        "total_clicks": int(row.total_clicks or 0),
+        "open_rate": round(opened / total * 100, 1) if total else 0,
+        "click_rate": round(clicked / total * 100, 1) if total else 0,
+        "click_to_open_rate": round(clicked / opened * 100, 1) if opened else 0,
+        "days": days,
+    }
+
+
+# ── Email open/click tracking ────────────────────────────────────────────────
+
+_TRACKING_PIXEL = (
+    b"GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00!\xf9\x04"
+    b"\x00\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
+)
+
+
+@router.get("/api/public/track/open/{log_id}")
+async def track_email_open(
+    log_id: int,
+    t: str = Query(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    """1×1 transparent GIF pixel — records email open event."""
+    from fastapi.responses import Response
+    from .main import EmailDeliveryLog, make_email_token, verify_email_token
+    try:
+        payload = verify_email_token(t, max_age=60 * 60 * 24 * 30)
+        if payload.get("log_id") != log_id:
+            raise ValueError("token mismatch")
+        log = await db.get(EmailDeliveryLog, log_id)
+        if log:
+            now = datetime.now(timezone.utc)
+            if not log.opened_at:
+                log.opened_at = now
+                log.status = "opened"
+            log.open_count = (log.open_count or 0) + 1
+            await db.commit()
+    except Exception:
+        pass
+    return Response(content=_TRACKING_PIXEL, media_type="image/gif", headers={"Cache-Control": "no-store"})
+
+
+@router.get("/api/public/track/click/{log_id}")
+async def track_email_click(
+    log_id: int,
+    t: str = Query(default=""),
+    url: str = Query(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    """Records email click event then redirects to the original URL."""
+    from fastapi.responses import RedirectResponse
+    from .main import EmailDeliveryLog, verify_email_token
+    try:
+        payload = verify_email_token(t, max_age=60 * 60 * 24 * 30)
+        if payload.get("log_id") != log_id:
+            raise ValueError("token mismatch")
+        log = await db.get(EmailDeliveryLog, log_id)
+        if log:
+            now = datetime.now(timezone.utc)
+            if not log.clicked_at:
+                log.clicked_at = now
+            log.click_count = (log.click_count or 0) + 1
+            await db.commit()
+    except Exception:
+        pass
+    safe_url = url if url.startswith(("https://", "http://")) else "/"
+    return RedirectResponse(url=safe_url, status_code=302)
 
 
 @router.get("/api/public/attendees/{attendee_id}/unsubscribe-verify")
