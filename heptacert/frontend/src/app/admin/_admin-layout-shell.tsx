@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { apiFetch, clearToken, getRoleFromToken, getSelectedOrganizationId, setSelectedOrganizationId } from "@/lib/api";
@@ -30,6 +30,7 @@ import {
   UsersRound,
   GraduationCap,
   Loader2,
+  Plug,
 } from "lucide-react";
 
 type NavItem = {
@@ -75,6 +76,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: { tr: "Sistem", en: "System" },
     items: [
+      { href: "/admin/integrations", label: { tr: "Entegrasyonlar", en: "Integrations" }, icon: Plug, exact: true },
       { href: "/admin/payments/transactions", label: { tr: "Ödemeler", en: "Payments" }, icon: CreditCard },
       { href: "/admin/webhooks", label: { tr: "Webhooks", en: "Webhooks" }, icon: Webhook },
       { href: "/admin/api-keys", label: { tr: "API Anahtarları", en: "API Keys" }, icon: KeyRound },
@@ -231,6 +233,25 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() || "";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+
+  // Restore sidebar collapsed state from localStorage before first paint
+  useLayoutEffect(() => {
+    try {
+      const stored = localStorage.getItem("heptacert-sidebar-collapsed");
+      if (stored === "true") setCollapsed(true);
+    } catch {
+      // storage unavailable — ignore
+    }
+  }, []);
+
+  // Persist collapsed state whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem("heptacert-sidebar-collapsed", String(collapsed));
+    } catch {
+      // storage unavailable — ignore
+    }
+  }, [collapsed]);
   const [organizationContexts, setOrganizationContexts] = useState<OrganizationContext[]>([]);
   const [activeOrganizationId, setActiveOrganizationId] = useState("");
   const [activeJobCount, setActiveJobCount] = useState(0);

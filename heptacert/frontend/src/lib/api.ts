@@ -3410,6 +3410,48 @@ export async function downloadOrganizationConsentLogs(format: "csv" | "pdf"): Pr
   URL.revokeObjectURL(url);
 }
 
+// ── Integration status types ──────────────────────────────────────────────────
+
+export interface GoogleSheetsConnectionStatus {
+  configured: boolean;
+  connected: boolean;
+  google_email?: string | null;
+  scopes: string[];
+  missing_scopes: string[];
+}
+
+export interface MicrosoftExcelConnectionStatus {
+  configured: boolean;
+  connected: boolean;
+  microsoft_email?: string | null;
+  scopes: string[];
+  missing_scopes: string[];
+}
+
+export async function getGoogleSheetsConnectionStatus(): Promise<GoogleSheetsConnectionStatus> {
+  const res = await apiFetch("/admin/google/sheets/status");
+  return res.json();
+}
+
+export async function startGoogleSheetsOAuth(next = "/admin/integrations"): Promise<{ authorization_url: string }> {
+  const params = new URLSearchParams({ next });
+  if (typeof window !== "undefined") params.set("frontend_origin", window.location.origin);
+  const res = await apiFetch(`/admin/google/sheets/start?${params}`);
+  return res.json();
+}
+
+export async function getMicrosoftExcelConnectionStatus(): Promise<MicrosoftExcelConnectionStatus> {
+  const res = await apiFetch("/admin/microsoft/excel/status");
+  return res.json();
+}
+
+export async function startMicrosoftExcelOAuth(next = "/admin/integrations"): Promise<{ authorization_url: string }> {
+  const params = new URLSearchParams({ next });
+  if (typeof window !== "undefined") params.set("frontend_origin", window.location.origin);
+  const res = await apiFetch(`/admin/microsoft/excel/start?${params}`);
+  return res.json();
+}
+
 export interface GoogleCalendarReservationStatus {
   configured: boolean;
   connected: boolean;

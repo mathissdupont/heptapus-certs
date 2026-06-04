@@ -3296,7 +3296,6 @@ class EventSheetsStatusOut(BaseModel):
     sheet_name: Optional[str] = None
     enabled: bool = False
     last_synced_at: Optional[str] = None
-    last_syonced_at: Optional[str] = None
     missing_scopes: List[str] = Field(default_factory=list)
 
 
@@ -3321,7 +3320,7 @@ class EventMicrosoftExcelStatusOut(BaseModel):
     workbook_name: Optional[str] = None
     sheet_name: Optional[str] = None
     enabled: bool = False
-    last_syonced_at: Optional[str] = None
+    last_synced_at: Optional[str] = None
     missing_scopes: List[str] = Field(default_factory=list)
 
 
@@ -4246,7 +4245,7 @@ async def _write_event_attendees_to_ms365_excel(db: AsyncSession, event: "Event"
         "workbook_name": workbook_name,
         "sheet_name": "Registrations",
         "header": _google_sheets_header_for_event(event),
-        "last_syonced_at": datetime.now(timezone.utc).isoformat(),
+        "last_synced_at": datetime.now(timezone.utc).isoformat(),
     }
     _set_event_ms365_excel_config(event, next_excel_config)
     db.add(event)
@@ -12819,8 +12818,7 @@ async def _event_sheets_status_payload(db: AsyncSession, event: Event) -> EventS
         spreadsheet_url=sheets_config.get("spreadsheet_url"),
         sheet_name=sheets_config.get("sheet_name"),
         enabled=bool(sheets_config.get("enabled")),
-        last_synced_at=sheets_config.get("last_synced_at") or sheets_config.get("last_syonced_at"),
-        last_syonced_at=sheets_config.get("last_syonced_at"),
+        last_synced_at=sheets_config.get("last_synced_at"),
         missing_scopes=missing_scopes,
     )
 
@@ -12904,7 +12902,7 @@ async def _event_ms365_excel_status_payload(db: AsyncSession, event: Event) -> E
         workbook_name=excel_config.get("workbook_name"),
         sheet_name=excel_config.get("sheet_name"),
         enabled=bool(excel_config.get("enabled")),
-        last_syonced_at=excel_config.get("last_syonced_at"),
+        last_synced_at=excel_config.get("last_synced_at"),
         missing_scopes=missing_scopes,
     )
 
