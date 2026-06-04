@@ -29,6 +29,7 @@ import {
   PanelLeftOpen,
   UsersRound,
   GraduationCap,
+  Loader2,
 } from "lucide-react";
 
 type NavItem = {
@@ -58,6 +59,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/admin/dashboard", label: { tr: "Dashboard", en: "Dashboard" }, icon: Gauge, exact: true },
       { href: "/admin/events", label: { tr: "Etkinlikler", en: "Events" }, icon: CalendarCheck2 },
+      { href: "/admin/jobs", label: { tr: "İşler", en: "Jobs" }, icon: Loader2, exact: true },
       { href: "/admin/crm", label: { tr: "Event CRM", en: "Event CRM" }, icon: UsersRound },
       { href: "/admin/training", label: { tr: "Eğitim", en: "Training" }, icon: GraduationCap },
     ],
@@ -231,6 +233,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [organizationContexts, setOrganizationContexts] = useState<OrganizationContext[]>([]);
   const [activeOrganizationId, setActiveOrganizationId] = useState("");
+  const [activeJobCount, setActiveJobCount] = useState(0);
   const currentSection = getCurrentSection(pathname);
   const { lang } = useI18n();
   const role = getRoleFromToken();
@@ -276,6 +279,20 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
       .catch(() => {
         setOrganizationContexts([]);
       });
+  }, [pathname]);
+
+  // Poll active job count every 10s to show indicator in header
+  useEffect(() => {
+    if (isAuthPage(pathname)) return;
+    const poll = () => {
+      apiFetch("/admin/jobs?limit=1")
+        .then(r => r.json())
+        .then((data: { active_count: number }) => setActiveJobCount(data?.active_count ?? 0))
+        .catch(() => undefined);
+    };
+    poll();
+    const id = setInterval(poll, 10000);
+    return () => clearInterval(id);
   }, [pathname]);
 
   if (isAuthPage(pathname)) {
@@ -330,6 +347,15 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
 
           <div className="ml-auto flex min-w-0 items-center gap-3">
             <CommandPalette />
+            {activeJobCount > 0 && (
+              <Link
+                href="/admin/jobs"
+                className="relative hidden sm:flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 shadow-sm transition hover:bg-blue-100"
+              >
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>{activeJobCount} {lang === "tr" ? "iş devam ediyor" : "jobs running"}</span>
+              </Link>
+            )}
             {organizationContexts.length > 1 && (
               <label className="hidden min-w-[220px] max-w-[300px] items-center gap-2 rounded-lg border border-surface-200 bg-white px-2.5 py-1.5 shadow-sm md:flex">
                 <Building2 className="h-4 w-4 shrink-0 text-surface-400" />

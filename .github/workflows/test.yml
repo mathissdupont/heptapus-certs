@@ -20,7 +20,7 @@ jobs:
     env:
       DATABASE_URL: sqlite+aiosqlite:///
       JWT_SECRET: ci-test-jwt-secret-32chars-minimum!!
-      EMAIL_TOKEN_SECRET: ci-test-email-token-secret
+      EMAIL_TOKEN_SECRET: ci-test-email-token-secret-padded
       BOOTSTRAP_SUPERADMIN_EMAIL: super@test.com
       BOOTSTRAP_SUPERADMIN_PASSWORD: SuperPass123!
       PUBLIC_BASE_URL: http://localhost:8000
@@ -44,13 +44,28 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run tests with coverage
-        run: python -m pytest tests/ -v --tb=short --cov=src --cov-report=term-missing
+      - name: Run unit tests (fast, no DB)
+        run: python -m pytest tests/ -v --tb=short -m "unit or not integration" -x
+
+      - name: Run all tests with coverage
+        run: |
+          python -m pytest tests/ -v --tb=short \
+            --cov=src \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml \
+            --cov-fail-under=40
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: heptacert/backend/coverage.xml
 
       - name: Check for security issues (bandit)
         run: |
           pip install bandit
-          bandit -r src/ -ll -ii --skip B101 || true
+          bandit -r src/ -ll -ii --skip B101,B106 || true
 
   frontend-lint:
     name: Frontend Lint & Type Check

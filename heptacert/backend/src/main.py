@@ -20009,3 +20009,146 @@ async def get_job_status(db: AsyncSession = Depends(get_db)):
         "scheduler_enabled": True,  # jobs always run somewhere in the deployment
     }
 
+
+# ── Unified Job Center ────────────────────────────────────────────────────────
+
+@app.get("/api/admin/jobs", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def list_my_jobs(
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    limit: int = Query(default=40, ge=1, le=100),
+):
+    """Return recent + all active jobs across all types for the current user."""
+    from .audience_segments_api import SegmentExportJob
+    from .document_export_jobs import DocumentExportJob
+
+    now = datetime.now(timezone.utc)
+    since = now - timedelta(days=7)
+    jobs: list[dict] = []
+
+    # ── Bulk email jobs ──────────────────────────────────────────────────
+    email_rows = (
+        await db.execute(
+            select(BulkEmailJob, Event)
+            .join(Event, Event.id == BulkEmailJob.event_id)
+            .where(
+                BulkEmailJob.created_by == me.id,
+                or_(
+                    BulkEmailJob.status.in_(["pending", "sending", "in_progress"]),
+                    BulkEmailJob.created_at >= since,
+                ),
+            )
+            .order_by(BulkEmailJob.created_at.desc())
+            .limit(limit)
+        )
+    ).all()
+    for job, event in email_rows:
+        total = int(job.recipients_count or 0)
+        sent = int(job.sent_count or 0)
+        failed = int(job.failed_count or 0)
+        jobs.append({
+            "id": job.id,
+            "type": "bulk_email",
+            "type_label": "Toplu E-posta",
+            "event_id": job.event_id,
+            "event_name": event.name if event else None,
+            "status": job.status,
+            "total": total,
+            "done": sent + failed,
+            "success": sent,
+            "failed": failed,
+            "progress_pct": round((sent + failed) / total * 100) if total else 0,
+            "created_at": job.created_at.isoformat() if job.created_at else None,
+            "started_at": job.started_at.isoformat() if job.started_at else None,
+            "completed_at": job.completed_at.isoformat() if job.completed_at else None,
+            "error_message": job.error_message,
+            "detail_url": f"/admin/events/{job.event_id}/analytics/{job.id}",
+            "can_cancel": False,
+            "can_download": False,
+        })
+
+    # ── Bulk certificate jobs ────────────────────────────────────────────
+    cert_rows = (
+        await db.execute(
+            select(BulkCertificateJob, Event)
+            .join(Event, Event.id == BulkCertificateJob.event_id)
+            .where(
+                BulkCertificateJob.created_by == me.id,
+                or_(
+                    BulkCertificateJob.status.in_(["pending", "processing"]),
+                    BulkCertificateJob.created_at >= since,
+                ),
+            )
+            .order_by(BulkCertificateJob.created_at.desc())
+            .limit(limit)
+        )
+    ).all()
+    for job, event in cert_rows:
+        total = int(job.total_count or 0)
+        done = int(job.current_index or 0)
+        jobs.append({
+            "id": job.id,
+            "type": "bulk_certificate",
+            "type_label": "Toplu Sertifika",
+            "event_id": job.event_id,
+            "event_name": event.name if event else None,
+            "status": job.status,
+            "total": total,
+            "done": done,
+            "success": int(job.created_count or 0),
+            "failed": int(job.failed_count or 0),
+            "already_exists": int(job.already_exists_count or 0),
+            "progress_pct": round(done / total * 100) if total else 0,
+            "created_at": job.created_at.isoformat() if job.created_at else None,
+            "started_at": job.started_at.isoformat() if job.started_at else None,
+            "completed_at": job.completed_at.isoformat() if job.completed_at else None,
+            "error_message": job.error_message,
+            "detail_url": f"/admin/events/{job.event_id}/certificates",
+            "download_url": f"/api/admin/events/{job.event_id}/bulk-generate-jobs/{job.id}/download" if job.status == "completed" and job.zip_file_path else None,
+            "can_cancel": job.status in ("pending", "processing"),
+            "can_download": job.status == "completed" and bool(job.zip_file_path),
+        })
+
+    # ── Segment export jobs ──────────────────────────────────────────────
+    seg_rows = (
+        await db.execute(
+            select(SegmentExportJob, Event)
+            .join(Event, Event.id == SegmentExportJob.event_id)
+            .where(
+                SegmentExportJob.created_by == me.id,
+                or_(
+                    SegmentExportJob.status.in_(["pending", "processing"]),
+                    SegmentExportJob.created_at >= since,
+                ),
+            )
+            .order_by(SegmentExportJob.created_at.desc())
+            .limit(limit)
+        )
+    ).all()
+    for job, event in seg_rows:
+        jobs.append({
+            "id": job.id,
+            "type": "segment_export",
+            "type_label": "Segment Export",
+            "event_id": job.event_id,
+            "event_name": event.name if event else None,
+            "status": job.status,
+            "total": int(job.row_count or 0),
+            "done": int(job.row_count or 0) if job.status == "completed" else 0,
+            "success": int(job.row_count or 0),
+            "failed": 0,
+            "progress_pct": 100 if job.status == "completed" else (50 if job.status == "processing" else 0),
+            "created_at": job.created_at.isoformat() if job.created_at else None,
+            "started_at": job.started_at.isoformat() if job.started_at else None,
+            "completed_at": job.completed_at.isoformat() if job.completed_at else None,
+            "error_message": job.error_message,
+            "detail_url": f"/admin/events/{job.event_id}/segments",
+            "download_url": f"/api/admin/events/{job.event_id}/segments/export-jobs/{job.id}/download" if job.status == "completed" and job.file_path else None,
+            "can_cancel": False,
+            "can_download": job.status == "completed" and bool(job.file_path),
+        })
+
+    jobs.sort(key=lambda j: j.get("created_at") or "", reverse=True)
+    active_count = sum(1 for j in jobs if j["status"] in ("pending", "processing", "sending", "in_progress"))
+    return {"jobs": jobs[:limit], "active_count": active_count}
+

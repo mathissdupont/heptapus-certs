@@ -6,7 +6,7 @@ import PageHeader from "@/components/Admin/PageHeader";
 import { listSuperadminEmailActivity, type SuperadminEmailActivityItem } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
-type ChannelFilter = "all" | "event_bulk" | "superadmin_bulk";
+type ChannelFilter = "all" | "event_bulk" | "superadmin_bulk" | "crm_bulk" | "automation";
 
 export default function SuperadminMailLogsPage() {
   const { lang } = useI18n();
@@ -21,6 +21,8 @@ export default function SuperadminMailLogsPage() {
             all: "Tüm kanallar",
             eventBulk: "Event Bulk",
             superadminBulk: "Superadmin Bulk",
+            crmBulk: "CRM Toplu Mail",
+            automation: "Otomasyon",
             status: "Durum",
             allStatus: "Tüm durumlar",
             search: "Gönderen, konu veya etkinlik ara...",
@@ -44,6 +46,8 @@ export default function SuperadminMailLogsPage() {
             all: "All channels",
             eventBulk: "Event Bulk",
             superadminBulk: "Superadmin Bulk",
+            crmBulk: "CRM Bulk Mail",
+            automation: "Automation",
             status: "Status",
             allStatus: "All statuses",
             search: "Search sender, subject, or event...",
@@ -127,6 +131,8 @@ export default function SuperadminMailLogsPage() {
             <option value="all">{copy.all}</option>
             <option value="event_bulk">{copy.eventBulk}</option>
             <option value="superadmin_bulk">{copy.superadminBulk}</option>
+            <option value="crm_bulk">{copy.crmBulk}</option>
+            <option value="automation">{copy.automation}</option>
           </select>
         </label>
 

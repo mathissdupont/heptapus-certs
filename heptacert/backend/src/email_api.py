@@ -18,6 +18,7 @@ from .email_template_presets import SYSTEM_EMAIL_TEMPLATE_PRESETS
 from .main import (
     Attendee,
     BulkEmailJob,
+    ParticipantCrmAuditLog,
     BulkEmailJobIn,
     BulkEmailJobOut,
     CertStatus,
@@ -1497,7 +1498,7 @@ async def list_superadmin_bulk_email_jobs(
     dependencies=[Depends(require_role(Role.superadmin))],
 )
 async def list_superadmin_email_activity(
-    channel: str = Query(default="all", pattern="^(all|event_bulk|superadmin_bulk)$"),
+    channel: str = Query(default="all", pattern="^(all|event_bulk|superadmin_bulk|crm_bulk|automation)$"),
     status: Optional[str] = Query(default=None, max_length=32),
     sender_user_id: Optional[int] = Query(default=None, ge=1),
     search: Optional[str] = Query(default=None, max_length=320),
@@ -1545,12 +1546,62 @@ async def list_superadmin_email_activity(
         SuperadminBulkEmailJob.error_message.label("error_message"),
     ).join(User, User.id == SuperadminBulkEmailJob.created_by)
 
+    # ── CRM bulk email channel ────────────────────────────────────────────
+    # Aggregate per (organization_id, date) from ParticipantCrmAuditLog
+    crm_bulk_stmt = select(
+        literal("crm_bulk").label("channel"),
+        ParticipantCrmAuditLog.id.label("job_id"),
+        ParticipantCrmAuditLog.actor_user_id.label("sender_user_id"),
+        User.email.label("sender_email"),
+        literal(None).label("event_id"),
+        literal("CRM Toplu E-posta").label("event_name"),
+        literal("crm_participants").label("recipient_group"),
+        literal("CRM Kampanyası").label("subject"),
+        literal("completed").label("status"),
+        literal(1).label("total_targets"),
+        literal(1).label("sent_count"),
+        literal(0).label("failed_count"),
+        ParticipantCrmAuditLog.created_at.label("created_at"),
+        ParticipantCrmAuditLog.created_at.label("started_at"),
+        ParticipantCrmAuditLog.created_at.label("completed_at"),
+        literal(None).label("error_message"),
+    ).join(User, User.id == ParticipantCrmAuditLog.actor_user_id).where(
+        ParticipantCrmAuditLog.action.in_(["profile.bulk_email_sent", "profile.bulk_email_failed"])
+    )
+
+    # ── Automation email channel ──────────────────────────────────────────
+    from .main import EventAutomationExecutionLog
+    auto_stmt = select(
+        literal("automation").label("channel"),
+        EventAutomationExecutionLog.id.label("job_id"),
+        Event.admin_id.label("sender_user_id"),
+        User.email.label("sender_email"),
+        EventAutomationExecutionLog.event_id.label("event_id"),
+        Event.name.label("event_name"),
+        EventAutomationExecutionLog.rule_id.label("recipient_group"),
+        literal("Otomasyon E-postası").label("subject"),
+        EventAutomationExecutionLog.status.label("status"),
+        literal(1).label("total_targets"),
+        func.cast(EventAutomationExecutionLog.status == "completed", func.Integer).label("sent_count"),
+        func.cast(EventAutomationExecutionLog.status == "failed", func.Integer).label("failed_count"),
+        EventAutomationExecutionLog.created_at.label("created_at"),
+        EventAutomationExecutionLog.created_at.label("started_at"),
+        EventAutomationExecutionLog.dispatched_at.label("completed_at"),
+        EventAutomationExecutionLog.error_message.label("error_message"),
+    ).join(Event, Event.id == EventAutomationExecutionLog.event_id).join(
+        User, User.id == Event.admin_id
+    ).where(EventAutomationExecutionLog.action_type == "send_email")
+
     if channel == "event_bulk":
         activity_query = event_bulk_stmt
     elif channel == "superadmin_bulk":
         activity_query = superadmin_bulk_stmt
+    elif channel == "crm_bulk":
+        activity_query = crm_bulk_stmt
+    elif channel == "automation":
+        activity_query = auto_stmt
     else:
-        activity_query = union_all(event_bulk_stmt, superadmin_bulk_stmt)
+        activity_query = union_all(event_bulk_stmt, superadmin_bulk_stmt, crm_bulk_stmt, auto_stmt)
 
     activity_sub = activity_query.subquery("email_activity")
     filtered = select(activity_sub)

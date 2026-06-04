@@ -3650,3 +3650,8 @@ export async function updateOrgDomain(customDomain: string): Promise<OrgDomainOu
   });
   return res.json();
 }
+
+export async function listMyJobs(limit = 60): Promise<{ jobs: any[]; active_count: number }> {
+  const res = await apiFetch(`/admin/jobs?limit=${limit}`);
+  return res.json();
+}
