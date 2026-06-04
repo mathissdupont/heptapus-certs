@@ -5,6 +5,7 @@ import io
 from datetime import datetime, timezone
 from typing import Any, Optional
 
+import httpx
 from fastapi import UploadFile
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -178,6 +179,29 @@ class ParticipantCrmMergeOut(BaseModel):
     target_email: str
     merged_emails: list[str]
     aliases_created: int
+
+
+class HubSpotIntegrationIn(BaseModel):
+    private_app_token: str = Field(min_length=8, max_length=512)
+    enabled: bool = True
+
+
+class HubSpotIntegrationOut(BaseModel):
+    configured: bool
+    enabled: bool
+    token_preview: Optional[str] = None
+
+
+class HubSpotPushIn(ParticipantCrmSelectionIn):
+    create_missing: bool = True
+
+
+class HubSpotPushOut(BaseModel):
+    pushed: int
+    created: int
+    updated: int
+    failed: int
+    errors: list[str] = Field(default_factory=list)
 
 
 def _normalize_email(email: str) -> str:
@@ -395,6 +419,78 @@ async def _attendees_for_identity(db: AsyncSession, org: Organization, emails: l
         .order_by(Attendee.registered_at.desc(), Attendee.id.desc())
     )
     return rows_res.all()
+
+
+def _crm_integrations_settings(org: Organization) -> dict[str, Any]:
+    settings_data = org.settings or {}
+    return settings_data.get("crm_integrations") or {}
+
+
+async def _save_crm_integrations_settings(db: AsyncSession, org: Organization, data: dict[str, Any]) -> None:
+    settings_data = dict(org.settings or {})
+    settings_data["crm_integrations"] = data
+    org.settings = settings_data
+    await db.commit()
+
+
+def _hubspot_config(org: Organization) -> dict[str, Any]:
+    return (_crm_integrations_settings(org).get("hubspot") or {}) if org else {}
+
+
+def _token_preview(token: str) -> str:
+    if not token:
+        return ""
+    if len(token) <= 10:
+        return "*" * len(token)
+    return f"{token[:6]}...{token[-4:]}"
+
+
+def _split_name(name: str) -> tuple[str, str]:
+    parts = [part for part in (name or "").strip().split(" ") if part]
+    if not parts:
+        return "", ""
+    if len(parts) == 1:
+        return parts[0], ""
+    return parts[0], " ".join(parts[1:])
+
+
+async def _crm_contact_payload(db: AsyncSession, org: Organization, email: str) -> dict[str, str] | None:
+    canonical = await _canonical_email(db, org.id, email)
+    identity_emails = await _identity_emails(db, org.id, canonical)
+    rows = await _attendees_for_identity(db, org, identity_emails)
+    if not rows:
+        return None
+    attendee = rows[0][0]
+    first_name, last_name = _split_name(attendee.name or "")
+    properties = {"email": canonical}
+    if first_name:
+        properties["firstname"] = first_name
+    if last_name:
+        properties["lastname"] = last_name
+    return properties
+
+
+async def _hubspot_upsert_contact(client: httpx.AsyncClient, token: str, properties: dict[str, str], create_missing: bool) -> str:
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    email = properties["email"]
+    update = await client.patch(
+        f"https://api.hubapi.com/crm/v3/objects/contacts/{email}",
+        params={"idProperty": "email"},
+        headers=headers,
+        json={"properties": properties},
+    )
+    if update.status_code < 400:
+        return "updated"
+    if update.status_code != 404 or not create_missing:
+        raise HTTPException(status_code=502, detail=f"HubSpot update failed for {email}: HTTP {update.status_code}")
+    create = await client.post(
+        "https://api.hubapi.com/crm/v3/objects/contacts",
+        headers=headers,
+        json={"properties": properties},
+    )
+    if create.status_code < 400:
+        return "created"
+    raise HTTPException(status_code=502, detail=f"HubSpot create failed for {email}: HTTP {create.status_code}")
 
 
 async def _certificate_count_for_email(db: AsyncSession, rows: list[tuple[Attendee, Event]]) -> int:
@@ -857,6 +953,145 @@ async def update_crm_participant(
 ):
     org = await _admin_org(db, me, request)
     return await _save_meta(db, org.id, payload, me.id)
+
+
+@router.get(
+    "/api/admin/crm/integrations/hubspot",
+    response_model=HubSpotIntegrationOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def get_hubspot_integration(
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _admin_org(db, me, request)
+    cfg = _hubspot_config(org)
+    token = str(cfg.get("private_app_token") or "")
+    return HubSpotIntegrationOut(
+        configured=bool(token),
+        enabled=bool(cfg.get("enabled", True)),
+        token_preview=_token_preview(token) if token else None,
+    )
+
+
+@router.patch(
+    "/api/admin/crm/integrations/hubspot",
+    response_model=HubSpotIntegrationOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def update_hubspot_integration(
+    request: Request,
+    payload: HubSpotIntegrationIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _admin_org(db, me, request)
+    data = _crm_integrations_settings(org)
+    data["hubspot"] = {
+        "private_app_token": payload.private_app_token.strip(),
+        "enabled": bool(payload.enabled),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "updated_by": me.id,
+    }
+    await _save_crm_integrations_settings(db, org, data)
+    await db.refresh(org)
+    return await get_hubspot_integration(request, me=me, db=db)
+
+
+@router.delete(
+    "/api/admin/crm/integrations/hubspot",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def delete_hubspot_integration(
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _admin_org(db, me, request)
+    data = _crm_integrations_settings(org)
+    data.pop("hubspot", None)
+    await _save_crm_integrations_settings(db, org, data)
+    return {"ok": True}
+
+
+@router.post(
+    "/api/admin/crm/integrations/hubspot/test",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def test_hubspot_integration(
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _admin_org(db, me, request)
+    cfg = _hubspot_config(org)
+    token = str(cfg.get("private_app_token") or "")
+    if not token or not cfg.get("enabled", True):
+        raise HTTPException(status_code=400, detail="HubSpot integration is not configured")
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        res = await client.get(
+            "https://api.hubapi.com/crm/v3/objects/contacts",
+            params={"limit": "1"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    if res.status_code >= 400:
+        raise HTTPException(status_code=502, detail=f"HubSpot token test failed: HTTP {res.status_code}")
+    return {"ok": True}
+
+
+@router.post(
+    "/api/admin/crm/integrations/hubspot/push",
+    response_model=HubSpotPushOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def push_crm_participants_to_hubspot(
+    request: Request,
+    payload: HubSpotPushIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _admin_org(db, me, request)
+    cfg = _hubspot_config(org)
+    token = str(cfg.get("private_app_token") or "")
+    if not token or not cfg.get("enabled", True):
+        raise HTTPException(status_code=400, detail="HubSpot integration is not configured")
+    emails = list(dict.fromkeys(_normalize_email(email) for email in payload.emails if _normalize_email(email)))[:1000]
+    if not emails:
+        raise HTTPException(status_code=400, detail="At least one valid email is required")
+
+    pushed = created = updated = failed = 0
+    errors: list[str] = []
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        for email in emails:
+            properties = await _crm_contact_payload(db, org, email)
+            if not properties:
+                failed += 1
+                errors.append(f"{email}: participant not found")
+                continue
+            try:
+                result = await _hubspot_upsert_contact(client, token, properties, payload.create_missing)
+                pushed += 1
+                if result == "created":
+                    created += 1
+                else:
+                    updated += 1
+            except HTTPException as exc:
+                failed += 1
+                errors.append(str(exc.detail))
+
+    db.add(
+        ParticipantCrmAuditLog(
+            organization_id=org.id,
+            email="*",
+            actor_user_id=me.id,
+            action="hubspot.push",
+            before=None,
+            after={"requested": len(emails), "pushed": pushed, "created": created, "updated": updated, "failed": failed},
+        )
+    )
+    await db.commit()
+    return HubSpotPushOut(pushed=pushed, created=created, updated=updated, failed=failed, errors=errors[:20])
 
 
 @router.post(

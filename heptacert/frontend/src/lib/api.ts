@@ -938,6 +938,46 @@ export async function filterCrmByLeadScore(params: {
   return res.json();
 }
 
+export interface HubSpotIntegrationStatus {
+  configured: boolean;
+  enabled: boolean;
+  token_preview?: string | null;
+}
+
+export async function getHubSpotIntegration(): Promise<HubSpotIntegrationStatus> {
+  const res = await apiFetch("/admin/crm/integrations/hubspot");
+  return res.json();
+}
+
+export async function updateHubSpotIntegration(payload: { private_app_token: string; enabled: boolean }): Promise<HubSpotIntegrationStatus> {
+  const res = await apiFetch("/admin/crm/integrations/hubspot", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function deleteHubSpotIntegration(): Promise<{ ok: boolean }> {
+  const res = await apiFetch("/admin/crm/integrations/hubspot", { method: "DELETE" });
+  return res.json();
+}
+
+export async function testHubSpotIntegration(): Promise<{ ok: boolean }> {
+  const res = await apiFetch("/admin/crm/integrations/hubspot/test", { method: "POST" });
+  return res.json();
+}
+
+export async function pushCrmParticipantsToHubSpot(payload: {
+  emails: string[];
+  create_missing?: boolean;
+}): Promise<{ pushed: number; created: number; updated: number; failed: number; errors: string[] }> {
+  const res = await apiFetch("/admin/crm/integrations/hubspot/push", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
 export type TrainingStatus = "assigned" | "in_progress" | "completed" | "overdue" | "waived";
 
 export interface TrainingAssignment {
@@ -3475,6 +3515,149 @@ export async function startReservationGoogleCalendarOAuth(next = "/admin/setting
 
 export async function syncReservationGoogleCalendar(): Promise<{ ok: boolean; pulled: number; pushed: number; updated: number }> {
   const res = await apiFetch("/admin/organization/venue-reservations/google-calendar/sync", { method: "POST" });
+  return res.json();
+}
+
+export interface IntegrationCatalogItem {
+  key: string;
+  name: string;
+  category: string;
+  status: "connected" | "available" | "not_configured" | "planned" | string;
+  description: string;
+  connect_type: string;
+  priority: number;
+  configured: boolean;
+  connected: boolean;
+  docs_url?: string | null;
+  settings_href?: string | null;
+}
+
+export interface IntegrationCatalogResponse {
+  items: IntegrationCatalogItem[];
+  supported_events: string[];
+}
+
+export interface NotificationWebhookChannel {
+  url: string;
+  events: string[];
+  enabled: boolean;
+  secret?: string | null;
+}
+
+export interface TwilioSmsConfig {
+  account_sid: string;
+  auth_token: string;
+  from_number: string;
+  to_numbers: string[];
+  events: string[];
+  enabled: boolean;
+}
+
+export interface NotificationIntegrationsConfig {
+  slack?: NotificationWebhookChannel | null;
+  teams?: NotificationWebhookChannel | null;
+  custom?: NotificationWebhookChannel | null;
+  sms?: TwilioSmsConfig | null;
+  supported_events: string[];
+}
+
+export interface OidcSsoConfig {
+  enabled: boolean;
+  issuer_url: string;
+  client_id: string;
+  client_secret: string;
+  allowed_domains: string[];
+}
+
+export interface WebinarImportConfig {
+  enabled: boolean;
+  provider: "zoom" | "microsoft_teams";
+  account_id: string;
+  client_id: string;
+  client_secret: string;
+}
+
+export interface GenericProviderConfig {
+  enabled: boolean;
+  provider: string;
+  auth_type: "api_key" | "bearer_token" | "oauth" | "basic" | "webhook" | "none";
+  base_url: string;
+  api_key: string;
+  access_token: string;
+  client_id: string;
+  client_secret: string;
+  account_id: string;
+  list_id: string;
+  folder_id: string;
+  report_id: string;
+  course_id: string;
+  field_mapping: Record<string, string>;
+  notes: string;
+}
+
+export type GenericProviderKey =
+  | "salesforce"
+  | "mailchimp_brevo"
+  | "whatsapp_sms"
+  | "drive_sharepoint_archive"
+  | "power_bi_looker"
+  | "lms"
+  | "accounting_tr";
+
+export interface EnterpriseIntegrationsConfig {
+  oidc?: OidcSsoConfig | null;
+  webinar?: WebinarImportConfig | null;
+  providers?: Partial<Record<GenericProviderKey, GenericProviderConfig>>;
+}
+
+export async function getIntegrationCatalog(): Promise<IntegrationCatalogResponse> {
+  const res = await apiFetch("/admin/integrations/catalog");
+  return res.json();
+}
+
+export async function getNotificationIntegrations(): Promise<NotificationIntegrationsConfig> {
+  const res = await apiFetch("/admin/integrations/notifications");
+  return res.json();
+}
+
+export async function updateNotificationIntegrations(
+  payload: Partial<Pick<NotificationIntegrationsConfig, "slack" | "teams" | "custom" | "sms">>,
+): Promise<NotificationIntegrationsConfig> {
+  const res = await apiFetch("/admin/integrations/notifications", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function removeNotificationChannel(channel: "slack" | "teams" | "custom" | "sms"): Promise<{ ok: boolean; removed: string }> {
+  const res = await apiFetch(`/admin/integrations/notifications/${channel}`, { method: "DELETE" });
+  return res.json();
+}
+
+export async function testNotificationChannel(payload: NotificationWebhookChannel): Promise<{ ok: boolean }> {
+  const res = await apiFetch("/admin/integrations/notifications/test", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function getEnterpriseIntegrations(): Promise<EnterpriseIntegrationsConfig> {
+  const res = await apiFetch("/admin/integrations/enterprise-config");
+  return res.json();
+}
+
+export async function updateEnterpriseIntegrations(payload: EnterpriseIntegrationsConfig): Promise<EnterpriseIntegrationsConfig> {
+  const res = await apiFetch("/admin/integrations/enterprise-config", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function testProviderConfig(providerKey: GenericProviderKey): Promise<{ ok: boolean; http_status?: number; message?: string }> {
+  const res = await apiFetch(`/admin/integrations/provider-config/${providerKey}/test`, { method: "POST" });
   return res.json();
 }
 

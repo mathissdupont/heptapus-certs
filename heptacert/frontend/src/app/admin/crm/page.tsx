@@ -21,18 +21,25 @@ import {
   List,
   Upload,
   UserX,
+  Database,
+  KeyRound,
 } from "lucide-react";
 import {
   exportSelectedCrmParticipants,
   getCrmParticipant,
+  getHubSpotIntegration,
   importCrmFromCsv,
   listCrmDuplicateCandidates,
   listCrmParticipants,
   mergeCrmParticipants,
+  pushCrmParticipantsToHubSpot,
   sendCrmBulkEmail,
   tagCrmNoShows,
+  testHubSpotIntegration,
+  updateHubSpotIntegration,
   updateCrmParticipant,
   type CrmDuplicateCandidate,
+  type HubSpotIntegrationStatus,
   type CrmParticipantDetail,
   type CrmParticipantListItem,
 } from "@/lib/api";
@@ -201,6 +208,9 @@ export default function AdminCrmPage() {
   const [bulkTemplateId, setBulkTemplateId] = useState("");
   const [bulkWorking, setBulkWorking] = useState(false);
   const [bulkNotice, setBulkNotice] = useState<string | null>(null);
+  const [hubSpotStatus, setHubSpotStatus] = useState<HubSpotIntegrationStatus | null>(null);
+  const [hubSpotToken, setHubSpotToken] = useState("");
+  const [hubSpotWorking, setHubSpotWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<"list" | "kanban">("list");
   const searchDebounceReady = useRef(false);
@@ -292,6 +302,58 @@ export default function AdminCrmPage() {
     }
   }
 
+  async function loadHubSpotStatus() {
+    try {
+      const status = await getHubSpotIntegration();
+      setHubSpotStatus(status);
+    } catch {
+      setHubSpotStatus(null);
+    }
+  }
+
+  async function saveHubSpotToken() {
+    if (!hubSpotToken.trim()) return;
+    setHubSpotWorking(true);
+    setError(null);
+    try {
+      const status = await updateHubSpotIntegration({ private_app_token: hubSpotToken.trim(), enabled: true });
+      setHubSpotStatus(status);
+      setHubSpotToken("");
+      setBulkNotice("HubSpot bağlantısı kaydedildi.");
+    } catch (ex: any) {
+      setError(ex?.message || "HubSpot kaydedilemedi.");
+    } finally {
+      setHubSpotWorking(false);
+    }
+  }
+
+  async function testHubSpot() {
+    setHubSpotWorking(true);
+    setError(null);
+    try {
+      await testHubSpotIntegration();
+      setBulkNotice("HubSpot token testi başarılı.");
+    } catch (ex: any) {
+      setError(ex?.message || "HubSpot token testi başarısız.");
+    } finally {
+      setHubSpotWorking(false);
+    }
+  }
+
+  async function pushHubSpot() {
+    if (selectedEmails.length === 0) return;
+    setHubSpotWorking(true);
+    setError(null);
+    try {
+      const result = await pushCrmParticipantsToHubSpot({ emails: selectedEmails, create_missing: true });
+      setBulkNotice(`HubSpot: ${result.pushed} gönderildi, ${result.created} yeni, ${result.updated} güncellendi, ${result.failed} hata.`);
+    } catch (ex: any) {
+      setError(ex?.message || "HubSpot aktarımı başarısız.");
+    } finally {
+      setHubSpotWorking(false);
+    }
+  }
+
   async function loadParticipants(nextSelectedEmail?: string | null) {
     setLoading(true);
     setError(null);
@@ -302,6 +364,7 @@ export default function AdminCrmPage() {
         status: status || undefined,
         limit: 100,
       });
+      void loadHubSpotStatus();
       setParticipants(rows);
       setSelectedEmails((items) => items.filter((email) => rows.some((row) => row.email === email)));
       listCrmDuplicateCandidates({ limit: 5 }).then(setDuplicates).catch(() => undefined);
@@ -633,6 +696,39 @@ export default function AdminCrmPage() {
                 {bulkWorking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                 <span>{copy.sendEmail}</span>
               </button>
+            </div>
+
+            <div className="rounded-xl border border-gray-200 bg-white p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <Database className="h-3.5 w-3.5 text-gray-700" />
+                  <span className="text-[11px] font-bold text-gray-800">HubSpot</span>
+                </div>
+                <span className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold ${hubSpotStatus?.configured ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+                  {hubSpotStatus?.configured ? hubSpotStatus.token_preview || "connected" : "not configured"}
+                </span>
+              </div>
+              <div className="flex gap-1.5">
+                <input
+                  value={hubSpotToken}
+                  onChange={(event) => setHubSpotToken(event.target.value)}
+                  placeholder="HubSpot private app token"
+                  className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-[10px] font-semibold outline-none focus:border-gray-900"
+                />
+                <button type="button" onClick={() => void saveHubSpotToken()} disabled={hubSpotWorking || !hubSpotToken.trim()} className="inline-flex items-center gap-1 rounded-lg bg-gray-900 px-2.5 py-1 text-[10px] font-semibold text-white disabled:opacity-40">
+                  {hubSpotWorking ? <Loader2 className="h-3 w-3 animate-spin" /> : <KeyRound className="h-3 w-3" />}
+                  Save
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <button type="button" onClick={() => void testHubSpot()} disabled={hubSpotWorking || !hubSpotStatus?.configured} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-gray-700 disabled:opacity-40">
+                  Test
+                </button>
+                <button type="button" onClick={() => void pushHubSpot()} disabled={hubSpotWorking || !hubSpotStatus?.configured || selectedEmails.length === 0} className="inline-flex items-center gap-1 rounded-lg border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-700 disabled:opacity-40">
+                  {hubSpotWorking ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                  Push selected
+                </button>
+              </div>
             </div>
             {bulkNotice && <p className="text-[10px] font-bold text-emerald-600 mt-1.5 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-lg">{bulkNotice}</p>}
           </div>

@@ -8,12 +8,15 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import hmac
+import ipaddress
 import json
 import logging
 import secrets
+import socket
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List
+from urllib.parse import urlparse
 
 import httpx
 from sqlalchemy import select
@@ -40,6 +43,31 @@ def sign_payload(secret: str, body: bytes) -> str:
     """HMAC-SHA256 signature — return as 'sha256=<hex>'."""
     sig = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
     return f"sha256={sig}"
+
+
+def _is_private_address(host: str) -> bool:
+    """Return true when a webhook hostname resolves to a private/internal address."""
+    parsed = urlparse(host if "://" in host else f"//{host}", scheme="https")
+    hostname = parsed.hostname or host
+    if not hostname:
+        return True
+    normalized = hostname.strip().lower().rstrip(".")
+    if normalized in {"localhost", "localhost.localdomain"}:
+        return True
+
+    try:
+        addresses = {socket.gethostbyname(normalized)}
+    except Exception:
+        addresses = {normalized}
+
+    for address in addresses:
+        try:
+            ip = ipaddress.ip_address(address)
+        except ValueError:
+            continue
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
+            return True
+    return False
 
 
 async def _try_deliver(

@@ -4848,9 +4848,11 @@ async def send_certificate_delivery_email_task(
 
 async def deliver_webhook_task(user_id: int, event_type: str, payload: Dict[str, Any]) -> None:
     from .webhooks import deliver_webhook
+    from .notification_integrations_api import trigger_notification_integrations_for_user
 
     async with SessionLocal() as db_webhook:
         await deliver_webhook(db_webhook, user_id, event_type, payload)
+        await trigger_notification_integrations_for_user(db_webhook, user_id, event_type, payload)
 
 
 async def trigger_webhooks(
@@ -4884,6 +4886,10 @@ async def trigger_webhooks(
             )
         )
         webhooks = res.scalars().all()
+
+    from .notification_integrations_api import trigger_notification_integrations_for_user
+    async with SessionLocal() as db_notifications:
+        await trigger_notification_integrations_for_user(db_notifications, user_id, event_type, payload)
     
     if not webhooks:
         return
@@ -19964,6 +19970,9 @@ app.include_router(_venues_api.router)
 
 from . import venue_reservations_api as _venue_reservations_api
 app.include_router(_venue_reservations_api.router)
+
+from . import notification_integrations_api as _notification_integrations_api
+app.include_router(_notification_integrations_api.router)
 
 
 # ── Background job status dashboard ──────────────────────────────────────────
