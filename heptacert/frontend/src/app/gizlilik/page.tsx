@@ -27,30 +27,42 @@ export default function GizlilikPage() {
         ],
         [
           "5. Google ile Giriş, Google Sheets, Google Drive ve Google Calendar Erişimi",
-          "HeptaCert, Google ile giriş özelliğini kullanıcıların kimliğini doğrulamak ve hesap oluşturma/giriş sürecini kolaylaştırmak amacıyla kullanır. Google tarafından sağlanması halinde ad, soyad, e-posta adresi ve profil görseli gibi temel profil bilgileri işlenebilir. Kullanıcı veya organizatör tarafından açıkça yetki verilmesi halinde HeptaCert, etkinliklere ilişkin katılımcı, kayıt, check-in, bilet ve sertifika verilerinin Google Sheets’e aktarılması, oluşturulan tabloların güncellenmesi ve yönetilmesi amacıyla Google Sheets ve Google Drive dosya erişimini kullanabilir. Organizasyon salon rezervasyonu veya etkinlik takvimi entegrasyonu açıkça etkinleştirildiğinde HeptaCert, Google Calendar erişimini yalnızca ilgili rezervasyon/etkinlik kayıtlarını oluşturmak, güncellemek, silmek, uygunluk kontrolü yapmak ve çift yönlü senkronizasyon sağlamak amacıyla kullanabilir. Calendar verileri; etkinlik/salon adı, tarih-saat, açıklama, konum, organizasyon bilgisi, katılımcı veya yetkili e-posta adresleri ve senkronizasyon durum kayıtlarını içerebilir. HeptaCert, Google Drive erişimini yalnızca uygulama tarafından oluşturulan veya kullanıcının uygulama ile kullanmayı seçtiği dosyalar için, Google Calendar erişimini ise yalnızca kullanıcının bağladığı ve entegrasyon kapsamında seçtiği takvimler için kullanır; ilgisiz Google Drive dosyalarına, Gmail içeriklerine veya entegrasyon kapsamı dışındaki Google kullanıcı içeriklerine erişmez.",
+          "HeptaCert, Google ile giriş özelliğini kullanıcıların kimliğini doğrulamak ve hesap oluşturma/giriş sürecini kolaylaştırmak amacıyla kullanır. Google tarafından sağlanması halinde ad, soyad, e-posta adresi ve profil görseli gibi temel profil bilgileri işlenebilir. Kullanıcı veya organizatör tarafından açıkça yetki verilmesi halinde HeptaCert, etkinliklere ilişkin katılımcı, kayıt, check-in, bilet ve sertifika verilerinin Google Sheets’e aktarılması, oluşturulan tabloların güncellenmesi ve yönetilmesi amacıyla Google Sheets ve Google Drive dosya erişimini kullanabilir. Organizasyon salon rezervasyonu veya etkinlik takvimi entegrasyonu açıkça etkinleştirildiğinde HeptaCert, Google Calendar erişimini yalnızca ilgili rezervasyon/etkinlik kayıtlarını oluşturmak, güncellemek, silmek, uygunluk kontrolü yapmak ve çift yönlü senkronizasyon sağlamak amacıyla kullanabilir. HeptaCert, Google Drive erişimini yalnızca uygulama tarafından oluşturulan veya kullanıcının uygulama ile kullanmayı seçtiği dosyalar için, Google Calendar erişimini ise yalnızca kullanıcının bağladığı ve entegrasyon kapsamında seçtiği takvimler için kullanır; ilgisiz Google Drive dosyalarına, Gmail içeriklerine veya entegrasyon kapsamı dışındaki Google kullanıcı içeriklerine erişmez.",
         ],
         [
-          "6. Kullanıcı ve Organizatör Sorumluluğu",
+          "6. Microsoft 365 Excel ve OneDrive Entegrasyonu",
+          "Organizasyon yöneticisinin açıkça yetki vermesi halinde HeptaCert, Microsoft 365 OAuth akışını kullanarak kullanıcının OneDrive’ında etkinlik katılımcı ve segment verilerini içeren Excel çalışma kitabı oluşturabilir, güncelleyebilir ve yönetebilir. Erişim yalnızca HeptaCert tarafından oluşturulan dosyalar kapsamında gerçekleştirilir; kullanıcının diğer OneDrive dosyalarına, e-postalarına veya Microsoft 365 hizmetlerinin entegrasyon kapsamı dışındaki içeriklerine erişilmez. Microsoft kimlik bilgileri şifreli olarak saklanır ve yalnızca söz konusu senkronizasyon işlemleri için kullanılır.",
+        ],
+        [
+          "7. Kurumsal Entegrasyonlar (Salesforce, Mailchimp/Brevo, WhatsApp Business, Zoom, OIDC/SSO)",
+          "HeptaCert, organizasyon yöneticilerinin kendi hesaplarını platforma bağlamasına olanak tanıyan isteğe bağlı kurumsal entegrasyonlar sunar. Bu entegrasyonlar yalnızca ilgili organizasyon yöneticisi tarafından açıkça etkinleştirildiğinde aktif olur. Salesforce entegrasyonu etkinleştirildiğinde etkinlik katılımcılarının adı, e-posta adresi ve sertifika durumu gibi veriler organizasyonun Salesforce hesabına aktarılabilir. Mailchimp veya Brevo entegrasyonu etkinleştirildiğinde etkinlik segmentlerine ait e-posta adresleri ilgili mailing listesine aktarılabilir. WhatsApp Business entegrasyonu etkinleştirildiğinde organizasyon tarafından yapılandırılan telefon numaralarına bilet, hatırlatma ve sertifika bildirimleri gönderilebilir; mesaj içeriği HeptaCert tarafından oluşturulur ve Meta’nın Cloud API’si üzerinden iletilir. Zoom entegrasyonu etkinleştirildiğinde webinar katılım raporlarındaki e-posta adresleri çekilerek ilgili CRM profilleriyle eşleştirilir; Zoom’dan alınan veriler yalnızca sertifika uygunluk kontrolü amacıyla kullanılır. OIDC/SSO entegrasyonu etkinleştirildiğinde organizasyonun kimlik sağlayıcısı (Microsoft Entra ID, Okta vb.) üzerinden kimlik doğrulaması yapılarak platforma giriş sağlanır; bu kapsamda yalnızca e-posta adresi ve temel profil bilgileri işlenir. Tüm bu entegrasyonlarda üçüncü taraf sistemlere aktarılan veriler organizasyon yöneticisinin sorumluluğundadır ve ilgili üçüncü tarafın gizlilik politikasına tabidir. Entegrasyon kimlik bilgileri (API anahtarları, token’lar, client secret’lar) şifreli olarak saklanır ve yalnızca ilgili entegrasyon işlemleri için kullanılır.",
+        ],
+        [
+          "8. Bildirim Entegrasyonları (Slack, Microsoft Teams, Zapier, Make, SMS)",
+          "Organizasyon yöneticisi tarafından yapılandırılan webhook URL’leri aracılığıyla etkinlik kaydı, check-in ve sertifika gibi operasyonel olaylar ilgili kanallara bildirilebilir. Bu bildirimler yalnızca yönetici tarafından seçilen olayları ve organizasyon adı, etkinlik adı gibi bağlamsal verileri içerir; kişisel veri aktarımı asgari düzeyde tutulur ve yapılandırma organizasyon yöneticisinin tercihine bırakılır.",
+        ],
+        [
+          "9. Kullanıcı ve Organizatör Sorumluluğu",
           "Kullanıcılar ve etkinlik düzenleyicileri platforma yükledikleri verilerin hukuka uygunluğundan, gerekli aydınlatma/rıza süreçlerinden ve üçüncü kişi haklarına uyumdan sorumludur. Etkinliğe özel metin ve onayların hazırlanması ve ispatlanması düzenleyicinin sorumluluğundadır. TC kimlik no, pasaport no, öğrenci no, doğum tarihi, adres ve benzeri kişisel verilerin toplanmasının amacı ve saklama süresi organizatör tarafından belirlenmelidir.",
         ],
         [
-          "7. Çerezler ve Benzer Teknolojiler",
+          "10. Çerezler ve Benzer Teknolojiler",
           "Platform temel olarak zorunlu ve güvenlik amaçlı çerezler kullanır. Performans veya analiz amaçlı araçlar kullanılması halinde gerekli hukuki gereklilikler ayrıca uygulanır.",
         ],
         [
-          "8. Veri Paylaşımı ve Yurt Dışı Altyapı",
+          "11. Veri Paylaşımı ve Yurt Dışı Altyapı",
           "Veriler pazarlama amacıyla satılmaz. Kişisel veriler yalnızca hizmetin çalışması için gerekli tedarikçilerle, ödeme altyapılarıyla, teknik altyapı sağlayıcılarıyla ve hukuken yetkili kurumlarla paylaşılabilir. HeptaCert, teknik altyapı ve sunucu barındırma hizmetleri kapsamında Hetzner Online GmbH tarafından sağlanan sunucu ve veri merkezi altyapısından yararlanmaktadır. HeptaCert ile Hetzner Online GmbH arasında veri işleme faaliyetlerine ilişkin Data Processing Agreement / Veri İşleme Sözleşmesi akdedilmiştir. Bu kapsamda Hetzner Online GmbH, kişisel verileri yalnızca barındırma ve teknik altyapı hizmetlerinin sağlanması amacıyla, HeptaCert’in talimatları doğrultusunda ve uygun teknik/organizasyonel tedbirler çerçevesinde işleyen altyapı sağlayıcısı olarak hareket eder. Kullanılan sunucular Finlandiya'nın Helsinki bölgesinde bulunmaktadır. Bu nedenle hesap bilgileri, oturum/cihaz verileri, platform kullanım kayıtları, güvenlik logları, ödeme referansları ve kullanıcıların etkinlik bazında girdiği ek bilgiler; hizmetin sunulması, sistem güvenliği, yedekleme, bakım, teknik destek ve hizmet sürekliliği amaçlarıyla Finlandiya'nın Helsinki bölgesinde bulunan sunucularda saklanabilir, işlenebilir veya teknik olarak erişilebilir hale gelebilir. Yurt dışına aktarım ve veri işleme faaliyetleri, 6698 sayılı Kişisel Verilerin Korunması Kanunu ve ilgili mevzuata uygun olarak yürütülür.",
         ],
         [
-          "9. Saklama ve Silme",
+          "12. Saklama ve Silme",
           "Veriler hizmet ilişkisi ve yasal saklama süreleri boyunca tutulur; ihtiyaç sona erdiğinde silinir, yok edilir veya anonim hale getirilir.",
         ],
         [
-          "10. Güvenlik",
+          "13. Güvenlik",
           "Hetzner Online GmbH ile akdedilen Data Processing Agreement / Veri İşleme Sözleşmesi kapsamında teknik ve organizasyonel tedbirlerin uygulanması, gizlilik yükümlülükleri, veri ihlali bildirimleri, alt işleyen kullanımı ve denetim/destek süreçlerine ilişkin hükümler düzenlenmiştir. HeptaCert ayrıca kendi sistemleri bakımından erişim yetkilendirmesi, güvenli bağlantı, parola hashleme, kayıt izleme, yedekleme, sunucu güvenliği, oran sınırlama ve yetkisiz erişimlerin önlenmesine yönelik makul teknik ve idari tedbirleri uygular. HTTPS/TLS, erişim kontrolü, parola hashleme, kayıt izleme, oran sınırlama, yedekleme ve sunucu güvenliği gibi teknik/idari tedbirler uygulanır. Sunucu altyapısı Finlandiya'nın Helsinki bölgesinde bulunan Hetzner Online GmbH üzerinden sağlanmaktadır. Sunuculara ve kişisel verilerin bulunduğu sistemlere erişim yalnızca yetkilendirilmiş kişilerle sınırlıdır. Buna rağmen hiçbir sistem için mutlak güvenlik garantisi verilemez.",
         ],
         [
-          "11. Haklar ve Başvurular",
+          "14. Haklar ve Başvurular",
           "Mevzuat kapsamındaki haklarınızı kullanabilirsiniz. Talebin niteliğine göre başvuru Heptapus Group'a veya ilgili etkinlik düzenleyicisine yöneltilmelidir; yanlış muhataba yapılan başvurular makul ölçüde doğru kanala yönlendirilir.",
         ],
       ]
@@ -73,30 +85,42 @@ export default function GizlilikPage() {
         ],
         [
           "5. Google Sign-In, Google Sheets, Google Drive and Google Calendar Access",
-          "HeptaCert uses Google Sign-In to authenticate users and simplify account creation and login. Where provided by Google, basic profile information such as name, email address, and profile picture may be processed. When explicitly authorized by the user or organizer, HeptaCert may use Google Sheets and Google Drive file access to export, create, update, and manage spreadsheets containing event-related participant, registration, check-in, ticket, and certificate data. When organization venue reservation or event calendar integration is explicitly enabled, HeptaCert may use Google Calendar access only to create, update, delete, check availability for, and perform two-way synchronization of the relevant reservation/event records. Calendar data may include venue/event name, date and time, description, location, organization details, attendee or authorized user email addresses, and synchronization status logs. HeptaCert uses Google Drive access only for files created by the app or files the user chooses to use with the app, and Google Calendar access only for calendars connected and selected by the user within the integration scope. HeptaCert does not access unrelated Google Drive files, Gmail content, or Google user content outside the integration scope.",
+          "HeptaCert uses Google Sign-In to authenticate users and simplify account creation and login. Where provided by Google, basic profile information such as name, email address, and profile picture may be processed. When explicitly authorized by the user or organizer, HeptaCert may use Google Sheets and Google Drive file access to export, create, update, and manage spreadsheets containing event-related participant, registration, check-in, ticket, and certificate data. When organization venue reservation or event calendar integration is explicitly enabled, HeptaCert may use Google Calendar access only to create, update, delete, check availability for, and perform two-way synchronization of the relevant reservation/event records. HeptaCert uses Google Drive access only for files created by the app or files the user chooses to use with the app, and Google Calendar access only for calendars connected and selected by the user within the integration scope. HeptaCert does not access unrelated Google Drive files, Gmail content, or Google user content outside the integration scope.",
         ],
         [
-          "6. User and Organizer Responsibility",
+          "6. Microsoft 365 Excel and OneDrive Integration",
+          "When explicitly authorized by the organization administrator, HeptaCert uses Microsoft 365 OAuth to create, update, and manage Excel workbooks in the user's OneDrive containing event participant and segment data. Access is limited to files created by HeptaCert; the user's other OneDrive files, emails, or Microsoft 365 content outside the integration scope are not accessed. Microsoft credentials are stored encrypted and used solely for the relevant synchronization operations.",
+        ],
+        [
+          "7. Enterprise Integrations (Salesforce, Mailchimp/Brevo, WhatsApp Business, Zoom, OIDC/SSO)",
+          "HeptaCert offers optional enterprise integrations that allow organization administrators to connect their own accounts to the platform. These integrations are only active when explicitly enabled by the relevant organization administrator. When Salesforce integration is enabled, participant name, email address, and certificate status data may be exported to the organization's Salesforce account. When Mailchimp or Brevo integration is enabled, email addresses from event segments may be added to the configured mailing list. When WhatsApp Business integration is enabled, ticket, reminder, and certificate notifications may be sent to phone numbers configured by the organization via Meta's Cloud API. When Zoom integration is enabled, email addresses from webinar attendance reports are fetched and matched with CRM profiles; data obtained from Zoom is used solely for certificate eligibility purposes. When OIDC/SSO integration is enabled, authentication is performed via the organization's identity provider (Microsoft Entra ID, Okta, etc.); only the email address and basic profile information are processed. For all such integrations, the organization administrator is responsible for data transferred to third-party systems, and such data is subject to the relevant third party's privacy policy. Integration credentials (API keys, tokens, client secrets) are stored encrypted and used only for the relevant integration operations.",
+        ],
+        [
+          "8. Notification Integrations (Slack, Microsoft Teams, Zapier, Make, SMS)",
+          "Operational events such as event registration, check-in, and certificate issuance may be delivered to configured channels via webhook URLs set up by the organization administrator. These notifications contain only the events selected by the administrator and contextual data such as organization name and event name; personal data transfer is minimized and configuration is left to the organization administrator's preference.",
+        ],
+        [
+          "9. User and Organizer Responsibility",
           "Users and event organizers are responsible for legal compliance of uploaded data, required notices/consents, and third-party rights compliance. Preparing and evidencing event-specific notices and consents is primarily the organizer's responsibility.",
         ],
         [
-          "7. Cookies and Similar Technologies",
+          "10. Cookies and Similar Technologies",
           "The platform primarily uses essential and security-related cookies. Where analytics/performance tools are used, applicable legal requirements are followed.",
         ],
         [
-          "8. Data Sharing and Overseas Infrastructure",
+          "11. Data Sharing and Overseas Infrastructure",
           "Data is not sold for marketing. Personal data may be shared only with required service providers, payment infrastructure partners, technical infrastructure providers and legally authorized authorities. HeptaCert uses server and data center infrastructure provided by Hetzner Online GmbH for technical infrastructure and server hosting services. HeptaCert has entered into a Data Processing Agreement with Hetzner Online GmbH regarding data processing activities. Under this agreement, Hetzner Online GmbH acts as an infrastructure and hosting provider and processes personal data only for the purposes of providing hosting and technical infrastructure services, in accordance with HeptaCert’s instructions and applicable technical and organizational measures. The servers used are located in Helsinki, Finland. Therefore, account details, session/device metadata, platform usage records, security logs, payment references and additional event-level information entered by users may be stored, processed or technically made accessible on servers located in Helsinki, Finland for service delivery, system security, backup, maintenance, technical support and service continuity purposes. International transfer and processing activities are carried out in accordance with Turkish Personal Data Protection Law No. 6698 and applicable legislation.",
         ],
         [
-          "9. Retention and Deletion",
+          "12. Retention and Deletion",
           "Data is retained for the service relationship and legal retention periods, then deleted, destroyed, or anonymized.",
         ],
         [
-          "10. Security",
+          "13. Security",
           "The Data Processing Agreement entered into with Hetzner Online GmbH includes provisions regarding technical and organizational measures, confidentiality obligations, personal data breach notifications, use of subprocessors and audit/support processes. HeptaCert also applies reasonable technical and administrative measures for its own systems, including access authorization, secure connections, password hashing, logging, backups, server security, rate limiting and prevention of unauthorized access. Technical and organizational safeguards such as HTTPS/TLS, access control, password hashing, logging, abuse prevention, backup and server security measures are used. The server infrastructure is provided through Hetzner Online GmbH, whose servers are located in Helsinki, Finland. Access to servers and systems containing personal data is limited to authorized persons only. Absolute security cannot be guaranteed for any internet-based system.",
         ],
         [
-          "11. Rights and Requests",
+          "14. Rights and Requests",
           "You may exercise your legal rights. Depending on request scope, you may need to contact Heptapus Group and/or the relevant event organizer; misdirected requests may be reasonably redirected to the proper channel.",
         ],
       ];
@@ -122,7 +146,7 @@ export default function GizlilikPage() {
             {isTr ? "HeptaCert Gizlilik Politikası" : "HeptaCert Privacy Policy"}
           </h1>
           <p className="mt-2 text-sm text-gray-500">
-            {isTr ? "Son güncelleme: 19 Mayıs 2026" : "Last updated: May 19, 2026"}
+            {isTr ? "Son güncelleme: 4 Haziran 2026" : "Last updated: June 4, 2026"}
           </p>
         </div>
 

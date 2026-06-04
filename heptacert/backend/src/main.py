@@ -5522,6 +5522,8 @@ _AUDIT_SKIP_PREFIXES = (
     "/api/public/attendees/",
     "/api/public/members/",
     "/api/admin/google/sheets/callback",
+    "/api/admin/microsoft/excel/callback",
+    "/api/admin/microsoft/calendar/callback",
     "/docs", "/openapi", "/redoc",
 )
 
