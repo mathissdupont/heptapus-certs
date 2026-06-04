@@ -2995,8 +2995,10 @@ export interface SuperadminBulkEmailJob {
   completed_at?: string | null;
 }
 
+export type SuperadminEmailActivityChannel = "event_bulk" | "superadmin_bulk" | "crm_bulk" | "automation";
+
 export interface SuperadminEmailActivityItem {
-  channel: "event_bulk" | "superadmin_bulk";
+  channel: SuperadminEmailActivityChannel;
   job_id: number;
   sender_user_id: number;
   sender_email: string;
@@ -3103,7 +3105,7 @@ export async function retrySuperadminBulkEmailJob(jobId: number): Promise<Supera
 }
 
 export async function listSuperadminEmailActivity(params?: {
-  channel?: "all" | "event_bulk" | "superadmin_bulk";
+  channel?: "all" | SuperadminEmailActivityChannel;
   status?: string;
   sender_user_id?: number;
   search?: string;
