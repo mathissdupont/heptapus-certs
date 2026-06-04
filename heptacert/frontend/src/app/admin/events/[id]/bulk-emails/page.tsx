@@ -389,7 +389,7 @@ export default function BulkEmailsPage() {
                   )}
 
                   <Link 
-                    href={`/admin/events/${eventId}/bulk-email-jobs/${selectedJob.id}/delivery-analytics`}
+                    href={`/admin/events/${eventId}/analytics/${selectedJob.id}`}
                     className="w-full inline-flex min-h-[34px] items-center justify-center rounded-lg border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-800 shadow-sm transition hover:bg-gray-50"
                   >
                     <span>Detaylı Log Günlüğünü Aç</span>
