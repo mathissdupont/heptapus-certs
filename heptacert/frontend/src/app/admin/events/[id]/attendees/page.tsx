@@ -726,22 +726,61 @@ export default function AdminAttendeesPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card flex flex-col justify-between sm:flex-row sm:items-center gap-4 opacity-80">
+            <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card flex flex-col justify-between sm:flex-row sm:items-center gap-4">
               <div className="flex items-start gap-3 min-w-0">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-sky-100 bg-sky-50 text-sky-600 shadow-card">
                   <FileSpreadsheet className="h-4 w-4 stroke-[2]" />
                 </div>
                 <div className="min-w-0 space-y-0.5">
                   <h2 className="text-xs font-bold text-surface-900 tracking-tight">Microsoft 365 Excel Otomasyonu</h2>
-                  <p className="text-[11px] leading-relaxed text-surface-400 max-w-md">OneDrive üzerindeki kurumsal çalışma kitabına bilet ve bülten verilerini kurgular.</p>
-                  <div className="pt-1 flex items-center gap-1.5 text-[10px] font-bold text-sky-600 bg-sky-50/40 border border-sky-100/30 rounded px-1.5 py-0.5 w-fit">
-                    <span>İnşa Aşamasında (Yakında)</span>
+                  <p className="text-[11px] leading-relaxed text-surface-400 max-w-md">OneDrive üzerindeki kurumsal çalışma kitabına katılımcı verilerini senkronize eder.</p>
+                  <div className="pt-1 flex flex-wrap items-center gap-2 text-[10px] font-bold text-surface-400">
+                    {excelLoading ? (
+                      <span className="inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Denetleniyor</span>
+                    ) : excelStatus?.microsoft_email ? (
+                      <span className="rounded-md bg-sky-50 border border-sky-100/50 px-1.5 py-0.5 text-sky-700">{excelStatus.microsoft_email}</span>
+                    ) : (
+                      <span className="text-surface-300">Microsoft bağlantısı pasif</span>
+                    )}
+                    {excelStatus?.last_synced_at && (
+                      <span>Son eşitleme: {new Date(excelStatus.last_synced_at).toLocaleDateString("tr-TR", { hour: "2-digit", minute: "2-digit" })}</span>
+                    )}
                   </div>
                 </div>
               </div>
-              <button type="button" disabled className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-surface-100 bg-surface-50 px-3 text-xs font-semibold text-surface-400 cursor-not-allowed">
-                <span>Pasif</span>
-              </button>
+
+              <div className="shrink-0 flex items-center justify-end w-full sm:w-auto">
+                {!excelStatus?.ms365_configured ? (
+                  <div className="rounded-lg border border-amber-100 bg-amber-50/50 px-2.5 py-1.5 text-[10px] font-semibold text-amber-700">OAuth parametreleri eksik.</div>
+                ) : !excelStatus?.ms365_connected ? (
+                  <button
+                    type="button"
+                    onClick={handleConnectMicrosoftExcelAuth}
+                    disabled={Boolean(excelAction)}
+                    className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-sky-600 px-3 text-xs font-semibold text-white shadow-card transition hover:bg-sky-700 disabled:opacity-50"
+                  >
+                    {excelAction === "auth" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5 stroke-[2]" />}
+                    <span>Microsoft Bağlantısı Kur</span>
+                  </button>
+                ) : excelStatus.enabled && excelStatus.workbook_url ? (
+                  <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                    <a href={excelStatus.workbook_url} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 text-[11px] font-semibold text-surface-700 shadow-card hover:bg-surface-50">
+                      <ExternalLink className="h-3 w-3" /> Tabloyu Aç
+                    </a>
+                    <button type="button" onClick={handleSyncMicrosoftExcel} disabled={Boolean(excelAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 text-[11px] font-semibold text-surface-700 shadow-card hover:bg-surface-50 disabled:opacity-40">
+                      {excelAction === "sync" ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />} Senkronla
+                    </button>
+                    <button type="button" onClick={handleDisconnectMicrosoftExcel} disabled={Boolean(excelAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-red-100 bg-white px-2.5 text-[11px] font-semibold text-red-600 shadow-card hover:bg-red-50 disabled:opacity-40">
+                      <Unplug className="h-3 w-3" /> Bağlantıyı Kes
+                    </button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={handleCreateMicrosoftExcel} disabled={Boolean(excelAction)} className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-sky-600 px-3 text-xs font-semibold text-white shadow-card transition hover:bg-sky-700 disabled:opacity-50">
+                    {excelAction === "connect" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5 stroke-[2]" />}
+                    <span>Excel Dosyası Oluştur</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 

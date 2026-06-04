@@ -9352,7 +9352,7 @@ async def microsoft_excel_auth_start(
         "prompt": "select_account",
     }
     return MicrosoftExcelAuthStartOut(
-        authorization_url=f"https://login.microsoftonline.com/common/oauth2/v2.0/authorize{urlencode(params)}"
+        authorization_url=f"https://login.microsoftonline.com/common/oauth2/v2.0/authorize?{urlencode(params)}"
     )
 
 
