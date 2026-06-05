@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -18,6 +18,7 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 type BrandingData = {
   org_name?: string;
@@ -38,9 +39,11 @@ type EligibleSpotlight = EventRaffleOut["eligible_attendees"][number];
 function EligibleMarquee({
   items,
   reverse = false,
+  sessionLabel,
 }: {
   items: EligibleSpotlight[];
   reverse?: boolean;
+  sessionLabel: string;
 }) {
   const repeated = useMemo(() => [...items, ...items, ...items], [items]);
 
@@ -59,7 +62,7 @@ function EligibleMarquee({
             className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-3 py-1.5 text-sm font-medium text-white/90"
           >
             <span>{item.attendee_name}</span>
-            <span className="text-xs text-white/50">{item.sessions_attended} oturum</span>
+            <span className="text-xs text-white/50">{item.sessions_attended} {sessionLabel}</span>
           </div>
         ))}
       </motion.div>
@@ -91,9 +94,13 @@ function buildRevealItems(raffle: EventRaffleOut | null): RevealItem[] {
 function NameMarquee({
   items,
   reverse = false,
+  primaryLabel,
+  reserveLabel,
 }: {
   items: RevealItem[];
   reverse?: boolean;
+  primaryLabel: string;
+  reserveLabel: string;
 }) {
   const repeated = useMemo(() => [...items, ...items, ...items], [items]);
 
@@ -116,7 +123,7 @@ function NameMarquee({
             }`}
           >
             <span className="text-xs uppercase tracking-[0.14em] opacity-70">
-              {item.kind === "asil" ? "Asil" : "Yedek"}
+              {item.kind === "asil" ? primaryLabel : reserveLabel}
             </span>
             <span>{item.winner.attendee_name}</span>
           </div>
@@ -174,9 +181,69 @@ function CelebrationBurst({ visible, color }: { visible: boolean; color: string 
 export default function RafflePresentationPage() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const { lang } = useI18n();
+  const isTr = lang === "tr";
   const eventId = Number(params?.id);
   const raffleId = Number(params?.raffleId);
   const mode = searchParams?.get("mode") === "operator" ? "operator" : "stage";
+
+  const copy = {
+    loadError: isTr ? "Sunum bilgileri yüklenemedi." : "Could not load presentation data.",
+    drawError: isTr ? "Çekiliş başlatılamadı." : "Could not start the raffle.",
+    presentationError: isTr ? "Sunum açılamadı" : "Presentation could not be opened",
+    backToRaffles: isTr ? "Çekiliş yönetimine dön" : "Back to raffle management",
+    backToAdmin: isTr ? "Yönetim ekranına dön" : "Back to admin panel",
+    openStageMode: isTr ? "Sahne Modunu Aç" : "Open Stage Mode",
+    refreshData: isTr ? "Veriyi yenile" : "Refresh Data",
+    fullscreen: isTr ? "Tam ekran" : "Fullscreen",
+    replayPresentation: isTr ? "Sunumu tekrar oynat" : "Replay Presentation",
+    operatorMode: isTr ? "Operatör Modu" : "Operator Mode",
+    stageMode: isTr ? "Sahne Modu" : "Stage Mode",
+    prize: isTr ? "Ödül" : "Prize",
+    roundPlan: isTr ? "Tur Planı" : "Round Plan",
+    eligiblePool: isTr ? "Uygun Havuz" : "Eligible Pool",
+    people: (count: number) => isTr ? `${count} kişi` : `${count} people`,
+    startPresentation: isTr ? "Sunumu başlat" : "Start Presentation",
+    startRaffle: isTr ? "Çekilişi başlat" : "Start Raffle",
+    lastDraw: (date: string) => isTr ? `Son çekiliş: ${date}` : `Last draw: ${date}`,
+    phaseScanning: isTr ? "İsimler hazırlanıyor" : "Preparing names",
+    phaseComplete: isTr ? "Kazananlar açıklandı" : "Winners announced",
+    phaseRevealing: isTr ? "Kazanan sahnede" : "Winner on stage",
+    phaseIdle: isTr ? "Sunum hazır" : "Presentation ready",
+    stage: isTr ? "Sahne" : "Stage",
+    revealCount: isTr ? "kişi" : "people",
+    presentationReady: isTr ? "Sunum başlamaya hazır" : "Ready to start the presentation",
+    presentationReadyDesc: isTr
+      ? "Aşağıda çekiliş havuzundaki uygun adayları görebilirsiniz. Başlattığınızda sistem bu havuz içinden seçim yapar."
+      : "Below you can see the eligible candidates in the raffle pool. When started, the system will select from this pool.",
+    eligibleCandidatePool: isTr ? "Uygun Aday Havuzu" : "Eligible Candidate Pool",
+    noEligibleCandidates: isTr
+      ? "Bu çekiliş için uygun aday bulunmuyor."
+      : "No eligible candidates for this raffle.",
+    scanningTitle: isTr ? "İsimler sahneye hazırlanıyor" : "Preparing names for the stage",
+    scanningDesc: isTr
+      ? "Oturum eşiği kontrol ediliyor, uygun katılımcılar sıralanıyor ve sahne akışı hazırlanıyor."
+      : "Session threshold is being checked, eligible participants are being sorted, and the stage flow is being prepared.",
+    selectingFrom: isTr ? "Havuzdan seçiliyor" : "Selecting from pool",
+    sessionAttendance: (count: number) => isTr ? `${count} oturum katılımı` : `${count} session attendance`,
+    sessionLabel: isTr ? "oturum" : "sessions",
+    primaryWinner: isTr ? "Asil kazanan" : "Primary winner",
+    reserveWinner: isTr ? "Yedek kazanan" : "Reserve winner",
+    primaryLabel: isTr ? "Asil" : "Primary",
+    reserveLabel: isTr ? "Yedek" : "Reserve",
+    roundLabel: (round: number, kind: string) =>
+      isTr
+        ? `Tur ${round} • ${kind === "asil" ? "asil" : "yedek"}`
+        : `Round ${round} • ${kind === "asil" ? "primary" : "reserve"}`,
+    ruleLabel: (minSessions: number, winnerPlan: string) =>
+      isTr
+        ? `Kural: En az ${minSessions} oturuma katılanlar arasından ${winnerPlan} seçilir.`
+        : `Rule: ${winnerPlan} selected from those who attended at least ${minSessions} sessions.`,
+    operatorView: (name: string) => isTr ? `${name} • Operatör görünümü` : `${name} • Operator view`,
+    defaultDescription: isTr
+      ? "Çekiliş sonucu sahnede animasyonlu olarak açıklanır."
+      : "The raffle result will be revealed on stage with animation.",
+  };
 
   const [loading, setLoading] = useState(true);
   const [drawing, setDrawing] = useState(false);
@@ -244,7 +311,7 @@ export default function RafflePresentationPage() {
       setPhase("idle");
       raffleSignatureRef.current = getRaffleSignature(nextData.raffle);
     } catch (e: any) {
-      setError(e.message || "Sunum bilgileri yüklenemedi.");
+      setError(e.message || copy.loadError);
     } finally {
       setLoading(false);
     }
@@ -397,7 +464,7 @@ export default function RafflePresentationPage() {
       const drawn = await drawEventRaffle(eventId, raffle.id);
       runRevealSequence(drawn);
     } catch (e: any) {
-      setError(e.message || "Çekiliş başlatılamadı.");
+      setError(e.message || copy.drawError);
       setPhase("idle");
     } finally {
       setDrawing(false);
@@ -430,14 +497,14 @@ export default function RafflePresentationPage() {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-slate-950 p-6 text-center text-white">
         <div className="max-w-lg rounded-[32px] border border-white/10 bg-white/5 p-8 backdrop-blur">
-          <p className="text-2xl font-black">Sunum açılamadı</p>
+          <p className="text-2xl font-black">{copy.presentationError}</p>
           <p className="mt-3 text-sm text-white/70">{error}</p>
           <Link
             href={`/admin/events/${eventId}/raffles`}
             className="mt-6 inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white"
           >
             <ArrowLeft className="h-4 w-4" />
-            Çekiliş yönetimine dön
+            {copy.backToRaffles}
           </Link>
         </div>
       </div>
@@ -455,7 +522,7 @@ export default function RafflePresentationPage() {
             className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 backdrop-blur"
           >
             <ArrowLeft className="h-4 w-4" />
-            Yönetim ekranına dön
+            {copy.backToAdmin}
           </Link>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -468,7 +535,7 @@ export default function RafflePresentationPage() {
                   className="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-100 backdrop-blur"
                 >
                   <Expand className="h-4 w-4" />
-                  Sahne Modunu Aç
+                  {copy.openStageMode}
                 </Link>
                 <button
                   type="button"
@@ -476,7 +543,7 @@ export default function RafflePresentationPage() {
                   className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 backdrop-blur"
                 >
                   <RotateCcw className="h-4 w-4" />
-                  Veriyi yenile
+                  {copy.refreshData}
                 </button>
                 <button
                   type="button"
@@ -484,7 +551,7 @@ export default function RafflePresentationPage() {
                   className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 backdrop-blur"
                 >
                   <Expand className="h-4 w-4" />
-                  Tam ekran
+                  {copy.fullscreen}
                 </button>
                 {raffle?.winners.length ? (
                   <button
@@ -493,7 +560,7 @@ export default function RafflePresentationPage() {
                     className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 backdrop-blur"
                   >
                     <RotateCcw className="h-4 w-4" />
-                    Sunumu tekrar oynat
+                    {copy.replayPresentation}
                   </button>
                 ) : null}
               </>
@@ -504,7 +571,7 @@ export default function RafflePresentationPage() {
                 className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 backdrop-blur"
               >
                 <Expand className="h-4 w-4" />
-                Tam ekran
+                {copy.fullscreen}
               </button>
             )}
           </div>
@@ -514,7 +581,7 @@ export default function RafflePresentationPage() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-white/70 backdrop-blur">
               <Sparkles className="h-3.5 w-3.5" />
-              {mode === "operator" ? "Operatör Modu" : "Sahne Modu"}
+              {mode === "operator" ? copy.operatorMode : copy.stageMode}
             </div>
 
             <div className="mt-6 max-w-3xl">
@@ -525,24 +592,24 @@ export default function RafflePresentationPage() {
                 {raffle?.title}
               </h1>
               <p className="mt-4 text-lg leading-8 text-white/72 md:text-xl">
-                {raffle?.description || "Çekiliş sonucu sahnede animasyonlu olarak açıklanır."}
+                {raffle?.description || copy.defaultDescription}
               </p>
             </div>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
               <div className="rounded-[28px] border border-white/10 bg-white/10 p-5 backdrop-blur">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/45">Ödül</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/45">{copy.prize}</p>
                 <p className="mt-3 text-xl font-black text-white">{raffle?.prize_name}</p>
               </div>
               <div className="rounded-[28px] border border-white/10 bg-white/10 p-5 backdrop-blur">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/45">Tur Planı</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/45">{copy.roundPlan}</p>
                 <p className="mt-3 text-xl font-black text-white">
                   {raffle ? formatWinnerPlan(raffle.winner_count, raffle.reserve_winner_count) : "-"}
                 </p>
               </div>
               <div className="rounded-[28px] border border-white/10 bg-white/10 p-5 backdrop-blur">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/45">Uygun Havuz</p>
-                <p className="mt-3 text-xl font-black text-white">{raffle?.eligible_count ?? 0} kişi</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/45">{copy.eligiblePool}</p>
+                <p className="mt-3 text-xl font-black text-white">{copy.people(raffle?.eligible_count ?? 0)}</p>
               </div>
             </div>
 
@@ -555,21 +622,21 @@ export default function RafflePresentationPage() {
                   className="inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-black text-surface-900 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {drawing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-                  {raffle?.winners.length ? "Sunumu başlat" : "Çekilişi başlat"}
+                  {raffle?.winners.length ? copy.startPresentation : copy.startRaffle}
                 </button>
               ) : null}
               {raffle?.winners.length ? (
                 <div className="inline-flex items-center gap-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-5 py-3 text-sm font-semibold text-emerald-200">
                   <Trophy className="h-4 w-4" />
-                  Son çekiliş: {formatRaffleDate(raffle.drawn_at)}
+                  {copy.lastDraw(formatRaffleDate(raffle.drawn_at))}
                 </div>
               ) : null}
             </div>
 
             {mode === "operator" && sequenceItems.length > 0 ? (
               <div className="mt-6 space-y-3">
-                <NameMarquee items={sequenceItems} />
-                <NameMarquee items={sequenceItems} reverse />
+                <NameMarquee items={sequenceItems} primaryLabel={copy.primaryLabel} reserveLabel={copy.reserveLabel} />
+                <NameMarquee items={sequenceItems} reverse primaryLabel={copy.primaryLabel} reserveLabel={copy.reserveLabel} />
               </div>
             ) : null}
 
@@ -585,15 +652,15 @@ export default function RafflePresentationPage() {
             <div className="relative">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/45">Sahne</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/45">{copy.stage}</p>
                   <p className="mt-2 text-2xl font-black text-white">
                     {phase === "scanning"
-                      ? "İsimler hazırlanıyor"
+                      ? copy.phaseScanning
                       : phase === "complete"
-                        ? "Kazananlar açıklandı"
+                        ? copy.phaseComplete
                         : phase === "revealing"
-                          ? "Kazanan sahnede"
-                          : "Sunum hazır"}
+                          ? copy.phaseRevealing
+                          : copy.phaseIdle}
                   </p>
                 </div>
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/75">
@@ -607,28 +674,28 @@ export default function RafflePresentationPage() {
                   <div className="flex min-h-[360px] flex-col justify-center">
                     <div className="text-center">
                       <Gift className="mx-auto h-12 w-12 text-white/35" />
-                      <p className="mt-5 text-3xl font-black text-white">Sunum başlamaya hazır</p>
+                      <p className="mt-5 text-3xl font-black text-white">{copy.presentationReady}</p>
                       <p className="mt-3 max-w-xl text-base leading-7 text-white/60">
-                        Aşağıda çekiliş havuzundaki uygun adayları görebilirsiniz. Başlattığınızda sistem bu havuz içinden seçim yapar.
+                        {copy.presentationReadyDesc}
                       </p>
                     </div>
 
                     <div className="mt-8 rounded-[28px] border border-white/10 bg-white/5 p-4">
                       <div className="flex items-center justify-between gap-3">
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">Uygun Aday Havuzu</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">{copy.eligibleCandidatePool}</p>
                         <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold text-white/75">
-                          {eligibleAttendees.length} kişi
+                          {copy.people(eligibleAttendees.length)}
                         </span>
                       </div>
 
                       {eligibleAttendees.length === 0 ? (
                         <div className="mt-4 rounded-2xl border border-dashed border-white/10 bg-slate-950/35 px-4 py-8 text-center text-sm text-white/50">
-                          Bu çekiliş için uygun aday bulunmuyor.
+                          {copy.noEligibleCandidates}
                         </div>
                       ) : (
                         <div className="mt-4 space-y-3">
-                          <EligibleMarquee items={eligibleAttendees} />
-                          <EligibleMarquee items={eligibleAttendees} reverse />
+                          <EligibleMarquee items={eligibleAttendees} sessionLabel={copy.sessionLabel} />
+                          <EligibleMarquee items={eligibleAttendees} reverse sessionLabel={copy.sessionLabel} />
                         </div>
                       )}
                     </div>
@@ -642,9 +709,9 @@ export default function RafflePresentationPage() {
                     >
                       <Sparkles className="h-10 w-10 text-white/80" />
                     </motion.div>
-                    <p className="mt-6 text-3xl font-black text-white">İsimler sahneye hazırlanıyor</p>
+                    <p className="mt-6 text-3xl font-black text-white">{copy.scanningTitle}</p>
                     <p className="mt-3 max-w-lg text-center text-base leading-7 text-white/60">
-                      Oturum eşiği kontrol ediliyor, uygun katılımcılar sıralanıyor ve sahne akışı hazırlanıyor.
+                      {copy.scanningDesc}
                     </p>
                     {spotlightCandidate ? (
                       <motion.div
@@ -654,17 +721,17 @@ export default function RafflePresentationPage() {
                         transition={{ duration: 0.12 }}
                         className="mt-8 rounded-[28px] border border-white/15 bg-white/10 px-6 py-5 text-center backdrop-blur"
                       >
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">Havuzdan seçiliyor</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">{copy.selectingFrom}</p>
                         <p className="mt-3 text-3xl font-black text-white">{spotlightCandidate.attendee_name}</p>
                         <p className="mt-2 text-sm text-white/60">
-                          {spotlightCandidate.sessions_attended} oturum katılımı
+                          {copy.sessionAttendance(spotlightCandidate.sessions_attended)}
                         </p>
                       </motion.div>
                     ) : null}
                     {eligibleAttendees.length > 0 ? (
                       <div className="mt-8 w-full max-w-3xl space-y-3">
-                        <EligibleMarquee items={eligibleAttendees} />
-                        <EligibleMarquee items={eligibleAttendees} reverse />
+                        <EligibleMarquee items={eligibleAttendees} sessionLabel={copy.sessionLabel} />
+                        <EligibleMarquee items={eligibleAttendees} reverse sessionLabel={copy.sessionLabel} />
                       </div>
                     ) : null}
                   </div>
@@ -700,17 +767,19 @@ export default function RafflePresentationPage() {
                           <div className="relative flex flex-wrap items-center justify-between gap-3">
                             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
                               <Medal className="h-3.5 w-3.5" />
-                              Tur {latestWinner.round} • {latestWinner.kind === "asil" ? "Asil kazanan" : "Yedek kazanan"}
+                              {isTr
+                                ? `Tur ${latestWinner.round} • ${latestWinner.kind === "asil" ? copy.primaryWinner : copy.reserveWinner}`
+                                : `Round ${latestWinner.round} • ${latestWinner.kind === "asil" ? copy.primaryWinner : copy.reserveWinner}`}
                             </div>
                             <div className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold text-white/75">
-                              {latestWinner.winner.sessions_attended} oturum
+                              {copy.sessionAttendance(latestWinner.winner.sessions_attended)}
                             </div>
                           </div>
                           <p className="relative mt-5 text-4xl font-black tracking-tight text-white md:text-5xl">
                             {latestWinner.winner.attendee_name}
                           </p>
                           <p className="relative mt-3 text-lg text-white/72">
-                            {latestWinner.winner.sessions_attended} oturum katılımı
+                            {copy.sessionAttendance(latestWinner.winner.sessions_attended)}
                           </p>
                         </motion.div>
                       ) : null}
@@ -731,12 +800,12 @@ export default function RafflePresentationPage() {
                         >
                           <div className="flex items-center justify-between gap-3">
                             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
-                              Tur {item.round} • {item.kind === "asil" ? "asil" : "yedek"}
+                              {copy.roundLabel(item.round, item.kind)}
                             </p>
                             <p className="text-xs font-semibold text-white/55">#{item.index + 1}</p>
                           </div>
                           <p className="mt-2 text-lg font-bold text-white">{item.winner.attendee_name}</p>
-                          <p className="mt-1 text-sm text-white/65">{item.winner.sessions_attended} oturum katılımı</p>
+                          <p className="mt-1 text-sm text-white/65">{copy.sessionAttendance(item.winner.sessions_attended)}</p>
                         </motion.div>
                       ))}
                     </div>
@@ -746,10 +815,9 @@ export default function RafflePresentationPage() {
 
               <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
                 <span>
-                  Kural: En az {raffle?.min_sessions_required ?? 0} oturuma katılanlar arasından {" "}
-                  {raffle ? formatWinnerPlan(raffle.winner_count, raffle.reserve_winner_count) : "-"} seçilir.
+                  {copy.ruleLabel(raffle?.min_sessions_required ?? 0, raffle ? formatWinnerPlan(raffle.winner_count, raffle.reserve_winner_count) : "-")}
                 </span>
-                <span>{mode === "operator" ? `${eventName} • Operatör görünümü` : eventName}</span>
+                <span>{mode === "operator" ? copy.operatorView(eventName) : eventName}</span>
               </div>
             </div>
           </div>

@@ -24,6 +24,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
+import { useI18n } from "@/lib/i18n";
 
 type SurveyQuestion = {
   id: string;
@@ -64,12 +65,20 @@ type ResponseStats = {
   pending: number;
 };
 
-const QUESTION_TYPES = [
+const QUESTION_TYPES_TR = [
   { value: "text", label: "Kısa Metin" },
   { value: "textarea", label: "Uzun Metin" },
   { value: "multiple_choice", label: "Çoktan Seçmeli" },
   { value: "rating", label: "Değerlendirme" },
   { value: "yes_no", label: "Evet/Hayır" },
+];
+
+const QUESTION_TYPES_EN = [
+  { value: "text", label: "Short Text" },
+  { value: "textarea", label: "Long Text" },
+  { value: "multiple_choice", label: "Multiple Choice" },
+  { value: "rating", label: "Rating" },
+  { value: "yes_no", label: "Yes/No" },
 ];
 
 const EXTERNAL_PROVIDERS = [
@@ -79,29 +88,173 @@ const EXTERNAL_PROVIDERS = [
   { value: "surveymonkey", label: "SurveyMonkey" },
 ];
 
-function getQuestionTypeLabel(type: string) {
-  return QUESTION_TYPES.find((item) => item.value === type)?.label || type;
-}
-
-function formatAnswer(value: unknown) {
-  if (value === null || value === undefined || value === "") {
-    return "Yanıt yok";
-  }
-  if (typeof value === "boolean") {
-    return value ? "Evet" : "Hayır";
-  }
-  if (Array.isArray(value)) {
-    return value.join(", ");
-  }
-  if (typeof value === "object") {
-    return JSON.stringify(value);
-  }
-  return String(value);
-}
-
 export default function SurveysPage() {
   const params = useParams();
   const eventId = params.id as string;
+  const { lang } = useI18n();
+  const isTr = lang === "tr";
+
+  const copy = {
+    pageTitle: isTr ? "Katılımcı Anketleri" : "Participant Surveys",
+    pageSubtitle: isTr
+      ? "Anket kurgusunu yönetin, cevapları izleyin ve sertifika akışına etkisini kontrol edin."
+      : "Manage survey setup, monitor responses, and control the effect on certificate flow.",
+    surveyMode: isTr ? "Anket Modu" : "Survey Mode",
+    modeBoth: isTr ? "Çift Akış" : "Dual Flow",
+    modeBuiltin: isTr ? "Yerleşik" : "Built-in",
+    modeExternal: isTr ? "Harici" : "External",
+    modeDisabled: isTr ? "Kapalı" : "Disabled",
+    requiredHint: isTr ? "Sertifika öncesi zorunlu" : "Required before certificate",
+    optionalHint: isTr ? "Opsiyonel deneyim" : "Optional experience",
+    questionCount: isTr ? "Soru Sayısı" : "Question Count",
+    questionsReady: isTr ? "Hazır sorular mevcut" : "Questions ready",
+    noQuestions: isTr ? "Soru tanımlanmadı" : "No questions defined",
+    completed: isTr ? "Tamamlayanlar" : "Completed",
+    completionRate: (rate: number) => isTr ? `%${rate} tamamlanma` : `${rate}% completion`,
+    pending: isTr ? "Bekleyenler" : "Pending",
+    pendingHint: isTr ? "Henüz yanıt vermeyenler" : "Yet to respond",
+    tabConfig: isTr ? "Anket Ayarları" : "Survey Settings",
+    tabResponses: (count: number) => isTr ? `Cevaplar (${count})` : `Responses (${count})`,
+    loadError: isTr ? "Anket verisi yüklenemedi" : "Failed to load survey data",
+    saveSuccess: isTr ? "Anket ayarları kaydedildi" : "Survey settings saved",
+    saveError: isTr ? "Kaydedilemedi" : "Could not save",
+    copyError: isTr ? "Panoya kopyalama başarısız oldu" : "Failed to copy to clipboard",
+    errorQuestionRequired: isTr ? "Soru ID ve soru metni zorunludur" : "Question ID and text are required",
+    errorDuplicateId: isTr ? "Aynı soru ID zaten kullanılıyor" : "This question ID is already in use",
+    errorNoOptions: isTr
+      ? "Çoktan seçmeli sorular için en az bir seçenek girin"
+      : "Enter at least one option for multiple choice questions",
+    errorDuplicateOption: isTr ? "Aynı seçenek zaten eklenmiş" : "This option has already been added",
+    generalSetup: isTr ? "Genel Kurgu" : "General Setup",
+    generalSetupDesc: isTr
+      ? "Anketin sertifika akışını nasıl etkileyeceğini ve hangi kanal ile toplanacağını belirleyin."
+      : "Define how the survey affects the certificate flow and which channel it is collected through.",
+    required: isTr ? "Zorunlu" : "Required",
+    optional: isTr ? "Opsiyonel" : "Optional",
+    requireBeforeCert: isTr ? "Sertifika öncesi anketi zorunlu tut" : "Require survey before certificate",
+    requireBeforeCertDesc: isTr
+      ? "Açılırsa katılımcı sertifika indirmeden önce anketi tamamlamak zorunda olur. Kapatılırsa anket sadece geri bildirim aracı olarak kalır."
+      : "When enabled, the participant must complete the survey before downloading the certificate. When disabled, the survey remains as a feedback tool only.",
+    disableSurvey: isTr ? "Anketi tamamen kapat" : "Disable Survey Entirely",
+    disableSurveyDesc: isTr
+      ? "Bu mod açıksa katılımcı kartında ve kayıt sonrası akışta anket adımı hiç gösterilmez."
+      : "When this mode is on, the survey step will not be shown on the participant card or in the post-registration flow.",
+    surveyClosed: isTr ? "Anket kapalı" : "Survey closed",
+    closeSurvey: isTr ? "Anketi kapat" : "Close Survey",
+    builtinForm: isTr ? "Yerleşik Form" : "Built-in Form",
+    builtinFormDesc: isTr ? "Tüm soru ve cevaplar panel içinde toplanır." : "All questions and answers are collected within the panel.",
+    externalProvider: isTr ? "Harici Sağlayıcı" : "External Provider",
+    externalProviderDesc: isTr ? "Typeform veya benzeri bir aracı bağlayın." : "Connect Typeform or a similar tool.",
+    hybridUsage: isTr ? "Hibrit Kullanım" : "Hybrid Usage",
+    hybridUsageDesc: isTr ? "İsterseniz iki akışı birlikte sunun." : "Offer both flows together if needed.",
+    builtinQuestions: isTr ? "Yerleşik Sorular" : "Built-in Questions",
+    builtinQuestionsDesc: isTr
+      ? "Katılımcılardan toplayacağınız soru setini oluşturun."
+      : "Build the question set you will collect from participants.",
+    questionCountBadge: (count: number) => isTr ? `${count} soru` : `${count} questions`,
+    noQuestionsYet: isTr
+      ? "Henüz soru eklenmedi. İlk soruyu aşağıdaki formdan oluşturabilirsiniz."
+      : "No questions added yet. Create your first question using the form below.",
+    optionsLabel: (opts: string[]) => isTr ? `Seçenekler: ${opts.join(", ")}` : `Options: ${opts.join(", ")}`,
+    addQuestion: isTr ? "Yeni Soru Ekle" : "Add New Question",
+    questionId: isTr ? "Soru ID" : "Question ID",
+    questionType: isTr ? "Soru Türü" : "Question Type",
+    questionText: isTr ? "Soru Metni" : "Question Text",
+    questionTextPlaceholder: isTr ? "Sorunuzu yazın" : "Enter your question",
+    options: isTr ? "Seçenekler" : "Options",
+    optionPlaceholder: isTr ? "Seçenek yazın" : "Type an option",
+    addOption: isTr ? "Ekle" : "Add",
+    noOptionsYet: isTr ? "Henüz seçenek eklenmedi." : "No options added yet.",
+    makeRequired: isTr ? "Bu soru zorunlu olsun" : "Make this question required",
+    addQuestionBtn: isTr ? "Soruyu Ekle" : "Add Question",
+    externalProviderTitle: isTr ? "Harici Sağlayıcı" : "External Provider",
+    externalProviderTitleDesc: isTr
+      ? "Typeform veya benzeri bir araçtan yanıt alıp sertifika akışına bağlayın."
+      : "Collect responses from Typeform or a similar tool and connect them to the certificate flow.",
+    providerLabel: isTr ? "Sağlayıcı" : "Provider",
+    providerSelect: isTr ? "Seçin" : "Select",
+    surveyUrl: isTr ? "Anket URL" : "Survey URL",
+    webhookKey: isTr ? "Webhook Anahtarı" : "Webhook Key",
+    webhookKeyHint: isTr ? "Boş bırakırsanız sistem otomatik anahtar üretir." : "If left empty, the system will generate a key automatically.",
+    webhookInfo: isTr ? "Webhook Bağlantı Bilgisi" : "Webhook Connection Info",
+    webhookDesc: isTr
+      ? (endpoint: string) =>
+          `Harici sağlayıcınız her tamamlanan anketten sonra bu endpointi çağırmalı ve X-Webhook-Key header'ı ile anahtarı göndermeli.`
+      : (_: string) =>
+          "Your external provider must call this endpoint after each completed survey and send the key via the X-Webhook-Key header.",
+    attendeeLinks: isTr ? "Katılımcı bağlantıları" : "Attendee Links",
+    attendeeLinksDesc: isTr
+      ? "Genel anket adresi sadece giriş noktasıdır. Form, yalnızca kişiye özel token ile açılır."
+      : "The general survey address is only an entry point. The form opens only with a person-specific token.",
+    surveyClosedLinks: isTr
+      ? "Anket kapalı olduğu için katılımcıya ayrı bir anket bağlantısı gösterilmez."
+      : "Since the survey is closed, no separate survey link is shown to the participant.",
+    generalEntryAddress: isTr ? "Genel giriş adresi" : "General entry address",
+    copyLink: isTr ? "Linki kopyala" : "Copy link",
+    copyLinkSuccess: isTr ? "Genel anket adresi panoya kopyalandı" : "General survey address copied to clipboard",
+    goToAttendees: isTr ? "Katılımcılara git" : "Go to attendees",
+    personalLinkHint: isTr
+      ? "Kişiye özel anket bağlantısını katılımcılar ekranındaki ilgili kişi satırından kopyalayın."
+      : "Copy the personalized survey link from the relevant person's row on the attendees screen.",
+    liveSummary: isTr ? "Canlı Özet" : "Live Summary",
+    flowReady: isTr ? "Katılımcı akışı hazır" : "Participant flow is ready",
+    flowDesc: (required: boolean) =>
+      isTr
+        ? `Mevcut kurguda katılımcı ${required ? "anketi bitirince" : "isterse ankete girip"} sertifika adımına devam edecek.`
+        : `In the current setup, the participant will proceed to the certificate step ${required ? "after completing the survey" : "optionally via the survey"}.`,
+    modeLabel: isTr ? "Mod" : "Mode",
+    questionCountLabel: isTr ? "Soru sayısı" : "Question count",
+    webhookLabel: isTr ? "Webhook" : "Webhook",
+    webhookReady: isTr ? "Hazır" : "Ready",
+    webhookNotNeeded: isTr ? "Gerekmiyor" : "Not needed",
+    webhookWillGenerate: isTr ? "Kayıt anında üretilecek" : "Will be generated on save",
+    builtinResponse: isTr ? "Yerleşik yanıt" : "Built-in responses",
+    externalResponse: isTr ? "Harici yanıt" : "External responses",
+    saveSettings: isTr ? "Anket Ayarlarını Kaydet" : "Save Survey Settings",
+    totalResponses: isTr ? "Toplam Yanıt" : "Total Responses",
+    completionRateLabel: isTr ? "Tamamlama Oranı" : "Completion Rate",
+    filterResult: isTr ? "Filtre Sonucu" : "Filter Result",
+    searchPlaceholder: isTr ? "Ad, e-posta veya external response ID ara" : "Search name, email or external response ID",
+    allResponses: isTr ? "Tüm Yanıtlar" : "All Responses",
+    builtin: isTr ? "Yerleşik" : "Built-in",
+    external: isTr ? "Harici" : "External",
+    noResponses: isTr ? "Henüz gösterilecek anket cevabı yok" : "No survey responses to show yet",
+    noResponsesHint: isTr
+      ? "Filtreleri temizleyin veya katılımcıların anketi tamamlamasını bekleyin."
+      : "Clear filters or wait for participants to complete the survey.",
+    attendeeLabel: (id: number) => isTr ? `Katılımcı #${id}` : `Attendee #${id}`,
+    noEmail: isTr ? "E-posta bilgisi yok" : "No email on record",
+    externalResponseId: isTr ? "External Response ID" : "External Response ID",
+    completedBadge: isTr ? "Tamamlandı" : "Completed",
+    noBuiltinAnswers: isTr
+      ? "Bu yanıt kaydında gösterilecek yerleşik soru cevabı bulunmuyor."
+      : "No built-in question answers found in this response record.",
+    noAnswer: isTr ? "Yanıt yok" : "No answer",
+    yes: isTr ? "Evet" : "Yes",
+    no: isTr ? "Hayır" : "No",
+  };
+
+  const QUESTION_TYPES = isTr ? QUESTION_TYPES_TR : QUESTION_TYPES_EN;
+
+  function getQuestionTypeLabel(type: string) {
+    return QUESTION_TYPES.find((item) => item.value === type)?.label || type;
+  }
+
+  function formatAnswer(value: unknown) {
+    if (value === null || value === undefined || value === "") {
+      return copy.noAnswer;
+    }
+    if (typeof value === "boolean") {
+      return value ? copy.yes : copy.no;
+    }
+    if (Array.isArray(value)) {
+      return value.join(", ");
+    }
+    if (typeof value === "object") {
+      return JSON.stringify(value);
+    }
+    return String(value);
+  }
 
   const [config, setConfig] = useState<EventSurvey | null>(null);
   const [responses, setResponses] = useState<SurveyResponse[]>([]);
@@ -171,7 +324,7 @@ export default function SurveysPage() {
         pending: Number(responsesData?.response_rate?.pending || 0),
       });
     } catch (err: any) {
-      setError(err.message || "Anket verisi yüklenemedi");
+      setError(err.message || copy.loadError);
     } finally {
       setLoading(false);
     }
@@ -195,10 +348,10 @@ export default function SurveysPage() {
         }),
       });
 
-      setSuccess("Anket ayarları kaydedildi");
+      setSuccess(copy.saveSuccess);
       await loadData();
     } catch (err: any) {
-      setError(err.message || "Kaydedilemedi");
+      setError(err.message || copy.saveError);
     } finally {
       setSaving(false);
     }
@@ -209,12 +362,12 @@ export default function SurveysPage() {
     const questionText = (newQuestion.question || "").trim();
 
     if (!questionId || !questionText) {
-      setError("Soru ID ve soru metni zorunludur");
+      setError(copy.errorQuestionRequired);
       return;
     }
 
     if (builtinQuestions.some((question) => question.id === questionId)) {
-      setError("Aynı soru ID zaten kullanılıyor");
+      setError(copy.errorDuplicateId);
       return;
     }
 
@@ -222,7 +375,7 @@ export default function SurveysPage() {
       newQuestion.type === "multiple_choice" &&
       (!newQuestion.options || newQuestion.options.length === 0)
     ) {
-      setError("Çoktan seçmeli sorular için en az bir seçenek girin");
+      setError(copy.errorNoOptions);
       return;
     }
 
@@ -245,7 +398,7 @@ export default function SurveysPage() {
     const option = newOption.trim();
     if (!option) return;
     if ((newQuestion.options || []).includes(option)) {
-      setError("Aynı seçenek zaten eklenmiş");
+      setError(copy.errorDuplicateOption);
       return;
     }
     setNewQuestion({
@@ -305,9 +458,22 @@ export default function SurveysPage() {
       await navigator.clipboard.writeText(value);
       setSuccess(message);
     } catch {
-      setError("Panoya kopyalama başarısız oldu");
+      setError(copy.copyError);
     }
   }
+
+  const getSurveyModeLabel = () => {
+    if (surveyType === "both") return copy.modeBoth;
+    if (surveyType === "builtin") return copy.modeBuiltin;
+    if (surveyType === "external") return copy.modeExternal;
+    return copy.modeDisabled;
+  };
+
+  const getSurveyModeLabelFull = () => {
+    if (surveyType === "both") return isTr ? "Yerleşik + Harici" : "Built-in + External";
+    if (surveyType === "builtin") return copy.modeBuiltin;
+    return copy.modeExternal;
+  };
 
   if (loading) {
     return (
@@ -335,8 +501,8 @@ export default function SurveysPage() {
             </Link>
           </motion.div>
           <div>
-            <h1 className="text-3xl font-bold text-surface-900">Katılımcı Anketleri</h1>
-            <p className="mt-1 text-sm text-surface-500">Anket kurgusunu yönetin, cevapları izleyin ve sertifika akışına etkisini kontrol edin.</p>
+            <h1 className="text-3xl font-bold text-surface-900">{copy.pageTitle}</h1>
+            <p className="mt-1 text-sm text-surface-500">{copy.pageSubtitle}</p>
           </div>
         </div>
       </div>
@@ -346,27 +512,27 @@ export default function SurveysPage() {
       <div className="grid gap-4 md:grid-cols-4">
         {[
           {
-            label: "Anket Modu",
-            value: surveyType === "both" ? "Çift Akış" : surveyType === "builtin" ? "Yerleşik" : "Harici",
-            hint: isRequired ? "Sertifika öncesi zorunlu" : "Opsiyonel deneyim",
+            label: copy.surveyMode,
+            value: getSurveyModeLabel(),
+            hint: isRequired ? copy.requiredHint : copy.optionalHint,
             icon: ClipboardList,
           },
           {
-            label: "Soru Sayısı",
+            label: copy.questionCount,
             value: String(builtinQuestionCount),
-            hint: builtinQuestionCount > 0 ? "Hazır sorular mevcut" : "Soru tanımlanmadı",
+            hint: builtinQuestionCount > 0 ? copy.questionsReady : copy.noQuestions,
             icon: FileText,
           },
           {
-            label: "Tamamlayanlar",
+            label: copy.completed,
             value: String(responseStats.completed),
-            hint: `${completionRate}% tamamlanma`,
+            hint: copy.completionRate(completionRate),
             icon: CheckCircle2,
           },
           {
-            label: "Bekleyenler",
+            label: copy.pending,
             value: String(responseStats.pending),
-            hint: "Henüz yanıt vermeyenler",
+            hint: copy.pendingHint,
             icon: Users,
           },
         ].map((item) => {
@@ -390,8 +556,8 @@ export default function SurveysPage() {
 
       <div className="flex gap-2 border-b border-surface-200">
         {[
-          { key: "config", label: "Anket Ayarları" },
-          { key: "responses", label: `Cevaplar (${responses.length})` },
+          { key: "config", label: copy.tabConfig },
+          { key: "responses", label: copy.tabResponses(responses.length) },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -436,11 +602,11 @@ export default function SurveysPage() {
               <div className="rounded-xl border border-surface-200 bg-white p-6 shadow-card">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-lg font-semibold text-surface-900">Genel Kurgu</h2>
-                    <p className="mt-1 text-sm text-surface-500">Anketin sertifika akışını nasıl etkileyeceğini ve hangi kanal ile toplanacağını belirleyin.</p>
+                    <h2 className="text-lg font-semibold text-surface-900">{copy.generalSetup}</h2>
+                    <p className="mt-1 text-sm text-surface-500">{copy.generalSetupDesc}</p>
                   </div>
                   <div className={`rounded-full px-3 py-1 text-xs font-semibold ${isRequired ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-700"}`}>
-                    {isRequired ? "Zorunlu" : "Opsiyonel"}
+                    {isRequired ? copy.required : copy.optional}
                   </div>
                 </div>
 
@@ -456,9 +622,9 @@ export default function SurveysPage() {
                     <div>
                       <div className="flex items-center gap-2 text-sm font-semibold text-surface-900">
                         <LockKeyhole className="h-4 w-4 text-surface-600" />
-                        Sertifika öncesi anketi zorunlu tut
+                        {copy.requireBeforeCert}
                       </div>
-                      <p className="mt-1 text-sm text-surface-600">Açılırsa katılımcı sertifika indirmeden önce anketi tamamlamak zorunda olur. Kapatılırsa anket sadece geri bildirim aracı olarak kalır.</p>
+                      <p className="mt-1 text-sm text-surface-600">{copy.requireBeforeCertDesc}</p>
                     </div>
                   </label>
                 </div>
@@ -466,10 +632,8 @@ export default function SurveysPage() {
                 <div className="mt-4 rounded-xl border border-surface-200 bg-surface-50 p-4">
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <p className="text-sm font-semibold text-surface-900">Anketi tamamen kapat</p>
-                      <p className="mt-1 text-sm text-surface-600">
-                        Bu mod açıksa katılımcı kartında ve kayıt sonrası akışta anket adımı hiç gösterilmez.
-                      </p>
+                      <p className="text-sm font-semibold text-surface-900">{copy.disableSurvey}</p>
+                      <p className="mt-1 text-sm text-surface-600">{copy.disableSurveyDesc}</p>
                     </div>
                     <button
                       type="button"
@@ -483,16 +647,16 @@ export default function SurveysPage() {
                           : "border border-surface-200 bg-white text-surface-700 hover:bg-surface-100"
                       }`}
                     >
-                      {surveyType === "disabled" ? "Anket kapalı" : "Anketi kapat"}
+                      {surveyType === "disabled" ? copy.surveyClosed : copy.closeSurvey}
                     </button>
                   </div>
                 </div>
 
                 <div className="mt-6 grid gap-3 md:grid-cols-3">
                   {[
-                    { value: "builtin", title: "Yerleşik Form", description: "Tüm soru ve cevaplar panel içinde toplanır." },
-                    { value: "external", title: "Harici Sağlayıcı", description: "Typeform veya benzeri bir aracı bağlayın." },
-                    { value: "both", title: "Hibrit Kullanım", description: "İsterseniz iki akışı birlikte sunun." },
+                    { value: "builtin", title: copy.builtinForm, description: copy.builtinFormDesc },
+                    { value: "external", title: copy.externalProvider, description: copy.externalProviderDesc },
+                    { value: "both", title: copy.hybridUsage, description: copy.hybridUsageDesc },
                   ].map((item) => (
                     <button
                       key={item.value}
@@ -515,17 +679,17 @@ export default function SurveysPage() {
                 <div className="space-y-4 rounded-xl border border-surface-200 bg-white p-6 shadow-card">
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <h2 className="text-lg font-semibold text-surface-900">Yerleşik Sorular</h2>
-                      <p className="mt-1 text-sm text-surface-500">Katılımcılardan toplayacağınız soru setini oluşturun.</p>
+                      <h2 className="text-lg font-semibold text-surface-900">{copy.builtinQuestions}</h2>
+                      <p className="mt-1 text-sm text-surface-500">{copy.builtinQuestionsDesc}</p>
                     </div>
                     <div className="rounded-full bg-surface-100 px-3 py-1 text-xs font-semibold text-surface-600">
-                      {builtinQuestionCount} soru
+                      {copy.questionCountBadge(builtinQuestionCount)}
                     </div>
                   </div>
 
                   {builtinQuestions.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-surface-300 bg-surface-50 p-6 text-sm text-surface-500">
-                      Henüz soru eklenmedi. İlk soruyu aşağıdaki formdan oluşturabilirsiniz.
+                      {copy.noQuestionsYet}
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -542,15 +706,15 @@ export default function SurveysPage() {
                                 <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-surface-600">#{question.id}</span>
                                 <span className="rounded-full bg-surface-100 px-2.5 py-1 text-xs font-semibold text-surface-700">{getQuestionTypeLabel(question.type)}</span>
                                 {question.required ? (
-                                  <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">Zorunlu</span>
+                                  <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">{copy.required}</span>
                                 ) : (
-                                  <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">Opsiyonel</span>
+                                  <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">{copy.optional}</span>
                                 )}
                               </div>
                               <div>
                                 <p className="font-semibold text-surface-900">{question.question}</p>
                                 {question.type === "multiple_choice" && question.options?.length ? (
-                                  <p className="mt-2 text-sm text-surface-500">Seçenekler: {question.options.join(", ")}</p>
+                                  <p className="mt-2 text-sm text-surface-500">{copy.optionsLabel(question.options)}</p>
                                 ) : null}
                               </div>
                             </div>
@@ -569,10 +733,10 @@ export default function SurveysPage() {
                   )}
 
                   <div className="rounded-xl border-2 border-dashed border-surface-200 bg-surface-50 p-5">
-                    <h3 className="text-base font-semibold text-surface-900">Yeni Soru Ekle</h3>
+                    <h3 className="text-base font-semibold text-surface-900">{copy.addQuestion}</h3>
                     <div className="mt-4 grid gap-4 md:grid-cols-2">
                       <div>
-                        <label className="mb-2 block text-sm font-semibold text-surface-700">Soru ID</label>
+                        <label className="mb-2 block text-sm font-semibold text-surface-700">{copy.questionId}</label>
                         <input
                           type="text"
                           placeholder="q1"
@@ -582,7 +746,7 @@ export default function SurveysPage() {
                         />
                       </div>
                       <div>
-                        <label className="mb-2 block text-sm font-semibold text-surface-700">Soru Türü</label>
+                        <label className="mb-2 block text-sm font-semibold text-surface-700">{copy.questionType}</label>
                         <select
                           value={newQuestion.type || "text"}
                           onChange={(event) => setNewQuestion({ ...newQuestion, type: event.target.value })}
@@ -596,9 +760,9 @@ export default function SurveysPage() {
                     </div>
 
                     <div className="mt-4">
-                      <label className="mb-2 block text-sm font-semibold text-surface-700">Soru Metni</label>
+                      <label className="mb-2 block text-sm font-semibold text-surface-700">{copy.questionText}</label>
                       <textarea
-                        placeholder="Sorunuzu yazın"
+                        placeholder={copy.questionTextPlaceholder}
                         value={newQuestion.question || ""}
                         onChange={(event) => setNewQuestion({ ...newQuestion, question: event.target.value })}
                         className="min-h-24 input-field"
@@ -607,12 +771,12 @@ export default function SurveysPage() {
 
                     {newQuestion.type === "multiple_choice" && (
                       <div className="mt-4">
-                        <label className="mb-2 block text-sm font-semibold text-surface-700">Seçenekler</label>
+                        <label className="mb-2 block text-sm font-semibold text-surface-700">{copy.options}</label>
                         <div className="rounded-xl border border-surface-200 bg-white p-4">
                           <div className="flex gap-2">
                             <input
                               type="text"
-                              placeholder="Seçenek yazın"
+                              placeholder={copy.optionPlaceholder}
                               value={newOption}
                               onChange={(event) => setNewOption(event.target.value)}
                               onKeyDown={(event) => {
@@ -629,14 +793,14 @@ export default function SurveysPage() {
                               className="inline-flex items-center gap-2 rounded-lg bg-surface-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
                             >
                               <Plus className="h-4 w-4" />
-                              Ekle
+                              {copy.addOption}
                             </button>
                           </div>
 
                           <div className="mt-3 flex flex-wrap gap-2">
                             {(newQuestion.options || []).length === 0 ? (
                               <div className="rounded-xl border border-dashed border-surface-300 bg-surface-50 px-4 py-3 text-sm text-surface-500">
-                                Henüz seçenek eklenmedi.
+                                {copy.noOptionsYet}
                               </div>
                             ) : (
                               (newQuestion.options || []).map((option) => (
@@ -667,7 +831,7 @@ export default function SurveysPage() {
                         onChange={(event) => setNewQuestion({ ...newQuestion, required: event.target.checked })}
                         className="h-4 w-4 rounded"
                       />
-                      Bu soru zorunlu olsun
+                      {copy.makeRequired}
                     </label>
 
                     <button
@@ -676,7 +840,7 @@ export default function SurveysPage() {
                       className="mt-4 inline-flex items-center gap-2 rounded-lg bg-surface-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-surface-800"
                     >
                       <Plus className="h-4 w-4" />
-                      Soruyu Ekle
+                      {copy.addQuestionBtn}
                     </button>
                   </div>
                 </div>
@@ -688,8 +852,8 @@ export default function SurveysPage() {
                 <div className="rounded-xl border border-surface-200 bg-white p-6 shadow-card">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h2 className="text-lg font-semibold text-surface-900">Harici Sağlayıcı</h2>
-                      <p className="mt-1 text-sm text-surface-500">Typeform veya benzeri bir araçtan yanıt alıp sertifika akışına bağlayın.</p>
+                      <h2 className="text-lg font-semibold text-surface-900">{copy.externalProviderTitle}</h2>
+                      <p className="mt-1 text-sm text-surface-500">{copy.externalProviderTitleDesc}</p>
                     </div>
                     <div className="rounded-xl bg-amber-50 p-3 text-amber-600">
                       <Link2 className="h-5 w-5" />
@@ -698,13 +862,13 @@ export default function SurveysPage() {
 
                   <div className="mt-5 space-y-4">
                     <div>
-                      <label className="mb-2 block text-sm font-semibold text-surface-700">Sağlayıcı</label>
+                      <label className="mb-2 block text-sm font-semibold text-surface-700">{copy.providerLabel}</label>
                       <select
                         value={externalProvider}
                         onChange={(event) => setExternalProvider(event.target.value)}
                         className="input-field"
                       >
-                        <option value="">Seçin</option>
+                        <option value="">{copy.providerSelect}</option>
                         {EXTERNAL_PROVIDERS.map((provider) => (
                           <option key={provider.value} value={provider.value}>{provider.label}</option>
                         ))}
@@ -712,7 +876,7 @@ export default function SurveysPage() {
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-semibold text-surface-700">Anket URL</label>
+                      <label className="mb-2 block text-sm font-semibold text-surface-700">{copy.surveyUrl}</label>
                       <input
                         type="url"
                         placeholder="https://example.typeform.com/..."
@@ -723,7 +887,7 @@ export default function SurveysPage() {
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-semibold text-surface-700">Webhook Anahtarı</label>
+                      <label className="mb-2 block text-sm font-semibold text-surface-700">{copy.webhookKey}</label>
                       <input
                         type="text"
                         placeholder="Webhook verification key"
@@ -731,17 +895,17 @@ export default function SurveysPage() {
                         onChange={(event) => setExternalWebhookKey(event.target.value)}
                         className="w-full rounded-xl border border-surface-300 px-3 py-2.5 font-mono text-sm"
                       />
-                      <p className="mt-2 text-xs text-surface-500">Boş bırakırsanız sistem otomatik anahtar üretir.</p>
+                      <p className="mt-2 text-xs text-surface-500">{copy.webhookKeyHint}</p>
                     </div>
                   </div>
 
                   <div className="mt-5 rounded-xl border border-surface-200 bg-surface-50 p-4">
                     <div className="flex items-center gap-2 text-sm font-semibold text-surface-800">
                       <ExternalLink className="h-4 w-4 text-surface-600" />
-                      Webhook Bağlantı Bilgisi
+                      {copy.webhookInfo}
                     </div>
                     <code className="mt-3 block rounded-xl bg-white p-3 text-xs text-surface-700 break-all">POST {webhookEndpoint}</code>
-                    <p className="mt-2 text-xs text-surface-500">Harici sağlayıcınız her tamamlanan anketten sonra bu endpointi çağırmalı ve <span className="font-mono">X-Webhook-Key</span> header'ı ile anahtarı göndermeli.</p>
+                    <p className="mt-2 text-xs text-surface-500">{copy.webhookDesc(webhookEndpoint)}</p>
                   </div>
                 </div>
               )}
@@ -749,10 +913,8 @@ export default function SurveysPage() {
               <div className="rounded-xl border border-surface-200 bg-white p-6 shadow-card">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-lg font-semibold text-surface-900">Katılımcı bağlantıları</h2>
-                    <p className="mt-1 text-sm text-surface-500">
-                      Genel anket adresi sadece giriş noktasıdır. Form, yalnızca kişiye özel token ile açılır.
-                    </p>
+                    <h2 className="text-lg font-semibold text-surface-900">{copy.attendeeLinks}</h2>
+                    <p className="mt-1 text-sm text-surface-500">{copy.attendeeLinksDesc}</p>
                   </div>
                   <div className="rounded-xl bg-indigo-50 p-3 text-indigo-600">
                     <Link2 className="h-5 w-5" />
@@ -761,36 +923,36 @@ export default function SurveysPage() {
 
                 {surveyType === "disabled" ? (
                   <div className="mt-5 rounded-xl border border-dashed border-slate-300 bg-surface-50 px-4 py-6 text-sm text-surface-600">
-                    Anket kapalı olduğu için katılımcıya ayrı bir anket bağlantısı gösterilmez.
+                    {copy.surveyClosedLinks}
                   </div>
                 ) : (
                   <>
                 <div className="mt-5 rounded-xl border border-surface-200 bg-surface-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-surface-500">Genel giriş adresi</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.generalEntryAddress}</p>
                   <code className="mt-3 block break-all rounded-xl bg-white p-3 text-xs text-surface-700">
                     {surveyLandingUrl}
                   </code>
                   <div className="mt-3 flex flex-wrap gap-3">
                     <button
                       type="button"
-                      onClick={() => copyText(surveyLandingUrl, "Genel anket adresi panoya kopyalandı")}
+                      onClick={() => copyText(surveyLandingUrl, copy.copyLinkSuccess)}
                       className="inline-flex items-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-2.5 text-sm font-semibold text-surface-700 transition hover:bg-surface-50"
                     >
                       <Copy className="h-4 w-4" />
-                      Linki kopyala
+                      {copy.copyLink}
                     </button>
                     <Link
                       href={`/admin/events/${eventId}/attendees`}
                       className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500"
                     >
-                      Katılımcılara git
+                      {copy.goToAttendees}
                       <ExternalLink className="h-4 w-4" />
                     </Link>
                   </div>
                 </div>
 
                 <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                  Kişiye özel anket bağlantısını katılımcılar ekranındaki ilgili kişi satırından kopyalayın.
+                  {copy.personalLinkHint}
                 </div>
                   </>
                 )}
@@ -798,19 +960,19 @@ export default function SurveysPage() {
               <div className="rounded-xl border border-surface-200 bg-surface-900 p-6 text-white shadow-card">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium text-slate-300">Canlı Özet</p>
-                    <h3 className="mt-2 text-xl font-semibold">Katılımcı akışı hazır</h3>
-                    <p className="mt-2 text-sm text-slate-300">Mevcut kurguda katılımcı {isRequired ? "anketi bitirince" : "isterse ankete girip"} sertifika adımına devam edecek.</p>
+                    <p className="text-sm font-medium text-slate-300">{copy.liveSummary}</p>
+                    <h3 className="mt-2 text-xl font-semibold">{copy.flowReady}</h3>
+                    <p className="mt-2 text-sm text-slate-300">{copy.flowDesc(isRequired)}</p>
                   </div>
                   <div className="rounded-xl bg-white/10 p-3">
                     <BarChart3 className="h-5 w-5" />
                   </div>
                 </div>
                 <div className="mt-5 grid gap-3 text-sm text-surface-200">
-                  <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">Mod: <span className="font-semibold">{surveyType === "both" ? "Yerleşik + Harici" : surveyType === "builtin" ? "Yerleşik" : "Harici"}</span></div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">Soru sayısı: <span className="font-semibold">{builtinQuestionCount}</span></div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">Webhook: <span className="font-semibold">{externalWebhookKey ? "Hazır" : surveyType === "builtin" ? "Gerekmiyor" : "Kayıt anında üretilecek"}</span></div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">Yerleşik yanıt: <span className="font-semibold">{builtinResponseCount}</span> • Harici yanıt: <span className="font-semibold">{externalResponseCount}</span></div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">{copy.modeLabel}: <span className="font-semibold">{getSurveyModeLabelFull()}</span></div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">{copy.questionCountLabel}: <span className="font-semibold">{builtinQuestionCount}</span></div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">{copy.webhookLabel}: <span className="font-semibold">{externalWebhookKey ? copy.webhookReady : surveyType === "builtin" ? copy.webhookNotNeeded : copy.webhookWillGenerate}</span></div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">{copy.builtinResponse}: <span className="font-semibold">{builtinResponseCount}</span> • {copy.externalResponse}: <span className="font-semibold">{externalResponseCount}</span></div>
                 </div>
               </div>
             </div>
@@ -823,7 +985,7 @@ export default function SurveysPage() {
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-surface-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-surface-800 disabled:opacity-50"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Anket Ayarlarını Kaydet
+              {copy.saveSettings}
             </button>
           </div>
         </div>
@@ -833,15 +995,15 @@ export default function SurveysPage() {
         <div className="space-y-6">
           <div className="grid gap-4 md:grid-cols-3">
             <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card">
-              <p className="text-sm font-medium text-surface-500">Toplam Yanıt</p>
+              <p className="text-sm font-medium text-surface-500">{copy.totalResponses}</p>
               <p className="mt-3 text-3xl font-semibold text-surface-900">{responses.length}</p>
             </div>
             <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card">
-              <p className="text-sm font-medium text-surface-500">Tamamlama Oranı</p>
-              <p className="mt-3 text-3xl font-semibold text-surface-900">%{completionRate}</p>
+              <p className="text-sm font-medium text-surface-500">{copy.completionRateLabel}</p>
+              <p className="mt-3 text-3xl font-semibold text-surface-900">{isTr ? `%${completionRate}` : `${completionRate}%`}</p>
             </div>
             <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card">
-              <p className="text-sm font-medium text-surface-500">Filtre Sonucu</p>
+              <p className="text-sm font-medium text-surface-500">{copy.filterResult}</p>
               <p className="mt-3 text-3xl font-semibold text-surface-900">{filteredResponses.length}</p>
             </div>
           </div>
@@ -854,7 +1016,7 @@ export default function SurveysPage() {
                   type="text"
                   value={responseQuery}
                   onChange={(event) => setResponseQuery(event.target.value)}
-                  placeholder="Ad, e-posta veya external response ID ara"
+                  placeholder={copy.searchPlaceholder}
                   className="w-full rounded-xl border border-surface-300 py-2.5 pl-10 pr-3 text-sm"
                 />
               </label>
@@ -863,9 +1025,9 @@ export default function SurveysPage() {
                 onChange={(event) => setResponseTypeFilter(event.target.value as "all" | "builtin" | "external")}
                 className="input-field"
               >
-                <option value="all">Tüm Yanıtlar</option>
-                <option value="builtin">Yerleşik</option>
-                <option value="external">Harici</option>
+                <option value="all">{copy.allResponses}</option>
+                <option value="builtin">{copy.builtin}</option>
+                <option value="external">{copy.external}</option>
               </select>
             </div>
           </div>
@@ -873,8 +1035,8 @@ export default function SurveysPage() {
           {filteredResponses.length === 0 ? (
             <div className="rounded-xl border border-surface-200 bg-white px-6 py-12 text-center shadow-card">
               <FileText className="mx-auto mb-4 h-16 w-16 text-surface-300" />
-              <p className="text-base font-semibold text-surface-800">Henüz gösterilecek anket cevabı yok</p>
-              <p className="mt-2 text-sm text-surface-500">Filtreleri temizleyin veya katılımcıların anketi tamamlamasını bekleyin.</p>
+              <p className="text-base font-semibold text-surface-800">{copy.noResponses}</p>
+              <p className="mt-2 text-sm text-surface-500">{copy.noResponsesHint}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -891,20 +1053,20 @@ export default function SurveysPage() {
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
                           <h3 className="text-lg font-semibold text-surface-900">
-                            {response.attendee_name || `Katılımcı #${response.attendee_id}`}
+                            {response.attendee_name || copy.attendeeLabel(response.attendee_id)}
                           </h3>
                           <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${response.survey_type === "external" ? "bg-amber-100 text-amber-800" : "bg-surface-100 text-surface-700"}`}>
-                            {response.survey_type === "external" ? "Harici" : "Yerleşik"}
+                            {response.survey_type === "external" ? copy.external : copy.builtin}
                           </span>
                         </div>
-                        <p className="mt-1 text-sm text-surface-500">{response.attendee_email || "E-posta bilgisi yok"}</p>
-                        <p className="mt-2 text-xs text-surface-400">{new Date(response.completed_at).toLocaleString("tr-TR")}</p>
+                        <p className="mt-1 text-sm text-surface-500">{response.attendee_email || copy.noEmail}</p>
+                        <p className="mt-2 text-xs text-surface-400">{new Date(response.completed_at).toLocaleString(isTr ? "tr-TR" : "en-US")}</p>
                         {response.external_response_id ? (
-                          <p className="mt-2 text-xs font-medium text-surface-500">External Response ID: <span className="font-mono text-surface-700">{response.external_response_id}</span></p>
+                          <p className="mt-2 text-xs font-medium text-surface-500">{copy.externalResponseId}: <span className="font-mono text-surface-700">{response.external_response_id}</span></p>
                         ) : null}
                       </div>
                       <div className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">
-                        Tamamlandı
+                        {copy.completedBadge}
                       </div>
                     </div>
 
@@ -920,7 +1082,7 @@ export default function SurveysPage() {
                       </div>
                     ) : (
                       <div className="mt-5 rounded-xl border border-dashed border-surface-300 bg-surface-50 p-4 text-sm text-surface-500">
-                        Bu yanıt kaydında gösterilecek yerleşik soru cevabı bulunmuyor.
+                        {copy.noBuiltinAnswers}
                       </div>
                     )}
                   </motion.div>

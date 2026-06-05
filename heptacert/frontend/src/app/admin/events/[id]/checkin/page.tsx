@@ -16,6 +16,7 @@ import {
 } from "@/lib/api";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 import { PlanGateCard, isPlanGateError } from "@/lib/useSubscription";
+import { useI18n } from "@/lib/i18n";
 import {
   Camera,
   ArrowLeft,
@@ -82,22 +83,91 @@ function normalizeTicketToken(value: string) {
   return trimmed.split("?")[0].split("#")[0];
 }
 
-function classifyScan(value: string): { type: CheckinType | "unsupported"; value: string; message?: string } {
+function classifyScan(value: string, msgs: { emptyQr: string; sessionQr: string; invalidQr: string }): { type: CheckinType | "unsupported"; value: string; message?: string } {
   const trimmed = value.trim();
-  if (!trimmed) return { type: "unsupported", value: trimmed, message: "Boş QR okundu." };
+  if (!trimmed) return { type: "unsupported", value: trimmed, message: msgs.emptyQr };
   if (trimmed.includes("/tickets/")) return { type: "ticket", value: normalizeTicketToken(trimmed) };
   if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return { type: "manual", value: trimmed.toLowerCase() };
   if (trimmed.includes("/attend/")) {
-    return { type: "unsupported", value: trimmed, message: "Bu oturum QR'i. Katılımcı bilet ya da e-posta QR'i okutun." };
+    return { type: "unsupported", value: trimmed, message: msgs.sessionQr };
   }
   if (trimmed.length >= 24 && !trimmed.includes(" ")) return { type: "ticket", value: normalizeTicketToken(trimmed) };
-  return { type: "unsupported", value: trimmed, message: "QR içeriği e-posta veya bilet token'i değil." };
+  return { type: "unsupported", value: trimmed, message: msgs.invalidQr };
 }
 
 export default function AdminCheckinPage() {
   const params = useParams();
   const eventId = Number(params?.id);
   const [staffMode, setStaffMode] = useState(false);
+
+  const { lang } = useI18n();
+  const isTr = lang === "tr";
+  const copy = {
+    // QR classification messages
+    emptyQr: isTr ? "Boş QR okundu." : "Empty QR scanned.",
+    sessionQr: isTr ? "Bu oturum QR'i. Katılımcı bilet ya da e-posta QR'i okutun." : "This is a session QR. Please scan an attendee ticket or email QR.",
+    invalidQr: isTr ? "QR içeriği e-posta veya bilet token'i değil." : "QR content is not an email or ticket token.",
+    // Load error
+    loadError: isTr ? "Check-in ekranı yüklenemedi." : "Failed to load check-in screen.",
+    // Camera
+    cameraError: isTr ? "Kamera başlatılamadı." : "Camera could not be started.",
+    // Offline queue
+    offlineQueued: isTr ? "Offline kuyruğa alındı. İnternet gelince senkronlanacak." : "Added to offline queue. Will sync when back online.",
+    // Check-in actions
+    sessionRequired: isTr ? "Önce oturum seç." : "Please select a session first.",
+    checkinFailed: isTr ? "Check-in başarısız" : "Check-in failed",
+    qrUnreadable: isTr ? "QR okunamadı." : "QR could not be read.",
+    // Sync messages
+    offlineSynced: isTr ? "Offline kayıt senkronlandı." : "Offline record synced.",
+    syncFailed: isTr ? "Sync başarısız" : "Sync failed",
+    syncComplete: isTr ? "Kuyruk senkronizasyonu tamamlandı." : "Queue sync completed.",
+    liveLabel: isTr ? "canlı" : "live",
+    // Status panel labels
+    labelMobileOps: isTr ? "Mobil saha operasyonu" : "Mobile field operation",
+    labelGateway: isTr ? "Hızlı Check-in Kapısı" : "Quick Check-in Gate",
+    labelOnline: isTr ? "Online" : "Online",
+    labelOffline: isTr ? "Offline" : "Offline",
+    labelActiveSession: isTr ? "Aktif Oturum" : "Active Session",
+    labelInstantAdmit: isTr ? "Anlık Kabul" : "Instant Admissions",
+    labelOfflineQueue: isTr ? "Offline Kuyruk" : "Offline Queue",
+    labelNotSelected: isTr ? "Seçilmedi" : "Not Selected",
+    // Metrics labels
+    labelGateFlow: isTr ? "Kapı Akışı" : "Gate Flow",
+    labelPerHour: isTr ? "/saat" : "/hr",
+    labelDispatchSuccess: isTr ? "Sevk Başarı" : "Dispatch Success",
+    labelMostActiveDesk: isTr ? "En Aktif Masası" : "Most Active Desk",
+    labelDuplicate: isTr ? "Tekrarlanan" : "Duplicate",
+    labelInvalidQrMetric: isTr ? "Geçersiz QR" : "Invalid QR",
+    labelCapacityAlarm: isTr ? "Sınır Alarmı" : "Capacity Alarm",
+    labelFillRateWarning: isTr ? "salon doluluk uyarısı!" : "hall capacity warning!",
+    // Plan gate
+    labelPlanFeature: isTr ? "Manuel check-in ve yoklama sistemi" : "Manual check-in and attendance system",
+    // Session selector
+    labelSelectSessionHeader: isTr ? "Giriş Yapılacak Oturumu Belirleyin" : "Select Check-in Session",
+    labelNoSessions: isTr ? "Etkinliğe henüz bir yoklama oturumu eklenmemiş." : "No attendance sessions have been added to this event yet.",
+    labelAddSession: isTr ? "Buradan yeni oturum ekle" : "Add a new session here",
+    labelAdmitCount: isTr ? "Kabul" : "Admissions",
+    // Check-in gate
+    labelGateHeader: isTr ? "Giriş Yetkilendirme Kapısı" : "Entry Authorization Gate",
+    labelOpenScanner: isTr ? "Canlı QR Tarayıcı Aç" : "Open Live QR Scanner",
+    labelCloseCamera: isTr ? "Kamerayı Kapat" : "Close Camera",
+    labelScannerHint: isTr ? "Bilet QR kodu, e-posta veya üye kimlik cüzdanı okutabilirsiniz." : "You can scan a ticket QR code, email, or member identity.",
+    labelEmailPlaceholder: isTr ? "Katılımcı kayıt e-posta adresini girin..." : "Enter attendee registration email...",
+    labelAdmitButton: isTr ? "Kabul Et (Check-in)" : "Admit (Check-in)",
+    // Offline sync panel
+    labelOfflinePanelHeader: isTr ? "Yerel Çevrimdışı Bellek Havuzu" : "Local Offline Memory Pool",
+    labelSyncQueue: isTr ? "Kuyruğu Eşitle" : "Sync Queue",
+    labelNoOfflineRecords: isTr ? "Cihaz hafızasında senkronizasyon bekleyen offline kayıt bulunmuyor." : "No offline records pending sync in device memory.",
+    labelTicketType: isTr ? "Bilet" : "Ticket",
+    labelEmailType: isTr ? "E-posta" : "Email",
+    labelAttempts: isTr ? "deneme" : "attempts",
+    // Log
+    labelLogHeader: isTr ? "Kapı Giriş Hareketleri Günlüğü" : "Gate Entry Movement Log",
+    labelClearLog: isTr ? "Temizle" : "Clear",
+    // Staff mode
+    labelOpsBack: isTr ? "Operasyon" : "Operations",
+    labelStaffMode: isTr ? "Görevli Modu" : "Staff Mode",
+  };
 
   const [eventName, setEventName] = useState("");
   const [sessions, setSessions] = useState<SessionOut[]>([]);
@@ -142,7 +212,7 @@ export default function AdminCheckinPage() {
         setPlanGateMessage(e.message);
         setError(null);
       } else {
-        setError(e.message || "Check-in ekranı yüklenemedi.");
+        setError(e.message || copy.loadError);
       }
     } finally {
       setLoading(false);
@@ -171,7 +241,7 @@ export default function AdminCheckinPage() {
               email: data.attendee_name || data.attendee_id,
               type: "manual" as CheckinType,
               success: true,
-              message: `✓ ${data.attendee_name || "—"} (canlı)`,
+              message: `✓ ${data.attendee_name || "—"} (${copy.liveLabel})`,
               time: new Date(data.checked_in_at).toLocaleTimeString("tr-TR"),
             },
             ...prev.slice(0, 49),
@@ -242,7 +312,7 @@ export default function AdminCheckinPage() {
           () => undefined,
         );
       } catch (err: any) {
-        if (!cancelled) setScannerError(err?.message || "Kamera başlatılamadı.");
+        if (!cancelled) setScannerError(err?.message || copy.cameraError);
       }
     }
 
@@ -283,7 +353,7 @@ export default function AdminCheckinPage() {
       type: entry.type,
       success: true,
       queued: true,
-      message: "Offline kuyruğa alındı. İnternet gelince senkronlanacak.",
+      message: copy.offlineQueued,
       time: new Date().toLocaleTimeString("tr-TR"),
     });
   }
@@ -293,7 +363,7 @@ export default function AdminCheckinPage() {
       const ticket = await checkInEventTicket(eventId, normalizeTicketToken(value));
       return { ok: true, message: `${ticket.attendee_name} bilet girişi onaylandı.` };
     }
-    if (!sessionId) throw new Error("Önce oturum seç.");
+    if (!sessionId) throw new Error(copy.sessionRequired);
     return adminManualCheckin(eventId, sessionId, value.trim());
   }
 
@@ -314,7 +384,7 @@ export default function AdminCheckinPage() {
       if (!navigator.onLine) {
         queueCheckin({ eventId, sessionId: selectedSession, type, value: clean });
       } else {
-        appendLog({ email: clean, type, success: false, message: e.message || "Check-in başarısız", time: now });
+        appendLog({ email: clean, type, success: false, message: e.message || copy.checkinFailed, time: now });
       }
     } finally {
       setSubmitting(false);
@@ -324,12 +394,12 @@ export default function AdminCheckinPage() {
   async function handleScannedValue(rawValue: string) {
     await stopScanner();
     setScannerOpen(false);
-    const scan = classifyScan(rawValue);
+    const scan = classifyScan(rawValue, copy);
     if (scan.type === "unsupported") {
       appendLog({
         email: scan.value,
         success: false,
-        message: scan.message || "QR okunamadı.",
+        message: scan.message || copy.qrUnreadable,
         time: new Date().toLocaleTimeString("tr-TR"),
       });
       return;
@@ -350,20 +420,20 @@ export default function AdminCheckinPage() {
           email: entry.value,
           type: entry.type,
           success: true,
-          message: "Offline kayıt senkronlandı.",
+          message: copy.offlineSynced,
           time: new Date().toLocaleTimeString("tr-TR"),
         });
       } catch (e: any) {
-        failed.unshift({ ...entry, attempts: entry.attempts + 1, lastError: e?.message || "Sync başarısız" });
+        failed.unshift({ ...entry, attempts: entry.attempts + 1, lastError: e?.message || copy.syncFailed });
       }
     }
     setOfflineQueue(failed);
     writeQueue(eventId, failed);
     if (synced > 0) {
       appendLog({
-        email: `${synced} kayıt`,
+        email: `${synced} ${isTr ? "kayıt" : "records"}`,
         success: true,
-        message: "Kuyruk senkronizasyonu tamamlandı.",
+        message: copy.syncComplete,
         time: new Date().toLocaleTimeString("tr-TR"),
       });
     }
@@ -403,15 +473,15 @@ export default function AdminCheckinPage() {
           <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-surface-200 bg-white p-3 shadow-card">
             <Link href={`/admin/events/${eventId}/ops`} className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-white px-3 text-xs font-bold text-surface-700 hover:bg-surface-50 active:scale-95">
               <ArrowLeft className="h-3.5 w-3.5 stroke-[2.5]" />
-              <span>Operasyon</span>
+              <span>{copy.labelOpsBack}</span>
             </Link>
-            <span className="inline-flex rounded-md border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-11 font-bold text-emerald-700 uppercase tracking-tight shadow-card animate-pulse">Görevli Modu</span>
+            <span className="inline-flex rounded-md border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-11 font-bold text-emerald-700 uppercase tracking-tight shadow-card animate-pulse">{copy.labelStaffMode}</span>
           </div>
         )}
 
         {/* PLAN GATE KORUMALARI */}
         {planOk === false && (
-          <PlanGateCard feature="Manuel check-in ve yoklama sistemi" serverMessage={planGateMessage} />
+          <PlanGateCard feature={copy.labelPlanFeature} serverMessage={planGateMessage} />
         )}
 
         {planOk !== false && (
@@ -421,8 +491,8 @@ export default function AdminCheckinPage() {
             <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="space-y-0.5">
-                  <p className="text-11 font-bold uppercase tracking-widest text-surface-400">Mobil saha operasyonu</p>
-                  <h1 className="text-lg font-bold tracking-tight text-surface-900 sm:text-xl">Hızlı Check-in Kapısı</h1>
+                  <p className="text-11 font-bold uppercase tracking-widest text-surface-400">{copy.labelMobileOps}</p>
+                  <h1 className="text-lg font-bold tracking-tight text-surface-900 sm:text-xl">{copy.labelGateway}</h1>
                   <p className="text-xs text-surface-400 font-medium truncate max-w-xs sm:max-w-md">{eventName}</p>
                 </div>
                 
@@ -431,12 +501,12 @@ export default function AdminCheckinPage() {
                     isOnline ? "border-emerald-100 bg-emerald-50 text-emerald-700" : "border-amber-100 bg-amber-50 text-amber-700"
                   }`}>
                     {isOnline ? <Wifi className="h-3.5 w-3.5 mr-1" /> : <WifiOff className="h-3.5 w-3.5 mr-1" />}
-                    <span>{isOnline ? "Online" : "Offline"}</span>
+                    <span>{isOnline ? copy.labelOnline : copy.labelOffline}</span>
                   </div>
                   {liveCount > 0 && (
                     <div className="inline-flex items-center gap-1 rounded-full border border-violet-100 bg-violet-50 px-2.5 py-0.5 text-11 font-bold text-violet-700">
                       <span className="h-1.5 w-1.5 rounded-full bg-violet-500 animate-ping inline-block" />
-                      <span>+{liveCount} canlı</span>
+                      <span>+{liveCount} {copy.liveLabel}</span>
                     </div>
                   )}
                 </div>
@@ -445,15 +515,15 @@ export default function AdminCheckinPage() {
               {/* HIZLI DURUM PENCERELERİ (Mini Matrix Grid) */}
               <div className="grid grid-cols-3 gap-2.5 text-center">
                 <div className="rounded-xl border border-surface-100 bg-surface-50 p-2.5">
-                  <p className="text-11 font-bold uppercase tracking-wider text-surface-400 truncate">Aktif Oturum</p>
-                  <p className="mt-0.5 text-xs font-bold text-surface-900 truncate">{selectedSessionObj?.name || "Seçilmedi"}</p>
+                  <p className="text-11 font-bold uppercase tracking-wider text-surface-400 truncate">{copy.labelActiveSession}</p>
+                  <p className="mt-0.5 text-xs font-bold text-surface-900 truncate">{selectedSessionObj?.name || copy.labelNotSelected}</p>
                 </div>
                 <div className="rounded-xl border border-surface-100 bg-surface-50 p-2.5">
-                  <p className="text-11 font-bold uppercase tracking-wider text-surface-400 truncate">Anlık Kabul</p>
+                  <p className="text-11 font-bold uppercase tracking-wider text-surface-400 truncate">{copy.labelInstantAdmit}</p>
                   <p className="mt-0.5 text-sm font-bold text-surface-900 font-mono tabular-nums">{todayAttendance}</p>
                 </div>
                 <div className="rounded-xl border border-surface-100 bg-surface-50 p-2.5">
-                  <p className="text-11 font-bold uppercase tracking-wider text-surface-400 truncate">Offline Kuyruk</p>
+                  <p className="text-11 font-bold uppercase tracking-wider text-surface-400 truncate">{copy.labelOfflineQueue}</p>
                   <p className="mt-0.5 text-sm font-bold text-surface-900 font-mono tabular-nums">{offlineQueue.length}</p>
                 </div>
               </div>
@@ -462,27 +532,27 @@ export default function AdminCheckinPage() {
               {metrics && (
                 <div className="grid gap-2.5 grid-cols-2 sm:grid-cols-3 md:grid-cols-6 pt-1">
                   <div className="rounded-xl border border-surface-100 bg-white p-2.5">
-                    <p className="text-11 font-bold uppercase tracking-wider text-surface-400">Kapı Akışı</p>
-                    <p className="mt-0.5 text-xs font-bold text-surface-900 font-mono">{metrics.last_hour}/saat</p>
+                    <p className="text-11 font-bold uppercase tracking-wider text-surface-400">{copy.labelGateFlow}</p>
+                    <p className="mt-0.5 text-xs font-bold text-surface-900 font-mono">{metrics.last_hour}{copy.labelPerHour}</p>
                   </div>
                   <div className="rounded-xl border border-surface-100 bg-white p-2.5">
-                    <p className="text-11 font-bold uppercase tracking-wider text-surface-400">Sevk Başarı</p>
+                    <p className="text-11 font-bold uppercase tracking-wider text-surface-400">{copy.labelDispatchSuccess}</p>
                     <p className="mt-0.5 text-xs font-bold text-surface-900 font-mono">{metrics.successful}/{metrics.total}</p>
                   </div>
                   <div className="rounded-xl border border-surface-100 bg-white p-2.5">
-                    <p className="text-11 font-bold uppercase tracking-wider text-surface-400">En Aktif Masası</p>
+                    <p className="text-11 font-bold uppercase tracking-wider text-surface-400">{copy.labelMostActiveDesk}</p>
                     <p className="mt-0.5 text-11 font-bold text-surface-900 truncate font-mono">{metrics.by_staff[0]?.email || "—"}</p>
                   </div>
                   <div className="rounded-xl border border-amber-100 bg-amber-50/20 p-2.5">
-                    <p className="text-11 font-bold uppercase tracking-wider text-amber-600">Tekrarlanan</p>
+                    <p className="text-11 font-bold uppercase tracking-wider text-amber-600">{copy.labelDuplicate}</p>
                     <p className="mt-0.5 text-xs font-bold text-amber-900 font-mono">{metrics.duplicate_count}</p>
                   </div>
                   <div className="rounded-xl border border-red-100 bg-red-50/20 p-2.5">
-                    <p className="text-11 font-bold uppercase tracking-wider text-red-500">Geçersiz QR</p>
+                    <p className="text-11 font-bold uppercase tracking-wider text-red-500">{copy.labelInvalidQrMetric}</p>
                     <p className="mt-0.5 text-xs font-bold text-red-600 font-mono">{metrics.invalid_count}</p>
                   </div>
                   <div className="rounded-xl border border-sky-100 bg-sky-50/20 p-2.5">
-                    <p className="text-11 font-bold uppercase tracking-wider text-sky-600">Sınır Alarmı</p>
+                    <p className="text-11 font-bold uppercase tracking-wider text-sky-600">{copy.labelCapacityAlarm}</p>
                     <p className="mt-0.5 text-xs font-bold text-sky-900 font-mono">{metrics.capacity_alerts.length}</p>
                   </div>
                 </div>
@@ -492,7 +562,7 @@ export default function AdminCheckinPage() {
               {metrics?.capacity_alerts?.length ? (
                 <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-3 text-11 font-semibold text-amber-800 flex items-center gap-1.5 animate-in fade-in duration-200">
                   <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
-                  <span>{metrics.capacity_alerts[0].session_name}: %{metrics.capacity_alerts[0].fill_rate} salon doluluk uyarısı!</span>
+                  <span>{metrics.capacity_alerts[0].session_name}: %{metrics.capacity_alerts[0].fill_rate} {copy.labelFillRateWarning}</span>
                 </div>
               ) : null}
             </div>
@@ -501,13 +571,13 @@ export default function AdminCheckinPage() {
 
             {/* ANA OTURUM SEÇME PANELİ */}
             <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card space-y-3">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900 border-b border-surface-100 pb-2.5">Giriş Yapılacak Oturumu Belirleyin</h2>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900 border-b border-surface-100 pb-2.5">{copy.labelSelectSessionHeader}</h2>
               <div className="space-y-2 max-h-48 overflow-y-auto scrollbar-none pr-0.5">
                 {sessions.length === 0 ? (
                   <p className="text-xs font-semibold text-surface-400 py-2">
-                    Etkinliğe henüz bir yoklama oturumu eklenmemiş.{" "}
+                    {copy.labelNoSessions}{" "}
                     <Link href={`/admin/events/${eventId}/sessions`} className="text-surface-900 underline underline-offset-2">
-                      Buradan yeni oturum ekle
+                      {copy.labelAddSession}
                     </Link>
                   </p>
                 ) : (
@@ -526,7 +596,7 @@ export default function AdminCheckinPage() {
                           </div>
                         </div>
                         <span className={`shrink-0 text-11 font-bold px-2 py-0.5 border rounded-md shadow-card ${isSessSel ? "border-gray-950 bg-surface-50 text-surface-900" : "border-surface-100 bg-surface-50 text-surface-400"}`}>
-                          {s.attendance_count} Kabul
+                          {s.attendance_count} {copy.labelAdmitCount}
                         </span>
                       </label>
                     );
@@ -541,12 +611,12 @@ export default function AdminCheckinPage() {
                 <div className="flex items-center justify-between gap-3 border-b border-surface-100 pb-2.5">
                   <div className="flex items-center gap-1.5">
                     <UserCheck className="h-4 w-4 text-surface-700 stroke-[2]" />
-                    <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">Giriş Yetkilendirme Kapısı</h2>
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.labelGateHeader}</h2>
                   </div>
-                  
+
                   <button type="button" onClick={() => setScannerOpen((v) => !v)} className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-white px-3 text-xs font-bold text-surface-700 shadow-card transition hover:bg-surface-50 active:scale-95">
                     <Camera className="h-3.5 w-3.5 text-surface-500 stroke-[1.8]" />
-                    <span>{scannerOpen ? "Kamerayı Kapat" : "Canlı QR Tarayıcı Aç"}</span>
+                    <span>{scannerOpen ? copy.labelCloseCamera : copy.labelOpenScanner}</span>
                   </button>
                 </div>
 
@@ -557,7 +627,7 @@ export default function AdminCheckinPage() {
                     {scannerError && <p className="mt-2 text-11 font-bold text-red-500 text-center">{scannerError}</p>}
                     <p className="mt-2.5 text-11 font-semibold text-surface-400 flex items-center justify-center gap-1">
                       <QrCode className="h-3.5 w-3.5" />
-                      <span>Bilet QR kodu, e-posta veya üye kimlik cüzdanı okutabilirsiniz.</span>
+                      <span>{copy.labelScannerHint}</span>
                     </p>
                   </div>
                 )}
@@ -571,7 +641,7 @@ export default function AdminCheckinPage() {
                       type="email" 
                       value={email} 
                       onChange={(e) => setEmail(e.target.value)} 
-                      placeholder="Katılımcı kayıt e-posta adresini girin..." 
+                      placeholder={copy.labelEmailPlaceholder}
                       required 
                       autoComplete="off" 
                       disabled={submitting}
@@ -584,7 +654,7 @@ export default function AdminCheckinPage() {
                     className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-lg bg-surface-900 px-5 text-xs font-bold text-white shadow-card transition hover:bg-surface-800 disabled:opacity-40 active:scale-[0.98]"
                   >
                     {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserCheck className="h-3.5 w-3.5 stroke-[2.5]" />}
-                    <span>Kabul Et (Check-in)</span>
+                    <span>{copy.labelAdmitButton}</span>
                   </button>
                 </form>
               </div>
@@ -595,11 +665,11 @@ export default function AdminCheckinPage() {
               <div className="flex items-center justify-between gap-3 border-b border-surface-100 pb-2.5">
                 <div className="flex items-center gap-1.5">
                   <RotateCcw className={`h-4 w-4 ${syncing ? "animate-spin text-surface-900" : "text-surface-400 stroke-[2]"}`} />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">Yerel Çevrimdışı Bellek Havuzu</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.labelOfflinePanelHeader}</h3>
                 </div>
                 <div className="flex gap-1.5">
                   <button type="button" onClick={() => void syncQueue()} disabled={!isOnline || syncing || offlineQueue.length === 0} className="rounded-lg border border-surface-200 bg-white px-2.5 py-1 text-11 font-bold text-surface-700 shadow-card hover:bg-surface-50 disabled:opacity-40">
-                    Kuyruğu Eşitle
+                    {copy.labelSyncQueue}
                   </button>
                   <button type="button" onClick={clearQueue} disabled={offlineQueue.length === 0} className="rounded-lg border border-red-100 bg-white px-2 py-1 text-11 font-bold text-red-600 shadow-card hover:bg-red-50 disabled:opacity-40">
                     <Trash2 className="h-3.5 w-3.5 stroke-[1.8]" />
@@ -610,14 +680,14 @@ export default function AdminCheckinPage() {
               {offlineQueue.length === 0 ? (
                 <p className="flex items-center gap-1.5 text-xs font-medium text-surface-400">
                   <Smartphone className="h-3.5 w-3.5 text-surface-300" />
-                  <span>Cihaz hafızasında senkronizasyon bekleyen offline kayıt bulunmuyor.</span>
+                  <span>{copy.labelNoOfflineRecords}</span>
                 </p>
               ) : (
                 <div className="max-h-40 divide-y divide-gray-100 overflow-y-auto pr-0.5 scrollbar-none font-mono text-11 font-medium text-surface-500">
                   {offlineQueue.map((item) => (
                     <div key={item.id} className="py-2 flex items-center justify-between gap-3">
-                      <span className="truncate text-surface-700"><strong className="font-sans text-11 uppercase text-surface-400 mr-1">{item.type === "ticket" ? "Bilet" : "E-posta"}:</strong> {item.value}</span>
-                      <span className="shrink-0 text-surface-400 font-sans font-bold">{item.attempts} deneme</span>
+                      <span className="truncate text-surface-700"><strong className="font-sans text-11 uppercase text-surface-400 mr-1">{item.type === "ticket" ? copy.labelTicketType : copy.labelEmailType}:</strong> {item.value}</span>
+                      <span className="shrink-0 text-surface-400 font-sans font-bold">{item.attempts} {copy.labelAttempts}</span>
                       {item.lastError && <p className="text-red-500 text-11 tracking-tight">{item.lastError}</p>}
                     </div>
                   ))}
@@ -631,9 +701,9 @@ export default function AdminCheckinPage() {
                 <div className="flex items-center justify-between border-b border-surface-100 bg-surface-50 px-4.5 py-3">
                   <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-surface-900">
                     <History className="h-3.5 w-3.5 text-surface-400 stroke-[2]" />
-                    <span>Kapı Giriş Hareketleri Günlüğü</span>
+                    <span>{copy.labelLogHeader}</span>
                   </h3>
-                  <button type="button" onClick={() => setLog([])} className="text-11 font-bold text-surface-400 hover:text-red-500 transition-colors">Temizle</button>
+                  <button type="button" onClick={() => setLog([])} className="text-11 font-bold text-surface-400 hover:text-red-500 transition-colors">{copy.labelClearLog}</button>
                 </div>
                 
                 <div className="max-h-80 divide-y divide-gray-100 overflow-y-auto scrollbar-none bg-white">

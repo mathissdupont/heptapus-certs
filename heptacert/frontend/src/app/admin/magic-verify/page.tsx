@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { apiFetch, setToken, clearToken } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 import { motion } from "framer-motion";
 import { Loader2, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
 import Link from "next/link";
@@ -10,32 +11,44 @@ import Link from "next/link";
 function MagicVerifyInner() {
   const params = useSearchParams();
   const router = useRouter();
+  const { lang } = useI18n();
+  const isTr = lang === "tr";
   const token = params.get("token");
 
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errMsg, setErrMsg] = useState("");
 
+  const copy = {
+    invalidLink:  isTr ? "Geçersiz bağlantı: token bulunamadı." : "Invalid link: token not found.",
+    tokenFailed:  isTr ? "Token alınamadı." : "Failed to retrieve token.",
+    linkInvalid:  isTr ? "Magic link geçersiz veya süresi dolmuş." : "Magic link is invalid or expired.",
+    verifying:    isTr ? "Magic Link Doğrulanıyor" : "Verifying Magic Link",
+    pleaseWait:   isTr ? "Lütfen bekleyin..." : "Please wait...",
+    loginSuccess: isTr ? "Giriş Başarılı!" : "Login Successful!",
+    redirecting:  isTr ? "Yönlendiriliyorsunuz..." : "Redirecting...",
+    verifyFailed: isTr ? "Doğrulama Başarısız" : "Verification Failed",
+    backToLogin:  isTr ? "Giriş Sayfasına Dön" : "Back to Login",
+  };
+
   useEffect(() => {
     if (!token) {
       setStatus("error");
-      setErrMsg("Geçersiz bağlantı: token bulunamadı.");
+      setErrMsg(copy.invalidLink);
       return;
     }
-
     (async () => {
       try {
         clearToken();
         const r = await apiFetch(`/auth/magic-link/verify?token=${encodeURIComponent(token)}`);
         const data = await r.json();
         const jwt = data?.access_token as string | undefined;
-        if (!jwt) throw new Error("Token alınamadı.");
+        if (!jwt) throw new Error(copy.tokenFailed);
         setToken(jwt);
         setStatus("success");
-        // Redirect after a brief success flash
         setTimeout(() => router.push("/admin/events"), 1200);
       } catch (e: any) {
         setStatus("error");
-        setErrMsg(e?.message || "Magic link geçersiz veya süresi dolmuş.");
+        setErrMsg(e?.message || copy.linkInvalid);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -53,8 +66,8 @@ function MagicVerifyInner() {
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50">
               <Sparkles className="h-7 w-7 text-amber-500 animate-pulse" />
             </div>
-            <h1 className="text-xl font-bold text-surface-900 mb-2">Magic Link Doğrulanıyor</h1>
-            <p className="text-sm text-surface-500 mb-6">Lütfen bekleyin...</p>
+            <h1 className="text-xl font-bold text-surface-900 mb-2">{copy.verifying}</h1>
+            <p className="text-sm text-surface-500 mb-6">{copy.pleaseWait}</p>
             <Loader2 className="h-8 w-8 animate-spin text-brand-500 mx-auto" />
           </>
         )}
@@ -64,8 +77,8 @@ function MagicVerifyInner() {
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50">
               <CheckCircle2 className="h-7 w-7 text-emerald-500" />
             </div>
-            <h1 className="text-xl font-bold text-surface-900 mb-2">Giriş Başarılı!</h1>
-            <p className="text-sm text-surface-500">Yönlendiriliyorsunuz...</p>
+            <h1 className="text-xl font-bold text-surface-900 mb-2">{copy.loginSuccess}</h1>
+            <p className="text-sm text-surface-500">{copy.redirecting}</p>
             <Loader2 className="h-5 w-5 animate-spin text-brand-500 mx-auto mt-4" />
           </>
         )}
@@ -75,10 +88,10 @@ function MagicVerifyInner() {
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50">
               <AlertCircle className="h-7 w-7 text-rose-500" />
             </div>
-            <h1 className="text-xl font-bold text-surface-900 mb-2">Doğrulama Başarısız</h1>
+            <h1 className="text-xl font-bold text-surface-900 mb-2">{copy.verifyFailed}</h1>
             <p className="text-sm text-surface-500 mb-6">{errMsg}</p>
             <Link href="/admin/login" className="btn-primary inline-flex justify-center gap-2 w-full py-3">
-              Giriş Sayfasına Dön
+              {copy.backToLogin}
             </Link>
           </>
         )}

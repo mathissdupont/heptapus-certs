@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
@@ -25,6 +25,7 @@ import PageHeader from "@/components/Admin/PageHeader";
 import AddAttendeeModal from "@/components/Admin/AddAttendeeModal";
 import ImportAttendeeModal from "@/components/Admin/ImportAttendeeModal";
 import { AnimatePresence, motion } from "framer-motion";
+import { useI18n } from "@/lib/i18n";
 
 type Tab = "list" | "matrix" | "answers";
 
@@ -54,6 +55,167 @@ type EventMicrosoftExcelStatus = {
 };
 
 export default function AdminAttendeesPage() {
+  const { lang } = useI18n();
+  const isTr = lang === "tr";
+  const copy = {
+    // Page header
+    pageTitle: isTr ? "Katılımcılar" : "Attendees",
+    minSessions: isTr ? "Minimum" : "Minimum",
+    sessions: isTr ? "oturum" : "sessions",
+
+    // Action buttons
+    addAttendee: isTr ? "Katılımcı Ekle" : "Add Attendee",
+    importAttendees: isTr ? "İçe Aktar" : "Import",
+    downloadExcel: isTr ? "Excel İndir" : "Download Excel",
+    downloadDocuments: isTr ? "Belgeler (ZIP)" : "Documents (ZIP)",
+    generateCertificate: isTr ? "Sertifika Üret" : "Generate Certificate",
+
+    // Tabs
+    tabList: isTr ? "Katılımcı Listesi" : "Attendee List",
+    tabMatrix: isTr ? "Yoklama Matrisi" : "Attendance Matrix",
+    tabAnswers: isTr ? "Soru Bazlı Cevaplar" : "Question-Based Answers",
+
+    // Search
+    searchPlaceholder: isTr ? "Ad, soyad veya e-posta sorgula..." : "Search by name or email...",
+    searchButton: isTr ? "Sorgula" : "Search",
+
+    // Table headers
+    thName: isTr ? "Ad Soyad" : "Full Name",
+    thEmail: isTr ? "E-posta" : "Email",
+    thSession: isTr ? "Oturum" : "Session",
+    thCertificate: isTr ? "Sertifika" : "Certificate",
+    thSurvey: isTr ? "Anket" : "Survey",
+
+    // Table cells / badges
+    sourceOwn: isTr ? "Kendi" : "Own",
+    sourceImport: isTr ? "İmport" : "Import",
+    surveyLinkCopied: isTr ? "Kopyalandı" : "Copied",
+    surveyLink: isTr ? "Anket Linki" : "Survey Link",
+    surveyLinkShort: isTr ? "Anket" : "Survey",
+
+    // Pagination
+    prevPage: isTr ? "← Önceki" : "← Previous",
+    nextPage: isTr ? "Sonraki →" : "Next →",
+
+    // Attendee count label
+    totalAttendees: (n: number) => isTr ? `${n} Toplam Katılımcı Kaydı` : `${n} Total Attendees`,
+
+    // Empty states
+    emptyTitle: isTr ? "Kayıtlı katılımcı bulunamadı" : "No attendees found",
+    emptyDescSearch: isTr ? "Arama kriterlerinize uygun katılımcı eşleşmesi sağlanamadı." : "No attendees match your search criteria.",
+    emptyDescDefault: isTr ? "Etkinliğe henüz bir kayıt gelmedi. Manuel ekleme veya Excel yükleme ile başlayabilirsiniz." : "No registrations yet. You can start by adding manually or uploading an Excel file.",
+
+    // Error messages in catch blocks
+    errRequiredFields: isTr ? "E-posta, ad ve soyad alanları zorunlu." : "Email, first name, and last name are required.",
+    successManualAdded: isTr ? "Katılımcı başarıyla eklendi." : "Attendee added successfully.",
+    errManualAdd: isTr ? "Manuel katılımcı eklenemedi." : "Failed to add attendee manually.",
+    errCopySurveyLink: isTr ? "Anket linki kopyalanamadı." : "Failed to copy survey link.",
+    errExport: isTr ? "Katılımcılar dışa aktarılamadı." : "Failed to export attendees.",
+    errExportDocuments: isTr ? "Belgeler toplu indirilemedi." : "Failed to download documents.",
+    errDownloadDocument: isTr ? "Belge indirilemedi." : "Failed to download document.",
+
+    // Google Sheets messages
+    errGoogleSheetsAuth: isTr ? "Google Sheets bağlantısı başlatılamadı." : "Failed to initiate Google Sheets connection.",
+    errGoogleSheetCreate: isTr ? "Google Sheet oluşturulamadı." : "Failed to create Google Sheet.",
+    errGoogleSheetSync: isTr ? "Google Sheet güncellenemedi." : "Failed to sync Google Sheet.",
+    errGoogleSheetDisconnect: isTr ? "Google Sheets bağlantısı kapatılamadı." : "Failed to disconnect Google Sheets.",
+
+    // Microsoft Excel messages
+    errMicrosoftExcelAuth: isTr ? "Microsoft Excel bağlantısı başlatılamadı." : "Failed to initiate Microsoft Excel connection.",
+    errMicrosoftExcelCreate: isTr ? "Microsoft Excel dosyası oluşturulamadı." : "Failed to create Microsoft Excel file.",
+    errMicrosoftExcelSync: isTr ? "Microsoft Excel dosyası güncellenemedi." : "Failed to sync Microsoft Excel file.",
+    errMicrosoftExcelDisconnect: isTr ? "Microsoft Excel bağlantısı kapatılamadı." : "Failed to disconnect Microsoft Excel.",
+
+    // Certificate
+    errBulkCertificate: isTr ? "Toplu sertifika üretimi başarısız." : "Bulk certificate generation failed.",
+
+    // Helper function values
+    noAnswer: isTr ? "Yanıt yok" : "No answer",
+    yes: isTr ? "Evet" : "Yes",
+    no: isTr ? "Hayır" : "No",
+
+    // Google Sheets integration card
+    googleSheetsTitle: isTr ? "Google Sheets Canlı Otomasyonu" : "Google Sheets Live Automation",
+    googleSheetsDesc: isTr ? "Kayıtlar anlık olarak Google E-Tablo dosyanıza satır bazında senkronize edilir." : "Registrations are synchronised row-by-row to your Google Spreadsheet in real time.",
+    googleChecking: isTr ? "Denetleniyor" : "Checking",
+    googleInactive: isTr ? "Google bağlantısı pasif" : "Google connection inactive",
+    googleLastSync: isTr ? "Son eşitleme:" : "Last synced:",
+    googleOAuthMissing: isTr ? "OAuth parametreleri eksik." : "OAuth parameters are missing.",
+    googleConnectBtn: isTr ? "Google Bağlantısı Kur" : "Connect Google",
+    googleOpenSheet: isTr ? "Tabloyu Aç" : "Open Sheet",
+    googleSync: isTr ? "Senkronla" : "Sync",
+    googleDisconnect: isTr ? "Bağlantıyı Kes" : "Disconnect",
+    googleCreateSheet: isTr ? "E-Tablo Oluştur" : "Create Spreadsheet",
+
+    // Microsoft Excel integration card
+    microsoftExcelTitle: isTr ? "Microsoft 365 Excel Otomasyonu" : "Microsoft 365 Excel Automation",
+    microsoftExcelDesc: isTr ? "OneDrive üzerindeki kurumsal çalışma kitabına katılımcı verilerini senkronize eder." : "Synchronises attendee data to the corporate workbook on OneDrive.",
+    microsoftChecking: isTr ? "Denetleniyor" : "Checking",
+    microsoftInactive: isTr ? "Microsoft bağlantısı pasif" : "Microsoft connection inactive",
+    microsoftLastSync: isTr ? "Son eşitleme:" : "Last synced:",
+    microsoftOAuthMissing: isTr ? "OAuth parametreleri eksik." : "OAuth parameters are missing.",
+    microsoftConnectBtn: isTr ? "Microsoft Bağlantısı Kur" : "Connect Microsoft",
+    microsoftOpenWorkbook: isTr ? "Tabloyu Aç" : "Open Workbook",
+    microsoftSync: isTr ? "Senkronla" : "Sync",
+    microsoftDisconnect: isTr ? "Bağlantıyı Kes" : "Disconnect",
+    microsoftCreateFile: isTr ? "Excel Dosyası Oluştur" : "Create Excel File",
+
+    // Answers tab
+    formQuestionsTitle: isTr ? "Form Soruları" : "Form Questions",
+    formQuestionsDesc: isTr ? "Sorgulamak istediğiniz kayıt form sorusunu işaretleyerek cevap matrisine odaklanın." : "Select the registration form question you want to query to focus on the answer matrix.",
+    sheetsHint: isTr ? "E-Tablo canlı senkronizasyonu sayfa başındaki araç kutularından tetiklenir." : "Live spreadsheet sync is triggered from the tool panels at the top of the page.",
+    noQuestionsEmpty: isTr ? "Bu etkinlik formunda özel soru tanımlı değil." : "No custom questions defined for this event form.",
+    fieldTypeTextarea: isTr ? "Uzun metin" : "Long text",
+    fieldTypeSelect: isTr ? "Çoktan seçmeli" : "Multiple choice",
+    fieldTypeFile: isTr ? "Dosya yükleme" : "File upload",
+    fieldTypeShort: isTr ? "Kısa cevap" : "Short answer",
+    selectedQuestionLabel: isTr ? "Seçili Form Sorusu" : "Selected Form Question",
+    selectQuestion: isTr ? "Soru seçin" : "Select a question",
+    answersDistribution: (n: number) => isTr ? `${n} katılımcı içindeki dağılım matrisi.` : `Distribution matrix among ${n} attendees.`,
+    noQuestionFound: isTr ? "İncelenecek form sorusu bulunamadı." : "No form question found to review.",
+    noAnswersFound: isTr ? "Katılımcılardan gelen ham cevap bulunmuyor." : "No raw answers from attendees.",
+    fileAnswerDrawer: isTr ? "📁 Dosya eki katılımcı profil kartından görüntülenebilir." : "📁 File attachment can be viewed from the attendee profile card.",
+
+    // Matrix tab
+    matrixDesc: isTr ? "Tüm oturumlar bazında anlık check-in durum dökümü." : "Real-time check-in status breakdown across all sessions.",
+    matrixRefresh: isTr ? "Yenile" : "Refresh",
+    matrixTotalPool: isTr ? "Toplam Havuz" : "Total Pool",
+    matrixPassedThreshold: isTr ? "Eşiği Başarıyla Geçen" : "Passed Threshold",
+    matrixCertified: isTr ? "Sertifikalandırılan" : "Certified",
+    matrixEligibleNotice: (n: number) => isTr ? `⚡ ${n} katılımcı baraj eşiğini geçti ama henüz sertifikası basılmadı.` : `⚡ ${n} attendees passed the threshold but have not been certified yet.`,
+    matrixProcessQueue: isTr ? "Kuyruğu İşle ve Üret" : "Process Queue and Generate",
+    matrixEmptyTitle: isTr ? "Matris için katılımcı bulunamadı" : "No attendees found for matrix",
+    matrixThName: isTr ? "Ad Soyad" : "Full Name",
+    matrixThTotal: isTr ? "Toplam Skal" : "Total Scale",
+    matrixThStatus: isTr ? "Durum" : "Status",
+    matrixStatusCertified: isTr ? "Sertifikalı" : "Certified",
+    matrixStatusEligible: isTr ? "✓ Hak Kazandı" : "✓ Eligible",
+
+    // Drawer (profile card)
+    drawerProfileLabel: isTr ? "Katılımcı Profil Kartı" : "Attendee Profile Card",
+    drawerRegistrationModel: isTr ? "Kayıt Modeli" : "Registration Model",
+    drawerRegistrationModelOwn: isTr ? "Kendi formu" : "Own form",
+    drawerRegistrationModelImport: isTr ? "Excel aktarım" : "Excel import",
+    drawerSessionsAttended: isTr ? "Katıldığı Oturum" : "Sessions Attended",
+    drawerCertStatus: isTr ? "Sertifika Durumu" : "Certificate Status",
+    drawerCertGenerated: isTr ? "Üretildi" : "Generated",
+    drawerCertNotGenerated: isTr ? "Üretilmedi" : "Not Generated",
+    drawerRegisteredAt: isTr ? "Kayıt Zamanı" : "Registration Time",
+    drawerMemberConnection: isTr ? "Entegre Kurum Üye Bağlantısı" : "Integrated Member Connection",
+    drawerFormAnswers: isTr ? "Kayıt Formu Soru Yanıtları" : "Registration Form Answers",
+    drawerSurveyLink: isTr ? "Kişisel Anket Linki" : "Personal Survey Link",
+    drawerDeleteAttendee: isTr ? "Katılımcı Kaydını Sil" : "Delete Attendee Record",
+
+    // Confirm modals
+    confirmDeleteTitle: isTr ? "Katılımcıyı sil" : "Delete Attendee",
+    confirmDeleteDesc: isTr ? "Bu katılımcı kaydını HeptaCert veritabanından kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz." : "Are you sure you want to permanently delete this attendee from the HeptaCert database? This action cannot be undone.",
+    confirmCertifyTitle: isTr ? "Toplu Sertifika Basım Onayı" : "Bulk Certificate Generation Confirmation",
+    confirmCertifyDesc: isTr ? "Yoklama baraj barajını başarıyla aşan tüm katılımcılar için sertifika basım iş kuyruğu (Bulk Queue) tetiklenecektir. Heptacoin harcamasını onaylıyor musunuz?" : "The bulk certificate generation job queue will be triggered for all attendees who have successfully passed the attendance threshold. Do you confirm the Heptacoin spend?",
+
+    // Plan gate
+    planGateFeature: isTr ? "Katılımcı yönetimi, yoklama matrisi ve toplu sertifika üretimi" : "Attendee management, attendance matrix, and bulk certificate generation",
+  };
+
   const params = useParams();
   const eventId = Number(params?.id);
 
@@ -291,7 +453,7 @@ export default function AdminAttendeesPage() {
     const lastName = manualLastName.trim();
 
     if (!email || !firstName || !lastName) {
-      setListError("E-posta, ad ve soyad alanları zorunlu.");
+      setListError(copy.errRequiredFields);
       return;
     }
 
@@ -305,10 +467,10 @@ export default function AdminAttendeesPage() {
       setManualEmail("");
       setManualFirstName("");
       setManualLastName("");
-      setManualResult("Katılımcı başarıyla eklendi.");
+      setManualResult(copy.successManualAdded);
       await loadAttendees(1, "");
     } catch (e: any) {
-      setListError(e.message || "Manuel katılımcı eklenemedi.");
+      setListError(e.message || copy.errManualAdd);
     } finally {
       setAddingManual(false);
     }
@@ -325,7 +487,7 @@ export default function AdminAttendeesPage() {
         setCopiedSurveyId((current) => (current === attendeeId ? null : current));
       }, 2200);
     } catch (e: any) {
-      setListError(e.message || "Anket linki kopyalanamadı.");
+      setListError(e.message || copy.errCopySurveyLink);
     } finally {
       setCopyingSurveyId(null);
     }
@@ -345,7 +507,7 @@ export default function AdminAttendeesPage() {
       anchor.remove();
       URL.revokeObjectURL(url);
     } catch (e: any) {
-      setListError(e.message || "Katılımcılar dışa aktarılamadı.");
+      setListError(e.message || copy.errExport);
     } finally {
       setExporting(false);
     }
@@ -365,7 +527,7 @@ export default function AdminAttendeesPage() {
       anchor.remove();
       URL.revokeObjectURL(url);
     } catch (e: any) {
-      setListError(e.message || "Belgeler toplu indirilemedi.");
+      setListError(e.message || copy.errExportDocuments);
     } finally {
       setExportingDocuments(false);
     }
@@ -386,7 +548,7 @@ export default function AdminAttendeesPage() {
       if (!data?.authorization_url) throw new Error("Google yetkilendirme adresi alınamadı.");
       window.location.href = data.authorization_url;
     } catch (e: any) {
-      setListError(e?.message || "Google Sheets bağlantısı başlatılamadı.");
+      setListError(e?.message || copy.errGoogleSheetsAuth);
     } finally {
       setSheetsAction(null);
     }
@@ -405,7 +567,7 @@ export default function AdminAttendeesPage() {
       anchor.remove();
       URL.revokeObjectURL(url);
     } catch (e: any) {
-      setListError(e.message || "Belge indirilemedi.");
+      setListError(e.message || copy.errDownloadDocument);
     }
   }
 
@@ -416,7 +578,7 @@ export default function AdminAttendeesPage() {
       const res = await apiFetch(`/admin/events/${eventId}/sheets/connect`, { method: "POST" });
       setSheetsStatus(await res.json());
     } catch (e: any) {
-      setListError(e?.message || "Google Sheet oluşturulamadı.");
+      setListError(e?.message || copy.errGoogleSheetCreate);
     } finally {
       setSheetsAction(null);
     }
@@ -429,7 +591,7 @@ export default function AdminAttendeesPage() {
       const res = await apiFetch(`/admin/events/${eventId}/sheets/sync`, { method: "POST" });
       setSheetsStatus(await res.json());
     } catch (e: any) {
-      setListError(e?.message || "Google Sheet güncellenemedi.");
+      setListError(e?.message || copy.errGoogleSheetSync);
     } finally {
       setSheetsAction(null);
     }
@@ -442,7 +604,7 @@ export default function AdminAttendeesPage() {
       const res = await apiFetch(`/admin/events/${eventId}/sheets`, { method: "DELETE" });
       setSheetsStatus(await res.json());
     } catch (e: any) {
-      setListError(e?.message || "Google Sheets bağlantısı kapatılamadı.");
+      setListError(e?.message || copy.errGoogleSheetDisconnect);
     } finally {
       setSheetsAction(null);
     }
@@ -463,7 +625,7 @@ export default function AdminAttendeesPage() {
       if (!data?.authorization_url) throw new Error("Microsoft yetkilendirme adresi alınamadı.");
       window.location.href = data.authorization_url;
     } catch (e: any) {
-      setListError(e?.message || "Microsoft Excel bağlantısı başlatılamadı.");
+      setListError(e?.message || copy.errMicrosoftExcelAuth);
     } finally {
       setExcelAction(null);
     }
@@ -476,7 +638,7 @@ export default function AdminAttendeesPage() {
       const res = await apiFetch(`/admin/events/${eventId}/microsoft-excel/connect`, { method: "POST" });
       setExcelStatus(await res.json());
     } catch (e: any) {
-      setListError(e?.message || "Microsoft Excel dosyası oluşturulamadı.");
+      setListError(e?.message || copy.errMicrosoftExcelCreate);
     } finally {
       setExcelAction(null);
     }
@@ -489,7 +651,7 @@ export default function AdminAttendeesPage() {
       const res = await apiFetch(`/admin/events/${eventId}/microsoft-excel/sync`, { method: "POST" });
       setExcelStatus(await res.json());
     } catch (e: any) {
-      setListError(e?.message || "Microsoft Excel dosyası güncellenemedi.");
+      setListError(e?.message || copy.errMicrosoftExcelSync);
     } finally {
       setExcelAction(null);
     }
@@ -502,7 +664,7 @@ export default function AdminAttendeesPage() {
       const res = await apiFetch(`/admin/events/${eventId}/microsoft-excel`, { method: "DELETE" });
       setExcelStatus(await res.json());
     } catch (e: any) {
-      setListError(e?.message || "Microsoft Excel bağlantısı kapatılamadı.");
+      setListError(e?.message || copy.errMicrosoftExcelDisconnect);
     } finally {
       setExcelAction(null);
     }
@@ -536,7 +698,7 @@ export default function AdminAttendeesPage() {
           break;
         }
         if (status.status === "failed") {
-          setCertResult(`❌ ${status.error_message || "Toplu sertifika üretimi başarısız."}`);
+          setCertResult(`❌ ${status.error_message || copy.errBulkCertificate}`);
           break;
         }
         if (status.status === "cancelled") {
@@ -558,7 +720,7 @@ export default function AdminAttendeesPage() {
   const totalPages = Math.ceil(total / limit);
   const eligibleCount = matrix ? matrix.rows.filter((r) => r.meets_threshold && !r.has_certificate).length : 0;
   const hasFileRegistrationField = registrationFields.some((field) => field.type === "file");
-  
+
   const getRegistrationPreview = useCallback((attendee: AttendeeOut) => {
     const fieldPreview = registrationFields
       .map((field) => {
@@ -585,12 +747,12 @@ export default function AdminAttendeesPage() {
   }, [registrationFields]);
 
   const formatAnswerValue = useCallback((value: unknown) => {
-    if (value == null || value === "") return "Yanıt yok";
-    if (Array.isArray(value)) return value.length ? value.map((item) => String(item)).join(", ") : "Yanıt yok";
-    if (typeof value === "boolean") return value ? "Evet" : "Hayır";
+    if (value == null || value === "") return copy.noAnswer;
+    if (Array.isArray(value)) return value.length ? value.map((item) => String(item)).join(", ") : copy.noAnswer;
+    if (typeof value === "boolean") return value ? copy.yes : copy.no;
     if (typeof value === "object") return JSON.stringify(value);
     return String(value);
-  }, []);
+  }, [copy.noAnswer, copy.yes, copy.no]);
 
   const answerQuestionStats = useMemo(
     () =>
@@ -605,7 +767,7 @@ export default function AdminAttendeesPage() {
   );
 
   const selectedQuestion = registrationFields.find((field) => field.id === selectedQuestionId) || registrationFields[0] || null;
-  
+
   const selectedQuestionAnswers = selectedQuestion
     ? answerAttendees.map((attendee) => ({
         attendee,
@@ -615,14 +777,14 @@ export default function AdminAttendeesPage() {
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-5 pb-16 px-4 sm:px-6 antialiased text-surface-900 w-full">
-      
+
       {/* 1. ÜST NAVİGASYON */}
       <EventAdminNav eventId={eventId} eventName={eventName} active="attendees" className="mb-2" />
 
       {/* PLAN GATE KORUMASI */}
       {planOk === false && (
         <PlanGateCard
-          feature="Katılımcı yönetimi, yoklama matrisi ve toplu sertifika üretimi"
+          feature={copy.planGateFeature}
           serverMessage={planGateMessage}
         />
       )}
@@ -631,29 +793,29 @@ export default function AdminAttendeesPage() {
         <>
           {/* Page header */}
           <PageHeader
-            title="Katılımcılar"
-            subtitle={`${eventName} · Minimum ${minSessions} oturum`}
+            title={copy.pageTitle}
+            subtitle={`${eventName} · ${copy.minSessions} ${minSessions} ${copy.sessions}`}
             actions={
               <div className="flex flex-wrap items-center gap-2">
                 <button type="button" onClick={() => setAddModalOpen(true)} className="btn-secondary text-xs">
-                  <UserPlus className="h-3.5 w-3.5" /> Katılımcı Ekle
+                  <UserPlus className="h-3.5 w-3.5" /> {copy.addAttendee}
                 </button>
                 <button type="button" onClick={() => setImportModalOpen(true)} className="btn-secondary text-xs">
-                  <Upload className="h-3.5 w-3.5" /> İçe Aktar
+                  <Upload className="h-3.5 w-3.5" /> {copy.importAttendees}
                 </button>
                 <button type="button" onClick={() => void handleExportAttendance("xlsx")} disabled={exporting} className="btn-secondary text-xs disabled:opacity-40">
                   {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-                  Excel İndir
+                  {copy.downloadExcel}
                 </button>
                 {hasFileRegistrationField && (
                   <button type="button" onClick={() => void handleExportRegistrationDocuments()} disabled={exportingDocuments} className="btn-secondary text-xs disabled:opacity-40">
                     {exportingDocuments ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-                    Belgeler (ZIP)
+                    {copy.downloadDocuments}
                   </button>
                 )}
                 <button type="button" onClick={handleBulkCertify} disabled={certifying} className="btn-primary text-xs disabled:opacity-40">
                   {certifying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Award className="h-3.5 w-3.5" />}
-                  Sertifika Üret
+                  {copy.generateCertificate}
                 </button>
               </div>
             }
@@ -674,19 +836,19 @@ export default function AdminAttendeesPage() {
                   <FileSpreadsheet className="h-4 w-4 stroke-[2]" />
                 </div>
                 <div className="min-w-0 space-y-0.5">
-                  <h2 className="text-xs font-bold text-surface-900 tracking-tight">Google Sheets Canlı Otomasyonu</h2>
-                  <p className="text-11 leading-relaxed text-surface-400 max-w-md">Kayıtlar anlık olarak Google E-Tablo dosyanıza satır bazında senkronize edilir.</p>
-                  
+                  <h2 className="text-xs font-bold text-surface-900 tracking-tight">{copy.googleSheetsTitle}</h2>
+                  <p className="text-11 leading-relaxed text-surface-400 max-w-md">{copy.googleSheetsDesc}</p>
+
                   <div className="pt-1 flex flex-wrap items-center gap-2 text-11 font-bold text-surface-400">
                     {sheetsLoading ? (
-                      <span className="inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Denetleniyor</span>
+                      <span className="inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> {copy.googleChecking}</span>
                     ) : sheetsStatus?.google_email ? (
                       <span className="rounded-md bg-emerald-50 border border-emerald-100/50 px-1.5 py-0.5 text-emerald-700">{sheetsStatus.google_email}</span>
                     ) : (
-                      <span className="text-surface-300">Google bağlantısı pasif</span>
+                      <span className="text-surface-300">{copy.googleInactive}</span>
                     )}
                     {sheetsStatus?.last_synced_at && (
-                      <span>Son eşitleme: {new Date(sheetsStatus.last_synced_at).toLocaleDateString("tr-TR", { hour: "2-digit", minute: "2-digit" })}</span>
+                      <span>{copy.googleLastSync} {new Date(sheetsStatus.last_synced_at).toLocaleDateString("tr-TR", { hour: "2-digit", minute: "2-digit" })}</span>
                     )}
                   </div>
                 </div>
@@ -695,7 +857,7 @@ export default function AdminAttendeesPage() {
               {/* Google Buton Kontrolleri */}
               <div className="shrink-0 flex items-center justify-end w-full sm:w-auto">
                 {!sheetsStatus?.google_configured ? (
-                  <div className="rounded-lg border border-amber-100 bg-amber-50/50 px-2.5 py-1.5 text-11 font-semibold text-amber-700">OAuth parametreleri eksik.</div>
+                  <div className="rounded-lg border border-amber-100 bg-amber-50/50 px-2.5 py-1.5 text-11 font-semibold text-amber-700">{copy.googleOAuthMissing}</div>
                 ) : !sheetsStatus?.google_connected ? (
                   <button
                     type="button"
@@ -704,23 +866,23 @@ export default function AdminAttendeesPage() {
                     className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white shadow-card transition hover:bg-emerald-700 disabled:opacity-50"
                   >
                     {sheetsAction === "auth" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5 stroke-[2]" />}
-                    <span>Google Bağlantısı Kur</span>
+                    <span>{copy.googleConnectBtn}</span>
                   </button>
                 ) : sheetsStatus.enabled && sheetsStatus.spreadsheet_url ? (
                   <div className="flex items-center gap-1.5 w-full sm:w-auto">
                     <a href={sheetsStatus.spreadsheet_url} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 text-11 font-semibold text-surface-700 shadow-card hover:bg-surface-50">
-                      <ExternalLink className="h-3 w-3" /> Tabloyu Aç
+                      <ExternalLink className="h-3 w-3" /> {copy.googleOpenSheet}
                     </a>
                     <button type="button" onClick={handleSyncGoogleSheet} disabled={Boolean(sheetsAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 text-11 font-semibold text-surface-700 shadow-card hover:bg-surface-50 disabled:opacity-40">
-                      {sheetsAction === "sync" ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />} Senkronla
+                      {sheetsAction === "sync" ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />} {copy.googleSync}
                     </button>
                     <button type="button" onClick={handleDisconnectGoogleSheet} disabled={Boolean(sheetsAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-red-100 bg-white px-2.5 text-11 font-semibold text-red-600 shadow-card hover:bg-red-50 disabled:opacity-40">
-                      <Unplug className="h-3 w-3" /> Bağlantıyı Kes
+                      <Unplug className="h-3 w-3" /> {copy.googleDisconnect}
                     </button>
                   </div>
                 ) : (
                   <button type="button" onClick={handleCreateGoogleSheet} disabled={Boolean(sheetsAction)} className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white shadow-card transition hover:bg-emerald-700 disabled:opacity-50">
-                    <FileSpreadsheet className="h-3.5 w-3.5 stroke-[2]" /> E-Tablo Oluştur
+                    <FileSpreadsheet className="h-3.5 w-3.5 stroke-[2]" /> {copy.googleCreateSheet}
                   </button>
                 )}
               </div>
@@ -732,18 +894,18 @@ export default function AdminAttendeesPage() {
                   <FileSpreadsheet className="h-4 w-4 stroke-[2]" />
                 </div>
                 <div className="min-w-0 space-y-0.5">
-                  <h2 className="text-xs font-bold text-surface-900 tracking-tight">Microsoft 365 Excel Otomasyonu</h2>
-                  <p className="text-11 leading-relaxed text-surface-400 max-w-md">OneDrive üzerindeki kurumsal çalışma kitabına katılımcı verilerini senkronize eder.</p>
+                  <h2 className="text-xs font-bold text-surface-900 tracking-tight">{copy.microsoftExcelTitle}</h2>
+                  <p className="text-11 leading-relaxed text-surface-400 max-w-md">{copy.microsoftExcelDesc}</p>
                   <div className="pt-1 flex flex-wrap items-center gap-2 text-11 font-bold text-surface-400">
                     {excelLoading ? (
-                      <span className="inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Denetleniyor</span>
+                      <span className="inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> {copy.microsoftChecking}</span>
                     ) : excelStatus?.microsoft_email ? (
                       <span className="rounded-md bg-sky-50 border border-sky-100/50 px-1.5 py-0.5 text-sky-700">{excelStatus.microsoft_email}</span>
                     ) : (
-                      <span className="text-surface-300">Microsoft bağlantısı pasif</span>
+                      <span className="text-surface-300">{copy.microsoftInactive}</span>
                     )}
                     {excelStatus?.last_synced_at && (
-                      <span>Son eşitleme: {new Date(excelStatus.last_synced_at).toLocaleDateString("tr-TR", { hour: "2-digit", minute: "2-digit" })}</span>
+                      <span>{copy.microsoftLastSync} {new Date(excelStatus.last_synced_at).toLocaleDateString("tr-TR", { hour: "2-digit", minute: "2-digit" })}</span>
                     )}
                   </div>
                 </div>
@@ -751,7 +913,7 @@ export default function AdminAttendeesPage() {
 
               <div className="shrink-0 flex items-center justify-end w-full sm:w-auto">
                 {!excelStatus?.ms365_configured ? (
-                  <div className="rounded-lg border border-amber-100 bg-amber-50/50 px-2.5 py-1.5 text-11 font-semibold text-amber-700">OAuth parametreleri eksik.</div>
+                  <div className="rounded-lg border border-amber-100 bg-amber-50/50 px-2.5 py-1.5 text-11 font-semibold text-amber-700">{copy.microsoftOAuthMissing}</div>
                 ) : !excelStatus?.ms365_connected ? (
                   <button
                     type="button"
@@ -760,24 +922,24 @@ export default function AdminAttendeesPage() {
                     className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-sky-600 px-3 text-xs font-semibold text-white shadow-card transition hover:bg-sky-700 disabled:opacity-50"
                   >
                     {excelAction === "auth" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5 stroke-[2]" />}
-                    <span>Microsoft Bağlantısı Kur</span>
+                    <span>{copy.microsoftConnectBtn}</span>
                   </button>
                 ) : excelStatus.enabled && excelStatus.workbook_url ? (
                   <div className="flex items-center gap-1.5 w-full sm:w-auto">
                     <a href={excelStatus.workbook_url} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 text-11 font-semibold text-surface-700 shadow-card hover:bg-surface-50">
-                      <ExternalLink className="h-3 w-3" /> Tabloyu Aç
+                      <ExternalLink className="h-3 w-3" /> {copy.microsoftOpenWorkbook}
                     </a>
                     <button type="button" onClick={handleSyncMicrosoftExcel} disabled={Boolean(excelAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 text-11 font-semibold text-surface-700 shadow-card hover:bg-surface-50 disabled:opacity-40">
-                      {excelAction === "sync" ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />} Senkronla
+                      {excelAction === "sync" ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />} {copy.microsoftSync}
                     </button>
                     <button type="button" onClick={handleDisconnectMicrosoftExcel} disabled={Boolean(excelAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-red-100 bg-white px-2.5 text-11 font-semibold text-red-600 shadow-card hover:bg-red-50 disabled:opacity-40">
-                      <Unplug className="h-3 w-3" /> Bağlantıyı Kes
+                      <Unplug className="h-3 w-3" /> {copy.microsoftDisconnect}
                     </button>
                   </div>
                 ) : (
                   <button type="button" onClick={handleCreateMicrosoftExcel} disabled={Boolean(excelAction)} className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-sky-600 px-3 text-xs font-semibold text-white shadow-card transition hover:bg-sky-700 disabled:opacity-50">
                     {excelAction === "connect" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5 stroke-[2]" />}
-                    <span>Excel Dosyası Oluştur</span>
+                    <span>{copy.microsoftCreateFile}</span>
                   </button>
                 )}
               </div>
@@ -788,9 +950,9 @@ export default function AdminAttendeesPage() {
           <div className="overflow-x-auto scrollbar-none">
             <div className="flex min-w-max gap-1 rounded-xl border border-surface-200 bg-surface-50 p-1 lg:min-w-0">
               {[
-                { id: "list" as const, label: "Katılımcı Listesi", icon: Users },
-                { id: "matrix" as const, label: "Yoklama Matrisi", icon: BarChart3 },
-                { id: "answers" as const, label: "Soru Bazlı Cevaplar", icon: ClipboardList },
+                { id: "list" as const, label: copy.tabList, icon: Users },
+                { id: "matrix" as const, label: copy.tabMatrix, icon: BarChart3 },
+                { id: "answers" as const, label: copy.tabAnswers, icon: ClipboardList },
               ].map((item) => {
                 const isAct = tab === item.id;
                 const Icon = item.icon;
@@ -821,10 +983,10 @@ export default function AdminAttendeesPage() {
                 <FilterActionBar
                   search={search}
                   onSearchChange={setSearch}
-                  searchPlaceholder="Ad, soyad veya e-posta sorgula..."
+                  searchPlaceholder={copy.searchPlaceholder}
                   hasActiveFilters={Boolean(search.trim())}
                   onClear={() => setSearch("")}
-                  actions={<button type="submit" className="inline-flex min-h-[38px] items-center justify-center rounded-lg bg-surface-900 px-5 text-xs font-semibold text-white hover:bg-surface-800 transition-all shadow-card">Sorgula</button>}
+                  actions={<button type="submit" className="inline-flex min-h-[38px] items-center justify-center rounded-lg bg-surface-900 px-5 text-xs font-semibold text-white hover:bg-surface-800 transition-all shadow-card">{copy.searchButton}</button>}
                 />
               </form>
 
@@ -836,23 +998,23 @@ export default function AdminAttendeesPage() {
               ) : attendees.length === 0 ? (
                 <AdminEmptyState
                   icon={<Users className="h-5 w-5 stroke-[1.8]" />}
-                  title="Kayıtlı katılımcı bulunamadı"
-                  description={search.trim() ? "Arama kriterlerinize uygun katılımcı eşleşmesi sağlanamadı." : "Etkinliğe henüz bir kayıt gelmedi. Manuel ekleme veya Excel yükleme ile başlayabilirsiniz."}
+                  title={copy.emptyTitle}
+                  description={search.trim() ? copy.emptyDescSearch : copy.emptyDescDefault}
                   className="border-surface-200 bg-white py-12"
                 />
               ) : (
                 <div className="space-y-2">
-                  <span className="text-11 font-bold text-surface-400 tracking-wide uppercase px-0.5">{total} Toplam Katılımcı Kaydı</span>
+                  <span className="text-11 font-bold text-surface-400 tracking-wide uppercase px-0.5">{copy.totalAttendees(total)}</span>
                   <div className="w-full overflow-hidden rounded-xl border border-surface-200 bg-white shadow-card">
                     <div className="overflow-x-auto scrollbar-none">
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr className="border-b border-surface-100 bg-surface-50">
-                            <th className="px-5 py-3 text-11 font-semibold uppercase tracking-wider text-surface-400 select-none">Ad Soyad</th>
-                            <th className="px-5 py-3 text-11 font-semibold uppercase tracking-wider text-surface-400 select-none hidden sm:table-cell">E-posta</th>
-                            <th className="text-center px-5 py-3 text-11 font-semibold uppercase tracking-wider text-surface-400 select-none">Oturum</th>
-                            <th className="text-center px-5 py-3 text-11 font-semibold uppercase tracking-wider text-surface-400 select-none">Sertifika</th>
-                            <th className="text-center px-5 py-3 text-11 font-semibold uppercase tracking-wider text-surface-400 select-none hidden lg:table-cell">Anket</th>
+                            <th className="px-5 py-3 text-11 font-semibold uppercase tracking-wider text-surface-400 select-none">{copy.thName}</th>
+                            <th className="px-5 py-3 text-11 font-semibold uppercase tracking-wider text-surface-400 select-none hidden sm:table-cell">{copy.thEmail}</th>
+                            <th className="text-center px-5 py-3 text-11 font-semibold uppercase tracking-wider text-surface-400 select-none">{copy.thSession}</th>
+                            <th className="text-center px-5 py-3 text-11 font-semibold uppercase tracking-wider text-surface-400 select-none">{copy.thCertificate}</th>
+                            <th className="text-center px-5 py-3 text-11 font-semibold uppercase tracking-wider text-surface-400 select-none hidden lg:table-cell">{copy.thSurvey}</th>
                             <th className="px-5 py-3" />
                           </tr>
                         </thead>
@@ -864,7 +1026,7 @@ export default function AdminAttendeesPage() {
                                   {a.name}
                                 </button>
                                 <span className={`ml-2 text-11 font-bold border rounded px-1.5 py-0.5 uppercase tracking-tight ${a.source === "self_register" ? "border-blue-100 bg-blue-50/50 text-blue-600" : "border-surface-100 bg-surface-50 text-surface-400"}`}>
-                                  {a.source === "self_register" ? "Kendi" : "İmport"}
+                                  {a.source === "self_register" ? copy.sourceOwn : copy.sourceImport}
                                 </span>
                                 {a.public_member_name && (
                                   <span className="ml-2 inline-flex items-center rounded bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 text-11 font-bold text-emerald-700 font-mono">
@@ -897,13 +1059,13 @@ export default function AdminAttendeesPage() {
                                   className="inline-flex h-7 items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-white px-2.5 text-11 font-bold text-surface-700 shadow-card transition hover:bg-surface-50 disabled:opacity-50"
                                 >
                                   {copyingSurveyId === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : copiedSurveyId === a.id ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> : <Link2 className="w-3 h-3 text-surface-400" />}
-                                  <span>{copiedSurveyId === a.id ? "Kopyalandı" : "Anket Linki"}</span>
+                                  <span>{copiedSurveyId === a.id ? copy.surveyLinkCopied : copy.surveyLink}</span>
                                 </button>
                               </td>
                               <td className="px-5 py-3 text-right">
                                 <div className="flex items-center justify-end gap-1">
                                   <button type="button" onClick={() => void handleCopySurveyLink(a.id)} disabled={copyingSurveyId === a.id} className="inline-flex items-center gap-1 rounded-lg border border-surface-200 bg-white px-2 py-1 text-11 font-semibold text-surface-500 hover:bg-surface-50 lg:hidden">
-                                    <span>{copiedSurveyId === a.id ? "Kopyalandı" : "Anket"}</span>
+                                    <span>{copiedSurveyId === a.id ? copy.surveyLinkCopied : copy.surveyLinkShort}</span>
                                   </button>
                                   <button type="button" onClick={() => handleDelete(a.id)} disabled={deletingId === a.id} className="p-1.5 rounded-lg text-surface-400 hover:bg-red-50 hover:text-red-500 transition-all active:scale-90">
                                     {deletingId === a.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5 stroke-[1.8]" />}
@@ -916,13 +1078,13 @@ export default function AdminAttendeesPage() {
                       </table>
                     </div>
                   </div>
-                  
+
                   {/* Satır Sayfalama Düzeni */}
                   {totalPages > 1 && (
                     <div className="mt-4 flex items-center justify-center gap-3 text-xs text-surface-400 font-semibold tracking-tight">
-                      <button onClick={() => loadAttendees(page - 1)} disabled={page === 1} className="flex h-7 px-2.5 items-center justify-center rounded-lg border border-surface-100 bg-white text-surface-400 transition-all hover:text-surface-900 disabled:opacity-30 shadow-card">← Önceki</button>
+                      <button onClick={() => loadAttendees(page - 1)} disabled={page === 1} className="flex h-7 px-2.5 items-center justify-center rounded-lg border border-surface-100 bg-white text-surface-400 transition-all hover:text-surface-900 disabled:opacity-30 shadow-card">{copy.prevPage}</button>
                       <span>{page} / {totalPages}</span>
-                      <button onClick={() => loadAttendees(page + 1)} disabled={page === totalPages} className="flex h-7 px-2.5 items-center justify-center rounded-lg border border-surface-100 bg-white text-surface-400 transition-all hover:text-surface-900 disabled:opacity-30 shadow-card">Sonraki →</button>
+                      <button onClick={() => loadAttendees(page + 1)} disabled={page === totalPages} className="flex h-7 px-2.5 items-center justify-center rounded-lg border border-surface-100 bg-white text-surface-400 transition-all hover:text-surface-900 disabled:opacity-30 shadow-card">{copy.nextPage}</button>
                     </div>
                   )}
                 </div>
@@ -938,9 +1100,9 @@ export default function AdminAttendeesPage() {
                 <div className="flex items-start justify-between gap-3 border-b border-surface-100 pb-2.5">
                   <div className="min-w-0">
                     <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900 flex items-center gap-1.5">
-                      <ClipboardList className="h-4 w-4 text-surface-700 stroke-[2]" /> Form Soruları
+                      <ClipboardList className="h-4 w-4 text-surface-700 stroke-[2]" /> {copy.formQuestionsTitle}
                     </h2>
-                    <p className="mt-1 text-11 leading-relaxed text-surface-400">Sorgulamak istediğiniz kayıt form sorusunu işaretleyerek cevap matrisine odaklanın.</p>
+                    <p className="mt-1 text-11 leading-relaxed text-surface-400">{copy.formQuestionsDesc}</p>
                   </div>
                   <button type="button" onClick={() => void loadQuestionAnswers()} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-surface-100 bg-surface-50 text-surface-400 hover:text-surface-900 transition-all shadow-card">
                     <RefreshCw className="h-3 w-3 stroke-[2]" />
@@ -948,11 +1110,11 @@ export default function AdminAttendeesPage() {
                 </div>
 
                 <div className="rounded-xl border border-emerald-100 bg-emerald-50/20 p-3 text-11 font-medium text-emerald-800 leading-normal">
-                  E-Tablo canlı senkronizasyonu sayfa başındaki araç kutularından tetiklenir.
+                  {copy.sheetsHint}
                 </div>
 
                 {registrationFields.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-surface-200 px-4 py-8 text-center text-xs font-semibold text-surface-400">Bu etkinlik formunda özel soru tanımlı değil.</div>
+                  <div className="rounded-xl border border-dashed border-surface-200 px-4 py-8 text-center text-xs font-semibold text-surface-400">{copy.noQuestionsEmpty}</div>
                 ) : (
                   <div className="space-y-1 max-h-[380px] overflow-y-auto scrollbar-none">
                     {answerQuestionStats.map(({ field, answeredCount }) => (
@@ -973,7 +1135,7 @@ export default function AdminAttendeesPage() {
                           </span>
                         </div>
                         <p className={`text-11 font-medium mt-1 ${selectedQuestion?.id === field.id ? "text-white/60" : "text-surface-400"}`}>
-                          {field.type === "textarea" ? "Uzun metin" : field.type === "select" ? "Çoktan seçmeli" : field.type === "file" ? "Dosya yükleme" : "Kısa cevap"}
+                          {field.type === "textarea" ? copy.fieldTypeTextarea : field.type === "select" ? copy.fieldTypeSelect : field.type === "file" ? copy.fieldTypeFile : copy.fieldTypeShort}
                         </p>
                       </button>
                     ))}
@@ -984,9 +1146,9 @@ export default function AdminAttendeesPage() {
               {/* Sağ Taraf: Katılımcı Cevap Satırları Akışı */}
               <div className="rounded-xl border border-surface-200 bg-white shadow-card">
                 <div className="border-b border-surface-100 px-5 py-4 bg-white">
-                  <p className="text-11 font-bold uppercase tracking-widest text-surface-400">Seçili Form Sorusu</p>
-                  <h3 className="mt-1 text-sm font-bold tracking-tight text-surface-900">{selectedQuestion?.label || "Soru seçin"}</h3>
-                  <p className="text-11 font-medium text-surface-400">{answerAttendees.length} katılımcı içindeki dağılım matrisi.</p>
+                  <p className="text-11 font-bold uppercase tracking-widest text-surface-400">{copy.selectedQuestionLabel}</p>
+                  <h3 className="mt-1 text-sm font-bold tracking-tight text-surface-900">{selectedQuestion?.label || copy.selectQuestion}</h3>
+                  <p className="text-11 font-medium text-surface-400">{copy.answersDistribution(answerAttendees.length)}</p>
                 </div>
 
                 {answersError && <div className="m-4 rounded-xl border border-red-100 bg-red-50/40 p-3 text-xs font-semibold text-red-600">{answersError}</div>}
@@ -994,9 +1156,9 @@ export default function AdminAttendeesPage() {
                 {loadingAnswers ? (
                   <div className="flex items-center justify-center py-14"><Loader2 className="h-6 h-6 animate-spin text-surface-400 stroke-[2.5]" /></div>
                 ) : !selectedQuestion ? (
-                  <div className="py-14 text-center text-xs font-semibold text-surface-400 tracking-tight">İncelenecek form sorusu bulunamadı.</div>
+                  <div className="py-14 text-center text-xs font-semibold text-surface-400 tracking-tight">{copy.noQuestionFound}</div>
                 ) : selectedQuestionAnswers.length === 0 ? (
-                  <div className="py-14 text-center text-xs font-semibold text-surface-400 tracking-tight">Katılımcılardan gelen ham cevap bulunmuyor.</div>
+                  <div className="py-14 text-center text-xs font-semibold text-surface-400 tracking-tight">{copy.noAnswersFound}</div>
                 ) : (
                   <div className="divide-y divide-surface-100 bg-white">
                     {selectedQuestionAnswers.map(({ attendee, value }) => {
@@ -1011,7 +1173,7 @@ export default function AdminAttendeesPage() {
                           </div>
                           <div className={`rounded-xl border border-surface-100/70 px-4 py-2.5 text-xs font-medium leading-relaxed ${hasAnswer ? "bg-surface-50/50 text-surface-700" : "bg-surface-50/20 text-surface-300 italic"}`}>
                             {selectedQuestion.type === "file" ? (
-                              <span>{hasAnswer ? "📁 Dosya eki katılımcı profil kartından görüntülenebilir." : "Yanıt yok"}</span>
+                              <span>{hasAnswer ? copy.fileAnswerDrawer : copy.noAnswer}</span>
                             ) : (
                               <span className="whitespace-pre-wrap">{formatAnswerValue(value)}</span>
                             )}
@@ -1029,9 +1191,9 @@ export default function AdminAttendeesPage() {
           {tab === "matrix" && (
             <div className="w-full space-y-4">
               <div className="flex items-center justify-between gap-3 px-0.5">
-                <p className="text-xs font-medium text-surface-400">Tüm oturumlar bazında anlık check-in durum dökümü.</p>
+                <p className="text-xs font-medium text-surface-400">{copy.matrixDesc}</p>
                 <button onClick={loadMatrix} className="inline-flex items-center gap-1 text-11 font-bold text-surface-400 hover:text-surface-900 transition-colors">
-                  <RefreshCw className="w-3 h-3 stroke-[2.5]" /> <span>Yenile</span>
+                  <RefreshCw className="w-3 h-3 stroke-[2.5]" /> <span>{copy.matrixRefresh}</span>
                 </button>
               </div>
 
@@ -1045,22 +1207,22 @@ export default function AdminAttendeesPage() {
                   <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
                     <div className="bg-white rounded-xl border border-surface-200 p-3 text-center shadow-card">
                       <p className="text-xl font-bold tracking-tight text-surface-900 tabular-nums">{matrix.rows.length}</p>
-                      <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">Toplam Havuz</p>
+                      <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">{copy.matrixTotalPool}</p>
                     </div>
                     <div className="bg-white rounded-xl border border-emerald-200/60 bg-emerald-50/10 p-3 text-center shadow-card">
                       <p className="text-xl font-bold tracking-tight text-emerald-600 tabular-nums">{matrix.rows.filter((r) => r.meets_threshold).length}</p>
-                      <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">Eşiği Başarıyla Geçen</p>
+                      <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">{copy.matrixPassedThreshold}</p>
                     </div>
                     <div className="bg-white rounded-xl border border-surface-800 bg-white p-3 text-center shadow-card">
                       <p className="text-xl font-bold tracking-tight text-surface-900 tabular-nums">{matrix.rows.filter((r) => r.has_certificate).length}</p>
-                      <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">Sertifikalandırılan</p>
+                      <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">{copy.matrixCertified}</p>
                     </div>
                   </div>
 
                   {/* Koşullu Hızlı Sertifika Bildirim Kapsülü */}
                   {eligibleCount > 0 && (
                     <div className="flex flex-col gap-3 rounded-xl border border-amber-200/70 bg-amber-50/20 px-4 py-3 text-xs text-amber-800 sm:flex-row sm:items-center sm:justify-between animate-in fade-in duration-150">
-                      <span className="font-semibold">⚡ {eligibleCount} katılımcı baraj eşiğini geçti ama henüz sertifikası basılmadı.</span>
+                      <span className="font-semibold">{copy.matrixEligibleNotice(eligibleCount)}</span>
                       <button
                         type="button"
                         onClick={handleBulkCertify}
@@ -1068,7 +1230,7 @@ export default function AdminAttendeesPage() {
                         className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-3 text-xs font-bold text-white shadow-card hover:bg-amber-700 disabled:opacity-50 transition-all active:scale-95"
                       >
                         {certifying ? <Loader2 className="w-3 h-3 animate-spin" /> : <Award className="w-3 h-3 stroke-[2.5]" />}
-                        <span>Kuyruğu İşle ve Üret</span>
+                        <span>{copy.matrixProcessQueue}</span>
                       </button>
                     </div>
                   )}
@@ -1076,7 +1238,7 @@ export default function AdminAttendeesPage() {
                   {matrix.rows.length === 0 ? (
                     <div className="text-center py-12 text-surface-400">
                       <Users className="w-10 h-10 mx-auto mb-2 opacity-30 stroke-[1.8]" />
-                      <p className="text-xs font-semibold">Matris için katılımcı bulunamadı</p>
+                      <p className="text-xs font-semibold">{copy.matrixEmptyTitle}</p>
                     </div>
                   ) : (
                     <div className="overflow-hidden rounded-xl border border-surface-200 bg-white shadow-card">
@@ -1084,14 +1246,14 @@ export default function AdminAttendeesPage() {
                         <table className="text-left border-collapse w-full">
                           <thead>
                             <tr className="border-b border-surface-100 bg-surface-50">
-                              <th className="px-4 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none whitespace-nowrap">Ad Soyad</th>
+                              <th className="px-4 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none whitespace-nowrap">{copy.matrixThName}</th>
                               {matrix.sessions.map((s) => (
                                 <th key={s.id} className="text-center px-2 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none whitespace-nowrap max-w-[96px]" title={s.session_date || ""}>
                                   {s.name.length > 10 ? s.name.slice(0, 10) + "…" : s.name}
                                 </th>
                               ))}
-                              <th className="text-center px-4 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none">Toplam Skal</th>
-                              <th className="text-center px-4 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none">Durum</th>
+                              <th className="text-center px-4 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none">{copy.matrixThTotal}</th>
+                              <th className="text-center px-4 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none">{copy.matrixThStatus}</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-surface-100 bg-white">
@@ -1113,11 +1275,11 @@ export default function AdminAttendeesPage() {
                                 <td className="text-center px-4 py-3 whitespace-nowrap">
                                   {row.has_certificate ? (
                                     <span className="inline-flex items-center gap-1 rounded-md border border-surface-900 bg-surface-900 px-2 py-0.5 text-11 font-bold text-white shadow-card">
-                                      <Award className="w-3 h-3" /> Sertifikalı
+                                      <Award className="w-3 h-3" /> {copy.matrixStatusCertified}
                                     </span>
                                   ) : row.meets_threshold ? (
                                     <span className="inline-flex items-center gap-1 rounded-md border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-11 font-bold text-emerald-700 shadow-card">
-                                      ✓ Hak Kazandı
+                                      {copy.matrixStatusEligible}
                                     </span>
                                   ) : (
                                     <span className="text-surface-300 text-xs font-medium">—</span>
@@ -1150,8 +1312,8 @@ export default function AdminAttendeesPage() {
         onImported={() => loadAttendees(1, "")}
         eventId={eventId}
       />
-      <ConfirmModal open={pendingDeleteId !== null} title="Katılımcıyı sil" description="Bu katılımcı kaydını HeptaCert veritabanından kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz." danger loading={deletingId !== null} onConfirm={confirmDelete} onCancel={() => setPendingDeleteId(null)} />
-      <ConfirmModal open={showCertifyConfirm} title="Toplu Sertifika Basım Onayı" description="Yoklama baraj barajını başarıyla aşan tüm katılımcılar için sertifika basım iş kuyruğu (Bulk Queue) tetiklenecektir. Heptacoin harcamasını onaylıyor musunuz?" onConfirm={executeBulkCertify} onCancel={() => setShowCertifyConfirm(false)} />
+      <ConfirmModal open={pendingDeleteId !== null} title={copy.confirmDeleteTitle} description={copy.confirmDeleteDesc} danger loading={deletingId !== null} onConfirm={confirmDelete} onCancel={() => setPendingDeleteId(null)} />
+      <ConfirmModal open={showCertifyConfirm} title={copy.confirmCertifyTitle} description={copy.confirmCertifyDesc} onConfirm={executeBulkCertify} onCancel={() => setShowCertifyConfirm(false)} />
 
       {/* 6. ANİMASYONLU SAĞ KATILIMCI PROFiL KARTI ÇEKMECESi (Drawer Layer) */}
       <AnimatePresence>
@@ -1159,14 +1321,14 @@ export default function AdminAttendeesPage() {
           <div className="fixed inset-0 z-50 flex justify-end">
             {/* Arka Plan Cam Katmanı */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-surface-800/10 backdrop-blur-sm" onClick={() => setSelectedAttendee(null)} />
-            
+
             {/* Çekmece Gövdesi */}
             <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 220 }} className="relative h-full w-full max-w-sm overflow-y-auto border-l border-surface-200 bg-white/95 backdrop-blur-xl p-5 sm:p-6 shadow-2xl flex flex-col justify-between scrollbar-none">
               <div className="space-y-5">
                 {/* Üst Bilgi Başlığı */}
                 <div className="flex items-start justify-between gap-3 border-b border-surface-100 pb-3">
                   <div className="min-w-0 space-y-0.5">
-                    <p className="text-11 font-bold uppercase tracking-widest text-surface-400">Katılımcı Profil Kartı</p>
+                    <p className="text-11 font-bold uppercase tracking-widest text-surface-400">{copy.drawerProfileLabel}</p>
                     <h3 className="text-base font-bold text-surface-900 tracking-tight truncate">{selectedAttendee.name}</h3>
                     <p className="text-xs text-surface-400 font-mono truncate">{selectedAttendee.email}</p>
                   </div>
@@ -1178,19 +1340,19 @@ export default function AdminAttendeesPage() {
                 {/* Hızlı Bilgi Matris Hücreleri */}
                 <div className="grid grid-cols-2 gap-2.5 text-xs font-semibold">
                   <div className="rounded-xl border border-surface-100 bg-surface-50/50 p-3">
-                    <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">Kayıt Modeli</p>
-                    <p className="mt-1 text-xs font-bold text-surface-900">{selectedAttendee.source === "self_register" ? "Kendi formu" : "Excel aktarım"}</p>
+                    <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">{copy.drawerRegistrationModel}</p>
+                    <p className="mt-1 text-xs font-bold text-surface-900">{selectedAttendee.source === "self_register" ? copy.drawerRegistrationModelOwn : copy.drawerRegistrationModelImport}</p>
                   </div>
                   <div className="rounded-xl border border-surface-100 bg-surface-50/50 p-3">
-                    <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">Katıldığı Oturum</p>
+                    <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">{copy.drawerSessionsAttended}</p>
                     <p className="mt-1 text-sm font-bold text-surface-900 font-mono tabular-nums">{selectedAttendee.sessions_attended}</p>
                   </div>
                   <div className="rounded-xl border border-surface-100 bg-surface-50/50 p-3">
-                    <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">Sertifika Durumu</p>
-                    <p className={`mt-1 text-xs font-bold ${selectedAttendee.has_certificate ? "text-indigo-600" : "text-surface-400"}`}>{selectedAttendee.has_certificate ? "Üretildi" : "Üretilmedi"}</p>
+                    <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">{copy.drawerCertStatus}</p>
+                    <p className={`mt-1 text-xs font-bold ${selectedAttendee.has_certificate ? "text-indigo-600" : "text-surface-400"}`}>{selectedAttendee.has_certificate ? copy.drawerCertGenerated : copy.drawerCertNotGenerated}</p>
                   </div>
                   <div className="rounded-xl border border-surface-100 bg-surface-50/50 p-3">
-                    <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">Kayıt Zamanı</p>
+                    <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">{copy.drawerRegisteredAt}</p>
                     <p className="mt-1 text-11 font-mono font-bold text-surface-500 leading-none">{new Date(selectedAttendee.registered_at).toLocaleDateString("tr-TR")}</p>
                   </div>
                 </div>
@@ -1198,7 +1360,7 @@ export default function AdminAttendeesPage() {
                 {/* Bağlı Üye Statüsü */}
                 {selectedAttendee.public_member_name && (
                   <div className="rounded-xl border border-emerald-100 bg-emerald-50/30 p-3.5 space-y-1 text-xs font-medium">
-                    <p className="text-11 font-bold uppercase tracking-wider text-emerald-700">Entegre Kurum Üye Bağlantısı</p>
+                    <p className="text-11 font-bold uppercase tracking-wider text-emerald-700">{copy.drawerMemberConnection}</p>
                     <p className="text-surface-900 font-bold tracking-tight">{selectedAttendee.public_member_name}</p>
                     <p className="text-11 text-surface-400 font-mono truncate">{selectedAttendee.public_member_email}</p>
                   </div>
@@ -1207,7 +1369,7 @@ export default function AdminAttendeesPage() {
                 {/* Form Özel Cevap Listesi (Dynamic Fields) */}
                 {registrationFields.length > 0 && (
                   <div className="rounded-xl border border-surface-100 bg-white p-3.5 space-y-3 shadow-inner">
-                    <p className="text-xs font-bold text-surface-900 tracking-tight">Kayıt Formu Soru Yanıtları</p>
+                    <p className="text-xs font-bold text-surface-900 tracking-tight">{copy.drawerFormAnswers}</p>
                     <div className="space-y-2 max-h-[220px] overflow-y-auto scrollbar-none">
                       {registrationFields.map((field) => {
                         const value = selectedAttendee.registration_answers?.[field.id];
@@ -1249,7 +1411,7 @@ export default function AdminAttendeesPage() {
               {/* Hızlı Profil Aksiyon Butonları */}
               <div className="space-y-2 pt-4 border-t border-surface-100">
                 <button type="button" onClick={() => void handleCopySurveyLink(selectedAttendee.id)} className="w-full inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white text-xs font-semibold text-surface-700 shadow-card transition hover:bg-surface-50">
-                  <Link2 className="h-3.5 w-3.5 text-surface-400 stroke-[2]" /> <span>Kişisel Anket Linki</span>
+                  <Link2 className="h-3.5 w-3.5 text-surface-400 stroke-[2]" /> <span>{copy.drawerSurveyLink}</span>
                 </button>
                 <button
                   type="button"
@@ -1259,7 +1421,7 @@ export default function AdminAttendeesPage() {
                   }}
                   className="w-full inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-xl border border-red-100 bg-red-50 px-4 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100"
                 >
-                  <Trash2 className="h-3.5 w-3.5 stroke-[1.8]" /> <span>Katılımcı Kaydını Sil</span>
+                  <Trash2 className="h-3.5 w-3.5 stroke-[1.8]" /> <span>{copy.drawerDeleteAttendee}</span>
                 </button>
               </div>
             </motion.div>

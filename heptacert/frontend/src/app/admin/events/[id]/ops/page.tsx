@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 import MobileActionBar from "@/components/Admin/MobileActionBar";
+import { useI18n } from "@/lib/i18n";
 import {
   getEventOperations,
   undoAttendanceRecord,
@@ -66,6 +67,40 @@ function StatCard({
 export default function EventOperationsPage() {
   const params = useParams();
   const eventId = Number(params?.id);
+  const { lang } = useI18n();
+  const isTr = lang === "tr";
+
+  const copy = {
+    loadError:    isTr ? "Canlı operasyon verisi alınamadı." : "Could not load live operations data.",
+    undoSuccess:  isTr ? "Check-in kaydı geri alındı." : "Check-in record undone.",
+    undoError:    isTr ? "Check-in geri alınamadı." : "Could not undo check-in.",
+    noActiveSess: isTr ? "Aktif oturum yok" : "No active sessions",
+    eyebrow:      isTr ? "Canlı operasyon ekranı" : "Live operations",
+    eventFallback:(id: number) => isTr ? `Etkinlik #${id}` : `Event #${id}`,
+    lastUpdate:   isTr ? "Son Güncelleme:" : "Last Update:",
+    staffMode:    isTr ? "Görevli Modu" : "Staff Mode",
+    refresh:      isTr ? "Yenile" : "Refresh",
+    statAttendees:isTr ? "Katılımcı" : "Attendees",
+    statCheckin:  isTr ? "Check-in" : "Check-ins",
+    statSessions: isTr ? "Aktif Oturum" : "Active Sessions",
+    statTickets:  isTr ? "Bilet Kullanımı" : "Ticket Usage",
+    noteAttendees:isTr ? "Kayıtlı toplam kitle" : "Total registered audience",
+    noteCheckin:  isTr ? "Üretilen anlık yoklama" : "Live attendance records",
+    noteTickets:  isTr ? "Giriş yapan davetli biletleri" : "Admitted guest tickets",
+    sessionTitle: isTr ? "Seans Yoklama Durumları" : "Session Attendance",
+    sessionSub:   isTr ? "Oturum bazında canlı katılım sayıları" : "Live attendance counts by session",
+    live:         isTr ? "Canlı" : "Live",
+    noSchedule:   isTr ? "Zaman Planı Yok" : "No Schedule",
+    noSessions:   isTr ? "Henüz tanımlanmış bir seans akışı bulunmuyor." : "No sessions defined yet.",
+    logTitle:     isTr ? "Son Giriş Hareketleri" : "Recent Check-ins",
+    logSub:       isTr ? "Hatalı okutma iptalleri ve kapı sevk günlüğü" : "Entry logs and undo operations",
+    noCheckins:   isTr ? "Kapılardan henüz bir check-in sinyali alınmadı." : "No check-in signals received yet.",
+    undo:         isTr ? "Geri Al" : "Undo",
+    undoConfirm:  (name: string, session: string) => isTr
+      ? `${name} için ${session} check-in kaydı geri alınsın mı?`
+      : `Undo check-in for ${name} in ${session}?`,
+  };
+
   const [snapshot, setSnapshot] = useState<EventOperationSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -82,7 +117,7 @@ export default function EventOperationsPage() {
       const data = await getEventOperations(eventId);
       setSnapshot(data);
     } catch (err: any) {
-      setError(err?.message || "Canlı operasyon verisi alınamadı.");
+      setError(err?.message || copy.loadError);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -96,22 +131,22 @@ export default function EventOperationsPage() {
   }, [eventId]);
 
   async function undo(record: EventOperationCheckin) {
-    if (!window.confirm(`${record.attendee_name} için ${record.session_name} check-in kaydı geri alınsın mı?`)) return;
+    if (!window.confirm(copy.undoConfirm(record.attendee_name, record.session_name))) return;
     setUndoingId(record.id);
     setNotice(null);
     try {
       const result = await undoAttendanceRecord(eventId, record.id);
-      setNotice(result.message || "Check-in kaydı geri alındı.");
+      setNotice(result.message || copy.undoSuccess);
       await load({ soft: true });
     } catch (err: any) {
-      setError(err?.message || "Check-in geri alınamadı.");
+      setError(err?.message || copy.undoError);
     } finally {
       setUndoingId(null);
     }
   }
 
   const activeSessionNames = useMemo(
-    () => snapshot?.sessions.filter((session) => session.is_active).map((session) => session.name).join(", ") || "Aktif oturum yok",
+    () => snapshot?.sessions.filter((session) => session.is_active).map((session) => session.name).join(", ") || copy.noActiveSess,
     [snapshot],
   );
 
@@ -132,12 +167,12 @@ export default function EventOperationsPage() {
       {/* ANA SAYFA BAŞLIK ALANI */}
       <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-0.5">
-          <p className="text-11 font-bold uppercase tracking-widest text-surface-400">Canlı operasyon ekranı</p>
+          <p className="text-11 font-bold uppercase tracking-widest text-surface-400">{copy.eyebrow}</p>
           <h1 className="text-xl font-bold tracking-tight text-surface-900 sm:text-2xl">
-            {snapshot?.event_name || `Etkinlik #${eventId}`}
+            {snapshot?.event_name || copy.eventFallback(eventId)}
           </h1>
           <div className="flex items-center gap-1 text-11 font-semibold text-surface-400 font-mono uppercase">
-            <span>Son Güncelleme: {formatTime(snapshot?.generated_at)}</span>
+            <span>{copy.lastUpdate} {formatTime(snapshot?.generated_at)}</span>
           </div>
         </div>
         
@@ -148,7 +183,7 @@ export default function EventOperationsPage() {
             className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-lg bg-surface-900 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-surface-800 active:scale-95"
           >
             <QrCode className="h-3.5 w-3.5 stroke-[2.5]" />
-            <span>Görevli Modu</span>
+            <span>{copy.staffMode}</span>
           </Link>
           <button
             type="button"
@@ -157,7 +192,7 @@ export default function EventOperationsPage() {
             className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold text-surface-700 shadow-sm transition hover:bg-surface-50 active:scale-95 disabled:opacity-40"
           >
             {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 stroke-[2]" />}
-            <span>Yenile</span>
+            <span>{copy.refresh}</span>
           </button>
         </div>
       </div>
@@ -180,10 +215,10 @@ export default function EventOperationsPage() {
         <>
           {/* ANLIK CANLI METRİK KARTLARI SETİ */}
           <div className="grid grid-cols-2 gap-3.5 xl:grid-cols-4">
-            <StatCard title="Katılımcı" value={snapshot.overview.attendees} note="Kayıtlı toplam kitle" icon={Users} />
-            <StatCard title="Check-in" value={snapshot.overview.attendance_records} note="Üretilen anlık yoklama" icon={UserCheck} />
-            <StatCard title="Aktif Oturum" value={snapshot.overview.active_sessions} note={activeSessionNames.length > 25 ? activeSessionNames.slice(0, 25) + "..." : activeSessionNames} icon={Activity} />
-            <StatCard title="Bilet Kullanımı" value={`${snapshot.overview.tickets_used}/${snapshot.overview.tickets_total}`} note="Giriş yapan davetli biletleri" icon={Ticket} />
+            <StatCard title={copy.statAttendees} value={snapshot.overview.attendees} note={copy.noteAttendees} icon={Users} />
+            <StatCard title={copy.statCheckin} value={snapshot.overview.attendance_records} note={copy.noteCheckin} icon={UserCheck} />
+            <StatCard title={copy.statSessions} value={snapshot.overview.active_sessions} note={activeSessionNames.length > 25 ? activeSessionNames.slice(0, 25) + "..." : activeSessionNames} icon={Activity} />
+            <StatCard title={copy.statTickets} value={`${snapshot.overview.tickets_used}/${snapshot.overview.tickets_total}`} note={copy.noteTickets} icon={Ticket} />
           </div>
 
           {/* Sessions + checkin log */}
@@ -193,8 +228,8 @@ export default function EventOperationsPage() {
             <section className="rounded-xl border border-surface-200 bg-white p-5 shadow-card space-y-4">
               <div className="flex items-center justify-between gap-3 border-b border-surface-100 pb-3">
                 <div className="space-y-0.5">
-                  <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">Seans Yoklama Durumları</h2>
-                  <p className="text-11 font-medium text-surface-400">Oturum bazında canlı katılım sayıları</p>
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.sessionTitle}</h2>
+                  <p className="text-11 font-medium text-surface-400">{copy.sessionSub}</p>
                 </div>
                 <Clock3 className="h-4 w-4 text-surface-400 stroke-[1.8]" />
               </div>
@@ -202,7 +237,7 @@ export default function EventOperationsPage() {
               <div className="space-y-2.5">
                 {snapshot.sessions.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-surface-200 p-6 text-center text-xs font-semibold text-surface-400">
-                    Henüz tanımlanmış bir seans akışı bulunmuyor.
+                    {copy.noSessions}
                   </div>
                 ) : (
                   snapshot.sessions.map((session) => (
@@ -212,12 +247,12 @@ export default function EventOperationsPage() {
                           <p className="text-xs font-bold text-surface-900 truncate tracking-tight">{session.name}</p>
                           {session.is_active && (
                             <span className="inline-flex rounded-md border border-emerald-100 bg-emerald-50 px-1.5 py-0.5 text-11 font-bold uppercase text-emerald-700 animate-pulse shadow-sm">
-                              Canlı
+                              {copy.live}
                             </span>
                           )}
                         </div>
                         <p className="text-11 font-semibold text-surface-400 font-mono uppercase">
-                          {[session.session_date, session.session_start].filter(Boolean).join(" · ") || "Zaman Planı Yok"}
+                          {[session.session_date, session.session_start].filter(Boolean).join(" · ") || copy.noSchedule}
                         </p>
                       </div>
                       <p className="text-xl font-bold tracking-tight text-surface-900 font-mono tabular-nums shrink-0">{session.attendance_count}</p>
@@ -231,8 +266,8 @@ export default function EventOperationsPage() {
             <section className="rounded-xl border border-surface-200 bg-white p-5 shadow-card space-y-4">
               <div className="flex items-center justify-between gap-3 border-b border-surface-100 pb-3">
                 <div className="space-y-0.5">
-                  <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">Son Giriş Hareketleri</h2>
-                  <p className="text-11 font-medium text-surface-400">Hatalı okutma iptalleri ve kapı sevk günlüğü</p>
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.logTitle}</h2>
+                  <p className="text-11 font-medium text-surface-400">{copy.logSub}</p>
                 </div>
                 <UserCheck className="h-4 w-4 text-surface-400 stroke-[1.8]" />
               </div>
@@ -240,7 +275,7 @@ export default function EventOperationsPage() {
               <div className="max-h-[580px] divide-y divide-surface-100 overflow-y-auto pr-0.5 scrollbar-none bg-white">
                 {snapshot.recent_checkins.length === 0 ? (
                   <div className="py-12 text-center text-xs font-semibold text-surface-400 tracking-tight">
-                    Kapılardan henüz bir check-in sinyali alınmadı.
+                    {copy.noCheckins}
                   </div>
                 ) : (
                   snapshot.recent_checkins.map((record) => (
@@ -262,7 +297,7 @@ export default function EventOperationsPage() {
                         className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-red-100 bg-white px-3 text-11 font-bold text-red-600 shadow-sm transition hover:bg-red-50 active:scale-90 disabled:opacity-40 shrink-0 self-end sm:self-auto"
                       >
                         {undoingId === record.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3 stroke-[2.5]" />}
-                        <span>Geri Al</span>
+                        <span>{copy.undo}</span>
                       </button>
                     </div>
                   ))

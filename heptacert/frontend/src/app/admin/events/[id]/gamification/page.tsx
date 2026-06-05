@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -9,6 +9,7 @@ import {
 import { useParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
+import { useI18n } from "@/lib/i18n";
 
 // ── Predefined criteria catalogue ────────────────────────────────────────────
 type CriteriaType = "number" | "boolean";
@@ -81,9 +82,16 @@ function getCriteriaDef(key: string): CriteriaDef | undefined {
 function CriteriaEditor({
   criteria,
   onChange,
+  copy,
 }: {
   criteria: Record<string, any>;
   onChange: (updated: Record<string, any>) => void;
+  copy: {
+    addCriteria: string;
+    noCriteria: string;
+    yes: string;
+    no: string;
+  };
 }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -143,8 +151,8 @@ function CriteriaEditor({
                   onChange={(e) => updateValue(key, e.target.value)}
                   className="rounded-md border border-surface-300 px-2 py-1 text-sm"
                 >
-                  <option value="true">Evet</option>
-                  <option value="false">Hayır</option>
+                  <option value="true">{copy.yes}</option>
+                  <option value="false">{copy.no}</option>
                 </select>
               ) : (
                 <div className="flex items-center gap-1">
@@ -181,7 +189,7 @@ function CriteriaEditor({
             className="flex items-center gap-1.5 text-xs text-brand-600 hover:text-brand-700 font-semibold py-1"
           >
             <Plus className="h-3.5 w-3.5" />
-            Kriter Ekle
+            {copy.addCriteria}
             <ChevronDown className="h-3 w-3" />
           </button>
 
@@ -215,7 +223,7 @@ function CriteriaEditor({
       )}
 
       {selectedKeys.length === 0 && (
-        <p className="text-xs text-surface-400 italic">Henüz kriter eklenmedi — rozet tüm katılımcılara verilir</p>
+        <p className="text-xs text-surface-400 italic">{copy.noCriteria}</p>
       )}
     </div>
   );
@@ -265,17 +273,92 @@ type BadgeSummary = {
   };
 };
 
-const badgeDateFormatter = new Intl.DateTimeFormat("tr-TR", {
+const badgeDateFormatterTr = new Intl.DateTimeFormat("tr-TR", {
   dateStyle: "medium",
   timeStyle: "short",
   timeZone: "Europe/Istanbul",
 });
 
-
+const badgeDateFormatterEn = new Intl.DateTimeFormat("en-GB", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "Europe/Istanbul",
+});
 
 export default function GamificationPage() {
   const params = useParams();
   const eventId = params.id as string;
+  const { lang } = useI18n();
+  const isTr = lang === "tr";
+
+  const copy = {
+    pageTitle: isTr ? "Rozet Sistemi" : "Badge System",
+    pageSubtitle: isTr ? "Katılımcıları başarılarıyla ödüllendirin" : "Reward participants for their achievements",
+    loadError: isTr ? "Rozet kuralları yüklenemedi" : "Could not load badge rules",
+    saveSuccess: isTr ? "Rozet kuralları kaydedildi" : "Badge rules saved",
+    saveError: isTr ? "Kaydedilemedi" : "Could not save",
+    calcSuccess: isTr ? "Rozetler hesaplandı" : "Badges calculated",
+    calcError: isTr ? "Hesaplama başarısız" : "Calculation failed",
+    addBadgeError: isTr ? "Lütfen rozet türü ve adını girin" : "Please enter badge type and name",
+    statStatus: isTr ? "Durum" : "Status",
+    statActive: isTr ? "Aktif" : "Active",
+    statInactive: isTr ? "Pasif" : "Inactive",
+    statActiveHint: isTr ? "Hesaplama açık" : "Calculation on",
+    statInactiveHint: isTr ? "Kurallar beklemede" : "Rules pending",
+    statBadgeTypes: isTr ? "Rozet Turu" : "Badge Types",
+    statBadgeTypesHint: (n: number) => isTr ? `${n} tanım güncellenebilir` : `${n} definitions editable`,
+    statTotalDist: isTr ? "Toplam Dağıtım" : "Total Distribution",
+    statTotalDistHint: (auto: number, manual: number) => isTr ? `${auto} otomatik / ${manual} manuel` : `${auto} automatic / ${manual} manual`,
+    statFeaturedTypes: isTr ? "Öne Çıkan Türler" : "Featured Types",
+    statMoreTypes: (n: number) => isTr ? `${n} tür daha var` : `${n} more types`,
+    statNoTypes: isTr ? "Henüz tür yok" : "No types yet",
+    tabRules: isTr ? "Rozet Kuralları" : "Badge Rules",
+    tabAwarded: isTr ? "Verilen Rozetler" : "Awarded Badges",
+    badgeSystemTitle: isTr ? "Rozet Sistemi" : "Badge System",
+    badgeSystemEnabled: isTr ? "Etkindir" : "Enabled",
+    badgeSystemDisabled: isTr ? "Devre dışı" : "Disabled",
+    btnDisable: isTr ? "Devre Dışı Bırak" : "Disable",
+    btnEnable: isTr ? "Etkinleştir" : "Enable",
+    badgeDefinitionsTitle: isTr ? "Rozet Tanımları" : "Badge Definitions",
+    labelBadgeType: isTr ? "Rozet Türü" : "Badge Type",
+    labelBadgeName: isTr ? "Rozet Adı" : "Badge Name",
+    labelBadgeDesc: isTr ? "Rozet Açıklaması" : "Badge Description",
+    placeholderBadgeDesc: isTr ? "Bu rozeti kazanma koşullarını açıklayın" : "Describe the conditions for earning this badge",
+    labelCriteriaRules: isTr ? "Kriter Kuralları" : "Criteria Rules",
+    labelBadgeColor: isTr ? "Rozet Rengi" : "Badge Color",
+    labelBadgeUrl: isTr ? "Rozet URL" : "Badge URL",
+    previewLabel: isTr ? "Önizleme" : "Preview",
+    previewBadgeName: isTr ? "Rozet adı" : "Badge name",
+    previewBadgeDesc: isTr ? "Rozet açıklaması burada görünecek." : "Badge description will appear here.",
+    previewOpenToAll: isTr ? "Tüm katılımcılara açık" : "Open to all attendees",
+    btnRemoveBadge: isTr ? "Rozeti kaldır" : "Remove badge",
+    newBadgeTitle: isTr ? "Yeni Rozet Ekle" : "Add New Badge",
+    placeholderBadgeType: isTr ? "Rozet Türü (örn: early_bird)" : "Badge Type (e.g.: early_bird)",
+    placeholderBadgeNameInput: isTr ? "Rozet Adı (örn: Erken Katılımcı)" : "Badge Name (e.g.: Early Attendee)",
+    btnAddBadge: isTr ? "Rozet Ekle" : "Add Badge",
+    btnSaveRules: isTr ? "Kuralları Kaydet" : "Save Rules",
+    btnCalculate: isTr ? "Rozetleri Hesapla" : "Calculate Badges",
+    searchPlaceholder: isTr ? "Rozet veya katılımcı ara" : "Search badge or attendee",
+    labelAutomatic: isTr ? "Otomatik" : "Automatic",
+    labelManual: isTr ? "Manuel" : "Manual",
+    emptyNoBadges: isTr ? "Henüz rozet verilmedi" : "No badges awarded yet",
+    emptyNoMatch: isTr ? "Filtreye uyan rozet bulunamadı" : "No badges match the filter",
+    attendeeIdPrefix: isTr ? "Katılımcı ID: " : "Attendee ID: ",
+    badgeAutomatic: isTr ? "Otomatik" : "Automatic",
+    badgeManual: isTr ? "Manuel" : "Manual",
+    badgeTypePrefix: isTr ? "Tür: " : "Type: ",
+    awardedLabel: isTr ? "Verildi" : "Awarded",
+    criteriaPassed: isTr ? "Geçti" : "Passed",
+    criteriaFailed: isTr ? "Kaldı" : "Failed",
+    criteriaRequired: isTr ? "Gereken: " : "Required: ",
+    criteriaActual: isTr ? "Gerçekleşen: " : "Actual: ",
+    addCriteria: isTr ? "Kriter Ekle" : "Add Criteria",
+    noCriteria: isTr ? "Henüz kriter eklenmedi — rozet tüm katılımcılara verilir" : "No criteria added yet — badge is given to all attendees",
+    yes: isTr ? "Evet" : "Yes",
+    no: isTr ? "Hayır" : "No",
+  };
+
+  const badgeDateFormatter = isTr ? badgeDateFormatterTr : badgeDateFormatterEn;
 
   const [eventName, setEventName] = useState("");
   const [badgeRules, setBadgeRules] = useState<BadgeRules | null>(null);
@@ -342,7 +425,7 @@ export default function GamificationPage() {
         );
       }
     } catch (err: any) {
-      setError(err.message || "Rozet kuralları yüklenemedi");
+      setError(err.message || copy.loadError);
     } finally {
       setLoading(false);
     }
@@ -362,10 +445,10 @@ export default function GamificationPage() {
         }),
       });
 
-      setSuccess("Rozet kuralları kaydedildi");
+      setSuccess(copy.saveSuccess);
       await loadData();
     } catch (err: any) {
-      setError(err.message || "Kaydedilemedi");
+      setError(err.message || copy.saveError);
     } finally {
       setSaving(false);
     }
@@ -381,10 +464,10 @@ export default function GamificationPage() {
       });
 
       const data = await result.json();
-      setSuccess(data.message || "Rozetler hesaplandı");
+      setSuccess(data.message || copy.calcSuccess);
       await loadData();
     } catch (err: any) {
-      setError(err.message || "Hesaplama başarısız");
+      setError(err.message || copy.calcError);
     } finally {
       setSaving(false);
     }
@@ -392,7 +475,7 @@ export default function GamificationPage() {
 
   const addBadge = () => {
     if (!newBadge || !newBadge.type || !newBadge.name) {
-      setError("Lütfen rozet türü ve adını girin");
+      setError(copy.addBadgeError);
       return;
     }
     setEditingBadges([
@@ -447,34 +530,34 @@ export default function GamificationPage() {
       <EventAdminNav eventId={eventId} eventName={eventName} active="gamification" className="mb-2 flex flex-col gap-2" />
 
       <div>
-        <h1 className="text-3xl font-bold text-surface-900">Rozet Sistemi</h1>
-        <p className="text-surface-500 text-sm mt-1">Katılımcıları başarılarıyla ödüllendirin</p>
+        <h1 className="text-3xl font-bold text-surface-900">{copy.pageTitle}</h1>
+        <p className="text-surface-500 text-sm mt-1">{copy.pageSubtitle}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[
           {
-            label: "Durum",
-            value: enabled ? "Aktif" : "Pasif",
-            hint: enabled ? "Hesaplama açık" : "Kurallar beklemede",
+            label: copy.statStatus,
+            value: enabled ? copy.statActive : copy.statInactive,
+            hint: enabled ? copy.statActiveHint : copy.statInactiveHint,
             icon: ToggleLeft,
           },
           {
-            label: "Rozet Turu",
+            label: copy.statBadgeTypes,
             value: String(badgeTypeCount),
-            hint: `${editingBadges.length} tanım güncellenebilir`,
+            hint: copy.statBadgeTypesHint(editingBadges.length),
             icon: Award,
           },
           {
-            label: "Toplam Dağıtım",
+            label: copy.statTotalDist,
             value: String(awardedBadges.length),
-            hint: `${badgeSummary.automatic_vs_manual.automatic} otomatik / ${badgeSummary.automatic_vs_manual.manual} manuel`,
+            hint: copy.statTotalDistHint(badgeSummary.automatic_vs_manual.automatic, badgeSummary.automatic_vs_manual.manual),
             icon: Trophy,
           },
           {
-            label: "Öne Çıkan Türler",
+            label: copy.statFeaturedTypes,
             value: badgeTypeCount > 0 ? Object.keys(badgeSummary.by_type).slice(0, 1)[0] : "-",
-            hint: badgeTypeCount > 1 ? `${badgeTypeCount - 1} tür daha var` : "Henüz tür yok",
+            hint: badgeTypeCount > 1 ? copy.statMoreTypes(badgeTypeCount - 1) : copy.statNoTypes,
             icon: BarChart3,
           },
         ].map((item) => {
@@ -508,7 +591,7 @@ export default function GamificationPage() {
                 : "text-surface-600 hover:text-surface-900"
             }`}
           >
-            {tab === "rules" ? "Rozet Kuralları" : "Verilen Rozetler"}
+            {tab === "rules" ? copy.tabRules : copy.tabAwarded}
           </button>
         ))}
       </div>
@@ -543,9 +626,9 @@ export default function GamificationPage() {
           <div className="bg-white rounded-3xl border border-surface-200 p-6 shadow-sm">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <h3 className="font-semibold text-surface-900">Rozet Sistemi</h3>
+                <h3 className="font-semibold text-surface-900">{copy.badgeSystemTitle}</h3>
                 <p className="text-sm text-surface-500 mt-1">
-                  {enabled ? "Etkindir" : "Devre dışı"}
+                  {enabled ? copy.badgeSystemEnabled : copy.badgeSystemDisabled}
                 </p>
               </div>
               <button
@@ -556,14 +639,14 @@ export default function GamificationPage() {
                     : "bg-surface-200 text-surface-700 hover:bg-gray-300"
                 }`}
               >
-                {enabled ? "Devre Dışı Bırak" : "Etkinleştir"}
+                {enabled ? copy.btnDisable : copy.btnEnable}
               </button>
             </div>
           </div>
 
           {/* Badge List */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-surface-900">Rozet Tanımları</h3>
+            <h3 className="font-semibold text-surface-900">{copy.badgeDefinitionsTitle}</h3>
 
             {editingBadges.map((badge, idx) => (
               <motion.div
@@ -577,7 +660,7 @@ export default function GamificationPage() {
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <div>
                         <label className="block text-sm font-semibold text-surface-700 mb-2">
-                          Rozet Türü
+                          {copy.labelBadgeType}
                         </label>
                         <input
                           type="text"
@@ -593,7 +676,7 @@ export default function GamificationPage() {
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-surface-700 mb-2">
-                          Rozet Adı
+                          {copy.labelBadgeName}
                         </label>
                         <input
                           type="text"
@@ -611,7 +694,7 @@ export default function GamificationPage() {
 
                     <div className="mt-4">
                       <label className="block text-sm font-semibold text-surface-700 mb-2">
-                        Rozet Açıklaması
+                        {copy.labelBadgeDesc}
                       </label>
                       <textarea
                         value={badge.description || ""}
@@ -620,7 +703,7 @@ export default function GamificationPage() {
                           updated[idx].description = e.target.value;
                           setEditingBadges(updated);
                         }}
-                        placeholder="Bu rozeti kazanma koşullarını açıklayın"
+                        placeholder={copy.placeholderBadgeDesc}
                         className="w-full rounded-lg border border-surface-300 px-3 py-2 text-sm h-20 resize-none"
                       />
                     </div>
@@ -628,7 +711,7 @@ export default function GamificationPage() {
                     {/* Criteria editor */}
                     <div className="mt-4">
                       <label className="block text-sm font-semibold text-surface-700 mb-2">
-                        Kriter Kuralları
+                        {copy.labelCriteriaRules}
                       </label>
                       <CriteriaEditor
                         criteria={badge.criteria || {}}
@@ -637,13 +720,14 @@ export default function GamificationPage() {
                           next[idx] = { ...next[idx], criteria: updated };
                           setEditingBadges(next);
                         }}
+                        copy={{ addCriteria: copy.addCriteria, noCriteria: copy.noCriteria, yes: copy.yes, no: copy.no }}
                       />
                     </div>
 
                     <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                       <div>
                         <label className="block text-sm font-semibold text-surface-700 mb-2">
-                          Rozet Rengi
+                          {copy.labelBadgeColor}
                         </label>
                         <div className="flex gap-2">
                           <input
@@ -666,7 +750,7 @@ export default function GamificationPage() {
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-surface-700 mb-2">
-                          Rozet URL
+                          {copy.labelBadgeUrl}
                         </label>
                         <input
                           type="text"
@@ -694,13 +778,13 @@ export default function GamificationPage() {
                         }}
                       >
                         <Award className="h-3.5 w-3.5" />
-                        Önizleme
+                        {copy.previewLabel}
                       </div>
                       <p className="mt-4 break-words text-lg font-black text-surface-900">
-                        {badge.name || "Rozet adı"}
+                        {badge.name || copy.previewBadgeName}
                       </p>
                       <p className="mt-2 break-words text-sm leading-6 text-surface-600">
-                        {badge.description || "Rozet açıklaması burada görünecek."}
+                        {badge.description || copy.previewBadgeDesc}
                       </p>
                       <div className="mt-4 flex flex-wrap gap-2">
                         {Object.keys(badge.criteria || {}).length > 0 ? (
@@ -714,7 +798,7 @@ export default function GamificationPage() {
                           ))
                         ) : (
                           <span className="rounded-full border border-dashed border-slate-300 bg-white px-3 py-1 text-xs text-surface-500">
-                            Tüm katılımcılara açık
+                            {copy.previewOpenToAll}
                           </span>
                         )}
                       </div>
@@ -724,7 +808,7 @@ export default function GamificationPage() {
                       className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
                     >
                       <X className="h-4 w-4" />
-                      Rozeti kaldır
+                      {copy.btnRemoveBadge}
                     </button>
                   </div>
                 </div>
@@ -737,11 +821,11 @@ export default function GamificationPage() {
               animate={{ opacity: 1, y: 0 }}
               className="bg-surface-50 rounded-xl border-2 border-dashed border-surface-300 p-4"
             >
-              <h4 className="font-semibold text-surface-900 mb-4">Yeni Rozet Ekle</h4>
+              <h4 className="font-semibold text-surface-900 mb-4">{copy.newBadgeTitle}</h4>
               <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                 <input
                   type="text"
-                  placeholder="Rozet Türü (örn: early_bird)"
+                  placeholder={copy.placeholderBadgeType}
                   value={newBadge?.type || ""}
                   onChange={(e) =>
                     setNewBadge({
@@ -755,7 +839,7 @@ export default function GamificationPage() {
                 />
                 <input
                   type="text"
-                  placeholder="Rozet Adı (örn: Erken Katılımcı)"
+                  placeholder={copy.placeholderBadgeNameInput}
                   value={newBadge?.name || ""}
                   onChange={(e) =>
                     setNewBadge({
@@ -772,7 +856,7 @@ export default function GamificationPage() {
               {/* New badge criteria */}
               <div className="mb-4">
                 <label className="block text-sm font-semibold text-surface-700 mb-2">
-                  Kriter Kuralları
+                  {copy.labelCriteriaRules}
                 </label>
                 <CriteriaEditor
                   criteria={newBadge?.criteria || {}}
@@ -783,6 +867,7 @@ export default function GamificationPage() {
                       criteria: updated,
                     })
                   }
+                  copy={{ addCriteria: copy.addCriteria, noCriteria: copy.noCriteria, yes: copy.yes, no: copy.no }}
                 />
               </div>
 
@@ -791,7 +876,7 @@ export default function GamificationPage() {
                 className="w-full flex items-center justify-center gap-2 rounded-lg bg-brand-600 text-white font-semibold py-2 hover:bg-brand-700 transition-colors"
               >
                 <Plus className="h-4 w-4" />
-                Rozet Ekle
+                {copy.btnAddBadge}
               </button>
             </motion.div>
           </div>
@@ -808,7 +893,7 @@ export default function GamificationPage() {
               ) : (
                 <Save className="h-5 w-5" />
               )}
-              Kuralları Kaydet
+              {copy.btnSaveRules}
             </button>
 
             <button
@@ -821,7 +906,7 @@ export default function GamificationPage() {
               ) : (
                 <Trophy className="h-5 w-5" />
               )}
-              Rozetleri Hesapla
+              {copy.btnCalculate}
             </button>
           </div>
         </div>
@@ -838,16 +923,16 @@ export default function GamificationPage() {
                   type="text"
                   value={badgeQuery}
                   onChange={(e) => setBadgeQuery(e.target.value)}
-                  placeholder="Rozet veya katılımcı ara"
+                  placeholder={copy.searchPlaceholder}
                   className="w-full rounded-xl border border-surface-300 py-2.5 pl-10 pr-3 text-sm"
                 />
               </label>
               <div className="rounded-xl border border-surface-200 bg-surface-50 px-4 py-3">
-                <div className="text-xs font-semibold uppercase tracking-wide text-surface-500">Otomatik</div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-surface-500">{copy.labelAutomatic}</div>
                 <div className="mt-1 text-2xl font-semibold text-surface-900">{badgeSummary.automatic_vs_manual.automatic}</div>
               </div>
               <div className="rounded-xl border border-surface-200 bg-surface-50 px-4 py-3">
-                <div className="text-xs font-semibold uppercase tracking-wide text-surface-500">Manuel</div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-surface-500">{copy.labelManual}</div>
                 <div className="mt-1 text-2xl font-semibold text-surface-900">{badgeSummary.automatic_vs_manual.manual}</div>
               </div>
             </div>
@@ -869,7 +954,7 @@ export default function GamificationPage() {
             <div className="text-center py-12 bg-white rounded-xl border border-surface-200">
               <Trophy className="h-16 w-16 text-surface-300 mx-auto mb-4" />
               <p className="text-surface-500">
-                {awardedBadges.length === 0 ? "Henüz rozet verilmedi" : "Filtreye uyan rozet bulunamadı"}
+                {awardedBadges.length === 0 ? copy.emptyNoBadges : copy.emptyNoMatch}
               </p>
             </div>
           ) : (
@@ -888,11 +973,11 @@ export default function GamificationPage() {
                     <div className="mt-1 break-words text-sm text-surface-500">{badge.badge_description}</div>
                   )}
                   <div className="mt-2 break-words text-sm text-surface-500">
-                    {badge.attendee_name || `Katılımcı ID: ${badge.attendee_id}`}
+                    {badge.attendee_name || `${copy.attendeeIdPrefix}${badge.attendee_id}`}
                     {badge.attendee_email ? ` • ${badge.attendee_email}` : ""}
                   </div>
                   <div className="mt-1 text-sm text-surface-500">
-                    {badge.is_automatic ? "Otomatik" : "Manuel"} • Tür: {badge.badge_type}
+                    {badge.is_automatic ? copy.badgeAutomatic : copy.badgeManual} • {copy.badgeTypePrefix}{badge.badge_type}
                   </div>
                   <div className="mt-1 text-xs text-surface-400">
                     {badgeDateFormatter.format(new Date(badge.awarded_at))}
@@ -908,7 +993,7 @@ export default function GamificationPage() {
                     }}
                     className="inline-flex px-3 py-1 rounded-full border font-semibold text-sm"
                   >
-                    Verildi
+                    {copy.awardedLabel}
                   </div>
 
                   {Object.keys(badge.criteria_met || {}).length > 0 && (
@@ -920,11 +1005,11 @@ export default function GamificationPage() {
                             <div className="flex items-center justify-between gap-3">
                               <span className="text-sm font-medium text-surface-700">{key}</span>
                               <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${criteria.passed ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
-                                {criteria.passed ? "Geçti" : "Kaldı"}
+                                {criteria.passed ? copy.criteriaPassed : copy.criteriaFailed}
                               </span>
                             </div>
                             <div className="mt-1 text-xs text-surface-500">
-                              Gereken: {String(criteria.required ?? "-")} • Gerçekleşen: {String(criteria.actual ?? "-")}
+                              {copy.criteriaRequired}{String(criteria.required ?? "-")} • {copy.criteriaActual}{String(criteria.actual ?? "-")}
                             </div>
                           </div>
                         );

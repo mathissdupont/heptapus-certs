@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
@@ -12,6 +12,7 @@ import EventAdminNav from "@/components/Admin/EventAdminNav";
 import DateField from "@/components/Admin/DateField";
 import TimeField from "@/components/Admin/TimeField";
 import { PlanGateCard, isPlanGateError } from "@/lib/useSubscription";
+import { useI18n } from "@/lib/i18n";
 import {
   Plus, Loader2, Calendar, Clock, MapPin, QrCode, ToggleLeft,
   ToggleRight, Pencil, Trash2, ChevronLeft, Check, X, Download, ExternalLink,
@@ -20,6 +21,14 @@ import {
 
 function RegisterLinkBanner({ eventId }: { eventId: string }) {
   const [copied, setCopied] = useState(false);
+  const { lang } = useI18n();
+  const isTr = lang === "tr";
+  const bannerCopy = {
+    label: isTr ? "Katılımcı Kayıt Linki" : "Attendee Registration Link",
+    open: isTr ? "Aç" : "Open",
+    copy: isTr ? "Kopyala" : "Copy",
+    copied: isTr ? "Kopyalandı!" : "Copied!",
+  };
   const url = typeof window !== "undefined" ? `${window.location.origin}/events/${eventId}/register` : `/events/${eventId}/register`;
 
   function copy() {
@@ -33,18 +42,18 @@ function RegisterLinkBanner({ eventId }: { eventId: string }) {
     <div className="flex flex-col items-stretch gap-3 rounded-xl border border-surface-200 bg-surface-50 px-4 py-3 sm:flex-row sm:items-center">
       <Link2 className="w-4 h-4 text-surface-500 shrink-0" />
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold text-surface-700 mb-0.5">Katılımcı Kayıt Linki</p>
+        <p className="text-xs font-semibold text-surface-700 mb-0.5">{bannerCopy.label}</p>
         <p className="text-xs text-surface-500 truncate font-mono">{url}</p>
       </div>
       <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-sky-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-surface-600 transition hover:text-sky-800 sm:w-auto">
-        <ExternalLink className="w-3.5 h-3.5" /> Aç
+        <ExternalLink className="w-3.5 h-3.5" /> {bannerCopy.open}
       </a>
       <button
         onClick={copy}
         className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition-colors sm:w-auto"
         style={copied ? { background: "#d1fae5", borderColor: "#6ee7b7", color: "#065f46" } : { background: "#0ea5e9", borderColor: "#0ea5e9", color: "#fff" }}
       >
-        {copied ? <><ClipboardCheck className="w-3.5 h-3.5" /> Kopyalandı!</> : <><Link2 className="w-3.5 h-3.5" /> Kopyala</>}
+        {copied ? <><ClipboardCheck className="w-3.5 h-3.5" /> {bannerCopy.copied}</> : <><Link2 className="w-3.5 h-3.5" /> {bannerCopy.copy}</>}
       </button>
     </div>
   );
@@ -53,6 +62,45 @@ function RegisterLinkBanner({ eventId }: { eventId: string }) {
 export default function AdminSessionsPage() {
   const params = useParams();
   const eventId = Number(params?.id);
+  const { lang } = useI18n();
+  const isTr = lang === "tr";
+
+  const copy = {
+    checkinInfra: isTr ? "Check-in altyapısı" : "Check-in infrastructure",
+    sessionManagement: isTr ? "Oturum Yönetimi" : "Session Management",
+    attendees: isTr ? "Katılımcılar" : "Attendees",
+    addSession: isTr ? "Oturum Ekle" : "Add Session",
+    minSessionsTitle: isTr ? "Sertifika İçin Gereken Minimum Oturum Sayısı" : "Minimum Sessions Required for Certificate",
+    minSessionsDesc: isTr ? "Katılımcının sertifika alabilmesi için katılması gereken minimum oturum adedi" : "Minimum number of sessions an attendee must attend to receive a certificate",
+    editSession: isTr ? "Oturumu Düzenle" : "Edit Session",
+    newSession: isTr ? "Yeni Oturum" : "New Session",
+    sessionName: isTr ? "Oturum Adı *" : "Session Name *",
+    date: isTr ? "Tarih" : "Date",
+    time: isTr ? "Saat" : "Time",
+    location: isTr ? "Konum" : "Location",
+    sessionPlaceholder: isTr ? "örn. Açılış Töreni" : "e.g. Opening Ceremony",
+    datePlaceholder: isTr ? "Tarih seçin" : "Select date",
+    timePlaceholder: isTr ? "Saat seçin" : "Select time",
+    locationPlaceholder: isTr ? "Salon A" : "Hall A",
+    cancel: isTr ? "İptal" : "Cancel",
+    save: isTr ? "Kaydet" : "Save",
+    add: isTr ? "Ekle" : "Add",
+    noSessions: isTr ? "Henüz oturum yok" : "No sessions yet",
+    noSessionsDesc: isTr ? "İlk oturumu ekleyerek QR ile yoklama almaya başlayın." : "Add your first session to start taking attendance with QR.",
+    attended: isTr ? "kişi katıldı" : "attended",
+    checkinOpen: isTr ? "Check-in Açık" : "Check-in Open",
+    showQr: isTr ? "QR Göster" : "Show QR",
+    checkinClose: isTr ? "Check-in kapat" : "Close check-in",
+    checkinOpenAction: isTr ? "Check-in aç" : "Open check-in",
+    edit: isTr ? "Düzenle" : "Edit",
+    delete: isTr ? "Sil" : "Delete",
+    qrInstructions: isTr ? "QR kodu ekranınızda gösterin veya yazdırın" : "Display or print the QR code on your screen",
+    download: isTr ? "İndir" : "Download",
+    present: isTr ? "Sunum" : "Present",
+    close: isTr ? "Kapat" : "Close",
+    loadFailed: isTr ? "Yükleme başarısız" : "Loading failed",
+    saveFailed: isTr ? "Kayıt başarısız" : "Save failed",
+  };
 
   const [sessions, setSessions] = useState<SessionOut[]>([]);
   const [eventName, setEventName] = useState("");
@@ -106,7 +154,7 @@ export default function AdminSessionsPage() {
           setEventPublicId(evRes.public_id || String(eventId));
         } catch {}
       } else {
-        setError(e.message || "Yükleme başarısız");
+        setError(e.message || copy.loadFailed);
       }
     } finally {
       setLoading(false);
@@ -152,7 +200,7 @@ export default function AdminSessionsPage() {
       setShowForm(false);
       await load();
     } catch (e: any) {
-      setFormError(e.message || "Kayıt başarısız");
+      setFormError(e.message || copy.saveFailed);
     } finally {
       setSaving(false);
     }
@@ -205,7 +253,7 @@ export default function AdminSessionsPage() {
         body: JSON.stringify({ name: eventName, min_sessions_required: clamped }),
       });
     } catch (e: any) {
-      setError(e.message || "Kayıt başarısız");
+      setError(e.message || copy.saveFailed);
     } finally {
       setSavingMin(false);
     }
@@ -237,8 +285,8 @@ export default function AdminSessionsPage() {
         <div className="surface-panel p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-surface-500">Check-in altyapısı</p>
-            <h1 className="mt-2 text-2xl font-black text-surface-950">Oturum Yönetimi</h1>
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-surface-500">{copy.checkinInfra}</p>
+            <h1 className="mt-2 text-2xl font-black text-surface-950">{copy.sessionManagement}</h1>
             <p className="mt-1 text-sm text-surface-500">{eventName}</p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
@@ -246,13 +294,13 @@ export default function AdminSessionsPage() {
               href={`/admin/events/${eventId}/attendees`}
               className="btn-secondary justify-center text-sm"
             >
-              Katılımcılar
+              {copy.attendees}
             </Link>
             <button
               onClick={openCreate}
               className="btn-primary justify-center text-sm"
             >
-              <Plus className="w-4 h-4" /> Oturum Ekle
+              <Plus className="w-4 h-4" /> {copy.addSession}
             </button>
           </div>
         </div>
@@ -265,8 +313,8 @@ export default function AdminSessionsPage() {
         <div className="card flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
           <Hash className="w-5 h-5 text-surface-500 shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-surface-900">Sertifika İçin Gereken Minimum Oturum Sayısı</p>
-            <p className="mt-0.5 text-xs text-surface-500">Katılımcının sertifika alabilmesi için katılması gereken minimum oturum adedi</p>
+            <p className="text-sm font-bold text-surface-900">{copy.minSessionsTitle}</p>
+            <p className="mt-0.5 text-xs text-surface-500">{copy.minSessionsDesc}</p>
           </div>
           <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
             <input
@@ -290,49 +338,49 @@ export default function AdminSessionsPage() {
         {showForm && (
           <div className="card p-5">
             <h2 className="mb-4 font-semibold text-surface-900">
-              {editingSession ? "Oturumu Düzenle" : "Yeni Oturum"}
+              {editingSession ? copy.editSession : copy.newSession}
             </h2>
             <form onSubmit={handleSaveSession} className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-surface-600 mb-1">Oturum Adı *</label>
+                <label className="block text-xs font-medium text-surface-600 mb-1">{copy.sessionName}</label>
                 <input
                   type="text"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  placeholder="örn. Açılış Töreni"
+                  placeholder={copy.sessionPlaceholder}
                   className="input-field"
                   required
                 />
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <DateField
-                  label="Tarih"
+                  label={copy.date}
                   value={formDate}
                   onChange={setFormDate}
-                  placeholder="Tarih seçin"
-                  locale="tr-TR"
+                  placeholder={copy.datePlaceholder}
+                  locale={isTr ? "tr-TR" : "en-US"}
                 />
                 <TimeField
-                  label="Saat"
+                  label={copy.time}
                   value={formStart}
                   onChange={setFormStart}
-                  placeholder="Saat seçin"
+                  placeholder={copy.timePlaceholder}
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-surface-600 mb-1">Konum</label>
+                <label className="block text-xs font-medium text-surface-600 mb-1">{copy.location}</label>
                 <input
                   type="text"
                   value={formLocation}
                   onChange={(e) => setFormLocation(e.target.value)}
-                  placeholder="Salon A"
+                  placeholder={copy.locationPlaceholder}
                   className="input-field"
                 />
               </div>
               {formError && <p className="text-xs text-red-600">{formError}</p>}
               <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:justify-end">
                 <button type="button" onClick={() => setShowForm(false)} className="btn-secondary justify-center">
-                  İptal
+                  {copy.cancel}
                 </button>
                 <button
                   type="submit"
@@ -340,7 +388,7 @@ export default function AdminSessionsPage() {
                   className="btn-primary justify-center disabled:opacity-50"
                 >
                   {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                  {editingSession ? "Kaydet" : "Ekle"}
+                  {editingSession ? copy.save : copy.add}
                 </button>
               </div>
             </form>
@@ -351,10 +399,10 @@ export default function AdminSessionsPage() {
         {sessions.length === 0 && !showForm ? (
           <div className="card border-dashed p-12 text-center text-surface-500">
             <QrCode className="w-12 h-12 mx-auto mb-3 opacity-40" />
-            <p className="font-medium">Henüz oturum yok</p>
-            <p className="text-sm mt-1">İlk oturumu ekleyerek QR ile yoklama almaya başlayın.</p>
+            <p className="font-medium">{copy.noSessions}</p>
+            <p className="text-sm mt-1">{copy.noSessionsDesc}</p>
             <button onClick={openCreate} className="btn-primary mx-auto mt-4">
-              <Plus className="w-4 h-4" /> Oturum Ekle
+              <Plus className="w-4 h-4" /> {copy.addSession}
             </button>
           </div>
         ) : (
@@ -368,7 +416,7 @@ export default function AdminSessionsPage() {
                       {s.is_active && (
                         <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">
                           <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse inline-block" />
-                          Check-in Açık
+                          {copy.checkinOpen}
                         </span>
                       )}
                     </div>
@@ -376,7 +424,7 @@ export default function AdminSessionsPage() {
                       {s.session_date && (
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5" />
-                          {new Date(s.session_date).toLocaleDateString("tr-TR")}
+                          {new Date(s.session_date).toLocaleDateString(isTr ? "tr-TR" : "en-US")}
                         </span>
                       )}
                       {s.session_start && (
@@ -391,7 +439,7 @@ export default function AdminSessionsPage() {
                           {s.session_location}
                         </span>
                       )}
-                      <span className="text-emerald-600 font-medium">{s.attendance_count} kişi katıldı</span>
+                      <span className="text-emerald-600 font-medium">{s.attendance_count} {copy.attended}</span>
                     </div>
                   </div>
 
@@ -400,7 +448,7 @@ export default function AdminSessionsPage() {
                     <button
                       onClick={() => handleShowQr(s)}
                       disabled={qrLoading === s.id}
-                      title="QR Göster"
+                      title={copy.showQr}
                       className="p-2 rounded-lg hover:bg-surface-100 text-surface-600 transition disabled:opacity-40"
                     >
                       {qrLoading === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
@@ -410,7 +458,7 @@ export default function AdminSessionsPage() {
                     <button
                       onClick={() => handleToggle(s)}
                       disabled={toggling === s.id}
-                      title={s.is_active ? "Check-in kapat" : "Check-in aç"}
+                      title={s.is_active ? copy.checkinClose : copy.checkinOpenAction}
                       className={`p-2 rounded-lg transition ${s.is_active ? "text-green-600 hover:bg-green-50" : "text-surface-400 hover:bg-surface-50"}`}
                     >
                       {toggling === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : s.is_active ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
@@ -419,7 +467,7 @@ export default function AdminSessionsPage() {
                     {/* Edit */}
                     <button
                       onClick={() => openEdit(s)}
-                      title="Düzenle"
+                      title={copy.edit}
                       className="p-2 rounded-lg hover:bg-surface-50 text-surface-500 hover:text-surface-700 transition"
                     >
                       <Pencil className="w-4 h-4" />
@@ -429,7 +477,7 @@ export default function AdminSessionsPage() {
                     <button
                       onClick={() => handleDelete(s.id)}
                       disabled={deletingId === s.id}
-                      title="Sil"
+                      title={copy.delete}
                       className="p-2 rounded-lg hover:bg-red-50 text-surface-400 hover:text-red-600 transition"
                     >
                       {deletingId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
@@ -446,7 +494,7 @@ export default function AdminSessionsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setQrModal(null)}>
           <div className="bg-white rounded-2xl shadow-modal p-6 max-w-xs w-full text-center" onClick={(e) => e.stopPropagation()}>
             <h2 className="font-bold text-surface-700 mb-1">{qrModal.sessionName}</h2>
-            <p className="text-xs text-surface-400 mb-4">QR kodu ekranınızda gösterin veya yazdırın</p>
+            <p className="text-xs text-surface-400 mb-4">{copy.qrInstructions}</p>
             <img src={qrModal.url} alt="Check-in QR" className="w-48 h-48 mx-auto rounded-xl border" />
             <p className="text-xs text-surface-400 mt-3 break-all">{qrModal.checkinUrl}</p>
             <div className="flex gap-2 mt-4">
@@ -455,7 +503,7 @@ export default function AdminSessionsPage() {
                 download={`checkin-qr.png`}
                 className="flex-1 inline-flex items-center justify-center gap-2 btn-primary justify-center text-sm"
               >
-                <Download className="w-4 h-4" /> İndir
+                <Download className="w-4 h-4" /> {copy.download}
               </a>
               <button
                 onClick={() => {
@@ -466,11 +514,11 @@ export default function AdminSessionsPage() {
                 }}
                 className="flex-1 inline-flex items-center justify-center gap-2 border border-surface-200 text-surface-700 text-sm font-semibold py-2 rounded-xl hover:bg-surface-50 transition"
               >
-                <ExternalLink className="w-4 h-4" /> Sunum
+                <ExternalLink className="w-4 h-4" /> {copy.present}
               </button>
             </div>
             <button onClick={() => setQrModal(null)} className="mt-2 w-full text-sm text-surface-400 hover:text-surface-600 py-1 transition">
-              Kapat
+              {copy.close}
             </button>
           </div>
         </div>
@@ -481,4 +529,3 @@ export default function AdminSessionsPage() {
     </div>
   );
 }
-

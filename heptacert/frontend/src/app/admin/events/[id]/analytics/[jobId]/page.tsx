@@ -1,18 +1,19 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
-import { 
-  ArrowLeft, 
-  Loader2, 
-  AlertCircle, 
-  Mail, 
-  CheckCircle2, 
-  Eye, 
-  XCircle, 
-  AlertTriangle, 
-  ChevronLeft, 
+import { useI18n } from "@/lib/i18n";
+import {
+  ArrowLeft,
+  Loader2,
+  AlertCircle,
+  Mail,
+  CheckCircle2,
+  Eye,
+  XCircle,
+  AlertTriangle,
+  ChevronLeft,
   ChevronRight,
   ChevronDown,
   BarChart3,
@@ -52,8 +53,43 @@ export default function DeliveryAnalyticsPage() {
   const params = useParams();
   const eventId = parseInt(params.id as string);
   const jobId = parseInt(params.jobId as string);
-  
+
   const router = useRouter();
+  const { lang } = useI18n();
+  const isTr = lang === "tr";
+
+  const copy = {
+    pageTitle: isTr ? "E-posta Gönderim Analitikleri" : "Email Delivery Analytics",
+    jobId: isTr ? "Görev Kimliği: #JOB-" : "Job ID: #JOB-",
+    back: isTr ? "Geri Dön" : "Go Back",
+    totalRecipients: isTr ? "Toplam Alıcı" : "Total Recipients",
+    sent: isTr ? "Gönderilen" : "Sent",
+    openRate: isTr ? "Açılma Oranı" : "Open Rate",
+    bounceRate: isTr ? "Bounce Oranı" : "Bounce Rate",
+    failureRate: isTr ? "Başarısız Oran" : "Failure Rate",
+    statusBreakdown: isTr ? "Detaylı Durum Dağılımı" : "Detailed Status Breakdown",
+    pending: isTr ? "Beklemede" : "Pending",
+    openedUnique: isTr ? "Açılan (Tekil)" : "Opened (Unique)",
+    bounce: isTr ? "Bounce" : "Bounce",
+    failed: isTr ? "Başarısız" : "Failed",
+    deliveryLog: isTr ? "Gönderim Günlüğü" : "Delivery Log",
+    allStatuses: isTr ? "Tüm Durumlar" : "All Statuses",
+    recipient: isTr ? "Alıcı" : "Recipient",
+    email: isTr ? "E-posta" : "Email",
+    status: isTr ? "Durum" : "Status",
+    sentDate: isTr ? "Gönderim Tarihi" : "Sent Date",
+    openedDate: isTr ? "Açılış Tarihi" : "Opened Date",
+    reason: isTr ? "Neden" : "Reason",
+    statusSent: isTr ? "✓ Gönderildi" : "✓ Sent",
+    statusFailed: isTr ? "✗ Başarısız" : "✗ Failed",
+    statusBounced: isTr ? "↩ Bounce" : "↩ Bounce",
+    statusOpened: isTr ? "Açıldı" : "Opened",
+    noLogs: isTr ? "Gösterilecek günlük kaydı bulunmuyor." : "No log entries to display.",
+    page: isTr ? "Sayfa" : "Page",
+    records: isTr ? "kayıt" : "records",
+    invalidParam: isTr ? "Geçersiz parametre" : "Invalid parameter",
+    loadError: isTr ? "Veriler yüklenemedi" : "Failed to load data",
+  };
 
   const [stats, setStats] = useState<DeliveryStats | null>(null);
   const [logs, setLogs] = useState<LogsResponse | null>(null);
@@ -94,7 +130,7 @@ export default function DeliveryAnalyticsPage() {
     return (
       <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 text-xs font-semibold text-red-600 flex items-center gap-2 antialiased">
         <AlertCircle className="h-4 w-4" />
-        <span>Geçersiz parametre</span>
+        <span>{copy.invalidParam}</span>
       </div>
     );
   }
@@ -111,7 +147,7 @@ export default function DeliveryAnalyticsPage() {
     return (
       <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 text-xs font-semibold text-red-600 flex items-center gap-2 antialiased">
         <AlertCircle className="h-4 w-4" />
-        <span>Veriler yüklenemedi</span>
+        <span>{copy.loadError}</span>
       </div>
     );
   }
@@ -144,7 +180,7 @@ export default function DeliveryAnalyticsPage() {
 
   return (
     <div className="w-full max-w-6xl mx-auto p-4 sm:p-6 antialiased text-surface-900 space-y-6">
-      
+
       {/* ÜST GEÇMİŞ BAŞLIK ALANI */}
       <div className="flex flex-col gap-1.5 pb-2">
         <button
@@ -152,16 +188,16 @@ export default function DeliveryAnalyticsPage() {
           className="inline-flex w-fit items-center gap-1 text-11 font-bold text-surface-400 uppercase tracking-wider transition-colors hover:text-surface-900"
         >
           <ArrowLeft className="h-3.5 w-3.5 stroke-[2.5]" />
-          <span>Geri Dön</span>
+          <span>{copy.back}</span>
         </button>
         <div className="flex items-center justify-between gap-4 mt-1">
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-surface-900 sm:text-2xl">E-posta Gönderim Analitikleri</h1>
-            <p className="text-xs text-surface-400 font-mono mt-0.5">Görev Kimliği: #JOB-{jobId}</p>
+            <h1 className="text-xl font-bold tracking-tight text-surface-900 sm:text-2xl">{copy.pageTitle}</h1>
+            <p className="text-xs text-surface-400 font-mono mt-0.5">{copy.jobId}{jobId}</p>
           </div>
-          <button 
-            type="button" 
-            onClick={() => void fetchData()} 
+          <button
+            type="button"
+            onClick={() => void fetchData()}
             className="flex h-9 w-9 items-center justify-center rounded-xl border border-surface-200 bg-white text-surface-500 shadow-sm hover:bg-surface-50 active:scale-95 transition-all"
           >
             <RefreshCw className="h-3.5 w-3.5 stroke-[2]" />
@@ -171,23 +207,23 @@ export default function DeliveryAnalyticsPage() {
 
       {/* 1. ANA METRİK KARTLARI GRUBU */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
-        <CleanStatCard label="Toplam Alıcı" value={stats.total_recipients} color="blue" />
-        <CleanStatCard label="Gönderilen" value={stats.sent} color="green" />
-        <CleanStatCard label="Açılma Oranı" value={`%${stats.open_rate}`} color="amber" />
-        <CleanStatCard label="Bounce Oranı" value={`%${stats.bounce_rate}`} color="red" />
-        <CleanStatCard label="Başarısız Oran" value={`%${stats.failure_rate}`} color="red" />
+        <CleanStatCard label={copy.totalRecipients} value={stats.total_recipients} color="blue" />
+        <CleanStatCard label={copy.sent} value={stats.sent} color="green" />
+        <CleanStatCard label={copy.openRate} value={`%${stats.open_rate}`} color="amber" />
+        <CleanStatCard label={copy.bounceRate} value={`%${stats.bounce_rate}`} color="red" />
+        <CleanStatCard label={copy.failureRate} value={`%${stats.failure_rate}`} color="red" />
       </div>
 
       {/* 2. DURUM DAĞILIMI (Breakdown Matrix) */}
       <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm space-y-4">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900 border-b border-surface-100 pb-2.5">Detaylı Durum Dağılımı</h2>
+        <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900 border-b border-surface-100 pb-2.5">{copy.statusBreakdown}</h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {[
-            { label: "Gönderilen", count: stats.sent, pct: ((stats.sent / stats.total_recipients) * 100).toFixed(1), color: "text-emerald-600 bg-emerald-50/50" },
-            { label: "Beklemede", count: stats.pending, pct: ((stats.pending / stats.total_recipients) * 100).toFixed(1), color: "text-amber-600 bg-amber-50/50" },
-            { label: "Açılan (Tekil)", count: stats.opened, pct: stats.open_rate, color: "text-blue-600 bg-blue-50/50" },
-            { label: "Bounce", count: stats.bounced, pct: stats.bounce_rate, color: "text-orange-600 bg-orange-50/50" },
-            { label: "Başarısız", count: stats.failed, pct: stats.failure_rate, color: "text-red-600 bg-red-50/50" },
+            { label: copy.sent, count: stats.sent, pct: ((stats.sent / stats.total_recipients) * 100).toFixed(1), color: "text-emerald-600 bg-emerald-50/50" },
+            { label: copy.pending, count: stats.pending, pct: ((stats.pending / stats.total_recipients) * 100).toFixed(1), color: "text-amber-600 bg-amber-50/50" },
+            { label: copy.openedUnique, count: stats.opened, pct: stats.open_rate, color: "text-blue-600 bg-blue-50/50" },
+            { label: copy.bounce, count: stats.bounced, pct: stats.bounce_rate, color: "text-orange-600 bg-orange-50/50" },
+            { label: copy.failed, count: stats.failed, pct: stats.failure_rate, color: "text-red-600 bg-red-50/50" },
           ].map((item, idx) => (
             <div key={idx} className="rounded-xl border border-surface-100 bg-surface-50/30 p-3 text-center space-y-1">
               <p className="text-11 font-semibold text-surface-400 tracking-tight">{item.label}</p>
@@ -206,9 +242,9 @@ export default function DeliveryAnalyticsPage() {
         <div className="px-5 py-4 border-b border-surface-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
           <div className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-surface-800 stroke-[2]" />
-            <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">Gönderim Günlüğü</h2>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.deliveryLog}</h2>
           </div>
-          
+
           <div className="relative inline-flex items-center select-none">
             <select
               value={statusFilter}
@@ -218,11 +254,11 @@ export default function DeliveryAnalyticsPage() {
               }}
               className="appearance-none rounded-xl border border-surface-200 bg-white pl-3 pr-7 py-1.5 text-xs font-semibold text-surface-700 outline-none hover:border-surface-300 transition-all cursor-pointer"
             >
-              <option value="">Tüm Durumlar</option>
-              <option value="sent">Gönderilen</option>
-              <option value="failed">Başarısız</option>
-              <option value="bounced">Bounce</option>
-              <option value="opened">Açılan</option>
+              <option value="">{copy.allStatuses}</option>
+              <option value="sent">{copy.sent}</option>
+              <option value="failed">{copy.failed}</option>
+              <option value="bounced">{copy.bounce}</option>
+              <option value="opened">{copy.statusOpened}</option>
             </select>
             <ChevronDown className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-surface-400" />
           </div>
@@ -231,20 +267,20 @@ export default function DeliveryAnalyticsPage() {
         {/* Tablo İçeriği */}
         {logs && logs.logs.length === 0 ? (
           <div className="py-14 text-center text-xs font-semibold text-surface-400 tracking-tight">
-            Gösterilecek günlük kaydı bulunmuyor.
+            {copy.noLogs}
           </div>
         ) : (
           <div className="overflow-x-auto scrollbar-none">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-surface-100 bg-surface-50/50">
-                  <th className="px-5 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none">Alıcı</th>
-                  <th className="px-5 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none">E-posta</th>
-                  <th className="px-5 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none">Durum</th>
-                  <th className="px-5 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none">Gönderim Tarihi</th>
-                  <th className="px-5 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none">Açılış Tarihi</th>
+                  <th className="px-5 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none">{copy.recipient}</th>
+                  <th className="px-5 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none">{copy.email}</th>
+                  <th className="px-5 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none">{copy.status}</th>
+                  <th className="px-5 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none">{copy.sentDate}</th>
+                  <th className="px-5 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none">{copy.openedDate}</th>
                   {stats.failure_rate > 0 && (
-                    <th className="px-5 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none">Neden</th>
+                    <th className="px-5 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none">{copy.reason}</th>
                   )}
                 </tr>
               </thead>
@@ -268,22 +304,22 @@ export default function DeliveryAnalyticsPage() {
                         }`}
                       >
                         {log.status === 'sent'
-                          ? '✓ Gönderildi'
+                          ? copy.statusSent
                           : log.status === 'failed'
-                          ? '✗ Başarısız'
+                          ? copy.statusFailed
                           : log.status === 'bounced'
-                          ? '↩ Bounce'
+                          ? copy.statusBounced
                           : log.status === 'opened'
-                          ? 'Açıldı'
+                          ? copy.statusOpened
                           : log.status}
                       </span>
                     </td>
                     <td className="px-5 py-3.5 text-xs font-medium text-surface-500 font-mono">
-                      {new Date(log.sent_at).toLocaleString('tr-TR', { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
+                      {new Date(log.sent_at).toLocaleString(isTr ? 'tr-TR' : 'en-US', { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
                     </td>
                     <td className="px-5 py-3.5 text-xs font-medium text-surface-500 font-mono">
                       {log.opened_at
-                        ? new Date(log.opened_at).toLocaleString('tr-TR', { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })
+                        ? new Date(log.opened_at).toLocaleString(isTr ? 'tr-TR' : 'en-US', { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })
                         : '-'}
                     </td>
                     {stats.failure_rate > 0 && (
@@ -302,7 +338,7 @@ export default function DeliveryAnalyticsPage() {
         {logs && logs.total > logs.limit && (
           <div className="px-5 py-3.5 border-t border-surface-100 bg-white flex items-center justify-between text-xs text-surface-400 font-semibold tracking-tight">
             <div>
-              Sayfa {logs.page} / {Math.ceil(logs.total / logs.limit)} <span className="font-normal text-surface-300">({logs.total} kayıt)</span>
+              {copy.page} {logs.page} / {Math.ceil(logs.total / logs.limit)} <span className="font-normal text-surface-300">({logs.total} {copy.records})</span>
             </div>
             <div className="flex items-center gap-1">
               <button

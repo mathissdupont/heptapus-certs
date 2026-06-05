@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { checkInEventTicket, listEventTickets, updateEventTicketStatus, type EventTicketOut } from "@/lib/api";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
+import { useI18n } from "@/lib/i18n";
 import {
   Camera,
   CheckCircle2,
@@ -38,23 +39,23 @@ function formatDate(value?: string | null) {
   }
 }
 
-function getTicketStatus(ticket: EventTicketOut) {
+function getTicketStatus(ticket: EventTicketOut, labels: { used: string; cancelled: string; ready: string }) {
   if (ticket.status === "used") {
     return {
-      label: "Giriş yapıldı",
+      label: labels.used,
       className: "border-emerald-200 bg-emerald-50 text-emerald-700",
       icon: <CheckCircle2 className="h-3.5 w-3.5" />,
     };
   }
   if (ticket.status === "cancelled" || ticket.status === "revoked") {
     return {
-      label: "İptal",
+      label: labels.cancelled,
       className: "border-red-200 bg-red-50 text-red-700",
       icon: <XCircle className="h-3.5 w-3.5" />,
     };
   }
   return {
-    label: "Hazır",
+    label: labels.ready,
     className: "border-sky-200 bg-sky-50 text-sky-700",
     icon: <QrCode className="h-3.5 w-3.5" />,
   };
@@ -71,6 +72,77 @@ function tokenFromQr(value: string) {
 export default function EventTicketsPage() {
   const params = useParams();
   const eventId = Number(Array.isArray(params?.id) ? params.id[0] : params?.id);
+
+  const { lang } = useI18n();
+  const isTr = lang === "tr";
+  const copy = {
+    // Ticket status labels
+    statusUsed: isTr ? "Giriş yapıldı" : "Checked in",
+    statusCancelled: isTr ? "İptal" : "Cancelled",
+    statusReady: isTr ? "Hazır" : "Ready",
+    // Page header
+    tagLabel: isTr ? "Bilet ve giriş kontrolü" : "Ticket and entry control",
+    pageTitle: isTr ? "Dijital Biletler" : "Digital Tickets",
+    pageSubtitle: isTr ? "Katılımcı biletlerini takip et, QR okut ve giriş durumunu tek ekrandan yönet." : "Track attendee tickets, scan QR codes, and manage entry status from a single screen.",
+    btnRefresh: isTr ? "Yenile" : "Refresh",
+    // Stats
+    statTotal: isTr ? "Toplam" : "Total",
+    statReady: isTr ? "Hazır" : "Ready",
+    statUsed: isTr ? "Giriş Yapıldı" : "Checked In",
+    statCancelled: isTr ? "İptal" : "Cancelled",
+    statRate: isTr ? "Giriş Oranı" : "Entry Rate",
+    // Quick check-in section
+    quickCheckinTitle: isTr ? "Hızlı Check-in" : "Quick Check-in",
+    quickCheckinSubtitle: isTr ? "Token, bilet linki veya QR çıktısı ile giriş onayla." : "Confirm entry with a token, ticket link, or QR output.",
+    tokenPlaceholder: isTr ? "Token veya /tickets/... linki" : "Token or /tickets/... link",
+    btnConfirmEntry: isTr ? "Girişi Onayla" : "Confirm Entry",
+    btnClose: isTr ? "Kapat" : "Close",
+    btnCamera: isTr ? "Kamera" : "Camera",
+    // Scanner
+    scannerLabel: isTr ? "Kamera ile okut veya QR görseli yükle" : "Scan with camera or upload QR image",
+    btnUploadImage: isTr ? "Görsel Yükle" : "Upload Image",
+    scannerReady: isTr ? "QR kodu çerçevenin içine alın" : "Place QR code inside the frame",
+    scannerStarting: isTr ? "Kamera hazırlanıyor..." : "Camera starting...",
+    // Pending ticket
+    qrReadLabel: isTr ? "QR okundu" : "QR scanned",
+    statusLabel: isTr ? "Durum" : "Status",
+    pendingUsed: isTr ? "Giriş yapıldı" : "Checked in",
+    pendingReady: isTr ? "Hazır" : "Ready",
+    pendingCancelled: isTr ? "İptal edildi" : "Cancelled",
+    btnCheckinClosed: isTr ? "Check-in kapalı" : "Check-in closed",
+    btnCancel: isTr ? "Vazgeç" : "Cancel",
+    // List control
+    listControlTitle: isTr ? "Liste Kontrolü" : "List Control",
+    searchPlaceholder: isTr ? "Ad, e-posta veya token ara" : "Search name, email or token",
+    filterAll: isTr ? "Tümü" : "All",
+    filterReady: isTr ? "Hazır" : "Ready",
+    filterUsed: isTr ? "Giriş" : "Entry",
+    filterCancelled: isTr ? "İptal" : "Cancelled",
+    // Ticket table / list
+    colIssuedAt: isTr ? "Oluşturma" : "Issued",
+    colCheckedInAt: isTr ? "Giriş" : "Check-in",
+    btnCopyLink: isTr ? "Link" : "Link",
+    btnCopied: isTr ? "Kopyalandı" : "Copied",
+    btnOpen: isTr ? "Aç" : "Open",
+    btnCancelTicket: isTr ? "İptal et" : "Cancel",
+    btnActivate: isTr ? "Aktif et" : "Activate",
+    // Empty / loading states
+    loadingTickets: isTr ? "Biletler yükleniyor..." : "Loading tickets...",
+    emptyNoTickets: isTr ? "Henüz bilet oluşturulmamış" : "No tickets created yet",
+    emptyNoTicketsHint: isTr ? "Bu etkinliğe yeni kayıt geldikçe biletler burada görünecek." : "Tickets will appear here as new registrations come in.",
+    emptyNoMatch: isTr ? "Bu filtreyle eşleşen bilet bulunamadı." : "No tickets match this filter.",
+    // Errors / messages
+    errLoadTickets: isTr ? "Biletler yüklenemedi." : "Failed to load tickets.",
+    errQrNotFound: isTr ? "QR okundu ancak bu etkinlikte eşleşen bilet bulunamadı. Listeyi yenileyip tekrar deneyin." : "QR scanned but no matching ticket found for this event. Refresh the list and try again.",
+    errQrFileFailed: isTr ? "Yüklenen görselde okunabilir bir QR bulunamadı." : "No readable QR code found in the uploaded image.",
+    errQrScannerFailed: isTr ? "QR okuyucu başlatılamadı." : "Failed to start QR reader.",
+    errCheckinFailed: isTr ? "Check-in başarısız oldu." : "Check-in failed.",
+    errStatusUpdateFailed: isTr ? "Bilet durumu güncellenemedi." : "Failed to update ticket status.",
+    msgCheckinSuccess: (name: string) => isTr ? `${name} için giriş onaylandı.` : `Entry confirmed for ${name}.`,
+    msgTicketActivated: (name: string) => isTr ? `${name} bileti tekrar aktif.` : `${name}'s ticket is active again.`,
+    msgTicketCancelled: (name: string) => isTr ? `${name} bileti iptal edildi.` : `${name}'s ticket has been cancelled.`,
+  };
+
   const [tickets, setTickets] = useState<EventTicketOut[]>([]);
   const [token, setToken] = useState("");
   const [search, setSearch] = useState("");
@@ -117,7 +189,7 @@ export default function EventTicketsPage() {
       setTickets(nextTickets);
       setPendingTicket((current) => (current ? nextTickets.find((ticket) => ticket.id === current.id) || current : null));
     } catch (err: any) {
-      setError(err.message || "Biletler yüklenemedi.");
+      setError(err.message || copy.errLoadTickets);
     } finally {
       setLoading(false);
     }
@@ -140,7 +212,7 @@ export default function EventTicketsPage() {
       return;
     }
     setPendingTicket(null);
-    setError("QR okundu ancak bu etkinlikte eşleşen bilet bulunamadı. Listeyi yenileyip tekrar deneyin.");
+    setError(copy.errQrNotFound);
   }
 
   useEffect(() => {
@@ -171,7 +243,7 @@ export default function EventTicketsPage() {
           () => {},
         );
       } catch (err: any) {
-        setError(err?.message || "QR okuyucu başlatılamadı.");
+        setError(err?.message || copy.errQrScannerFailed);
       } finally {
         if (!cancelled) setScannerStarting(false);
       }
@@ -199,7 +271,7 @@ export default function EventTicketsPage() {
       stageScannedTicket(decodedText);
       reader.clear();
     } catch {
-      setError("Yüklenen görselde okunabilir bir QR bulunamadı.");
+      setError(copy.errQrFileFailed);
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
@@ -213,12 +285,12 @@ export default function EventTicketsPage() {
     setError(null);
     try {
       const checkedTicket = await checkInEventTicket(eventId, normalizedToken);
-      setMessage(`${checkedTicket.attendee_name} için giriş onaylandı.`);
+      setMessage(copy.msgCheckinSuccess(checkedTicket.attendee_name));
       setToken("");
       setPendingTicket(null);
       await loadTickets();
     } catch (err: any) {
-      setError(err.message || "Check-in başarısız oldu.");
+      setError(err.message || copy.errCheckinFailed);
     } finally {
       setChecking(false);
     }
@@ -243,9 +315,9 @@ export default function EventTicketsPage() {
       const updated = await updateEventTicketStatus(eventId, ticket.id, status);
       setTickets((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
       if (pendingTicket?.id === updated.id) setPendingTicket(updated);
-      setMessage(status === "issued" ? `${updated.attendee_name} bileti tekrar aktif.` : `${updated.attendee_name} bileti iptal edildi.`);
+      setMessage(status === "issued" ? copy.msgTicketActivated(updated.attendee_name) : copy.msgTicketCancelled(updated.attendee_name));
     } catch (err: any) {
-      setError(err.message || "Bilet durumu güncellenemedi.");
+      setError(err.message || copy.errStatusUpdateFailed);
     } finally {
       setUpdatingId(null);
     }
@@ -261,39 +333,39 @@ export default function EventTicketsPage() {
             <div>
               <p className="inline-flex items-center gap-2 rounded-full border border-amber-100 bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-amber-700">
                 <Ticket className="h-3.5 w-3.5" />
-                Bilet ve giriş kontrolü
+                {copy.tagLabel}
               </p>
-              <h1 className="mt-3 text-2xl font-black text-surface-900">Dijital Biletler</h1>
+              <h1 className="mt-3 text-2xl font-black text-surface-900">{copy.pageTitle}</h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-surface-500">
-                Katılımcı biletlerini takip et, QR okut ve giriş durumunu tek ekrandan yönet.
+                {copy.pageSubtitle}
               </p>
             </div>
             <button type="button" onClick={loadTickets} className="btn-secondary justify-center">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-              Yenile
+              {copy.btnRefresh}
             </button>
           </div>
         </div>
 
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-5">
           <div className="rounded-xl border border-surface-100 bg-surface-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-surface-400">Toplam</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-surface-400">{copy.statTotal}</p>
             <p className="mt-1 text-2xl font-black text-surface-900">{stats.total}</p>
           </div>
           <div className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-sky-500">Hazır</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-sky-500">{copy.statReady}</p>
             <p className="mt-1 text-2xl font-black text-sky-700">{stats.ready}</p>
           </div>
           <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-500">Giriş Yapıldı</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-500">{copy.statUsed}</p>
             <p className="mt-1 text-2xl font-black text-emerald-700">{stats.used}</p>
           </div>
           <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-red-500">İptal</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-red-500">{copy.statCancelled}</p>
             <p className="mt-1 text-2xl font-black text-red-700">{stats.cancelled}</p>
           </div>
           <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-600">Giriş Oranı</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-600">{copy.statRate}</p>
             <p className="mt-1 text-2xl font-black text-amber-700">%{stats.usedRate}</p>
           </div>
         </div>
@@ -306,8 +378,8 @@ export default function EventTicketsPage() {
               <ScanLine className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="font-bold text-surface-900">Hızlı Check-in</h2>
-              <p className="text-sm text-surface-500">Token, bilet linki veya QR çıktısı ile giriş onayla.</p>
+              <h2 className="font-bold text-surface-900">{copy.quickCheckinTitle}</h2>
+              <p className="text-sm text-surface-500">{copy.quickCheckinSubtitle}</p>
             </div>
           </div>
 
@@ -318,12 +390,12 @@ export default function EventTicketsPage() {
                 setToken(event.target.value);
                 setPendingTicket(findTicketByToken(event.target.value) || null);
               }}
-              placeholder="Token veya /tickets/... linki"
+              placeholder={copy.tokenPlaceholder}
               className="input-field flex-1"
             />
             <button type="submit" disabled={checking || !token.trim()} className="btn-primary justify-center">
               {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}
-              Girişi Onayla
+              {copy.btnConfirmEntry}
             </button>
             <button
               type="button"
@@ -334,17 +406,17 @@ export default function EventTicketsPage() {
               className="btn-secondary justify-center"
             >
               {showScanner ? <X className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
-              {showScanner ? "Kapat" : "Kamera"}
+              {showScanner ? copy.btnClose : copy.btnCamera}
             </button>
           </form>
 
           {showScanner && (
             <div className="mt-5 rounded-xl border border-dashed border-surface-200 bg-surface-50 p-4">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-surface-700">Kamera ile okut veya QR görseli yükle</p>
+                <p className="text-sm font-semibold text-surface-700">{copy.scannerLabel}</p>
                 <button type="button" onClick={() => fileInputRef.current?.click()} className="btn-secondary min-h-0 px-3 py-2 text-xs">
                   <ImageUp className="h-4 w-4" />
-                  Görsel Yükle
+                  {copy.btnUploadImage}
                 </button>
               </div>
               <div className="relative overflow-hidden rounded-2xl border border-surface-200 bg-surface-950 p-3 shadow-inner">
@@ -352,7 +424,7 @@ export default function EventTicketsPage() {
                 <div className="pointer-events-none absolute inset-3 rounded-xl ring-1 ring-white/10" />
                 <div className="pointer-events-none absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-3xl border-2 border-white/80 shadow-[0_0_0_999px_rgba(2,6,23,0.45)]" />
                 <div className="pointer-events-none absolute inset-x-6 bottom-6 rounded-xl border border-white/10 bg-black/45 px-4 py-3 text-center text-xs font-semibold text-white backdrop-blur">
-                  {scannerStarting ? "Kamera hazırlanıyor..." : "QR kodu çerçevenin içine alın"}
+                  {scannerStarting ? copy.scannerStarting : copy.scannerReady}
                 </div>
               </div>
               <div id="qr-file-reader" className="hidden" />
@@ -366,29 +438,29 @@ export default function EventTicketsPage() {
                 <div className="min-w-0">
                   <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-brand-700">
                     <ScanLine className="h-3.5 w-3.5" />
-                    QR okundu
+                    {copy.qrReadLabel}
                   </p>
                   <h3 className="mt-2 text-lg font-black text-surface-900">{pendingTicket.attendee_name}</h3>
                   <p className="mt-1 text-sm text-surface-600">{pendingTicket.attendee_email}</p>
                   <p className="mt-2 text-xs text-surface-500">
-                    Durum: <span className="font-semibold">{pendingTicket.status === "used" ? "Giriş yapıldı" : pendingTicket.status === "issued" ? "Hazır" : "İptal edildi"}</span>
+                    {copy.statusLabel}: <span className="font-semibold">{pendingTicket.status === "used" ? copy.pendingUsed : pendingTicket.status === "issued" ? copy.pendingReady : copy.pendingCancelled}</span>
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2 sm:justify-end">
                   {pendingTicket.status === "issued" ? (
                     <button type="button" onClick={() => confirmCheckIn(pendingTicket.token)} disabled={checking} className="btn-primary justify-center">
                       {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}
-                      Girişi Onayla
+                      {copy.btnConfirmEntry}
                     </button>
                   ) : (
                     <span className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700">
                       <Ban className="h-4 w-4" />
-                      Check-in kapalı
+                      {copy.btnCheckinClosed}
                     </span>
                   )}
                   <button type="button" onClick={() => setPendingTicket(null)} className="btn-secondary justify-center">
                     <X className="h-4 w-4" />
-                    Vazgeç
+                    {copy.btnCancel}
                   </button>
                 </div>
               </div>
@@ -408,14 +480,14 @@ export default function EventTicketsPage() {
         </div>
 
         <div className="card p-5">
-          <h2 className="font-bold text-surface-900">Liste Kontrolü</h2>
+          <h2 className="font-bold text-surface-900">{copy.listControlTitle}</h2>
           <div className="mt-4">
             <div className="relative">
               <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Ad, e-posta veya token ara"
+                placeholder={copy.searchPlaceholder}
                 className="input-field pl-10"
               />
             </div>

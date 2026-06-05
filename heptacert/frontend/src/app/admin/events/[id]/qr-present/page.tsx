@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { apiFetch, apiUrl, fetchSessionQr, normalizeApiAssetUrl } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 import Image from "next/image";
 import { QrCode } from "lucide-react";
 import HeptaCertLogoMark from "@/components/Brand/HeptaCertLogoMark";
@@ -19,9 +20,21 @@ type BrandingData = {
 export default function QrPresentPage() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const { lang } = useI18n();
+  const isTr = lang === "tr";
   const eventId = Number(params?.id);
   const sessionId = Number(searchParams.get("session"));
   const sessionName = searchParams.get("name") || "";
+
+  const copy = {
+    invalidSession: isTr ? "Geçersiz oturum" : "Invalid session",
+    loadFailed:     isTr ? "QR kodu yüklenemedi" : "Could not load QR code",
+    scanInstruct:   isTr ? "QR kodu telefonunuzla tarayarak check-in yapın" : "Scan the QR code with your phone to check in",
+    securedBy:      isTr ? "HeptaCert altyapısıyla güvence altındadır." : "Secured by HeptaCert infrastructure.",
+    securityNote:   isTr
+      ? "Bu QR check-in ekranı kurumsal olarak özelleştirilmiş olsa da yönlendirme ve doğrulama güvenliği HeptaCert tarafından sağlanır."
+      : "This QR check-in screen may be custom branded, but all routing and verification security is provided by HeptaCert.",
+  };
 
   const [qrUrl, setQrUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,7 +58,7 @@ export default function QrPresentPage() {
 
   useEffect(() => {
     if (!eventId || !sessionId) {
-      setError("Geçersiz oturum");
+      setError(copy.invalidSession);
       setLoading(false);
       return;
     }
@@ -59,7 +72,7 @@ export default function QrPresentPage() {
       })
       .catch((e) => {
         console.error("Failed to fetch QR code:", e);
-        setError("QR kodu yüklenemedi");
+        setError(copy.loadFailed);
       })
       .finally(() => setLoading(false));
 
@@ -185,7 +198,7 @@ export default function QrPresentPage() {
 
         <p className="text-white/25 text-sm font-medium flex items-center gap-2">
           <QrCode className="w-4 h-4" />
-          QR kodu telefonunuzla tarayarak check-in yapın
+          {copy.scanInstruct}
         </p>
       </div>
 
@@ -193,10 +206,10 @@ export default function QrPresentPage() {
       <div className="absolute bottom-6 left-0 right-0 text-center px-4">
         <div className="inline-flex items-center gap-2 text-xs font-medium text-white/40">
           <HeptaCertLogoMark className="h-4 w-4 rounded-sm" />
-          HeptaCert altyapısıyla güvence altındadır.
+          {copy.securedBy}
         </div>
         <p className="mt-2 text-11 text-white/20">
-          Bu QR check-in ekranı kurumsal olarak özelleştirilmiş olsa da yönlendirme ve doğrulama güvenliği HeptaCert tarafından sağlanır.
+          {copy.securityNote}
         </p>
       </div>
     </div>

@@ -138,6 +138,33 @@ export default function AdminCrmPage() {
     loadError: "CRM listesi yüklenemedi.",
     detailError: "Katılımcı detayı yüklenemedi.",
     saveError: "CRM notları kaydedilemedi.",
+    listView: "Liste",
+    kanbanView: "Kanban",
+    tagNoShows: "No-Show Etiketle",
+    csvImport: "CSV İçe Aktar",
+    hubSpotSave: "Kaydet",
+    hubSpotTest: "Test",
+    hubSpotPush: "Seçilileri Gönder",
+    scoreLabel: "Skor",
+    certShort: "sert.",
+    surveyShort: "anket",
+    noShowSuccess: (tagged: number, skipped: number) => `No-show taglama: ${tagged} etiketlendi, ${skipped} atlandı.`,
+    noShowError: "No-show taglama başarısız.",
+    csvSuccess: (created: number, updated: number, skipped: number, err?: string) =>
+      `CSV import: ${created} yeni, ${updated} güncellendi, ${skipped} atlandı.${err ? ` Hata: ${err}` : ""}`,
+    csvError: "CSV import başarısız.",
+    hubSpotSaved: "HubSpot bağlantısı kaydedildi.",
+    hubSpotSaveError: "HubSpot kaydedilemedi.",
+    hubSpotTestSuccess: "HubSpot token testi başarılı.",
+    hubSpotTestError: "HubSpot token testi başarısız.",
+    hubSpotPushSuccess: (pushed: number, created: number, updated: number, failed: number) =>
+      `HubSpot: ${pushed} gönderildi, ${created} yeni, ${updated} güncellendi, ${failed} hata.`,
+    hubSpotPushError: "HubSpot aktarımı başarısız.",
+    customFieldsError: "Özel alanlar geçerli JSON olmalı.",
+    priorityLow: "Düşük",
+    priorityNormal: "Normal",
+    priorityHigh: "Yüksek",
+    priorityUrgent: "Acil",
   } : {
     eyebrow: "Event CRM",
     title: "Participant CRM",
@@ -185,6 +212,33 @@ export default function AdminCrmPage() {
     loadError: "Could not load CRM list.",
     detailError: "Could not load participant details.",
     saveError: "Could not save CRM notes.",
+    listView: "List",
+    kanbanView: "Kanban",
+    tagNoShows: "Tag No-Shows",
+    csvImport: "Import CSV",
+    hubSpotSave: "Save",
+    hubSpotTest: "Test",
+    hubSpotPush: "Push selected",
+    scoreLabel: "Score",
+    certShort: "certs",
+    surveyShort: "surveys",
+    noShowSuccess: (tagged: number, skipped: number) => `No-show tagging: ${tagged} tagged, ${skipped} skipped.`,
+    noShowError: "No-show tagging failed.",
+    csvSuccess: (created: number, updated: number, skipped: number, err?: string) =>
+      `CSV import: ${created} new, ${updated} updated, ${skipped} skipped.${err ? ` Error: ${err}` : ""}`,
+    csvError: "CSV import failed.",
+    hubSpotSaved: "HubSpot connection saved.",
+    hubSpotSaveError: "Could not save HubSpot token.",
+    hubSpotTestSuccess: "HubSpot token test successful.",
+    hubSpotTestError: "HubSpot token test failed.",
+    hubSpotPushSuccess: (pushed: number, created: number, updated: number, failed: number) =>
+      `HubSpot: ${pushed} pushed, ${created} created, ${updated} updated, ${failed} failed.`,
+    hubSpotPushError: "HubSpot push failed.",
+    customFieldsError: "Custom fields must be valid JSON.",
+    priorityLow: "Low",
+    priorityNormal: "Normal",
+    priorityHigh: "High",
+    priorityUrgent: "Urgent",
   };
 
   const [query, setQuery] = useState("");
@@ -239,10 +293,10 @@ export default function AdminCrmPage() {
     setError(null);
     try {
       const result = await tagCrmNoShows();
-      setBulkNotice(`No-show taglama: ${result.tagged} etiketlendi, ${result.skipped} atlandı.`);
+      setBulkNotice(copy.noShowSuccess(result.tagged, result.skipped));
       await loadParticipants(null);
     } catch (ex: any) {
-      setError(ex?.message || "No-show taglama başarısız.");
+      setError(ex?.message || copy.noShowError);
     } finally {
       setBulkWorking(false);
     }
@@ -256,10 +310,10 @@ export default function AdminCrmPage() {
     setError(null);
     try {
       const result = await importCrmFromCsv(file);
-      setBulkNotice(`CSV import: ${result.created} yeni, ${result.updated} güncellendi, ${result.skipped} atlandı.${result.errors.length ? ` Hata: ${result.errors[0]}` : ""}`);
+      setBulkNotice(copy.csvSuccess(result.created, result.updated, result.skipped, result.errors.length ? result.errors[0] : undefined));
       await loadParticipants(null);
     } catch (ex: any) {
-      setError(ex?.message || "CSV import başarısız.");
+      setError(ex?.message || copy.csvError);
     } finally {
       setBulkWorking(false);
       e.target.value = "";
@@ -319,9 +373,9 @@ export default function AdminCrmPage() {
       const status = await updateHubSpotIntegration({ private_app_token: hubSpotToken.trim(), enabled: true });
       setHubSpotStatus(status);
       setHubSpotToken("");
-      setBulkNotice("HubSpot bağlantısı kaydedildi.");
+      setBulkNotice(copy.hubSpotSaved);
     } catch (ex: any) {
-      setError(ex?.message || "HubSpot kaydedilemedi.");
+      setError(ex?.message || copy.hubSpotSaveError);
     } finally {
       setHubSpotWorking(false);
     }
@@ -332,9 +386,9 @@ export default function AdminCrmPage() {
     setError(null);
     try {
       await testHubSpotIntegration();
-      setBulkNotice("HubSpot token testi başarılı.");
+      setBulkNotice(copy.hubSpotTestSuccess);
     } catch (ex: any) {
-      setError(ex?.message || "HubSpot token testi başarısız.");
+      setError(ex?.message || copy.hubSpotTestError);
     } finally {
       setHubSpotWorking(false);
     }
@@ -346,9 +400,9 @@ export default function AdminCrmPage() {
     setError(null);
     try {
       const result = await pushCrmParticipantsToHubSpot({ emails: selectedEmails, create_missing: true });
-      setBulkNotice(`HubSpot: ${result.pushed} gönderildi, ${result.created} yeni, ${result.updated} güncellendi, ${result.failed} hata.`);
+      setBulkNotice(copy.hubSpotPushSuccess(result.pushed, result.created, result.updated, result.failed));
     } catch (ex: any) {
-      setError(ex?.message || "HubSpot aktarımı başarısız.");
+      setError(ex?.message || copy.hubSpotPushError);
     } finally {
       setHubSpotWorking(false);
     }
