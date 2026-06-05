@@ -337,7 +337,7 @@ export default function DashboardPage() {
           {/* Quick Actions */}
           <div className="rounded-xl border border-surface-200 bg-white shadow-card">
             <div className="border-b border-surface-100 px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-surface-400">
+              <p className="text-11 font-semibold uppercase tracking-wider text-surface-400">
                 {copy.quickActions}
               </p>
             </div>
@@ -361,7 +361,7 @@ export default function DashboardPage() {
           {/* Certificate Health */}
           <div className="rounded-xl border border-surface-200 bg-white shadow-card">
             <div className="border-b border-surface-100 px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-surface-400">
+              <p className="text-11 font-semibold uppercase tracking-wider text-surface-400">
                 {copy.certHealthTitle}
               </p>
             </div>
@@ -415,12 +415,12 @@ export default function DashboardPage() {
                   <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                   <div className="min-w-0">
                     <p className="font-semibold">{copy.expiredTitle}</p>
-                    <p className="mt-0.5 text-[11px] leading-relaxed">
+                    <p className="mt-0.5 text-11 leading-relaxed">
                       {copy.expiredBody(stats.expired_certs)}
                     </p>
                     <Link
                       href="/admin/events"
-                      className="mt-1.5 block text-[11px] font-semibold hover:underline"
+                      className="mt-1.5 block text-11 font-semibold hover:underline"
                     >
                       {copy.reviewCertificates}
                     </Link>

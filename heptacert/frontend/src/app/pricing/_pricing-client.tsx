@@ -151,7 +151,7 @@ export default function PricingPage({ mode: _mode = "all" }: PricingClientProps)
             >
               {copy.annual}
             </button>
-            <span className="absolute -right-2 -top-3 rounded-full border border-emerald-100 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+            <span className="absolute -right-2 -top-3 rounded-full border border-emerald-100 bg-emerald-50 px-1.5 py-0.5 text-11 font-semibold text-emerald-700">
               {copy.saveLabel}
             </span>
           </div>
@@ -195,7 +195,7 @@ export default function PricingPage({ mode: _mode = "all" }: PricingClientProps)
                   }`}
                 >
                   {isPro && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-surface-900 bg-surface-900 px-3.5 py-1 text-[10px] font-semibold tracking-wide text-white">
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-surface-900 bg-surface-900 px-3.5 py-1 text-11 font-semibold tracking-wide text-white">
                       {t("pricing_popular") || (lang === "tr" ? "En Popüler" : "Most Popular")}
                     </div>
                   )}
@@ -282,7 +282,7 @@ export default function PricingPage({ mode: _mode = "all" }: PricingClientProps)
 
                   {/* Feature list */}
                   <div className="border-t border-surface-100 pt-5">
-                    <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-surface-400">
+                    <p className="mb-3 text-11 font-semibold uppercase tracking-wider text-surface-400">
                       {copy.included}
                     </p>
                     <ul className="space-y-2.5 text-sm text-surface-600">

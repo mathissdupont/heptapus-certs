@@ -290,7 +290,7 @@ export default function SuperadminMembersPage() {
   function getStatusClass(status: string) {
     if (status === "completed") return "bg-emerald-100 text-emerald-700";
     if (status === "failed") return "bg-rose-100 text-rose-700";
-    if (status === "cancelled") return "bg-slate-200 text-slate-700";
+    if (status === "cancelled") return "bg-slate-200 text-surface-700";
     if (status === "sending") return "bg-blue-100 text-blue-700";
     return "bg-amber-100 text-amber-700";
   }
@@ -357,23 +357,23 @@ export default function SuperadminMembersPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <div className="card p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.uniqueAudience}</p>
+          <p className="text-11 font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.uniqueAudience}</p>
           <p className="mt-2 text-3xl font-black text-surface-900">{uniqueAudience}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.publicMembers}</p>
+          <p className="text-11 font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.publicMembers}</p>
           <p className="mt-2 text-3xl font-black text-brand-700">{uniquePublicMembers}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.attendeeEmails}</p>
+          <p className="text-11 font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.attendeeEmails}</p>
           <p className="mt-2 text-3xl font-black text-blue-700">{uniqueAttendees}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.organizerEmails}</p>
+          <p className="text-11 font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.organizerEmails}</p>
           <p className="mt-2 text-3xl font-black text-violet-700">{uniqueOrganizers}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.matchedRows}</p>
+          <p className="text-11 font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.matchedRows}</p>
           <p className="mt-2 text-3xl font-black text-emerald-700">{total}</p>
         </div>
       </div>

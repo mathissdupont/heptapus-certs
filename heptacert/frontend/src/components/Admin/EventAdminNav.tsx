@@ -292,13 +292,13 @@ export default function EventAdminNav({
         <div className="rounded-xl border border-surface-200 bg-white p-4 shadow-card">
           <Link
             href="/admin/events"
-            className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-surface-400 transition-colors hover:text-surface-900"
+            className="inline-flex items-center gap-1 text-11 font-semibold uppercase tracking-wider text-surface-400 transition-colors hover:text-surface-900"
           >
             <ChevronLeft className="h-3.5 w-3.5 stroke-[2.5]" />
             {copy.allEvents}
           </Link>
           <div className="mt-3">
-            <span className="inline-flex items-center rounded-md border border-surface-150 bg-surface-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-tight text-surface-500">
+            <span className="inline-flex items-center rounded-md border border-surface-150 bg-surface-50 px-2 py-0.5 text-11 font-semibold uppercase tracking-tight text-surface-500">
               {getActiveLabel(resolvedActive, lang)}
             </span>
             <h2 className="mt-1.5 break-words text-sm font-semibold leading-tight text-surface-900">
@@ -346,7 +346,7 @@ export default function EventAdminNav({
           <div className="flex min-w-0 items-center gap-2">
             <Link
               href="/admin/events"
-              className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-surface-400 transition-colors hover:text-surface-900 shrink-0"
+              className="inline-flex items-center gap-1 text-11 font-semibold uppercase tracking-wider text-surface-400 transition-colors hover:text-surface-900 shrink-0"
             >
               <ChevronLeft className="h-3.5 w-3.5 stroke-[2.5]" />
               {copy.allEvents}
@@ -357,7 +357,7 @@ export default function EventAdminNav({
             </span>
           </div>
           {getActiveLabel(resolvedActive, lang) && (
-            <span className="shrink-0 rounded-md border border-surface-150 bg-surface-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-surface-500">
+            <span className="shrink-0 rounded-md border border-surface-150 bg-surface-50 px-2 py-0.5 text-11 font-semibold uppercase tracking-wide text-surface-500">
               {getActiveLabel(resolvedActive, lang)}
             </span>
           )}

@@ -181,7 +181,7 @@ export default function PublicTicketPage() {
           <div className="space-y-5">
             {/* Katılımcı */}
             <div>
-              <p className="flex items-center gap-2 text-[13px] font-medium text-zinc-400">
+              <p className="flex items-center gap-2 text-13 font-medium text-zinc-400">
                 <User className="h-4 w-4" strokeWidth={2} />
                 Katılımcı
               </p>
@@ -199,13 +199,13 @@ export default function PublicTicketPage() {
             {/* Tarihler */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-[13px] font-medium text-zinc-400">Oluşturma</p>
+                <p className="text-13 font-medium text-zinc-400">Oluşturma</p>
                 <p className="mt-1 text-sm font-medium text-zinc-900">
                   {formatDate(ticket.issued_at)}
                 </p>
               </div>
               <div>
-                <p className="text-[13px] font-medium text-zinc-400">Giriş Zamanı</p>
+                <p className="text-13 font-medium text-zinc-400">Giriş Zamanı</p>
                 <p className="mt-1 text-sm font-medium text-zinc-900">
                   {formatDate(ticket.checked_in_at)}
                 </p>
@@ -219,7 +219,7 @@ export default function PublicTicketPage() {
               <WalletCards className="h-4.5 w-4.5 text-zinc-900" />
               Apple Wallet
             </div>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-zinc-500">
+            <p className="mt-1.5 text-13 leading-relaxed text-zinc-500">
               Cüzdan entegrasyonu için altyapı çalışmalarımız devam etmektedir. Bu özellik planlanan gelecek güncellemelerle birlikte aktif edilecektir.
             </p>
           </div>
@@ -260,7 +260,7 @@ export default function PublicTicketPage() {
             </button>
             
             {homeHint && (
-              <p className="rounded-2xl bg-blue-50 px-4 py-3 text-[13px] leading-5 text-blue-700">
+              <p className="rounded-2xl bg-blue-50 px-4 py-3 text-13 leading-5 text-blue-700">
                 iPhone Safari: <strong>Paylaş</strong> simgesi &gt; <strong>Ana Ekrana Ekle</strong>. <br/> Android Chrome: <strong>Menü (⋮)</strong> &gt; <strong>Ana Ekrana Ekle</strong>.
               </p>
             )}

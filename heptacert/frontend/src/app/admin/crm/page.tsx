@@ -468,22 +468,22 @@ export default function AdminCrmPage() {
 
   return (
     <FeatureGate requiredPlans={["enterprise"]} message={lang === "tr" ? "Event CRM Enterprise planına özeldir." : "Event CRM is available on the Enterprise plan."}>
-    <div className="w-full space-y-5 antialiased text-gray-900">
+    <div className="w-full space-y-5 antialiased text-surface-900">
       
       {/* BAŞLIK GRUBU */}
       <div className="w-full flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{copy.eyebrow}</p>
-          <h1 className="mt-1 text-xl font-bold tracking-tight text-gray-950 sm:text-2xl">{copy.title}</h1>
-          <p className="mt-1.5 max-w-3xl text-xs leading-relaxed text-gray-400">{copy.subtitle}</p>
+          <p className="text-11 font-bold uppercase tracking-widest text-surface-400">{copy.eyebrow}</p>
+          <h1 className="mt-1 text-xl font-bold tracking-tight text-surface-900 sm:text-2xl">{copy.title}</h1>
+          <p className="mt-1.5 max-w-3xl text-xs leading-relaxed text-surface-400">{copy.subtitle}</p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           {/* View toggle */}
-          <div className="flex rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <div className="flex rounded-xl border border-surface-200 bg-white shadow-sm overflow-hidden">
             <button
               type="button"
               onClick={() => setView("list")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold transition ${view === "list" ? "bg-gray-950 text-white" : "text-gray-500 hover:bg-gray-50"}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-11 font-semibold transition ${view === "list" ? "bg-surface-900 text-white" : "text-surface-500 hover:bg-surface-50"}`}
             >
               <List className="h-3.5 w-3.5" />
               Liste
@@ -491,7 +491,7 @@ export default function AdminCrmPage() {
             <button
               type="button"
               onClick={() => setView("kanban")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold transition ${view === "kanban" ? "bg-gray-950 text-white" : "text-gray-500 hover:bg-gray-50"}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-11 font-semibold transition ${view === "kanban" ? "bg-surface-900 text-white" : "text-surface-500 hover:bg-surface-50"}`}
             >
               <Columns3 className="h-3.5 w-3.5" />
               Kanban
@@ -502,13 +502,13 @@ export default function AdminCrmPage() {
             type="button"
             onClick={() => void runTagNoShows()}
             disabled={bulkWorking}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3 py-1.5 text-11 font-semibold text-surface-700 shadow-sm hover:bg-surface-50 disabled:opacity-40"
           >
             <UserX className="h-3.5 w-3.5" />
             No-Show Etiketle
           </button>
           {/* CSV Import */}
-          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
+          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3 py-1.5 text-11 font-semibold text-surface-700 shadow-sm hover:bg-surface-50">
             <Upload className="h-3.5 w-3.5" />
             CSV İçe Aktar
             <input type="file" accept=".csv" className="sr-only" onChange={handleCsvImport} />
@@ -529,19 +529,19 @@ export default function AdminCrmPage() {
         <section className="w-full rounded-2xl border border-amber-200/60 bg-amber-50/20 p-4 sm:p-5">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-xs font-bold uppercase tracking-wider text-amber-800">{copy.duplicates}</h2>
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">{duplicates.length}</span>
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-11 font-bold text-amber-800">{duplicates.length}</span>
           </div>
           <div className="mt-3.5 grid gap-3 lg:grid-cols-2">
             {duplicates.map((candidate) => (
-              <div key={candidate.name_key} className="rounded-xl border border-gray-200/80 bg-white p-3.5 shadow-sm flex flex-col justify-between sm:flex-row sm:items-center gap-3">
+              <div key={candidate.name_key} className="rounded-xl border border-surface-200/80 bg-white p-3.5 shadow-sm flex flex-col justify-between sm:flex-row sm:items-center gap-3">
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-gray-950 tracking-tight">{candidate.display_name}</p>
-                  <p className="mt-0.5 text-[11px] font-medium text-gray-400 truncate">{candidate.emails.join(" → ")}</p>
+                  <p className="text-xs font-bold text-surface-900 tracking-tight">{candidate.display_name}</p>
+                  <p className="mt-0.5 text-11 font-medium text-surface-400 truncate">{candidate.emails.join(" → ")}</p>
                 </div>
                 <button 
                   type="button" 
                   onClick={() => void mergeDuplicate(candidate)} 
-                  className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-800 shadow-sm hover:bg-gray-50 active:scale-95 transition-all shrink-0"
+                  className="rounded-xl border border-surface-200 bg-white px-3 py-1.5 text-11 font-semibold text-surface-800 shadow-sm hover:bg-surface-50 active:scale-95 transition-all shrink-0"
                 >
                   {copy.merge}
                 </button>
@@ -552,15 +552,15 @@ export default function AdminCrmPage() {
       )}
 
       {/* GLOBAL ARAC ÇUBUĞU (FilterActionBar Stili Üst Arama Modülü) */}
-      <section className="w-full rounded-2xl border border-gray-200 bg-white p-3.5 shadow-sm">
+      <section className="w-full rounded-2xl border border-surface-200 bg-white p-3.5 shadow-sm">
         <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-[1fr_160px_160px_auto]">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 stroke-[2]" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-surface-400 stroke-[2]" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               onKeyDown={(event) => event.key === "Enter" && void loadParticipants(null)}
-              className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white pl-9 pr-3.5 text-xs font-medium outline-none transition focus:border-gray-900 focus:ring-1 focus:ring-gray-900 placeholder:text-gray-400"
+              className="w-full input pl-9 pr-3.5"
               placeholder={copy.searchPlaceholder}
             />
           </div>
@@ -568,7 +568,7 @@ export default function AdminCrmPage() {
           <select 
             value={status} 
             onChange={(event) => setStatus(event.target.value)} 
-            className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3 text-xs font-medium outline-none transition focus:border-gray-900 focus:ring-1 focus:ring-gray-900 cursor-pointer"
+            className="w-full input cursor-pointer"
           >
             <option value="">{copy.allStatuses}</option>
             {LIFECYCLE_OPTIONS.map((option) => (
@@ -579,7 +579,7 @@ export default function AdminCrmPage() {
           <input 
             value={tag} 
             onChange={(event) => setTag(event.target.value)} 
-            className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-medium outline-none transition focus:border-gray-900 focus:ring-1 focus:ring-gray-900 placeholder:text-gray-400" 
+            className="w-full input px-3.5" 
             placeholder={copy.tagPlaceholder} 
             list="crm-tags" 
           />
@@ -590,7 +590,7 @@ export default function AdminCrmPage() {
           <button 
             type="button" 
             onClick={() => void loadParticipants(null)} 
-            className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 px-4 text-xs font-semibold text-white transition hover:bg-gray-900 active:scale-95"
+            className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-lg bg-surface-900 px-4 text-xs font-semibold text-white transition hover:bg-surface-800 active:scale-95"
           >
             <Search className="h-3.5 w-3.5 stroke-[2.5]" />
             <span>{copy.search}</span>
@@ -605,31 +605,31 @@ export default function AdminCrmPage() {
             {LIFECYCLE_OPTIONS.map((col) => {
               const colItems = participants.filter((p) => p.meta.lifecycle_status === col.value);
               return (
-                <div key={col.value} className="w-64 shrink-0 rounded-2xl border border-gray-200 bg-gray-50/50 overflow-hidden shadow-sm">
-                  <div className="flex items-center justify-between border-b border-gray-100 bg-white px-4 py-3">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-gray-700">{col.label}</span>
-                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-500">{colItems.length}</span>
+                <div key={col.value} className="w-64 shrink-0 rounded-2xl border border-surface-200 bg-surface-50/50 overflow-hidden shadow-sm">
+                  <div className="flex items-center justify-between border-b border-surface-100 bg-white px-4 py-3">
+                    <span className="text-11 font-bold uppercase tracking-wider text-surface-700">{col.label}</span>
+                    <span className="rounded-full bg-surface-100 px-2 py-0.5 text-11 font-bold text-surface-500">{colItems.length}</span>
                   </div>
                   <div className="p-2 space-y-2 max-h-[600px] overflow-y-auto scrollbar-none">
                     {colItems.length === 0 && (
-                      <p className="py-8 text-center text-[11px] text-gray-400">—</p>
+                      <p className="py-8 text-center text-11 text-surface-400">—</p>
                     )}
                     {colItems.map((p) => (
                       <button
                         key={p.email}
                         type="button"
                         onClick={() => { setSelectedEmail(p.email); void loadDetail(p.email); setView("list"); }}
-                        className="w-full text-left rounded-xl border border-gray-200 bg-white p-3 shadow-sm hover:border-gray-300 transition-colors"
+                        className="w-full text-left rounded-xl border border-surface-200 bg-white p-3 shadow-sm hover:border-surface-300 transition-colors"
                       >
-                        <p className="truncate text-[11px] font-bold text-gray-950">{p.name}</p>
-                        <p className="truncate text-[10px] text-gray-400">{p.email}</p>
+                        <p className="truncate text-11 font-bold text-surface-900">{p.name}</p>
+                        <p className="truncate text-11 text-surface-400">{p.email}</p>
                         <div className="mt-2 flex flex-wrap gap-1">
                           {p.meta.tags.slice(0, 3).map((t) => (
-                            <span key={t} className="rounded-md bg-gray-50 px-1.5 py-0.5 text-[9px] font-semibold text-gray-500">{t}</span>
+                            <span key={t} className="rounded-md bg-surface-50 px-1.5 py-0.5 text-11 font-semibold text-surface-500">{t}</span>
                           ))}
                         </div>
                         {(p.meta.lead_score ?? 0) > 0 && (
-                          <p className="mt-1.5 text-[10px] font-bold text-gray-400">Skor: {p.meta.lead_score}</p>
+                          <p className="mt-1.5 text-11 font-bold text-surface-400">Skor: {p.meta.lead_score}</p>
                         )}
                       </button>
                     ))}
@@ -645,34 +645,34 @@ export default function AdminCrmPage() {
       {view === "list" && <div className="grid gap-4 xl:grid-cols-[380px_minmax(0,1fr)] items-start">
         
         {/* SOL TARAF: KATILIMCI SEÇİM LİSTESİ */}
-        <section className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm flex flex-col">
-          <div className="flex items-center justify-between border-b border-gray-100 px-4.5 py-3.5 bg-white">
+        <section className="rounded-2xl border border-surface-200 bg-white overflow-hidden shadow-sm flex flex-col">
+          <div className="flex items-center justify-between border-b border-surface-100 px-4.5 py-3.5 bg-white">
             <div className="flex items-center gap-2">
-              <UsersRound className="h-4 w-4 text-gray-800 stroke-[2]" />
-              <h2 className="text-xs font-bold uppercase tracking-wider text-gray-900">{copy.people}</h2>
+              <UsersRound className="h-4 w-4 text-surface-800 stroke-[2]" />
+              <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.people}</h2>
             </div>
-            <span className="rounded-md bg-gray-50 border border-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-500 tracking-tight">
+            <span className="rounded-md bg-surface-50 border border-surface-100 px-2 py-0.5 text-11 font-bold text-surface-500 tracking-tight">
               {participants.length}
             </span>
           </div>
           
           {/* Toplu E-posta ve Yönetim İstasyonu (Bulk Action Kısmı) */}
-          <div className="border-b border-gray-100 bg-gray-50/50 p-4 space-y-3">
+          <div className="border-b border-surface-100 bg-surface-50/50 p-4 space-y-3">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] font-bold text-gray-500 pr-1">
+              <span className="text-11 font-bold text-surface-500 pr-1">
                 {selectedVisibleCount} {copy.selected}
               </span>
-              <button type="button" onClick={selectVisibleParticipants} className="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
+              <button type="button" onClick={selectVisibleParticipants} className="rounded-lg border border-surface-200 bg-white px-2.5 py-1 text-11 font-semibold text-surface-700 shadow-sm hover:bg-surface-50">
                 {copy.selectAll}
               </button>
-              <button type="button" onClick={() => setSelectedEmails([])} className="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-gray-500 shadow-sm hover:bg-gray-50">
+              <button type="button" onClick={() => setSelectedEmails([])} className="rounded-lg border border-surface-200 bg-white px-2.5 py-1 text-11 font-semibold text-surface-500 shadow-sm hover:bg-surface-50">
                 {copy.clearSelection}
               </button>
               <button 
                 type="button" 
                 onClick={() => void exportSelected()} 
                 disabled={bulkWorking || selectedEmails.length === 0} 
-                className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-40"
+                className="inline-flex items-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 py-1 text-11 font-semibold text-surface-700 shadow-sm hover:bg-surface-50 disabled:opacity-40"
               >
                 <Download className="h-3 w-3" />
                 <span>{copy.exportCsv}</span>
@@ -691,20 +691,20 @@ export default function AdminCrmPage() {
                 type="button"
                 onClick={() => void sendBulkEmail()}
                 disabled={bulkWorking || selectedEmails.length === 0 || !Number(bulkTemplateId)}
-                className="w-full inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 px-3 text-xs font-semibold text-white transition hover:bg-gray-900 disabled:opacity-30"
+                className="w-full inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-lg bg-surface-900 px-3 text-xs font-semibold text-white transition hover:bg-surface-800 disabled:opacity-30"
               >
                 {bulkWorking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                 <span>{copy.sendEmail}</span>
               </button>
             </div>
 
-            <div className="rounded-xl border border-gray-200 bg-white p-3 space-y-2">
+            <div className="rounded-xl border border-surface-200 bg-white p-3 space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">
-                  <Database className="h-3.5 w-3.5 text-gray-700" />
-                  <span className="text-[11px] font-bold text-gray-800">HubSpot</span>
+                  <Database className="h-3.5 w-3.5 text-surface-700" />
+                  <span className="text-11 font-bold text-surface-800">HubSpot</span>
                 </div>
-                <span className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold ${hubSpotStatus?.configured ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+                <span className={`rounded-md px-1.5 py-0.5 text-11 font-bold ${hubSpotStatus?.configured ? "bg-emerald-50 text-emerald-700" : "bg-surface-100 text-surface-500"}`}>
                   {hubSpotStatus?.configured ? hubSpotStatus.token_preview || "connected" : "not configured"}
                 </span>
               </div>
@@ -713,33 +713,33 @@ export default function AdminCrmPage() {
                   value={hubSpotToken}
                   onChange={(event) => setHubSpotToken(event.target.value)}
                   placeholder="HubSpot private app token"
-                  className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-[10px] font-semibold outline-none focus:border-gray-900"
+                  className="min-w-0 flex-1 rounded-lg border border-surface-200 bg-white px-2 py-1.5 text-11 font-semibold outline-none focus:border-surface-900"
                 />
-                <button type="button" onClick={() => void saveHubSpotToken()} disabled={hubSpotWorking || !hubSpotToken.trim()} className="inline-flex items-center gap-1 rounded-lg bg-gray-900 px-2.5 py-1 text-[10px] font-semibold text-white disabled:opacity-40">
+                <button type="button" onClick={() => void saveHubSpotToken()} disabled={hubSpotWorking || !hubSpotToken.trim()} className="inline-flex items-center gap-1 rounded-lg bg-surface-800 px-2.5 py-1 text-11 font-semibold text-white disabled:opacity-40">
                   {hubSpotWorking ? <Loader2 className="h-3 w-3 animate-spin" /> : <KeyRound className="h-3 w-3" />}
                   Save
                 </button>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                <button type="button" onClick={() => void testHubSpot()} disabled={hubSpotWorking || !hubSpotStatus?.configured} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-gray-700 disabled:opacity-40">
+                <button type="button" onClick={() => void testHubSpot()} disabled={hubSpotWorking || !hubSpotStatus?.configured} className="inline-flex items-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 py-1 text-11 font-semibold text-surface-700 disabled:opacity-40">
                   Test
                 </button>
-                <button type="button" onClick={() => void pushHubSpot()} disabled={hubSpotWorking || !hubSpotStatus?.configured || selectedEmails.length === 0} className="inline-flex items-center gap-1 rounded-lg border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-700 disabled:opacity-40">
+                <button type="button" onClick={() => void pushHubSpot()} disabled={hubSpotWorking || !hubSpotStatus?.configured || selectedEmails.length === 0} className="inline-flex items-center gap-1 rounded-lg border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-11 font-semibold text-emerald-700 disabled:opacity-40">
                   {hubSpotWorking ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
                   Push selected
                 </button>
               </div>
             </div>
-            {bulkNotice && <p className="text-[10px] font-bold text-emerald-600 mt-1.5 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-lg">{bulkNotice}</p>}
+            {bulkNotice && <p className="text-11 font-bold text-emerald-600 mt-1.5 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-lg">{bulkNotice}</p>}
           </div>
 
           {/* Katılımcı Kartları Listesi */}
           {loading ? (
             <div className="flex justify-center py-14">
-              <Loader2 className="h-6 w-6 animate-spin text-gray-400 stroke-[2.5]" />
+              <Loader2 className="h-6 w-6 animate-spin text-surface-400 stroke-[2.5]" />
             </div>
           ) : participants.length === 0 ? (
-            <div className="px-5 py-12 text-center text-xs font-semibold text-gray-400 tracking-tight">{copy.noMatches}</div>
+            <div className="px-5 py-12 text-center text-xs font-semibold text-surface-400 tracking-tight">{copy.noMatches}</div>
           ) : (
             <div className="max-h-[640px] overflow-y-auto divide-y divide-gray-100 scrollbar-none bg-white">
               {participants.map((participant) => {
@@ -749,14 +749,14 @@ export default function AdminCrmPage() {
                   <article
                     key={participant.email}
                     className={`flex items-start gap-3 px-4 py-3.5 text-left transition-colors relative ${
-                      active ? "bg-gray-50" : "hover:bg-gray-50/50"
+                      active ? "bg-surface-50" : "hover:bg-surface-50/50"
                     }`}
                   >
                     <input
                       type="checkbox"
                       checked={checked}
                       onChange={() => toggleSelectedEmail(participant.email)}
-                      className="mt-1 h-3.5 w-3.5 cursor-pointer rounded-md border-gray-300 text-gray-950 focus:ring-0 focus:ring-offset-0"
+                      className="mt-1 h-3.5 w-3.5 cursor-pointer rounded-md border-surface-300 text-surface-900 focus:ring-0 focus:ring-offset-0"
                     />
                     
                     <button
@@ -769,26 +769,26 @@ export default function AdminCrmPage() {
                     >
                       <div className="flex items-start justify-between gap-2.5">
                         <div className="min-w-0">
-                          <p className="truncate text-xs font-bold text-gray-950 group-hover:text-gray-900 tracking-tight">{participant.name}</p>
-                          <p className="truncate text-[10px] font-medium text-gray-400 mt-0.5">{participant.email}</p>
+                          <p className="truncate text-xs font-bold text-surface-900 group-hover:text-surface-900 tracking-tight">{participant.name}</p>
+                          <p className="truncate text-11 font-medium text-surface-400 mt-0.5">{participant.email}</p>
                         </div>
-                        <span className="shrink-0 inline-flex rounded-md border border-gray-100 bg-white px-1.5 py-0.5 text-[9px] font-bold text-gray-500 uppercase tracking-tight shadow-sm">
+                        <span className="shrink-0 inline-flex rounded-md border border-surface-100 bg-white px-1.5 py-0.5 text-11 font-bold text-surface-500 uppercase tracking-tight shadow-sm">
                           {participant.meta.lifecycle_status}
                         </span>
                       </div>
                       
                       {/* Mikro Matris Sayıcıları */}
-                      <div className="mt-2.5 grid grid-cols-4 gap-1 text-center text-[9px] font-bold text-gray-400 tracking-tight">
-                        <span className="truncate bg-gray-50/70 border border-gray-100/50 py-1 rounded-md">{participant.event_count} {copy.events.toLowerCase()}</span>
-                        <span className="truncate bg-gray-50/70 border border-gray-100/50 py-1 rounded-md">{participant.attended_count} {copy.attendance.toLowerCase()}</span>
-                        <span className="truncate bg-gray-50/70 border border-gray-100/50 py-1 rounded-md">{participant.certificate_count} sert.</span>
-                        <span className="truncate bg-gray-50/70 border border-gray-100/50 py-1 rounded-md">{participant.survey_count} anket</span>
+                      <div className="mt-2.5 grid grid-cols-4 gap-1 text-center text-11 font-bold text-surface-400 tracking-tight">
+                        <span className="truncate bg-surface-50/70 border border-surface-100/50 py-1 rounded-md">{participant.event_count} {copy.events.toLowerCase()}</span>
+                        <span className="truncate bg-surface-50/70 border border-surface-100/50 py-1 rounded-md">{participant.attended_count} {copy.attendance.toLowerCase()}</span>
+                        <span className="truncate bg-surface-50/70 border border-surface-100/50 py-1 rounded-md">{participant.certificate_count} sert.</span>
+                        <span className="truncate bg-surface-50/70 border border-surface-100/50 py-1 rounded-md">{participant.survey_count} anket</span>
                       </div>
                       
                       {participant.meta.tags.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1">
                           {participant.meta.tags.slice(0, 3).map((item) => (
-                            <span key={item} className="rounded-md bg-gray-50 px-1.5 py-0.5 text-[9px] font-semibold text-gray-500">
+                            <span key={item} className="rounded-md bg-surface-50 px-1.5 py-0.5 text-11 font-semibold text-surface-500">
                               {item}
                             </span>
                           ))}
@@ -805,28 +805,28 @@ export default function AdminCrmPage() {
         {/* SAĞ TARAF: DETAY / EDİTÖR VE ZAMAN TÜNELİ PANELI */}
         <section className="space-y-4">
           {detailLoading ? (
-            <div className="rounded-2xl border border-gray-200 bg-white flex justify-center py-24 shadow-sm">
-              <Loader2 className="h-6 w-6 animate-spin text-gray-400 stroke-[2.5]" />
+            <div className="rounded-2xl border border-surface-200 bg-white flex justify-center py-24 shadow-sm">
+              <Loader2 className="h-6 w-6 animate-spin text-surface-400 stroke-[2.5]" />
             </div>
           ) : !detail ? (
-            <div className="rounded-2xl border border-gray-200 bg-white px-6 py-20 text-center shadow-sm">
-              <div className="flex h-11 w-11 mx-auto items-center justify-center rounded-full border border-gray-100 bg-gray-50 text-gray-400 shadow-sm">
+            <div className="rounded-2xl border border-surface-200 bg-white px-6 py-20 text-center shadow-sm">
+              <div className="flex h-11 w-11 mx-auto items-center justify-center rounded-full border border-surface-100 bg-surface-50 text-surface-400 shadow-sm">
                 <UsersRound className="h-4 w-4 stroke-[1.8]" />
               </div>
-              <p className="mt-3.5 text-xs font-bold text-gray-950 tracking-tight">{copy.selectPerson}</p>
-              <p className="mt-1 text-[11px] text-gray-400 max-w-xs mx-auto leading-relaxed">{copy.detailHint}</p>
+              <p className="mt-3.5 text-xs font-bold text-surface-900 tracking-tight">{copy.selectPerson}</p>
+              <p className="mt-1 text-11 text-surface-400 max-w-xs mx-auto leading-relaxed">{copy.detailHint}</p>
             </div>
           ) : (
             <>
               {/* Profil Üst Başlık Kartı */}
-              <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm flex flex-col justify-between sm:flex-row sm:items-center gap-4">
+              <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm flex flex-col justify-between sm:flex-row sm:items-center gap-4">
                 <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gray-950 text-white shadow-sm">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-900 text-white shadow-sm">
                     <User className="h-4 w-4 stroke-[2.5]" />
                   </div>
                   <div className="min-w-0 space-y-0.5">
-                    <h2 className="truncate text-base font-bold text-gray-950 tracking-tight">{detail.name}</h2>
-                    <p className="truncate text-xs font-medium text-gray-400">{detail.email}</p>
+                    <h2 className="truncate text-base font-bold text-surface-900 tracking-tight">{detail.name}</h2>
+                    <p className="truncate text-xs font-medium text-surface-400">{detail.email}</p>
                   </div>
                 </div>
                 
@@ -834,7 +834,7 @@ export default function AdminCrmPage() {
                   type="button" 
                   onClick={() => void saveMeta()} 
                   disabled={saving} 
-                  className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gray-950 px-4 text-xs font-semibold text-white transition hover:bg-gray-900 disabled:opacity-40 shadow-sm shrink-0"
+                  className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-lg bg-surface-900 px-4 text-xs font-semibold text-white transition hover:bg-surface-800 disabled:opacity-40 shadow-sm shrink-0"
                 >
                   {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                   <span>{copy.save}</span>
@@ -849,9 +849,9 @@ export default function AdminCrmPage() {
                   [copy.certificates, detail.summary.certificates || 0],
                   [copy.surveyDone, detail.summary.surveys || 0],
                 ].map(([label, value]) => (
-                  <div key={String(label)} className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">{String(label)}</p>
-                    <p className="mt-1 text-xl font-bold tracking-tight text-gray-950 tabular-nums">{String(value)}</p>
+                  <div key={String(label)} className="rounded-xl border border-surface-200 bg-white p-3 shadow-sm">
+                    <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">{String(label)}</p>
+                    <p className="mt-1 text-xl font-bold tracking-tight text-surface-900 tabular-nums">{String(value)}</p>
                   </div>
                 ))}
               </div>
@@ -860,16 +860,16 @@ export default function AdminCrmPage() {
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
                 
                 {/* Sol Profil Editörü */}
-                <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
-                  <div className="flex items-center gap-2 border-b border-gray-100 pb-2.5">
-                    <Tag className="h-4 w-4 text-gray-800 stroke-[2]" />
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900">{copy.info}</h3>
+                <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm space-y-4">
+                  <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
+                    <Tag className="h-4 w-4 text-surface-800 stroke-[2]" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.info}</h3>
                   </div>
                   
                   <div className="grid gap-3.5 sm:grid-cols-2">
                     <label className="block w-full">
-                      <span className="block text-[11px] font-bold text-gray-500 mb-1">{copy.status}</span>
-                      <select value={lifecycleStatus} onChange={(event) => setLifecycleStatus(event.target.value)} className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-2.5 text-xs font-semibold outline-none transition focus:border-gray-900 focus:ring-1 focus:ring-gray-900 cursor-pointer">
+                      <span className="block text-11 font-bold text-surface-500 mb-1">{copy.status}</span>
+                      <select value={lifecycleStatus} onChange={(event) => setLifecycleStatus(event.target.value)} className="w-full input px-2.5 cursor-pointer">
                         {LIFECYCLE_OPTIONS.map((option) => (
                           <option key={option.value} value={option.value}>{option.label}</option>
                         ))}
@@ -877,13 +877,13 @@ export default function AdminCrmPage() {
                     </label>
                     
                     <label className="block w-full">
-                      <span className="block text-[11px] font-bold text-gray-500 mb-1">{copy.tags}</span>
-                      <input value={tagsText} onChange={(event) => setTagsText(event.target.value)} className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold outline-none transition focus:border-gray-900 focus:ring-1 focus:ring-gray-900 placeholder:text-gray-400" placeholder="vip, alumni, sponsor" />
+                      <span className="block text-11 font-bold text-surface-500 mb-1">{copy.tags}</span>
+                      <input value={tagsText} onChange={(event) => setTagsText(event.target.value)} className="w-full input" placeholder="vip, alumni, sponsor" />
                     </label>
                     
                     <label className="block w-full">
-                      <span className="block text-[11px] font-bold text-gray-500 mb-1">{copy.priority}</span>
-                      <select value={priority} onChange={(event) => setPriority(event.target.value)} className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-2.5 text-xs font-semibold outline-none transition focus:border-gray-900 focus:ring-1 focus:ring-gray-900 cursor-pointer">
+                      <span className="block text-11 font-bold text-surface-500 mb-1">{copy.priority}</span>
+                      <select value={priority} onChange={(event) => setPriority(event.target.value)} className="w-full input px-2.5 cursor-pointer">
                         <option value="low">Low</option>
                         <option value="normal">Normal</option>
                         <option value="high">High</option>
@@ -892,61 +892,61 @@ export default function AdminCrmPage() {
                     </label>
                     
                     <label className="block w-full">
-                      <span className="block text-[11px] font-bold text-gray-500 mb-1">{copy.leadScore}</span>
+                      <span className="block text-11 font-bold text-surface-500 mb-1">{copy.leadScore}</span>
                       <input
                         type="number"
                         min={0}
                         max={100}
                         value={leadScore}
                         onChange={(event) => setLeadScore(Number(event.target.value))}
-                        className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold outline-none transition focus:border-gray-900 focus:ring-1 focus:ring-gray-900"
+                        className="w-full input"
                       />
                     </label>
                     
                     <label className="block w-full sm:col-span-2">
-                      <span className="block text-[11px] font-bold text-gray-500 mb-1">{copy.followUp}</span>
+                      <span className="block text-11 font-bold text-surface-500 mb-1">{copy.followUp}</span>
                       <div className="relative flex items-center">
                         <input
                           type="datetime-local"
                           value={nextFollowUpAt}
                           onChange={(event) => setNextFollowUpAt(event.target.value)}
-                          className="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold outline-none transition focus:border-gray-900 focus:ring-1 focus:ring-gray-900 cursor-pointer"
+                          className="w-full input cursor-pointer"
                         />
                       </div>
                     </label>
                     
                     <label className="block w-full sm:col-span-2">
-                      <span className="block text-[11px] font-bold text-gray-500 mb-1">{copy.customFields}</span>
+                      <span className="block text-11 font-bold text-surface-500 mb-1">{copy.customFields}</span>
                       <textarea
                         value={customFieldsText}
                         onChange={(event) => setCustomFieldsText(event.target.value)}
-                        className="w-full rounded-xl border border-gray-200 bg-white p-3 font-mono text-[11px] font-medium outline-none transition focus:border-gray-900 focus:ring-1 focus:ring-gray-900 min-h-[84px] resize-none"
+                        className="input font-mono min-h-[84px] resize-none"
                       />
                     </label>
                   </div>
                   
                   <label className="block w-full pt-1">
-                    <span className="block text-[11px] font-bold text-gray-500 mb-1">{copy.notes}</span>
+                    <span className="block text-11 font-bold text-surface-500 mb-1">{copy.notes}</span>
                     <textarea
                       value={notes}
                       onChange={(event) => setNotes(event.target.value)}
-                      className="w-full rounded-xl border border-gray-200 bg-white p-3 text-xs font-medium outline-none transition focus:border-gray-900 focus:ring-1 focus:ring-gray-900 min-h-[140px] resize-none placeholder:text-gray-400"
+                      className="input min-h-[140px] resize-none"
                       placeholder={copy.notesPlaceholder}
                     />
                   </label>
                   
-                  <div className="flex items-center gap-1 text-[10px] font-semibold text-gray-400 pt-1 border-t border-gray-50">
+                  <div className="flex items-center gap-1 text-11 font-semibold text-surface-400 pt-1 border-t border-gray-50">
                     <Calendar className="h-3 w-3" />
                     <span>{copy.updated}: {formatDate(detail.meta.updated_at)}</span>
                   </div>
                 </div>
 
                 {/* Sağ Akışkan Zaman Tüneli */}
-                <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm flex flex-col">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 border-b border-gray-100 pb-2.5">{copy.timeline}</h3>
-                  <div className="mt-4 flex-1 max-h-[460px] overflow-y-auto pr-0.5 scrollbar-none relative pl-3.5 before:absolute before:bottom-1 before:left-1.5 before:top-1 before:w-[1px] before:bg-gray-100">
+                <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm flex flex-col">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900 border-b border-surface-100 pb-2.5">{copy.timeline}</h3>
+                  <div className="mt-4 flex-1 max-h-[460px] overflow-y-auto pr-0.5 scrollbar-none relative pl-3.5 before:absolute before:bottom-1 before:left-1.5 before:top-1 before:w-[1px] before:bg-surface-100">
                     {detail.timeline.length === 0 ? (
-                      <p className="text-xs font-medium text-gray-400 py-4">{copy.emptyTimeline}</p>
+                      <p className="text-xs font-medium text-surface-400 py-4">{copy.emptyTimeline}</p>
                     ) : (
                       <div className="space-y-4.5">
                         {detail.timeline.slice(0, 30).map((item, index) => {
@@ -957,11 +957,11 @@ export default function AdminCrmPage() {
                               <div className="absolute -left-[18px] top-1 h-2 w-2 rounded-full bg-white ring-4 ring-white border border-gray-400 group-hover:border-gray-900 transition-colors" />
                               
                               <div className="min-w-0 flex-1 space-y-0.5">
-                                <p className="text-xs font-semibold text-gray-800 tracking-tight group-hover:text-gray-950 flex items-center gap-1">
-                                  <Icon className="h-3 w-3 shrink-0 text-gray-400" />
+                                <p className="text-xs font-semibold text-surface-800 tracking-tight group-hover:text-surface-900 flex items-center gap-1">
+                                  <Icon className="h-3 w-3 shrink-0 text-surface-400" />
                                   <span>{item.label}</span>
                                 </p>
-                                <p className="text-[10px] font-medium text-gray-400 font-mono">{formatDate(item.at)}</p>
+                                <p className="text-11 font-medium text-surface-400 font-mono">{formatDate(item.at)}</p>
                               </div>
                             </div>
                           );
@@ -973,33 +973,33 @@ export default function AdminCrmPage() {
               </div>
 
               {/* Alt Geniş Blok: Etkinlik Katılım Geçmişi */}
-              <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 border-b border-gray-100 pb-2.5">{copy.history}</h3>
+              <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm space-y-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900 border-b border-surface-100 pb-2.5">{copy.history}</h3>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {detail.history.map((item: any) => (
-                    <article key={`${item.event_id}-${item.registered_at}`} className="rounded-xl border border-gray-100/80 bg-white p-3.5 shadow-sm hover:border-gray-200 transition-colors">
+                    <article key={`${item.event_id}-${item.registered_at}`} className="rounded-xl border border-surface-100/80 bg-white p-3.5 shadow-sm hover:border-surface-200 transition-colors">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <h4 className="font-bold text-xs text-gray-950 tracking-tight truncate">{item.event_name}</h4>
-                          <p className="mt-0.5 text-[10px] font-medium text-gray-400">{copy.registered}: {formatDate(item.registered_at)}</p>
+                          <h4 className="font-bold text-xs text-surface-900 tracking-tight truncate">{item.event_name}</h4>
+                          <p className="mt-0.5 text-11 font-medium text-surface-400">{copy.registered}: {formatDate(item.registered_at)}</p>
                         </div>
-                        <span className="shrink-0 rounded-md bg-gray-50 border border-gray-100 px-1.5 py-0.5 text-[9px] font-bold text-gray-400">
+                        <span className="shrink-0 rounded-md bg-surface-50 border border-surface-100 px-1.5 py-0.5 text-11 font-bold text-surface-400">
                           #{item.event_id}
                         </span>
                       </div>
                       
                       {/* Katılım Statü Rozetleri */}
                       <div className="mt-3 flex flex-wrap gap-1">
-                        {item.email_verified && <span className="rounded-md bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">{copy.emailVerified}</span>}
-                        {item.survey_completed && <span className="rounded-md bg-blue-50 border border-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700">{copy.surveyDone}</span>}
-                        {(item.attendance_count || 0) > 0 && <span className="rounded-md bg-gray-950 px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">{copy.checkinExists}</span>}
+                        {item.email_verified && <span className="rounded-md bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 text-11 font-bold text-emerald-700">{copy.emailVerified}</span>}
+                        {item.survey_completed && <span className="rounded-md bg-blue-50 border border-blue-100 px-1.5 py-0.5 text-11 font-bold text-blue-700">{copy.surveyDone}</span>}
+                        {(item.attendance_count || 0) > 0 && <span className="rounded-md bg-surface-900 px-1.5 py-0.5 text-11 font-bold text-white shadow-sm">{copy.checkinExists}</span>}
                       </div>
                       
                       {/* Alt Sayıcı Hücre Matrisi */}
-                      <div className="mt-3 grid grid-cols-3 gap-1.5 text-center text-[10px] font-bold text-gray-500">
-                        <span className="rounded-lg bg-gray-50/70 border border-gray-100/50 px-2 py-1.5 text-gray-700 truncate">{item.tickets?.length || 0} {copy.tickets}</span>
-                        <span className="rounded-lg bg-gray-50/70 border border-gray-100/50 px-2 py-1.5 text-gray-700 truncate">{item.attendance_count || 0} {copy.attendance.toLowerCase()}</span>
-                        <span className="rounded-lg bg-gray-50/70 border border-gray-100/50 px-2 py-1.5 text-gray-700 truncate">{item.certificates?.length || 0} {copy.certificates}</span>
+                      <div className="mt-3 grid grid-cols-3 gap-1.5 text-center text-11 font-bold text-surface-500">
+                        <span className="rounded-lg bg-surface-50/70 border border-surface-100/50 px-2 py-1.5 text-surface-700 truncate">{item.tickets?.length || 0} {copy.tickets}</span>
+                        <span className="rounded-lg bg-surface-50/70 border border-surface-100/50 px-2 py-1.5 text-surface-700 truncate">{item.attendance_count || 0} {copy.attendance.toLowerCase()}</span>
+                        <span className="rounded-lg bg-surface-50/70 border border-surface-100/50 px-2 py-1.5 text-surface-700 truncate">{item.certificates?.length || 0} {copy.certificates}</span>
                       </div>
                     </article>
                   ))}

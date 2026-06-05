@@ -107,15 +107,15 @@ function MemberLoginContent() {
             <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-brand-600 text-white shadow-brand">
               <ShieldCheck className="h-6 w-6" />
             </div>
-            <h1 className="text-2xl font-bold text-slate-900">{copy.title}</h1>
+            <h1 className="text-2xl font-bold text-surface-900">{copy.title}</h1>
           </div>
 
-          <div className="mb-6 grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-2">
+          <div className="mb-6 grid grid-cols-2 gap-2 rounded-2xl bg-surface-100 p-2">
             <button
               type="button"
               onClick={() => setMode("member")}
               className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition ${
-                mode === "member" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
+                mode === "member" ? "bg-white text-surface-900 shadow-sm" : "text-surface-500"
               }`}
             >
               <UserRound className="h-4 w-4" />
@@ -125,7 +125,7 @@ function MemberLoginContent() {
               type="button"
               onClick={() => setMode("organizer")}
               className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition ${
-                mode === "organizer" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
+                mode === "organizer" ? "bg-white text-surface-900 shadow-sm" : "text-surface-500"
               }`}
             >
               <Building2 className="h-4 w-4" />
@@ -135,9 +135,9 @@ function MemberLoginContent() {
 
           {mode === "member" ? (
             <>
-              <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <div className="font-semibold text-slate-900">{copy.memberTitle}</div>
-                <p className="mt-1 text-sm text-slate-600">{copy.memberBody}</p>
+              <div className="mb-6 rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3">
+                <div className="font-semibold text-surface-900">{copy.memberTitle}</div>
+                <p className="mt-1 text-sm text-surface-600">{copy.memberBody}</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-5">
@@ -205,19 +205,19 @@ function MemberLoginContent() {
 
               <div className="my-5 flex items-center gap-3">
                 <div className="h-px flex-1 bg-slate-200" />
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">veya</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-surface-400">veya</span>
                 <div className="h-px flex-1 bg-slate-200" />
               </div>
 
               <a
                 href={`${API_BASE}/auth/google/start?mode=member&next=${encodeURIComponent(nextPath)}`}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-3 text-sm font-semibold text-surface-700 transition hover:bg-surface-50"
               >
                 <span className="text-base font-black text-blue-600">G</span>
                 {copy.googleLogin}
               </a>
 
-              <div className="mt-6 text-center text-sm text-slate-500">
+              <div className="mt-6 text-center text-sm text-surface-500">
                 {copy.noAccount}{" "}
                 <Link href={`/register?mode=member&next=${encodeURIComponent(nextPath)}`} className="font-semibold text-brand-600 hover:text-brand-700">
                   {copy.memberRegister}
@@ -225,16 +225,16 @@ function MemberLoginContent() {
               </div>
             </>
           ) : (
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
+            <div className="rounded-3xl border border-surface-200 bg-surface-50 p-6">
               <div className="inline-flex rounded-full bg-brand-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-brand-700">
                 Admin
               </div>
-              <h2 className="mt-4 text-2xl font-bold text-slate-900">{copy.organizerTitle}</h2>
-              <p className="mt-3 text-sm leading-6 text-slate-600">{copy.organizerBody}</p>
+              <h2 className="mt-4 text-2xl font-bold text-surface-900">{copy.organizerTitle}</h2>
+              <p className="mt-3 text-sm leading-6 text-surface-600">{copy.organizerBody}</p>
               <Link href="/admin/login" className="btn-primary mt-6 inline-flex justify-center gap-2">
                 {copy.organizerCta}
               </Link>
-              <div className="mt-6 text-sm text-slate-500">
+              <div className="mt-6 text-sm text-surface-500">
                 {copy.noAccount}{" "}
                 <Link href="/register?mode=organizer" className="font-semibold text-brand-600 hover:text-brand-700">
                   {copy.organizerRegister}

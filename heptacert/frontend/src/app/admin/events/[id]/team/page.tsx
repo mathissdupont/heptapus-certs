@@ -328,7 +328,7 @@ export default function EventTeamPage() {
                     <p className="mt-1 inline-flex items-center gap-1 text-xs font-medium">
                       <ShieldCheck className="h-3.5 w-3.5 text-blue-600" />
                       <span className="text-blue-600">{roleLabel.get(member.role)}</span>
-                      <span className={`ml-2 rounded-full border px-2 py-0.5 text-[11px] font-bold ${
+                      <span className={`ml-2 rounded-full border px-2 py-0.5 text-11 font-bold ${
                         member.status === "active"
                           ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                           : member.status === "pending"

@@ -90,7 +90,7 @@ function NavContent({
     <div className="space-y-5 py-2">
       {NAV_GROUPS.map((group) => (
         <div key={group.label.en}>
-          <p className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-widest text-surface-400">
+          <p className="mb-1.5 px-2 text-11 font-bold uppercase tracking-widest text-surface-400">
             {group.label[lang as "tr" | "en"]}
           </p>
           <div className="space-y-0.5">
@@ -197,7 +197,7 @@ export default function SuperadminLayout({
         </div>
         <div className="ml-auto flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-100/60 px-2.5 py-1">
           <Zap className="h-3 w-3 text-amber-600" />
-          <span className="text-[10px] font-bold uppercase tracking-wide text-amber-700">superadmin</span>
+          <span className="text-11 font-bold uppercase tracking-wide text-amber-700">superadmin</span>
         </div>
       </div>
 

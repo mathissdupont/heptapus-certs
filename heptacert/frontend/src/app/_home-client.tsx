@@ -161,7 +161,7 @@ function HeroPreview({ lang }: { lang: string }) {
               <div className="h-2 w-16 rounded-full bg-slate-200" />
               <div className="mt-2.5 h-1.5 w-24 rounded-full bg-slate-100" />
             </div>
-            <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-medium tracking-wide text-slate-600">
+            <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-11 font-medium tracking-wide text-slate-600">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
@@ -216,7 +216,7 @@ function HeroPreview({ lang }: { lang: string }) {
           <QrCode className="h-4 w-4 text-slate-600" />
           <div>
             <p className="text-xs font-semibold tracking-tight text-slate-900">QR Check-in</p>
-            <p className="mt-0.5 text-[10px] text-slate-500">{lang === "tr" ? "Oturum bazlı" : "Session-based"}</p>
+            <p className="mt-0.5 text-11 text-slate-500">{lang === "tr" ? "Oturum bazlı" : "Session-based"}</p>
           </div>
         </div>
       </motion.div>
@@ -414,7 +414,7 @@ export default function LandingPage() {
                     </div>
                   )}
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                    <p className="text-11 font-semibold uppercase tracking-widest text-slate-500">
                       {lang === "tr" ? "Kurumsal etkinlik alanı" : "Organization workspace"}
                     </p>
                     <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{brandName}</h1>
@@ -491,7 +491,7 @@ export default function LandingPage() {
               transition={{ duration: 0.6, ease: "easeOut" }}
               className="mb-8 flex justify-center lg:justify-start"
             >
-              <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-[11px] font-semibold tracking-wide text-slate-600 shadow-sm backdrop-blur-md">
+              <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-11 font-semibold tracking-wide text-slate-600 shadow-sm backdrop-blur-md">
                 <span className="h-1.5 w-1.5 rounded-full bg-slate-900" />
                 {copy.eyebrow}
               </span>
@@ -582,7 +582,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <Reveal>
             <div className="mb-16 text-center">
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+              <p className="mb-3 text-11 font-semibold uppercase tracking-widest text-slate-500">
                 {copy.featLabel}
               </p>
               <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-4xl">
@@ -711,7 +711,7 @@ function PublicFooter({
               className="inline-flex items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 transition-colors hover:bg-slate-100"
               title="Heptapus Group"
             >
-              <span className="text-[10px] font-medium uppercase tracking-widest text-slate-500">{footerCopy.subsidiary}</span>
+              <span className="text-11 font-medium uppercase tracking-widest text-slate-500">{footerCopy.subsidiary}</span>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="https://heptapusgroup.com/icons/heptapus_logo_white.png"

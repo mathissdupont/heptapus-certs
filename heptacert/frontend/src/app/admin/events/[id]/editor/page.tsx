@@ -123,12 +123,12 @@ function PanelSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-soft">
-      <div className="flex items-start gap-3 border-b border-gray-100 bg-gray-50/80 px-4 py-3">
+    <section className="overflow-hidden rounded-lg border border-surface-200 bg-white shadow-soft">
+      <div className="flex items-start gap-3 border-b border-surface-100 bg-surface-50/80 px-4 py-3">
         <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">{icon}</span>
         <div className="min-w-0">
-          <h3 className="text-xs font-bold uppercase tracking-wide text-gray-800">{title}</h3>
-          {description && <p className="mt-0.5 text-[11px] leading-4 text-gray-500">{description}</p>}
+          <h3 className="text-xs font-bold uppercase tracking-wide text-surface-800">{title}</h3>
+          {description && <p className="mt-0.5 text-11 leading-4 text-surface-500">{description}</p>}
         </div>
       </div>
       <div className="p-4">{children}</div>
@@ -146,13 +146,13 @@ function FieldPanel({ label, field, onChange }: {
   return (
     <div className="space-y-4">
       {/* Visibility */}
-      <div className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
-        <span className="text-[11px] font-bold uppercase tracking-wide text-gray-600">{label}</span>
+      <div className="flex items-center justify-between rounded-lg border border-surface-100 bg-surface-50 px-3 py-2">
+        <span className="text-11 font-bold uppercase tracking-wide text-surface-600">{label}</span>
         <button
           type="button"
           onClick={() => onChange({ show: !field.show })}
-          className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors ${
-            field.show ? "bg-brand-50 text-brand-600" : "bg-gray-100 text-gray-400"
+          className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-11 font-bold transition-colors ${
+            field.show ? "bg-brand-50 text-brand-600" : "bg-surface-100 text-surface-400"
           }`}
         >
           {field.show ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
@@ -162,12 +162,12 @@ function FieldPanel({ label, field, onChange }: {
 
       {/* Font size stepper + presets */}
       <div className={field.show ? "" : "opacity-60"}>
-        <label className="label text-[10px] mb-1.5">Yazı Boyutu</label>
+        <label className="label text-11 mb-1.5">Yazı Boyutu</label>
         <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => onChange({ font_size: Math.max(8, field.font_size - 2) })}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-600 transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-surface-200 bg-surface-50 hover:bg-surface-100 text-surface-600 transition-colors"
           >
             <Minus className="h-3 w-3" />
           </button>
@@ -177,12 +177,12 @@ function FieldPanel({ label, field, onChange }: {
             min={8}
             max={300}
             onChange={e => onChange({ font_size: +e.target.value })}
-            className="w-16 rounded-lg border border-gray-200 px-2 py-1.5 text-center text-sm font-mono font-semibold text-gray-800"
+            className="w-16 rounded-lg border border-surface-200 px-2 py-1.5 text-center text-sm font-mono font-semibold text-surface-800"
           />
           <button
             type="button"
             onClick={() => onChange({ font_size: field.font_size + 2 })}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-600 transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-surface-200 bg-surface-50 hover:bg-surface-100 text-surface-600 transition-colors"
           >
             <Plus className="h-3 w-3" />
           </button>
@@ -201,10 +201,10 @@ function FieldPanel({ label, field, onChange }: {
               key={size}
               type="button"
               onClick={() => onChange({ font_size: size })}
-              className={`flex-1 rounded-md py-1 text-[10px] font-bold transition-colors ${
+              className={`flex-1 rounded-md py-1 text-11 font-bold transition-colors ${
                 field.font_size === size
                   ? "bg-brand-500 text-white"
-                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                  : "bg-surface-100 text-surface-500 hover:bg-surface-200"
               }`}
             >
               {size}
@@ -215,13 +215,13 @@ function FieldPanel({ label, field, onChange }: {
 
       {/* Color */}
       <div className={field.show ? "" : "opacity-60"}>
-        <label className="label text-[10px] mb-1.5">Renk</label>
+        <label className="label text-11 mb-1.5">Renk</label>
         <div className="flex items-center gap-2">
           <input
             type="color"
             value={field.font_color}
             onChange={e => onChange({ font_color: e.target.value })}
-            className="h-9 w-9 cursor-pointer rounded-lg border border-gray-200 p-0.5"
+            className="h-9 w-9 cursor-pointer rounded-lg border border-surface-200 p-0.5"
           />
           <input
             type="text"
@@ -229,7 +229,7 @@ function FieldPanel({ label, field, onChange }: {
             onChange={e => {
               if (/^#[0-9A-Fa-f]{0,6}$/.test(e.target.value)) onChange({ font_color: e.target.value });
             }}
-            className="flex-1 rounded-lg border border-gray-200 px-3 py-2 font-mono text-xs font-semibold uppercase text-gray-700"
+            className="flex-1 rounded-lg border border-surface-200 px-3 py-2 font-mono text-xs font-semibold uppercase text-surface-700"
             maxLength={7}
           />
         </div>
@@ -241,7 +241,7 @@ function FieldPanel({ label, field, onChange }: {
               onClick={() => onChange({ font_color: color })}
               title={color}
               className={`h-6 flex-1 rounded-md border transition-all ${
-                field.font_color.toLowerCase() === color ? "border-gray-900 ring-2 ring-gray-200" : "border-gray-200"
+                field.font_color.toLowerCase() === color ? "border-gray-900 ring-2 ring-gray-200" : "border-surface-200"
               }`}
               style={{ backgroundColor: color }}
             />
@@ -251,7 +251,7 @@ function FieldPanel({ label, field, onChange }: {
 
       {/* Style toggles */}
       <div className={field.show ? "" : "opacity-60"}>
-        <label className="label text-[10px] mb-1.5">Stil ve Hizalama</label>
+        <label className="label text-11 mb-1.5">Stil ve Hizalama</label>
         <div className="flex items-center justify-between gap-2">
           {/* Bold + Italic */}
           <div className="flex gap-1">
@@ -262,7 +262,7 @@ function FieldPanel({ label, field, onChange }: {
               className={`h-8 w-8 rounded-lg text-sm font-black transition-colors ${
                 field.font_weight === "bold"
                   ? "bg-brand-500 text-white"
-                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                  : "bg-surface-100 text-surface-500 hover:bg-surface-200"
               }`}
             >
               B
@@ -274,7 +274,7 @@ function FieldPanel({ label, field, onChange }: {
               className={`h-8 w-8 rounded-lg text-sm italic font-semibold transition-colors ${
                 field.font_style === "italic"
                   ? "bg-brand-500 text-white"
-                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                  : "bg-surface-100 text-surface-500 hover:bg-surface-200"
               }`}
             >
               I
@@ -291,7 +291,7 @@ function FieldPanel({ label, field, onChange }: {
                 className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
                   field.text_align === align
                     ? "bg-brand-500 text-white"
-                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                    : "bg-surface-100 text-surface-500 hover:bg-surface-200"
                 }`}
               >
                 {align === "left" ? <AlignLeft className="h-3.5 w-3.5" /> : align === "center" ? <AlignCenter className="h-3.5 w-3.5" /> : <AlignRight className="h-3.5 w-3.5" />}
@@ -302,8 +302,8 @@ function FieldPanel({ label, field, onChange }: {
       </div>
 
       {/* Live preview */}
-      <div className="rounded-lg border border-gray-100 bg-gradient-to-br from-gray-50 to-gray-100 px-3 py-3 overflow-hidden">
-        <p className="text-[9px] font-bold text-gray-400 mb-2 uppercase tracking-wide">Canlı önizleme</p>
+      <div className="rounded-lg border border-surface-100 bg-gradient-to-br from-gray-50 to-gray-100 px-3 py-3 overflow-hidden">
+        <p className="text-11 font-bold text-surface-400 mb-2 uppercase tracking-wide">Canlı önizleme</p>
         <div className="min-h-[28px] flex items-center" style={{ justifyContent: field.text_align === "center" ? "center" : field.text_align === "right" ? "flex-end" : "flex-start" }}>
           <span style={{
             fontSize: Math.min(Math.max(field.font_size * 0.18, 10), 28),
@@ -319,16 +319,16 @@ function FieldPanel({ label, field, onChange }: {
 
       {/* Position */}
       <div>
-        <label className="label text-[10px] mb-1.5">Konum (px)</label>
+        <label className="label text-11 mb-1.5">Konum (px)</label>
         <div className="grid grid-cols-2 gap-2">
           <div className="relative">
-            <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">X</span>
+            <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-11 font-bold text-surface-400">X</span>
             <input type="number" value={field.x} min={0}
               onChange={e => onChange({ x: +e.target.value })}
               className="input-field py-1.5 pl-6 text-xs" />
           </div>
           <div className="relative">
-            <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">Y</span>
+            <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-11 font-bold text-surface-400">Y</span>
             <input type="number" value={field.y} min={0}
               onChange={e => onChange({ y: +e.target.value })}
               className="input-field py-1.5 pl-6 text-xs" />
@@ -729,42 +729,42 @@ export default function EditorPage() {
   const qrRS = toRenderPx(cfg.qr.size, cfg.image_width);
 
   return (
-    <div className="flex h-[calc(100vh-64px)] flex-col overflow-hidden bg-gray-100">
+    <div className="flex h-[calc(100vh-64px)] flex-col overflow-hidden bg-surface-100">
 
       {/* TOP BAR */}
-      <div className="shrink-0 border-b border-gray-200 bg-white">
+      <div className="shrink-0 border-b border-surface-200 bg-white">
         {/* Row 1: breadcrumb + actions */}
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
           <div className="min-w-0">
           <div className="flex items-center gap-3">
-            <Link href="/admin/events" className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-700 transition-colors">
+            <Link href="/admin/events" className="flex items-center gap-1 text-sm text-surface-400 hover:text-surface-700 transition-colors">
               <ChevronLeft className="h-4 w-4" /> Etkinlikler
             </Link>
             <span className="text-gray-200">/</span>
-            <div className="flex items-center gap-1.5 text-sm font-bold text-gray-900">
+            <div className="flex items-center gap-1.5 text-sm font-bold text-surface-900">
               <FileText className="h-4 w-4 text-brand-500" />
               Sertifika Editörü
-              <span className="ml-1 rounded-md bg-gray-100 px-2 py-0.5 text-[11px] font-mono text-gray-500">#{eventId}</span>
+              <span className="ml-1 rounded-md bg-surface-100 px-2 py-0.5 text-11 font-mono text-surface-500">#{eventId}</span>
             </div>
           </div>
 
-            <p className="mt-1 text-xs text-gray-500">Şablon görselini, metin alanlarını ve QR konumunu tek ekranda düzenleyin.</p>
+            <p className="mt-1 text-xs text-surface-500">Şablon görselini, metin alanlarını ve QR konumunu tek ekranda düzenleyin.</p>
           </div>
 
           <div className="flex flex-wrap items-center justify-end gap-1.5">
             <Link href={`/admin/events/${eventId}/settings`}
-              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors font-medium">
+              className="flex items-center gap-1.5 text-xs text-surface-500 hover:text-surface-800 hover:bg-surface-100 px-3 py-2 rounded-lg transition-colors font-medium">
               <Settings className="h-3.5 w-3.5" /> Ayarlar
             </Link>
             <Link href={`/admin/events/${eventId}/email-templates`}
-              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors font-medium">
+              className="flex items-center gap-1.5 text-xs text-surface-500 hover:text-surface-800 hover:bg-surface-100 px-3 py-2 rounded-lg transition-colors font-medium">
               <Mail className="h-3.5 w-3.5" /> Email
             </Link>
             <Link href={`/admin/events/${eventId}/bulk-emails`}
-              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors font-medium">
+              className="flex items-center gap-1.5 text-xs text-surface-500 hover:text-surface-800 hover:bg-surface-100 px-3 py-2 rounded-lg transition-colors font-medium">
               <Send className="h-3.5 w-3.5" /> Kampanya
             </Link>
-            <div className="mx-2 h-5 w-px bg-gray-200" />
+            <div className="mx-2 h-5 w-px bg-surface-200" />
             <AnimatePresence>
               {saved && (
                 <motion.span initial={{ opacity: 0, x: 6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 6 }}
@@ -797,14 +797,14 @@ export default function EditorPage() {
                 type="button"
                 onClick={() => setZoom(z => Math.max(25, z - 25))}
                 disabled={zoom <= 25}
-                className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-30"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-surface-400 hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-30"
               >
                 <ZoomOut className="h-3.5 w-3.5" />
               </button>
               <button
                 type="button"
                 onClick={() => setZoom(100)}
-                className="min-w-[52px] rounded-md px-2 py-1 text-center font-mono text-[11px] font-bold text-slate-300 hover:bg-slate-700 transition-colors"
+                className="min-w-[52px] rounded-md px-2 py-1 text-center font-mono text-11 font-bold text-slate-300 hover:bg-slate-700 transition-colors"
               >
                 {zoom}%
               </button>
@@ -812,7 +812,7 @@ export default function EditorPage() {
                 type="button"
                 onClick={() => setZoom(z => Math.min(200, z + 25))}
                 disabled={zoom >= 200}
-                className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-30"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-surface-400 hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-30"
               >
                 <ZoomIn className="h-3.5 w-3.5" />
               </button>
@@ -825,7 +825,7 @@ export default function EditorPage() {
                   const zH = Math.floor((containerH / (renderH || 550)) * 100);
                   setZoom(Math.max(25, Math.min(175, Math.min(zW, zH))));
                 }}
-                className="rounded-md px-2 py-1 text-[11px] font-medium text-slate-400 hover:bg-slate-700 hover:text-white transition-colors"
+                className="rounded-md px-2 py-1 text-11 font-medium text-surface-400 hover:bg-slate-700 hover:text-white transition-colors"
                 title="Ekrana sığdır"
               >
                 Sığdır
@@ -836,8 +836,8 @@ export default function EditorPage() {
               <button
                 type="button"
                 onClick={() => setShowGrid(g => !g)}
-                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                  showGrid ? "bg-slate-600 text-white" : "text-slate-400 hover:bg-slate-700 hover:text-white"
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-11 font-medium transition-colors ${
+                  showGrid ? "bg-slate-600 text-white" : "text-surface-400 hover:bg-slate-700 hover:text-white"
                 }`}
               >
                 <Crosshair className="h-3 w-3" /> Izgara
@@ -845,18 +845,18 @@ export default function EditorPage() {
               <button
                 type="button"
                 onClick={() => bgInputRef.current?.click()}
-                className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium text-slate-400 hover:bg-slate-700 hover:text-white transition-colors"
+                className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-11 font-medium text-surface-400 hover:bg-slate-700 hover:text-white transition-colors"
               >
                 <ImagePlus className="h-3 w-3" /> Arka plan
               </button>
             </div>
 
-            <div className="text-[10px] text-slate-500 font-mono">
+            <div className="text-11 text-surface-500 font-mono">
               {cfg.image_width} × {cfg.image_height} px
             </div>
           </div>
 
-          <div className="border-b border-slate-800 bg-slate-900/55 px-4 py-2 text-xs text-slate-400">
+          <div className="border-b border-slate-800 bg-slate-900/55 px-4 py-2 text-xs text-surface-400">
             Öğeleri sürükleyerek yerleştirin. Hassas ayar için sağ paneldeki X/Y alanlarını kullanın.
           </div>
 
@@ -872,11 +872,11 @@ export default function EditorPage() {
               <div className="absolute inset-0 rounded-lg border-2 border-dashed border-slate-600 bg-slate-800 flex flex-col items-center justify-center gap-3 cursor-pointer group"
                 onClick={() => bgInputRef.current?.click()}>
                 {bgUploading ? (
-                  <Loader2 className="h-10 w-10 animate-spin text-slate-400" />
+                  <Loader2 className="h-10 w-10 animate-spin text-surface-400" />
                 ) : (
                   <>
-                    <ImagePlus className="h-10 w-10 text-slate-500 group-hover:text-slate-300 transition-colors" />
-                    <span className="text-sm text-slate-400 group-hover:text-slate-200 transition-colors font-medium">{t("editor_upload_bg")}</span>
+                    <ImagePlus className="h-10 w-10 text-surface-500 group-hover:text-slate-300 transition-colors" />
+                    <span className="text-sm text-surface-400 group-hover:text-slate-200 transition-colors font-medium">{t("editor_upload_bg")}</span>
                   </>
                 )}
               </div>
@@ -916,7 +916,7 @@ export default function EditorPage() {
                     >
                       {previewName || t("editor_preview_name")}
                     </span>
-                    <span className="absolute -top-5 left-0 hidden group-hover:block text-[9px] bg-brand-500 text-white rounded px-1.5 py-0.5 font-bold whitespace-nowrap">
+                    <span className="absolute -top-5 left-0 hidden group-hover:block text-11 bg-brand-500 text-white rounded px-1.5 py-0.5 font-bold whitespace-nowrap">
                       Ad Soyad • {cfg.name.x},{cfg.name.y}
                     </span>
                   </div>
@@ -947,7 +947,7 @@ export default function EditorPage() {
                     >
                       {previewCertId || t("editor_preview_cert_id")}
                     </span>
-                    <span className="absolute -top-5 left-0 hidden group-hover:block text-[9px] bg-amber-500 text-white rounded px-1.5 py-0.5 font-bold whitespace-nowrap">
+                    <span className="absolute -top-5 left-0 hidden group-hover:block text-11 bg-amber-500 text-white rounded px-1.5 py-0.5 font-bold whitespace-nowrap">
                       Sertifika No • {cfg.cert_id.x},{cfg.cert_id.y}
                     </span>
                   </div>
@@ -987,7 +987,7 @@ export default function EditorPage() {
 
             {cfg.certificate_footer && (
               <div
-                className="pointer-events-none absolute inset-x-0 z-20 text-center text-[10px] font-medium"
+                className="pointer-events-none absolute inset-x-0 z-20 text-center text-11 font-medium"
                 style={{
                   bottom: 18,
                   color: cfg.cert_id.font_color,
@@ -1002,25 +1002,25 @@ export default function EditorPage() {
         </div>
 
         {/* RIGHT PANEL — light theme */}
-        <aside className="flex w-[360px] flex-col overflow-hidden border-l border-gray-200 bg-gray-50">
+        <aside className="flex w-[360px] flex-col overflow-hidden border-l border-surface-200 bg-surface-50">
 
           {/* Panel tabs */}
-          <div className="shrink-0 border-b border-gray-100 bg-white px-4 py-3">
-            <p className="text-sm font-bold text-gray-900">Düzenleme Paneli</p>
-            <p className="mt-0.5 text-xs text-gray-500">Alanları açıp kapatın, ölçüleri değiştirin ve önizleyin.</p>
+          <div className="shrink-0 border-b border-surface-100 bg-white px-4 py-3">
+            <p className="text-sm font-bold text-surface-900">Düzenleme Paneli</p>
+            <p className="mt-0.5 text-xs text-surface-500">Alanları açıp kapatın, ölçüleri değiştirin ve önizleyin.</p>
           </div>
 
-          <div className="flex shrink-0 border-b border-gray-100 bg-white">
+          <div className="flex shrink-0 border-b border-surface-100 bg-white">
             {([
               { id: "typography", icon: <Type className="h-3.5 w-3.5" />, label: "Tasarım" },
               { id: "presets", icon: <FileText className="h-3.5 w-3.5" />, label: "Preset" },
               { id: "history", icon: <History className="h-3.5 w-3.5" />, label: "Geçmiş" },
             ] as const).map(tab => (
               <button key={tab.id} onClick={() => setActivePanel(tab.id)}
-                className={`flex flex-1 items-center justify-center gap-1.5 py-3 text-[11px] font-bold transition-all border-b-2 ${
+                className={`flex flex-1 items-center justify-center gap-1.5 py-3 text-11 font-bold transition-all border-b-2 ${
                   activePanel === tab.id
                     ? "border-brand-500 text-brand-600 bg-brand-50/30"
-                    : "border-transparent text-gray-400 hover:text-gray-700 hover:bg-gray-50"
+                    : "border-transparent text-surface-400 hover:text-surface-700 hover:bg-surface-50"
                 }`}>
                 {tab.icon} {tab.label}
               </button>
@@ -1045,7 +1045,7 @@ export default function EditorPage() {
                 <PanelSection icon={<Eye className="h-3.5 w-3.5" />} title="Canlı Önizleme Verisi" description="Canvas üzerindeki örnek metni değiştirerek gerçek sertifika görünümünü test edin.">
                   <div className="grid gap-3">
                     <label className="grid gap-1.5">
-                      <span className="label text-[10px]">Örnek katılımcı adı</span>
+                      <span className="label text-11">Örnek katılımcı adı</span>
                       <input
                         value={previewName}
                         onChange={(event) => setPreviewName(event.target.value)}
@@ -1055,7 +1055,7 @@ export default function EditorPage() {
                       />
                     </label>
                     <label className="grid gap-1.5">
-                      <span className="label text-[10px]">Örnek sertifika kodu</span>
+                      <span className="label text-11">Örnek sertifika kodu</span>
                       <input
                         value={previewCertId}
                         onChange={(event) => setPreviewCertId(event.target.value)}
@@ -1070,7 +1070,7 @@ export default function EditorPage() {
                         setPreviewName("Ayşe Yılmaz");
                         setPreviewCertId(`EV${eventId}-000123`);
                       }}
-                      className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-600 transition hover:bg-gray-50"
+                      className="rounded-lg border border-surface-200 bg-white px-3 py-2 text-xs font-bold text-surface-600 transition hover:bg-surface-50"
                     >
                       Örnek veriyi sıfırla
                     </button>
@@ -1079,24 +1079,24 @@ export default function EditorPage() {
 
                 <PanelSection icon={<SlidersHorizontal className="h-3.5 w-3.5" />} title="Marka Kiti" description="Kurum rengini, logosunu ve sertifika alt bilgisini bu şablonla birlikte kullanın.">
                   <div className="space-y-4">
-                    <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white">
+                    <div className="flex items-center gap-3 rounded-xl border border-surface-100 bg-surface-50 p-3">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-surface-200 bg-white">
                         {branding?.brand_logo ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={branding.brand_logo} alt="Logo" className="h-full w-full object-contain p-1" />
                         ) : (
-                          <ImagePlus className="h-5 w-5 text-gray-300" />
+                          <ImagePlus className="h-5 w-5 text-surface-300" />
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-bold text-gray-700">{branding?.org_name || "Kurum markası"}</p>
-                        <p className="mt-0.5 text-[11px] text-gray-400">Logo QR merkezinde ve sertifika üretiminde kullanılır.</p>
+                        <p className="truncate text-xs font-bold text-surface-700">{branding?.org_name || "Kurum markası"}</p>
+                        <p className="mt-0.5 text-11 text-surface-400">Logo QR merkezinde ve sertifika üretiminde kullanılır.</p>
                       </div>
                       <button
                         type="button"
                         onClick={() => logoInputRef.current?.click()}
                         disabled={logoUploading}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 disabled:opacity-50"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-surface-200 bg-white text-surface-500 transition hover:bg-surface-50 disabled:opacity-50"
                         title="Logo yükle"
                       >
                         {logoUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
@@ -1111,10 +1111,10 @@ export default function EditorPage() {
                     </div>
 
                     <div>
-                      <label className="label mb-1.5 text-[10px]">Marka rengi</label>
+                      <label className="label mb-1.5 text-11">Marka rengi</label>
                       <div className="flex items-center gap-2">
-                        <span className="h-9 w-9 rounded-lg border border-gray-200" style={{ backgroundColor: branding?.brand_color || "#6366f1" }} />
-                        <code className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-600">
+                        <span className="h-9 w-9 rounded-lg border border-surface-200" style={{ backgroundColor: branding?.brand_color || "#6366f1" }} />
+                        <code className="flex-1 rounded-lg border border-surface-200 bg-white px-3 py-2 text-xs font-bold text-surface-600">
                           {branding?.brand_color || "#6366f1"}
                         </code>
                         <button
@@ -1128,7 +1128,7 @@ export default function EditorPage() {
                     </div>
 
                     <label className="grid gap-1.5">
-                      <span className="label text-[10px]">Sertifika footer</span>
+                      <span className="label text-11">Sertifika footer</span>
                       <textarea
                         value={cfg.certificate_footer || ""}
                         onChange={event => setCfg(c => ({ ...c, certificate_footer: event.target.value }))}
@@ -1139,7 +1139,7 @@ export default function EditorPage() {
                       />
                     </label>
 
-                    <Link href="/admin/settings?tab=branding" className="block text-[11px] font-bold text-brand-600 hover:text-brand-700">
+                    <Link href="/admin/settings?tab=branding" className="block text-11 font-bold text-brand-600 hover:text-brand-700">
                       Kurumsal marka ayarlarını aç
                     </Link>
                   </div>
@@ -1149,11 +1149,11 @@ export default function EditorPage() {
                 <PanelSection icon={<Maximize2 className="h-3.5 w-3.5" />} title="Boyutlar" description="Şablon ölçüsünü çıktı boyutuyla aynı tutun.">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="relative">
-                      <label className="label text-[10px] mb-1.5">Genişlik (px)</label>
+                      <label className="label text-11 mb-1.5">Genişlik (px)</label>
                       <input type="number" value={cfg.image_width} onChange={e => setCfg(c => ({ ...c, image_width: +e.target.value }))} className="input-field py-1.5 text-xs" />
                     </div>
                     <div>
-                      <label className="label text-[10px] mb-1.5">Yükseklik (px)</label>
+                      <label className="label text-11 mb-1.5">Yükseklik (px)</label>
                       <input type="number" value={cfg.image_height} onChange={e => setCfg(c => ({ ...c, image_height: +e.target.value }))} className="input-field py-1.5 text-xs" />
                     </div>
                   </div>
@@ -1168,7 +1168,7 @@ export default function EditorPage() {
                         key={preset.label}
                         type="button"
                         onClick={() => setCfg(c => ({ ...c, image_width: preset.w, image_height: preset.h }))}
-                        className="rounded-md border border-gray-200 bg-white px-2 py-1 text-[10px] font-semibold text-gray-600 hover:border-brand-300 hover:text-brand-600 transition-colors"
+                        className="rounded-md border border-surface-200 bg-white px-2 py-1 text-11 font-semibold text-surface-600 hover:border-brand-300 hover:text-brand-600 transition-colors"
                       >
                         {preset.label}
                       </button>
@@ -1190,12 +1190,12 @@ export default function EditorPage() {
                 <PanelSection icon={<QrCode className="h-3.5 w-3.5" />} title="QR Kodu" description="Doğrulama QR kodunu konumlandırın.">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">QR Kodu</span>
+                      <span className="text-11 font-bold text-surface-500 uppercase tracking-wide">QR Kodu</span>
                       <button
                         type="button"
                         onClick={() => setCfg(c => ({ ...c, qr: { ...c.qr, show: !c.qr.show } }))}
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors ${
-                          cfg.qr.show ? "bg-brand-50 text-brand-600" : "bg-gray-100 text-gray-400"
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-11 font-bold transition-colors ${
+                          cfg.qr.show ? "bg-brand-50 text-brand-600" : "bg-surface-100 text-surface-400"
                         }`}
                       >
                         {cfg.qr.show ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
@@ -1203,30 +1203,30 @@ export default function EditorPage() {
                       </button>
                     </div>
                     <div>
-                      <label className="label text-[10px] mb-1.5">Boyut (px)</label>
+                      <label className="label text-11 mb-1.5">Boyut (px)</label>
                       <div className="flex items-center gap-1.5">
                         <button type="button" onClick={() => setCfg(c => ({ ...c, qr: { ...c.qr, size: Math.max(40, c.qr.size - 10) } }))}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-600 transition-colors">
+                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-surface-200 bg-surface-50 hover:bg-surface-100 text-surface-600 transition-colors">
                           <Minus className="h-3 w-3" />
                         </button>
                         <input type="number" value={cfg.qr.size} min={40} max={400}
                           onChange={e => setCfg(c => ({ ...c, qr: { ...c.qr, size: +e.target.value } }))}
-                          className="w-16 rounded-lg border border-gray-200 px-2 py-1.5 text-center text-sm font-mono font-semibold text-gray-800" />
+                          className="w-16 rounded-lg border border-surface-200 px-2 py-1.5 text-center text-sm font-mono font-semibold text-surface-800" />
                         <button type="button" onClick={() => setCfg(c => ({ ...c, qr: { ...c.qr, size: Math.min(400, c.qr.size + 10) } }))}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-600 transition-colors">
+                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-surface-200 bg-surface-50 hover:bg-surface-100 text-surface-600 transition-colors">
                           <Plus className="h-3 w-3" />
                         </button>
                       </div>
                     </div>
                     <div>
-                      <label className="label text-[10px] mb-1.5">Konum (px)</label>
+                      <label className="label text-11 mb-1.5">Konum (px)</label>
                       <div className="grid grid-cols-2 gap-2">
                         <div className="relative">
-                          <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">X</span>
+                          <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-11 font-bold text-surface-400">X</span>
                           <input type="number" value={cfg.qr.x} min={0} onChange={e => setCfg(c => ({ ...c, qr: { ...c.qr, x: +e.target.value } }))} className="input-field py-1.5 pl-6 text-xs" />
                         </div>
                         <div className="relative">
-                          <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">Y</span>
+                          <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-11 font-bold text-surface-400">Y</span>
                           <input type="number" value={cfg.qr.y} min={0} onChange={e => setCfg(c => ({ ...c, qr: { ...c.qr, y: +e.target.value } }))} className="input-field py-1.5 pl-6 text-xs" />
                         </div>
                       </div>
@@ -1239,8 +1239,8 @@ export default function EditorPage() {
                   <div className="rounded-xl border border-brand-100 bg-brand-50/40 p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-xs font-bold text-gray-700">Hologram Damgası</span>
-                        <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">
+                        <span className="text-xs font-bold text-surface-700">Hologram Damgası</span>
+                        <p className="text-11 text-surface-400 mt-0.5 leading-relaxed">
                           Sağ alt köşeye yarı saydam HeptaCert™ mührü basar.
                         </p>
                       </div>
@@ -1260,11 +1260,11 @@ export default function EditorPage() {
                 {/* Event Banner / Hero Image */}
                 <PanelSection icon={<ImagePlus className="h-3.5 w-3.5" />} title="Etkinlik Kapak Görseli">
                   <div className="space-y-3">
-                    <p className="text-[11px] text-gray-400 leading-relaxed">
+                    <p className="text-11 text-surface-400 leading-relaxed">
                       Kayıt sayfasında hero bölümünde gösterilecek görsel.
                     </p>
                     {bannerUrl && (
-                      <div className="relative rounded-xl overflow-hidden border border-gray-200">
+                      <div className="relative rounded-xl overflow-hidden border border-surface-200">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={bannerUrl} alt="Banner" className="w-full h-24 object-cover" />
                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
@@ -1274,15 +1274,15 @@ export default function EditorPage() {
                       </div>
                     )}
                     <div
-                      className="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-gray-200 p-5 hover:border-brand-300 hover:bg-brand-50/30 transition-all group cursor-pointer"
+                      className="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-surface-200 p-5 hover:border-brand-300 hover:bg-brand-50/30 transition-all group cursor-pointer"
                       onClick={() => bannerInputRef.current?.click()}
                     >
                       {bannerUploading ? (
                         <Loader2 className="h-6 w-6 animate-spin text-brand-400" />
                       ) : (
                         <>
-                          <Upload className="h-5 w-5 text-gray-300 group-hover:text-brand-400 transition-colors" />
-                          <span className="text-xs text-gray-400 group-hover:text-gray-600 transition-colors font-medium">
+                          <Upload className="h-5 w-5 text-surface-300 group-hover:text-brand-400 transition-colors" />
+                          <span className="text-xs text-surface-400 group-hover:text-surface-600 transition-colors font-medium">
                             {bannerUrl ? "Yeni görsel yükle" : "Kapak görseli yükle"}
                           </span>
                         </>
@@ -1298,12 +1298,12 @@ export default function EditorPage() {
                   </div>
                 </PanelSection>
 
-                <div className="rounded-xl border border-dashed border-gray-200 bg-white px-4 py-3">
+                <div className="rounded-xl border border-dashed border-surface-200 bg-white px-4 py-3">
                   <div className="flex items-start gap-2.5">
-                    <Move className="h-4 w-4 text-gray-300 mt-0.5 shrink-0" />
+                    <Move className="h-4 w-4 text-surface-300 mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-[11px] font-semibold text-gray-500 mb-0.5">Sürükleme ile konumlandır</p>
-                      <p className="text-[10px] text-gray-400 leading-relaxed">
+                      <p className="text-11 font-semibold text-surface-500 mb-0.5">Sürükleme ile konumlandır</p>
+                      <p className="text-11 text-surface-400 leading-relaxed">
                         İsme alanı (mavi), sertifika no (sarı) ve QR kodu (yeşil) doğrudan canvas üzerinde sürüklenebilir.
                       </p>
                     </div>
@@ -1317,7 +1317,7 @@ export default function EditorPage() {
                 <PanelSection icon={<Save className="h-3.5 w-3.5" />} title="Preset Olarak Kaydet" description="Bu etkinlikteki şablon görselini, alan konumlarını ve tipografi ayarlarını kurum presetine çevirin.">
                   <div className="space-y-3">
                     <label className="grid gap-1.5">
-                      <span className="label text-[10px]">Preset adı</span>
+                      <span className="label text-11">Preset adı</span>
                       <input
                         value={presetName}
                         onChange={(event) => setPresetName(event.target.value)}
@@ -1342,23 +1342,23 @@ export default function EditorPage() {
                   {presetsLoading ? (
                     <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-brand-500" /></div>
                   ) : presets.length === 0 ? (
-                    <p className="py-6 text-center text-xs text-gray-400">Henüz kayıtlı preset yok.</p>
+                    <p className="py-6 text-center text-xs text-surface-400">Henüz kayıtlı preset yok.</p>
                   ) : (
                     <div className="space-y-2">
                       {presets.map((preset) => (
-                        <div key={preset.id} className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+                        <div key={preset.id} className="rounded-xl border border-surface-100 bg-surface-50 p-3">
                           <div className="flex items-center gap-3">
                             {preset.template_image_url ? (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img src={preset.template_image_url} alt="" className="h-10 w-16 rounded border border-gray-200 object-cover" />
+                              <img src={preset.template_image_url} alt="" className="h-10 w-16 rounded border border-surface-200 object-cover" />
                             ) : (
-                              <div className="flex h-10 w-16 items-center justify-center rounded border border-gray-200 bg-white">
-                                <FileText className="h-4 w-4 text-gray-300" />
+                              <div className="flex h-10 w-16 items-center justify-center rounded border border-surface-200 bg-white">
+                                <FileText className="h-4 w-4 text-surface-300" />
                               </div>
                             )}
                             <div className="min-w-0 flex-1">
-                              <p className="truncate text-[11px] font-bold text-gray-700">{preset.name}</p>
-                              <p className="text-[10px] text-gray-400">{new Date(preset.updated_at).toLocaleString("tr-TR")}</p>
+                              <p className="truncate text-11 font-bold text-surface-700">{preset.name}</p>
+                              <p className="text-11 text-surface-400">{new Date(preset.updated_at).toLocaleString("tr-TR")}</p>
                             </div>
                           </div>
                           <div className="mt-3 flex gap-2">
@@ -1366,7 +1366,7 @@ export default function EditorPage() {
                               type="button"
                               onClick={() => applyPreset(preset.id)}
                               disabled={presetBusyId === preset.id}
-                              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-[11px] font-bold text-brand-700 transition-colors hover:bg-brand-100 disabled:opacity-50"
+                              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-11 font-bold text-brand-700 transition-colors hover:bg-brand-100 disabled:opacity-50"
                             >
                               {presetBusyId === preset.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
                               Uygula
@@ -1392,38 +1392,38 @@ export default function EditorPage() {
             {activePanel === "history" && (
               <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-bold text-gray-700 flex items-center gap-2">
-                    <History className="h-3.5 w-3.5 text-gray-400" /> Şablon Geçmişi
+                  <p className="text-xs font-bold text-surface-700 flex items-center gap-2">
+                    <History className="h-3.5 w-3.5 text-surface-400" /> Şablon Geçmişi
                   </p>
-                  <button onClick={loadSnapshots} className="text-gray-400 hover:text-gray-700 transition-colors">
+                  <button onClick={loadSnapshots} className="text-surface-400 hover:text-surface-700 transition-colors">
                     <RefreshCcw className="h-3.5 w-3.5" />
                   </button>
                 </div>
                 {snapsLoading ? (
                   <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-brand-500" /></div>
                 ) : snapshots.length === 0 ? (
-                  <p className="text-xs text-gray-400 text-center py-8">Geçmiş snapshot bulunamadı.</p>
+                  <p className="text-xs text-surface-400 text-center py-8">Geçmiş snapshot bulunamadı.</p>
                 ) : (
                   <div className="space-y-2">
                     {snapshots.map((snap) => (
-                      <div key={snap.id} className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3">
+                      <div key={snap.id} className="flex items-center justify-between gap-3 rounded-xl border border-surface-100 bg-surface-50 p-3">
                         <div className="flex items-center gap-2 min-w-0">
                           {snap.template_image_url ? (
-                            <img src={snap.template_image_url} alt="" className="h-10 w-16 object-cover rounded border border-gray-200" />
+                            <img src={snap.template_image_url} alt="" className="h-10 w-16 object-cover rounded border border-surface-200" />
                           ) : (
-                            <div className="h-10 w-16 rounded border border-gray-200 bg-gray-100 flex items-center justify-center">
-                              <FileText className="h-4 w-4 text-gray-300" />
+                            <div className="h-10 w-16 rounded border border-surface-200 bg-surface-100 flex items-center justify-center">
+                              <FileText className="h-4 w-4 text-surface-300" />
                             </div>
                           )}
                           <div className="min-w-0">
-                            <p className="text-[11px] font-semibold text-gray-700">#{snap.id}</p>
-                            <p className="text-[10px] text-gray-400">{new Date(snap.created_at).toLocaleString("tr-TR")}</p>
+                            <p className="text-11 font-semibold text-surface-700">#{snap.id}</p>
+                            <p className="text-11 text-surface-400">{new Date(snap.created_at).toLocaleString("tr-TR")}</p>
                           </div>
                         </div>
                         <button
                           onClick={() => restoreSnapshot(snap.id)}
                           disabled={restoringId === snap.id}
-                          className="shrink-0 flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[11px] font-bold text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50"
+                          className="shrink-0 flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-11 font-bold text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50"
                         >
                           {restoringId === snap.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
                           Geri Yükle
@@ -1436,12 +1436,12 @@ export default function EditorPage() {
             )}
           </div>
 
-          <div className="shrink-0 border-t border-gray-200 bg-white p-4">
+          <div className="shrink-0 border-t border-surface-200 bg-white p-4">
             <button onClick={saveConfig} disabled={saving} className="btn-primary w-full text-sm">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {saving ? "Kaydediliyor..." : "Değişiklikleri Kaydet"}
             </button>
-            <p className="mt-2 text-center text-[11px] text-gray-400">Kısayol: Ctrl + S</p>
+            <p className="mt-2 text-center text-11 text-surface-400">Kısayol: Ctrl + S</p>
           </div>
         </aside>
       </div>

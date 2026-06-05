@@ -349,7 +349,7 @@ function EventCard({
             </div>
           )}
           {/* Type badge */}
-          <div className="absolute left-3 top-3 rounded-md border border-white/20 bg-black/50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white backdrop-blur-sm">
+          <div className="absolute left-3 top-3 rounded-md border border-white/20 bg-black/50 px-2 py-0.5 text-11 font-medium uppercase tracking-wide text-white backdrop-blur-sm">
             {typeLabel}
           </div>
         </div>
@@ -393,17 +393,17 @@ function EventCard({
           <div className="mt-auto flex items-center justify-between pt-3 border-t border-surface-100 mt-3">
             <div className="flex flex-wrap gap-1.5">
               {item.certificate_enabled && !item.ticketing_enabled && (
-                <span className="badge-neutral text-[10px]">
+                <span className="badge-neutral text-11">
                   <ShieldCheck className="h-3 w-3" /> {copy.certificate}
                 </span>
               )}
               {item.ticketing_enabled && (
-                <span className="badge-neutral text-[10px]">
+                <span className="badge-neutral text-11">
                   <Ticket className="h-3 w-3" /> {copy.ticketed}
                 </span>
               )}
               {item.raffles_enabled && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-100 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-100 bg-amber-50 px-2 py-0.5 text-11 font-medium text-amber-700">
                   {copy.raffle}
                 </span>
               )}

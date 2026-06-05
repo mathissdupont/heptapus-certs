@@ -167,15 +167,15 @@ export default function SuperadminMailLogsPage() {
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="card p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.total}</p>
+          <p className="text-11 font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.total}</p>
           <p className="mt-2 text-3xl font-black text-surface-900">{rows.length}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.sent}</p>
+          <p className="text-11 font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.sent}</p>
           <p className="mt-2 text-3xl font-black text-emerald-700">{totalSent}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.failed}</p>
+          <p className="text-11 font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.failed}</p>
           <p className="mt-2 text-3xl font-black text-rose-700">{totalFailed}</p>
         </div>
       </div>

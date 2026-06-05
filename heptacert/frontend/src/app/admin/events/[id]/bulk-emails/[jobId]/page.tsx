@@ -74,7 +74,7 @@ export default function EmailJobDetailsPage() {
   if (loading) {
     return (
       <div className="flex w-full min-h-[340px] items-center justify-center antialiased">
-        <Loader2 className="h-6 w-6 animate-spin text-gray-400 stroke-[2.5]" />
+        <Loader2 className="h-6 w-6 animate-spin text-surface-400 stroke-[2.5]" />
       </div>
     );
   }
@@ -122,27 +122,27 @@ export default function EmailJobDetailsPage() {
   const progressPercent = job.total_recipients > 0 ? Math.round((totalProcessed / job.total_recipients) * 100) : 0;
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 antialiased text-gray-900 space-y-5">
+    <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 antialiased text-surface-900 space-y-5">
       
       {/* 1. ÜST GEÇMİŞ BAŞLIK BARLARI (Header) */}
       <div className="flex flex-col gap-1.5 pb-1">
         <Link
           href={`/admin/events/${eventId}`}
-          className="inline-flex w-fit items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider transition-colors hover:text-gray-900"
+          className="inline-flex w-fit items-center gap-1 text-11 font-bold text-surface-400 uppercase tracking-wider transition-colors hover:text-surface-900"
         >
           <ArrowLeft className="h-3.5 w-3.5 stroke-[2.5]" />
           <span>Etkinliğe Dön</span>
         </Link>
         <div className="flex items-center justify-between gap-4 mt-1">
           <div className="min-w-0">
-            <h1 className="text-xl font-bold tracking-tight text-gray-950 sm:text-2xl">Toplu Gönderim Detayları</h1>
-            <p className="text-xs text-gray-400 font-mono mt-0.5">Görev Kodu: #JOB-{job.id}</p>
+            <h1 className="text-xl font-bold tracking-tight text-surface-900 sm:text-2xl">Toplu Gönderim Detayları</h1>
+            <p className="text-xs text-surface-400 font-mono mt-0.5">Görev Kodu: #JOB-{job.id}</p>
           </div>
           
           {/* Durum Yenileme Bildirim Işığı */}
           {autoRefresh && job.status !== "completed" && job.status !== "failed" && (
-            <div className="inline-flex items-center gap-1.5 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1 text-[10px] font-bold text-gray-400 font-mono">
-              <RefreshCw className="h-3 w-3 animate-spin text-gray-400" />
+            <div className="inline-flex items-center gap-1.5 bg-surface-50 border border-surface-100 rounded-lg px-2 py-1 text-11 font-bold text-surface-400 font-mono">
+              <RefreshCw className="h-3 w-3 animate-spin text-surface-400" />
               <span>Canlı</span>
             </div>
           )}
@@ -156,7 +156,7 @@ export default function EmailJobDetailsPage() {
             <StatusIcon className={`h-4 w-4 ${config.text} stroke-[2.5]`} />
           </div>
           <div className="min-w-0 space-y-0.5">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Gönderim Statüsü</p>
+            <p className="text-11 font-bold uppercase tracking-widest text-surface-400">Gönderim Statüsü</p>
             <h2 className={`text-sm font-bold tracking-tight ${config.text}`}>{config.label}</h2>
           </div>
         </div>
@@ -165,80 +165,80 @@ export default function EmailJobDetailsPage() {
       {/* 3. İSTATİSTİK SAYAÇ IZGARASI (Stats Grid) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
         {/* Toplam Alıcı */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 truncate">Toplam Alıcı</p>
-          <p className="text-2xl font-bold tracking-tight text-gray-950 font-mono tabular-nums">{job.total_recipients}</p>
-          <p className="text-[11px] font-medium text-gray-400 pt-1 leading-none">Hedeflenen kitle</p>
+        <div className="bg-white rounded-2xl border border-surface-200 p-5 shadow-sm space-y-1">
+          <p className="text-11 font-bold uppercase tracking-widest text-surface-400 truncate">Toplam Alıcı</p>
+          <p className="text-2xl font-bold tracking-tight text-surface-900 font-mono tabular-nums">{job.total_recipients}</p>
+          <p className="text-11 font-medium text-surface-400 pt-1 leading-none">Hedeflenen kitle</p>
         </div>
 
         {/* Başarıyla Gönderilen */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 truncate">Başarılı Sevk</p>
+        <div className="bg-white rounded-2xl border border-surface-200 p-5 shadow-sm space-y-1">
+          <p className="text-11 font-bold uppercase tracking-widest text-surface-400 truncate">Başarılı Sevk</p>
           <p className="text-2xl font-bold tracking-tight text-emerald-600 font-mono tabular-nums">{job.sent_count}</p>
-          <p className="text-[11px] font-bold text-emerald-500 pt-1 leading-none">%{successRate} iletildi</p>
+          <p className="text-11 font-bold text-emerald-500 pt-1 leading-none">%{successRate} iletildi</p>
         </div>
 
         {/* Hata Alıp Başarısız Olan */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 truncate">Hatalı / Başarısız</p>
+        <div className="bg-white rounded-2xl border border-surface-200 p-5 shadow-sm space-y-1">
+          <p className="text-11 font-bold uppercase tracking-widest text-surface-400 truncate">Hatalı / Başarısız</p>
           <p className="text-2xl font-bold tracking-tight text-red-600 font-mono tabular-nums">{job.failed_count}</p>
-          <p className="text-[11px] font-medium text-red-400 pt-1 leading-none">Bağlantı/SMTP reddi</p>
+          <p className="text-11 font-medium text-red-400 pt-1 leading-none">Bağlantı/SMTP reddi</p>
         </div>
 
         {/* Kalan Bekleyen Alıcı */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 truncate">Kuyrukta Kalan</p>
-          <p className="text-2xl font-bold tracking-tight text-gray-950 font-mono tabular-nums">
+        <div className="bg-white rounded-2xl border border-surface-200 p-5 shadow-sm space-y-1">
+          <p className="text-11 font-bold uppercase tracking-widest text-surface-400 truncate">Kuyrukta Kalan</p>
+          <p className="text-2xl font-bold tracking-tight text-surface-900 font-mono tabular-nums">
             {Math.max(0, job.total_recipients - job.sent_count - job.failed_count)}
           </p>
-          <p className="text-[11px] font-medium text-gray-400 pt-1 leading-none">İşlenmeyi bekleyen</p>
+          <p className="text-11 font-medium text-surface-400 pt-1 leading-none">İşlenmeyi bekleyen</p>
         </div>
       </div>
 
       {/* 4. APPLE PROGRESS BAR PANELİ */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-gray-950 border-b border-gray-100 pb-2.5">Kuyruk İlerleme Durumu</h3>
+      <div className="bg-white rounded-2xl border border-surface-200 p-5 shadow-sm space-y-4">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900 border-b border-surface-100 pb-2.5">Kuyruk İlerleme Durumu</h3>
         
         {/* İnce Şık Siyah İlerleme Çubuğu */}
-        <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+        <div className="w-full bg-surface-100 rounded-full h-1.5 overflow-hidden">
           <div
-            className="bg-gray-950 h-full rounded-full transition-all duration-300 ease-out"
+            className="bg-surface-900 h-full rounded-full transition-all duration-300 ease-out"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
         
         <div className="flex justify-between items-center text-xs font-semibold tracking-tight">
-          <span className="text-gray-400 font-medium">
+          <span className="text-surface-400 font-medium">
             {totalProcessed} / {job.total_recipients} alıcı işlendi
           </span>
-          <span className="text-gray-950 font-mono">
+          <span className="text-surface-900 font-mono">
             %{progressPercent}
           </span>
         </div>
       </div>
 
       {/* 5. DİKEY ZAMAN ÇİZELGESİ (Timeline Flow) */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 border-b border-gray-100 pb-2.5">Görev Zaman Çizelgesi</h3>
-        <div className="relative pl-4 before:absolute before:bottom-1 before:left-1 before:top-1 before:w-[1px] before:bg-gray-100">
+      <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm space-y-4">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900 border-b border-surface-100 pb-2.5">Görev Zaman Çizelgesi</h3>
+        <div className="relative pl-4 before:absolute before:bottom-1 before:left-1 before:top-1 before:w-[1px] before:bg-surface-100">
           <div className="space-y-4.5">
             
             {/* Adım 1: Görev Oluşturma */}
             <div className="relative group flex items-start gap-3">
               <div className="absolute -left-[19.5px] top-1 flex h-2 w-2 items-center justify-center rounded-full bg-white ring-4 ring-white border border-gray-400" />
               <div className="min-w-0 flex-1 space-y-0.5 text-xs">
-                <p className="font-bold text-gray-950 tracking-tight">Görev Kuyruğa Alındı</p>
-                <p className="font-medium text-gray-400 font-mono">{new Date(job.created_at).toLocaleString("tr-TR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short", year: "numeric" })}</p>
+                <p className="font-bold text-surface-900 tracking-tight">Görev Kuyruğa Alındı</p>
+                <p className="font-medium text-surface-400 font-mono">{new Date(job.created_at).toLocaleString("tr-TR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short", year: "numeric" })}</p>
               </div>
             </div>
 
             {/* Adım 2: Son Güncelleme Akışı */}
             {job.status !== "pending" && (
               <div className="relative group flex items-start gap-3">
-                <div className="absolute -left-[19.5px] top-1 flex h-2 w-2 items-center justify-center rounded-full bg-white ring-4 ring-white border border-gray-950 bg-gray-950 shadow-sm" />
+                <div className="absolute -left-[19.5px] top-1 flex h-2 w-2 items-center justify-center rounded-full bg-white ring-4 ring-white border border-gray-950 bg-surface-900 shadow-sm" />
                 <div className="min-w-0 flex-1 space-y-0.5 text-xs">
-                  <p className="font-bold text-gray-950 tracking-tight">Kuyruk Son Hareket İzleme</p>
-                  <p className="font-medium text-gray-400 font-mono">{new Date(job.updated_at).toLocaleString("tr-TR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short", year: "numeric" })}</p>
+                  <p className="font-bold text-surface-900 tracking-tight">Kuyruk Son Hareket İzleme</p>
+                  <p className="font-medium text-surface-400 font-mono">{new Date(job.updated_at).toLocaleString("tr-TR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short", year: "numeric" })}</p>
                 </div>
               </div>
             )}
@@ -255,14 +255,14 @@ export default function EmailJobDetailsPage() {
             checked={autoRefresh && job.status !== "completed" && job.status !== "failed"}
             disabled={job.status === "completed" || job.status === "failed"}
             onChange={(e) => setAutoRefresh(e.target.checked)}
-            className="h-3.5 w-3.5 rounded border-gray-300 text-gray-950 focus:ring-0 focus:ring-offset-0 cursor-pointer disabled:opacity-40"
+            className="h-3.5 w-3.5 rounded border-surface-300 text-surface-900 focus:ring-0 focus:ring-offset-0 cursor-pointer disabled:opacity-40"
           />
-          <span className="text-xs font-semibold text-gray-600 tracking-tight">Verileri otomatik yenile (2 saniyede bir)</span>
+          <span className="text-xs font-semibold text-surface-600 tracking-tight">Verileri otomatik yenile (2 saniyede bir)</span>
         </label>
 
         <Link
           href={`/admin/events/${eventId}`}
-          className="inline-flex min-h-[38px] items-center justify-center rounded-xl bg-gray-950 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900 active:scale-[0.98] text-center"
+          className="inline-flex min-h-[38px] items-center justify-center rounded-lg bg-surface-900 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-surface-800 active:scale-[0.98] text-center"
         >
           Tamamlandı, Geri Dön
         </Link>

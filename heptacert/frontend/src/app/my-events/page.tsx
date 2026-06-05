@@ -188,7 +188,7 @@ export default function MyEventsPage() {
                     )}
 
                     <div className="absolute left-4 top-4">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider shadow-sm backdrop-blur-md ${verified ? "border border-emerald-500/30 bg-emerald-500/90 text-white" : "border border-amber-500/30 bg-amber-500/90 text-white"
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-11 font-bold uppercase tracking-wider shadow-sm backdrop-blur-md ${verified ? "border border-emerald-500/30 bg-emerald-500/90 text-white" : "border border-amber-500/30 bg-amber-500/90 text-white"
                         }`}>
                         {verified ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
                         {verified ? copy.verified : copy.pending}

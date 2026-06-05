@@ -104,7 +104,7 @@ function toneStyles(tone: StatTone) {
     case "sky":
       return "border-sky-100 bg-sky-50/50 text-sky-600";
     default:
-      return "border-gray-100 bg-gray-50 text-gray-900";
+      return "border-surface-100 bg-surface-50 text-surface-900";
   }
 }
 
@@ -126,13 +126,13 @@ function StatCard({
       initial={{ opacity: 0, y: 10 }} 
       animate={{ opacity: 1, y: 0 }} 
       transition={{ duration: 0.2 }}
-      className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm antialiased"
+      className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm antialiased"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1 space-y-1">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 truncate">{label}</p>
-          <h3 className="text-2xl font-bold tracking-tight text-gray-950 tabular-nums">{value}</h3>
-          {caption && <p className="text-[11px] font-medium text-gray-400 leading-normal pt-1">{caption}</p>}
+          <p className="text-11 font-bold uppercase tracking-widest text-surface-400 truncate">{label}</p>
+          <h3 className="text-2xl font-bold tracking-tight text-surface-900 tabular-nums">{value}</h3>
+          {caption && <p className="text-11 font-medium text-surface-400 leading-normal pt-1">{caption}</p>}
         </div>
         <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border shadow-sm ${toneStyles(tone)}`}>
           <Icon className="h-4 w-4 stroke-[2]" />
@@ -156,21 +156,21 @@ function TimelineCard({
   tone: StatTone;
 }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm antialiased flex flex-col">
-      <div className="flex items-center gap-2 border-b border-gray-100 pb-2.5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gray-50 border border-gray-100 shadow-sm text-gray-900">
+    <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm antialiased flex flex-col">
+      <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface-50 border border-surface-100 shadow-sm text-surface-900">
           <Icon className="h-3.5 w-3.5 stroke-[2]" />
         </div>
-        <h3 className="text-xs font-bold uppercase tracking-wider text-gray-950">{title}</h3>
+        <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">{title}</h3>
       </div>
       <div className="mt-3.5 space-y-1.5 flex-1 max-h-[320px] overflow-y-auto scrollbar-none">
         {items.length === 0 ? (
-          <p className="text-xs font-medium text-gray-400 py-4">{emptyText}</p>
+          <p className="text-xs font-medium text-surface-400 py-4">{emptyText}</p>
         ) : (
           items.slice(0, 6).map((item) => (
-            <div key={`${title}-${item.date}`} className="flex items-center justify-between rounded-xl border border-gray-100/50 bg-gray-50/30 px-3.5 py-2.5 text-xs font-medium">
-              <span className="text-gray-400 font-mono">{item.date}</span>
-              <span className="font-bold text-gray-950 tabular-nums">{item.count}</span>
+            <div key={`${title}-${item.date}`} className="flex items-center justify-between rounded-xl border border-surface-100/50 bg-surface-50/30 px-3.5 py-2.5 text-xs font-medium">
+              <span className="text-surface-400 font-mono">{item.date}</span>
+              <span className="font-bold text-surface-900 tabular-nums">{item.count}</span>
             </div>
           ))
         )}
@@ -253,7 +253,7 @@ export default function AdvancedAnalyticsPage() {
   if (subscriptionLoading || (canViewAnalytics && loading)) {
     return (
       <div className="flex w-full min-h-[380px] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-gray-400 stroke-[2.5]" />
+        <Loader2 className="h-6 w-6 animate-spin text-surface-400 stroke-[2.5]" />
       </div>
     );
   }
@@ -312,19 +312,19 @@ export default function AdvancedAnalyticsPage() {
     : [];
 
   return (
-    <div className="w-full flex flex-col gap-6 pb-16 antialiased text-gray-900">
+    <div className="w-full flex flex-col gap-6 pb-16 antialiased text-surface-900">
       
       {/* BAŞLIK GRUBU */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <Link href={`/admin/events/${eventId}`}>
-            <button className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 shadow-sm hover:bg-gray-50 active:scale-95 transition-all">
+            <button className="flex h-9 w-9 items-center justify-center rounded-xl border border-surface-200 bg-white text-surface-500 shadow-sm hover:bg-surface-50 active:scale-95 transition-all">
               <ChevronLeft className="h-4 w-4 stroke-[2.5]" />
             </button>
           </Link>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-gray-950 sm:text-2xl">Gelişmiş Analitikler</h1>
-            <p className="text-xs text-gray-400">Katılım akış verileri, rozet atamaları ve sertifika metrikleri</p>
+            <h1 className="text-xl font-bold tracking-tight text-surface-900 sm:text-2xl">Gelişmiş Analitikler</h1>
+            <p className="text-xs text-surface-400">Katılım akış verileri, rozet atamaları ve sertifika metrikleri</p>
           </div>
         </div>
       </div>
@@ -362,7 +362,7 @@ export default function AdvancedAnalyticsPage() {
 
           {/* APPLE SEGMENTED CONTROL TASARIMINDA ALT SEKMELER MENÜSÜ */}
           <div className="overflow-x-auto scrollbar-none">
-            <div className="flex min-w-max gap-1 border border-gray-200/80 bg-gray-50/60 p-1 rounded-xl lg:min-w-0">
+            <div className="flex min-w-max gap-1 border border-surface-200/80 bg-surface-50/60 p-1 rounded-xl lg:min-w-0">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isAct = activeTab === tab.id;
@@ -373,11 +373,11 @@ export default function AdvancedAnalyticsPage() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`inline-flex items-center gap-2 rounded-lg px-4 py-1.5 text-xs font-semibold tracking-tight transition-all ${
                       isAct
-                        ? "bg-white text-gray-950 shadow-sm border border-gray-200/60"
-                        : "border border-transparent text-gray-500 hover:text-gray-900 hover:bg-white/40"
+                        ? "bg-white text-surface-900 shadow-sm border border-surface-200/60"
+                        : "border border-transparent text-surface-500 hover:text-surface-900 hover:bg-white/40"
                     }`}
                   >
-                    <Icon className={`h-3.5 w-3.5 shrink-0 ${isAct ? "text-gray-950 stroke-[2]" : "text-gray-400 stroke-[1.8]"}`} />
+                    <Icon className={`h-3.5 w-3.5 shrink-0 ${isAct ? "text-surface-900 stroke-[2]" : "text-surface-400 stroke-[1.8]"}`} />
                     <span>{tab.label}</span>
                   </button>
                 );
@@ -390,48 +390,48 @@ export default function AdvancedAnalyticsPage() {
           {/* TAB 1: KATILIM VE ANKET RAPORU */}
           {activeTab === "engagement" && engagement && (
             <div className="grid gap-4 lg:grid-cols-2">
-              <div className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
-                <div className="flex items-center gap-2 border-b border-gray-100 pb-2.5">
-                  <UserCheck className="h-4 w-4 text-gray-800 stroke-[2]" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-950">Katılım Özet Analizi</h3>
+              <div className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
+                  <UserCheck className="h-4 w-4 text-surface-800 stroke-[2]" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">Katılım Özet Analizi</h3>
                 </div>
-                <div className="space-y-3.5 text-xs font-semibold text-gray-600">
+                <div className="space-y-3.5 text-xs font-semibold text-surface-600">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400 font-medium">Katılım Gösteren</span>
-                    <span className="text-gray-950 tabular-nums">{engagement.attendance.attended}</span>
+                    <span className="text-surface-400 font-medium">Katılım Gösteren</span>
+                    <span className="text-surface-900 tabular-nums">{engagement.attendance.attended}</span>
                   </div>
                   {/* Apple İnce Progress Line */}
-                  <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
-                    <div className="h-full bg-gray-950 rounded-full" style={{ width: `${Math.min(100, Math.max(0, engagement.attendance.attendance_rate || 0))}%` }} />
+                  <div className="h-1.5 w-full rounded-full bg-surface-100 overflow-hidden">
+                    <div className="h-full bg-surface-900 rounded-full" style={{ width: `${Math.min(100, Math.max(0, engagement.attendance.attendance_rate || 0))}%` }} />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400 font-medium">Katılmayan</span>
-                    <span className="text-gray-950 tabular-nums">{engagement.attendance.not_attended}</span>
+                    <span className="text-surface-400 font-medium">Katılmayan</span>
+                    <span className="text-surface-900 tabular-nums">{engagement.attendance.not_attended}</span>
                   </div>
                   <div className="flex items-center justify-between pt-1 border-t border-gray-50">
-                    <span className="text-gray-400 font-medium">Mevcut No-show Oranı</span>
+                    <span className="text-surface-400 font-medium">Mevcut No-show Oranı</span>
                     <span className="text-red-500 tabular-nums">%{(engagement.attendance.no_show_rate || 0).toFixed(1)}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
-                <div className="flex items-center gap-2 border-b border-gray-100 pb-2.5">
+              <div className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
                   <CheckCircle2 className="h-4 w-4 text-emerald-500 stroke-[2]" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-950">Geri Bildirim Anket Dönüşümü</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">Geri Bildirim Anket Dönüşümü</h3>
                 </div>
-                <div className="space-y-3.5 text-xs font-semibold text-gray-600">
+                <div className="space-y-3.5 text-xs font-semibold text-surface-600">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400 font-medium">Tamamlanan Form</span>
-                    <span className="text-gray-950 tabular-nums">{engagement.survey_completion.completed}</span>
+                    <span className="text-surface-400 font-medium">Tamamlanan Form</span>
+                    <span className="text-surface-900 tabular-nums">{engagement.survey_completion.completed}</span>
                   </div>
                   {/* Apple İnce Progress Line */}
-                  <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
-                    <div className="h-full bg-gray-950 rounded-full" style={{ width: `${Math.min(100, Math.max(0, engagement.survey_completion.completion_rate || 0))}%` }} />
+                  <div className="h-1.5 w-full rounded-full bg-surface-100 overflow-hidden">
+                    <div className="h-full bg-surface-900 rounded-full" style={{ width: `${Math.min(100, Math.max(0, engagement.survey_completion.completion_rate || 0))}%` }} />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400 font-medium">Yanıt Bekleyen</span>
-                    <span className="text-gray-950 tabular-nums">{engagement.survey_completion.pending}</span>
+                    <span className="text-surface-400 font-medium">Yanıt Bekleyen</span>
+                    <span className="text-surface-900 tabular-nums">{engagement.survey_completion.pending}</span>
                   </div>
                 </div>
               </div>
@@ -441,36 +441,36 @@ export default function AdvancedAnalyticsPage() {
           {/* TAB 2: BİLETLİ GİRİŞ RAPORU */}
           {activeTab === "tickets" && engagement?.tickets && (
             <div className="grid gap-4 lg:grid-cols-2 items-start">
-              <div className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
-                <div className="flex items-center gap-2 border-b border-gray-100 pb-2.5">
-                  <Ticket className="h-4 w-4 text-gray-800 stroke-[2]" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-950">Bilet Kullanım Oranı</h3>
+              <div className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
+                  <Ticket className="h-4 w-4 text-surface-800 stroke-[2]" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">Bilet Kullanım Oranı</h3>
                 </div>
-                <div className="space-y-3.5 text-xs font-semibold text-gray-600">
+                <div className="space-y-3.5 text-xs font-semibold text-surface-600">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400 font-medium">Giriş Yapan Biletli</span>
-                    <span className="text-gray-950 tabular-nums">{engagement.tickets.used}</span>
+                    <span className="text-surface-400 font-medium">Giriş Yapan Biletli</span>
+                    <span className="text-surface-900 tabular-nums">{engagement.tickets.used}</span>
                   </div>
                   {/* Apple İnce Progress Line */}
-                  <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
-                    <div className="h-full bg-gray-950 rounded-full" style={{ width: `${Math.min(100, Math.max(0, engagement.tickets.usage_rate || 0))}%` }} />
+                  <div className="h-1.5 w-full rounded-full bg-surface-100 overflow-hidden">
+                    <div className="h-full bg-surface-900 rounded-full" style={{ width: `${Math.min(100, Math.max(0, engagement.tickets.usage_rate || 0))}%` }} />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400 font-medium">Toplam Dağıtılan Bilet</span>
-                    <span className="text-gray-950 tabular-nums">{engagement.tickets.total}</span>
+                    <span className="text-surface-400 font-medium">Toplam Dağıtılan Bilet</span>
+                    <span className="text-surface-900 tabular-nums">{engagement.tickets.total}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400 font-medium">Aktif Kontenjanli Bilet</span>
-                    <span className="text-gray-950 tabular-nums">{engagement.tickets.active_total ?? engagement.tickets.total}</span>
+                    <span className="text-surface-400 font-medium">Aktif Kontenjanli Bilet</span>
+                    <span className="text-surface-900 tabular-nums">{engagement.tickets.active_total ?? engagement.tickets.total}</span>
                   </div>
                 </div>
               </div>
 
               {/* Bilet Alt Matris Dağılım Kartları */}
-              <div className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
-                <div className="flex items-center gap-2 border-b border-gray-100 pb-2.5">
-                  <BarChart3 className="h-4 w-4 text-gray-800 stroke-[2]" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-950">Segmentasyon Durumları</h3>
+              <div className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
+                  <BarChart3 className="h-4 w-4 text-surface-800 stroke-[2]" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">Segmentasyon Durumları</h3>
                 </div>
                 <div className="grid gap-3 grid-cols-2 sm:grid-cols-3">
                   <StatCard icon={Ticket} label="Bekleyen" value={engagement.tickets.issued} tone="sky" />
@@ -486,29 +486,29 @@ export default function AdvancedAnalyticsPage() {
           {/* TAB 3: OYUNLAŞTIRMA VE ROZET RAPORU */}
           {activeTab === "badges" && badges && (
             <div className="grid gap-4 lg:grid-cols-2 items-start">
-              <div className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
-                <div className="flex items-center gap-2 border-b border-gray-100 pb-2.5">
-                  <Badge className="h-4 w-4 text-gray-800 stroke-[1.8]" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-950">Kazanılan Rozet Dağılımı</h3>
+              <div className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
+                  <Badge className="h-4 w-4 text-surface-800 stroke-[1.8]" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">Kazanılan Rozet Dağılımı</h3>
                 </div>
                 <div className="space-y-2 max-h-[300px] overflow-y-auto scrollbar-none">
                   {Object.entries(badges.by_type || {}).length === 0 ? (
-                    <p className="text-xs font-medium text-gray-400 py-4">Henüz rozet verisi tetiklenmedi.</p>
+                    <p className="text-xs font-medium text-surface-400 py-4">Henüz rozet verisi tetiklenmedi.</p>
                   ) : (
                     Object.entries(badges.by_type).map(([type, count]) => (
-                      <div key={type} className="flex items-center justify-between rounded-xl border border-gray-100/50 bg-gray-50/40 px-4 py-2.5 text-xs font-medium">
-                        <span className="text-gray-700">{type}</span>
-                        <span className="font-bold text-gray-950 tabular-nums">{count}</span>
+                      <div key={type} className="flex items-center justify-between rounded-xl border border-surface-100/50 bg-surface-50/40 px-4 py-2.5 text-xs font-medium">
+                        <span className="text-surface-700">{type}</span>
+                        <span className="font-bold text-surface-900 tabular-nums">{count}</span>
                       </div>
                     ))
                   )}
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
-                <div className="flex items-center gap-2 border-b border-gray-100 pb-2.5">
-                  <Target className="h-4 w-4 text-gray-800 stroke-[2]" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-950">Rozet Kazanım Metodu</h3>
+              <div className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
+                  <Target className="h-4 w-4 text-surface-800 stroke-[2]" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">Rozet Kazanım Metodu</h3>
                 </div>
                 <div className="grid gap-3 grid-cols-2">
                   <StatCard icon={Badge} label="Sistem (Otomatik)" value={badges.by_award_method.automatic} tone="amber" />
@@ -521,24 +521,24 @@ export default function AdvancedAnalyticsPage() {
           {/* TAB 4: AKILLI SERTİFİKA VE SEVİYE ANALİZİ */}
           {activeTab === "tiers" && tiers && (
             <div className="grid gap-4 lg:grid-cols-2 items-start">
-              <div className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
-                <div className="flex items-center gap-2 border-b border-gray-100 pb-2.5">
-                  <Award className="h-4 w-4 text-gray-800 stroke-[1.8]" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-950">Sertifika Kırılım Dağılımı</h3>
+              <div className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
+                  <Award className="h-4 w-4 text-surface-800 stroke-[1.8]" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">Sertifika Kırılım Dağılımı</h3>
                 </div>
                 <div className="space-y-3 max-h-[320px] overflow-y-auto scrollbar-none">
                   {Object.entries(tiers.tier_distribution || {}).length === 0 ? (
-                    <p className="text-xs font-medium text-gray-400 py-4">Henüz seviye dağılım kırılımı oluşmadı.</p>
+                    <p className="text-xs font-medium text-surface-400 py-4">Henüz seviye dağılım kırılımı oluşmadı.</p>
                   ) : (
                     Object.entries(tiers.tier_distribution).map(([tier, detail]) => (
-                      <div key={tier} className="rounded-xl border border-gray-100/50 bg-gray-50/20 p-3 space-y-2">
+                      <div key={tier} className="rounded-xl border border-surface-100/50 bg-surface-50/20 p-3 space-y-2">
                         <div className="flex items-center justify-between text-xs font-semibold">
-                          <span className="text-gray-700">{tier}</span>
-                          <span className="text-gray-950 tabular-nums">{detail.count}</span>
+                          <span className="text-surface-700">{tier}</span>
+                          <span className="text-surface-900 tabular-nums">{detail.count}</span>
                         </div>
                         {/* Apple İnce Progress Line */}
-                        <div className="h-1 w-full rounded-full bg-gray-100 overflow-hidden">
-                          <div className="h-full bg-gray-950 rounded-full" style={{ width: `${Math.min(100, Math.max(0, detail.percentage || 0))}%` }} />
+                        <div className="h-1 w-full rounded-full bg-surface-100 overflow-hidden">
+                          <div className="h-full bg-surface-900 rounded-full" style={{ width: `${Math.min(100, Math.max(0, detail.percentage || 0))}%` }} />
                         </div>
                       </div>
                     ))
@@ -546,10 +546,10 @@ export default function AdvancedAnalyticsPage() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
-                <div className="flex items-center gap-2 border-b border-gray-100 pb-2.5">
-                  <BarChart3 className="h-4 w-4 text-gray-800 stroke-[2]" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-950">Doğrulama ve Sağlık İstatistikleri</h3>
+              <div className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
+                  <BarChart3 className="h-4 w-4 text-surface-800 stroke-[2]" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">Doğrulama ve Sağlık İstatistikleri</h3>
                 </div>
                 <div className="grid gap-3 grid-cols-2">
                   <StatCard icon={Award} label="Üretilen sertifika" value={tiers.total_certificates} tone="emerald" />

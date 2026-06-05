@@ -569,21 +569,21 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
 
   // Ortak İçerik Alanı (Mesaj Listesi)
   const renderMessageList = (isWidget = false) => (
-    <div className={`flex-1 space-y-3 overflow-y-auto bg-gray-50/40 p-4 ${isWidget ? "max-h-full" : ""}`}>
+    <div className={`flex-1 space-y-3 overflow-y-auto bg-surface-50/40 p-4 ${isWidget ? "max-h-full" : ""}`}>
       {messages.map((msg, idx) => (
         <div key={idx} className={`flex w-full ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
           <div className={`flex max-w-[85%] gap-2 sm:gap-3 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
             {!isWidget && (
-              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border text-xs font-medium shadow-sm ${msg.role === "user" ? "border-gray-900 bg-gray-900 text-white" : "border-gray-100 bg-white text-gray-900"}`}>
-                {msg.role === "user" ? <User className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5 text-gray-500" />}
+              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border text-xs font-medium shadow-sm ${msg.role === "user" ? "border-gray-900 bg-surface-800 text-white" : "border-surface-100 bg-white text-surface-900"}`}>
+                {msg.role === "user" ? <User className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5 text-surface-500" />}
               </div>
             )}
             <div
               onClick={() => msg.role === "user" && startEditingUserMessage(idx)}
               className={`rounded-2xl px-4 py-2.5 text-xs leading-relaxed shadow-sm border transition-all duration-150 ${
                 msg.role === "user"
-                  ? "cursor-pointer rounded-tr-sm bg-gray-950 border-gray-900 text-white hover:bg-gray-900"
-                  : "rounded-tl-sm border-gray-100 bg-white text-gray-800"
+                  ? "cursor-pointer rounded-tr-sm bg-surface-900 border-gray-900 text-white hover:bg-surface-800"
+                  : "rounded-tl-sm border-surface-100 bg-white text-surface-800"
               }`}
               style={{ whiteSpace: "pre-wrap" }}
             >
@@ -594,7 +594,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
       ))}
       {loading && (
         <div className="flex w-full justify-start">
-          <div className="flex items-center gap-2.5 rounded-2xl border border-gray-100 bg-white px-4 py-2.5 text-xs text-gray-500 shadow-sm">
+          <div className="flex items-center gap-2.5 rounded-2xl border border-surface-100 bg-white px-4 py-2.5 text-xs text-surface-500 shadow-sm">
             <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-900 border-t-transparent" />
             <span>{lang === "tr" ? "Hepta AI yanıt hazırlıyor..." : "Hepta AI is responding..."}</span>
           </div>
@@ -606,7 +606,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
 
   // Ortak Destek Formu Bileşeni (UX iyileştirmesi)
   const renderSupportForm = (isSmall = false) => (
-    <div className={`shrink-0 space-y-3 border-t border-gray-100 bg-white p-4 shadow-sm`}>
+    <div className={`shrink-0 space-y-3 border-t border-surface-100 bg-white p-4 shadow-sm`}>
       <div className="flex items-start gap-2 rounded-xl border border-amber-100 bg-amber-50/40 p-3 text-xs text-amber-800">
         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
         <p className="leading-relaxed">
@@ -618,23 +618,23 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
         placeholder={lang === "tr" ? "Talep Konusu..." : "Ticket Subject..."}
         value={supportSubject}
         onChange={(e) => setSupportSubject(e.target.value)}
-        className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs outline-none transition focus:border-gray-900 focus:ring-1 focus:ring-gray-900"
+        className="w-full rounded-xl border border-surface-200 px-3.5 py-2 text-xs outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900"
       />
       <textarea
         placeholder={lang === "tr" ? "Açıklamanız veya hata kaydı detayları..." : "Your detailed explanation..."}
         value={supportMessage}
         onChange={(e) => setSupportMessage(e.target.value)}
         rows={isSmall ? 2 : 3}
-        className="w-full resize-none rounded-xl border border-gray-200 px-3.5 py-2 text-xs outline-none transition focus:border-gray-900 focus:ring-1 focus:ring-gray-900"
+        className="w-full resize-none rounded-xl border border-surface-200 px-3.5 py-2 text-xs outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900"
       />
       <div className="flex justify-end gap-2">
-        <button onClick={() => setShowSupportForm(false)} className="rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50">
+        <button onClick={() => setShowSupportForm(false)} className="rounded-xl border border-surface-200 bg-white px-3.5 py-2 text-xs font-medium text-surface-700 transition hover:bg-surface-50">
           {lang === "tr" ? "Vazgeç" : "Cancel"}
         </button>
         <button
           onClick={handleCreateSupport}
           disabled={!supportSubject.trim() || !supportMessage.trim() || loading}
-          className="rounded-xl bg-gray-950 px-3.5 py-2 text-xs font-medium text-white transition hover:bg-gray-900 disabled:opacity-30"
+          className="rounded-xl bg-surface-900 px-3.5 py-2 text-xs font-medium text-white transition hover:bg-surface-800 disabled:opacity-30"
         >
           {lang === "tr" ? "Talebi Gönder" : "Send Ticket"}
         </button>
@@ -644,7 +644,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
 
   // Ortak İnput ve Alt Buton Grubu
   const renderInputArea = (isSmall = false) => (
-    <div className="shrink-0 border-t border-gray-100 bg-white p-3 sm:p-4">
+    <div className="shrink-0 border-t border-surface-100 bg-white p-3 sm:p-4">
       <div className="flex gap-2">
         <input
           ref={inputRef}
@@ -653,13 +653,13 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-          className="min-w-0 flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-xs outline-none transition focus:border-gray-900 focus:ring-1 focus:ring-gray-900"
+          className="min-w-0 flex-1 rounded-xl border border-surface-200 px-4 py-2.5 text-xs outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900"
           disabled={loading}
         />
         <button
           onClick={handleSendMessage}
           disabled={!input.trim() || loading}
-          className="inline-flex h-[38px] w-10 shrink-0 items-center justify-center rounded-xl bg-gray-950 text-white shadow-sm transition hover:bg-gray-900 disabled:opacity-30"
+          className="inline-flex h-[38px] w-10 shrink-0 items-center justify-center rounded-xl bg-surface-900 text-white shadow-sm transition hover:bg-surface-800 disabled:opacity-30"
         >
           <Send className="h-4 w-4" />
         </button>
@@ -667,13 +667,13 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
       <div className="mt-2 flex gap-2">
         <button
           onClick={() => (eventWizardStep !== "idle" ? resetEventWizard() : void startEventWizard(input))}
-          className="flex-1 rounded-xl border border-gray-200 bg-gray-50/50 py-2 text-[11px] font-medium text-gray-800 shadow-sm transition hover:bg-gray-100"
+          className="flex-1 rounded-xl border border-surface-200 bg-surface-50/50 py-2 text-11 font-medium text-surface-800 shadow-sm transition hover:bg-surface-100"
         >
           {eventWizardStep !== "idle" ? (lang === "tr" ? "Taslağı İptal Et" : "Cancel Draft") : (lang === "tr" ? "✨ Etkinlik Sihirbazı" : "✨ Event Wizard")}
         </button>
         <button
           onClick={() => setShowSupportForm(true)}
-          className="flex-1 rounded-xl border border-gray-200 bg-gray-50/50 py-2 text-[11px] font-medium text-gray-500 shadow-sm transition hover:bg-gray-100"
+          className="flex-1 rounded-xl border border-surface-200 bg-surface-50/50 py-2 text-11 font-medium text-surface-500 shadow-sm transition hover:bg-surface-100"
         >
           {lang === "tr" ? "🛠️ Destek Talebi Aç" : "🛠️ Open Ticket"}
         </button>
@@ -686,21 +686,21 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
   // ----------------------------------------------------
   if (pageMode) {
     return (
-      <div className="flex h-[calc(100dvh-7rem)] w-full flex-col gap-4 overflow-hidden bg-gray-50/60 antialiased lg:h-[calc(100vh-10rem)] lg:flex-row lg:gap-5">
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-sm">
+      <div className="flex h-[calc(100dvh-7rem)] w-full flex-col gap-4 overflow-hidden bg-surface-50/60 antialiased lg:h-[calc(100vh-10rem)] lg:flex-row lg:gap-5">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-surface-200/80 bg-white shadow-sm">
           {/* Header */}
-          <div className="flex shrink-0 items-center justify-between border-b border-gray-100 bg-white px-5 py-3.5">
+          <div className="flex shrink-0 items-center justify-between border-b border-surface-100 bg-white px-5 py-3.5">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gray-950 text-white shadow-sm">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-900 text-white shadow-sm">
                 <Sparkles className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <h3 className="text-xs font-semibold text-gray-900 tracking-tight">HeptaCert Asistan</h3>
-                <p className="text-[11px] text-gray-400 truncate">Etkinlik, kayıt, sertifika ve destek otomasyonu</p>
+                <h3 className="text-xs font-semibold text-surface-900 tracking-tight">HeptaCert Asistan</h3>
+                <p className="text-11 text-surface-400 truncate">Etkinlik, kayıt, sertifika ve destek otomasyonu</p>
               </div>
             </div>
             {eventWizardStep !== "idle" && (
-              <span className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-[10px] font-medium text-gray-600 animate-pulse">Sihirbaz Aktif</span>
+              <span className="rounded-full border border-surface-200 bg-surface-50 px-2.5 py-0.5 text-11 font-medium text-surface-600 animate-pulse">Sihirbaz Aktif</span>
             )}
           </div>
 
@@ -709,9 +709,9 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
 
           {/* Wizard Bilgi Çubuğu */}
           {eventWizardStep !== "idle" && (
-            <div className="flex shrink-0 flex-col gap-2 border-t border-l-2 border-l-gray-950 border-t-gray-100 bg-gray-50/50 px-5 py-3 text-xs sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-start gap-2 text-gray-500">
-                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-900" />
+            <div className="flex shrink-0 flex-col gap-2 border-t border-l-2 border-l-gray-950 border-t-gray-100 bg-surface-50/50 px-5 py-3 text-xs sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-2 text-surface-500">
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-surface-900" />
                 <span><strong>Sihirbaz:</strong> {summarizeMissingFields(eventWizardStep, lang)}</span>
               </div>
               <button onClick={resetEventWizard} className="text-red-500 font-medium text-xs hover:underline self-end sm:self-auto">Sihirbazı Kapat</button>
@@ -723,9 +723,9 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
         </div>
 
         {/* Yan Panel (Quick Prompts) */}
-        <aside className="flex max-h-60 w-full shrink-0 flex-col justify-between overflow-y-auto rounded-2xl border border-gray-200/80 bg-white p-5 shadow-sm lg:max-h-none lg:w-72">
+        <aside className="flex max-h-60 w-full shrink-0 flex-col justify-between overflow-y-auto rounded-2xl border border-surface-200/80 bg-white p-5 shadow-sm lg:max-h-none lg:w-72">
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-gray-900">
+            <div className="flex items-center gap-2 text-surface-900">
               <Lightbulb className="h-4 w-4 text-amber-500" />
               <h4 className="text-xs font-semibold tracking-tight">Hızlı Şablonlar</h4>
             </div>
@@ -738,7 +738,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
                 <button
                   key={i}
                   onClick={() => window.dispatchEvent(new CustomEvent("ai-assistant-insert", { detail: item.text }))}
-                  className="w-full text-left rounded-xl border border-gray-100 bg-gray-50/50 px-3 py-2 text-xs text-gray-700 transition hover:bg-gray-100/70"
+                  className="w-full text-left rounded-xl border border-surface-100 bg-surface-50/50 px-3 py-2 text-xs text-surface-700 transition hover:bg-surface-100/70"
                 >
                   {item.label}
                 </button>
@@ -746,12 +746,12 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
             </div>
           </div>
 
-          <div className="border-t border-gray-100 pt-4 mt-4 lg:mt-0">
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-900">
-              <Command className="h-3.5 w-3.5 text-gray-400" />
+          <div className="border-t border-surface-100 pt-4 mt-4 lg:mt-0">
+            <div className="flex items-center gap-1.5 text-11 font-semibold text-surface-900">
+              <Command className="h-3.5 w-3.5 text-surface-400" />
               <span>Komut Paleti</span>
             </div>
-            <p className="mt-1 text-[10px] leading-normal text-gray-400">CMD+K kombinasyonu ile yönetim aksiyonlarını tetikleyebilirsiniz.</p>
+            <p className="mt-1 text-11 leading-normal text-surface-400">CMD+K kombinasyonu ile yönetim aksiyonlarını tetikleyebilirsiniz.</p>
           </div>
         </aside>
       </div>
@@ -766,23 +766,23 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-5 right-5 z-40 flex h-13 w-13 items-center justify-center rounded-full bg-gray-950 text-white shadow-md transition-transform duration-200 hover:scale-105 active:scale-95"
+          className="fixed bottom-5 right-5 z-40 flex h-13 w-13 items-center justify-center rounded-full bg-surface-900 text-white shadow-md transition-transform duration-200 hover:scale-105 active:scale-95"
         >
           <MessageCircle className="h-5 w-5" />
         </button>
       )}
 
       {isOpen && (
-        <div className="fixed inset-x-2 bottom-2 z-50 flex h-[calc(100dvh-1.5rem)] max-h-[580px] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl antialiased sm:inset-x-auto sm:bottom-6 sm:right-6 sm:h-[500px] sm:w-86">
+        <div className="fixed inset-x-2 bottom-2 z-50 flex h-[calc(100dvh-1.5rem)] max-h-[580px] flex-col overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-xl antialiased sm:inset-x-auto sm:bottom-6 sm:right-6 sm:h-[500px] sm:w-86">
           {/* Header */}
-          <div className="flex h-13 shrink-0 items-center justify-between border-b border-gray-100 bg-white px-4">
+          <div className="flex h-13 shrink-0 items-center justify-between border-b border-surface-100 bg-white px-4">
             <div className="flex min-w-0 items-center gap-2">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gray-950 text-white">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-surface-900 text-white">
                 <Sparkles className="h-3.5 w-3.5" />
               </div>
-              <h3 className="text-xs font-semibold text-gray-900 tracking-tight">HeptaCert Asistan</h3>
+              <h3 className="text-xs font-semibold text-surface-900 tracking-tight">HeptaCert Asistan</h3>
             </div>
-            <button onClick={() => setIsOpen(false)} className="rounded-lg p-1 text-gray-400 hover:bg-gray-50 hover:text-gray-900">
+            <button onClick={() => setIsOpen(false)} className="rounded-lg p-1 text-surface-400 hover:bg-surface-50 hover:text-surface-900">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -792,7 +792,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
 
           {/* Wizard Alert */}
           {eventWizardStep !== "idle" && (
-            <div className="shrink-0 border-t border-l-2 border-l-gray-950 border-t-gray-100 bg-gray-50/50 px-4 py-2 text-[11px] text-gray-500 flex justify-between items-center">
+            <div className="shrink-0 border-t border-l-2 border-l-gray-950 border-t-gray-100 bg-surface-50/50 px-4 py-2 text-11 text-surface-500 flex justify-between items-center">
               <span className="truncate"><strong>Sihirbaz:</strong> {summarizeMissingFields(eventWizardStep, lang)}</span>
               <button onClick={resetEventWizard} className="text-red-500 font-medium">İptal</button>
             </div>

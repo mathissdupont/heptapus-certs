@@ -318,7 +318,7 @@ function CatalogCard({ item, lang }: { item: IntegrationCatalogItem; lang: strin
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-sm font-bold text-surface-900">{item.name}</h3>
-              <span className="rounded-full bg-surface-100 px-2 py-0.5 text-[11px] font-semibold text-surface-500">{item.category}</span>
+              <span className="rounded-full bg-surface-100 px-2 py-0.5 text-11 font-semibold text-surface-500">{item.category}</span>
             </div>
             <p className="mt-1 text-xs leading-relaxed text-surface-500">{item.description}</p>
           </div>

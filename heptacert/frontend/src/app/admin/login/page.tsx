@@ -180,22 +180,22 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-surface-50 px-4 py-12">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }} className="card w-full max-w-md p-10">
         <AnimatePresence mode="wait">
           {step === "credentials" ? (
             <motion.div key="credentials" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div className="mb-8 text-center">
                 <HeptaCertLogoMark className="mx-auto mb-4 h-12 w-12 rounded-xl shadow-brand" />
-                <h1 className="text-2xl font-bold text-gray-900">{copy.title}</h1>
-                <p className="mt-1.5 text-sm text-gray-500">{copy.subtitle}</p>
+                <h1 className="text-2xl font-bold text-surface-900">{copy.title}</h1>
+                <p className="mt-1.5 text-sm text-surface-500">{copy.subtitle}</p>
               </div>
 
               <form onSubmit={onSubmit} className="space-y-5">
                 <div>
                   <label className="label">{copy.email}</label>
                   <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
                     <input
                       className="input-field pl-10"
                       value={email}
@@ -216,7 +216,7 @@ export default function AdminLogin() {
                     </Link>
                   </div>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
                     <input
                       className="input-field pl-10"
                       value={password}
@@ -247,20 +247,20 @@ export default function AdminLogin() {
               </form>
 
               <div className="my-5 flex items-center gap-3">
-                <div className="h-px flex-1 bg-gray-200" />
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">veya</span>
-                <div className="h-px flex-1 bg-gray-200" />
+                <div className="h-px flex-1 bg-surface-200" />
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-surface-400">veya</span>
+                <div className="h-px flex-1 bg-surface-200" />
               </div>
 
               <a
                 href={`${API_BASE}/auth/google/start?mode=admin&next=${encodeURIComponent("/admin/events")}`}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-3 text-sm font-semibold text-surface-700 transition hover:bg-surface-50"
               >
                 <span className="text-base font-black text-blue-600">G</span>
                 {copy.googleLogin}
               </a>
 
-              <div className="mt-6 text-center text-sm text-gray-500">
+              <div className="mt-6 text-center text-sm text-surface-500">
                 {copy.noAccount}{" "}
                 <Link href="/register?mode=organizer" className="font-semibold text-brand-600 hover:text-brand-700">
                   {copy.register}
@@ -286,8 +286,8 @@ export default function AdminLogin() {
                 <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-600 text-white shadow-brand">
                   <KeyRound className="h-6 w-6" />
                 </div>
-                <h1 className="text-2xl font-bold text-gray-900">{copy.otpTitle}</h1>
-                <p className="mt-1.5 text-sm text-gray-500">{copy.otpSubtitle}</p>
+                <h1 className="text-2xl font-bold text-surface-900">{copy.otpTitle}</h1>
+                <p className="mt-1.5 text-sm text-surface-500">{copy.otpSubtitle}</p>
               </div>
 
               <form onSubmit={onOtpSubmit} className="space-y-5">
@@ -329,7 +329,7 @@ export default function AdminLogin() {
                     setErr(null);
                     setOtpCode("");
                   }}
-                  className="w-full text-center text-sm text-gray-500 hover:text-gray-700"
+                  className="w-full text-center text-sm text-surface-500 hover:text-surface-700"
                 >
                   ← {copy.back}
                 </button>
@@ -359,15 +359,15 @@ export default function AdminLogin() {
                 <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500 text-white shadow-lg">
                   <Sparkles className="h-6 w-6" />
                 </div>
-                <h2 className="text-xl font-bold text-gray-900">{copy.magicTitle}</h2>
-                <p className="mt-1 text-sm text-gray-500">{copy.magicSubtitle}</p>
+                <h2 className="text-xl font-bold text-surface-900">{copy.magicTitle}</h2>
+                <p className="mt-1 text-sm text-surface-500">{copy.magicSubtitle}</p>
               </div>
 
               {magicSent ? (
                 <div className="flex flex-col items-center gap-3 py-6 text-center">
                   <CheckCircle2 className="h-12 w-12 text-emerald-500" />
-                  <p className="font-semibold text-gray-800">{copy.sentTitle}</p>
-                  <p className="text-sm text-gray-500">{copy.sentBody}</p>
+                  <p className="font-semibold text-surface-800">{copy.sentTitle}</p>
+                  <p className="text-sm text-surface-500">{copy.sentBody}</p>
                   <button onClick={() => { setMagicMode(false); setMagicSent(false); }} className="btn-ghost mt-2 text-sm">{copy.close}</button>
                 </div>
               ) : (
@@ -375,7 +375,7 @@ export default function AdminLogin() {
                   <div>
                     <label className="label">{copy.email}</label>
                     <div className="relative">
-                      <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                      <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
                       <input
                         className="input-field pl-10"
                         value={magicEmail}
@@ -393,7 +393,7 @@ export default function AdminLogin() {
                   <button disabled={magicLoading} className="btn-primary w-full justify-center py-3">
                     {magicLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> {copy.sending}</> : <><Sparkles className="h-4 w-4" /> {copy.send}</>}
                   </button>
-                  <button type="button" onClick={() => setMagicMode(false)} className="w-full text-center text-sm text-gray-500 hover:text-gray-700">
+                  <button type="button" onClick={() => setMagicMode(false)} className="w-full text-center text-sm text-surface-500 hover:text-surface-700">
                     ← {copy.cancel}
                   </button>
                 </form>

@@ -675,9 +675,9 @@ export default function AdminAttendeesPage() {
                 </div>
                 <div className="min-w-0 space-y-0.5">
                   <h2 className="text-xs font-bold text-surface-900 tracking-tight">Google Sheets Canlı Otomasyonu</h2>
-                  <p className="text-[11px] leading-relaxed text-surface-400 max-w-md">Kayıtlar anlık olarak Google E-Tablo dosyanıza satır bazında senkronize edilir.</p>
+                  <p className="text-11 leading-relaxed text-surface-400 max-w-md">Kayıtlar anlık olarak Google E-Tablo dosyanıza satır bazında senkronize edilir.</p>
                   
-                  <div className="pt-1 flex flex-wrap items-center gap-2 text-[10px] font-bold text-surface-400">
+                  <div className="pt-1 flex flex-wrap items-center gap-2 text-11 font-bold text-surface-400">
                     {sheetsLoading ? (
                       <span className="inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Denetleniyor</span>
                     ) : sheetsStatus?.google_email ? (
@@ -695,7 +695,7 @@ export default function AdminAttendeesPage() {
               {/* Google Buton Kontrolleri */}
               <div className="shrink-0 flex items-center justify-end w-full sm:w-auto">
                 {!sheetsStatus?.google_configured ? (
-                  <div className="rounded-lg border border-amber-100 bg-amber-50/50 px-2.5 py-1.5 text-[10px] font-semibold text-amber-700">OAuth parametreleri eksik.</div>
+                  <div className="rounded-lg border border-amber-100 bg-amber-50/50 px-2.5 py-1.5 text-11 font-semibold text-amber-700">OAuth parametreleri eksik.</div>
                 ) : !sheetsStatus?.google_connected ? (
                   <button
                     type="button"
@@ -708,13 +708,13 @@ export default function AdminAttendeesPage() {
                   </button>
                 ) : sheetsStatus.enabled && sheetsStatus.spreadsheet_url ? (
                   <div className="flex items-center gap-1.5 w-full sm:w-auto">
-                    <a href={sheetsStatus.spreadsheet_url} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 text-[11px] font-semibold text-surface-700 shadow-card hover:bg-surface-50">
+                    <a href={sheetsStatus.spreadsheet_url} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 text-11 font-semibold text-surface-700 shadow-card hover:bg-surface-50">
                       <ExternalLink className="h-3 w-3" /> Tabloyu Aç
                     </a>
-                    <button type="button" onClick={handleSyncGoogleSheet} disabled={Boolean(sheetsAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 text-[11px] font-semibold text-surface-700 shadow-card hover:bg-surface-50 disabled:opacity-40">
+                    <button type="button" onClick={handleSyncGoogleSheet} disabled={Boolean(sheetsAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 text-11 font-semibold text-surface-700 shadow-card hover:bg-surface-50 disabled:opacity-40">
                       {sheetsAction === "sync" ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />} Senkronla
                     </button>
-                    <button type="button" onClick={handleDisconnectGoogleSheet} disabled={Boolean(sheetsAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-red-100 bg-white px-2.5 text-[11px] font-semibold text-red-600 shadow-card hover:bg-red-50 disabled:opacity-40">
+                    <button type="button" onClick={handleDisconnectGoogleSheet} disabled={Boolean(sheetsAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-red-100 bg-white px-2.5 text-11 font-semibold text-red-600 shadow-card hover:bg-red-50 disabled:opacity-40">
                       <Unplug className="h-3 w-3" /> Bağlantıyı Kes
                     </button>
                   </div>
@@ -733,8 +733,8 @@ export default function AdminAttendeesPage() {
                 </div>
                 <div className="min-w-0 space-y-0.5">
                   <h2 className="text-xs font-bold text-surface-900 tracking-tight">Microsoft 365 Excel Otomasyonu</h2>
-                  <p className="text-[11px] leading-relaxed text-surface-400 max-w-md">OneDrive üzerindeki kurumsal çalışma kitabına katılımcı verilerini senkronize eder.</p>
-                  <div className="pt-1 flex flex-wrap items-center gap-2 text-[10px] font-bold text-surface-400">
+                  <p className="text-11 leading-relaxed text-surface-400 max-w-md">OneDrive üzerindeki kurumsal çalışma kitabına katılımcı verilerini senkronize eder.</p>
+                  <div className="pt-1 flex flex-wrap items-center gap-2 text-11 font-bold text-surface-400">
                     {excelLoading ? (
                       <span className="inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Denetleniyor</span>
                     ) : excelStatus?.microsoft_email ? (
@@ -751,7 +751,7 @@ export default function AdminAttendeesPage() {
 
               <div className="shrink-0 flex items-center justify-end w-full sm:w-auto">
                 {!excelStatus?.ms365_configured ? (
-                  <div className="rounded-lg border border-amber-100 bg-amber-50/50 px-2.5 py-1.5 text-[10px] font-semibold text-amber-700">OAuth parametreleri eksik.</div>
+                  <div className="rounded-lg border border-amber-100 bg-amber-50/50 px-2.5 py-1.5 text-11 font-semibold text-amber-700">OAuth parametreleri eksik.</div>
                 ) : !excelStatus?.ms365_connected ? (
                   <button
                     type="button"
@@ -764,13 +764,13 @@ export default function AdminAttendeesPage() {
                   </button>
                 ) : excelStatus.enabled && excelStatus.workbook_url ? (
                   <div className="flex items-center gap-1.5 w-full sm:w-auto">
-                    <a href={excelStatus.workbook_url} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 text-[11px] font-semibold text-surface-700 shadow-card hover:bg-surface-50">
+                    <a href={excelStatus.workbook_url} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 text-11 font-semibold text-surface-700 shadow-card hover:bg-surface-50">
                       <ExternalLink className="h-3 w-3" /> Tabloyu Aç
                     </a>
-                    <button type="button" onClick={handleSyncMicrosoftExcel} disabled={Boolean(excelAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 text-[11px] font-semibold text-surface-700 shadow-card hover:bg-surface-50 disabled:opacity-40">
+                    <button type="button" onClick={handleSyncMicrosoftExcel} disabled={Boolean(excelAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 text-11 font-semibold text-surface-700 shadow-card hover:bg-surface-50 disabled:opacity-40">
                       {excelAction === "sync" ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />} Senkronla
                     </button>
-                    <button type="button" onClick={handleDisconnectMicrosoftExcel} disabled={Boolean(excelAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-red-100 bg-white px-2.5 text-[11px] font-semibold text-red-600 shadow-card hover:bg-red-50 disabled:opacity-40">
+                    <button type="button" onClick={handleDisconnectMicrosoftExcel} disabled={Boolean(excelAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-red-100 bg-white px-2.5 text-11 font-semibold text-red-600 shadow-card hover:bg-red-50 disabled:opacity-40">
                       <Unplug className="h-3 w-3" /> Bağlantıyı Kes
                     </button>
                   </div>
@@ -824,7 +824,7 @@ export default function AdminAttendeesPage() {
                   searchPlaceholder="Ad, soyad veya e-posta sorgula..."
                   hasActiveFilters={Boolean(search.trim())}
                   onClear={() => setSearch("")}
-                  actions={<button type="submit" className="inline-flex min-h-[38px] items-center justify-center rounded-xl bg-surface-900 px-5 text-xs font-semibold text-white hover:bg-surface-800 transition-all shadow-card">Sorgula</button>}
+                  actions={<button type="submit" className="inline-flex min-h-[38px] items-center justify-center rounded-lg bg-surface-900 px-5 text-xs font-semibold text-white hover:bg-surface-800 transition-all shadow-card">Sorgula</button>}
                 />
               </form>
 
@@ -842,17 +842,17 @@ export default function AdminAttendeesPage() {
                 />
               ) : (
                 <div className="space-y-2">
-                  <span className="text-[11px] font-bold text-surface-400 tracking-wide uppercase px-0.5">{total} Toplam Katılımcı Kaydı</span>
+                  <span className="text-11 font-bold text-surface-400 tracking-wide uppercase px-0.5">{total} Toplam Katılımcı Kaydı</span>
                   <div className="w-full overflow-hidden rounded-xl border border-surface-200 bg-white shadow-card">
                     <div className="overflow-x-auto scrollbar-none">
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr className="border-b border-surface-100 bg-surface-50">
-                            <th className="px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-surface-400 select-none">Ad Soyad</th>
-                            <th className="px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-surface-400 select-none hidden sm:table-cell">E-posta</th>
-                            <th className="text-center px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-surface-400 select-none">Oturum</th>
-                            <th className="text-center px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-surface-400 select-none">Sertifika</th>
-                            <th className="text-center px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-surface-400 select-none hidden lg:table-cell">Anket</th>
+                            <th className="px-5 py-3 text-11 font-semibold uppercase tracking-wider text-surface-400 select-none">Ad Soyad</th>
+                            <th className="px-5 py-3 text-11 font-semibold uppercase tracking-wider text-surface-400 select-none hidden sm:table-cell">E-posta</th>
+                            <th className="text-center px-5 py-3 text-11 font-semibold uppercase tracking-wider text-surface-400 select-none">Oturum</th>
+                            <th className="text-center px-5 py-3 text-11 font-semibold uppercase tracking-wider text-surface-400 select-none">Sertifika</th>
+                            <th className="text-center px-5 py-3 text-11 font-semibold uppercase tracking-wider text-surface-400 select-none hidden lg:table-cell">Anket</th>
                             <th className="px-5 py-3" />
                           </tr>
                         </thead>
@@ -863,18 +863,18 @@ export default function AdminAttendeesPage() {
                                 <button type="button" onClick={() => setSelectedAttendee(a)} className="text-left font-bold text-surface-900 hover:text-surface-900 transition-colors">
                                   {a.name}
                                 </button>
-                                <span className={`ml-2 text-[9px] font-bold border rounded px-1.5 py-0.5 uppercase tracking-tight ${a.source === "self_register" ? "border-blue-100 bg-blue-50/50 text-blue-600" : "border-surface-100 bg-surface-50 text-surface-400"}`}>
+                                <span className={`ml-2 text-11 font-bold border rounded px-1.5 py-0.5 uppercase tracking-tight ${a.source === "self_register" ? "border-blue-100 bg-blue-50/50 text-blue-600" : "border-surface-100 bg-surface-50 text-surface-400"}`}>
                                   {a.source === "self_register" ? "Kendi" : "İmport"}
                                 </span>
                                 {a.public_member_name && (
-                                  <span className="ml-2 inline-flex items-center rounded bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700 font-mono">
+                                  <span className="ml-2 inline-flex items-center rounded bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 text-11 font-bold text-emerald-700 font-mono">
                                     ÜYE: {a.public_member_name}
                                   </span>
                                 )}
                                 {getRegistrationPreview(a).length > 0 && (
                                   <div className="mt-1.5 space-y-0.5">
                                     {getRegistrationPreview(a).map((item) => (
-                                      <p key={`${a.id}-${item.label}`} className="max-w-xs truncate text-[10px] font-medium text-surface-400">
+                                      <p key={`${a.id}-${item.label}`} className="max-w-xs truncate text-11 font-medium text-surface-400">
                                         <span className="font-semibold text-surface-300">{item.label}:</span> {item.value}
                                       </p>
                                     ))}
@@ -894,7 +894,7 @@ export default function AdminAttendeesPage() {
                                   type="button"
                                   onClick={() => void handleCopySurveyLink(a.id)}
                                   disabled={copyingSurveyId === a.id}
-                                  className="inline-flex h-7 items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-white px-2.5 text-[11px] font-bold text-surface-700 shadow-card transition hover:bg-surface-50 disabled:opacity-50"
+                                  className="inline-flex h-7 items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-white px-2.5 text-11 font-bold text-surface-700 shadow-card transition hover:bg-surface-50 disabled:opacity-50"
                                 >
                                   {copyingSurveyId === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : copiedSurveyId === a.id ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> : <Link2 className="w-3 h-3 text-surface-400" />}
                                   <span>{copiedSurveyId === a.id ? "Kopyalandı" : "Anket Linki"}</span>
@@ -902,7 +902,7 @@ export default function AdminAttendeesPage() {
                               </td>
                               <td className="px-5 py-3 text-right">
                                 <div className="flex items-center justify-end gap-1">
-                                  <button type="button" onClick={() => void handleCopySurveyLink(a.id)} disabled={copyingSurveyId === a.id} className="inline-flex items-center gap-1 rounded-lg border border-surface-200 bg-white px-2 py-1 text-[11px] font-semibold text-surface-500 hover:bg-surface-50 lg:hidden">
+                                  <button type="button" onClick={() => void handleCopySurveyLink(a.id)} disabled={copyingSurveyId === a.id} className="inline-flex items-center gap-1 rounded-lg border border-surface-200 bg-white px-2 py-1 text-11 font-semibold text-surface-500 hover:bg-surface-50 lg:hidden">
                                     <span>{copiedSurveyId === a.id ? "Kopyalandı" : "Anket"}</span>
                                   </button>
                                   <button type="button" onClick={() => handleDelete(a.id)} disabled={deletingId === a.id} className="p-1.5 rounded-lg text-surface-400 hover:bg-red-50 hover:text-red-500 transition-all active:scale-90">
@@ -940,14 +940,14 @@ export default function AdminAttendeesPage() {
                     <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900 flex items-center gap-1.5">
                       <ClipboardList className="h-4 w-4 text-surface-700 stroke-[2]" /> Form Soruları
                     </h2>
-                    <p className="mt-1 text-[11px] leading-relaxed text-surface-400">Sorgulamak istediğiniz kayıt form sorusunu işaretleyerek cevap matrisine odaklanın.</p>
+                    <p className="mt-1 text-11 leading-relaxed text-surface-400">Sorgulamak istediğiniz kayıt form sorusunu işaretleyerek cevap matrisine odaklanın.</p>
                   </div>
                   <button type="button" onClick={() => void loadQuestionAnswers()} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-surface-100 bg-surface-50 text-surface-400 hover:text-surface-900 transition-all shadow-card">
                     <RefreshCw className="h-3 w-3 stroke-[2]" />
                   </button>
                 </div>
 
-                <div className="rounded-xl border border-emerald-100 bg-emerald-50/20 p-3 text-[11px] font-medium text-emerald-800 leading-normal">
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50/20 p-3 text-11 font-medium text-emerald-800 leading-normal">
                   E-Tablo canlı senkronizasyonu sayfa başındaki araç kutularından tetiklenir.
                 </div>
 
@@ -968,11 +968,11 @@ export default function AdminAttendeesPage() {
                       >
                         <div className="flex items-start justify-between gap-2.5">
                           <p className="text-xs font-bold truncate tracking-tight">{field.label}</p>
-                          <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold font-mono ${selectedQuestion?.id === field.id ? "bg-white/20 text-white" : "bg-surface-50 border border-surface-100 text-surface-400"}`}>
+                          <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-11 font-bold font-mono ${selectedQuestion?.id === field.id ? "bg-white/20 text-white" : "bg-surface-50 border border-surface-100 text-surface-400"}`}>
                             {answeredCount}/{answerAttendees.length}
                           </span>
                         </div>
-                        <p className={`text-[10px] font-medium mt-1 ${selectedQuestion?.id === field.id ? "text-white/60" : "text-surface-400"}`}>
+                        <p className={`text-11 font-medium mt-1 ${selectedQuestion?.id === field.id ? "text-white/60" : "text-surface-400"}`}>
                           {field.type === "textarea" ? "Uzun metin" : field.type === "select" ? "Çoktan seçmeli" : field.type === "file" ? "Dosya yükleme" : "Kısa cevap"}
                         </p>
                       </button>
@@ -984,9 +984,9 @@ export default function AdminAttendeesPage() {
               {/* Sağ Taraf: Katılımcı Cevap Satırları Akışı */}
               <div className="rounded-xl border border-surface-200 bg-white shadow-card">
                 <div className="border-b border-surface-100 px-5 py-4 bg-white">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-surface-400">Seçili Form Sorusu</p>
+                  <p className="text-11 font-bold uppercase tracking-widest text-surface-400">Seçili Form Sorusu</p>
                   <h3 className="mt-1 text-sm font-bold tracking-tight text-surface-900">{selectedQuestion?.label || "Soru seçin"}</h3>
-                  <p className="text-[11px] font-medium text-surface-400">{answerAttendees.length} katılımcı içindeki dağılım matrisi.</p>
+                  <p className="text-11 font-medium text-surface-400">{answerAttendees.length} katılımcı içindeki dağılım matrisi.</p>
                 </div>
 
                 {answersError && <div className="m-4 rounded-xl border border-red-100 bg-red-50/40 p-3 text-xs font-semibold text-red-600">{answersError}</div>}
@@ -1007,7 +1007,7 @@ export default function AdminAttendeesPage() {
                             <button type="button" onClick={() => setSelectedAttendee(attendee)} className="text-left text-xs font-bold text-surface-900 hover:text-surface-900 truncate tracking-tight block">
                               {attendee.name}
                             </button>
-                            <p className="mt-0.5 truncate text-[10px] font-medium text-surface-400 font-mono">{attendee.email}</p>
+                            <p className="mt-0.5 truncate text-11 font-medium text-surface-400 font-mono">{attendee.email}</p>
                           </div>
                           <div className={`rounded-xl border border-surface-100/70 px-4 py-2.5 text-xs font-medium leading-relaxed ${hasAnswer ? "bg-surface-50/50 text-surface-700" : "bg-surface-50/20 text-surface-300 italic"}`}>
                             {selectedQuestion.type === "file" ? (
@@ -1030,7 +1030,7 @@ export default function AdminAttendeesPage() {
             <div className="w-full space-y-4">
               <div className="flex items-center justify-between gap-3 px-0.5">
                 <p className="text-xs font-medium text-surface-400">Tüm oturumlar bazında anlık check-in durum dökümü.</p>
-                <button onClick={loadMatrix} className="inline-flex items-center gap-1 text-[11px] font-bold text-surface-400 hover:text-surface-900 transition-colors">
+                <button onClick={loadMatrix} className="inline-flex items-center gap-1 text-11 font-bold text-surface-400 hover:text-surface-900 transition-colors">
                   <RefreshCw className="w-3 h-3 stroke-[2.5]" /> <span>Yenile</span>
                 </button>
               </div>
@@ -1045,15 +1045,15 @@ export default function AdminAttendeesPage() {
                   <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
                     <div className="bg-white rounded-xl border border-surface-200 p-3 text-center shadow-card">
                       <p className="text-xl font-bold tracking-tight text-surface-900 tabular-nums">{matrix.rows.length}</p>
-                      <p className="text-[10px] font-bold text-surface-400 uppercase tracking-wide">Toplam Havuz</p>
+                      <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">Toplam Havuz</p>
                     </div>
                     <div className="bg-white rounded-xl border border-emerald-200/60 bg-emerald-50/10 p-3 text-center shadow-card">
                       <p className="text-xl font-bold tracking-tight text-emerald-600 tabular-nums">{matrix.rows.filter((r) => r.meets_threshold).length}</p>
-                      <p className="text-[10px] font-bold text-surface-400 uppercase tracking-wide">Eşiği Başarıyla Geçen</p>
+                      <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">Eşiği Başarıyla Geçen</p>
                     </div>
                     <div className="bg-white rounded-xl border border-surface-800 bg-white p-3 text-center shadow-card">
                       <p className="text-xl font-bold tracking-tight text-surface-900 tabular-nums">{matrix.rows.filter((r) => r.has_certificate).length}</p>
-                      <p className="text-[10px] font-bold text-surface-400 uppercase tracking-wide">Sertifikalandırılan</p>
+                      <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">Sertifikalandırılan</p>
                     </div>
                   </div>
 
@@ -1084,14 +1084,14 @@ export default function AdminAttendeesPage() {
                         <table className="text-left border-collapse w-full">
                           <thead>
                             <tr className="border-b border-surface-100 bg-surface-50">
-                              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-surface-400 select-none whitespace-nowrap">Ad Soyad</th>
+                              <th className="px-4 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none whitespace-nowrap">Ad Soyad</th>
                               {matrix.sessions.map((s) => (
-                                <th key={s.id} className="text-center px-2 py-3 text-[11px] font-bold uppercase tracking-wider text-surface-400 select-none whitespace-nowrap max-w-[96px]" title={s.session_date || ""}>
+                                <th key={s.id} className="text-center px-2 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none whitespace-nowrap max-w-[96px]" title={s.session_date || ""}>
                                   {s.name.length > 10 ? s.name.slice(0, 10) + "…" : s.name}
                                 </th>
                               ))}
-                              <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-surface-400 select-none">Toplam Skal</th>
-                              <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-surface-400 select-none">Durum</th>
+                              <th className="text-center px-4 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none">Toplam Skal</th>
+                              <th className="text-center px-4 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none">Durum</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-surface-100 bg-white">
@@ -1112,11 +1112,11 @@ export default function AdminAttendeesPage() {
                                 </td>
                                 <td className="text-center px-4 py-3 whitespace-nowrap">
                                   {row.has_certificate ? (
-                                    <span className="inline-flex items-center gap-1 rounded-md border border-surface-900 bg-surface-900 px-2 py-0.5 text-[10px] font-bold text-white shadow-card">
+                                    <span className="inline-flex items-center gap-1 rounded-md border border-surface-900 bg-surface-900 px-2 py-0.5 text-11 font-bold text-white shadow-card">
                                       <Award className="w-3 h-3" /> Sertifikalı
                                     </span>
                                   ) : row.meets_threshold ? (
-                                    <span className="inline-flex items-center gap-1 rounded-md border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 shadow-card">
+                                    <span className="inline-flex items-center gap-1 rounded-md border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-11 font-bold text-emerald-700 shadow-card">
                                       ✓ Hak Kazandı
                                     </span>
                                   ) : (
@@ -1166,7 +1166,7 @@ export default function AdminAttendeesPage() {
                 {/* Üst Bilgi Başlığı */}
                 <div className="flex items-start justify-between gap-3 border-b border-surface-100 pb-3">
                   <div className="min-w-0 space-y-0.5">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-surface-400">Katılımcı Profil Kartı</p>
+                    <p className="text-11 font-bold uppercase tracking-widest text-surface-400">Katılımcı Profil Kartı</p>
                     <h3 className="text-base font-bold text-surface-900 tracking-tight truncate">{selectedAttendee.name}</h3>
                     <p className="text-xs text-surface-400 font-mono truncate">{selectedAttendee.email}</p>
                   </div>
@@ -1178,29 +1178,29 @@ export default function AdminAttendeesPage() {
                 {/* Hızlı Bilgi Matris Hücreleri */}
                 <div className="grid grid-cols-2 gap-2.5 text-xs font-semibold">
                   <div className="rounded-xl border border-surface-100 bg-surface-50/50 p-3">
-                    <p className="text-[10px] font-bold text-surface-400 uppercase tracking-wide">Kayıt Modeli</p>
+                    <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">Kayıt Modeli</p>
                     <p className="mt-1 text-xs font-bold text-surface-900">{selectedAttendee.source === "self_register" ? "Kendi formu" : "Excel aktarım"}</p>
                   </div>
                   <div className="rounded-xl border border-surface-100 bg-surface-50/50 p-3">
-                    <p className="text-[10px] font-bold text-surface-400 uppercase tracking-wide">Katıldığı Oturum</p>
+                    <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">Katıldığı Oturum</p>
                     <p className="mt-1 text-sm font-bold text-surface-900 font-mono tabular-nums">{selectedAttendee.sessions_attended}</p>
                   </div>
                   <div className="rounded-xl border border-surface-100 bg-surface-50/50 p-3">
-                    <p className="text-[10px] font-bold text-surface-400 uppercase tracking-wide">Sertifika Durumu</p>
+                    <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">Sertifika Durumu</p>
                     <p className={`mt-1 text-xs font-bold ${selectedAttendee.has_certificate ? "text-indigo-600" : "text-surface-400"}`}>{selectedAttendee.has_certificate ? "Üretildi" : "Üretilmedi"}</p>
                   </div>
                   <div className="rounded-xl border border-surface-100 bg-surface-50/50 p-3">
-                    <p className="text-[10px] font-bold text-surface-400 uppercase tracking-wide">Kayıt Zamanı</p>
-                    <p className="mt-1 text-[10px] font-mono font-bold text-surface-500 leading-none">{new Date(selectedAttendee.registered_at).toLocaleDateString("tr-TR")}</p>
+                    <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">Kayıt Zamanı</p>
+                    <p className="mt-1 text-11 font-mono font-bold text-surface-500 leading-none">{new Date(selectedAttendee.registered_at).toLocaleDateString("tr-TR")}</p>
                   </div>
                 </div>
 
                 {/* Bağlı Üye Statüsü */}
                 {selectedAttendee.public_member_name && (
                   <div className="rounded-xl border border-emerald-100 bg-emerald-50/30 p-3.5 space-y-1 text-xs font-medium">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Entegre Kurum Üye Bağlantısı</p>
+                    <p className="text-11 font-bold uppercase tracking-wider text-emerald-700">Entegre Kurum Üye Bağlantısı</p>
                     <p className="text-surface-900 font-bold tracking-tight">{selectedAttendee.public_member_name}</p>
-                    <p className="text-[11px] text-surface-400 font-mono truncate">{selectedAttendee.public_member_email}</p>
+                    <p className="text-11 text-surface-400 font-mono truncate">{selectedAttendee.public_member_email}</p>
                   </div>
                 )}
 
@@ -1220,7 +1220,7 @@ export default function AdminAttendeesPage() {
                         const renderedValue = value == null ? "—" : String(value);
                         return (
                           <div key={field.id} className="rounded-xl border border-surface-50 bg-surface-50/30 px-3 py-2 text-xs font-medium">
-                            <p className="text-[10px] font-bold text-surface-400 truncate">{field.label}</p>
+                            <p className="text-11 font-bold text-surface-400 truncate">{field.label}</p>
                             {field.type === "file" ? (
                               docsForField.length === 0 ? (
                                 <p className="mt-1 text-surface-300 italic">—</p>

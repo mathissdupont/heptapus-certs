@@ -7,6 +7,10 @@ export default {
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
       },
+      fontSize: {
+        "11": ["0.6875rem", { lineHeight: "1rem" }],    /* 11px */
+        "13": ["0.8125rem", { lineHeight: "1.25rem" }], /* 13px — between xs(12) and sm(14) */
+      },
       colors: {
         // Primary brand palette: neutral charcoal/ink (replaces indigo)
         brand: {

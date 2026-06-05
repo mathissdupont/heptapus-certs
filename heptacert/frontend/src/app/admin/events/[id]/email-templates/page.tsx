@@ -286,22 +286,22 @@ export default function EmailTemplatesPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="card p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.customTab}</p>
+          <p className="text-11 font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.customTab}</p>
           <p className="mt-2 text-3xl font-black text-surface-900">{templates.length}</p>
           <p className="mt-1 text-xs text-surface-500">{copy.templatesCount}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.systemTab}</p>
+          <p className="text-11 font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.systemTab}</p>
           <p className="mt-2 text-3xl font-black text-surface-900">{systemTemplates.length}</p>
           <p className="mt-1 text-xs text-surface-500">{copy.templatesCount}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-400">TR / EN</p>
+          <p className="text-11 font-semibold uppercase tracking-[0.18em] text-surface-400">TR / EN</p>
           <p className="mt-2 text-3xl font-black text-surface-900">2</p>
           <p className="mt-1 text-xs text-surface-500">{lang === "tr" ? "Dil alani" : "Language surfaces"}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-400">HTML</p>
+          <p className="text-11 font-semibold uppercase tracking-[0.18em] text-surface-400">HTML</p>
           <p className="mt-2 text-3xl font-black text-surface-900">{activeTemplates.length}</p>
           <p className="mt-1 text-xs text-surface-500">{lang === "tr" ? "Aktif liste" : "Current list"}</p>
         </div>
@@ -372,18 +372,18 @@ export default function EmailTemplatesPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="truncate text-lg font-bold text-surface-900">{template.name}</h3>
                     {template.is_system && (
-                      <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
+                      <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-11 font-semibold text-blue-700">
                         {copy.system}
                       </span>
                     )}
                   </div>
                   <div className="mt-4 space-y-3">
                     <div className="rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.subjectTr}</p>
+                      <p className="text-11 font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.subjectTr}</p>
                       <p className="mt-2 text-sm font-medium text-surface-700">{template.subject_tr}</p>
                     </div>
                     <div className="rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.subjectEn}</p>
+                      <p className="text-11 font-semibold uppercase tracking-[0.18em] text-surface-400">{copy.subjectEn}</p>
                       <p className="mt-2 text-sm font-medium text-surface-700">{template.subject_en}</p>
                     </div>
                   </div>

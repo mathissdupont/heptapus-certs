@@ -66,7 +66,7 @@ export default function CommentCard({
           <p className="text-sm font-semibold text-gray-900 truncate">
             {authorName}
           </p>
-          <span className="text-[10px] text-gray-400">•</span>
+          <span className="text-11 text-gray-400">•</span>
           <p className="text-xs text-gray-500 truncate">{timestamp}</p>
         </div>
 

@@ -52,9 +52,9 @@ function StatCard({
   return (
     <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card flex items-start justify-between gap-4">
       <div className="min-w-0 flex-1 space-y-1">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-surface-400 truncate">{title}</p>
+        <p className="text-11 font-bold uppercase tracking-widest text-surface-400 truncate">{title}</p>
         <p className="text-2xl font-bold tracking-tight text-surface-900 font-mono tabular-nums">{value}</p>
-        {note && <p className="text-[11px] font-medium text-surface-400 truncate leading-none pt-0.5">{note}</p>}
+        {note && <p className="text-11 font-medium text-surface-400 truncate leading-none pt-0.5">{note}</p>}
       </div>
       <div className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-surface-150 bg-surface-50 text-surface-600 sm:flex">
         <Icon className="h-4 w-4" />
@@ -132,11 +132,11 @@ export default function EventOperationsPage() {
       {/* ANA SAYFA BAŞLIK ALANI */}
       <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-0.5">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-surface-400">Canlı operasyon ekranı</p>
+          <p className="text-11 font-bold uppercase tracking-widest text-surface-400">Canlı operasyon ekranı</p>
           <h1 className="text-xl font-bold tracking-tight text-surface-900 sm:text-2xl">
             {snapshot?.event_name || `Etkinlik #${eventId}`}
           </h1>
-          <div className="flex items-center gap-1 text-[11px] font-semibold text-surface-400 font-mono uppercase">
+          <div className="flex items-center gap-1 text-11 font-semibold text-surface-400 font-mono uppercase">
             <span>Son Güncelleme: {formatTime(snapshot?.generated_at)}</span>
           </div>
         </div>
@@ -145,7 +145,7 @@ export default function EventOperationsPage() {
         <div className="hidden flex-wrap items-center gap-2 sm:flex">
           <Link 
             href={`/admin/events/${eventId}/checkin?staff=1`} 
-            className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-surface-900 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-surface-800 active:scale-95"
+            className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-lg bg-surface-900 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-surface-800 active:scale-95"
           >
             <QrCode className="h-3.5 w-3.5 stroke-[2.5]" />
             <span>Görevli Modu</span>
@@ -154,7 +154,7 @@ export default function EventOperationsPage() {
             type="button"
             onClick={() => void load({ soft: true })}
             disabled={refreshing}
-            className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-surface-50 active:scale-95 disabled:opacity-40"
+            className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold text-surface-700 shadow-sm transition hover:bg-surface-50 active:scale-95 disabled:opacity-40"
           >
             {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 stroke-[2]" />}
             <span>Yenile</span>
@@ -194,7 +194,7 @@ export default function EventOperationsPage() {
               <div className="flex items-center justify-between gap-3 border-b border-surface-100 pb-3">
                 <div className="space-y-0.5">
                   <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">Seans Yoklama Durumları</h2>
-                  <p className="text-[11px] font-medium text-surface-400">Oturum bazında canlı katılım sayıları</p>
+                  <p className="text-11 font-medium text-surface-400">Oturum bazında canlı katılım sayıları</p>
                 </div>
                 <Clock3 className="h-4 w-4 text-surface-400 stroke-[1.8]" />
               </div>
@@ -211,12 +211,12 @@ export default function EventOperationsPage() {
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="text-xs font-bold text-surface-900 truncate tracking-tight">{session.name}</p>
                           {session.is_active && (
-                            <span className="inline-flex rounded-md border border-emerald-100 bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold uppercase text-emerald-700 animate-pulse shadow-sm">
+                            <span className="inline-flex rounded-md border border-emerald-100 bg-emerald-50 px-1.5 py-0.5 text-11 font-bold uppercase text-emerald-700 animate-pulse shadow-sm">
                               Canlı
                             </span>
                           )}
                         </div>
-                        <p className="text-[10px] font-semibold text-surface-400 font-mono uppercase">
+                        <p className="text-11 font-semibold text-surface-400 font-mono uppercase">
                           {[session.session_date, session.session_start].filter(Boolean).join(" · ") || "Zaman Planı Yok"}
                         </p>
                       </div>
@@ -232,7 +232,7 @@ export default function EventOperationsPage() {
               <div className="flex items-center justify-between gap-3 border-b border-surface-100 pb-3">
                 <div className="space-y-0.5">
                   <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">Son Giriş Hareketleri</h2>
-                  <p className="text-[11px] font-medium text-surface-400">Hatalı okutma iptalleri ve kapı sevk günlüğü</p>
+                  <p className="text-11 font-medium text-surface-400">Hatalı okutma iptalleri ve kapı sevk günlüğü</p>
                 </div>
                 <UserCheck className="h-4 w-4 text-surface-400 stroke-[1.8]" />
               </div>
@@ -247,8 +247,8 @@ export default function EventOperationsPage() {
                     <div key={record.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 py-3.5 bg-white transition-colors hover:bg-surface-50/30 first:pt-0 last:pb-0">
                       <div className="min-w-0 space-y-0.5 flex-1">
                         <p className="text-xs font-bold text-surface-900 tracking-tight truncate">{record.attendee_name}</p>
-                        <p className="text-[10px] font-medium text-surface-400 font-mono truncate">{record.attendee_email}</p>
-                        <div className="pt-1 flex flex-wrap gap-x-2 text-[10px] font-bold text-surface-400">
+                        <p className="text-11 font-medium text-surface-400 font-mono truncate">{record.attendee_email}</p>
+                        <div className="pt-1 flex flex-wrap gap-x-2 text-11 font-bold text-surface-400">
                           <span className="text-surface-900">{record.session_name}</span>
                           <span>·</span>
                           <span className="font-mono text-surface-400">{formatTime(record.checked_in_at)}</span>
@@ -259,7 +259,7 @@ export default function EventOperationsPage() {
                         type="button"
                         onClick={() => void undo(record)}
                         disabled={undoingId === record.id}
-                        className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-red-100 bg-white px-3 text-[11px] font-bold text-red-600 shadow-sm transition hover:bg-red-50 active:scale-90 disabled:opacity-40 shrink-0 self-end sm:self-auto"
+                        className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-red-100 bg-white px-3 text-11 font-bold text-red-600 shadow-sm transition hover:bg-red-50 active:scale-90 disabled:opacity-40 shrink-0 self-end sm:self-auto"
                       >
                         {undoingId === record.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3 stroke-[2.5]" />}
                         <span>Geri Al</span>
@@ -277,7 +277,7 @@ export default function EventOperationsPage() {
       <MobileActionBar>
         <Link 
           href={`/admin/events/${eventId}/checkin?staff=1`} 
-          className="flex-1 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-surface-900 px-4 text-xs font-bold text-white shadow-sm transition active:scale-[0.98]"
+          className="flex-1 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-surface-900 px-4 text-xs font-bold text-white shadow-sm transition active:scale-[0.98]"
         >
           <QrCode className="h-4 w-4 stroke-[2.5]" />
           <span>Görevli Modu</span>
@@ -286,7 +286,7 @@ export default function EventOperationsPage() {
           type="button"
           onClick={() => void load({ soft: true })}
           disabled={refreshing}
-          className="flex-1 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-surface-200 bg-white px-4 text-xs font-bold text-gray-700 shadow-sm transition active:scale-[0.98] disabled:opacity-40"
+          className="flex-1 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-surface-200 bg-white px-4 text-xs font-bold text-surface-700 shadow-sm transition active:scale-[0.98] disabled:opacity-40"
         >
           {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4 stroke-[2]" />}
           <span>Yenile</span>

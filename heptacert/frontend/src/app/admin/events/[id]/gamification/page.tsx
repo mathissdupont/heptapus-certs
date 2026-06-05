@@ -122,18 +122,18 @@ function CriteriaEditor({
         return (
           <div
             key={key}
-            className="flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5"
+            className="flex items-start gap-3 rounded-lg border border-surface-200 bg-surface-50 px-3 py-2.5"
           >
             <div className="mt-0.5 text-brand-500 shrink-0">{def?.icon ?? <Hash className="h-4 w-4" />}</div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-gray-800">
+                <span className="text-sm font-semibold text-surface-800">
                   {def?.label ?? key}
                 </span>
-                <code className="text-xs text-gray-400 font-mono">{key}</code>
+                <code className="text-xs text-surface-400 font-mono">{key}</code>
               </div>
               {def?.description && (
-                <p className="text-xs text-gray-500 mt-0.5">{def.description}</p>
+                <p className="text-xs text-surface-500 mt-0.5">{def.description}</p>
               )}
             </div>
             <div className="flex items-center gap-2 shrink-0 mt-0.5">
@@ -141,7 +141,7 @@ function CriteriaEditor({
                 <select
                   value={String(value)}
                   onChange={(e) => updateValue(key, e.target.value)}
-                  className="rounded-md border border-gray-300 px-2 py-1 text-sm"
+                  className="rounded-md border border-surface-300 px-2 py-1 text-sm"
                 >
                   <option value="true">Evet</option>
                   <option value="false">Hayır</option>
@@ -154,10 +154,10 @@ function CriteriaEditor({
                     min={def?.min}
                     max={def?.max}
                     onChange={(e) => updateValue(key, e.target.value)}
-                    className="w-20 rounded-md border border-gray-300 px-2 py-1 text-sm text-right"
+                    className="w-20 rounded-md border border-surface-300 px-2 py-1 text-sm text-right"
                   />
                   {def?.unit && (
-                    <span className="text-xs text-gray-500">{def.unit}</span>
+                    <span className="text-xs text-surface-500">{def.unit}</span>
                   )}
                 </div>
               )}
@@ -192,19 +192,19 @@ function CriteriaEditor({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
                 transition={{ duration: 0.12 }}
-                className="absolute left-0 top-full mt-1 z-20 bg-white rounded-xl border border-gray-200 shadow-lg min-w-[300px]"
+                className="absolute left-0 top-full mt-1 z-20 bg-white rounded-xl border border-surface-200 shadow-lg min-w-[300px]"
               >
                 {availableToAdd.map((c) => (
                   <button
                     key={c.key}
                     type="button"
                     onClick={() => addCriteria(c.key)}
-                    className="w-full flex items-start gap-3 px-4 py-3 hover:bg-gray-50 text-left transition-colors first:rounded-t-xl last:rounded-b-xl"
+                    className="w-full flex items-start gap-3 px-4 py-3 hover:bg-surface-50 text-left transition-colors first:rounded-t-xl last:rounded-b-xl"
                   >
                     <div className="mt-0.5 text-brand-500 shrink-0">{c.icon}</div>
                     <div>
-                      <div className="text-sm font-semibold text-gray-800">{c.label}</div>
-                      <div className="text-xs text-gray-500 mt-0.5">{c.description}</div>
+                      <div className="text-sm font-semibold text-surface-800">{c.label}</div>
+                      <div className="text-xs text-surface-500 mt-0.5">{c.description}</div>
                     </div>
                   </button>
                 ))}
@@ -215,7 +215,7 @@ function CriteriaEditor({
       )}
 
       {selectedKeys.length === 0 && (
-        <p className="text-xs text-gray-400 italic">Henüz kriter eklenmedi — rozet tüm katılımcılara verilir</p>
+        <p className="text-xs text-surface-400 italic">Henüz kriter eklenmedi — rozet tüm katılımcılara verilir</p>
       )}
     </div>
   );
@@ -447,8 +447,8 @@ export default function GamificationPage() {
       <EventAdminNav eventId={eventId} eventName={eventName} active="gamification" className="mb-2 flex flex-col gap-2" />
 
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Rozet Sistemi</h1>
-        <p className="text-gray-500 text-sm mt-1">Katılımcıları başarılarıyla ödüllendirin</p>
+        <h1 className="text-3xl font-bold text-surface-900">Rozet Sistemi</h1>
+        <p className="text-surface-500 text-sm mt-1">Katılımcıları başarılarıyla ödüllendirin</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -480,12 +480,12 @@ export default function GamificationPage() {
         ].map((item) => {
           const Icon = item.icon;
           return (
-            <div key={item.label} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div key={item.label} className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">{item.label}</p>
-                  <p className="mt-3 text-3xl font-semibold text-gray-900">{item.value}</p>
-                  <p className="mt-2 text-sm text-gray-500">{item.hint}</p>
+                  <p className="text-sm font-medium text-surface-500">{item.label}</p>
+                  <p className="mt-3 text-3xl font-semibold text-surface-900">{item.value}</p>
+                  <p className="mt-2 text-sm text-surface-500">{item.hint}</p>
                 </div>
                 <div className="rounded-xl bg-brand-50 p-3 text-brand-600">
                   <Icon className="h-5 w-5" />
@@ -497,7 +497,7 @@ export default function GamificationPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200">
+      <div className="flex gap-2 border-b border-surface-200">
         {["rules", "awarded"].map((tab) => (
           <button
             key={tab}
@@ -505,7 +505,7 @@ export default function GamificationPage() {
             className={`px-4 py-3 font-semibold text-sm transition-colors ${
               activeTab === tab
                 ? "text-brand-600 border-b-2 border-brand-600"
-                : "text-gray-600 hover:text-gray-900"
+                : "text-surface-600 hover:text-surface-900"
             }`}
           >
             {tab === "rules" ? "Rozet Kuralları" : "Verilen Rozetler"}
@@ -540,11 +540,11 @@ export default function GamificationPage() {
       {activeTab === "rules" && (
         <div className="space-y-6">
           {/* Enable/Disable Toggle */}
-          <div className="bg-white rounded-3xl border border-gray-200 p-6 shadow-sm">
+          <div className="bg-white rounded-3xl border border-surface-200 p-6 shadow-sm">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <h3 className="font-semibold text-gray-900">Rozet Sistemi</h3>
-                <p className="text-sm text-gray-500 mt-1">
+                <h3 className="font-semibold text-surface-900">Rozet Sistemi</h3>
+                <p className="text-sm text-surface-500 mt-1">
                   {enabled ? "Etkindir" : "Devre dışı"}
                 </p>
               </div>
@@ -553,7 +553,7 @@ export default function GamificationPage() {
                 className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
                   enabled
                     ? "bg-brand-600 text-white hover:bg-brand-700"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    : "bg-surface-200 text-surface-700 hover:bg-gray-300"
                 }`}
               >
                 {enabled ? "Devre Dışı Bırak" : "Etkinleştir"}
@@ -563,20 +563,20 @@ export default function GamificationPage() {
 
           {/* Badge List */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-gray-900">Rozet Tanımları</h3>
+            <h3 className="font-semibold text-surface-900">Rozet Tanımları</h3>
 
             {editingBadges.map((badge, idx) => (
               <motion.div
                 key={idx}
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-[28px] border border-gray-200 p-5 shadow-sm"
+                className="bg-white rounded-[28px] border border-surface-200 p-5 shadow-sm"
               >
                 <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                   <div className="min-w-0 flex-1">
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        <label className="block text-sm font-semibold text-surface-700 mb-2">
                           Rozet Türü
                         </label>
                         <input
@@ -588,11 +588,11 @@ export default function GamificationPage() {
                             setEditingBadges(updated);
                           }}
                           placeholder="fastest_register"
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                          className="w-full rounded-lg border border-surface-300 px-3 py-2 text-sm"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        <label className="block text-sm font-semibold text-surface-700 mb-2">
                           Rozet Adı
                         </label>
                         <input
@@ -604,13 +604,13 @@ export default function GamificationPage() {
                             setEditingBadges(updated);
                           }}
                           placeholder="Hızlı Kaydolan"
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                          className="w-full rounded-lg border border-surface-300 px-3 py-2 text-sm"
                         />
                       </div>
                     </div>
 
                     <div className="mt-4">
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      <label className="block text-sm font-semibold text-surface-700 mb-2">
                         Rozet Açıklaması
                       </label>
                       <textarea
@@ -621,13 +621,13 @@ export default function GamificationPage() {
                           setEditingBadges(updated);
                         }}
                         placeholder="Bu rozeti kazanma koşullarını açıklayın"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm h-20 resize-none"
+                        className="w-full rounded-lg border border-surface-300 px-3 py-2 text-sm h-20 resize-none"
                       />
                     </div>
 
                     {/* Criteria editor */}
                     <div className="mt-4">
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      <label className="block text-sm font-semibold text-surface-700 mb-2">
                         Kriter Kuralları
                       </label>
                       <CriteriaEditor
@@ -642,7 +642,7 @@ export default function GamificationPage() {
 
                     <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        <label className="block text-sm font-semibold text-surface-700 mb-2">
                           Rozet Rengi
                         </label>
                         <div className="flex gap-2">
@@ -659,13 +659,13 @@ export default function GamificationPage() {
                           <input
                             type="text"
                             value={badge.color_hex || "#4CAF50"}
-                            className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm bg-gray-50"
+                            className="flex-1 rounded-lg border border-surface-300 px-3 py-2 text-sm bg-surface-50"
                             readOnly
                           />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        <label className="block text-sm font-semibold text-surface-700 mb-2">
                           Rozet URL
                         </label>
                         <input
@@ -677,14 +677,14 @@ export default function GamificationPage() {
                             setEditingBadges(updated);
                           }}
                           placeholder="https://example.com/badge.png"
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                          className="w-full rounded-lg border border-surface-300 px-3 py-2 text-sm"
                         />
                       </div>
                     </div>
                   </div>
 
                   <div className="xl:w-[260px] xl:shrink-0">
-                    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="rounded-3xl border border-surface-200 bg-surface-50 p-4">
                       <div
                         className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold"
                         style={{
@@ -696,10 +696,10 @@ export default function GamificationPage() {
                         <Award className="h-3.5 w-3.5" />
                         Önizleme
                       </div>
-                      <p className="mt-4 break-words text-lg font-black text-slate-900">
+                      <p className="mt-4 break-words text-lg font-black text-surface-900">
                         {badge.name || "Rozet adı"}
                       </p>
-                      <p className="mt-2 break-words text-sm leading-6 text-slate-600">
+                      <p className="mt-2 break-words text-sm leading-6 text-surface-600">
                         {badge.description || "Rozet açıklaması burada görünecek."}
                       </p>
                       <div className="mt-4 flex flex-wrap gap-2">
@@ -707,13 +707,13 @@ export default function GamificationPage() {
                           Object.keys(badge.criteria || {}).map((key) => (
                             <span
                               key={key}
-                              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600"
+                              className="rounded-full border border-surface-200 bg-white px-3 py-1 text-xs font-semibold text-surface-600"
                             >
                               {getCriteriaDef(key)?.label || key}
                             </span>
                           ))
                         ) : (
-                          <span className="rounded-full border border-dashed border-slate-300 bg-white px-3 py-1 text-xs text-slate-500">
+                          <span className="rounded-full border border-dashed border-slate-300 bg-white px-3 py-1 text-xs text-surface-500">
                             Tüm katılımcılara açık
                           </span>
                         )}
@@ -735,9 +735,9 @@ export default function GamificationPage() {
             <motion.div
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 p-4"
+              className="bg-surface-50 rounded-xl border-2 border-dashed border-surface-300 p-4"
             >
-              <h4 className="font-semibold text-gray-900 mb-4">Yeni Rozet Ekle</h4>
+              <h4 className="font-semibold text-surface-900 mb-4">Yeni Rozet Ekle</h4>
               <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                 <input
                   type="text"
@@ -751,7 +751,7 @@ export default function GamificationPage() {
                       criteria: newBadge?.criteria || {},
                     })
                   }
-                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="rounded-lg border border-surface-300 px-3 py-2 text-sm"
                 />
                 <input
                   type="text"
@@ -765,13 +765,13 @@ export default function GamificationPage() {
                       criteria: newBadge?.criteria || {},
                     })
                   }
-                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="rounded-lg border border-surface-300 px-3 py-2 text-sm"
                 />
               </div>
 
               {/* New badge criteria */}
               <div className="mb-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-surface-700 mb-2">
                   Kriter Kuralları
                 </label>
                 <CriteriaEditor
@@ -830,25 +830,25 @@ export default function GamificationPage() {
       {/* Awarded Badges Tab */}
       {activeTab === "awarded" && (
         <div className="space-y-4">
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="rounded-2xl border border-surface-200 bg-white p-4 shadow-sm">
             <div className="grid gap-3 md:grid-cols-[1fr,220px,220px]">
               <label className="relative block">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
                 <input
                   type="text"
                   value={badgeQuery}
                   onChange={(e) => setBadgeQuery(e.target.value)}
                   placeholder="Rozet veya katılımcı ara"
-                  className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 text-sm"
+                  className="w-full rounded-xl border border-surface-300 py-2.5 pl-10 pr-3 text-sm"
                 />
               </label>
-              <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Otomatik</div>
-                <div className="mt-1 text-2xl font-semibold text-gray-900">{badgeSummary.automatic_vs_manual.automatic}</div>
+              <div className="rounded-xl border border-surface-200 bg-surface-50 px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-surface-500">Otomatik</div>
+                <div className="mt-1 text-2xl font-semibold text-surface-900">{badgeSummary.automatic_vs_manual.automatic}</div>
               </div>
-              <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Manuel</div>
-                <div className="mt-1 text-2xl font-semibold text-gray-900">{badgeSummary.automatic_vs_manual.manual}</div>
+              <div className="rounded-xl border border-surface-200 bg-surface-50 px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-surface-500">Manuel</div>
+                <div className="mt-1 text-2xl font-semibold text-surface-900">{badgeSummary.automatic_vs_manual.manual}</div>
               </div>
             </div>
             {Object.entries(badgeSummary.by_type || {}).length > 0 ? (
@@ -856,7 +856,7 @@ export default function GamificationPage() {
                 {Object.entries(badgeSummary.by_type).map(([type, count]) => (
                   <span
                     key={type}
-                    className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700"
+                    className="rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-xs font-semibold text-surface-700"
                   >
                     {type} • {count}
                   </span>
@@ -866,9 +866,9 @@ export default function GamificationPage() {
           </div>
 
           {filteredAwardedBadges.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-              <Trophy className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500">
+            <div className="text-center py-12 bg-white rounded-xl border border-surface-200">
+              <Trophy className="h-16 w-16 text-surface-300 mx-auto mb-4" />
+              <p className="text-surface-500">
                 {awardedBadges.length === 0 ? "Henüz rozet verilmedi" : "Filtreye uyan rozet bulunamadı"}
               </p>
             </div>
@@ -878,23 +878,23 @@ export default function GamificationPage() {
                 key={badge.id}
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="grid gap-4 rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm xl:grid-cols-[minmax(0,1fr)_320px]"
+                className="grid gap-4 rounded-[28px] border border-surface-200 bg-white p-5 shadow-sm xl:grid-cols-[minmax(0,1fr)_320px]"
               >
                 <div className="min-w-0">
-                  <div className="break-words text-lg font-black text-gray-900">
+                  <div className="break-words text-lg font-black text-surface-900">
                     {badge.badge_name || badge.badge_type}
                   </div>
                   {badge.badge_description && (
-                    <div className="mt-1 break-words text-sm text-gray-500">{badge.badge_description}</div>
+                    <div className="mt-1 break-words text-sm text-surface-500">{badge.badge_description}</div>
                   )}
-                  <div className="mt-2 break-words text-sm text-gray-500">
+                  <div className="mt-2 break-words text-sm text-surface-500">
                     {badge.attendee_name || `Katılımcı ID: ${badge.attendee_id}`}
                     {badge.attendee_email ? ` • ${badge.attendee_email}` : ""}
                   </div>
-                  <div className="mt-1 text-sm text-gray-500">
+                  <div className="mt-1 text-sm text-surface-500">
                     {badge.is_automatic ? "Otomatik" : "Manuel"} • Tür: {badge.badge_type}
                   </div>
-                  <div className="mt-1 text-xs text-gray-400">
+                  <div className="mt-1 text-xs text-surface-400">
                     {badgeDateFormatter.format(new Date(badge.awarded_at))}
                   </div>
                 </div>
@@ -916,14 +916,14 @@ export default function GamificationPage() {
                       {Object.entries(badge.criteria_met).map(([key, value]) => {
                         const criteria = value as { actual?: unknown; required?: unknown; passed?: boolean };
                         return (
-                          <div key={key} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                          <div key={key} className="rounded-lg border border-surface-200 bg-surface-50 px-3 py-2">
                             <div className="flex items-center justify-between gap-3">
-                              <span className="text-sm font-medium text-gray-700">{key}</span>
+                              <span className="text-sm font-medium text-surface-700">{key}</span>
                               <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${criteria.passed ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
                                 {criteria.passed ? "Geçti" : "Kaldı"}
                               </span>
                             </div>
-                            <div className="mt-1 text-xs text-gray-500">
+                            <div className="mt-1 text-xs text-surface-500">
                               Gereken: {String(criteria.required ?? "-")} • Gerçekleşen: {String(criteria.actual ?? "-")}
                             </div>
                           </div>

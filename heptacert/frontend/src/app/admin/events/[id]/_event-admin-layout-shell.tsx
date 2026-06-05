@@ -83,7 +83,7 @@ export function EventAdminLayoutShell({ eventId, children }: EventAdminLayoutShe
 
   return (
     <EventAdminLayoutProvider hideInlineNav>
-      <div className="w-full flex min-w-0 flex-col gap-4 antialiased text-gray-900">
+      <div className="w-full flex min-w-0 flex-col gap-4 antialiased text-surface-900">
         {/* Yenilediğimiz Premium Sol Navigasyon Menüsü */}
         <EventAdminNav eventId={eventId} variant="inline" forceVisible />
         
@@ -93,8 +93,8 @@ export function EventAdminLayoutShell({ eventId, children }: EventAdminLayoutShe
             children
           ) : checking ? (
             /* Apple Tarzı Kibar Yükleniyor Durumu (Layout Shift Engelleme) */
-            <div className="w-full rounded-2xl border border-gray-100 bg-white/40 p-16 flex items-center justify-center shadow-sm">
-              <Loader2 className="h-5 w-5 animate-spin text-gray-400 stroke-[2.5]" />
+            <div className="w-full rounded-2xl border border-surface-100 bg-white/40 p-16 flex items-center justify-center shadow-sm">
+              <Loader2 className="h-5 w-5 animate-spin text-surface-400 stroke-[2.5]" />
             </div>
           ) : null}
         </div>

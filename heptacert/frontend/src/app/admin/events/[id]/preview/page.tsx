@@ -91,9 +91,9 @@ export default function EmailTemplatePreviewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-surface-50">
       <div className="max-w-6xl mx-auto p-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Email Şablonu Önizleme</h1>
+        <h1 className="text-3xl font-bold text-surface-900 mb-8">Email Şablonu Önizleme</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Settings Panel */}
@@ -103,13 +103,13 @@ export default function EmailTemplatePreviewPage() {
 
               {/* Language Selection */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-surface-700 mb-2">
                   Dil
                 </label>
                 <select
                   value={language}
                   onChange={e => setLanguage(e.target.value as 'tr' | 'en')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-3 py-2 border border-surface-300 rounded-lg"
                 >
                   <option value="tr">Türkçe</option>
                   <option value="en">English</option>
@@ -118,29 +118,29 @@ export default function EmailTemplatePreviewPage() {
 
               {/* Sample Data */}
               <div className="border-t pt-6">
-                <h3 className="font-medium text-gray-900 mb-3">Örnek Veriler</h3>
+                <h3 className="font-medium text-surface-900 mb-3">Örnek Veriler</h3>
 
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-surface-700 mb-1">
                     Ad Soyadı
                   </label>
                   <input
                     type="text"
                     value={sampleData.name}
                     onChange={e => setSampleData({ ...sampleData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    className="w-full px-3 py-2 border border-surface-300 rounded-lg text-sm"
                   />
                 </div>
 
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-surface-700 mb-1">
                     E-posta
                   </label>
                   <input
                     type="email"
                     value={sampleData.email}
                     onChange={e => setSampleData({ ...sampleData, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    className="w-full px-3 py-2 border border-surface-300 rounded-lg text-sm"
                   />
                 </div>
 
@@ -155,8 +155,8 @@ export default function EmailTemplatePreviewPage() {
 
               {/* Template Info */}
               <div className="border-t pt-6 mt-6">
-                <h3 className="font-medium text-gray-900 mb-2">Bilgi</h3>
-                <p className="text-sm text-gray-600">
+                <h3 className="font-medium text-surface-900 mb-2">Bilgi</h3>
+                <p className="text-sm text-surface-600">
                   Tip: <span className="font-medium">{template.template_type}</span>
                 </p>
               </div>
@@ -175,29 +175,29 @@ export default function EmailTemplatePreviewPage() {
                   </div>
 
                   {/* Email Body */}
-                  <div className="p-8 border-t border-gray-200">
+                  <div className="p-8 border-t border-surface-200">
                     <iframe
                       title="Email önizleme"
                       sandbox=""
-                      className="min-h-[420px] w-full rounded border border-gray-200 bg-white"
+                      className="min-h-[420px] w-full rounded border border-surface-200 bg-white"
                       srcDoc={preview.body_html}
                     />
                   </div>
 
                   {/* HTML Raw View */}
-                  <div className="bg-gray-100 p-8 border-t border-gray-200">
+                  <div className="bg-surface-100 p-8 border-t border-surface-200">
                     <details className="cursor-pointer">
-                      <summary className="font-medium text-gray-900 mb-2">
+                      <summary className="font-medium text-surface-900 mb-2">
                         HTML Kodunu Göster
                       </summary>
-                      <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-auto text-xs font-mono">
+                      <pre className="bg-surface-800 text-gray-100 p-4 rounded-lg overflow-auto text-xs font-mono">
                         {preview.body_html}
                       </pre>
                     </details>
                   </div>
                 </>
               ) : (
-                <div className="p-8 text-center text-gray-500">
+                <div className="p-8 text-center text-surface-500">
                   Önizleme oluşturuluyor...
                 </div>
               )}

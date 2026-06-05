@@ -143,7 +143,7 @@ export function DataTable<TData extends Record<string, any>>({
         <div className="flex flex-wrap items-center gap-2">
           {selectedRows.length > 0 && (
             <div
-              className="inline-flex items-center rounded-lg border border-gray-950 bg-gray-950 px-2.5 py-1 text-[10px] font-bold text-white tracking-tight shadow-sm animate-in fade-in zoom-in-95 duration-100"
+              className="inline-flex items-center rounded-lg border border-gray-950 bg-gray-950 px-2.5 py-1 text-11 font-bold text-white tracking-tight shadow-sm animate-in fade-in zoom-in-95 duration-100"
               role="status"
               aria-live="polite"
             >
@@ -205,7 +205,7 @@ export function DataTable<TData extends Record<string, any>>({
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id} className="border-b border-gray-100 bg-gray-50/50">
                   {headerGroup.headers.map((header) => (
-                    <th key={header.id} className="whitespace-nowrap px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 select-none">
+                    <th key={header.id} className="whitespace-nowrap px-5 py-3 text-11 font-bold uppercase tracking-wider text-gray-400 select-none">
                       {header.isPlaceholder ? null : (
                         <div
                           onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}

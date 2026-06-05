@@ -49,7 +49,7 @@ export default function CookieConsent() {
           <p className="text-xs font-bold text-gray-900">
             Çerez ve Veri Bildirimi
           </p>
-          <p className="text-[11px] leading-relaxed text-gray-500">
+          <p className="text-11 leading-relaxed text-gray-500">
             Oturum yönetimi ve tercihlerinizi hatırlamak için tarayıcınızdaki
             localStorage'ı kullanıyoruz. Analitik veya reklam çerezi kullanmıyoruz.{" "}
             <Link href="/kvkk" className="font-semibold text-gray-700 underline underline-offset-2 hover:text-gray-900">
@@ -62,14 +62,14 @@ export default function CookieConsent() {
           <button
             type="button"
             onClick={() => save("declined")}
-            className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-600 transition hover:bg-gray-50"
+            className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-11 font-semibold text-gray-600 transition hover:bg-gray-50"
           >
             Sadece Zorunlu
           </button>
           <button
             type="button"
             onClick={() => save("accepted")}
-            className="rounded-lg bg-gray-950 px-4 py-1.5 text-[11px] font-semibold text-white transition hover:bg-gray-800"
+            className="rounded-lg bg-gray-950 px-4 py-1.5 text-11 font-semibold text-white transition hover:bg-gray-800"
           >
             Kabul Et
           </button>

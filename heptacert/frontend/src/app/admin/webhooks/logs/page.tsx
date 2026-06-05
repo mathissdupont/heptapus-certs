@@ -105,7 +105,7 @@ export default function WebhookLogsPage() {
       failed: "bg-rose-100 dark:bg-rose-900 text-rose-800 dark:text-rose-200",
       retrying: "bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200",
     };
-    return colors[status] || "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200";
+    return colors[status] || "bg-surface-100 dark:bg-surface-800 text-surface-800 dark:text-gray-200";
   };
 
   const getStatusIcon = (status: string) => {
@@ -129,7 +129,7 @@ export default function WebhookLogsPage() {
         header: "Event",
         cell: (info) => {
           const event = info.getValue() as string;
-          return <span className="font-medium text-gray-800 dark:text-gray-200">{event}</span>;
+          return <span className="font-medium text-surface-800 dark:text-gray-200">{event}</span>;
         },
       },
       {
@@ -150,7 +150,7 @@ export default function WebhookLogsPage() {
       {
         accessorKey: "attempts",
         header: "Attempts",
-        cell: (info) => <span className="font-mono text-sm text-gray-600 dark:text-gray-400">{String(info.getValue())}</span>,
+        cell: (info) => <span className="font-mono text-sm text-surface-600 dark:text-surface-400">{String(info.getValue())}</span>,
       },
       {
         accessorKey: "http_status",
@@ -158,9 +158,9 @@ export default function WebhookLogsPage() {
         cell: (info) => {
           const status = String(info.getValue());
           return status && status !== 'undefined' ? (
-            <span className="font-mono text-sm font-semibold text-gray-800 dark:text-gray-200">{status}</span>
+            <span className="font-mono text-sm font-semibold text-surface-800 dark:text-gray-200">{status}</span>
           ) : (
-            <span className="text-gray-400 dark:text-gray-500">-</span>
+            <span className="text-surface-400 dark:text-surface-500">-</span>
           );
         },
       },
@@ -170,11 +170,11 @@ export default function WebhookLogsPage() {
         cell: (info) => {
           const date = String(info.getValue());
           return date && date !== 'undefined' ? (
-            <span className="text-gray-600 dark:text-gray-400 text-sm">
+            <span className="text-surface-600 dark:text-surface-400 text-sm">
               {new Date(date).toLocaleString()}
             </span>
           ) : (
-            <span className="text-gray-400 dark:text-gray-500">-</span>
+            <span className="text-surface-400 dark:text-surface-500">-</span>
           );
         },
       },
@@ -186,7 +186,7 @@ export default function WebhookLogsPage() {
           return error && error !== 'undefined' ? (
             <span className="text-rose-600 dark:text-rose-400 text-xs truncate max-w-xs block">{error}</span>
           ) : (
-            <span className="text-gray-400 dark:text-gray-500">-</span>
+            <span className="text-surface-400 dark:text-surface-500">-</span>
           );
         },
       },
@@ -238,10 +238,10 @@ export default function WebhookLogsPage() {
           >
             <div className={`p-3 rounded-lg ${card.colorClass}`}>{card.icon}</div>
             <div>
-              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+              <p className="text-xs font-semibold text-surface-400 dark:text-surface-500 uppercase tracking-wider">
                 {card.label}
               </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{card.value.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-surface-900 dark:text-gray-100">{card.value.toLocaleString()}</p>
             </div>
           </motion.div>
         ))}
@@ -256,12 +256,12 @@ export default function WebhookLogsPage() {
           className="card mb-8 p-6"
         >
           <div className="flex items-center justify-between mb-4">
-            <p className="text-sm font-bold text-gray-700 dark:text-gray-300">Delivery Success Rate</p>
+            <p className="text-sm font-bold text-surface-700 dark:text-surface-300">Delivery Success Rate</p>
             <span className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
               {stats.success_rate.toFixed(1)}%
             </span>
           </div>
-          <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-4 overflow-hidden">
+          <div className="w-full bg-surface-100 dark:bg-gray-700 rounded-full h-4 overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${stats.success_rate}%` }}

@@ -575,7 +575,7 @@ export default function AdminTrainingPage() {
                       <p className="truncate font-black text-surface-900">{item.title}</p>
                       <p className="mt-1 truncate text-sm text-surface-500">{item.assignee_name} - {item.assignee_email}</p>
                     </button>
-                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${statusBadge(item.effective_status)}`}>
+                    <span className={`rounded-full px-2.5 py-1 text-11 font-bold ${statusBadge(item.effective_status)}`}>
                       {item.effective_status}
                     </span>
                   </div>

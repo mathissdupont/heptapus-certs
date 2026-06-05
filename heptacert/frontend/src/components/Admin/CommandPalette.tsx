@@ -148,35 +148,35 @@ export default function CommandPalette() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-500 shadow-sm transition-all hover:bg-gray-50 hover:text-gray-900 hover:border-gray-300 md:inline-flex"
+        className="hidden items-center gap-2 rounded-xl border border-surface-200 bg-white px-3 py-1.5 text-xs font-semibold text-surface-500 shadow-sm transition-all hover:bg-surface-50 hover:text-surface-900 hover:border-gray-300 md:inline-flex"
         aria-label={copy.button}
       >
         <Command className="h-3.5 w-3.5 stroke-[2]" />
         <span className="tracking-tight">{copy.button}</span>
-        <kbd className="rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[9px] font-medium text-gray-400 tracking-tight">
+        <kbd className="rounded-md border border-surface-200 bg-surface-50 px-1.5 py-0.5 font-mono text-11 font-medium text-surface-400 tracking-tight">
           {copy.hint}
         </kbd>
       </button>
 
       {/* Komut Paleti Modalı */}
       {open && (
-        <div className="fixed inset-0 z-[80] flex items-start justify-center bg-gray-900/25 px-3 pt-16 backdrop-blur-md sm:pt-28">
-          <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-gray-200 bg-white/95 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.12)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-[80] flex items-start justify-center bg-surface-800/25 px-3 pt-16 backdrop-blur-md sm:pt-28">
+          <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-surface-200 bg-white/95 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.12)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
             
             {/* Arama Alanı */}
-            <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-3.5">
-              <Search className="h-4 w-4 text-gray-400 stroke-[2.5]" />
+            <div className="flex items-center gap-3 border-b border-surface-100 px-4 py-3.5">
+              <Search className="h-4 w-4 text-surface-400 stroke-[2.5]" />
               <input
                 autoFocus
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={copy.placeholder}
-                className="min-w-0 flex-1 bg-transparent text-sm font-medium text-gray-900 outline-none placeholder:text-gray-400"
+                className="min-w-0 flex-1 bg-transparent text-sm font-medium text-surface-900 outline-none placeholder:text-surface-400"
               />
               <button 
                 type="button" 
                 onClick={() => setOpen(false)} 
-                className="rounded-lg p-1 text-gray-400 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+                className="rounded-lg p-1 text-surface-400 hover:bg-surface-50 hover:text-surface-700 transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -185,7 +185,7 @@ export default function CommandPalette() {
             {/* Sonuç Listesi */}
             <div className="max-h-[45vh] overflow-y-auto p-1.5">
               {filteredCommands.length === 0 ? (
-                <div className="p-8 text-center text-xs font-medium text-gray-400">{copy.empty}</div>
+                <div className="p-8 text-center text-xs font-medium text-surface-400">{copy.empty}</div>
               ) : (
                 <div className="space-y-0.5">
                   {filteredCommands.map((item) => {
@@ -195,25 +195,25 @@ export default function CommandPalette() {
                         key={item.id}
                         type="button"
                         onClick={() => runCommand(item)}
-                        className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all hover:bg-gray-50 active:bg-gray-100/70"
+                        className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all hover:bg-surface-50 active:bg-surface-100/70"
                       >
                         {/* İkon Yuvası */}
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-100 bg-white text-gray-500 shadow-sm transition group-hover:border-gray-200 group-hover:text-gray-900">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-surface-100 bg-white text-surface-500 shadow-sm transition group-hover:border-surface-200 group-hover:text-surface-900">
                           <Icon className="h-4 w-4 stroke-[1.8]" />
                         </span>
                         
                         {/* Metin Alanı */}
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-xs font-semibold text-gray-800 tracking-tight group-hover:text-gray-950">
+                          <span className="block truncate text-xs font-semibold text-surface-800 tracking-tight group-hover:text-surface-900">
                             {item.title}
                           </span>
-                          <span className="block truncate text-[10px] font-medium text-gray-400 mt-0.5">
+                          <span className="block truncate text-11 font-medium text-surface-400 mt-0.5">
                             {item.description}
                           </span>
                         </span>
                         
                         {/* Sağ Ok İşareti */}
-                        <ArrowRight className="h-3.5 w-3.5 text-gray-300 opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-gray-600" />
+                        <ArrowRight className="h-3.5 w-3.5 text-gray-300 opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-surface-600" />
                       </button>
                     );
                   })}

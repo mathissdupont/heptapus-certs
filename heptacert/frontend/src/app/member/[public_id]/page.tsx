@@ -477,13 +477,13 @@ export default function PublicMemberProfilePage() {
                             : cert.event_date || ""}
                         </p>
                       </div>
-                      <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-bold ${statusClass}`}>
+                      <span className={`shrink-0 rounded-full border px-2 py-0.5 text-11 font-bold ${statusClass}`}>
                         {statusLabel}
                       </span>
                     </div>
 
                     {cert.public_id && (
-                      <div className="mt-3 text-[11px] text-gray-500">
+                      <div className="mt-3 text-11 text-gray-500">
                         {copy.certificateCode}: <code className="font-mono text-gray-700">{cert.public_id}</code>
                       </div>
                     )}
@@ -584,7 +584,7 @@ export default function PublicMemberProfilePage() {
                       </p>
 
                       <div className="flex items-center gap-1.5 mt-2">
-                        <div className="flex items-center gap-1 text-[10px] font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 truncate">
+                        <div className="flex items-center gap-1 text-11 font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 truncate">
                           <CalendarDays className="h-3 w-3" />
                           <span className="truncate">{rec.event_count} Etkinlik</span>
                         </div>

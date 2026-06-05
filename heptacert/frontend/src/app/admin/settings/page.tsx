@@ -559,7 +559,7 @@ function CustomDomainTab() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="truncate font-semibold text-zinc-900">{d.domain}</p>
-                        <span className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${itemStatus.chipClass}`}>{itemStatus.label}</span>
+                        <span className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-11 font-bold uppercase tracking-wider ${itemStatus.chipClass}`}>{itemStatus.label}</span>
                       </div>
                       <p className="mt-1 text-xs text-zinc-500">Eklenme: {fmtDate(d.created_at || null)}</p>
                     </div>
@@ -1234,7 +1234,7 @@ function BrandingTab() {
                   )}
                   <input type="file" accept="image/*" className="absolute inset-0 cursor-pointer opacity-0" onChange={e => uploadLogo(e.target.files ? e.target.files[0] : null)} />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-                    <span className="text-[10px] font-semibold text-white uppercase tracking-wider">Değiştir</span>
+                    <span className="text-11 font-semibold text-white uppercase tracking-wider">Değiştir</span>
                   </div>
                 </div>
               </div>
@@ -1393,7 +1393,7 @@ function BrandingTab() {
             <div className="h-2.5 w-2.5 rounded-full bg-zinc-300"></div>
             <div className="h-2.5 w-2.5 rounded-full bg-zinc-300"></div>
             <div className="h-2.5 w-2.5 rounded-full bg-zinc-300"></div>
-            <div className="ml-4 flex-1 rounded-md bg-white px-3 py-1 text-center text-[10px] font-medium text-zinc-400 shadow-sm">
+            <div className="ml-4 flex-1 rounded-md bg-white px-3 py-1 text-center text-11 font-medium text-zinc-400 shadow-sm">
               certs.{orgName.toLowerCase().replace(/\s+/g, '') || 'sirket'}.com
             </div>
           </div>
@@ -1428,7 +1428,7 @@ function BrandingTab() {
               </button>
             </div>
 
-            <p className="mt-6 text-[10px] text-zinc-400">
+            <p className="mt-6 text-11 text-zinc-400">
               {settingsState.certificate_footer || `© ${new Date().getFullYear()} Kurum Adı. Tüm hakları saklıdır.`}
             </p>
           </div>

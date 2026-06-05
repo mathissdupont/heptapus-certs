@@ -511,7 +511,7 @@ function AdminMobileNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold transition-colors ${
+              className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-11 font-semibold transition-colors ${
                 active ? "bg-surface-900 text-white" : "text-surface-500 hover:bg-surface-100 hover:text-surface-900"
               }`}
             >

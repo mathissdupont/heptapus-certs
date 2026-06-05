@@ -149,8 +149,8 @@ export default function IssueCertificateModal({
                   <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                   <div className="min-w-0">
                     <p className="font-semibold">{copy.templateNotReady}</p>
-                    <p className="mt-0.5 text-[11px] leading-relaxed">{copy.templateNotReadyBody}</p>
-                    <Link href={`/admin/events/${eventId}/editor`} onClick={onClose} className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold underline">
+                    <p className="mt-0.5 text-11 leading-relaxed">{copy.templateNotReadyBody}</p>
+                    <Link href={`/admin/events/${eventId}/editor`} onClick={onClose} className="mt-1.5 inline-flex items-center gap-1 text-11 font-semibold underline">
                       <ExternalLink className="h-3 w-3" /> {copy.openEditor}
                     </Link>
                   </div>

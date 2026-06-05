@@ -132,7 +132,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
               if (event.target.value) runCommand("fontName", event.target.value);
               event.target.value = "";
             }}
-            className="appearance-none rounded-xl border border-gray-200 bg-white pl-8 pr-7 py-1.5 text-[11px] font-semibold text-gray-600 outline-none hover:border-gray-300 transition-all cursor-pointer"
+            className="appearance-none rounded-xl border border-gray-200 bg-white pl-8 pr-7 py-1.5 text-11 font-semibold text-gray-600 outline-none hover:border-gray-300 transition-all cursor-pointer"
           >
             <option value="" disabled>Font</option>
             {FONT_FAMILY_OPTIONS.map((option) => (
@@ -150,7 +150,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
               if (event.target.value) runCommand("fontSize", event.target.value);
               event.target.value = "";
             }}
-            className="appearance-none rounded-xl border border-gray-200 bg-white pl-3 pr-7 py-1.5 text-[11px] font-semibold text-gray-600 outline-none hover:border-gray-300 transition-all cursor-pointer"
+            className="appearance-none rounded-xl border border-gray-200 bg-white pl-3 pr-7 py-1.5 text-11 font-semibold text-gray-600 outline-none hover:border-gray-300 transition-all cursor-pointer"
           >
             <option value="" disabled>16</option>
             {FONT_SIZE_OPTIONS.map((option) => (

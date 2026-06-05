@@ -265,7 +265,7 @@ export default function SuperadminHealthPage() {
               <h2 className="text-sm font-bold text-surface-900">
                 {lang === "tr" ? "Arkaplan İş Kuyruğu" : "Background Job Queue"}
               </h2>
-              <span className="ml-auto rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+              <span className="ml-auto rounded-full bg-emerald-50 px-2 py-0.5 text-11 font-bold text-emerald-700">
                 {lang === "tr" ? "Ayrı worker container'da çalışıyor" : "Runs in dedicated worker container"}
               </span>
             </div>
@@ -288,9 +288,9 @@ export default function SuperadminHealthPage() {
                         : hasPending
                         ? <Loader2 className="h-3.5 w-3.5 text-amber-500 animate-spin shrink-0" />
                         : <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />}
-                      <p className="text-[11px] font-bold text-surface-700 truncate">{label}</p>
+                      <p className="text-11 font-bold text-surface-700 truncate">{label}</p>
                     </div>
-                    <div className="space-y-0.5 text-[10px] text-surface-500">
+                    <div className="space-y-0.5 text-11 text-surface-500">
                       {q.pending !== undefined && <p>{lang === "tr" ? "Bekleyen" : "Pending"}: <span className="font-bold text-surface-700">{q.pending}</span></p>}
                       {q.processing !== undefined && <p>{lang === "tr" ? "İşleniyor" : "Processing"}: <span className="font-bold text-surface-700">{q.processing}</span></p>}
                       {q.failed_last_hour !== undefined && <p className={q.failed_last_hour > 0 ? "text-rose-600 font-bold" : ""}>{lang === "tr" ? "Hata (1s)" : "Failed (1h)"}: <span className="font-bold">{q.failed_last_hour}</span></p>}

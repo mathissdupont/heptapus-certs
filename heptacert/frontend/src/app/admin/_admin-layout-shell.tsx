@@ -155,7 +155,7 @@ function SidebarContent({
         {!collapsed && (
           <>
             <span className="text-sm font-semibold tracking-tight text-surface-900">HeptaCert</span>
-            <span className="ml-auto rounded-md bg-surface-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-surface-500">Admin</span>
+            <span className="ml-auto rounded-md bg-surface-100 px-1.5 py-0.5 text-11 font-medium uppercase tracking-wide text-surface-500">Admin</span>
           </>
         )}
       </div>
@@ -164,7 +164,7 @@ function SidebarContent({
         {NAV_GROUPS.map((group) => (
           <div key={group.label.en}>
             {!collapsed && (
-              <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-wider text-surface-400">
+              <p className="mb-1.5 px-2 text-11 font-semibold uppercase tracking-wider text-surface-400">
                 {group.label[lang]}
               </p>
             )}
@@ -362,7 +362,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
             <HeptaCertLogoMark className="h-7 w-7 rounded-md" />
             <div className="min-w-0">
               <div className="truncate text-sm font-bold text-surface-900">HeptaCert</div>
-              <div className="truncate text-[11px] font-medium text-surface-400">{currentSection}</div>
+              <div className="truncate text-11 font-medium text-surface-400">{currentSection}</div>
             </div>
           </div>
 
@@ -406,10 +406,10 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
             <LanguageToggle className="inline-flex items-center gap-2 rounded-lg border border-surface-200 bg-white px-3 py-1.5 text-xs font-bold text-surface-700 shadow-sm transition-colors hover:bg-surface-50 hover:text-surface-900" />
             <div className="hidden min-w-0 items-center gap-3 lg:flex">
               <div className="text-right">
-                <div className="text-[10px] font-medium uppercase tracking-wider text-surface-400">{topbarText.workspace}</div>
+                <div className="text-11 font-medium uppercase tracking-wider text-surface-400">{topbarText.workspace}</div>
                 <div className="text-sm font-medium text-surface-700">{currentSection}</div>
               </div>
-              <div className="rounded-full border border-surface-200 bg-surface-50 px-2.5 py-0.5 text-[11px] font-medium text-surface-500">
+              <div className="rounded-full border border-surface-200 bg-surface-50 px-2.5 py-0.5 text-11 font-medium text-surface-500">
                 {topbarText.live}
               </div>
             </div>

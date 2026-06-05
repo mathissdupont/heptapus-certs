@@ -267,7 +267,7 @@ function JobCard({
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <p className="text-sm font-black text-surface-900">{job.type_label}</p>
-                <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${sc.color}`}>
+                <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-11 font-bold ${sc.color}`}>
                   <StatusIcon className={`h-3 w-3 ${isActive ? "animate-spin" : ""}`} />
                   {isTr ? sc.label : sc.labelEn}
                 </span>
@@ -335,7 +335,7 @@ function JobCard({
         </div>
 
         {/* Timing + error */}
-        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-surface-400">
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-11 text-surface-400">
           {job.created_at && (
             <span>{isTr ? "Başlatıldı" : "Started"}: {formatTime(job.created_at, locale)}</span>
           )}
@@ -361,7 +361,7 @@ function JobCard({
 function Stat({ label, value, color = "text-surface-900" }: { label: string; value: number | string; color?: string }) {
   return (
     <div className="rounded-xl border border-surface-100 bg-surface-50 px-3 py-2 text-center">
-      <p className="text-[10px] font-bold uppercase tracking-wide text-surface-400">{label}</p>
+      <p className="text-11 font-bold uppercase tracking-wide text-surface-400">{label}</p>
       <p className={`mt-0.5 text-base font-black tabular-nums ${color}`}>{value}</p>
     </div>
   );

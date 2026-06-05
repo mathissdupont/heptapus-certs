@@ -195,7 +195,7 @@ export default function QrPresentPage() {
           <HeptaCertLogoMark className="h-4 w-4 rounded-sm" />
           HeptaCert altyapısıyla güvence altındadır.
         </div>
-        <p className="mt-2 text-[11px] text-white/20">
+        <p className="mt-2 text-11 text-white/20">
           Bu QR check-in ekranı kurumsal olarak özelleştirilmiş olsa da yönlendirme ve doğrulama güvenliği HeptaCert tarafından sağlanır.
         </p>
       </div>

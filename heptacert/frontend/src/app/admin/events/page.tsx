@@ -308,7 +308,7 @@ export default function AdminEvents() {
       {organizationContexts.length > 1 && (
         <div className="surface-panel flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-surface-400">{copy.organization}</p>
+            <p className="text-11 font-semibold uppercase tracking-wider text-surface-400">{copy.organization}</p>
             <p className="mt-0.5 text-sm text-surface-500">{copy.orgContext}</p>
           </div>
           <select
@@ -456,23 +456,23 @@ export default function AdminEvents() {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-surface-900">{ev.name}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                      <span className="badge-neutral text-[10px]">
+                      <span className="badge-neutral text-11">
                         {EVENT_TYPE_OPTIONS.find((o) => o.value === (ev.event_type || "certificate_event"))?.label[lang] || ev.event_type}
                       </span>
                       {ev.ticketing_enabled && (
-                        <span className="inline-flex items-center rounded-full border border-sky-100 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-700">
+                        <span className="inline-flex items-center rounded-full border border-sky-100 bg-sky-50 px-2 py-0.5 text-11 font-medium text-sky-700">
                           {copy.tickets}
                         </span>
                       )}
                       {ev.certificate_enabled !== false && (
-                        <span className="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                        <span className="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-11 font-medium text-emerald-700">
                           {copy.certificates}
                         </span>
                       )}
                       {ev.template_image_url !== "placeholder" ? (
-                        <span className="text-[10px] text-emerald-600">· {copy.templateUploaded}</span>
+                        <span className="text-11 text-emerald-600">· {copy.templateUploaded}</span>
                       ) : (
-                        <span className="text-[10px] text-rose-500">· {copy.templateMissing}</span>
+                        <span className="text-11 text-rose-500">· {copy.templateMissing}</span>
                       )}
                     </div>
                   </div>

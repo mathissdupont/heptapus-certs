@@ -480,7 +480,7 @@ export default function SurveysPage() {
                       className={`inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
                         surveyType === "disabled"
                           ? "bg-surface-900 text-white"
-                          : "border border-surface-200 bg-white text-slate-700 hover:bg-slate-100"
+                          : "border border-surface-200 bg-white text-surface-700 hover:bg-surface-100"
                       }`}
                     >
                       {surveyType === "disabled" ? "Anket kapalı" : "Anketi kapat"}
@@ -626,7 +626,7 @@ export default function SurveysPage() {
                             <button
                               type="button"
                               onClick={addMultipleChoiceOption}
-                              className="inline-flex items-center gap-2 rounded-xl bg-surface-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                              className="inline-flex items-center gap-2 rounded-lg bg-surface-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
                             >
                               <Plus className="h-4 w-4" />
                               Ekle
@@ -642,13 +642,13 @@ export default function SurveysPage() {
                               (newQuestion.options || []).map((option) => (
                                 <div
                                   key={option}
-                                  className="inline-flex items-center gap-2 rounded-full border border-surface-200 bg-surface-50 px-3 py-1.5 text-sm font-medium text-slate-700"
+                                  className="inline-flex items-center gap-2 rounded-full border border-surface-200 bg-surface-50 px-3 py-1.5 text-sm font-medium text-surface-700"
                                 >
                                   <span>{option}</span>
                                   <button
                                     type="button"
                                     onClick={() => removeMultipleChoiceOption(option)}
-                                    className="rounded-full p-0.5 text-slate-400 transition hover:bg-white hover:text-rose-600"
+                                    className="rounded-full p-0.5 text-surface-400 transition hover:bg-white hover:text-rose-600"
                                   >
                                     <X className="h-3.5 w-3.5" />
                                   </button>
@@ -673,7 +673,7 @@ export default function SurveysPage() {
                     <button
                       type="button"
                       onClick={addQuestion}
-                      className="mt-4 inline-flex items-center gap-2 rounded-xl bg-surface-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-surface-800"
+                      className="mt-4 inline-flex items-center gap-2 rounded-lg bg-surface-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-surface-800"
                     >
                       <Plus className="h-4 w-4" />
                       Soruyu Ekle
@@ -736,7 +736,7 @@ export default function SurveysPage() {
                   </div>
 
                   <div className="mt-5 rounded-xl border border-surface-200 bg-surface-50 p-4">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-800">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-surface-800">
                       <ExternalLink className="h-4 w-4 text-surface-600" />
                       Webhook Bağlantı Bilgisi
                     </div>
@@ -767,14 +767,14 @@ export default function SurveysPage() {
                   <>
                 <div className="mt-5 rounded-xl border border-surface-200 bg-surface-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-surface-500">Genel giriş adresi</p>
-                  <code className="mt-3 block break-all rounded-xl bg-white p-3 text-xs text-slate-700">
+                  <code className="mt-3 block break-all rounded-xl bg-white p-3 text-xs text-surface-700">
                     {surveyLandingUrl}
                   </code>
                   <div className="mt-3 flex flex-wrap gap-3">
                     <button
                       type="button"
                       onClick={() => copyText(surveyLandingUrl, "Genel anket adresi panoya kopyalandı")}
-                      className="inline-flex items-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-surface-50"
+                      className="inline-flex items-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-2.5 text-sm font-semibold text-surface-700 transition hover:bg-surface-50"
                     >
                       <Copy className="h-4 w-4" />
                       Linki kopyala
@@ -820,7 +820,7 @@ export default function SurveysPage() {
             <button
               onClick={saveConfig}
               disabled={saving}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-surface-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-surface-800 disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-surface-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-surface-800 disabled:opacity-50"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Anket Ayarlarını Kaydet
@@ -872,8 +872,8 @@ export default function SurveysPage() {
 
           {filteredResponses.length === 0 ? (
             <div className="rounded-xl border border-surface-200 bg-white px-6 py-12 text-center shadow-card">
-              <FileText className="mx-auto mb-4 h-16 w-16 text-gray-300" />
-              <p className="text-base font-semibold text-gray-800">Henüz gösterilecek anket cevabı yok</p>
+              <FileText className="mx-auto mb-4 h-16 w-16 text-surface-300" />
+              <p className="text-base font-semibold text-surface-800">Henüz gösterilecek anket cevabı yok</p>
               <p className="mt-2 text-sm text-surface-500">Filtreleri temizleyin veya katılımcıların anketi tamamlamasını bekleyin.</p>
             </div>
           ) : (

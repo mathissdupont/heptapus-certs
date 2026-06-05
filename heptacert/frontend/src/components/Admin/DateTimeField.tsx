@@ -42,7 +42,7 @@ export default function DateTimeField({
       className={`min-w-0 border-0 p-0 m-0 transition-opacity duration-200 disabled:opacity-50 antialiased ${className}`}
     >
       {label && (
-        <legend className="block text-xs font-semibold text-gray-900 tracking-tight mb-2.5">
+        <legend className="block text-xs font-semibold text-surface-900 tracking-tight mb-2.5">
           {label}
         </legend>
       )}

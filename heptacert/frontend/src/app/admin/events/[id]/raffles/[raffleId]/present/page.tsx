@@ -552,7 +552,7 @@ export default function RafflePresentationPage() {
                   type="button"
                   onClick={handleStart}
                   disabled={drawing || !!(raffle && raffle.winners.length === 0 && raffle.eligible_count === 0)}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-black text-slate-900 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-black text-surface-900 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {drawing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
                   {raffle?.winners.length ? "Sunumu başlat" : "Çekilişi başlat"}

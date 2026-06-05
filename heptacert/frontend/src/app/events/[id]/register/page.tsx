@@ -700,7 +700,7 @@ export default function EventRegisterPage() {
                   <div className="mx-auto mt-6 max-w-lg overflow-hidden rounded-[28px] border border-white/15 bg-[linear-gradient(135deg,rgba(255,255,255,0.16),rgba(255,255,255,0.06))] p-5 text-left shadow-[0_24px_70px_rgba(0,0,0,0.22)]">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/55">{copy.digitalCard}</p>
+                        <p className="text-11 font-semibold uppercase tracking-[0.24em] text-white/55">{copy.digitalCard}</p>
                         <p className="mt-3 text-2xl font-black text-white">{event.name}</p>
                         <p className="mt-1 text-sm text-white/70">{name}</p>
                         <p className="text-xs text-white/50">{email}</p>
@@ -712,24 +712,24 @@ export default function EventRegisterPage() {
 
                     <div className="mt-5 grid gap-3 md:grid-cols-3">
                       <div className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3">
-                        <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">{copy.cardOwner}</p>
+                        <p className="text-11 uppercase tracking-[0.18em] text-white/45">{copy.cardOwner}</p>
                         <p className="mt-2 text-sm font-semibold text-white">{name}</p>
                       </div>
                       <div className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3">
-                        <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">{copy.participationRule}</p>
+                        <p className="text-11 uppercase tracking-[0.18em] text-white/45">{copy.participationRule}</p>
                         <p className="mt-2 text-sm font-semibold text-white">{copy.cardRuleLabel.replace("{count}", String(event.min_sessions_required))}</p>
                       </div>
                       <div className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3">
-                        <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">{copy.status}</p>
+                        <p className="text-11 uppercase tracking-[0.18em] text-white/45">{copy.status}</p>
                         <p className="mt-2 text-sm font-semibold text-white">{alreadyRegistered ? copy.registrationExists : copy.newRegistrationCreated}</p>
                       </div>
                     </div>
 
                     <div className="mt-4 flex flex-wrap gap-2">
-                      <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/65">
+                      <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-11 font-semibold uppercase tracking-[0.18em] text-white/65">
                         {ticketingEnabled ? copy.entryPass : certificateEnabled ? copy.certifiedEvent : copy.standardEvent}
                       </span>
-                      <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/65">
+                      <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-11 font-semibold uppercase tracking-[0.18em] text-white/65">
                         {surveyEnabled ? copy.surveyFlow : copy.directAccess}
                       </span>
                     </div>
@@ -741,7 +741,7 @@ export default function EventRegisterPage() {
                             <Ticket className="h-4 w-4" style={{ color: brandColor }} />
                             {copy.ticketReady}
                           </p>
-                          <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-100">
+                          <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-11 font-semibold uppercase tracking-[0.16em] text-emerald-100">
                             {copy.entryPass}
                           </span>
                         </div>
@@ -1169,7 +1169,7 @@ export default function EventRegisterPage() {
             <ShieldCheck className="h-3.5 w-3.5" style={{ color: brandColor }} />
             {copy.securePowered}
           </div>
-          <p className="mx-auto mt-2 max-w-2xl text-[11px] leading-relaxed text-white/30">{copy.poweredFooter}</p>
+          <p className="mx-auto mt-2 max-w-2xl text-11 leading-relaxed text-white/30">{copy.poweredFooter}</p>
         </div>
       </footer>
     </div>

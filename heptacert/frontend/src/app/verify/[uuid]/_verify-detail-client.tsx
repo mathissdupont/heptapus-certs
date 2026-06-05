@@ -406,5 +406,5 @@ function wrapCanvasText(
 }
 
 function InfoCard({ icon: Icon, label, value }: { icon: any; label: string; value: ReactNode }) {
-  return <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400"><Icon className="h-3.5 w-3.5" />{label}</div><div className="text-sm font-semibold text-slate-900">{value}</div></div>;
+  return <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="mb-1 flex items-center gap-2 text-11 font-semibold uppercase tracking-wide text-slate-400"><Icon className="h-3.5 w-3.5" />{label}</div><div className="text-sm font-semibold text-slate-900">{value}</div></div>;
 }

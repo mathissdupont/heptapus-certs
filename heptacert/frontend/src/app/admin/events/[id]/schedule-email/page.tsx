@@ -143,9 +143,9 @@ export default function ScheduleEmailPage() {
       case 'failed':
         return 'bg-red-100 text-red-800';
       case 'cancelled':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-surface-100 text-surface-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-surface-100 text-surface-800';
     }
   };
 
@@ -169,7 +169,7 @@ export default function ScheduleEmailPage() {
       <div className="p-8">
         <div className="max-w-6xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-3xl font-bold text-surface-900 flex items-center gap-2">
             <Send className="h-7 w-7 text-brand-600" />
             Email Zamanla
           </h1>
@@ -183,7 +183,7 @@ export default function ScheduleEmailPage() {
 
               {/* Template Selection */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-surface-700 mb-2">
                   Şablon
                 </label>
                 <select
@@ -191,7 +191,7 @@ export default function ScheduleEmailPage() {
                   onChange={e =>
                     setFormData({ ...formData, email_template_id: parseInt(e.target.value) })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-3 py-2 border border-surface-300 rounded-lg"
                 >
                   {templates.map(t => (
                     <option key={t.id} value={t.id}>
@@ -203,7 +203,7 @@ export default function ScheduleEmailPage() {
 
               {/* Recipient Type */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-surface-700 mb-2">
                   Alıcılar
                 </label>
                 <select
@@ -214,7 +214,7 @@ export default function ScheduleEmailPage() {
                       recipient_type: e.target.value as 'attendees' | 'certified',
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-3 py-2 border border-surface-300 rounded-lg"
                 >
                   <option value="attendees">Tüm Katılımcılar</option>
                   <option value="certified">Sertifikaları Alanlar</option>
@@ -223,7 +223,7 @@ export default function ScheduleEmailPage() {
 
               {/* Schedule Type */}
               <div className="mb-6 border-t pt-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-surface-700 mb-2">
                   İtme Türü
                 </label>
                 <select
@@ -234,7 +234,7 @@ export default function ScheduleEmailPage() {
                       schedule_type: e.target.value as 'immediate' | 'datetime' | 'cron',
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-3 py-2 border border-surface-300 rounded-lg"
                 >
                   <option value="immediate">Hemen Gönder</option>
                   <option value="datetime">Belirli Zamanında Gönder</option>
@@ -264,7 +264,7 @@ export default function ScheduleEmailPage() {
               {/* Cron Expression */}
               {formData.schedule_type === 'cron' && (
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-surface-700 mb-2">
                     Cron İfadesi
                   </label>
                   <input
@@ -274,9 +274,9 @@ export default function ScheduleEmailPage() {
                       setFormData({ ...formData, cron_expression: e.target.value })
                     }
                     placeholder="0 9 * * MON (Her Pazartesi 09:00)"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-xs"
+                    className="w-full px-3 py-2 border border-surface-300 rounded-lg font-mono text-xs"
                   />
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-surface-500 mt-2">
                     Örnek: &quot;0 9 * * MON&quot; = Her Pazartesi sabah 9&apos;da
                   </p>
                 </div>
@@ -296,14 +296,14 @@ export default function ScheduleEmailPage() {
           {/* Scheduled Jobs List */}
           <div className="lg:col-span-2">
             <div className="bg-white shadow rounded-lg overflow-hidden">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">
+              <div className="p-6 border-b border-surface-200">
+                <h2 className="text-lg font-semibold text-surface-900">
                   Zamanlanmış Emailler ({scheduledEmails.length})
                 </h2>
               </div>
 
               {scheduledEmails.length === 0 ? (
-                <div className="p-6 text-center text-gray-500">
+                <div className="p-6 text-center text-surface-500">
                   Henüz zamanlanmış email yok
                 </div>
               ) : (
@@ -315,13 +315,13 @@ export default function ScheduleEmailPage() {
                       : 0;
 
                     return (
-                      <div key={email.id} className="p-6 hover:bg-gray-50">
+                      <div key={email.id} className="p-6 hover:bg-surface-50">
                         <div className="flex justify-between items-start mb-3">
                           <div>
-                            <p className="font-medium text-gray-900">
+                            <p className="font-medium text-surface-900">
                               {template?.name || `Template ${email.email_template_id}`}
                             </p>
-                            <p className="text-sm text-gray-500 mt-1">
+                            <p className="text-sm text-surface-500 mt-1">
                               Oluşturuldu:{' '}
                               {new Date(email.created_at).toLocaleString('tr-TR')}
                             </p>
@@ -332,13 +332,13 @@ export default function ScheduleEmailPage() {
                         </div>
 
                         {email.scheduled_at && (
-                          <p className="text-sm text-gray-600 mb-3">
+                          <p className="text-sm text-surface-600 mb-3">
                             ⏰ Gönderilecek:{' '}
                             {new Date(email.scheduled_at).toLocaleString('tr-TR')}
                           </p>
                         )}
                         {email.cron_expression && (
-                          <p className="text-sm text-gray-600 mb-3">
+                          <p className="text-sm text-surface-600 mb-3">
                             Dönemsel: <span className="font-mono text-xs">{email.cron_expression}</span>
                           </p>
                         )}
@@ -346,13 +346,13 @@ export default function ScheduleEmailPage() {
                         {/* Progress Bar */}
                         {['pending', 'completed'].includes(email.status) && (
                           <div className="mb-3">
-                            <div className="flex justify-between text-xs text-gray-600 mb-1">
+                            <div className="flex justify-between text-xs text-surface-600 mb-1">
                               <span>
                                 {email.sent_count}/{email.recipients_count} gönderildi
                               </span>
                               <span>{progress}%</span>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="w-full bg-surface-200 rounded-full h-2">
                               <div
                                 className={`h-2 rounded-full ${
                                   email.status === 'completed' ? 'bg-green-500' : 'bg-blue-500'
@@ -370,7 +370,7 @@ export default function ScheduleEmailPage() {
                         )}
 
                         {email.completed_at && (
-                          <p className="text-xs text-gray-500 mb-3">
+                          <p className="text-xs text-surface-500 mb-3">
                             Tamamlandı: {new Date(email.completed_at).toLocaleString('tr-TR')}
                           </p>
                         )}

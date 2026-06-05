@@ -487,7 +487,7 @@ function RaffleCard({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="truncate text-lg font-black text-surface-950">{raffle.title}</h3>
-            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${statusMeta(raffle.status)}`}>
+            <span className={`rounded-full border px-2.5 py-1 text-11 font-bold ${statusMeta(raffle.status)}`}>
               {raffle.status === "drawn" ? "Tamamlandı" : "Taslak"}
             </span>
           </div>
@@ -614,7 +614,7 @@ function MiniStat({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-2xl border border-surface-200 bg-surface-50 px-3 py-2">
       <p className="font-black text-surface-950">{value}</p>
-      <p className="text-[11px] font-semibold text-surface-400">{label}</p>
+      <p className="text-11 font-semibold text-surface-400">{label}</p>
     </div>
   );
 }
@@ -626,7 +626,7 @@ function PersonRow({ name, email, meta }: { name: string; email: string; meta: s
         <p className="truncate text-sm font-semibold text-surface-900">{name}</p>
         <p className="truncate text-xs text-surface-500">{email}</p>
       </div>
-      <span className="shrink-0 rounded-full bg-surface-100 px-2 py-1 text-[11px] font-bold text-surface-600">
+      <span className="shrink-0 rounded-full bg-surface-100 px-2 py-1 text-11 font-bold text-surface-600">
         {meta}
       </span>
     </div>

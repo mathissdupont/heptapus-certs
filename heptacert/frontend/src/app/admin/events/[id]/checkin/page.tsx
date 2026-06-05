@@ -405,7 +405,7 @@ export default function AdminCheckinPage() {
               <ArrowLeft className="h-3.5 w-3.5 stroke-[2.5]" />
               <span>Operasyon</span>
             </Link>
-            <span className="inline-flex rounded-md border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 uppercase tracking-tight shadow-card animate-pulse">Görevli Modu</span>
+            <span className="inline-flex rounded-md border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-11 font-bold text-emerald-700 uppercase tracking-tight shadow-card animate-pulse">Görevli Modu</span>
           </div>
         )}
 
@@ -421,20 +421,20 @@ export default function AdminCheckinPage() {
             <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="space-y-0.5">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-surface-400">Mobil saha operasyonu</p>
+                  <p className="text-11 font-bold uppercase tracking-widest text-surface-400">Mobil saha operasyonu</p>
                   <h1 className="text-lg font-bold tracking-tight text-surface-900 sm:text-xl">Hızlı Check-in Kapısı</h1>
                   <p className="text-xs text-surface-400 font-medium truncate max-w-xs sm:max-w-md">{eventName}</p>
                 </div>
                 
                 <div className="flex items-center gap-2 flex-wrap">
-                  <div className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-tight shadow-card ${
+                  <div className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-11 font-bold uppercase tracking-tight shadow-card ${
                     isOnline ? "border-emerald-100 bg-emerald-50 text-emerald-700" : "border-amber-100 bg-amber-50 text-amber-700"
                   }`}>
                     {isOnline ? <Wifi className="h-3.5 w-3.5 mr-1" /> : <WifiOff className="h-3.5 w-3.5 mr-1" />}
                     <span>{isOnline ? "Online" : "Offline"}</span>
                   </div>
                   {liveCount > 0 && (
-                    <div className="inline-flex items-center gap-1 rounded-full border border-violet-100 bg-violet-50 px-2.5 py-0.5 text-[10px] font-bold text-violet-700">
+                    <div className="inline-flex items-center gap-1 rounded-full border border-violet-100 bg-violet-50 px-2.5 py-0.5 text-11 font-bold text-violet-700">
                       <span className="h-1.5 w-1.5 rounded-full bg-violet-500 animate-ping inline-block" />
                       <span>+{liveCount} canlı</span>
                     </div>
@@ -445,15 +445,15 @@ export default function AdminCheckinPage() {
               {/* HIZLI DURUM PENCERELERİ (Mini Matrix Grid) */}
               <div className="grid grid-cols-3 gap-2.5 text-center">
                 <div className="rounded-xl border border-surface-100 bg-surface-50 p-2.5">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-surface-400 truncate">Aktif Oturum</p>
+                  <p className="text-11 font-bold uppercase tracking-wider text-surface-400 truncate">Aktif Oturum</p>
                   <p className="mt-0.5 text-xs font-bold text-surface-900 truncate">{selectedSessionObj?.name || "Seçilmedi"}</p>
                 </div>
                 <div className="rounded-xl border border-surface-100 bg-surface-50 p-2.5">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-surface-400 truncate">Anlık Kabul</p>
+                  <p className="text-11 font-bold uppercase tracking-wider text-surface-400 truncate">Anlık Kabul</p>
                   <p className="mt-0.5 text-sm font-bold text-surface-900 font-mono tabular-nums">{todayAttendance}</p>
                 </div>
                 <div className="rounded-xl border border-surface-100 bg-surface-50 p-2.5">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-surface-400 truncate">Offline Kuyruk</p>
+                  <p className="text-11 font-bold uppercase tracking-wider text-surface-400 truncate">Offline Kuyruk</p>
                   <p className="mt-0.5 text-sm font-bold text-surface-900 font-mono tabular-nums">{offlineQueue.length}</p>
                 </div>
               </div>
@@ -462,27 +462,27 @@ export default function AdminCheckinPage() {
               {metrics && (
                 <div className="grid gap-2.5 grid-cols-2 sm:grid-cols-3 md:grid-cols-6 pt-1">
                   <div className="rounded-xl border border-surface-100 bg-white p-2.5">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-surface-400">Kapı Akışı</p>
+                    <p className="text-11 font-bold uppercase tracking-wider text-surface-400">Kapı Akışı</p>
                     <p className="mt-0.5 text-xs font-bold text-surface-900 font-mono">{metrics.last_hour}/saat</p>
                   </div>
                   <div className="rounded-xl border border-surface-100 bg-white p-2.5">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-surface-400">Sevk Başarı</p>
+                    <p className="text-11 font-bold uppercase tracking-wider text-surface-400">Sevk Başarı</p>
                     <p className="mt-0.5 text-xs font-bold text-surface-900 font-mono">{metrics.successful}/{metrics.total}</p>
                   </div>
                   <div className="rounded-xl border border-surface-100 bg-white p-2.5">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-surface-400">En Aktif Masası</p>
-                    <p className="mt-0.5 text-[10px] font-bold text-surface-900 truncate font-mono">{metrics.by_staff[0]?.email || "—"}</p>
+                    <p className="text-11 font-bold uppercase tracking-wider text-surface-400">En Aktif Masası</p>
+                    <p className="mt-0.5 text-11 font-bold text-surface-900 truncate font-mono">{metrics.by_staff[0]?.email || "—"}</p>
                   </div>
                   <div className="rounded-xl border border-amber-100 bg-amber-50/20 p-2.5">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600">Tekrarlanan</p>
+                    <p className="text-11 font-bold uppercase tracking-wider text-amber-600">Tekrarlanan</p>
                     <p className="mt-0.5 text-xs font-bold text-amber-900 font-mono">{metrics.duplicate_count}</p>
                   </div>
                   <div className="rounded-xl border border-red-100 bg-red-50/20 p-2.5">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-red-500">Geçersiz QR</p>
+                    <p className="text-11 font-bold uppercase tracking-wider text-red-500">Geçersiz QR</p>
                     <p className="mt-0.5 text-xs font-bold text-red-600 font-mono">{metrics.invalid_count}</p>
                   </div>
                   <div className="rounded-xl border border-sky-100 bg-sky-50/20 p-2.5">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-sky-600">Sınır Alarmı</p>
+                    <p className="text-11 font-bold uppercase tracking-wider text-sky-600">Sınır Alarmı</p>
                     <p className="mt-0.5 text-xs font-bold text-sky-900 font-mono">{metrics.capacity_alerts.length}</p>
                   </div>
                 </div>
@@ -490,7 +490,7 @@ export default function AdminCheckinPage() {
 
               {/* DOLULUK TEHLİKE ALARMI */}
               {metrics?.capacity_alerts?.length ? (
-                <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-3 text-[11px] font-semibold text-amber-800 flex items-center gap-1.5 animate-in fade-in duration-200">
+                <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-3 text-11 font-semibold text-amber-800 flex items-center gap-1.5 animate-in fade-in duration-200">
                   <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
                   <span>{metrics.capacity_alerts[0].session_name}: %{metrics.capacity_alerts[0].fill_rate} salon doluluk uyarısı!</span>
                 </div>
@@ -520,12 +520,12 @@ export default function AdminCheckinPage() {
                         <input type="radio" name="session" value={s.id} checked={isSessSel} onChange={() => setSelectedSession(s.id)} className="h-3.5 w-3.5 text-surface-900 focus:ring-0 focus:ring-offset-0 cursor-pointer" />
                         <div className="min-w-0 flex-1 space-y-0.5">
                           <p className="text-xs font-bold text-surface-900 truncate">{s.name}</p>
-                          <div className="flex gap-1.5 text-[10px] font-semibold text-surface-400 font-mono uppercase">
+                          <div className="flex gap-1.5 text-11 font-semibold text-surface-400 font-mono uppercase">
                             {s.session_date && <span>{new Date(s.session_date).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" })}</span>}
                             {s.session_start && <span>· {s.session_start}</span>}
                           </div>
                         </div>
-                        <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 border rounded-md shadow-card ${isSessSel ? "border-gray-950 bg-gray-50 text-surface-900" : "border-surface-100 bg-gray-50 text-surface-400"}`}>
+                        <span className={`shrink-0 text-11 font-bold px-2 py-0.5 border rounded-md shadow-card ${isSessSel ? "border-gray-950 bg-surface-50 text-surface-900" : "border-surface-100 bg-surface-50 text-surface-400"}`}>
                           {s.attendance_count} Kabul
                         </span>
                       </label>
@@ -552,10 +552,10 @@ export default function AdminCheckinPage() {
 
                 {/* QR Canlı Kamera Okuma Yuvası */}
                 {scannerOpen && (
-                  <div className="overflow-hidden rounded-xl border border-surface-200 bg-gray-900 p-3 shadow-inner max-w-sm mx-auto animate-in zoom-in-98 duration-200 w-full">
+                  <div className="overflow-hidden rounded-xl border border-surface-200 bg-surface-800 p-3 shadow-inner max-w-sm mx-auto animate-in zoom-in-98 duration-200 w-full">
                     <div id={scannerRegionId} className="min-h-[240px] overflow-hidden rounded-lg bg-black flex items-center justify-center text-xs text-white" />
-                    {scannerError && <p className="mt-2 text-[10px] font-bold text-red-500 text-center">{scannerError}</p>}
-                    <p className="mt-2.5 text-[10px] font-semibold text-surface-400 flex items-center justify-center gap-1">
+                    {scannerError && <p className="mt-2 text-11 font-bold text-red-500 text-center">{scannerError}</p>}
+                    <p className="mt-2.5 text-11 font-semibold text-surface-400 flex items-center justify-center gap-1">
                       <QrCode className="h-3.5 w-3.5" />
                       <span>Bilet QR kodu, e-posta veya üye kimlik cüzdanı okutabilirsiniz.</span>
                     </p>
@@ -581,7 +581,7 @@ export default function AdminCheckinPage() {
                   <button 
                     type="submit" 
                     disabled={submitting || !email.trim()} 
-                    className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-surface-900 px-5 text-xs font-bold text-white shadow-card transition hover:bg-surface-800 disabled:opacity-40 active:scale-[0.98]"
+                    className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-lg bg-surface-900 px-5 text-xs font-bold text-white shadow-card transition hover:bg-surface-800 disabled:opacity-40 active:scale-[0.98]"
                   >
                     {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserCheck className="h-3.5 w-3.5 stroke-[2.5]" />}
                     <span>Kabul Et (Check-in)</span>
@@ -598,10 +598,10 @@ export default function AdminCheckinPage() {
                   <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">Yerel Çevrimdışı Bellek Havuzu</h3>
                 </div>
                 <div className="flex gap-1.5">
-                  <button type="button" onClick={() => void syncQueue()} disabled={!isOnline || syncing || offlineQueue.length === 0} className="rounded-lg border border-surface-200 bg-white px-2.5 py-1 text-[10px] font-bold text-surface-700 shadow-card hover:bg-surface-50 disabled:opacity-40">
+                  <button type="button" onClick={() => void syncQueue()} disabled={!isOnline || syncing || offlineQueue.length === 0} className="rounded-lg border border-surface-200 bg-white px-2.5 py-1 text-11 font-bold text-surface-700 shadow-card hover:bg-surface-50 disabled:opacity-40">
                     Kuyruğu Eşitle
                   </button>
-                  <button type="button" onClick={clearQueue} disabled={offlineQueue.length === 0} className="rounded-lg border border-red-100 bg-white px-2 py-1 text-[10px] font-bold text-red-600 shadow-card hover:bg-red-50 disabled:opacity-40">
+                  <button type="button" onClick={clearQueue} disabled={offlineQueue.length === 0} className="rounded-lg border border-red-100 bg-white px-2 py-1 text-11 font-bold text-red-600 shadow-card hover:bg-red-50 disabled:opacity-40">
                     <Trash2 className="h-3.5 w-3.5 stroke-[1.8]" />
                   </button>
                 </div>
@@ -609,16 +609,16 @@ export default function AdminCheckinPage() {
               
               {offlineQueue.length === 0 ? (
                 <p className="flex items-center gap-1.5 text-xs font-medium text-surface-400">
-                  <Smartphone className="h-3.5 w-3.5 text-gray-300" />
+                  <Smartphone className="h-3.5 w-3.5 text-surface-300" />
                   <span>Cihaz hafızasında senkronizasyon bekleyen offline kayıt bulunmuyor.</span>
                 </p>
               ) : (
-                <div className="max-h-40 divide-y divide-gray-100 overflow-y-auto pr-0.5 scrollbar-none font-mono text-[11px] font-medium text-surface-500">
+                <div className="max-h-40 divide-y divide-gray-100 overflow-y-auto pr-0.5 scrollbar-none font-mono text-11 font-medium text-surface-500">
                   {offlineQueue.map((item) => (
                     <div key={item.id} className="py-2 flex items-center justify-between gap-3">
-                      <span className="truncate text-surface-700"><strong className="font-sans text-[10px] uppercase text-surface-400 mr-1">{item.type === "ticket" ? "Bilet" : "E-posta"}:</strong> {item.value}</span>
+                      <span className="truncate text-surface-700"><strong className="font-sans text-11 uppercase text-surface-400 mr-1">{item.type === "ticket" ? "Bilet" : "E-posta"}:</strong> {item.value}</span>
                       <span className="shrink-0 text-surface-400 font-sans font-bold">{item.attempts} deneme</span>
-                      {item.lastError && <p className="text-red-500 text-[10px] tracking-tight">{item.lastError}</p>}
+                      {item.lastError && <p className="text-red-500 text-11 tracking-tight">{item.lastError}</p>}
                     </div>
                   ))}
                 </div>
@@ -633,7 +633,7 @@ export default function AdminCheckinPage() {
                     <History className="h-3.5 w-3.5 text-surface-400 stroke-[2]" />
                     <span>Kapı Giriş Hareketleri Günlüğü</span>
                   </h3>
-                  <button type="button" onClick={() => setLog([])} className="text-[10px] font-bold text-surface-400 hover:text-red-500 transition-colors">Temizle</button>
+                  <button type="button" onClick={() => setLog([])} className="text-11 font-bold text-surface-400 hover:text-red-500 transition-colors">Temizle</button>
                 </div>
                 
                 <div className="max-h-80 divide-y divide-gray-100 overflow-y-auto scrollbar-none bg-white">
@@ -642,9 +642,9 @@ export default function AdminCheckinPage() {
                       {entry.success ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500 mt-0.5 stroke-[2.5]" /> : <XCircle className="h-4 w-4 shrink-0 text-red-500 mt-0.5 stroke-[2]" />}
                       <div className="min-w-0 flex-1 space-y-0.5">
                         <p className="truncate text-xs font-bold text-surface-900 tracking-tight">{entry.email}</p>
-                        <p className="text-[11px] font-medium text-surface-400 leading-normal">{entry.queued ? "⚠️ " : ""}{entry.message}</p>
+                        <p className="text-11 font-medium text-surface-400 leading-normal">{entry.queued ? "⚠️ " : ""}{entry.message}</p>
                       </div>
-                      <span className="shrink-0 text-[10px] font-bold text-surface-400 font-mono pt-0.5">{entry.time}</span>
+                      <span className="shrink-0 text-11 font-bold text-surface-400 font-mono pt-0.5">{entry.time}</span>
                     </div>
                   ))}
                 </div>

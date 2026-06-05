@@ -132,7 +132,7 @@ export default function EmailDashboard() {
         description: copy.smtpBody,
         href: "/admin/email-settings",
         icon: Settings,
-        tone: "bg-gray-50 border-gray-100 text-gray-800",
+        tone: "bg-surface-50 border-surface-100 text-surface-800",
         stat: copy.smtpStat,
       },
       {
@@ -140,7 +140,7 @@ export default function EmailDashboard() {
         description: copy.templatesBody,
         href: "/admin/events",
         icon: Layers3,
-        tone: "bg-gray-50 border-gray-100 text-gray-800",
+        tone: "bg-surface-50 border-surface-100 text-surface-800",
         stat: copy.templatesStat,
       },
       {
@@ -148,7 +148,7 @@ export default function EmailDashboard() {
         description: copy.campaignsBody,
         href: "/admin/events",
         icon: Send,
-        tone: "bg-gray-50 border-gray-100 text-gray-800",
+        tone: "bg-surface-50 border-surface-100 text-surface-800",
         stat: copy.campaignsStat,
       },
       {
@@ -156,7 +156,7 @@ export default function EmailDashboard() {
         description: copy.analyticsBody,
         href: "/admin/email-analytics",
         icon: BarChart3,
-        tone: "bg-gray-50 border-gray-100 text-gray-800",
+        tone: "bg-surface-50 border-surface-100 text-surface-800",
         stat: copy.analyticsStat,
       },
       {
@@ -164,7 +164,7 @@ export default function EmailDashboard() {
         description: copy.webhooksBody,
         href: "/admin/webhooks",
         icon: Webhook,
-        tone: "bg-gray-50 border-gray-100 text-gray-800",
+        tone: "bg-surface-50 border-surface-100 text-surface-800",
         stat: copy.webhooksStat,
       },
     ],
@@ -173,7 +173,7 @@ export default function EmailDashboard() {
 
   return (
     <FeatureGate requiredPlans={["growth", "enterprise"]}>
-      <div className="flex w-full flex-col gap-6 pb-16 antialiased text-gray-900">
+      <div className="flex w-full flex-col gap-6 pb-16 antialiased text-surface-900">
         {/* GLOBAL BAŞLIK KARTI */}
         <PageHeader title={copy.title} subtitle={copy.subtitle} icon={<Mail className="h-4 w-4 stroke-[2]" />} />
 
@@ -184,12 +184,12 @@ export default function EmailDashboard() {
             { label: copy.metricWebhooks, count: webhookCount, sub: copy.statWebhooks },
             { label: copy.metricEvents, count: eventCount, sub: copy.statEvents },
           ].map((metric, i) => (
-            <div key={i} className="w-full rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{metric.label}</p>
-              <p className="mt-1 text-2xl font-bold tracking-tight text-gray-950 tabular-nums">
+            <div key={i} className="w-full rounded-2xl border border-surface-200 bg-white p-5 shadow-sm">
+              <p className="text-11 font-bold uppercase tracking-widest text-surface-400">{metric.label}</p>
+              <p className="mt-1 text-2xl font-bold tracking-tight text-surface-900 tabular-nums">
                 {loading ? "..." : metric.count}
               </p>
-              <p className="mt-1 text-[11px] font-medium text-gray-400">{metric.sub}</p>
+              <p className="mt-1 text-11 font-medium text-surface-400">{metric.sub}</p>
             </div>
           ))}
         </div>
@@ -205,7 +205,7 @@ export default function EmailDashboard() {
                 <Link 
                   key={card.title} 
                   href={card.href} 
-                  className="group flex flex-col justify-between gap-5 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-300 hover:border-gray-300 hover:bg-gray-50/40"
+                  className="group flex flex-col justify-between gap-5 rounded-2xl border border-surface-200 bg-white p-5 shadow-sm transition-all duration-300 hover:border-surface-300 hover:bg-surface-50/40"
                 >
                   <div className="space-y-4">
                     {/* Minimalist Apple İkon Kafesi */}
@@ -213,15 +213,15 @@ export default function EmailDashboard() {
                       <Icon className="h-4 w-4 stroke-[1.8]" />
                     </div>
                     <div>
-                      <h2 className="text-sm font-bold tracking-tight text-gray-950">{card.title}</h2>
-                      <p className="mt-1.5 text-xs leading-relaxed text-gray-400">{card.description}</p>
+                      <h2 className="text-sm font-bold tracking-tight text-surface-900">{card.title}</h2>
+                      <p className="mt-1.5 text-xs leading-relaxed text-surface-400">{card.description}</p>
                     </div>
                   </div>
                   
                   {/* Kart Altı Statü ve İlerleme Okları */}
-                  <div className="flex items-center justify-between gap-2 text-[11px] font-semibold tracking-tight pt-1.5 border-t border-gray-50">
-                    <span className="text-gray-400 font-medium">{card.stat}</span>
-                    <span className="inline-flex items-center gap-0.5 text-gray-950 group-hover:text-gray-900">
+                  <div className="flex items-center justify-between gap-2 text-11 font-semibold tracking-tight pt-1.5 border-t border-gray-50">
+                    <span className="text-surface-400 font-medium">{card.stat}</span>
+                    <span className="inline-flex items-center gap-0.5 text-surface-900 group-hover:text-surface-900">
                       <span>{copy.open}</span>
                       <ChevronRight className="h-3.5 w-3.5 opacity-60 translate-x-0 transition-transform group-hover:translate-x-0.5" />
                     </span>
@@ -232,25 +232,25 @@ export default function EmailDashboard() {
           </div>
 
           {/* Sağ Sütun: Sistem Çalışma Rehberi */}
-          <aside className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
-            <div className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 shadow-sm">
+          <aside className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm space-y-4">
+            <div className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 text-11 font-bold text-emerald-700 shadow-sm">
               <ShieldCheck className="mr-1 h-3 w-3 stroke-[2.5]" />
               <span>{copy.setupTitle}</span>
             </div>
             
             <div>
-              <h2 className="text-sm font-bold tracking-tight text-gray-950">{copy.title}</h2>
-              <p className="mt-1.5 text-xs leading-relaxed text-gray-500">{copy.setupBody}</p>
+              <h2 className="text-sm font-bold tracking-tight text-surface-900">{copy.title}</h2>
+              <p className="mt-1.5 text-xs leading-relaxed text-surface-500">{copy.setupBody}</p>
             </div>
 
             {/* İçi Boş Şablon Yönetim Uyarı Kapsülü */}
-            <div className="space-y-2 rounded-xl border border-gray-100 bg-gray-50/50 p-3.5 text-xs">
-              <p className="font-semibold leading-relaxed text-gray-700 tracking-tight">{copy.eventsHint}</p>
+            <div className="space-y-2 rounded-xl border border-surface-100 bg-surface-50/50 p-3.5 text-xs">
+              <p className="font-semibold leading-relaxed text-surface-700 tracking-tight">{copy.eventsHint}</p>
               <div className="pt-1.5 space-y-2">
-                <Link href="/admin/events" className="w-full inline-flex min-h-[34px] items-center justify-center rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-800 shadow-sm transition hover:bg-gray-50">
+                <Link href="/admin/events" className="w-full inline-flex min-h-[34px] items-center justify-center rounded-lg border border-surface-200 bg-white text-xs font-semibold text-surface-800 shadow-sm transition hover:bg-surface-50">
                   {copy.goEvents}
                 </Link>
-                <Link href="/admin/email-analytics" className="w-full inline-flex min-h-[34px] items-center justify-center rounded-lg bg-gray-950 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900">
+                <Link href="/admin/email-analytics" className="w-full inline-flex min-h-[34px] items-center justify-center rounded-lg bg-surface-900 text-xs font-semibold text-white shadow-sm transition hover:bg-surface-800">
                   {copy.goAnalytics}
                 </Link>
               </div>

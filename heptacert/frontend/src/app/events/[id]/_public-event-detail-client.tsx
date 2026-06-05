@@ -465,7 +465,7 @@ export default function PublicEventDetailClient() {
                     <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
                       <h3 className="text-sm font-semibold text-gray-900">{field.label}</h3>
                       {field.required && (
-                        <span className="inline-flex items-center rounded-md bg-rose-50 px-2 py-1 text-[11px] font-medium text-rose-600 border border-rose-100">
+                        <span className="inline-flex items-center rounded-md bg-rose-50 px-2 py-1 text-11 font-medium text-rose-600 border border-rose-100">
                           {copy.required}
                         </span>
                       )}
@@ -513,7 +513,7 @@ export default function PublicEventDetailClient() {
                   />
                   <div className="flex items-center justify-between bg-gray-50 px-4 py-2 border-t border-gray-100">
                     <p className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
-                      <div className="h-5 w-5 rounded-full bg-slate-200 flex items-center justify-center text-[10px] text-slate-600">
+                      <div className="h-5 w-5 rounded-full bg-slate-200 flex items-center justify-center text-11 text-slate-600">
                         {member.display_name?.charAt(0).toUpperCase() || member.email.charAt(0).toUpperCase()}
                       </div>
                       {member.display_name || member.email}

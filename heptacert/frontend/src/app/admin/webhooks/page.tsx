@@ -203,7 +203,7 @@ export default function WebhooksPage() {
                 <div>
                   <label className="label">
                     Olay Tipi
-                    <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs bg-gray-200 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-400 cursor-help" title="Hangi e-posta olayı tetiklediğinde webhook tetiklenecek">?</span>
+                    <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs bg-surface-200 dark:bg-gray-700 rounded-full text-surface-600 dark:text-surface-400 cursor-help" title="Hangi e-posta olayı tetiklediğinde webhook tetiklenecek">?</span>
                   </label>
                   <select
                     value={formData.event_type}
@@ -219,7 +219,7 @@ export default function WebhooksPage() {
                 <div>
                   <label className="label">
                     Webhook URL
-                    <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs bg-gray-200 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-400 cursor-help" title="İstek alacak sunucunuzun adresi">?</span>
+                    <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs bg-surface-200 dark:bg-gray-700 rounded-full text-surface-600 dark:text-surface-400 cursor-help" title="İstek alacak sunucunuzun adresi">?</span>
                   </label>
                   <input
                     type="url"
@@ -236,7 +236,7 @@ export default function WebhooksPage() {
               <div>
                 <label className="label">
                   Secret (İsteğe bağlı)
-                  <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs bg-gray-200 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-400 cursor-help" title="Webhook isteklerini doğrulamak için gizli anahtar">?</span>
+                  <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs bg-surface-200 dark:bg-gray-700 rounded-full text-surface-600 dark:text-surface-400 cursor-help" title="Webhook isteklerini doğrulamak için gizli anahtar">?</span>
                 </label>
                 <input
                   type="text"

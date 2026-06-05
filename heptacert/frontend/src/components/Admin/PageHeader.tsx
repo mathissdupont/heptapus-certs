@@ -26,7 +26,7 @@ export function PageHeader({
   return (
     <div className="mb-6 w-full min-w-0">
       {breadcrumbs && breadcrumbs.length > 0 && (
-        <nav className="mb-2 flex min-w-0 flex-wrap items-center gap-1 text-[11px] font-medium text-surface-400">
+        <nav className="mb-2 flex min-w-0 flex-wrap items-center gap-1 text-11 font-medium text-surface-400">
           {breadcrumbs.map((crumb, i) => (
             <span key={i} className="flex min-w-0 items-center gap-1">
               {i > 0 && <ChevronRight className="h-3 w-3 text-surface-300 stroke-[2.5]" />}

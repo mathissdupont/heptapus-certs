@@ -324,9 +324,9 @@ export default function CertificatesPage() {
           <button onClick={() => allSelected ? setSelectedIds(new Set()) : setSelectedIds(new Set(items.map((c) => c.id)))} aria-label={allSelected ? (lang === "tr" ? "Tümünü kaldır" : "Deselect all") : (lang === "tr" ? "Tümünü seç" : "Select all")} className="text-surface-400 hover:text-surface-900 transition-colors">
             {allSelected ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
           </button>
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-surface-500">{t("certs_title")}</span>
+          <span className="text-11 font-semibold uppercase tracking-wider text-surface-500">{t("certs_title")}</span>
           {selectedIds.size > 0 && (
-            <span className="ml-auto rounded-full bg-surface-900 px-2.5 py-0.5 text-[10px] font-medium text-white">
+            <span className="ml-auto rounded-full bg-surface-900 px-2.5 py-0.5 text-11 font-medium text-white">
               {copy.selectedCount(selectedIds.size)}
             </span>
           )}
@@ -458,7 +458,7 @@ export default function CertificatesPage() {
             <div className="flex flex-wrap items-center gap-1.5">
               {(["enable_auto_renew", "disable_auto_renew", "revoke", "expire", "delete"] as const).map((action) => (
                 <button key={action} onClick={() => setBulkTarget(action)} disabled={bulkLoading}
-                  className={`inline-flex min-h-[32px] items-center gap-1 rounded-lg border border-white/20 px-2.5 text-[11px] font-medium text-white transition hover:bg-white/20 ${action === "delete" || action === "revoke" ? "bg-red-700/80" : "bg-white/10"}`}>
+                  className={`inline-flex min-h-[32px] items-center gap-1 rounded-lg border border-white/20 px-2.5 text-11 font-medium text-white transition hover:bg-white/20 ${action === "delete" || action === "revoke" ? "bg-red-700/80" : "bg-white/10"}`}>
                   {bulkActionTitle[action]}
                 </button>
               ))}

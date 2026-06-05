@@ -86,14 +86,14 @@ export default function EmailAnalyticsPage() {
   if (loading) {
     return (
       <div className="flex w-full items-center justify-center p-24">
-        <Loader2 className="h-6 w-6 animate-spin text-gray-400 stroke-[2.5]" />
+        <Loader2 className="h-6 w-6 animate-spin text-surface-400 stroke-[2.5]" />
       </div>
     );
   }
 
   return (
     <FeatureGate requiredPlans={["growth", "enterprise"]}>
-      <div className="flex w-full flex-col gap-5 antialiased text-gray-900">
+      <div className="flex w-full flex-col gap-5 antialiased text-surface-900">
         
         {/* SAYFA BAŞLIĞI */}
         <PageHeader
@@ -115,17 +115,17 @@ export default function EmailAnalyticsPage() {
         {summary && summary.total_sent > 0 && (
           <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
             {[
-              { label: lang === "tr" ? "Gönderilen" : "Sent", value: summary.total_sent.toLocaleString(), icon: Send, color: "text-gray-700" },
+              { label: lang === "tr" ? "Gönderilen" : "Sent", value: summary.total_sent.toLocaleString(), icon: Send, color: "text-surface-700" },
               { label: lang === "tr" ? "Tekil Açılma" : "Unique Opens", value: summary.unique_opens.toLocaleString(), icon: Eye, color: "text-blue-600" },
               { label: lang === "tr" ? "Tekil Tıklama" : "Unique Clicks", value: summary.unique_clicks.toLocaleString(), icon: MousePointerClick, color: "text-violet-600" },
               { label: lang === "tr" ? "Açılma Oranı" : "Open Rate", value: `${summary.open_rate}%`, icon: Percent, color: "text-emerald-600" },
               { label: lang === "tr" ? "Tıklama Oranı" : "Click Rate", value: `${summary.click_rate}%`, icon: Percent, color: "text-amber-600" },
               { label: "CTOR", value: `${summary.click_to_open_rate}%`, icon: TrendingUp, color: "text-rose-600" },
             ].map(({ label, value, icon: Icon, color }) => (
-              <div key={label} className="rounded-2xl border border-gray-100 bg-white p-3.5 shadow-sm">
+              <div key={label} className="rounded-2xl border border-surface-100 bg-white p-3.5 shadow-sm">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Icon className={`h-3.5 w-3.5 ${color}`} />
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{label}</p>
+                  <p className="text-11 font-bold uppercase tracking-wider text-surface-400">{label}</p>
                 </div>
                 <p className={`text-xl font-black tracking-tight ${color}`}>{value}</p>
               </div>
@@ -134,11 +134,11 @@ export default function EmailAnalyticsPage() {
         )}
 
         {/* REHBER BİLGİ KUTUSU (Apple Tarzı Soft Kart) */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm flex items-start gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-gray-100 bg-gray-50 text-gray-900 shadow-sm">
+        <div className="rounded-2xl border border-surface-200 bg-white p-4 shadow-sm flex items-start gap-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-surface-100 bg-surface-50 text-surface-900 shadow-sm">
             <Mail className="h-4 w-4 stroke-[1.8]" />
           </div>
-          <p className="text-xs leading-relaxed text-gray-500 font-medium pt-0.5">
+          <p className="text-xs leading-relaxed text-surface-500 font-medium pt-0.5">
             {copy.info}
           </p>
         </div>
@@ -150,7 +150,7 @@ export default function EmailAnalyticsPage() {
             title={copy.emptyTitle}
             description={copy.emptyBody}
             action={
-              <Link href="/admin/events" className="inline-flex min-h-[34px] items-center justify-center rounded-xl bg-gray-950 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-900">
+              <Link href="/admin/events" className="inline-flex min-h-[34px] items-center justify-center rounded-lg bg-surface-900 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-surface-800">
                 {copy.goEvents}
               </Link>
             }
@@ -159,22 +159,22 @@ export default function EmailAnalyticsPage() {
           <motion.div 
             initial={{ opacity: 0, y: 10 }} 
             animate={{ opacity: 1, y: 0 }} 
-            className="w-full rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+            className="w-full rounded-2xl border border-surface-200 bg-white shadow-sm overflow-hidden"
           >
             {/* Liste Başlığı */}
-            <div className="border-b border-gray-100 px-5 py-4 bg-white">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-gray-900">{copy.events}</h2>
-              <p className="mt-1 text-[11px] font-medium text-gray-400">{copy.chooseEvent(events.length)}</p>
+            <div className="border-b border-surface-100 px-5 py-4 bg-white">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.events}</h2>
+              <p className="mt-1 text-11 font-medium text-surface-400">{copy.chooseEvent(events.length)}</p>
             </div>
             
             {/* Satır Akış Modülü */}
             <div className="divide-y divide-gray-100 bg-white">
               {events.map((event) => (
-                <div key={event.id} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-gray-50/40">
+                <div key={event.id} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-surface-50/40">
                   <div className="min-w-0 space-y-0.5">
-                    <p className="text-xs font-bold text-gray-950 tracking-tight">{event.name}</p>
+                    <p className="text-xs font-bold text-surface-900 tracking-tight">{event.name}</p>
                     {event.event_date && (
-                      <p className="text-[10px] font-semibold text-gray-400 font-mono uppercase">
+                      <p className="text-11 font-semibold text-surface-400 font-mono uppercase">
                         {new Date(event.event_date).toLocaleDateString(copy.locale, { day: "2-digit", month: "short", year: "numeric" })}
                       </p>
                     )}
@@ -184,16 +184,16 @@ export default function EmailAnalyticsPage() {
                   <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
                     <Link 
                       href={`/admin/events/${event.id}/bulk-emails`} 
-                      className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 hover:text-gray-950 active:scale-95"
+                      className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-white px-3 py-1.5 text-11 font-semibold text-surface-700 shadow-sm transition hover:bg-surface-50 hover:text-surface-900 active:scale-95"
                     >
-                      <Send className="h-3 w-3 text-gray-400 group-hover:text-gray-600 stroke-[2]" /> 
+                      <Send className="h-3 w-3 text-surface-400 group-hover:text-surface-600 stroke-[2]" /> 
                       <span>{copy.bulkEmail}</span>
                     </Link>
                     <Link 
                       href={`/admin/events/${event.id}/advanced-analytics`} 
-                      className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 hover:text-gray-950 active:scale-95"
+                      className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-white px-3 py-1.5 text-11 font-semibold text-surface-700 shadow-sm transition hover:bg-surface-50 hover:text-surface-900 active:scale-95"
                     >
-                      <BarChart3 className="h-3 w-3 text-gray-400 group-hover:text-gray-600 stroke-[2]" /> 
+                      <BarChart3 className="h-3 w-3 text-surface-400 group-hover:text-surface-600 stroke-[2]" /> 
                       <span>{copy.analytics}</span>
                     </Link>
                   </div>

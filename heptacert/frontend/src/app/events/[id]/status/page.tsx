@@ -390,7 +390,7 @@ export default function EventParticipantStatusPage() {
                     {status.attendee_name.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400">{copy.cardHolder}</p>
+                    <p className="text-11 font-semibold uppercase tracking-widest text-zinc-400">{copy.cardHolder}</p>
                     <h2 className="mt-1 text-2xl font-bold text-zinc-900">{status.attendee_name}</h2>
                     <p className="text-sm text-zinc-500">{status.attendee_email}</p>
                   </div>
@@ -474,22 +474,22 @@ export default function EventParticipantStatusPage() {
             {/* İstatistikler Grid */}
             <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${isCertificateEvent ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
               <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-5 transition hover:bg-white hover:shadow-sm">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{isTicketedEvent ? copy.checkin : copy.sessions}</p>
+                <p className="text-11 font-semibold uppercase tracking-wider text-zinc-500">{isTicketedEvent ? copy.checkin : copy.sessions}</p>
                 <p className="mt-3 text-3xl font-bold text-zinc-900">{entryDone}<span className="text-xl text-zinc-400">/{entryTotal}</span></p>
                 <p className="mt-2 text-xs text-zinc-500">{isTicketedEvent ? copy.ticketFlow : copy.minSessions.replace("{count}", String(status.sessions_required))}</p>
               </div>
               <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-5 transition hover:bg-white hover:shadow-sm">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{copy.survey}</p>
+                <p className="text-11 font-semibold uppercase tracking-wider text-zinc-500">{copy.survey}</p>
                 <p className="mt-3 text-xl font-bold text-zinc-900">{hasSurvey ? (status.survey_completed ? copy.completed : copy.pending) : copy.surveyDisabled}</p>
                 <p className="mt-2 text-xs text-zinc-500">{hasSurvey ? (status.survey_required ? (isCertificateEvent ? copy.requiredForCert : copy.ticketFlow) : copy.optional) : copy.notEnabled}</p>
               </div>
               <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-5 transition hover:bg-white hover:shadow-sm">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{isTicketedEvent ? copy.ticket : copy.badges}</p>
+                <p className="text-11 font-semibold uppercase tracking-wider text-zinc-500">{isTicketedEvent ? copy.ticket : copy.badges}</p>
                 <p className="mt-3 text-xl font-bold text-zinc-900">{isTicketedEvent ? copy.ticketReady : status.badge_count}</p>
                 <p className="mt-2 text-xs text-zinc-500">{isTicketedEvent ? copy.ticketFlow : copy.totalBadges}</p>
               </div>
               {isCertificateEvent ? <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-5 transition hover:bg-white hover:shadow-sm">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{copy.certificate}</p>
+                <p className="text-11 font-semibold uppercase tracking-wider text-zinc-500">{copy.certificate}</p>
                 <p className="mt-3 text-xl font-bold text-zinc-900">{status.certificate_ready ? copy.ready : status.certificate_count > 0 ? copy.produced : copy.pending}</p>
                 <p className="mt-2 text-xs text-zinc-500">{status.certificate_ready ? copy.visibleReady : copy.waits}</p>
               </div> : null}
@@ -604,14 +604,14 @@ export default function EventParticipantStatusPage() {
                             ) : null}
                           </div>
                           <div 
-                            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold" 
+                            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-11 font-semibold" 
                             style={{ color, borderColor: `${color}40`, backgroundColor: `${color}10` }}
                           >
                             <Award className="h-3.5 w-3.5" />
                             {badge.is_automatic ? copy.automatic : copy.manual}
                           </div>
                         </div>
-                        <div className="mt-5 flex flex-wrap gap-2 text-[11px] font-medium text-zinc-500">
+                        <div className="mt-5 flex flex-wrap gap-2 text-11 font-medium text-zinc-500">
                           <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1">{copy.type}: {badge.badge_type}</span>
                           <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1">{badgeDateFormatter.format(new Date(badge.awarded_at))}</span>
                         </div>

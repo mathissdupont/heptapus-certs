@@ -549,7 +549,7 @@ export default function PublicOrganizationDetailPage() {
                                 <span className="text-sm font-medium text-gray-900">
                                   {comment.member_name}
                                 </span>
-                                <span className="text-[11px] text-gray-500">
+                                <span className="text-11 text-gray-500">
                                   {formatTimestamp(comment.created_at, lang)}
                                 </span>
                               </div>

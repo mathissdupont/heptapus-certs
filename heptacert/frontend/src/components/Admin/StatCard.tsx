@@ -33,7 +33,7 @@ export function StatCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-surface-400 truncate">
+          <p className="text-11 font-semibold uppercase tracking-wider text-surface-400 truncate">
             {label}
           </p>
 
@@ -42,7 +42,7 @@ export function StatCard({
           </p>
 
           {trend && (
-            <p className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium">
+            <p className="mt-2 inline-flex items-center gap-1 text-11 font-medium">
               <span className={trend.value >= 0 ? "text-emerald-600" : "text-red-500"}>
                 {trend.value >= 0 ? "↑" : "↓"} {Math.abs(trend.value)}%
               </span>

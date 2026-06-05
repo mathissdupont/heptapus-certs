@@ -301,19 +301,19 @@ export default function VerifyIndexPage() {
                               <dl className="grid gap-x-4 gap-y-5 sm:grid-cols-2">
                                 {result.student_name && (
                                   <div>
-                                    <dt className="text-[10px] font-bold uppercase tracking-wider text-emerald-600/70">{copy.owner}</dt>
+                                    <dt className="text-11 font-bold uppercase tracking-wider text-emerald-600/70">{copy.owner}</dt>
                                     <dd className="mt-1 text-sm font-bold text-slate-900">{result.student_name}</dd>
                                   </div>
                                 )}
                                 {result.event_name && (
                                   <div>
-                                    <dt className="text-[10px] font-bold uppercase tracking-wider text-emerald-600/70">{copy.event}</dt>
+                                    <dt className="text-11 font-bold uppercase tracking-wider text-emerald-600/70">{copy.event}</dt>
                                     <dd className="mt-1 text-sm font-bold text-slate-900">{result.event_name}</dd>
                                   </div>
                                 )}
                                 {result.public_id && (
                                   <div className="col-span-full">
-                                    <dt className="text-[10px] font-bold uppercase tracking-wider text-emerald-600/70">{copy.code}</dt>
+                                    <dt className="text-11 font-bold uppercase tracking-wider text-emerald-600/70">{copy.code}</dt>
                                     <dd className="mt-1 rounded-md bg-white px-2 py-1.5 font-mono text-xs font-medium text-slate-700 ring-1 ring-slate-200/50 w-fit">{result.public_id}</dd>
                                   </div>
                                 )}

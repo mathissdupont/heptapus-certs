@@ -80,7 +80,7 @@ export function LanguageToggle({ className }: { className?: string }) {
       }
       aria-label={ariaLabel}
     >
-      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-extrabold tracking-[0.18em] text-slate-700">
+      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-11 font-extrabold tracking-[0.18em] text-slate-700">
         {lang.toUpperCase()}
       </span>
       <span>{label}</span>
