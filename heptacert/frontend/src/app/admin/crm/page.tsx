@@ -47,13 +47,8 @@ import EmailTemplateSelect from "@/components/Admin/EmailTemplateSelect";
 import { FeatureGate } from "@/lib/useSubscription";
 import { useI18n } from "@/lib/i18n";
 
-const LIFECYCLE_OPTIONS = [
-  { value: "lead", label: "Lead" },
-  { value: "active", label: "Aktif" },
-  { value: "vip", label: "VIP" },
-  { value: "renewal", label: "Yenileme" },
-  { value: "inactive", label: "Pasif" },
-];
+// Lifecycle labels are rendered via copy.lifecycleOptions below (bilingual)
+const LIFECYCLE_VALUES = ["lead", "active", "vip", "renewal", "inactive"] as const;
 
 function formatDate(value?: string | null) {
   if (!value) return "-";
@@ -91,6 +86,14 @@ function fromDateTimeLocal(value: string) {
 
 export default function AdminCrmPage() {
   const { lang } = useI18n();
+  const isTr = lang === "tr";
+  const lifecycleOptions = [
+    { value: "lead",     label: isTr ? "Lead"      : "Lead" },
+    { value: "active",   label: isTr ? "Aktif"     : "Active" },
+    { value: "vip",      label: "VIP" },
+    { value: "renewal",  label: isTr ? "Yenileme"  : "Renewal" },
+    { value: "inactive", label: isTr ? "Pasif"     : "Inactive" },
+  ];
   const copy = lang === "tr" ? {
     eyebrow: "Event CRM",
     title: "Katılımcı CRM",
@@ -145,6 +148,8 @@ export default function AdminCrmPage() {
     hubSpotSave: "Kaydet",
     hubSpotTest: "Test",
     hubSpotPush: "Seçilileri Gönder",
+    hubSpotConnected: "bağlandı",
+    hubSpotNotConfigured: "yapılandırılmadı",
     scoreLabel: "Skor",
     certShort: "sert.",
     surveyShort: "anket",
@@ -165,6 +170,11 @@ export default function AdminCrmPage() {
     priorityNormal: "Normal",
     priorityHigh: "Yüksek",
     priorityUrgent: "Acil",
+    exportError: "CRM dışa aktarma başarısız.",
+    bulkEmailError: "Toplu e-posta gönderilemedi.",
+    bulkEmailSummary: (sent: number, skipped: number, failed: number) => `Gönderim: ${sent} gönderildi, ${skipped} atlandı, ${failed} başarısız.`,
+    mergeError: "CRM kaydı birleştirme başarısız.",
+    hubSpotTokenPlaceholder: "HubSpot özel uygulama tokeni",
   } : {
     eyebrow: "Event CRM",
     title: "Participant CRM",
@@ -219,6 +229,8 @@ export default function AdminCrmPage() {
     hubSpotSave: "Save",
     hubSpotTest: "Test",
     hubSpotPush: "Push selected",
+    hubSpotConnected: "connected",
+    hubSpotNotConfigured: "not configured",
     scoreLabel: "Score",
     certShort: "certs",
     surveyShort: "surveys",
@@ -239,6 +251,11 @@ export default function AdminCrmPage() {
     priorityNormal: "Normal",
     priorityHigh: "High",
     priorityUrgent: "Urgent",
+    exportError: "CRM export failed.",
+    bulkEmailError: "CRM bulk email failed.",
+    bulkEmailSummary: (sent: number, skipped: number, failed: number) => `Result: ${sent} sent, ${skipped} skipped, ${failed} failed.`,
+    mergeError: "CRM merge failed.",
+    hubSpotTokenPlaceholder: "HubSpot private app token",
   };
 
   const [query, setQuery] = useState("");
@@ -334,7 +351,7 @@ export default function AdminCrmPage() {
       link.click();
       URL.revokeObjectURL(url);
     } catch (ex: any) {
-      setError(ex?.message || "CRM export failed.");
+      setError(ex?.message || copy.exportError);
     } finally {
       setBulkWorking(false);
     }
@@ -348,9 +365,9 @@ export default function AdminCrmPage() {
     setError(null);
     try {
       const result = await sendCrmBulkEmail({ emails: selectedEmails, email_template_id: templateId });
-      setBulkNotice(`${copy.bulkEmailResult}: ${result.sent} sent, ${result.skipped} skipped, ${result.failed} failed.`);
+      setBulkNotice(copy.bulkEmailSummary(result.sent, result.skipped, result.failed));
     } catch (ex: any) {
-      setError(ex?.message || "CRM bulk email failed.");
+      setError(ex?.message || copy.bulkEmailError);
     } finally {
       setBulkWorking(false);
     }
@@ -442,7 +459,7 @@ export default function AdminCrmPage() {
       await mergeCrmParticipants({ target_email: target, source_emails: sources });
       await loadParticipants(target);
     } catch (ex: any) {
-      setError(ex?.message || "CRM merge failed.");
+      setError(ex?.message || copy.mergeError);
     }
   }
 
@@ -625,7 +642,7 @@ export default function AdminCrmPage() {
             className="w-full input cursor-pointer"
           >
             <option value="">{copy.allStatuses}</option>
-            {LIFECYCLE_OPTIONS.map((option) => (
+            {lifecycleOptions.map((option) => (
               <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </select>
@@ -656,7 +673,7 @@ export default function AdminCrmPage() {
       {view === "kanban" && (
         <div className="overflow-x-auto pb-4">
           <div className="flex gap-3 min-w-max">
-            {LIFECYCLE_OPTIONS.map((col) => {
+            {lifecycleOptions.map((col) => {
               const colItems = participants.filter((p) => p.meta.lifecycle_status === col.value);
               return (
                 <div key={col.value} className="w-64 shrink-0 rounded-2xl border border-surface-200 bg-surface-50/50 overflow-hidden shadow-sm">
@@ -759,28 +776,28 @@ export default function AdminCrmPage() {
                   <span className="text-11 font-bold text-surface-800">HubSpot</span>
                 </div>
                 <span className={`rounded-md px-1.5 py-0.5 text-11 font-bold ${hubSpotStatus?.configured ? "bg-emerald-50 text-emerald-700" : "bg-surface-100 text-surface-500"}`}>
-                  {hubSpotStatus?.configured ? hubSpotStatus.token_preview || "connected" : "not configured"}
+                  {hubSpotStatus?.configured ? hubSpotStatus.token_preview || copy.hubSpotConnected : copy.hubSpotNotConfigured}
                 </span>
               </div>
               <div className="flex gap-1.5">
                 <input
                   value={hubSpotToken}
                   onChange={(event) => setHubSpotToken(event.target.value)}
-                  placeholder="HubSpot private app token"
+                  placeholder={copy.hubSpotTokenPlaceholder}
                   className="min-w-0 flex-1 rounded-lg border border-surface-200 bg-white px-2 py-1.5 text-11 font-semibold outline-none focus:border-surface-900"
                 />
                 <button type="button" onClick={() => void saveHubSpotToken()} disabled={hubSpotWorking || !hubSpotToken.trim()} className="inline-flex items-center gap-1 rounded-lg bg-surface-800 px-2.5 py-1 text-11 font-semibold text-white disabled:opacity-40">
                   {hubSpotWorking ? <Loader2 className="h-3 w-3 animate-spin" /> : <KeyRound className="h-3 w-3" />}
-                  Save
+                  {copy.hubSpotSave}
                 </button>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 <button type="button" onClick={() => void testHubSpot()} disabled={hubSpotWorking || !hubSpotStatus?.configured} className="inline-flex items-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 py-1 text-11 font-semibold text-surface-700 disabled:opacity-40">
-                  Test
+                  {copy.hubSpotTest}
                 </button>
                 <button type="button" onClick={() => void pushHubSpot()} disabled={hubSpotWorking || !hubSpotStatus?.configured || selectedEmails.length === 0} className="inline-flex items-center gap-1 rounded-lg border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-11 font-semibold text-emerald-700 disabled:opacity-40">
                   {hubSpotWorking ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
-                  Push selected
+                  {copy.hubSpotPush}
                 </button>
               </div>
             </div>
@@ -924,7 +941,7 @@ export default function AdminCrmPage() {
                     <label className="block w-full">
                       <span className="block text-11 font-bold text-surface-500 mb-1">{copy.status}</span>
                       <select value={lifecycleStatus} onChange={(event) => setLifecycleStatus(event.target.value)} className="w-full input px-2.5 cursor-pointer">
-                        {LIFECYCLE_OPTIONS.map((option) => (
+                        {lifecycleOptions.map((option) => (
                           <option key={option.value} value={option.value}>{option.label}</option>
                         ))}
                       </select>

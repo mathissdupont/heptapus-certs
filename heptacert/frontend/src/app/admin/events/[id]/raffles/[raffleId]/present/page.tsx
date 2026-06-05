@@ -233,8 +233,8 @@ export default function RafflePresentationPage() {
     reserveLabel: isTr ? "Yedek" : "Reserve",
     roundLabel: (round: number, kind: string) =>
       isTr
-        ? `Tur ${round} • ${kind === "asil" ? "asil" : "yedek"}`
-        : `Round ${round} • ${kind === "asil" ? "primary" : "reserve"}`,
+        ? `Tur ${round} • ${kind === "asil" ? "Asil" : "Yedek"}`
+        : `Round ${round} • ${kind === "asil" ? "Primary" : "Reserve"}`,
     ruleLabel: (minSessions: number, winnerPlan: string) =>
       isTr
         ? `Kural: En az ${minSessions} oturuma katılanlar arasından ${winnerPlan} seçilir.`

@@ -26,56 +26,68 @@ interface CriteriaDef {
   unit?: string;
 }
 
-const CRITERIA_CATALOGUE: CriteriaDef[] = [
-  {
-    key: "min_sessions",
-    label: "Minimum Oturum Katılımı",
-    description: "Katılımcının check-in yaptığı oturum sayısı en az bu kadar olmalı",
-    type: "number",
-    icon: <Hash className="h-4 w-4" />,
-    placeholder: "2",
-    min: 1,
-    unit: "oturum",
-  },
-  {
-    key: "attendance_rate",
-    label: "Minimum Katılım Oranı",
-    description: "Tüm oturumlara göre katılım yüzdesi (toplam oturum sayısı üzerinden)",
-    type: "number",
-    icon: <Percent className="h-4 w-4" />,
-    placeholder: "80",
-    min: 0,
-    max: 100,
-    unit: "%",
-  },
-  {
-    key: "registered_rank_max",
-    label: "Erken Kayıt Limiti",
-    description: "Etkinliğe kayıt sırasında ilk N kişi arasında olmalı (erken kuş rozeti için)",
-    type: "number",
-    icon: <Users className="h-4 w-4" />,
-    placeholder: "50",
-    min: 1,
-    unit: "kişi",
-  },
-  {
-    key: "survey_completed",
-    label: "Anket Tamamlandı",
-    description: "Katılımcı etkinlik anketini tamamlamış olmalı",
-    type: "boolean",
-    icon: <CheckCircle2 className="h-4 w-4" />,
-  },
-  {
-    key: "can_download_cert",
-    label: "Sertifika İzni Var",
-    description: "Sertifika indirme yetkisi olan katılımcılara verilir",
-    type: "boolean",
-    icon: <Award className="h-4 w-4" />,
-  },
-];
+function buildCriteriaCatalogue(isTr: boolean): CriteriaDef[] {
+  return [
+    {
+      key: "min_sessions",
+      label: isTr ? "Minimum Oturum Katılımı" : "Minimum Session Attendance",
+      description: isTr
+        ? "Katılımcının check-in yaptığı oturum sayısı en az bu kadar olmalı"
+        : "The number of sessions the attendee checked in must be at least this many",
+      type: "number",
+      icon: <Hash className="h-4 w-4" />,
+      placeholder: "2",
+      min: 1,
+      unit: isTr ? "oturum" : "sessions",
+    },
+    {
+      key: "attendance_rate",
+      label: isTr ? "Minimum Katılım Oranı" : "Minimum Attendance Rate",
+      description: isTr
+        ? "Tüm oturumlara göre katılım yüzdesi (toplam oturum sayısı üzerinden)"
+        : "Attendance percentage relative to all sessions (out of total session count)",
+      type: "number",
+      icon: <Percent className="h-4 w-4" />,
+      placeholder: "80",
+      min: 0,
+      max: 100,
+      unit: "%",
+    },
+    {
+      key: "registered_rank_max",
+      label: isTr ? "Erken Kayıt Limiti" : "Early Registration Limit",
+      description: isTr
+        ? "Etkinliğe kayıt sırasında ilk N kişi arasında olmalı (erken kuş rozeti için)"
+        : "Must be among the first N registrants for the event (for early bird badge)",
+      type: "number",
+      icon: <Users className="h-4 w-4" />,
+      placeholder: "50",
+      min: 1,
+      unit: isTr ? "kişi" : "people",
+    },
+    {
+      key: "survey_completed",
+      label: isTr ? "Anket Tamamlandı" : "Survey Completed",
+      description: isTr
+        ? "Katılımcı etkinlik anketini tamamlamış olmalı"
+        : "The attendee must have completed the event survey",
+      type: "boolean",
+      icon: <CheckCircle2 className="h-4 w-4" />,
+    },
+    {
+      key: "can_download_cert",
+      label: isTr ? "Sertifika İzni Var" : "Certificate Permission",
+      description: isTr
+        ? "Sertifika indirme yetkisi olan katılımcılara verilir"
+        : "Awarded to attendees who have certificate download permission",
+      type: "boolean",
+      icon: <Award className="h-4 w-4" />,
+    },
+  ];
+}
 
-function getCriteriaDef(key: string): CriteriaDef | undefined {
-  return CRITERIA_CATALOGUE.find((c) => c.key === key);
+function getCriteriaDef(key: string, catalogue: CriteriaDef[]): CriteriaDef | undefined {
+  return catalogue.find((c) => c.key === key);
 }
 
 // ── CriteriaEditor sub-component ─────────────────────────────────────────────
@@ -83,6 +95,7 @@ function CriteriaEditor({
   criteria,
   onChange,
   copy,
+  catalogue,
 }: {
   criteria: Record<string, any>;
   onChange: (updated: Record<string, any>) => void;
@@ -92,15 +105,16 @@ function CriteriaEditor({
     yes: string;
     no: string;
   };
+  catalogue: CriteriaDef[];
 }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const selectedKeys = Object.keys(criteria);
-  const availableToAdd = CRITERIA_CATALOGUE.filter((c) => !selectedKeys.includes(c.key));
+  const availableToAdd = catalogue.filter((c) => !selectedKeys.includes(c.key));
 
   const addCriteria = (key: string) => {
-    const def = getCriteriaDef(key);
+    const def = getCriteriaDef(key, catalogue);
     const defaultVal = def?.type === "boolean" ? true : (def?.min ?? 1);
     onChange({ ...criteria, [key]: defaultVal });
     setShowDropdown(false);
@@ -113,7 +127,7 @@ function CriteriaEditor({
   };
 
   const updateValue = (key: string, raw: string) => {
-    const def = getCriteriaDef(key);
+    const def = getCriteriaDef(key, catalogue);
     if (def?.type === "boolean") {
       onChange({ ...criteria, [key]: raw === "true" });
     } else {
@@ -125,7 +139,7 @@ function CriteriaEditor({
   return (
     <div className="space-y-2">
       {selectedKeys.map((key) => {
-        const def = getCriteriaDef(key);
+        const def = getCriteriaDef(key, catalogue);
         const value = criteria[key];
         return (
           <div
@@ -290,6 +304,7 @@ export default function GamificationPage() {
   const eventId = params.id as string;
   const { lang } = useI18n();
   const isTr = lang === "tr";
+  const criteriaCatalogue = buildCriteriaCatalogue(isTr);
 
   const copy = {
     pageTitle: isTr ? "Rozet Sistemi" : "Badge System",
@@ -721,6 +736,7 @@ export default function GamificationPage() {
                           setEditingBadges(next);
                         }}
                         copy={{ addCriteria: copy.addCriteria, noCriteria: copy.noCriteria, yes: copy.yes, no: copy.no }}
+                        catalogue={criteriaCatalogue}
                       />
                     </div>
 
@@ -793,7 +809,7 @@ export default function GamificationPage() {
                               key={key}
                               className="rounded-full border border-surface-200 bg-white px-3 py-1 text-xs font-semibold text-surface-600"
                             >
-                              {getCriteriaDef(key)?.label || key}
+                              {getCriteriaDef(key, criteriaCatalogue)?.label || key}
                             </span>
                           ))
                         ) : (
@@ -868,6 +884,7 @@ export default function GamificationPage() {
                     })
                   }
                   copy={{ addCriteria: copy.addCriteria, noCriteria: copy.noCriteria, yes: copy.yes, no: copy.no }}
+                  catalogue={criteriaCatalogue}
                 />
               </div>
 

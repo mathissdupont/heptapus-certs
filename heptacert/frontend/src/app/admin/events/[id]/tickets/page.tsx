@@ -27,10 +27,10 @@ import {
 
 type TicketFilter = "all" | "issued" | "used" | "cancelled" | "revoked";
 
-function formatDate(value?: string | null) {
+function formatDate(value?: string | null, locale = "tr-TR") {
   if (!value) return "-";
   try {
-    return new Intl.DateTimeFormat("tr-TR", {
+    return new Intl.DateTimeFormat(locale, {
       dateStyle: "medium",
       timeStyle: "short",
     }).format(new Date(value));
@@ -75,6 +75,7 @@ export default function EventTicketsPage() {
 
   const { lang } = useI18n();
   const isTr = lang === "tr";
+  const locale = isTr ? "tr-TR" : "en-US";
   const copy = {
     // Ticket status labels
     statusUsed: isTr ? "Giriş yapıldı" : "Checked in",
@@ -168,14 +169,14 @@ export default function EventTicketsPage() {
   }, [tickets]);
 
   const filteredTickets = useMemo(() => {
-    const q = search.trim().toLocaleLowerCase("tr-TR");
+    const q = search.trim().toLocaleLowerCase(locale);
     return tickets.filter((ticket) => {
       const matchesFilter = filter === "all" || ticket.status === filter;
       const matchesSearch =
         !q ||
-        ticket.attendee_name.toLocaleLowerCase("tr-TR").includes(q) ||
-        ticket.attendee_email.toLocaleLowerCase("tr-TR").includes(q) ||
-        ticket.token.toLocaleLowerCase("tr-TR").includes(q);
+        ticket.attendee_name.toLocaleLowerCase(locale).includes(q) ||
+        ticket.attendee_email.toLocaleLowerCase(locale).includes(q) ||
+        ticket.token.toLocaleLowerCase(locale).includes(q);
       return matchesFilter && matchesSearch;
     });
   }, [filter, search, tickets]);
@@ -558,11 +559,11 @@ export default function EventTicketsPage() {
                     <div className="mt-3 grid gap-2 text-xs text-surface-500 sm:grid-cols-2">
                       <span className="inline-flex items-center gap-1.5">
                         <Clock3 className="h-3.5 w-3.5" />
-                        Oluşturma: {formatDate(ticket.issued_at)}
+                        {copy.colIssuedAt}: {formatDate(ticket.issued_at, locale)}
                       </span>
                       <span className="inline-flex items-center gap-1.5">
                         <CheckCircle2 className="h-3.5 w-3.5" />
-                        Giriş: {formatDate(ticket.checked_in_at)}
+                        {copy.colCheckedInAt}: {formatDate(ticket.checked_in_at, locale)}
                       </span>
                     </div>
                     <p className="mt-2 break-all rounded-lg bg-surface-50 px-3 py-2 text-xs text-surface-500">

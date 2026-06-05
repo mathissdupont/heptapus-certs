@@ -102,6 +102,7 @@ export default function AdminCheckinPage() {
 
   const { lang } = useI18n();
   const isTr = lang === "tr";
+  const locale = isTr ? "tr-TR" : "en-US";
   const copy = {
     // QR classification messages
     emptyQr: isTr ? "Boş QR okundu." : "Empty QR scanned.",
@@ -242,7 +243,7 @@ export default function AdminCheckinPage() {
               type: "manual" as CheckinType,
               success: true,
               message: `✓ ${data.attendee_name || "—"} (${copy.liveLabel})`,
-              time: new Date(data.checked_in_at).toLocaleTimeString("tr-TR"),
+              time: new Date(data.checked_in_at).toLocaleTimeString(locale),
             },
             ...prev.slice(0, 49),
           ]);
@@ -354,7 +355,7 @@ export default function AdminCheckinPage() {
       success: true,
       queued: true,
       message: copy.offlineQueued,
-      time: new Date().toLocaleTimeString("tr-TR"),
+      time: new Date().toLocaleTimeString(locale),
     });
   }
 
@@ -370,7 +371,7 @@ export default function AdminCheckinPage() {
   async function submitValue(type: CheckinType, value: string) {
     const clean = value.trim();
     if (!clean) return;
-    const now = new Date().toLocaleTimeString("tr-TR");
+    const now = new Date().toLocaleTimeString(locale);
     if (!isOnline) {
       queueCheckin({ eventId, sessionId: selectedSession, type, value: clean });
       return;
@@ -400,7 +401,7 @@ export default function AdminCheckinPage() {
         email: scan.value,
         success: false,
         message: scan.message || copy.qrUnreadable,
-        time: new Date().toLocaleTimeString("tr-TR"),
+        time: new Date().toLocaleTimeString(locale),
       });
       return;
     }
@@ -421,7 +422,7 @@ export default function AdminCheckinPage() {
           type: entry.type,
           success: true,
           message: copy.offlineSynced,
-          time: new Date().toLocaleTimeString("tr-TR"),
+          time: new Date().toLocaleTimeString(locale),
         });
       } catch (e: any) {
         failed.unshift({ ...entry, attempts: entry.attempts + 1, lastError: e?.message || copy.syncFailed });
@@ -434,7 +435,7 @@ export default function AdminCheckinPage() {
         email: `${synced} ${isTr ? "kayıt" : "records"}`,
         success: true,
         message: copy.syncComplete,
-        time: new Date().toLocaleTimeString("tr-TR"),
+        time: new Date().toLocaleTimeString(locale),
       });
     }
     setSyncing(false);
@@ -591,7 +592,7 @@ export default function AdminCheckinPage() {
                         <div className="min-w-0 flex-1 space-y-0.5">
                           <p className="text-xs font-bold text-surface-900 truncate">{s.name}</p>
                           <div className="flex gap-1.5 text-11 font-semibold text-surface-400 font-mono uppercase">
-                            {s.session_date && <span>{new Date(s.session_date).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" })}</span>}
+                            {s.session_date && <span>{new Date(s.session_date).toLocaleDateString(locale, { day: "2-digit", month: "short" })}</span>}
                             {s.session_start && <span>· {s.session_start}</span>}
                           </div>
                         </div>
