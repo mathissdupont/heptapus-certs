@@ -533,7 +533,11 @@ export default function EventTicketsPage() {
         ) : (
           <div className="divide-y divide-surface-100">
             {filteredTickets.map((ticket) => {
-              const status = getTicketStatus(ticket);
+              const status = getTicketStatus(ticket, {
+                used: copy.statusUsed,
+                cancelled: copy.statusCancelled,
+                ready: copy.statusReady,
+              });
               return (
                 <article key={ticket.id} className="grid gap-4 p-4 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center">
                   <div className="flex items-center gap-3">
