@@ -4119,7 +4119,12 @@ async def _ms365_exchange_code_for_tokens(code: str, redirect_uri: str) -> Dict[
             },
         )
     if token_res.status_code >= 400:
-        raise HTTPException(status_code=400, detail="Microsoft token exchange failed.")
+        try:
+            err_body = token_res.json()
+            ms_error = err_body.get("error_description") or err_body.get("error") or "unknown"
+        except Exception:
+            ms_error = token_res.text[:200]
+        raise HTTPException(status_code=400, detail=f"Microsoft token exchange failed: {ms_error}")
     return token_res.json()
 
 
