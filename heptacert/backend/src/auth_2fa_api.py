@@ -1,22 +1,39 @@
 """Authenticated 2FA setup and account security endpoints."""
 
 import base64
+import hashlib
+import secrets as pysecrets
+from datetime import datetime, timezone
 from io import BytesIO
+from typing import Optional
 
 import pyotp
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .i18n import lang_from_request, t as i18n_t
 from .main import (
     CurrentUser,
+    TotpBackupCode,
     TotpSecret,
     User,
     get_current_user,
     get_db,
     write_audit_log,
 )
+
+_BACKUP_CODE_COUNT = 8
+_BACKUP_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no confusable chars
+
+
+def _gen_backup_code() -> str:
+    return "".join(pysecrets.choice(_BACKUP_ALPHABET) for _ in range(8))
+
+
+def _hash_backup_code(code: str) -> str:
+    return hashlib.sha256(code.upper().replace("-", "").encode()).hexdigest()
 
 router = APIRouter(prefix="/api/auth/2fa", tags=["auth-2fa"])
 
@@ -25,6 +42,12 @@ class TwoFAStatusOut(BaseModel):
     enabled: bool
     configured: bool
     is_enabled: bool = False
+    backup_codes_remaining: Optional[int] = None
+
+
+class BackupCodesOut(BaseModel):
+    codes: list[str]
+    count: int
 
 
 class TwoFASetupOut(BaseModel):
@@ -90,7 +113,16 @@ async def two_fa_status(
 ):
     totp = await _get_totp_secret(db, me.id)
     enabled = bool(totp and totp.enabled)
-    return TwoFAStatusOut(enabled=enabled, configured=bool(totp), is_enabled=enabled)
+    remaining: Optional[int] = None
+    if enabled:
+        count_res = await db.execute(
+            select(TotpBackupCode).where(
+                TotpBackupCode.user_id == me.id,
+                TotpBackupCode.used_at.is_(None),
+            )
+        )
+        remaining = len(count_res.scalars().all())
+    return TwoFAStatusOut(enabled=enabled, configured=bool(totp), is_enabled=enabled, backup_codes_remaining=remaining)
 
 
 @router.post("/setup", response_model=TwoFASetupOut)
@@ -102,7 +134,7 @@ async def setup_two_fa(
     user = await _get_user(db, me.id)
     totp = await _get_totp_secret(db, me.id)
     if totp and totp.enabled:
-        raise HTTPException(status_code=409, detail="2FA zaten etkin.")
+        raise HTTPException(status_code=409, detail=i18n_t("2fa_already_enabled", lang_from_request(request)))
 
     secret = pyotp.random_base32()
     if totp:
@@ -188,6 +220,7 @@ async def disable_two_fa(
         raise HTTPException(status_code=401, detail="Ge\u00e7ersiz do\u011frulama kodu.")
 
     await db.delete(totp)
+    await db.execute(delete(TotpBackupCode).where(TotpBackupCode.user_id == me.id))
     await write_audit_log(
         db,
         user_id=me.id,
@@ -199,3 +232,87 @@ async def disable_two_fa(
     )
     await db.commit()
     return {"ok": True, "enabled": False}
+
+
+async def _generate_and_save_backup_codes(db: AsyncSession, user_id: int) -> list[str]:
+    """Delete old codes, generate fresh set, return plaintext (shown once)."""
+    await db.execute(delete(TotpBackupCode).where(TotpBackupCode.user_id == user_id))
+    plain_codes: list[str] = []
+    for _ in range(_BACKUP_CODE_COUNT):
+        code = _gen_backup_code()
+        plain_codes.append(code)
+        db.add(TotpBackupCode(user_id=user_id, code_hash=_hash_backup_code(code)))
+    await db.commit()
+    return plain_codes
+
+
+@router.post("/backup-codes", response_model=BackupCodesOut)
+async def generate_backup_codes(
+    request: Request,
+    payload: TwoFACodeIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate fresh backup codes. Requires active TOTP to confirm."""
+    totp = await _get_totp_secret(db, me.id)
+    if not totp or not totp.enabled:
+        raise HTTPException(status_code=400, detail="2FA aktif de\u011fil.")
+    if not _verify_code(totp.secret, payload.code):
+        raise HTTPException(status_code=401, detail="Ge\u00e7ersiz do\u011frulama kodu.")
+
+    codes = await _generate_and_save_backup_codes(db, me.id)
+    await write_audit_log(
+        db,
+        user_id=me.id,
+        action="security.backup_codes_generated",
+        resource_type="auth",
+        resource_id=str(me.id),
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("User-Agent"),
+    )
+    await db.commit()
+    return BackupCodesOut(codes=codes, count=len(codes))
+
+
+@router.get("/backup-codes/status")
+async def backup_codes_status(
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return how many backup codes remain unused."""
+    result = await db.execute(
+        select(TotpBackupCode).where(
+            TotpBackupCode.user_id == me.id,
+            TotpBackupCode.used_at.is_(None),
+        )
+    )
+    remaining = len(result.scalars().all())
+    return {"remaining": remaining, "total": _BACKUP_CODE_COUNT}
+
+
+@router.post("/backup-codes/regenerate", response_model=BackupCodesOut)
+async def regenerate_backup_codes(
+    request: Request,
+    payload: TwoFACodeIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Invalidate all existing backup codes and issue a new set."""
+    totp = await _get_totp_secret(db, me.id)
+    if not totp or not totp.enabled:
+        raise HTTPException(status_code=400, detail="2FA aktif de\u011fil.")
+    if not _verify_code(totp.secret, payload.code):
+        raise HTTPException(status_code=401, detail="Ge\u00e7ersiz do\u011frulama kodu.")
+
+    codes = await _generate_and_save_backup_codes(db, me.id)
+    await write_audit_log(
+        db,
+        user_id=me.id,
+        action="security.backup_codes_regenerated",
+        resource_type="auth",
+        resource_id=str(me.id),
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("User-Agent"),
+    )
+    await db.commit()
+    return BackupCodesOut(codes=codes, count=len(codes))

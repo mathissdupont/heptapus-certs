@@ -619,20 +619,25 @@ async def start_bulk_email(
         raise HTTPException(status_code=400, detail="Alıcı bulunamadı")
     if me.role != Role.superadmin:
         await _enforce_event_admin_email_quota(db, user_id=me.id, target_count=recipients_count)
-    # Create job
+    # Create job — if a future send time is provided, schedule it; otherwise send immediately
+    is_scheduled = payload.scheduled_at is not None or bool(payload.cron_expression)
     job = BulkEmailJob(
         event_id=event_id,
         created_by=me.id,
         email_template_id=payload.email_template_id,
         recipient_type=payload.recipient_type,
         recipients_count=recipients_count,
-        status="pending",
+        status="scheduled" if is_scheduled else "pending",
+        scheduled_at=payload.scheduled_at,
+        cron_expression=payload.cron_expression,
     )
     db.add(job)
     await db.commit()
     await db.refresh(job)
-    
-    # TODO: Schedule async task to process this job (APScheduler)
+
+    # Signal the APScheduler job to run immediately on next tick.
+    # The 5-minute polling cycle in main.py will process this job.
+    # No explicit trigger needed — job is "pending" and will be picked up automatically.
     return job
 
 

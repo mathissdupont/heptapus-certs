@@ -19,6 +19,7 @@ from .main import (
     Attendee,
     AttendaonceRecord,
     Certificate,
+    CertStatus,
     CurrentUser,
     EmailTemplate,
     Event,
@@ -2156,3 +2157,139 @@ async def push_crm_participants_to_mailchimp(
     ))
     await db.commit()
     return MailchimpPushOut(pushed=pushed, failed=failed, errors=errors[:20])
+
+
+# ── CRM Lead Scoring Engine ───────────────────────────────────────────────────
+
+class LeadScoreRuleSet(BaseModel):
+    """Scoring rules: each action adds/subtracts points, capped at 0-100."""
+    event_registered: int = Field(default=10, ge=0, le=50)
+    event_attended: int = Field(default=15, ge=0, le=50)
+    certificate_earned: int = Field(default=20, ge=0, le=50)
+    survey_completed: int = Field(default=10, ge=0, le=50)
+    repeat_attendee_bonus: int = Field(default=15, ge=0, le=50)
+    email_verified_bonus: int = Field(default=5, ge=0, le=30)
+
+
+class LeadScoreRecalcOut(BaseModel):
+    updated: int
+    skipped: int
+    avg_score: float
+
+
+async def _recalculate_lead_scores(
+    db: AsyncSession,
+    org_id: int,
+    rules: LeadScoreRuleSet,
+    emails: Optional[list[str]] = None,
+) -> LeadScoreRecalcOut:
+    """Recompute lead scores for org profiles based on engagement signals."""
+    stmt = select(ParticipantCrmProfile).where(ParticipantCrmProfile.organization_id == org_id)
+    if emails:
+        stmt = stmt.where(ParticipantCrmProfile.email.in_(emails))
+    result = await db.execute(stmt)
+    profiles = result.scalars().all()
+    if not profiles:
+        return LeadScoreRecalcOut(updated=0, skipped=0, avg_score=0.0)
+
+    # Fetch engagement data in bulk
+    profile_emails = [p.email for p in profiles]
+    att_res = await db.execute(
+        select(
+            Attendee.email,
+            func.count(Attendee.id).label("reg_count"),
+            func.sum(case((Attendee.checked_in_at.is_not(None), 1), else_=0)).label("attended"),
+            func.sum(case((Attendee.survey_completed_at.is_not(None), 1), else_=0)).label("surveyed"),
+            func.sum(case((Attendee.email_verified.is_(True), 1), else_=0)).label("verified"),
+        )
+        .where(
+            Attendee.organization_id == org_id,
+            func.lower(Attendee.email).in_([e.lower() for e in profile_emails]),
+        )
+        .group_by(Attendee.email)
+    )
+    att_map = {row.email.lower(): row for row in att_res.all()}
+
+    cert_res = await db.execute(
+        select(Certificate.attendee_email, func.count(Certificate.id).label("cert_count"))
+        .join(Event, Certificate.event_id == Event.id)
+        .where(
+            Event.admin_id.in_(
+                select(Organization.user_id).where(Organization.id == org_id)
+            ),
+            Certificate.status == CertStatus.active,
+            Certificate.deleted_at.is_(None),
+        )
+        .group_by(Certificate.attendee_email)
+    )
+    cert_map = {row.attendee_email.lower(): int(row.cert_count) for row in cert_res.all()}
+
+    updated = skipped = 0
+    total_score = 0
+    for profile in profiles:
+        engagement = att_map.get(profile.email.lower())
+        reg_count = int(engagement.reg_count or 0) if engagement else 0
+        attended = int(engagement.attended or 0) if engagement else 0
+        surveyed = int(engagement.surveyed or 0) if engagement else 0
+        verified = int(engagement.verified or 0) if engagement else 0
+        certs = cert_map.get(profile.email.lower(), 0)
+
+        score = 0
+        score += min(reg_count, 3) * rules.event_registered
+        score += min(attended, 3) * rules.event_attended
+        score += min(certs, 2) * rules.certificate_earned
+        score += min(surveyed, 2) * rules.survey_completed
+        if reg_count >= 2:
+            score += rules.repeat_attendee_bonus
+        if verified:
+            score += rules.email_verified_bonus
+
+        new_score = max(0, min(100, score))
+        if profile.lead_score != new_score:
+            profile.lead_score = new_score
+            db.add(profile)
+            updated += 1
+        else:
+            skipped += 1
+        total_score += new_score
+
+    if updated:
+        await db.commit()
+    avg = round(total_score / len(profiles), 1) if profiles else 0.0
+    return LeadScoreRecalcOut(updated=updated, skipped=skipped, avg_score=avg)
+
+
+@router.post(
+    "/api/admin/crm/lead-scores/recalculate",
+    response_model=LeadScoreRecalcOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def recalculate_lead_scores(
+    request: Request,
+    rules: LeadScoreRuleSet = LeadScoreRuleSet(),
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Recalculate lead scores for all CRM profiles using engagement signals."""
+    org = await _admin_org(db, me, request)
+    return await _recalculate_lead_scores(db, org.id, rules)
+
+
+@router.post(
+    "/api/admin/crm/lead-scores/recalculate-selected",
+    response_model=LeadScoreRecalcOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def recalculate_selected_lead_scores(
+    request: Request,
+    payload: ParticipantCrmSelectionIn,
+    rules: LeadScoreRuleSet = LeadScoreRuleSet(),
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Recalculate lead scores for a selected set of profiles."""
+    org = await _admin_org(db, me, request)
+    emails = [_normalize_email(e) for e in payload.emails if _normalize_email(e)]
+    if not emails:
+        raise HTTPException(status_code=400, detail="At least one valid email is required.")
+    return await _recalculate_lead_scores(db, org.id, rules, emails=emails)

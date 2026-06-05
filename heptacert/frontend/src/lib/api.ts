@@ -190,6 +190,9 @@ async function requestApi(
   if (token && selectedOrganizationId && !headers.has("X-Organization-Id")) {
     headers.set("X-Organization-Id", selectedOrganizationId);
   }
+  if (typeof window !== "undefined" && !headers.has("X-App-Lang")) {
+    headers.set("X-App-Lang", localStorage.getItem("heptacert-lang") || "tr");
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30_000);

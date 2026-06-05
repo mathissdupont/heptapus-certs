@@ -1,6 +1,9 @@
+import csv
+import io
 from typing import Any, List, Tuple
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy import distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -412,3 +415,139 @@ async def get_timeline_analytics(
             {"date": str(d), "count": c} for d, c in ticket_checkins
         ],
     }
+
+
+@router.get("/api/admin/events/{event_id}/analytics/export.csv")
+async def export_event_analytics_csv(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Export full attendee analytics as CSV."""
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    # Fetch attendees with their cert and attendance info
+    atts_res = await db.execute(
+        select(Attendee).where(Attendee.event_id == event_id).order_by(Attendee.registered_at.asc())
+    )
+    attendees = atts_res.scalars().all()
+
+    # Attendee IDs with certs
+    cert_res = await db.execute(
+        select(Certificate.student_name, func.count(Certificate.id).label("cert_count"))
+        .where(Certificate.event_id == event_id, Certificate.deleted_at.is_(None))
+        .group_by(Certificate.student_name)
+    )
+    cert_map = {row.student_name.strip().lower(): row.cert_count for row in cert_res.all()}
+
+    # Attendance records per attendee
+    ar_res = await db.execute(
+        select(AttendaonceRecord.attendee_id, func.count(AttendaonceRecord.id).label("sessions"))
+        .where(AttendaonceRecord.attendee_id.in_([a.id for a in attendees]))
+        .group_by(AttendaonceRecord.attendee_id)
+    )
+    attendance_map = {row.attendee_id: row.sessions for row in ar_res.all()}
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "ID", "Name", "Email", "Registered At", "Email Verified",
+        "Survey Completed", "Sessions Attended", "Has Certificate", "Check-in",
+    ])
+    for att in attendees:
+        writer.writerow([
+            att.id,
+            att.name or "",
+            att.email,
+            att.registered_at.isoformat() if att.registered_at else "",
+            "yes" if att.email_verified else "no",
+            "yes" if att.survey_completed_at else "no",
+            attendance_map.get(att.id, 0),
+            "yes" if cert_map.get((att.name or "").strip().lower()) else "no",
+            "yes" if att.checked_in_at else "no",
+        ])
+    output.seek(0)
+    safe_name = (event.name or f"event_{event_id}").replace(" ", "_")[:60]
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="analytics_{safe_name}.csv"'},
+    )
+
+
+@router.get("/api/admin/events/{event_id}/analytics/export.xlsx")
+async def export_event_analytics_xlsx(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Export full attendee analytics as Excel."""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill
+    import io as _io
+
+    e_res = await db.execute(select(Event).where(Event.id == event_id))
+    event = e_res.scalar_one_or_none()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    atts_res = await db.execute(
+        select(Attendee).where(Attendee.event_id == event_id).order_by(Attendee.registered_at.asc())
+    )
+    attendees = atts_res.scalars().all()
+
+    cert_res = await db.execute(
+        select(Certificate.student_name, func.count(Certificate.id).label("cert_count"))
+        .where(Certificate.event_id == event_id, Certificate.deleted_at.is_(None))
+        .group_by(Certificate.student_name)
+    )
+    cert_map = {row.student_name.strip().lower(): row.cert_count for row in cert_res.all()}
+
+    ar_res = await db.execute(
+        select(AttendaonceRecord.attendee_id, func.count(AttendaonceRecord.id).label("sessions"))
+        .where(AttendaonceRecord.attendee_id.in_([a.id for a in attendees]))
+        .group_by(AttendaonceRecord.attendee_id)
+    )
+    attendance_map = {row.attendee_id: row.sessions for row in ar_res.all()}
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Attendees"
+    headers = ["ID", "Name", "Email", "Registered At", "Email Verified", "Survey Completed", "Sessions Attended", "Has Certificate", "Check-in"]
+    ws.append(headers)
+    header_fill = PatternFill(start_color="111827", end_color="111827", fill_type="solid")
+    for cell in ws[1]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = header_fill
+
+    for att in attendees:
+        ws.append([
+            att.id,
+            att.name or "",
+            att.email,
+            att.registered_at.isoformat() if att.registered_at else "",
+            "yes" if att.email_verified else "no",
+            "yes" if att.survey_completed_at else "no",
+            attendance_map.get(att.id, 0),
+            "yes" if cert_map.get((att.name or "").strip().lower()) else "no",
+            "yes" if att.checked_in_at else "no",
+        ])
+    for col in ws.columns:
+        ws.column_dimensions[col[0].column_letter].width = min(max(len(str(col[0].value or "")) + 4, 12), 40)
+
+    buf = _io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    safe_name = (event.name or f"event_{event_id}").replace(" ", "_")[:60]
+    return StreamingResponse(
+        iter([buf.read()]),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="analytics_{safe_name}.xlsx"'},
+    )

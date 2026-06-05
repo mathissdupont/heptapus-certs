@@ -1266,16 +1266,17 @@ class Subscription(Base):
 
 class ApiKey(Base):
     __tablename__ = "api_keys"
-    id:           Mapped[int]           = mapped_column(Integer, primary_key=True, autoincrement=True)
-    user_id:      Mapped[int]           = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
-    name:         Mapped[str]           = mapped_column(String(200))
-    key_prefix:   Mapped[str]           = mapped_column(String(8))
-    key_hash:     Mapped[str]           = mapped_column(String(128), unique=True)
-    scopes:       Mapped[list]          = mapped_column(JSONB, default=list)
-    is_active:    Mapped[bool]          = mapped_column(Boolean, default=True)
-    last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    expires_at:   Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    created_at:   Mapped[datetime]      = mapped_column(DateTime(timezone=True), server_default=func.now())
+    id:                  Mapped[int]              = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id:             Mapped[int]              = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    name:                Mapped[str]              = mapped_column(String(200))
+    key_prefix:          Mapped[str]              = mapped_column(String(8))
+    key_hash:            Mapped[str]              = mapped_column(String(128), unique=True)
+    scopes:              Mapped[list]             = mapped_column(JSONB, default=list)
+    is_active:           Mapped[bool]             = mapped_column(Boolean, default=True)
+    last_used_at:        Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at:          Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at:          Mapped[datetime]         = mapped_column(DateTime(timezone=True), server_default=func.now())
+    rate_limit_per_min:  Mapped[Optional[int]]    = mapped_column(Integer, nullable=True)
 
 
 class TotpSecret(Base):
@@ -1284,6 +1285,15 @@ class TotpSecret(Base):
     secret:     Mapped[str]     = mapped_column(String(64))
     enabled:    Mapped[bool]    = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class TotpBackupCode(Base):
+    __tablename__ = "totp_backup_codes"
+    id:         Mapped[int]              = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id:    Mapped[int]              = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    code_hash:  Mapped[str]              = mapped_column(String(64))
+    used_at:    Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime]         = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class AuditLog(Base):
@@ -2420,6 +2430,16 @@ class PublicMemberMeOut(BaseModel):
     created_at: datetime
 
 
+class PublicMemberBadgeOut(BaseModel):
+    badge_id: str
+    name: str
+    icon: Optional[str] = None
+    color: Optional[str] = None
+    event_id: int
+    event_name: Optional[str] = None
+    awarded_at: Optional[datetime] = None
+
+
 class PublicMemberProfileOut(BaseModel):
     public_id: str
     display_name: str
@@ -2434,6 +2454,7 @@ class PublicMemberProfileOut(BaseModel):
     comment_count: int = 0
     certificates: List[Dict[str, Any]] = Field(default_factory=list)
     certificates_hidden: bool = False
+    badges: List[PublicMemberBadgeOut] = Field(default_factory=list)
 
 
 class PublicMemberTokenOut(TokenOut):
@@ -2762,6 +2783,7 @@ class VerifyOut(BaseModel):
 class ApiKeyCreateIn(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     expires_days: Optional[int] = Field(default=None, ge=1, le=3650)
+    rate_limit_per_min: Optional[int] = Field(default=None, ge=10, le=10000)
 
 
 class ApiKeyOut(BaseModel):
@@ -2769,6 +2791,7 @@ class ApiKeyOut(BaseModel):
     id: int
     name: str
     key_prefix: str
+    rate_limit_per_min: Optional[int] = None
     is_active: bool
     scopes: List[str]
     last_used_at: Optional[datetime] = None
@@ -3197,6 +3220,8 @@ class CertificateTemplateOut(BaseModel):
 class BulkEmailJobIn(BaseModel):
     email_template_id: int
     recipient_type: str = "attendees"  # attendees | certified
+    scheduled_at: Optional[datetime] = None  # If set, job is queued as "scheduled" until this time
+    cron_expression: Optional[str] = Field(default=None, max_length=120)  # e.g. "0 9 * * 1" for every Monday 9am
 
 
 class BulkEmailJobOut(BaseModel):
@@ -3213,6 +3238,8 @@ class BulkEmailJobOut(BaseModel):
     created_at: datetime
     started_at: Optional[datetime]
     completed_at: Optional[datetime]
+    scheduled_at: Optional[datetime] = None
+    cron_expression: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -5064,6 +5091,27 @@ async def get_current_user(db: AsyncSession = Depends(get_db), Authorization: Op
             raise HTTPException(status_code=401, detail="Invalid API key")
         if api_key.expires_at and api_key.expires_at < datetime.now(timezone.utc):
             raise HTTPException(status_code=401, detail="API key expired")
+        # Per-key rate limiting (if configured)
+        if api_key.rate_limit_per_min:
+            try:
+                from .cache import cache
+                rl_key = f"apikey_rl:{api_key.id}:{int(datetime.now(timezone.utc).timestamp() // 60)}"
+                current = await cache.get(rl_key) or 0
+                if int(current) >= api_key.rate_limit_per_min:
+                    raise HTTPException(
+                        status_code=429,
+                        detail=f"API key rate limit exceeded ({api_key.rate_limit_per_min}/min)",
+                        headers={
+                            "X-RateLimit-Limit": str(api_key.rate_limit_per_min),
+                            "X-RateLimit-Remaining": "0",
+                            "Retry-After": "60",
+                        },
+                    )
+                await cache.set(rl_key, int(current) + 1, ttl=60)
+            except HTTPException:
+                raise
+            except Exception:
+                pass  # rate limit check failure is non-fatal
         # Update last_used_at (fire-and-forget style)
         api_key.last_used_at = datetime.now(timezone.utc)
         await db.commit()
@@ -6408,6 +6456,81 @@ async def startup():
             if stats.get("processed") or stats.get("failed"):
                 logger.info("Document export job cycle: %s", stats)
 
+        async def _auto_calculate_badges():
+            """Auto-calculate badges for events with gamification enabled (every 30 min)."""
+            try:
+                async with SessionLocal() as db_bg:
+                    active_events_res = await db_bg.execute(
+                        select(Event.id).where(
+                            Event.gamification_enabled.is_(True),
+                            Event.deleted_at.is_(None),
+                        ).limit(50)
+                    )
+                    event_ids = active_events_res.scalars().all()
+                    total_created = 0
+                    for eid in event_ids:
+                        rule_res = await db_bg.execute(
+                            select(BadgeRule).where(BadgeRule.event_id == eid, BadgeRule.enabled.is_(True))
+                        )
+                        badge_rule = rule_res.scalar_one_or_none()
+                        if not badge_rule or not badge_rule.badge_definitions:
+                            continue
+                        att_res = await db_bg.execute(select(Attendee).where(Attendee.event_id == eid))
+                        attendees = att_res.scalars().all()
+                        sessions_res = await db_bg.execute(
+                            select(func.count()).select_from(EventSession).where(EventSession.event_id == eid)
+                        )
+                        total_sessions = sessions_res.scalar() or 0
+                        rank_map = {att.id: idx + 1 for idx, att in enumerate(sorted(attendees, key=lambda a: a.registered_at))}
+                        for attendee in attendees:
+                            ar_res = await db_bg.execute(
+                                select(func.count()).select_from(AttendaonceRecord).where(AttendaonceRecord.attendee_id == attendee.id)
+                            )
+                            sessions_attended = ar_res.scalar() or 0
+                            for badge_def in badge_rule.badge_definitions or []:
+                                badge_type = badge_def.get("type", "")
+                                pb_res = await db_bg.execute(
+                                    select(ParticipantBadge).where(
+                                        ParticipantBadge.event_id == eid,
+                                        ParticipantBadge.attendee_id == attendee.id,
+                                        ParticipantBadge.badge_type == badge_type,
+                                    )
+                                )
+                                if pb_res.scalar_one_or_none():
+                                    continue
+                                criteria = badge_def.get("criteria") or {}
+                                passed = True
+                                for key, threshold in criteria.items():
+                                    if key == "min_sessions" and not (sessions_attended >= int(threshold)):
+                                        passed = False; break
+                                    elif key in ("attendance_rate", "attendaonce_rate"):
+                                        rate = (sessions_attended / total_sessions * 100) if total_sessions > 0 else 0
+                                        if not (rate >= float(threshold)):
+                                            passed = False; break
+                                    elif key == "registered_rank_max" and not (rank_map.get(attendee.id, 9999) <= int(threshold)):
+                                        passed = False; break
+                                    elif key == "survey_completed" and bool(threshold) and attendee.survey_completed_at is None:
+                                        passed = False; break
+                                    elif key == "can_download_cert" and bool(threshold) and not attendee.can_download_cert:
+                                        passed = False; break
+                                if not passed:
+                                    continue
+                                db_bg.add(ParticipantBadge(
+                                    event_id=eid, attendee_id=attendee.id, badge_type=badge_type,
+                                    awarded_at=datetime.now(timezone.utc), is_automatic=True,
+                                    badge_metadata={
+                                        "name": badge_def.get("name") or badge_type.replace("_", " ").title(),
+                                        "icon": badge_def.get("icon"),
+                                        "color": badge_def.get("color") or "#6366f1",
+                                    },
+                                ))
+                                total_created += 1
+                    if total_created:
+                        await db_bg.commit()
+                        logger.info("Auto badge calculation: %d badges created across %d events", total_created, len(event_ids))
+            except Exception as exc:
+                logger.warning("Auto badge calculation failed: %s", exc)
+
         if settings.enable_scheduler:
             scheduler.add_job(_notify_expiring_certs, "cron", hour=2, minute=0)
             scheduler.add_job(_auto_renew_certificates, "interval", hours=1)
@@ -6419,6 +6542,7 @@ async def startup():
             scheduler.add_job(_process_segment_export_jobs, "interval", seconds=10)
             scheduler.add_job(_process_document_export_jobs, "interval", seconds=10)
             scheduler.add_job(_process_bulk_certificate_jobs, "interval", seconds=3)
+            scheduler.add_job(_auto_calculate_badges, "interval", minutes=30)
             scheduler.start()
             logger.info("APScheduler started Ã¢â‚¬â€ cert notifications + monthly HC renewal + system digest + bulk email processing + bulk certificate queue")
         else:
@@ -7918,10 +8042,10 @@ async def trigger_automatic_badge_calculation(
                     if not ok:
                         passed = False
 
-                elif key == "attendaonce_rate":
+                elif key in ("attendance_rate", "attendaonce_rate"):  # support both old typo and corrected key
                     rate = (sessions_attended / total_sessions * 100) if total_sessions > 0 else 0
                     ok = rate >= float(threshold)
-                    criteria_met[key] = {"required": threshold, "actual": round(rate, 1), "passed": ok}
+                    criteria_met["attendance_rate"] = {"required": threshold, "actual": round(rate, 1), "passed": ok}
                     if not ok:
                         passed = False
 
@@ -7955,11 +8079,15 @@ async def trigger_automatic_badge_calculation(
                 attendee_id=attendee.id,
                 badge_type=badge_type,
                 criteria_met=criteria_met,
-                awarded_at=datetime.utcnow(),
+                awarded_at=datetime.now(timezone.utc),
                 is_automatic=True,
                 badge_metadata={
-                    "calculation_rule_version": "1.0",
-                    "calculated_at": datetime.utcnow().isoformat(),
+                    "name": badge_def.get("name") or badge_type.replace("_", " ").title(),
+                    "icon": badge_def.get("icon"),
+                    "color": badge_def.get("color") or "#6366f1",
+                    "description": badge_def.get("description"),
+                    "calculation_rule_version": "1.1",
+                    "calculated_at": datetime.now(timezone.utc).isoformat(),
                 },
             )
             db.add(badge)
@@ -8872,7 +9000,30 @@ async def validate_login_2fa(request: Request, data: TotpValidateIn, db: AsyncSe
 
     code = (data.code or "").strip()
     if not pyotp.TOTP(totp_secret.secret).verify(code, valid_window=1):
-        raise HTTPException(status_code=401, detail="Geçersiz doğrulama kodu")
+        # Try backup code fallback
+        import hashlib as _hashlib
+        code_hash = _hashlib.sha256(code.upper().replace("-", "").encode()).hexdigest()
+        backup_res = await db.execute(
+            select(TotpBackupCode).where(
+                TotpBackupCode.user_id == user.id,
+                TotpBackupCode.code_hash == code_hash,
+                TotpBackupCode.used_at.is_(None),
+            )
+        )
+        backup = backup_res.scalar_one_or_none()
+        if not backup:
+            raise HTTPException(status_code=401, detail="Geçersiz doğrulama kodu")
+        backup.used_at = datetime.now(timezone.utc)
+        await write_audit_log(
+            db,
+            user_id=user.id,
+            action="security.2fa_backup_code_used",
+            resource_type="auth",
+            resource_id=str(user.id),
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+        )
+        await db.commit()
 
     return {
         "access_token": create_access_token(user_id=user.id, role=user.role),
@@ -11635,6 +11786,33 @@ async def get_public_member_profile(
     can_view_certificates = await can_view_member_certificate_wallet(db, db_member, viewer)
     certificates = await list_public_member_certificates(db, db_member.id) if can_view_certificates else []
 
+    # Fetch earned badges across all events for this member
+    attendee_ids_res = await db.execute(
+        select(Attendee.id, Attendee.event_id).where(Attendee.public_member_id == db_member.id)
+    )
+    attendee_rows = attendee_ids_res.all()
+    badges_out: list[PublicMemberBadgeOut] = []
+    if attendee_rows:
+        att_id_list = [row.id for row in attendee_rows]
+        badges_res = await db.execute(
+            select(ParticipantBadge, Event.name.label("event_name"))
+            .join(Event, ParticipantBadge.event_id == Event.id)
+            .where(ParticipantBadge.attendee_id.in_(att_id_list))
+            .order_by(ParticipantBadge.awarded_at.desc())
+            .limit(50)
+        )
+        for badge_row, event_name in badges_res.all():
+            meta = badge_row.badge_metadata or {}
+            badges_out.append(PublicMemberBadgeOut(
+                badge_id=f"{badge_row.event_id}:{badge_row.badge_type}",
+                name=meta.get("name") or badge_row.badge_type.replace("_", " ").title(),
+                icon=meta.get("icon"),
+                color=meta.get("color"),
+                event_id=badge_row.event_id,
+                event_name=event_name,
+                awarded_at=badge_row.awarded_at,
+            ))
+
     return PublicMemberProfileOut(
         public_id=db_member.public_id,
         display_name=db_member.display_name,
@@ -11649,6 +11827,7 @@ async def get_public_member_profile(
         comment_count=int(comment_count_res.scalar_one() or 0),
         certificates=certificates,
         certificates_hidden=not can_view_certificates,
+        badges=badges_out,
     )
 
 
@@ -13940,6 +14119,7 @@ async def list_api_keys(me: CurrentUser = Depends(get_current_user), db: AsyncSe
             last_used_at=api_key.last_used_at,
             expires_at=api_key.expires_at,
             created_at=api_key.created_at,
+            rate_limit_per_min=api_key.rate_limit_per_min,
         )
         for api_key in api_keys
     ]
@@ -13962,6 +14142,7 @@ async def create_api_key(payload: ApiKeyCreateIn, me: CurrentUser = Depends(get_
         scopes=[],
         is_active=True,
         expires_at=expires_at,
+        rate_limit_per_min=payload.rate_limit_per_min,
     )
     db.add(api_key)
     await db.commit()
