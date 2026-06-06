@@ -115,11 +115,11 @@ const NAV_GROUPS: NavGroup[] = [
 ];
 
 const PRIMARY_MOBILE_ITEMS: NavItem[] = [
-  NAV_GROUPS[0].items[0],
-  NAV_GROUPS[0].items[1],
-  NAV_GROUPS[1].items[0],
-  NAV_GROUPS[2].items[0],
-  NAV_GROUPS[2].items[3],
+  NAV_GROUPS[0].items[0],  // Dashboard
+  NAV_GROUPS[0].items[1],  // Events
+  NAV_GROUPS[2].items[0],  // Email Center (İletişim[0])
+  NAV_GROUPS[1].items[0],  // Katılımcı CRM (CRM & Satış[0])
+  NAV_GROUPS[4].items[6],  // Settings (Platform[6])
 ];
 
 const AUTH_PATH_PREFIXES = ["/admin/login", "/admin/magic-verify", "/admin/auth"];
@@ -287,7 +287,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
   const role = getRoleFromToken();
   const mobileNavItems =
     role === "superadmin"
-      ? [...PRIMARY_MOBILE_ITEMS.slice(0, 4), NAV_GROUPS[2].items[4]]
+      ? [...PRIMARY_MOBILE_ITEMS.slice(0, 4), NAV_GROUPS[4].items[8]]
       : PRIMARY_MOBILE_ITEMS;
 
   const topbarText = useMemo(
