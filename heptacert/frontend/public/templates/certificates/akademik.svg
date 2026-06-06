@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="877" viewBox="0 0 1240 877">
+  <defs>
+    <linearGradient id="parchment" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FAF6EC"/>
+      <stop offset="40%" style="stop-color:#F5EFD8"/>
+      <stop offset="100%" style="stop-color:#EDE3C4"/>
+    </linearGradient>
+    <linearGradient id="darkBrown" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3D2B1F"/>
+      <stop offset="50%" style="stop-color:#5C3D2E"/>
+      <stop offset="100%" style="stop-color:#3D2B1F"/>
+    </linearGradient>
+    <filter id="noise">
+      <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feBlend in="SourceGraphic" mode="multiply" result="noisy"/>
+    </filter>
+  </defs>
+
+  <!-- Parchment background -->
+  <rect width="1240" height="877" fill="url(#parchment)"/>
+  <!-- Subtle texture overlay -->
+  <rect width="1240" height="877" fill="#6B4226" fill-opacity="0.04"/>
+
+  <!-- Outer ornate border -->
+  <rect x="15" y="15" width="1210" height="847" fill="none" stroke="#5C3D2E" stroke-width="4"/>
+  <rect x="22" y="22" width="1196" height="833" fill="none" stroke="#8B6914" stroke-width="1.5"/>
+  <rect x="30" y="30" width="1180" height="817" fill="none" stroke="#5C3D2E" stroke-width="0.8"/>
+
+  <!-- Corner decorations - ornate squares -->
+  <!-- Top-left -->
+  <g>
+    <rect x="15" y="15" width="80" height="80" fill="#5C3D2E" fill-opacity="0.08"/>
+    <path d="M15,15 L55,15 L15,55 Z" fill="#8B6914" fill-opacity="0.2"/>
+    <path d="M15,95 L55,95 L15,55 Z" fill="#8B6914" fill-opacity="0.1"/>
+    <circle cx="55" cy="55" r="12" fill="none" stroke="#8B6914" stroke-width="1.5"/>
+    <circle cx="55" cy="55" r="5" fill="#8B6914" fill-opacity="0.5"/>
+    <path d="M30,15 L30,50 M15,30 L50,30" stroke="#8B6914" stroke-width="0.8" stroke-opacity="0.5"/>
+  </g>
+  <!-- Top-right -->
+  <g transform="translate(1240,0) scale(-1,1)">
+    <rect x="15" y="15" width="80" height="80" fill="#5C3D2E" fill-opacity="0.08"/>
+    <path d="M15,15 L55,15 L15,55 Z" fill="#8B6914" fill-opacity="0.2"/>
+    <circle cx="55" cy="55" r="12" fill="none" stroke="#8B6914" stroke-width="1.5"/>
+    <circle cx="55" cy="55" r="5" fill="#8B6914" fill-opacity="0.5"/>
+  </g>
+  <!-- Bottom-left -->
+  <g transform="translate(0,877) scale(1,-1)">
+    <rect x="15" y="15" width="80" height="80" fill="#5C3D2E" fill-opacity="0.08"/>
+    <path d="M15,15 L55,15 L15,55 Z" fill="#8B6914" fill-opacity="0.2"/>
+    <circle cx="55" cy="55" r="12" fill="none" stroke="#8B6914" stroke-width="1.5"/>
+    <circle cx="55" cy="55" r="5" fill="#8B6914" fill-opacity="0.5"/>
+  </g>
+  <!-- Bottom-right -->
+  <g transform="translate(1240,877) scale(-1,-1)">
+    <rect x="15" y="15" width="80" height="80" fill="#5C3D2E" fill-opacity="0.08"/>
+    <path d="M15,15 L55,15 L15,55 Z" fill="#8B6914" fill-opacity="0.2"/>
+    <circle cx="55" cy="55" r="12" fill="none" stroke="#8B6914" stroke-width="1.5"/>
+    <circle cx="55" cy="55" r="5" fill="#8B6914" fill-opacity="0.5"/>
+  </g>
+
+  <!-- Header area shading -->
+  <rect x="30" y="30" width="1180" height="145" fill="#5C3D2E" fill-opacity="0.06"/>
+  <line x1="30" y1="175" x2="1210" y2="175" stroke="#8B6914" stroke-width="1.5"/>
+  <line x1="30" y1="179" x2="1210" y2="179" stroke="#5C3D2E" stroke-width="0.5"/>
+
+  <!-- Decorative header border line -->
+  <line x1="80" y1="42" x2="1160" y2="42" stroke="#8B6914" stroke-width="0.8" stroke-opacity="0.5"/>
+
+  <!-- Title -->
+  <text x="620" y="85" font-family="Georgia, 'Times New Roman', serif" font-size="11" font-weight="bold" letter-spacing="6" fill="#5C3D2E" text-anchor="middle">✦ HEPTACERT ✦</text>
+  <text x="620" y="135" font-family="Georgia, 'Times New Roman', serif" font-size="32" font-weight="bold" letter-spacing="3" fill="#3D2B1F" text-anchor="middle">Katılım Diploması</text>
+  <text x="620" y="160" font-family="Georgia, serif" font-size="11" letter-spacing="3" fill="#8B6914" text-anchor="middle" font-style="italic">Certificate of Attendance</text>
+
+  <!-- Decorative line group -->
+  <line x1="80" y1="220" x2="520" y2="220" stroke="#8B6914" stroke-width="0.8"/>
+  <path d="M520,220 Q570,200 620,220 Q670,240 720,220" fill="none" stroke="#8B6914" stroke-width="1"/>
+  <line x1="720" y1="220" x2="1160" y2="220" stroke="#8B6914" stroke-width="0.8"/>
+  <circle cx="620" cy="220" r="5" fill="#8B6914" fill-opacity="0.5"/>
+
+  <!-- "This is to certify that" -->
+  <text x="620" y="270" font-family="Georgia, serif" font-size="15" fill="#5C3D2E" text-anchor="middle" font-style="italic">Sayın</text>
+
+  <!-- Name underline (name at y≈438 by config) -->
+  <line x1="200" y1="476" x2="1040" y2="476" stroke="#5C3D2E" stroke-width="1.5"/>
+  <line x1="300" y1="480" x2="940" y2="480" stroke="#8B6914" stroke-width="0.5"/>
+
+  <!-- Middle text -->
+  <text x="620" y="530" font-family="Georgia, serif" font-size="14" fill="#5C3D2E" text-anchor="middle" font-style="italic">adlı değerli katılımcının bu etkinlikte</text>
+  <text x="620" y="558" font-family="Georgia, serif" font-size="14" fill="#5C3D2E" text-anchor="middle" font-style="italic">bulunduğunu tescil ederiz.</text>
+
+  <!-- Central seal -->
+  <g transform="translate(620, 635)">
+    <circle cx="0" cy="0" r="50" fill="#EDE3C4" stroke="#8B6914" stroke-width="2"/>
+    <circle cx="0" cy="0" r="42" fill="none" stroke="#8B6914" stroke-width="0.8" stroke-dasharray="2,2"/>
+    <circle cx="0" cy="0" r="32" fill="none" stroke="#5C3D2E" stroke-width="1"/>
+    <!-- Laurel leaves simplified -->
+    <path d="M-25,0 Q-18,-12 -8,-8 Q-18,-4 -25,0" fill="#8B6914" fill-opacity="0.4"/>
+    <path d="M25,0 Q18,-12 8,-8 Q18,-4 25,0" fill="#8B6914" fill-opacity="0.4"/>
+    <path d="M-20,8 Q-14,-4 -4,0 Q-14,4 -20,8" fill="#8B6914" fill-opacity="0.3"/>
+    <path d="M20,8 Q14,-4 4,0 Q14,4 20,8" fill="#8B6914" fill-opacity="0.3"/>
+    <text x="0" y="6" font-family="Georgia, serif" font-size="20" fill="#5C3D2E" text-anchor="middle">✦</text>
+  </g>
+
+  <!-- Bottom divider -->
+  <line x1="30" y1="740" x2="1210" y2="740" stroke="#8B6914" stroke-width="0.8"/>
+  <rect x="30" y="740" width="1180" height="107" fill="#5C3D2E" fill-opacity="0.04"/>
+
+  <!-- Signature areas -->
+  <line x1="100" y1="800" x2="360" y2="800" stroke="#8B6914" stroke-width="1"/>
+  <text x="230" y="818" font-family="Georgia, serif" font-size="10" fill="#8B6914" text-anchor="middle" font-style="italic">Yetkili İmzası</text>
+
+  <line x1="880" y1="800" x2="1140" y2="800" stroke="#8B6914" stroke-width="1"/>
+  <text x="1010" y="818" font-family="Georgia, serif" font-size="10" fill="#8B6914" text-anchor="middle" font-style="italic">Tarih</text>
+
+  <!-- QR area (bottom-left, config default) -->
+  <rect x="80" y="756" width="95" height="95" fill="none" stroke="#8B6914" stroke-width="0.8" stroke-opacity="0.5"/>
+
+  <!-- Footer decorative line -->
+  <line x1="80" y1="836" x2="1160" y2="836" stroke="#8B6914" stroke-width="0.5" stroke-opacity="0.5"/>
+</svg>

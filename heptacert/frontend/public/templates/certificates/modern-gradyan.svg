@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="877" viewBox="0 0 1240 877">
+  <defs>
+    <linearGradient id="bgMain" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1E1B4B"/>
+      <stop offset="50%" style="stop-color:#312E81"/>
+      <stop offset="100%" style="stop-color:#4338CA"/>
+    </linearGradient>
+    <linearGradient id="cardBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF" stop-opacity="0.98"/>
+      <stop offset="100%" style="stop-color:#F0F0FF" stop-opacity="0.98"/>
+    </linearGradient>
+    <linearGradient id="purpleAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#7C3AED"/>
+      <stop offset="50%" style="stop-color:#A855F7"/>
+      <stop offset="100%" style="stop-color:#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="tealAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0EA5E9"/>
+      <stop offset="100%" style="stop-color:#38BDF8"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="cardShadow">
+      <feDropShadow dx="0" dy="8" stdDeviation="20" flood-color="#1E1B4B" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Dark gradient background -->
+  <rect width="1240" height="877" fill="url(#bgMain)"/>
+
+  <!-- Background decorative circles (depth) -->
+  <circle cx="100" cy="150" r="200" fill="#7C3AED" fill-opacity="0.15"/>
+  <circle cx="1140" cy="720" r="250" fill="#4338CA" fill-opacity="0.2"/>
+  <circle cx="650" cy="50" r="120" fill="#0EA5E9" fill-opacity="0.08"/>
+  <circle cx="200" cy="800" r="150" fill="#7C3AED" fill-opacity="0.1"/>
+
+  <!-- Background grid pattern -->
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#FFFFFF" stroke-width="0.2" stroke-opacity="0.08"/>
+  </pattern>
+  <rect width="1240" height="877" fill="url(#grid)"/>
+
+  <!-- Main white card -->
+  <rect x="80" y="60" width="1080" height="757" rx="12" fill="url(#cardBg)" filter="url(#cardShadow)"/>
+
+  <!-- Card left accent bar -->
+  <rect x="80" y="60" width="8" height="757" rx="4" fill="url(#purpleAccent)"/>
+
+  <!-- Card top accent bar -->
+  <rect x="80" y="60" width="1080" height="6" rx="3" fill="url(#purpleAccent)"/>
+
+  <!-- Top section of card -->
+  <rect x="88" y="66" width="1072" height="160" rx="8" fill="#F5F3FF"/>
+
+  <!-- Logo / brand area -->
+  <text x="620" y="120" font-family="'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="800" letter-spacing="6" fill="#7C3AED" text-anchor="middle">HEPTACERT</text>
+
+  <!-- Gradient title bar -->
+  <rect x="200" y="135" width="840" height="3" rx="1" fill="url(#purpleAccent)"/>
+
+  <text x="620" y="190" font-family="'Helvetica Neue', Arial, sans-serif" font-size="36" font-weight="700" fill="#1E1B4B" text-anchor="middle" letter-spacing="1">Katılım Sertifikası</text>
+  <text x="620" y="215" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11" fill="#7C3AED" text-anchor="middle" letter-spacing="4">CERTIFICATE OF PARTICIPATION</text>
+
+  <!-- Subtitle line -->
+  <rect x="88" y="226" width="1072" height="1" fill="#E9D5FF"/>
+
+  <!-- Content area -->
+  <text x="620" y="295" font-family="'Helvetica Neue', Arial, sans-serif" font-size="14" fill="#6B7280" text-anchor="middle">Aşağıdaki değerli katılımcının etkinliğe başarılı katılımını belgeleriz.</text>
+
+  <!-- Name area background highlight (name placed at y≈438 by config) -->
+  <rect x="150" y="385" width="940" height="110" rx="8" fill="#F5F3FF"/>
+  <rect x="150" y="385" width="4" height="110" rx="2" fill="url(#purpleAccent)"/>
+
+  <!-- Underline for name field -->
+  <line x1="200" y1="496" x2="1040" y2="496" stroke="#E9D5FF" stroke-width="1.5"/>
+
+  <!-- Participation line -->
+  <text x="620" y="560" font-family="'Helvetica Neue', Arial, sans-serif" font-size="13" fill="#6B7280" text-anchor="middle">etkinliğine katıldığı için bu sertifika düzenlenmiştir.</text>
+
+  <!-- Stats / badges row -->
+  <rect x="250" y="595" width="200" height="60" rx="8" fill="#F5F3FF" stroke="#E9D5FF" stroke-width="1"/>
+  <text x="350" y="622" font-family="'Helvetica Neue', Arial, sans-serif" font-size="10" fill="#7C3AED" text-anchor="middle" font-weight="700" letter-spacing="1">ONAYLANMIŞ</text>
+  <text x="350" y="642" font-family="'Helvetica Neue', Arial, sans-serif" font-size="10" fill="#9CA3AF" text-anchor="middle">Dijital Sertifika</text>
+
+  <rect x="520" y="595" width="200" height="60" rx="8" fill="#F0FEFF" stroke="#BAE6FD" stroke-width="1"/>
+  <text x="620" y="622" font-family="'Helvetica Neue', Arial, sans-serif" font-size="10" fill="#0EA5E9" text-anchor="middle" font-weight="700" letter-spacing="1">QR DOĞRULAMALΙ</text>
+  <text x="620" y="642" font-family="'Helvetica Neue', Arial, sans-serif" font-size="10" fill="#9CA3AF" text-anchor="middle">Anlık Doğrulama</text>
+
+  <rect x="790" y="595" width="200" height="60" rx="8" fill="#F0FDF4" stroke="#BBF7D0" stroke-width="1"/>
+  <text x="890" y="622" font-family="'Helvetica Neue', Arial, sans-serif" font-size="10" fill="#16A34A" text-anchor="middle" font-weight="700" letter-spacing="1">GÜVENLİ KAYIT</text>
+  <text x="890" y="642" font-family="'Helvetica Neue', Arial, sans-serif" font-size="10" fill="#9CA3AF" text-anchor="middle">Blockchain Tabanlı</text>
+
+  <!-- Signature section -->
+  <line x1="140" y1="710" x2="380" y2="710" stroke="#E9D5FF" stroke-width="1.5"/>
+  <text x="260" y="728" font-family="'Helvetica Neue', Arial, sans-serif" font-size="9" fill="#9CA3AF" text-anchor="middle" letter-spacing="1.5">YETKİLİ İMZASI</text>
+
+  <line x1="860" y1="710" x2="1100" y2="710" stroke="#E9D5FF" stroke-width="1.5"/>
+  <text x="980" y="728" font-family="'Helvetica Neue', Arial, sans-serif" font-size="9" fill="#9CA3AF" text-anchor="middle" letter-spacing="1.5">TARİH</text>
+
+  <!-- Bottom cert ID area (cert_id placed by config) -->
+  <rect x="88" y="760" width="1072" height="50" rx="0" fill="#FAF5FF" fill-opacity="0.5"/>
+  <text x="620" y="788" font-family="'Helvetica Neue', Arial, sans-serif" font-size="9" fill="#C4B5FD" text-anchor="middle" letter-spacing="2">SERTİFİKA NUMARASI</text>
+
+  <!-- QR area placeholder bottom-left (QR placed by config) -->
+  <rect x="100" y="766" width="90" height="90" rx="4" fill="white" stroke="#E9D5FF" stroke-width="1"/>
+
+  <!-- Bottom glow dots -->
+  <circle cx="400" cy="870" r="3" fill="#7C3AED" fill-opacity="0.6"/>
+  <circle cx="620" cy="870" r="3" fill="#A855F7" fill-opacity="0.6"/>
+  <circle cx="840" cy="870" r="3" fill="#7C3AED" fill-opacity="0.6"/>
+</svg>

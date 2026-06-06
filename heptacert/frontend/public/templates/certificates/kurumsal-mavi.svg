@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="877" viewBox="0 0 1240 877">
+  <defs>
+    <linearGradient id="navyHeader" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0F2044"/>
+      <stop offset="100%" style="stop-color:#1E3A6E"/>
+    </linearGradient>
+    <linearGradient id="navyFooter" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1E3A6E"/>
+      <stop offset="100%" style="stop-color:#0F2044"/>
+    </linearGradient>
+    <linearGradient id="goldAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#C9A84C"/>
+      <stop offset="50%" style="stop-color:#F5D98B"/>
+      <stop offset="100%" style="stop-color:#C9A84C"/>
+    </linearGradient>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#F8FAFF"/>
+      <stop offset="100%" style="stop-color:#EDF2FF"/>
+    </linearGradient>
+    <filter id="headerShadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1240" height="877" fill="url(#bgGrad)"/>
+
+  <!-- Navy header -->
+  <rect x="0" y="0" width="1240" height="190" fill="url(#navyHeader)" filter="url(#headerShadow)"/>
+
+  <!-- Gold accent line at bottom of header -->
+  <rect x="0" y="186" width="1240" height="4" fill="url(#goldAccent)"/>
+
+  <!-- Header content -->
+  <text x="620" y="68" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="700" letter-spacing="6" fill="#F5D98B" text-anchor="middle">HEPTACERT</text>
+  <line x1="480" y1="80" x2="760" y2="80" stroke="#C9A84C" stroke-width="0.8" stroke-opacity="0.6"/>
+  <text x="620" y="130" font-family="Georgia, 'Times New Roman', serif" font-size="38" font-weight="bold" letter-spacing="2" fill="#FFFFFF" text-anchor="middle">KATILIM SERTİFİKASI</text>
+  <text x="620" y="162" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11" letter-spacing="4" fill="#93C5FD" text-anchor="middle">CERTIFICATE OF PARTICIPATION</text>
+
+  <!-- Decorative circles in header -->
+  <circle cx="80" cy="95" r="50" fill="none" stroke="#FFFFFF" stroke-opacity="0.06" stroke-width="20"/>
+  <circle cx="1160" cy="95" r="50" fill="none" stroke="#FFFFFF" stroke-opacity="0.06" stroke-width="20"/>
+
+  <!-- Content area border -->
+  <rect x="60" y="218" width="1120" height="600" fill="none" stroke="#CBD5E1" stroke-width="0.5" rx="2"/>
+
+  <!-- Left accent stripe in content -->
+  <rect x="60" y="218" width="5" height="600" fill="url(#goldAccent)" rx="2"/>
+
+  <!-- "This certifies that" block -->
+  <text x="620" y="290" font-family="Georgia, serif" font-size="14" fill="#475569" text-anchor="middle" font-style="italic">Bu sertifika</text>
+  <text x="620" y="315" font-family="Georgia, serif" font-size="14" fill="#475569" text-anchor="middle" font-style="italic">aşağıdaki kişinin etkinliğe katılımını onaylamak amacıyla düzenlenmiştir.</text>
+
+  <!-- Divider line above name (name at y≈438) -->
+  <line x1="200" y1="380" x2="1040" y2="380" stroke="#E2E8F0" stroke-width="1"/>
+
+  <!-- Divider line below name -->
+  <line x1="200" y1="490" x2="1040" y2="490" stroke="#E2E8F0" stroke-width="1"/>
+  <line x1="400" y1="493" x2="840" y2="493" stroke="#C9A84C" stroke-width="0.8"/>
+
+  <!-- Contribution text area -->
+  <text x="620" y="540" font-family="Georgia, serif" font-size="13" fill="#64748B" text-anchor="middle" font-style="italic">etkinliğine başarıyla katıldığı için</text>
+
+  <!-- Official seal-like circle -->
+  <circle cx="620" cy="625" r="40" fill="none" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="3,2"/>
+  <circle cx="620" cy="625" r="28" fill="none" stroke="#1E3A6E" stroke-width="1" stroke-opacity="0.4"/>
+  <circle cx="620" cy="625" r="16" fill="#EDF2FF"/>
+  <text x="620" y="630" font-family="'Helvetica Neue', Arial, sans-serif" font-size="14" fill="#1E3A6E" text-anchor="middle" font-weight="bold">✓</text>
+
+  <!-- Bottom signature section -->
+  <line x1="130" y1="700" x2="380" y2="700" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="255" y="718" font-family="'Helvetica Neue', Arial, sans-serif" font-size="9" fill="#94A3B8" text-anchor="middle" letter-spacing="1.5">YETKİLİ İMZASI</text>
+
+  <line x1="860" y1="700" x2="1110" y2="700" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="985" y="718" font-family="'Helvetica Neue', Arial, sans-serif" font-size="9" fill="#94A3B8" text-anchor="middle" letter-spacing="1.5">TARİH</text>
+
+  <!-- Navy footer -->
+  <rect x="0" y="833" width="1240" height="44" fill="url(#navyFooter)"/>
+  <rect x="0" y="833" width="1240" height="4" fill="url(#goldAccent)"/>
+
+  <!-- Footer text (cert_id placed by config near here) -->
+  <text x="620" y="856" font-family="'Helvetica Neue', Arial, sans-serif" font-size="9" fill="#93C5FD" text-anchor="middle" letter-spacing="2">SERTİFİKA NUMARASI</text>
+
+  <!-- QR placeholder area bottom-left -->
+  <rect x="80" y="738" width="100" height="100" fill="none" stroke="#E2E8F0" stroke-width="1" rx="2"/>
+</svg>

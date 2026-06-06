@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import os
 from datetime import datetime
 from typing import Any, Optional
 from uuid import uuid4
@@ -286,6 +287,26 @@ async def list_certificate_template_snapshots(
         raise HTTPException(status_code=404, detail="Certificate template preset not found")
     rows = (await db.execute(select(CertificateTemplateRegressionSnapshot).where(CertificateTemplateRegressionSnapshot.preset_id == preset_id).order_by(CertificateTemplateRegressionSnapshot.created_at.desc()))).scalars().all()
     return [TemplateRegressionSnapshotOut(id=row.id, scenario=row.scenario, render_hash=row.render_hash, created_at=row.created_at) for row in rows]
+
+
+@router.get(
+    "/api/admin/certificate-template-presets/builtin",
+    response_model=list[CertificateTemplatePresetOut],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    summary="List built-in (platform-level) certificate template presets",
+)
+async def list_builtin_certificate_template_presets(
+    db: AsyncSession = Depends(get_db),
+):
+    """Return the platform-wide built-in templates seeded at startup."""
+    rows = (
+        await db.execute(
+            select(CertificateTemplatePreset)
+            .where(CertificateTemplatePreset.scope_type == "builtin")
+            .order_by(CertificateTemplatePreset.created_at)
+        )
+    ).scalars().all()
+    return [_serialize_preset(row) for row in rows]
 
 
 @router.delete(

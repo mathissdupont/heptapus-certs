@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="877" viewBox="0 0 1240 877">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFEF5"/>
+      <stop offset="100%" style="stop-color:#FFF8DC"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#C9A84C"/>
+      <stop offset="50%" style="stop-color:#F5D98B"/>
+      <stop offset="100%" style="stop-color:#C9A84C"/>
+    </linearGradient>
+    <linearGradient id="goldV" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#C9A84C"/>
+      <stop offset="50%" style="stop-color:#F5D98B"/>
+      <stop offset="100%" style="stop-color:#C9A84C"/>
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#C9A84C" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1240" height="877" fill="url(#bg)"/>
+
+  <!-- Outer border - thick gold -->
+  <rect x="18" y="18" width="1204" height="841" fill="none" stroke="url(#gold)" stroke-width="3"/>
+  <!-- Inner border - thin gold -->
+  <rect x="28" y="28" width="1184" height="821" fill="none" stroke="url(#gold)" stroke-width="1"/>
+  <!-- Content border -->
+  <rect x="38" y="38" width="1164" height="801" fill="none" stroke="#C9A84C" stroke-width="0.5" stroke-dasharray="4,3"/>
+
+  <!-- Corner ornaments - top left -->
+  <g transform="translate(18,18)">
+    <rect x="0" y="0" width="60" height="60" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
+    <line x1="0" y1="0" x2="60" y2="60" stroke="#C9A84C" stroke-width="0.5"/>
+    <circle cx="30" cy="30" r="8" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
+    <circle cx="30" cy="30" r="3" fill="#C9A84C"/>
+  </g>
+  <!-- Corner ornaments - top right -->
+  <g transform="translate(1222,18) scale(-1,1)">
+    <rect x="0" y="0" width="60" height="60" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
+    <line x1="0" y1="0" x2="60" y2="60" stroke="#C9A84C" stroke-width="0.5"/>
+    <circle cx="30" cy="30" r="8" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
+    <circle cx="30" cy="30" r="3" fill="#C9A84C"/>
+  </g>
+  <!-- Corner ornaments - bottom left -->
+  <g transform="translate(18,859) scale(1,-1)">
+    <rect x="0" y="0" width="60" height="60" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
+    <line x1="0" y1="0" x2="60" y2="60" stroke="#C9A84C" stroke-width="0.5"/>
+    <circle cx="30" cy="30" r="8" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
+    <circle cx="30" cy="30" r="3" fill="#C9A84C"/>
+  </g>
+  <!-- Corner ornaments - bottom right -->
+  <g transform="translate(1222,859) scale(-1,-1)">
+    <rect x="0" y="0" width="60" height="60" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
+    <line x1="0" y1="0" x2="60" y2="60" stroke="#C9A84C" stroke-width="0.5"/>
+    <circle cx="30" cy="30" r="8" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
+    <circle cx="30" cy="30" r="3" fill="#C9A84C"/>
+  </g>
+
+  <!-- Top decorative band -->
+  <rect x="38" y="38" width="1164" height="110" fill="#C9A84C" fill-opacity="0.08"/>
+  <line x1="38" y1="148" x2="1202" y2="148" stroke="url(#gold)" stroke-width="1.5"/>
+
+  <!-- Title area -->
+  <text x="620" y="82" font-family="Georgia, serif" font-size="13" font-weight="bold" letter-spacing="6" fill="#8B6914" text-anchor="middle" text-transform="uppercase">HEPTACERT</text>
+  <line x1="480" y1="92" x2="760" y2="92" stroke="#C9A84C" stroke-width="0.8"/>
+  <text x="620" y="120" font-family="Georgia, serif" font-size="26" font-weight="bold" letter-spacing="4" fill="#6B4F10" text-anchor="middle">KATILIM SERTİFİKASI</text>
+  <line x1="380" y1="135" x2="860" y2="135" stroke="#C9A84C" stroke-width="0.8"/>
+
+  <!-- Central decorative line group -->
+  <line x1="80" y1="310" x2="480" y2="310" stroke="url(#gold)" stroke-width="1"/>
+  <circle cx="620" cy="310" r="5" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
+  <circle cx="620" cy="310" r="2" fill="#C9A84C"/>
+  <line x1="760" y1="310" x2="1160" y2="310" stroke="url(#gold)" stroke-width="1"/>
+
+  <!-- "Bu sertifika verilmiştir" text -->
+  <text x="620" y="290" font-family="Georgia, serif" font-size="15" fill="#8B7030" text-anchor="middle" font-style="italic">Bu sertifika aşağıdaki kişiye verilmiştir</text>
+
+  <!-- Name divider lines (name will be placed by config at y=438) -->
+  <line x1="200" y1="490" x2="1040" y2="490" stroke="url(#gold)" stroke-width="1.5"/>
+  <line x1="300" y1="495" x2="940" y2="495" stroke="#C9A84C" stroke-width="0.5"/>
+
+  <!-- "başarıyla tamamladığı" -->
+  <text x="620" y="545" font-family="Georgia, serif" font-size="14" fill="#7A6428" text-anchor="middle" font-style="italic">etkinliğine katıldığı için</text>
+
+  <!-- Decorative center rosette -->
+  <g transform="translate(620, 618)" filter="url(#shadow)">
+    <circle cx="0" cy="0" r="38" fill="none" stroke="url(#gold)" stroke-width="2"/>
+    <circle cx="0" cy="0" r="28" fill="#C9A84C" fill-opacity="0.12"/>
+    <circle cx="0" cy="0" r="16" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
+    <!-- Star/flower petals -->
+    <path d="M0,-36 L4,-26 L14,-30 L8,-22 L18,-18 L10,-14 L14,-4 L4,-8 L0,0 L-4,-8 L-14,-4 L-10,-14 L-18,-18 L-8,-22 L-14,-30 L-4,-26 Z" fill="#C9A84C" fill-opacity="0.4"/>
+    <text x="0" y="5" font-family="Georgia, serif" font-size="9" fill="#8B6914" text-anchor="middle" font-weight="bold">✦</text>
+  </g>
+
+  <!-- Bottom decorative band -->
+  <rect x="38" y="769" width="1164" height="70" fill="#C9A84C" fill-opacity="0.08"/>
+  <line x1="38" y1="769" x2="1202" y2="769" stroke="url(#gold)" stroke-width="1.5"/>
+
+  <!-- Bottom text areas (cert_id at y=800, QR at bottom-left) -->
+  <text x="620" y="800" font-family="Georgia, serif" font-size="10" fill="#A08030" text-anchor="middle" letter-spacing="1">Sertifika No:</text>
+
+  <!-- Signature line left -->
+  <line x1="120" y1="750" x2="320" y2="750" stroke="#C9A84C" stroke-width="1"/>
+  <text x="220" y="765" font-family="Georgia, serif" font-size="10" fill="#8B7030" text-anchor="middle">İmza</text>
+
+  <!-- Signature line right -->
+  <line x1="920" y1="750" x2="1120" y2="750" stroke="#C9A84C" stroke-width="1"/>
+  <text x="1020" y="765" font-family="Georgia, serif" font-size="10" fill="#8B7030" text-anchor="middle">Tarih</text>
+
+  <!-- Small decorative elements mid-left and mid-right -->
+  <circle cx="80" cy="438" r="4" fill="#C9A84C" fill-opacity="0.3"/>
+  <circle cx="1160" cy="438" r="4" fill="#C9A84C" fill-opacity="0.3"/>
+</svg>

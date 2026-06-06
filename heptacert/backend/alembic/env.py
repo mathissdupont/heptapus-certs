@@ -13,6 +13,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 try:
     from src.main import Base  # noqa: E402
+    import src.quiz_models  # noqa: F401 — registers Quiz tables on Base.metadata
+    import src.learning_path_models  # noqa: F401 — registers LearningPath tables on Base.metadata
+    import src.crm_accounts_models  # noqa: F401 — registers CRM Account tables on Base.metadata
+    import src.lead_forms_models  # noqa: F401 — registers LeadCaptureForm tables on Base.metadata
+    import src.report_scheduler_models  # noqa: F401 — registers ScheduledReport table on Base.metadata
+    import src.accreditation_models  # noqa: F401 — registers Accreditation tables on Base.metadata
     target_metadata = Base.metadata
 except Exception:
     # Fallback: create a bare metadata so alembic can still run migrations

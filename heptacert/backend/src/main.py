@@ -454,6 +454,11 @@ class Event(Base):
     raffles_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     gamification_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     requires_approval: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Marketplace fields (migration 079)
+    is_marketplace_listed: Mapped[bool] = mapped_column(Boolean, default=False)
+    marketplace_category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    marketplace_description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    marketplace_price: Mapped[Optional[float]] = mapped_column(sa.Numeric(10, 2), nullable=True)
 
     admin: Mapped["User"] = relationship(back_populates="events")
     certificates: Mapped[List["Certificate"]] = relationship(back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
@@ -20349,4 +20354,51 @@ async def list_my_jobs(
     jobs.sort(key=lambda j: j.get("created_at") or "", reverse=True)
     active_count = sum(1 for j in jobs if j["status"] in ("pending", "processing", "sending", "in_progress"))
     return {"jobs": jobs[:limit], "active_count": active_count}
+
+
+# ── Built-in badge template gallery ──────────────────────────────────────────
+
+@app.get(
+    "/api/admin/badge-templates",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    summary="List built-in badge template presets",
+)
+async def list_builtin_badge_templates(lang: str = "tr"):
+    """
+    Return the platform-level badge template gallery.
+    Organizers pick from these to pre-fill their event's badge definitions.
+    """
+    from .badge_template_seeds import get_builtin_badge_templates  # noqa: PLC0415
+    templates = await get_builtin_badge_templates(lang=lang if lang in ("tr", "en") else "tr")
+    return {"templates": templates, "total": len(templates)}
+
+
+# ── Feature module routers ────────────────────────────────────────────────────
+
+from . import quiz_api as _quiz_api  # noqa: E402
+app.include_router(_quiz_api.router)
+
+from . import learning_path_api as _learning_path_api  # noqa: E402
+app.include_router(_learning_path_api.router)
+
+from . import crm_accounts_api as _crm_accounts_api  # noqa: E402
+app.include_router(_crm_accounts_api.router)
+
+from . import lead_forms_api as _lead_forms_api  # noqa: E402
+app.include_router(_lead_forms_api.router)
+
+from . import org_analytics_api as _org_analytics_api  # noqa: E402
+app.include_router(_org_analytics_api.router)
+
+from . import report_scheduler_api as _report_scheduler_api  # noqa: E402
+app.include_router(_report_scheduler_api.router)
+
+from . import marketplace_api as _marketplace_api  # noqa: E402
+app.include_router(_marketplace_api.router)
+
+from . import api_keys_ext_api as _api_keys_ext_api  # noqa: E402
+app.include_router(_api_keys_ext_api.router)
+
+from . import accreditation_api as _accreditation_api  # noqa: E402
+app.include_router(_accreditation_api.router)
 

@@ -7,8 +7,10 @@ import {
   applyCertificateTemplatePreset,
   deleteCertificateTemplatePreset,
   listCertificateTemplatePresets,
+  listBuiltinCertificateTemplatePresets,
   saveEventCertificateTemplatePreset,
   type CertificateTemplatePreset,
+  type BadgeTemplatePreset,
 } from "@/lib/api";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Draggable from "react-draggable";
@@ -387,6 +389,9 @@ export default function EditorPage() {
   const [presetName, setPresetName] = useState("");
   const [presetBusyId, setPresetBusyId] = useState<string | null>(null);
   const [savingPreset, setSavingPreset] = useState(false);
+  const [builtinPresets, setBuiltinPresets] = useState<CertificateTemplatePreset[]>([]);
+  const [builtinPresetsLoading, setBuiltinPresetsLoading] = useState(false);
+  const [presetTab, setPresetTab] = useState<"mine" | "builtin">("builtin");
 
   async function loadSnapshots() {
     setSnapsLoading(true);
@@ -410,6 +415,7 @@ export default function EditorPage() {
 
   useEffect(() => {
     if (activePanel === "history") loadSnapshots();
+    if (activePanel === "presets") { loadPresets(); loadBuiltinPresets(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePanel]);
 
@@ -421,6 +427,15 @@ export default function EditorPage() {
       setErr(ex?.message || "Presetler yuklenemedi.");
     } finally {
       setPresetsLoading(false);
+    }
+  }
+
+  async function loadBuiltinPresets() {
+    setBuiltinPresetsLoading(true);
+    try {
+      setBuiltinPresets(await listBuiltinCertificateTemplatePresets());
+    } catch { /* silent */ } finally {
+      setBuiltinPresetsLoading(false);
     }
   }
 
@@ -1338,52 +1353,89 @@ export default function EditorPage() {
                   </div>
                 </PanelSection>
 
-                <PanelSection icon={<FileText className="h-3.5 w-3.5" />} title="Kurum Presetleri" description="Kaydedilen tasarımları başka etkinliklere tek tıkla uygulayın.">
-                  {presetsLoading ? (
-                    <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-brand-500" /></div>
-                  ) : presets.length === 0 ? (
-                    <p className="py-6 text-center text-xs text-surface-400">Henüz kayıtlı preset yok.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {presets.map((preset) => (
-                        <div key={preset.id} className="rounded-xl border border-surface-100 bg-surface-50 p-3">
-                          <div className="flex items-center gap-3">
+                <PanelSection icon={<FileText className="h-3.5 w-3.5" />} title="Şablon Galerisi" description="Hazır şablonları tek tıkla uygulayın veya kendi presetlerinizi kaydedin.">
+                  {/* Tab switcher */}
+                  <div className="mb-3 flex rounded-lg border border-surface-150 p-0.5 bg-surface-50">
+                    <button type="button" onClick={() => setPresetTab("builtin")} className={`flex-1 rounded-md py-1.5 text-11 font-semibold transition-colors ${presetTab === "builtin" ? "bg-white text-surface-900 shadow-sm" : "text-surface-400 hover:text-surface-700"}`}>
+                      Hazır Şablonlar
+                    </button>
+                    <button type="button" onClick={() => setPresetTab("mine")} className={`flex-1 rounded-md py-1.5 text-11 font-semibold transition-colors ${presetTab === "mine" ? "bg-white text-surface-900 shadow-sm" : "text-surface-400 hover:text-surface-700"}`}>
+                      Kurum Presetleri
+                    </button>
+                  </div>
+
+                  {presetTab === "builtin" && (
+                    builtinPresetsLoading ? (
+                      <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-brand-500" /></div>
+                    ) : builtinPresets.length === 0 ? (
+                      <p className="py-6 text-center text-xs text-surface-400">Hazır şablon bulunamadı.</p>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2">
+                        {builtinPresets.map((preset) => (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => applyPreset(preset.id)}
+                            disabled={presetBusyId === preset.id}
+                            className="group relative overflow-hidden rounded-xl border border-surface-150 bg-white text-left transition-all hover:border-brand-300 hover:shadow-md disabled:opacity-50"
+                          >
                             {preset.template_image_url ? (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img src={preset.template_image_url} alt="" className="h-10 w-16 rounded border border-surface-200 object-cover" />
+                              <img src={preset.template_image_url} alt={preset.name} className="h-20 w-full object-cover" />
                             ) : (
-                              <div className="flex h-10 w-16 items-center justify-center rounded border border-surface-200 bg-white">
-                                <FileText className="h-4 w-4 text-surface-300" />
+                              <div className="flex h-20 w-full items-center justify-center bg-surface-50">
+                                <FileText className="h-6 w-6 text-surface-300" />
                               </div>
                             )}
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-11 font-bold text-surface-700">{preset.name}</p>
-                              <p className="text-11 text-surface-400">{new Date(preset.updated_at).toLocaleString("tr-TR")}</p>
+                            <div className="p-2">
+                              <p className="truncate text-11 font-bold text-surface-800">{preset.name}</p>
+                              <p className="text-10 text-surface-400 capitalize">{preset.min_plan}</p>
+                            </div>
+                            <div className="absolute inset-0 flex items-center justify-center bg-brand-600/80 opacity-0 transition-opacity group-hover:opacity-100">
+                              {presetBusyId === preset.id ? <Loader2 className="h-5 w-5 animate-spin text-white" /> : <span className="text-xs font-bold text-white">Uygula</span>}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )
+                  )}
+
+                  {presetTab === "mine" && (
+                    presetsLoading ? (
+                      <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-brand-500" /></div>
+                    ) : presets.length === 0 ? (
+                      <p className="py-6 text-center text-xs text-surface-400">Henüz kayıtlı preset yok.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {presets.map((preset) => (
+                          <div key={preset.id} className="rounded-xl border border-surface-100 bg-surface-50 p-3">
+                            <div className="flex items-center gap-3">
+                              {preset.template_image_url ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={preset.template_image_url} alt="" className="h-10 w-16 rounded border border-surface-200 object-cover" />
+                              ) : (
+                                <div className="flex h-10 w-16 items-center justify-center rounded border border-surface-200 bg-white">
+                                  <FileText className="h-4 w-4 text-surface-300" />
+                                </div>
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-11 font-bold text-surface-700">{preset.name}</p>
+                                <p className="text-11 text-surface-400">{new Date(preset.updated_at).toLocaleString("tr-TR")}</p>
+                              </div>
+                            </div>
+                            <div className="mt-3 flex gap-2">
+                              <button type="button" onClick={() => applyPreset(preset.id)} disabled={presetBusyId === preset.id} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-11 font-bold text-brand-700 transition-colors hover:bg-brand-100 disabled:opacity-50">
+                                {presetBusyId === preset.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                                Uygula
+                              </button>
+                              <button type="button" onClick={() => deletePreset(preset.id)} disabled={presetBusyId === preset.id} className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-white text-red-500 transition-colors hover:bg-red-50 disabled:opacity-50" title="Preset sil">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
                             </div>
                           </div>
-                          <div className="mt-3 flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => applyPreset(preset.id)}
-                              disabled={presetBusyId === preset.id}
-                              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-11 font-bold text-brand-700 transition-colors hover:bg-brand-100 disabled:opacity-50"
-                            >
-                              {presetBusyId === preset.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
-                              Uygula
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => deletePreset(preset.id)}
-                              disabled={presetBusyId === preset.id}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-white text-red-500 transition-colors hover:bg-red-50 disabled:opacity-50"
-                              title="Preset sil"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )
                   )}
                 </PanelSection>
               </motion.div>

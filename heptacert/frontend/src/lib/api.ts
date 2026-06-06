@@ -308,6 +308,28 @@ export async function listCertificateTemplatePresets(): Promise<CertificateTempl
   return res.json();
 }
 
+export async function listBuiltinCertificateTemplatePresets(): Promise<CertificateTemplatePreset[]> {
+  const res = await apiFetch("/admin/certificate-template-presets/builtin");
+  return res.json();
+}
+
+export interface BadgeTemplatePreset {
+  slug: string;
+  type: string;
+  name: string;
+  description: string;
+  color_hex: string;
+  icon_emoji: string;
+  criteria: Record<string, number | boolean>;
+  notes: string;
+}
+
+export async function listBuiltinBadgeTemplates(lang = "tr"): Promise<BadgeTemplatePreset[]> {
+  const res = await apiFetch(`/admin/badge-templates?lang=${lang}`);
+  const data = await res.json();
+  return data.templates ?? [];
+}
+
 export async function saveEventCertificateTemplatePreset(
   eventId: number,
   name: string,
@@ -3890,4 +3912,726 @@ export async function updateOrgDomain(customDomain: string): Promise<OrgDomainOu
 export async function listMyJobs(limit = 60): Promise<{ jobs: any[]; active_count: number }> {
   const res = await apiFetch(`/admin/jobs?limit=${limit}`);
   return res.json();
+}
+
+// ---------------------------------------------------------------------------
+// Quiz API
+// ---------------------------------------------------------------------------
+
+export async function getAdminQuiz(eventId: number | string) {
+  return apiFetch(`/admin/events/${eventId}/quiz`);
+}
+
+export async function saveAdminQuiz(eventId: number | string, body: object) {
+  return apiFetch(`/admin/events/${eventId}/quiz`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deleteAdminQuiz(eventId: number | string) {
+  return apiFetch(`/admin/events/${eventId}/quiz`, { method: "DELETE" });
+}
+
+export async function getQuizResults(eventId: number | string) {
+  return apiFetch(`/admin/events/${eventId}/quiz/results`);
+}
+
+export async function issueCertForAttempt(eventId: number | string, attemptId: number) {
+  return apiFetch(`/admin/events/${eventId}/quiz/attempts/${attemptId}/issue-cert`, {
+    method: "POST",
+  });
+}
+
+export async function getPublicQuiz(eventId: number | string, memberToken?: string | null) {
+  const headers: Record<string, string> = {};
+  if (memberToken) headers["Authorization"] = `Bearer ${memberToken}`;
+  return apiFetch(`/public/events/${eventId}/quiz`, { headers });
+}
+
+export async function startQuizAttempt(
+  eventId: number | string,
+  payload: { attendee_name: string; attendee_email?: string | null },
+  memberToken?: string | null,
+) {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (memberToken) headers["Authorization"] = `Bearer ${memberToken}`;
+  return apiFetch(`/public/events/${eventId}/quiz/start`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function submitQuizAttempt(
+  eventId: number | string,
+  payload: { attempt_id: number; answers: { question_id: number; selected_choice_id?: number | null; open_text_answer?: string | null }[] },
+  memberToken?: string | null,
+) {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (memberToken) headers["Authorization"] = `Bearer ${memberToken}`;
+  return apiFetch(`/public/events/${eventId}/quiz/submit`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+}
+
+// ── CRM Sequences ─────────────────────────────────────────────────────────────
+
+export type SequenceStepOut = {
+  id: number;
+  step_order: number;
+  delay_days: number;
+  email_template_id: number | null;
+  subject_override: string | null;
+};
+
+export type SequenceOut = {
+  id: number;
+  name: string;
+  description: string | null;
+  active: boolean;
+  steps: SequenceStepOut[];
+  enrollment_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type SequenceEnrollmentOut = {
+  id: number;
+  email: string;
+  current_step: number;
+  next_send_at: string | null;
+  status: string;
+  enrolled_at: string;
+};
+
+export async function listSequences(): Promise<SequenceOut[]> {
+  return apiFetch("/admin/crm/sequences");
+}
+
+export async function createSequence(body: {
+  name: string;
+  description?: string | null;
+  active?: boolean;
+  steps?: { step_order: number; delay_days: number; email_template_id?: number | null; subject_override?: string | null }[];
+}): Promise<SequenceOut> {
+  return apiFetch("/admin/crm/sequences", { method: "POST", body: JSON.stringify(body) });
+}
+
+export async function updateSequence(
+  id: number,
+  body: {
+    name: string;
+    description?: string | null;
+    active?: boolean;
+    steps: { step_order: number; delay_days: number; email_template_id?: number | null; subject_override?: string | null }[];
+  },
+): Promise<SequenceOut> {
+  return apiFetch(`/admin/crm/sequences/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+}
+
+export async function deleteSequence(id: number): Promise<void> {
+  return apiFetch(`/admin/crm/sequences/${id}`, { method: "DELETE" });
+}
+
+export async function getSequenceEnrollments(
+  id: number,
+  status = "active",
+  limit = 200,
+): Promise<SequenceEnrollmentOut[]> {
+  return apiFetch(`/admin/crm/sequences/${id}/enrollments?status=${status}&limit=${limit}`);
+}
+
+export async function enrollInSequence(
+  id: number,
+  emails: string[],
+): Promise<{ enrolled: number; skipped: number }> {
+  return apiFetch(`/admin/crm/sequences/${id}/enroll`, {
+    method: "POST",
+    body: JSON.stringify({ emails }),
+  });
+}
+
+export async function unenrollFromSequence(
+  id: number,
+  emails: string[],
+): Promise<{ unenrolled: number }> {
+  return apiFetch(`/admin/crm/sequences/${id}/unenroll`, {
+    method: "POST",
+    body: JSON.stringify({ emails }),
+  });
+}
+
+// ── CRM Accounts ──────────────────────────────────────────────────────────────
+
+export type CrmAccountOut = {
+  id: number;
+  organization_id: number;
+  name: string;
+  domain: string | null;
+  industry: string | null;
+  size_bucket: string | null;
+  owner_user_id: number | null;
+  annual_value: number | null;
+  notes: string;
+  tags: string[];
+  status: string;
+  contact_count: number;
+  deal_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CrmAccountContactOut = {
+  id: number;
+  account_id: number;
+  participant_crm_profile_id: number;
+  email: string;
+  name: string | null;
+  role: string | null;
+  is_primary: boolean;
+  created_at: string;
+};
+
+export type CrmDealOut = {
+  id: number;
+  account_id: number;
+  organization_id: number;
+  name: string;
+  stage: string;
+  amount: number | null;
+  expected_close_date: string | null;
+  owner_user_id: number | null;
+  activity_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CrmDealActivityOut = {
+  id: number;
+  deal_id: number;
+  activity_type: string;
+  content: string;
+  user_id: number | null;
+  activity_at: string;
+  created_at: string;
+};
+
+export type PipelineOut = {
+  stages: string[];
+  pipeline: Record<string, {
+    id: number; name: string; account_id: number; account_name: string;
+    amount: number | null; expected_close_date: string | null;
+    owner_user_id: number | null; updated_at: string;
+  }[]>;
+};
+
+export async function listCrmAccounts(params?: {
+  search?: string; status?: string; limit?: number; offset?: number;
+}): Promise<CrmAccountOut[]> {
+  const q = new URLSearchParams();
+  if (params?.search) q.set("search", params.search);
+  if (params?.status) q.set("status", params.status);
+  if (params?.limit != null) q.set("limit", String(params.limit));
+  if (params?.offset != null) q.set("offset", String(params.offset));
+  const qs = q.toString();
+  return apiFetch(`/admin/crm/accounts${qs ? `?${qs}` : ""}`);
+}
+
+export async function createCrmAccount(body: Partial<CrmAccountOut> & { name: string }): Promise<CrmAccountOut> {
+  return apiFetch("/admin/crm/accounts", { method: "POST", body: JSON.stringify(body) });
+}
+
+export async function getCrmAccount(id: number): Promise<CrmAccountOut> {
+  return apiFetch(`/admin/crm/accounts/${id}`);
+}
+
+export async function updateCrmAccount(id: number, body: Partial<CrmAccountOut> & { name: string }): Promise<CrmAccountOut> {
+  return apiFetch(`/admin/crm/accounts/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+}
+
+export async function deleteCrmAccount(id: number): Promise<void> {
+  return apiFetch(`/admin/crm/accounts/${id}`, { method: "DELETE" });
+}
+
+export async function listAccountContacts(accountId: number): Promise<CrmAccountContactOut[]> {
+  return apiFetch(`/admin/crm/accounts/${accountId}/contacts`);
+}
+
+export async function addAccountContact(
+  accountId: number,
+  body: { participant_crm_profile_id: number; role?: string | null; is_primary?: boolean },
+): Promise<CrmAccountContactOut> {
+  return apiFetch(`/admin/crm/accounts/${accountId}/contacts`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function removeAccountContact(accountId: number, contactId: number): Promise<void> {
+  return apiFetch(`/admin/crm/accounts/${accountId}/contacts/${contactId}`, { method: "DELETE" });
+}
+
+export async function listAccountDeals(accountId: number): Promise<CrmDealOut[]> {
+  return apiFetch(`/admin/crm/accounts/${accountId}/deals`);
+}
+
+export async function createAccountDeal(
+  accountId: number,
+  body: { name: string; stage?: string; amount?: number | null; expected_close_date?: string | null },
+): Promise<CrmDealOut> {
+  return apiFetch(`/admin/crm/accounts/${accountId}/deals`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function updateDeal(id: number, body: {
+  name: string; stage: string; amount?: number | null; expected_close_date?: string | null;
+}): Promise<CrmDealOut> {
+  return apiFetch(`/admin/crm/deals/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+}
+
+export async function deleteDeal(id: number): Promise<void> {
+  return apiFetch(`/admin/crm/deals/${id}`, { method: "DELETE" });
+}
+
+export async function getPipeline(): Promise<PipelineOut> {
+  return apiFetch("/admin/crm/pipeline");
+}
+
+export async function listDealActivities(dealId: number): Promise<CrmDealActivityOut[]> {
+  return apiFetch(`/admin/crm/deals/${dealId}/activities`);
+}
+
+export async function addDealActivity(
+  dealId: number,
+  body: { activity_type: string; content: string; activity_at?: string | null },
+): Promise<CrmDealActivityOut> {
+  return apiFetch(`/admin/crm/deals/${dealId}/activities`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deleteDealActivity(dealId: number, activityId: number): Promise<void> {
+  return apiFetch(`/admin/crm/deals/${dealId}/activities/${activityId}`, { method: "DELETE" });
+}
+
+// ── Lead Capture Forms ────────────────────────────────────────────────────────
+
+export type FormFieldDef = {
+  name: string;
+  label: string;
+  field_type: "text" | "email" | "tel" | "textarea" | "dropdown" | "checkbox" | "number";
+  required: boolean;
+  options: string[];
+  placeholder?: string | null;
+};
+
+export type LeadFormOut = {
+  id: number;
+  organization_id: number;
+  name: string;
+  slug: string;
+  fields_json: FormFieldDef[];
+  destination: string;
+  auto_tag: string | null;
+  redirect_url: string | null;
+  active: boolean;
+  submission_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type LeadSubmissionOut = {
+  id: number;
+  form_id: number;
+  data_json: Record<string, string>;
+  source_url: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  submitted_at: string;
+};
+
+export async function listLeadForms(): Promise<LeadFormOut[]> {
+  return apiFetch("/admin/lead-forms");
+}
+
+export async function createLeadForm(body: {
+  name: string;
+  fields: FormFieldDef[];
+  destination?: string;
+  auto_tag?: string | null;
+  redirect_url?: string | null;
+  active?: boolean;
+}): Promise<LeadFormOut> {
+  return apiFetch("/admin/lead-forms", { method: "POST", body: JSON.stringify(body) });
+}
+
+export async function getLeadForm(id: number): Promise<LeadFormOut> {
+  return apiFetch(`/admin/lead-forms/${id}`);
+}
+
+export async function updateLeadForm(id: number, body: {
+  name: string;
+  fields: FormFieldDef[];
+  destination?: string;
+  auto_tag?: string | null;
+  redirect_url?: string | null;
+  active?: boolean;
+}): Promise<LeadFormOut> {
+  return apiFetch(`/admin/lead-forms/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+}
+
+export async function deleteLeadForm(id: number): Promise<void> {
+  return apiFetch(`/admin/lead-forms/${id}`, { method: "DELETE" });
+}
+
+export async function getLeadFormSubmissions(id: number, limit = 200): Promise<LeadSubmissionOut[]> {
+  return apiFetch(`/admin/lead-forms/${id}/submissions?limit=${limit}`);
+}
+
+export async function publicSubmitForm(
+  slug: string,
+  data: Record<string, string>,
+  meta?: { source_url?: string; utm_source?: string; utm_medium?: string; utm_campaign?: string },
+): Promise<{ ok: boolean; redirect_url: string | null }> {
+  return apiFetch(`/public/forms/${slug}/submit`, {
+    method: "POST",
+    body: JSON.stringify({ data, ...meta }),
+  });
+}
+
+// ── Org Analytics ─────────────────────────────────────────────────────────────
+
+export type OrgOverview = {
+  period_days: number;
+  events: { total: number; period: number };
+  certificates: { total: number; period: number };
+  members: { total: number; period: number };
+  attendees: { total: number; period: number };
+  crm_contacts: { total: number };
+};
+
+export type TrainingComplianceRow = {
+  event_id: number;
+  event_name: string;
+  event_date: string | null;
+  registered: number;
+  certified: number;
+  completion_rate: number;
+};
+
+export type TrainingCompliance = {
+  overall_completion_rate: number;
+  total_registered: number;
+  total_certified: number;
+  events: TrainingComplianceRow[];
+};
+
+export type LearningPathStat = {
+  path_id: number;
+  path_name: string;
+  published: boolean;
+  step_count: number;
+  enrolled: number;
+  completed: number;
+  completion_rate: number;
+  avg_progress: number;
+};
+
+export type CrmAnalytics = {
+  total_contacts: number;
+  hot_leads: number;
+  lifecycle_distribution: Record<string, number>;
+  pipeline_by_stage: Record<string, { count: number; value: number }>;
+  total_pipeline_value: number;
+  won_value: number;
+  win_rate: number;
+};
+
+export type CertTimelineDay = { date: string; count: number };
+
+export async function getOrgOverview(days = 30): Promise<OrgOverview> {
+  return apiFetch(`/admin/analytics/org/overview?days=${days}`);
+}
+
+export async function getTrainingCompliance(): Promise<TrainingCompliance> {
+  return apiFetch("/admin/analytics/org/training-compliance");
+}
+
+export async function getLearningPathsAnalytics(): Promise<{ paths: LearningPathStat[] }> {
+  return apiFetch("/admin/analytics/org/learning-paths");
+}
+
+export async function getCrmAnalytics(): Promise<CrmAnalytics> {
+  return apiFetch("/admin/analytics/org/crm");
+}
+
+export async function getCertTimeline(days = 90): Promise<{ period_days: number; timeline: CertTimelineDay[] }> {
+  return apiFetch(`/admin/analytics/org/cert-timeline?days=${days}`);
+}
+
+// ── Scheduled Reports ─────────────────────────────────────────────────────────
+
+export type ScheduledReportOut = {
+  id: number;
+  organization_id: number;
+  name: string;
+  report_type: string;
+  report_type_label: string;
+  filters_json: Record<string, unknown>;
+  frequency: "daily" | "weekly" | "monthly";
+  recipients: string[];
+  active: boolean;
+  last_run_at: string | null;
+  next_run_at: string | null;
+  created_at: string;
+};
+
+export async function listScheduledReports(): Promise<ScheduledReportOut[]> {
+  return apiFetch("/admin/reports");
+}
+
+export async function createScheduledReport(body: {
+  name: string;
+  report_type: string;
+  filters_json?: Record<string, unknown>;
+  frequency?: string;
+  recipients?: string[];
+  active?: boolean;
+}): Promise<ScheduledReportOut> {
+  return apiFetch("/admin/reports", { method: "POST", body: JSON.stringify(body) });
+}
+
+export async function updateScheduledReport(id: number, body: {
+  name: string;
+  report_type: string;
+  filters_json?: Record<string, unknown>;
+  frequency?: string;
+  recipients?: string[];
+  active?: boolean;
+}): Promise<ScheduledReportOut> {
+  return apiFetch(`/admin/reports/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+}
+
+export async function deleteScheduledReport(id: number): Promise<void> {
+  return apiFetch(`/admin/reports/${id}`, { method: "DELETE" });
+}
+
+export async function listReportTypes(): Promise<{ value: string; label: string }[]> {
+  return apiFetch("/admin/reports/types");
+}
+
+// ── Marketplace ───────────────────────────────────────────────────────────────
+
+export type MarketplaceEventOut = {
+  id: number;
+  public_id: string | null;
+  name: string;
+  event_date: string | null;
+  event_location: string | null;
+  event_banner_url: string | null;
+  marketplace_category: string | null;
+  marketplace_description: string | null;
+  marketplace_price: number | null;
+  org_name: string | null;
+  org_logo: string | null;
+  org_public_id: string | null;
+  certificate_enabled: boolean;
+};
+
+export async function listMarketplaceEvents(params?: {
+  category?: string;
+  free_only?: boolean;
+  q?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<MarketplaceEventOut[]> {
+  const qs = new URLSearchParams();
+  if (params?.category) qs.set("category", params.category);
+  if (params?.free_only) qs.set("free_only", "true");
+  if (params?.q) qs.set("q", params.q);
+  if (params?.limit !== undefined) qs.set("limit", String(params.limit));
+  if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+  const query = qs.toString() ? `?${qs.toString()}` : "";
+  return apiFetch(`/public/marketplace${query}`);
+}
+
+export async function getMarketplaceEvent(eventId: number): Promise<MarketplaceEventOut> {
+  return apiFetch(`/public/marketplace/${eventId}`);
+}
+
+export async function listMarketplaceCategories(): Promise<string[]> {
+  return apiFetch("/public/marketplace/categories");
+}
+
+// ── API Key Management (v2 with scopes) ──────────────────────────────────────
+
+export type ApiKeyFull = {
+  id: number;
+  name: string;
+  key_prefix: string;
+  scopes: string[];
+  is_active: boolean;
+  rate_limit_per_min: number | null;
+  last_used_at: string | null;
+  expires_at: string | null;
+  created_at: string;
+};
+
+export type ApiKeyCreated = ApiKeyFull & { full_key: string };
+export type ApiScopeOption = { value: string; label: string };
+
+export async function listApiKeysV2(): Promise<ApiKeyFull[]> {
+  return apiFetch("/admin/api-keys/v2");
+}
+
+export async function listApiScopes(): Promise<ApiScopeOption[]> {
+  return apiFetch("/admin/api-keys/scopes");
+}
+
+export async function createApiKeyV2(body: {
+  name: string;
+  scopes?: string[];
+  expires_days?: number | null;
+  rate_limit_per_min?: number | null;
+}): Promise<ApiKeyCreated> {
+  return apiFetch("/admin/api-keys/v2", { method: "POST", body: JSON.stringify(body) });
+}
+
+export async function updateApiKeyScopes(
+  keyId: number,
+  body: { name?: string; scopes?: string[]; is_active?: boolean }
+): Promise<ApiKeyFull> {
+  return apiFetch(`/admin/api-keys/${keyId}/scopes`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deleteApiKey(keyId: number): Promise<void> {
+  return apiFetch(`/admin/api-keys/${keyId}`, { method: "DELETE" });
+}
+
+// ── Accreditation & CPD ───────────────────────────────────────────────────────
+
+export type AccreditationBodyOption = {
+  id: number;
+  short_code: string;
+  name: string;
+  logo_url: string | null;
+};
+
+export type OrgAccreditationOut = {
+  id: number;
+  organization_id: number;
+  body_id: number;
+  body_name: string;
+  body_code: string;
+  accreditation_number: string | null;
+  valid_from: string | null;
+  valid_until: string | null;
+  notes: string | null;
+  created_at: string;
+  is_valid: boolean;
+};
+
+export type EventCpdOut = {
+  id: number;
+  event_id: number;
+  body_id: number;
+  body_name: string;
+  body_code: string;
+  cpd_hours: number;
+  cpd_category: string | null;
+  cpd_unit_type: string;
+};
+
+export type MemberCpdSummary = {
+  member_id: number;
+  total_cpd_hours: number;
+  by_body: { body: string; total_hours: number }[];
+  logs: {
+    id: number;
+    event_id: number;
+    body_name: string;
+    body_code: string;
+    cpd_hours: number;
+    cpd_category: string | null;
+    certificate_id: number | null;
+    earned_at: string | null;
+  }[];
+};
+
+export async function listAccreditationBodies(): Promise<AccreditationBodyOption[]> {
+  return apiFetch("/admin/accreditation/bodies");
+}
+
+export async function listOrgAccreditations(): Promise<OrgAccreditationOut[]> {
+  return apiFetch("/admin/accreditation");
+}
+
+export async function createOrgAccreditation(body: {
+  body_id: number;
+  accreditation_number?: string | null;
+  valid_from?: string | null;
+  valid_until?: string | null;
+  notes?: string | null;
+}): Promise<OrgAccreditationOut> {
+  return apiFetch("/admin/accreditation", { method: "POST", body: JSON.stringify(body) });
+}
+
+export async function updateOrgAccreditation(id: number, body: {
+  body_id: number;
+  accreditation_number?: string | null;
+  valid_from?: string | null;
+  valid_until?: string | null;
+  notes?: string | null;
+}): Promise<OrgAccreditationOut> {
+  return apiFetch(`/admin/accreditation/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+}
+
+export async function deleteOrgAccreditation(id: number): Promise<void> {
+  return apiFetch(`/admin/accreditation/${id}`, { method: "DELETE" });
+}
+
+export async function getEventCpd(eventId: number): Promise<EventCpdOut | null> {
+  return apiFetch(`/admin/events/${eventId}/cpd`);
+}
+
+export async function upsertEventCpd(eventId: number, body: {
+  body_id: number;
+  cpd_hours: number;
+  cpd_category?: string | null;
+  cpd_unit_type?: string;
+}): Promise<EventCpdOut> {
+  return apiFetch(`/admin/events/${eventId}/cpd`, { method: "PUT", body: JSON.stringify(body) });
+}
+
+export async function deleteEventCpd(eventId: number): Promise<void> {
+  return apiFetch(`/admin/events/${eventId}/cpd`, { method: "DELETE" });
+}
+
+export async function getMemberCpd(memberId: number): Promise<MemberCpdSummary> {
+  return apiFetch(`/admin/members/${memberId}/cpd`);
+}
+
+export async function updateMarketplaceSettings(
+  eventId: number,
+  body: {
+    is_marketplace_listed: boolean;
+    marketplace_category?: string | null;
+    marketplace_description?: string | null;
+    marketplace_price?: number | null;
+  }
+): Promise<MarketplaceEventOut> {
+  return apiFetch(`/admin/events/${eventId}/marketplace`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
 }
