@@ -43,6 +43,13 @@ class ApiKeyUpdateIn(BaseModel):
     is_active: Optional[bool] = None
 
 
+class ApiKeyCreateFullIn(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+    scopes: list[str] = Field(default_factory=list)
+    expires_days: Optional[int] = Field(None, ge=1, le=3650)
+    rate_limit_per_min: Optional[int] = Field(None, ge=10, le=10000)
+
+
 class ApiKeyOutFull(BaseModel):
     id: int
     name: str
@@ -166,10 +173,3 @@ def _to_out(k: ApiKey) -> ApiKeyOutFull:
         expires_at=k.expires_at,
         created_at=k.created_at,
     )
-
-
-class ApiKeyCreateFullIn(BaseModel):
-    name: str = Field(..., min_length=1, max_length=200)
-    scopes: list[str] = []
-    expires_days: Optional[int] = Field(None, ge=1, le=3650)
-    rate_limit_per_min: Optional[int] = Field(None, ge=10, le=10000)
