@@ -236,7 +236,7 @@ async function requestApi(
   return res;
 }
 
-export async function apiFetch(path: string, init: RequestInit = {}) {
+export async function apiFetch<T = Response>(path: string, init: RequestInit = {}): Promise<T> {
   return requestApi(path, init, {
     token: getToken(),
     onUnauthorized: () => {
@@ -245,20 +245,20 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
         window.location.href = "/admin/login";
       }
     },
-  });
+  }) as Promise<T>;
 }
 
-export async function publicApiFetch(path: string, init: RequestInit = {}) {
-  return requestApi(path, init);
+export async function publicApiFetch<T = Response>(path: string, init: RequestInit = {}): Promise<T> {
+  return requestApi(path, init) as Promise<T>;
 }
 
-export async function memberApiFetch(path: string, init: RequestInit = {}) {
+export async function memberApiFetch<T = Response>(path: string, init: RequestInit = {}): Promise<T> {
   return requestApi(path, init, {
     token: getPublicMemberToken(),
     onUnauthorized: () => {
       clearPublicMemberToken();
     },
-  });
+  }) as Promise<T>;
 }
 
 // -----------------------------------------------------------------------------

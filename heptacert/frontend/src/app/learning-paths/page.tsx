@@ -20,12 +20,31 @@ export default function LearningPathsPage() {
   const token = getPublicMemberToken();
 
   useEffect(() => {
-    const headers: Record<string, string> = {};
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-    apiFetch("/public/learning-paths", { headers })
-      .then((d) => setPaths(d.paths ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    (async () => {
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      try {
+        const response = await apiFetch("/public/learning-paths", { headers });
+        const data = (await response.json()) as { paths?: PathCard[] };
+
+        if (!cancelled) {
+          setPaths(data.paths ?? []);
+        }
+      } catch {
+        // Keep the empty state if the request fails.
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [token]);
 
   if (loading) {

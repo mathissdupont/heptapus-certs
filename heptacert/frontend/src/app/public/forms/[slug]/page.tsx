@@ -38,19 +38,31 @@ export default function PublicFormPage() {
   const [values, setValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    // Public form meta — reuse the submit endpoint's 404 for inactive forms.
-    // We fetch the form info by making a HEAD-like check — actually we just load the page
-    // and handle errors on submit. But better UX: load form via a public GET endpoint.
-    // Since we don't have a separate public GET, we use the admin endpoint as a fallback.
-    // For truly public access, the submit endpoint returns 404 for inactive forms.
-    // We'll display the form by loading from the public submit metadata.
-    apiFetch(`/public/forms/${slug}/meta`)
-      .then((d) => setMeta(d))
-      .catch(() => {
-        // Fallback: set a placeholder message
-        setError("Form bulunamadı veya aktif değil.");
-      })
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const response = await apiFetch(`/public/forms/${slug}/meta`);
+        const data = (await response.json()) as FormMeta;
+
+        if (!cancelled) {
+          setMeta(data);
+        }
+      } catch {
+        if (!cancelled) {
+          // Fallback: set a placeholder message
+          setError("Form bulunamadı veya aktif değil.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [slug]);
 
   function setValue(name: string, val: string) {
