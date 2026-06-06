@@ -42,7 +42,7 @@ export default function EventCpdPage() {
 
   useEffect(() => {
     Promise.all([
-      apiFetch(`/admin/events/${eventId}`) as Promise<{ id: number; name: string }>,
+      apiFetch(`/admin/events/${eventId}`) as unknown as Promise<{ id: number; name: string }>,
       listAccreditationBodies(),
       getEventCpd(eventId),
     ]).then(([ev, bs, c]) => {
