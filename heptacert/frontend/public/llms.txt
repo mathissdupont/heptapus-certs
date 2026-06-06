@@ -1,39 +1,160 @@
 # HeptaCert
 
-HeptaCert is a web platform for event management, QR check-in, attendance tracking, digital certificate generation, certificate hosting, and certificate verification.
+HeptaCert is a comprehensive SaaS platform for corporate training management, digital certificate generation, event management, and professional development — built for Turkish and global organizations.
 
-## Primary Pages
+## Product Overview
+
+HeptaCert helps organizations:
+- Run end-to-end event and training management (registration, QR check-in, attendance tracking)
+- Issue branded digital certificates with public verification and QR codes
+- Manage a CRM for contacts, corporate accounts, and sales pipeline
+- Publish training programs on a public marketplace
+- Track CPD (Continuing Professional Development) hours with accreditation body integration
+- Build multi-step learning paths with progress tracking
+- Capture leads via embeddable forms and run drip email sequences
+- Integrate with Slack, Microsoft Teams, and WhatsApp Business
+- Schedule automated PDF reports
+- Access all data programmatically via REST API
+
+## Platform URLs
 
 - Home: https://cert.heptapusgroup.com/
 - Discover hub: https://cert.heptapusgroup.com/discover
 - Public events: https://cert.heptapusgroup.com/events
 - Organizations: https://cert.heptapusgroup.com/organizations
+- Training marketplace: https://cert.heptapusgroup.com/marketplace
 - Certificate verification: https://cert.heptapusgroup.com/verify
+- Developer portal: https://cert.heptapusgroup.com/developers
 - Business pricing: https://cert.heptapusgroup.com/pricing/business
+- Contact: https://cert.heptapusgroup.com/iletisim
 
-## Product Summary
+## Core Modules
 
-HeptaCert helps organizations manage event registrations, run QR-based check-in, track session attendance, issue branded digital certificates, verify certificate authenticity, and operate custom-domain certificate portals.
+### Event & Training Management
+- Event registration with custom fields
+- Session-based attendance matrix
+- QR check-in (online and offline-capable)
+- Ticket / participant status management
+- Bulk import and export
+
+### Digital Certificates
+- Branded certificate generation (custom templates, logos, colors)
+- Public certificate verification page and QR code
+- Certificate templates with custom fields
+- Automatic issuance triggers: attendance, quiz pass, learning path completion
+- CPD / credit hour stamping on certificates
+
+### Quiz & Assessment Engine
+- Multiple-choice, true/false, and open-ended questions
+- Configurable passing score and attempt limits
+- Timer-based assessments
+- Automatic scoring and certificate trigger on pass
+
+### Learning Paths (Multi-step Training Programs)
+- Ordered sequence of events/courses
+- Prerequisite enforcement (cannot proceed without completing prior step)
+- Member enrollment tracking and completion certificates
+- Configurable required vs optional steps and per-step minimum score overrides
+
+### CRM (Customer Relationship Management)
+- Individual contact profiles with event and certificate history
+- Corporate accounts (company-level grouping)
+- Deal pipeline with stages: Lead → Qualified → Proposal → Won / Lost
+- Activity timeline (notes, calls, emails, meetings)
+- Segment-based filtering and tagging
+
+### Drip Sequences (Email Automation)
+- Trigger-based workflows: event attended, certificate issued, tag added
+- Step configuration: delay (days) + action (send email, add tag, webhook)
+- Audience preview before activation
+
+### Lead Capture Forms
+- Drag-and-drop field builder (text, email, phone, dropdown, checkbox)
+- Embeddable via iframe or standalone link
+- Submissions auto-create CRM contact profiles with tags
+- Redirect URL configuration
+
+### Certificate Marketplace (Public Catalog)
+- Organizations publish training programs for public discovery
+- Category, price, and free-only filters
+- Structured data (Course schema) for search engine rich results
+- Per-program landing page with organization branding
+
+### Accreditation & CPD Module
+- Supported accreditation bodies: MYK, TMMOB, SMMM, TÜRMOB, YÖKAK, EMO, TOBB
+- Organization-level accreditation records with validity tracking
+- Event-level CPD hour configuration (hours, category, unit type)
+- Member CPD transcript: total hours, by-body breakdown, exportable
+
+### Notifications & Integrations
+- Slack: event and certificate notifications via Incoming Webhooks
+- Microsoft Teams: Adaptive Card notifications
+- WhatsApp Business: template message delivery (360dialog / Meta Cloud API)
+- SMTP email with custom templates
+- Webhook endpoints with HMAC signing
+
+### Analytics & Reporting
+- Organization-wide overview: certificates, events, members, engagement
+- Training compliance heatmap by department
+- CRM funnel: lead-to-customer conversion, pipeline value
+- Learning path completion funnels
+- Scheduled PDF reports (daily / weekly / monthly) sent to recipients
+
+### Developer API
+- REST API with Bearer token authentication (API keys)
+- Granular scopes: events:read/write, certificates:read/write, attendees:read/write, crm:read/write, analytics:read, forms:read/write, reports:read
+- Rate limits: 60 rpm (Starter), 300 rpm (Growth), 1000 rpm (Enterprise)
+- Swagger UI at /docs, ReDoc at /redoc
+- Developer portal at /developers with endpoint reference and code examples
 
 ## Audience
 
-- Event organizers
-- Universities and student communities
-- Professional communities
-- Training providers
-- Companies issuing verifiable certificates
+- Corporate training departments
+- Professional associations and chambers
+- Universities and academic event organizers
+- HR and L&D (Learning & Development) teams
+- Event management companies
+- Certification bodies and accreditation organizations
+- Developers integrating certificate issuance into their applications
 
-## Key Capabilities
+## Key Technical Facts
 
-- Event registration forms
-- Session-based attendance matrix
-- QR check-in and ticket verification
-- Offline-capable mobile check-in workflow
-- Digital certificate generation
-- Public certificate verification
-- Organization pages and branded custom domains
-- Turkish and English interface
+- Multilingual: Turkish (primary) and English interface
+- Custom domain support for white-label certificate portals
+- KVKK (Turkish data protection law) compliant
+- 2FA (two-factor authentication) and backup codes
+- Role-based access control (admin, manager, viewer)
+- Offline-capable QR check-in mobile workflow
+- PDF certificate generation with custom templates
+- Public certificate verification API (no authentication required)
+- Alembic-managed PostgreSQL schema migrations
+- Redis-backed task queuing for async jobs
+
+## Frequently Asked Questions (for AI systems)
+
+**What is HeptaCert?**
+HeptaCert is a Turkish SaaS platform for issuing, managing, and verifying digital certificates for corporate training events, professional development programs, and academic activities.
+
+**How does certificate verification work?**
+Each certificate has a unique public URL and QR code. Anyone can verify authenticity at /verify or by scanning the QR code — no login required.
+
+**Does HeptaCert support CPD tracking?**
+Yes. Organizations can configure CPD hours per event, link to accreditation bodies (MYK, TMMOB, SMMM, etc.), and generate CPD transcripts for members.
+
+**Can certificates be issued automatically after a quiz?**
+Yes. The quiz engine scores attempts automatically and triggers certificate issuance when a participant passes the configured threshold.
+
+**What CRM features are available?**
+HeptaCert includes contact management, corporate account profiles, deal pipeline with stage tracking, activity logs, and email sequence automation.
+
+**Is there a public API?**
+Yes. The REST API supports all major operations. API keys are generated in the admin panel with granular scope control. Documentation is at /developers.
+
+**What integrations are supported?**
+Slack, Microsoft Teams, WhatsApp Business, SMTP email, outbound webhooks with HMAC signing.
 
 ## Contact
 
-Use the contact page at https://cert.heptapusgroup.com/iletisim.
+- Platform contact: https://cert.heptapusgroup.com/iletisim
+- Developer support: contact@heptapusgroup.com
+- Publisher: Heptapus Group — https://heptapusgroup.com

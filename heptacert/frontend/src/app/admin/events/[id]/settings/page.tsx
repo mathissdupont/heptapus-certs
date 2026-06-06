@@ -1349,7 +1349,7 @@ export default function EventSettingsPage() {
                   </label>
                   <label className="block w-full">
                     <span className="block text-11 font-bold text-surface-500 mb-1">Mevzuat Veri Sorumlusu E-postası</span>
-                    <input type="email" value={formData.data_controller_contact_email} onChange={(e) => setFormData((curr) => ({ ...curr, data_controller_contact_email: e.target.value }))} className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900" placeholder="kvkk@heptapusgroup.com" />
+                    <input type="email" value={formData.data_controller_contact_email} onChange={(e) => setFormData((curr) => ({ ...curr, data_controller_contact_email: e.target.value }))} className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900" placeholder="contact@heptapusgroup.com" />
                   </label>
                 </div>
 

@@ -4,8 +4,25 @@ const apiBase = process.env.NEXT_PUBLIC_API_BASE || "https://cert.heptapusgroup.
 const BASE_URL =
   process.env.NEXT_PUBLIC_FRONTEND_BASE_URL || apiBase.replace(/\/api$/, "");
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  return [
+type MarketplaceItem = { id: number };
+
+async function getMarketplaceEventIds(): Promise<number[]> {
+  try {
+    const res = await fetch(`${apiBase}/public/marketplace?limit=200`, {
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return [];
+    const data = (await res.json()) as MarketplaceItem[];
+    return data.map((e) => e.id);
+  } catch {
+    return [];
+  }
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const marketplaceIds = await getMarketplaceEventIds();
+
+  const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: BASE_URL,
       lastModified: new Date(),
@@ -14,6 +31,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${BASE_URL}/discover`,
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 0.9,
+    },
+    {
+      url: `${BASE_URL}/marketplace`,
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 0.9,
@@ -29,6 +52,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 0.75,
+    },
+    {
+      url: `${BASE_URL}/developers`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${BASE_URL}/learning-paths`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.65,
     },
     {
       url: `${BASE_URL}/pricing/business`,
@@ -79,4 +114,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.3,
     },
   ];
+
+  const dynamicRoutes: MetadataRoute.Sitemap = marketplaceIds.map((id) => ({
+    url: `${BASE_URL}/marketplace/${id}`,
+    lastModified: new Date(),
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
+
+  return [...staticRoutes, ...dynamicRoutes];
 }

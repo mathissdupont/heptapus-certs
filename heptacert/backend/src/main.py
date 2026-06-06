@@ -5881,7 +5881,7 @@ async def startup():
 <p>Sertifikanız QR kodu tarafından korunmaktadır ve resmi olarak doğrulanabilir.</p>
 
 <br>
-<p>Sorularınız icin <a href="mailto:support@heptacert.com">destek@heptacert.com</a> adresine yazabilirsiniz.</p>
+<p>Sorularınız icin <a href="mailto:contact@heptapusgroup.com">contact@heptapusgroup.com</a> adresine yazabilirsiniz.</p>
 
 <p>Saygılarımızla,<br>HeptaCert Ekibi</p>
                         """,
@@ -5907,7 +5907,7 @@ async def startup():
 <p>Etkinlik hakkında daha fazla bilgi icin lutfen <a href="{{event_link}}">buraya tıklayın</a>.</p>
 
 <br>
-<p>Sorularınız icin <a href="mailto:support@heptacert.com">destek@heptacert.com</a> adresine yazabilirsiniz.</p>
+<p>Sorularınız icin <a href="mailto:contact@heptapusgroup.com">contact@heptapusgroup.com</a> adresine yazabilirsiniz.</p>
 
 <p>Saygılarımızla,<br>HeptaCert Ekibi</p>
                         """,
@@ -5945,7 +5945,7 @@ async def startup():
 <p>Sertifikanız QR kodu ile korunur ve resmi olarak doğrulanabilir.</p>
 
 <br>
-<p>Sorularınız için <a href="mailto:support@heptacert.com">destek@heptacert.com</a> adresine yazabilirsiniz.</p>
+<p>Sorularınız için <a href="mailto:contact@heptapusgroup.com">contact@heptapusgroup.com</a> adresine yazabilirsiniz.</p>
 
 <p>Saygılarımızla,<br>HeptaCert Ekibi</p>
                 """,
@@ -5967,7 +5967,7 @@ async def startup():
 <p>Etkinlik hakkında daha fazla bilgi için lütfen <a href="{{event_link}}">buraya tıklayın</a>.</p>
 
 <br>
-<p>Sorularınız için <a href="mailto:support@heptacert.com">destek@heptacert.com</a> adresine yazabilirsiniz.</p>
+<p>Sorularınız için <a href="mailto:contact@heptapusgroup.com">contact@heptapusgroup.com</a> adresine yazabilirsiniz.</p>
 
 <p>Saygılarımızla,<br>HeptaCert Ekibi</p>
                 """,

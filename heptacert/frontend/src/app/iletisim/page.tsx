@@ -40,8 +40,8 @@ export default function IletisimPage() {
         {
           title: "İade ve Ödeme",
           subtitle: "Finans Destek",
-          href: "mailto:iade@heptapusgroup.com",
-          label: "iade@heptapusgroup.com",
+          href: "mailto:contact@heptapusgroup.com",
+          label: "contact@heptapusgroup.com",
           desc: "İade talepleri, fatura itirazları ve ödeme sorunları için.",
           icon: Mail,
           iconClass: "bg-amber-50 text-amber-600",
@@ -78,8 +78,8 @@ export default function IletisimPage() {
         {
           title: "Refunds and Billing",
           subtitle: "Finance Support",
-          href: "mailto:iade@heptapusgroup.com",
-          label: "iade@heptapusgroup.com",
+          href: "mailto:contact@heptapusgroup.com",
+          label: "contact@heptapusgroup.com",
           desc: "For refund requests, invoice objections, and payment issues.",
           icon: Mail,
           iconClass: "bg-amber-50 text-amber-600",

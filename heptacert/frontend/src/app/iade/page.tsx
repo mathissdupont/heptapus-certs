@@ -47,7 +47,7 @@ export default function IadePage() {
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50 p-5">
           <div>
             <p className="text-xs text-gray-500">{isTr ? "İade talepleri için" : "For refund requests"}</p>
-            <a href="mailto:iade@heptapusgroup.com" className="text-sm font-semibold text-brand-600 hover:underline">iade@heptapusgroup.com</a>
+            <a href="mailto:contact@heptapusgroup.com" className="text-sm font-semibold text-brand-600 hover:underline">contact@heptapusgroup.com</a>
           </div>
           <div className="flex gap-3">
             <Link href="/mesafeli-satis" className="text-sm text-gray-500 transition-colors hover:text-brand-600">{isTr ? "Mesafeli Satış" : "Distance Sales"}</Link>

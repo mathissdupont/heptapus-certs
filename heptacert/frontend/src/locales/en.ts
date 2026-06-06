@@ -311,7 +311,7 @@ export const en: Record<TranslationKey, string> = {
   privacy_section_6_title: "6. Security",
   privacy_section_6_desc: "Modern safeguards such as HTTPS/TLS, bcrypt, JWT, 2FA, and rate limiting are applied.",
   privacy_contact_label: "For privacy requests",
-  privacy_contact_email: "privacy@heptapusgroup.com",
+  privacy_contact_email: "contact@heptapusgroup.com",
   privacy_footer_kvkk: "Privacy Notice",
   privacy_footer_contact: "Contact",
 
