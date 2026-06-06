@@ -51,7 +51,7 @@ export default function EventMarketplacePage() {
   const [price, setPrice] = useState("");
 
   useEffect(() => {
-    (apiFetch(`/admin/events/${eventId}`) as unknown as Promise<EventMeta>)
+    (apiFetch(`/admin/events/${eventId}`).then((r) => r.json()) as Promise<EventMeta>)
       .then((e) => {
         setEvent(e);
         setListed(!!e.is_marketplace_listed);

@@ -91,7 +91,7 @@ export default function PublicFormPage() {
     setSubmitting(true);
     setError(null);
     try {
-      const res: any = await apiFetch(`/public/forms/${slug}/submit`, {
+      const _sr = await apiFetch(`/public/forms/${slug}/submit`, {
         method: "POST",
         body: JSON.stringify({
           data: values,
@@ -101,6 +101,7 @@ export default function PublicFormPage() {
           utm_campaign: searchParams.get("utm_campaign"),
         }),
       });
+      const res = await _sr.json();
       setSubmitted(true);
       if (res?.redirect_url) {
         setTimeout(() => router.push(res.redirect_url), 1500);

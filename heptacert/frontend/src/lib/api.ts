@@ -3919,14 +3919,16 @@ export async function listMyJobs(limit = 60): Promise<{ jobs: any[]; active_coun
 // ---------------------------------------------------------------------------
 
 export async function getAdminQuiz(eventId: number | string) {
-  return apiFetch(`/admin/events/${eventId}/quiz`);
+  const res = await apiFetch(`/admin/events/${eventId}/quiz`);
+  return res.json();
 }
 
 export async function saveAdminQuiz(eventId: number | string, body: object) {
-  return apiFetch(`/admin/events/${eventId}/quiz`, {
+  const res = await apiFetch(`/admin/events/${eventId}/quiz`, {
     method: "POST",
     body: JSON.stringify(body),
   });
+  return res.json();
 }
 
 export async function deleteAdminQuiz(eventId: number | string) {
@@ -3934,19 +3936,22 @@ export async function deleteAdminQuiz(eventId: number | string) {
 }
 
 export async function getQuizResults(eventId: number | string) {
-  return apiFetch(`/admin/events/${eventId}/quiz/results`);
+  const res = await apiFetch(`/admin/events/${eventId}/quiz/results`);
+  return res.json();
 }
 
 export async function issueCertForAttempt(eventId: number | string, attemptId: number) {
-  return apiFetch(`/admin/events/${eventId}/quiz/attempts/${attemptId}/issue-cert`, {
+  const res = await apiFetch(`/admin/events/${eventId}/quiz/attempts/${attemptId}/issue-cert`, {
     method: "POST",
   });
+  return res.json();
 }
 
 export async function getPublicQuiz(eventId: number | string, memberToken?: string | null) {
   const headers: Record<string, string> = {};
   if (memberToken) headers["Authorization"] = `Bearer ${memberToken}`;
-  return apiFetch(`/public/events/${eventId}/quiz`, { headers });
+  const res = await apiFetch(`/public/events/${eventId}/quiz`, { headers });
+  return res.json();
 }
 
 export async function startQuizAttempt(
@@ -3956,11 +3961,12 @@ export async function startQuizAttempt(
 ) {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (memberToken) headers["Authorization"] = `Bearer ${memberToken}`;
-  return apiFetch(`/public/events/${eventId}/quiz/start`, {
+  const res = await apiFetch(`/public/events/${eventId}/quiz/start`, {
     method: "POST",
     headers,
     body: JSON.stringify(payload),
   });
+  return res.json();
 }
 
 export async function submitQuizAttempt(
@@ -3970,11 +3976,12 @@ export async function submitQuizAttempt(
 ) {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (memberToken) headers["Authorization"] = `Bearer ${memberToken}`;
-  return apiFetch(`/public/events/${eventId}/quiz/submit`, {
+  const res = await apiFetch(`/public/events/${eventId}/quiz/submit`, {
     method: "POST",
     headers,
     body: JSON.stringify(payload),
   });
+  return res.json();
 }
 
 // ── CRM Sequences ─────────────────────────────────────────────────────────────
@@ -4008,7 +4015,8 @@ export type SequenceEnrollmentOut = {
 };
 
 export async function listSequences(): Promise<SequenceOut[]> {
-  return apiFetch("/admin/crm/sequences");
+  const res = await apiFetch("/admin/crm/sequences");
+  return res.json();
 }
 
 export async function createSequence(body: {
@@ -4017,7 +4025,8 @@ export async function createSequence(body: {
   active?: boolean;
   steps?: { step_order: number; delay_days: number; email_template_id?: number | null; subject_override?: string | null }[];
 }): Promise<SequenceOut> {
-  return apiFetch("/admin/crm/sequences", { method: "POST", body: JSON.stringify(body) });
+  const res = await apiFetch("/admin/crm/sequences", { method: "POST", body: JSON.stringify(body) });
+  return res.json();
 }
 
 export async function updateSequence(
@@ -4029,7 +4038,8 @@ export async function updateSequence(
     steps: { step_order: number; delay_days: number; email_template_id?: number | null; subject_override?: string | null }[];
   },
 ): Promise<SequenceOut> {
-  return apiFetch(`/admin/crm/sequences/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+  const res = await apiFetch(`/admin/crm/sequences/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+  return res.json();
 }
 
 export async function deleteSequence(id: number): Promise<void> {
@@ -4041,27 +4051,30 @@ export async function getSequenceEnrollments(
   status = "active",
   limit = 200,
 ): Promise<SequenceEnrollmentOut[]> {
-  return apiFetch(`/admin/crm/sequences/${id}/enrollments?status=${status}&limit=${limit}`);
+  const res = await apiFetch(`/admin/crm/sequences/${id}/enrollments?status=${status}&limit=${limit}`);
+  return res.json();
 }
 
 export async function enrollInSequence(
   id: number,
   emails: string[],
 ): Promise<{ enrolled: number; skipped: number }> {
-  return apiFetch(`/admin/crm/sequences/${id}/enroll`, {
+  const res = await apiFetch(`/admin/crm/sequences/${id}/enroll`, {
     method: "POST",
     body: JSON.stringify({ emails }),
   });
+  return res.json();
 }
 
 export async function unenrollFromSequence(
   id: number,
   emails: string[],
 ): Promise<{ unenrolled: number }> {
-  return apiFetch(`/admin/crm/sequences/${id}/unenroll`, {
+  const res = await apiFetch(`/admin/crm/sequences/${id}/unenroll`, {
     method: "POST",
     body: JSON.stringify({ emails }),
   });
+  return res.json();
 }
 
 // ── CRM Accounts ──────────────────────────────────────────────────────────────
@@ -4137,19 +4150,23 @@ export async function listCrmAccounts(params?: {
   if (params?.limit != null) q.set("limit", String(params.limit));
   if (params?.offset != null) q.set("offset", String(params.offset));
   const qs = q.toString();
-  return apiFetch(`/admin/crm/accounts${qs ? `?${qs}` : ""}`);
+  const res = await apiFetch(`/admin/crm/accounts${qs ? `?${qs}` : ""}`);
+  return res.json();
 }
 
 export async function createCrmAccount(body: Partial<CrmAccountOut> & { name: string }): Promise<CrmAccountOut> {
-  return apiFetch("/admin/crm/accounts", { method: "POST", body: JSON.stringify(body) });
+  const res = await apiFetch("/admin/crm/accounts", { method: "POST", body: JSON.stringify(body) });
+  return res.json();
 }
 
 export async function getCrmAccount(id: number): Promise<CrmAccountOut> {
-  return apiFetch(`/admin/crm/accounts/${id}`);
+  const res = await apiFetch(`/admin/crm/accounts/${id}`);
+  return res.json();
 }
 
 export async function updateCrmAccount(id: number, body: Partial<CrmAccountOut> & { name: string }): Promise<CrmAccountOut> {
-  return apiFetch(`/admin/crm/accounts/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+  const res = await apiFetch(`/admin/crm/accounts/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+  return res.json();
 }
 
 export async function deleteCrmAccount(id: number): Promise<void> {
@@ -4157,17 +4174,19 @@ export async function deleteCrmAccount(id: number): Promise<void> {
 }
 
 export async function listAccountContacts(accountId: number): Promise<CrmAccountContactOut[]> {
-  return apiFetch(`/admin/crm/accounts/${accountId}/contacts`);
+  const res = await apiFetch(`/admin/crm/accounts/${accountId}/contacts`);
+  return res.json();
 }
 
 export async function addAccountContact(
   accountId: number,
   body: { participant_crm_profile_id: number; role?: string | null; is_primary?: boolean },
 ): Promise<CrmAccountContactOut> {
-  return apiFetch(`/admin/crm/accounts/${accountId}/contacts`, {
+  const res = await apiFetch(`/admin/crm/accounts/${accountId}/contacts`, {
     method: "POST",
     body: JSON.stringify(body),
   });
+  return res.json();
 }
 
 export async function removeAccountContact(accountId: number, contactId: number): Promise<void> {
@@ -4175,23 +4194,26 @@ export async function removeAccountContact(accountId: number, contactId: number)
 }
 
 export async function listAccountDeals(accountId: number): Promise<CrmDealOut[]> {
-  return apiFetch(`/admin/crm/accounts/${accountId}/deals`);
+  const res = await apiFetch(`/admin/crm/accounts/${accountId}/deals`);
+  return res.json();
 }
 
 export async function createAccountDeal(
   accountId: number,
   body: { name: string; stage?: string; amount?: number | null; expected_close_date?: string | null },
 ): Promise<CrmDealOut> {
-  return apiFetch(`/admin/crm/accounts/${accountId}/deals`, {
+  const res = await apiFetch(`/admin/crm/accounts/${accountId}/deals`, {
     method: "POST",
     body: JSON.stringify(body),
   });
+  return res.json();
 }
 
 export async function updateDeal(id: number, body: {
   name: string; stage: string; amount?: number | null; expected_close_date?: string | null;
 }): Promise<CrmDealOut> {
-  return apiFetch(`/admin/crm/deals/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+  const res = await apiFetch(`/admin/crm/deals/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+  return res.json();
 }
 
 export async function deleteDeal(id: number): Promise<void> {
@@ -4199,21 +4221,24 @@ export async function deleteDeal(id: number): Promise<void> {
 }
 
 export async function getPipeline(): Promise<PipelineOut> {
-  return apiFetch("/admin/crm/pipeline");
+  const res = await apiFetch("/admin/crm/pipeline");
+  return res.json();
 }
 
 export async function listDealActivities(dealId: number): Promise<CrmDealActivityOut[]> {
-  return apiFetch(`/admin/crm/deals/${dealId}/activities`);
+  const res = await apiFetch(`/admin/crm/deals/${dealId}/activities`);
+  return res.json();
 }
 
 export async function addDealActivity(
   dealId: number,
   body: { activity_type: string; content: string; activity_at?: string | null },
 ): Promise<CrmDealActivityOut> {
-  return apiFetch(`/admin/crm/deals/${dealId}/activities`, {
+  const res = await apiFetch(`/admin/crm/deals/${dealId}/activities`, {
     method: "POST",
     body: JSON.stringify(body),
   });
+  return res.json();
 }
 
 export async function deleteDealActivity(dealId: number, activityId: number): Promise<void> {
@@ -4258,7 +4283,8 @@ export type LeadSubmissionOut = {
 };
 
 export async function listLeadForms(): Promise<LeadFormOut[]> {
-  return apiFetch("/admin/lead-forms");
+  const res = await apiFetch("/admin/lead-forms");
+  return res.json();
 }
 
 export async function createLeadForm(body: {
@@ -4269,11 +4295,13 @@ export async function createLeadForm(body: {
   redirect_url?: string | null;
   active?: boolean;
 }): Promise<LeadFormOut> {
-  return apiFetch("/admin/lead-forms", { method: "POST", body: JSON.stringify(body) });
+  const res = await apiFetch("/admin/lead-forms", { method: "POST", body: JSON.stringify(body) });
+  return res.json();
 }
 
 export async function getLeadForm(id: number): Promise<LeadFormOut> {
-  return apiFetch(`/admin/lead-forms/${id}`);
+  const res = await apiFetch(`/admin/lead-forms/${id}`);
+  return res.json();
 }
 
 export async function updateLeadForm(id: number, body: {
@@ -4284,7 +4312,8 @@ export async function updateLeadForm(id: number, body: {
   redirect_url?: string | null;
   active?: boolean;
 }): Promise<LeadFormOut> {
-  return apiFetch(`/admin/lead-forms/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+  const res = await apiFetch(`/admin/lead-forms/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+  return res.json();
 }
 
 export async function deleteLeadForm(id: number): Promise<void> {
@@ -4292,7 +4321,8 @@ export async function deleteLeadForm(id: number): Promise<void> {
 }
 
 export async function getLeadFormSubmissions(id: number, limit = 200): Promise<LeadSubmissionOut[]> {
-  return apiFetch(`/admin/lead-forms/${id}/submissions?limit=${limit}`);
+  const res = await apiFetch(`/admin/lead-forms/${id}/submissions?limit=${limit}`);
+  return res.json();
 }
 
 export async function publicSubmitForm(
@@ -4300,10 +4330,11 @@ export async function publicSubmitForm(
   data: Record<string, string>,
   meta?: { source_url?: string; utm_source?: string; utm_medium?: string; utm_campaign?: string },
 ): Promise<{ ok: boolean; redirect_url: string | null }> {
-  return apiFetch(`/public/forms/${slug}/submit`, {
+  const res = await apiFetch(`/public/forms/${slug}/submit`, {
     method: "POST",
     body: JSON.stringify({ data, ...meta }),
   });
+  return res.json();
 }
 
 // ── Org Analytics ─────────────────────────────────────────────────────────────
@@ -4357,23 +4388,28 @@ export type CrmAnalytics = {
 export type CertTimelineDay = { date: string; count: number };
 
 export async function getOrgOverview(days = 30): Promise<OrgOverview> {
-  return apiFetch(`/admin/analytics/org/overview?days=${days}`);
+  const res = await apiFetch(`/admin/analytics/org/overview?days=${days}`);
+  return res.json();
 }
 
 export async function getTrainingCompliance(): Promise<TrainingCompliance> {
-  return apiFetch("/admin/analytics/org/training-compliance");
+  const res = await apiFetch("/admin/analytics/org/training-compliance");
+  return res.json();
 }
 
 export async function getLearningPathsAnalytics(): Promise<{ paths: LearningPathStat[] }> {
-  return apiFetch("/admin/analytics/org/learning-paths");
+  const res = await apiFetch("/admin/analytics/org/learning-paths");
+  return res.json();
 }
 
 export async function getCrmAnalytics(): Promise<CrmAnalytics> {
-  return apiFetch("/admin/analytics/org/crm");
+  const res = await apiFetch("/admin/analytics/org/crm");
+  return res.json();
 }
 
 export async function getCertTimeline(days = 90): Promise<{ period_days: number; timeline: CertTimelineDay[] }> {
-  return apiFetch(`/admin/analytics/org/cert-timeline?days=${days}`);
+  const res = await apiFetch(`/admin/analytics/org/cert-timeline?days=${days}`);
+  return res.json();
 }
 
 // ── Scheduled Reports ─────────────────────────────────────────────────────────
@@ -4394,7 +4430,8 @@ export type ScheduledReportOut = {
 };
 
 export async function listScheduledReports(): Promise<ScheduledReportOut[]> {
-  return apiFetch("/admin/reports");
+  const res = await apiFetch("/admin/reports");
+  return res.json();
 }
 
 export async function createScheduledReport(body: {
@@ -4405,7 +4442,8 @@ export async function createScheduledReport(body: {
   recipients?: string[];
   active?: boolean;
 }): Promise<ScheduledReportOut> {
-  return apiFetch("/admin/reports", { method: "POST", body: JSON.stringify(body) });
+  const res = await apiFetch("/admin/reports", { method: "POST", body: JSON.stringify(body) });
+  return res.json();
 }
 
 export async function updateScheduledReport(id: number, body: {
@@ -4416,7 +4454,8 @@ export async function updateScheduledReport(id: number, body: {
   recipients?: string[];
   active?: boolean;
 }): Promise<ScheduledReportOut> {
-  return apiFetch(`/admin/reports/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+  const res = await apiFetch(`/admin/reports/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+  return res.json();
 }
 
 export async function deleteScheduledReport(id: number): Promise<void> {
@@ -4424,7 +4463,8 @@ export async function deleteScheduledReport(id: number): Promise<void> {
 }
 
 export async function listReportTypes(): Promise<{ value: string; label: string }[]> {
-  return apiFetch("/admin/reports/types");
+  const res = await apiFetch("/admin/reports/types");
+  return res.json();
 }
 
 // ── Marketplace ───────────────────────────────────────────────────────────────
@@ -4459,15 +4499,18 @@ export async function listMarketplaceEvents(params?: {
   if (params?.limit !== undefined) qs.set("limit", String(params.limit));
   if (params?.offset !== undefined) qs.set("offset", String(params.offset));
   const query = qs.toString() ? `?${qs.toString()}` : "";
-  return apiFetch(`/public/marketplace${query}`);
+  const res = await apiFetch(`/public/marketplace${query}`);
+  return res.json();
 }
 
 export async function getMarketplaceEvent(eventId: number): Promise<MarketplaceEventOut> {
-  return apiFetch(`/public/marketplace/${eventId}`);
+  const res = await apiFetch(`/public/marketplace/${eventId}`);
+  return res.json();
 }
 
 export async function listMarketplaceCategories(): Promise<string[]> {
-  return apiFetch("/public/marketplace/categories");
+  const res = await apiFetch("/public/marketplace/categories");
+  return res.json();
 }
 
 // ── API Key Management (v2 with scopes) ──────────────────────────────────────
@@ -4488,11 +4531,13 @@ export type ApiKeyCreated = ApiKeyFull & { full_key: string };
 export type ApiScopeOption = { value: string; label: string };
 
 export async function listApiKeysV2(): Promise<ApiKeyFull[]> {
-  return apiFetch("/admin/api-keys/v2");
+  const res = await apiFetch("/admin/api-keys/v2");
+  return res.json();
 }
 
 export async function listApiScopes(): Promise<ApiScopeOption[]> {
-  return apiFetch("/admin/api-keys/scopes");
+  const res = await apiFetch("/admin/api-keys/scopes");
+  return res.json();
 }
 
 export async function createApiKeyV2(body: {
@@ -4501,17 +4546,19 @@ export async function createApiKeyV2(body: {
   expires_days?: number | null;
   rate_limit_per_min?: number | null;
 }): Promise<ApiKeyCreated> {
-  return apiFetch("/admin/api-keys/v2", { method: "POST", body: JSON.stringify(body) });
+  const res = await apiFetch("/admin/api-keys/v2", { method: "POST", body: JSON.stringify(body) });
+  return res.json();
 }
 
 export async function updateApiKeyScopes(
   keyId: number,
   body: { name?: string; scopes?: string[]; is_active?: boolean }
 ): Promise<ApiKeyFull> {
-  return apiFetch(`/admin/api-keys/${keyId}/scopes`, {
+  const res = await apiFetch(`/admin/api-keys/${keyId}/scopes`, {
     method: "PATCH",
     body: JSON.stringify(body),
   });
+  return res.json();
 }
 
 export async function deleteApiKey(keyId: number): Promise<void> {
@@ -4569,11 +4616,13 @@ export type MemberCpdSummary = {
 };
 
 export async function listAccreditationBodies(): Promise<AccreditationBodyOption[]> {
-  return apiFetch("/admin/accreditation/bodies");
+  const res = await apiFetch("/admin/accreditation/bodies");
+  return res.json();
 }
 
 export async function listOrgAccreditations(): Promise<OrgAccreditationOut[]> {
-  return apiFetch("/admin/accreditation");
+  const res = await apiFetch("/admin/accreditation");
+  return res.json();
 }
 
 export async function createOrgAccreditation(body: {
@@ -4583,7 +4632,8 @@ export async function createOrgAccreditation(body: {
   valid_until?: string | null;
   notes?: string | null;
 }): Promise<OrgAccreditationOut> {
-  return apiFetch("/admin/accreditation", { method: "POST", body: JSON.stringify(body) });
+  const res = await apiFetch("/admin/accreditation", { method: "POST", body: JSON.stringify(body) });
+  return res.json();
 }
 
 export async function updateOrgAccreditation(id: number, body: {
@@ -4593,7 +4643,8 @@ export async function updateOrgAccreditation(id: number, body: {
   valid_until?: string | null;
   notes?: string | null;
 }): Promise<OrgAccreditationOut> {
-  return apiFetch(`/admin/accreditation/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+  const res = await apiFetch(`/admin/accreditation/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+  return res.json();
 }
 
 export async function deleteOrgAccreditation(id: number): Promise<void> {
@@ -4601,7 +4652,8 @@ export async function deleteOrgAccreditation(id: number): Promise<void> {
 }
 
 export async function getEventCpd(eventId: number): Promise<EventCpdOut | null> {
-  return apiFetch(`/admin/events/${eventId}/cpd`);
+  const res = await apiFetch(`/admin/events/${eventId}/cpd`);
+  return res.json();
 }
 
 export async function upsertEventCpd(eventId: number, body: {
@@ -4610,7 +4662,8 @@ export async function upsertEventCpd(eventId: number, body: {
   cpd_category?: string | null;
   cpd_unit_type?: string;
 }): Promise<EventCpdOut> {
-  return apiFetch(`/admin/events/${eventId}/cpd`, { method: "PUT", body: JSON.stringify(body) });
+  const res = await apiFetch(`/admin/events/${eventId}/cpd`, { method: "PUT", body: JSON.stringify(body) });
+  return res.json();
 }
 
 export async function deleteEventCpd(eventId: number): Promise<void> {
@@ -4618,7 +4671,8 @@ export async function deleteEventCpd(eventId: number): Promise<void> {
 }
 
 export async function getMemberCpd(memberId: number): Promise<MemberCpdSummary> {
-  return apiFetch(`/admin/members/${memberId}/cpd`);
+  const res = await apiFetch(`/admin/members/${memberId}/cpd`);
+  return res.json();
 }
 
 export async function updateMarketplaceSettings(
@@ -4630,8 +4684,9 @@ export async function updateMarketplaceSettings(
     marketplace_price?: number | null;
   }
 ): Promise<MarketplaceEventOut> {
-  return apiFetch(`/admin/events/${eventId}/marketplace`, {
+  const res = await apiFetch(`/admin/events/${eventId}/marketplace`, {
     method: "PATCH",
     body: JSON.stringify(body),
   });
+  return res.json();
 }
