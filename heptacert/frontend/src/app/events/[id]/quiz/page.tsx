@@ -68,7 +68,7 @@ export default function PublicQuizPage() {
       try {
         const headers: Record<string, string> = {};
         if (token) headers["Authorization"] = `Bearer ${token}`;
-        const data: QuizMeta = await apiFetch(`/public/events/${eventId}/quiz`, { headers });
+        const data: any = await apiFetch(`/public/events/${eventId}/quiz`, { headers });
         setQuiz(data);
         if (data.my_attempt_count >= data.max_attempts && !data.my_last_attempt?.passed) {
           setPhase("blocked");
@@ -109,7 +109,7 @@ export default function PublicQuizPage() {
         token ? (localStorage.getItem("heptacert_display_name") ?? "Katılımcı") : prompt("Adınızı girin:") ?? "Katılımcı";
       const memberEmail = token ? null : prompt("E-posta adresiniz (isteğe bağlı):") ?? null;
 
-      const res = await apiFetch(`/public/events/${eventId}/quiz/start`, {
+      const res: any = await apiFetch(`/public/events/${eventId}/quiz/start`, {
         method: "POST",
         headers,
         body: JSON.stringify({ attendee_name: memberName, attendee_email: memberEmail }),
@@ -144,7 +144,7 @@ export default function PublicQuizPage() {
           open_text_answer: answers[q.id]?.open_text_answer ?? null,
         })),
       };
-      const res: SubmitResult = await apiFetch(`/public/events/${eventId}/quiz/submit`, {
+      const res: any = await apiFetch(`/public/events/${eventId}/quiz/submit`, {
         method: "POST",
         headers,
         body: JSON.stringify(payload),

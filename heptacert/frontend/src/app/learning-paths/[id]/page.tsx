@@ -50,7 +50,7 @@ export default function LearningPathProgressPage() {
   useEffect(() => {
     if (!token) { setLoading(false); return; }
     const headers = { Authorization: `Bearer ${token}` };
-    apiFetch(`/public/learning-paths/${pathId}/progress`, { headers })
+    (apiFetch(`/public/learning-paths/${pathId}/progress`, { headers }) as Promise<any>)
       .then((d) => setData(d))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -63,7 +63,7 @@ export default function LearningPathProgressPage() {
       const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
       await apiFetch(`/public/learning-paths/${pathId}/enroll`, { method: "POST", headers });
       // Reload progress
-      const d = await apiFetch(`/public/learning-paths/${pathId}/progress`, { headers: { Authorization: `Bearer ${token}` } });
+      const d: any = await apiFetch(`/public/learning-paths/${pathId}/progress`, { headers: { Authorization: `Bearer ${token}` } });
       setData(d);
       showToast("Kayıt olundu!");
     } catch (e: any) {
