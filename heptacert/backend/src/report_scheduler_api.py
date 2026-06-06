@@ -153,6 +153,14 @@ async def create_report(
     return _to_out(r)
 
 
+@router.get(
+    "/api/admin/reports/types",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def list_report_types():
+    return [{"value": k, "label": v} for k, v in REPORT_TYPES.items()]
+
+
 @router.patch(
     "/api/admin/reports/{report_id}",
     response_model=ScheduledReportOut,
@@ -206,11 +214,3 @@ async def delete_report(
     await db.delete(r)
     await db.commit()
     return {"ok": True}
-
-
-@router.get(
-    "/api/admin/reports/types",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
-)
-async def list_report_types():
-    return [{"value": k, "label": v} for k, v in REPORT_TYPES.items()]

@@ -113,6 +113,11 @@ async def list_marketplace_events(
     return [_event_to_out(event, org) for event, org in rows]
 
 
+@router.get("/api/public/marketplace/categories")
+async def list_marketplace_categories():
+    return MARKETPLACE_CATEGORIES
+
+
 @router.get("/api/public/marketplace/{event_id}", response_model=MarketplaceEventOut)
 async def get_marketplace_event(event_id: int, db: AsyncSession = Depends(get_db)):
     row = (
@@ -125,11 +130,6 @@ async def get_marketplace_event(event_id: int, db: AsyncSession = Depends(get_db
     if not row:
         raise HTTPException(status_code=404, detail="Event not found in marketplace")
     return _event_to_out(row[0], row[1])
-
-
-@router.get("/api/public/marketplace/categories")
-async def list_marketplace_categories():
-    return MARKETPLACE_CATEGORIES
 
 
 @router.patch(

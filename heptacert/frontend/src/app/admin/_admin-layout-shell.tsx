@@ -31,6 +31,14 @@ import {
   GraduationCap,
   Loader2,
   Plug,
+  BookOpen,
+  Zap,
+  Briefcase,
+  ClipboardList,
+  BarChart3,
+  FileText,
+  Store,
+  Award,
 } from "lucide-react";
 
 type NavItem = {
@@ -60,9 +68,19 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/admin/dashboard", label: { tr: "Dashboard", en: "Dashboard" }, icon: Gauge, exact: true },
       { href: "/admin/events", label: { tr: "Etkinlikler", en: "Events" }, icon: CalendarCheck2 },
-      { href: "/admin/jobs", label: { tr: "İşler", en: "Jobs" }, icon: Loader2, exact: true },
-      { href: "/admin/crm", label: { tr: "Event CRM", en: "Event CRM" }, icon: UsersRound },
+      { href: "/admin/learning-paths", label: { tr: "Öğrenme Yolları", en: "Learning Paths" }, icon: BookOpen },
       { href: "/admin/training", label: { tr: "Eğitim", en: "Training" }, icon: GraduationCap },
+      { href: "/admin/jobs", label: { tr: "İşler", en: "Jobs" }, icon: Loader2, exact: true },
+    ],
+  },
+  {
+    label: { tr: "CRM & Satış", en: "CRM & Sales" },
+    items: [
+      { href: "/admin/crm", label: { tr: "Katılımcı CRM", en: "Participant CRM" }, icon: UsersRound, exact: true },
+      { href: "/admin/crm/accounts", label: { tr: "Şirket Hesapları", en: "Accounts" }, icon: Building2 },
+      { href: "/admin/crm/sequences", label: { tr: "Sequence'lar", en: "Sequences" }, icon: Zap },
+      { href: "/admin/crm/pipeline", label: { tr: "Satış Pipeline", en: "Pipeline" }, icon: Briefcase },
+      { href: "/admin/lead-forms", label: { tr: "Lead Formları", en: "Lead Forms" }, icon: ClipboardList },
     ],
   },
   {
@@ -74,8 +92,17 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: { tr: "Sistem", en: "System" },
+    label: { tr: "Analitik & Raporlar", en: "Analytics & Reports" },
     items: [
+      { href: "/admin/analytics", label: { tr: "Analitik", en: "Analytics" }, icon: BarChart3 },
+      { href: "/admin/reports", label: { tr: "Raporlar", en: "Reports" }, icon: FileText },
+    ],
+  },
+  {
+    label: { tr: "Platform", en: "Platform" },
+    items: [
+      { href: "/admin/marketplace", label: { tr: "Marketplace", en: "Marketplace" }, icon: Store },
+      { href: "/admin/accreditation", label: { tr: "Akreditasyon", en: "Accreditation" }, icon: Award },
       { href: "/admin/integrations", label: { tr: "Entegrasyonlar", en: "Integrations" }, icon: Plug, exact: true },
       { href: "/admin/payments/transactions", label: { tr: "Ödemeler", en: "Payments" }, icon: CreditCard },
       { href: "/admin/webhooks", label: { tr: "Webhooks", en: "Webhooks" }, icon: Webhook },

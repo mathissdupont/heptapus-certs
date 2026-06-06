@@ -64,7 +64,8 @@ export default function LearningPathBuilderPage() {
 
   // Load path
   useEffect(() => {
-    (apiFetch(`/admin/learning-paths/${pathId}`) as Promise<any>)
+    apiFetch(`/admin/learning-paths/${pathId}`)
+      .then((r) => r.json())
       .then((d: PathDetail) => {
         setPath(d);
         setName(d.name);
@@ -88,7 +89,8 @@ export default function LearningPathBuilderPage() {
   // Load enrollments
   useEffect(() => {
     if (tab !== "enrollments") return;
-    (apiFetch(`/admin/learning-paths/${pathId}/enrollments`) as Promise<any>)
+    apiFetch(`/admin/learning-paths/${pathId}/enrollments`)
+      .then((r) => r.json())
       .then((d) => setEnrollments(d))
       .catch(() => {});
   }, [tab, pathId]);
@@ -98,6 +100,7 @@ export default function LearningPathBuilderPage() {
     if (!eventSearch.trim()) { setEventOptions([]); return; }
     setLoadingEvents(true);
     apiFetch(`/admin/events?search=${encodeURIComponent(eventSearch)}&limit=10`)
+      .then((r) => r.json())
       .then((d: any) => setEventOptions((d.events ?? []).map((e: any) => ({ id: e.id, name: e.name }))))
       .catch(() => {})
       .finally(() => setLoadingEvents(false));
