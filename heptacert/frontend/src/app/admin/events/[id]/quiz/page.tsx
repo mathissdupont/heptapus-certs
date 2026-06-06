@@ -127,7 +127,8 @@ export default function QuizBuilderPage() {
   // ── Load results ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (tab !== "results") return;
-    (apiFetch(`/admin/events/${eventId}/quiz/results`) as Promise<any>)
+    apiFetch(`/admin/events/${eventId}/quiz/results`)
+      .then((r) => r.json())
       .then((d) => setResults(d))
       .catch(() => {});
   }, [tab, eventId]);
@@ -522,6 +523,8 @@ export default function QuizBuilderPage() {
         <div className="space-y-4">
           {!results ? (
             <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-gray-400" /></div>
+          ) : !results.summary ? (
+            <div className="text-center py-16 text-sm text-gray-500">Henüz sınav girişimi bulunmuyor.</div>
           ) : (
             <>
               {/* Summary */}

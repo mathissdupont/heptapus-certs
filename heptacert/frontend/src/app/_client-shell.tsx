@@ -121,21 +121,23 @@ function Navbar() {
     return !isHeptaCertHost;
   }, [host, isHeptaCertHost, settings]);
 
-  const eventsLabel      = lang === "tr" ? "Etkinlikler"  : "Events";
-  const communitiesLabel = lang === "tr" ? "Topluluklar"  : "Communities";
-  const discoverLabel    = lang === "tr" ? "Merkez"       : "Hub";
-  const marketplaceLabel = lang === "tr" ? "Marketplace"  : "Marketplace";
-  const myEventsLabel    = lang === "tr" ? "Katıldıklarım": "My Events";
-  const profileLabel     = lang === "tr" ? "Profilim"     : "My Profile";
-  const logoutLabel      = lang === "tr" ? "Çıkış Yap"   : "Sign Out";
+  const eventsLabel        = lang === "tr" ? "Etkinlikler"     : "Events";
+  const communitiesLabel   = lang === "tr" ? "Topluluklar"     : "Communities";
+  const discoverLabel      = lang === "tr" ? "Merkez"          : "Hub";
+  const marketplaceLabel   = lang === "tr" ? "Marketplace"     : "Marketplace";
+  const learningPathsLabel = lang === "tr" ? "Eğitim Yolları"  : "Learning Paths";
+  const myEventsLabel      = lang === "tr" ? "Katıldıklarım"   : "My Events";
+  const profileLabel       = lang === "tr" ? "Profilim"        : "My Profile";
+  const logoutLabel        = lang === "tr" ? "Çıkış Yap"       : "Sign Out";
 
   const links = isWhiteLabel
     ? [{ href: "/verify", label: t("nav_verify") }]
     : [
-        { href: "/events",        label: eventsLabel },
-        { href: "/organizations", label: communitiesLabel },
-        { href: "/discover",      label: discoverLabel },
-        { href: "/marketplace",   label: marketplaceLabel },
+        { href: "/events",          label: eventsLabel },
+        { href: "/organizations",   label: communitiesLabel },
+        { href: "/discover",        label: discoverLabel },
+        { href: "/marketplace",     label: marketplaceLabel },
+        { href: "/learning-paths",  label: learningPathsLabel },
         ...(member ? [{ href: "/my-events", label: myEventsLabel }] : []),
         ...(member ? [{ href: "/profile",   label: profileLabel   }] : []),
         { href: "/pricing", label: t("nav_pricing") },
