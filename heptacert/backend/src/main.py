@@ -14134,7 +14134,7 @@ async def list_api_keys(me: CurrentUser = Depends(get_current_user), db: AsyncSe
 async def create_api_key(payload: ApiKeyCreateIn, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     rand_prefix = secrets.token_hex(4)
     full_key = f"hc_{rand_prefix}_{secrets.token_urlsafe(32)}"
-    key_prefix = full_key[:16]
+    key_prefix = full_key[:8]
     expires_at = None
     if payload.expires_days is not None:
         expires_at = datetime.now(timezone.utc) + timedelta(days=payload.expires_days)

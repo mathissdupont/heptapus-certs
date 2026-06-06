@@ -46,6 +46,17 @@ const STANDARD_KEYS: AudienceSegmentKey[] = [
   "repeat_attendees",
 ];
 
+const SEGMENT_KEY_LABELS: Record<string, { tr: string; en: string }> = {
+  attended_no_certificate: { tr: "Katıldı, Sertifikasız", en: "Attended, No Certificate" },
+  certificate_holders:     { tr: "Sertifika Alanlar",     en: "Certificate Holders" },
+  survey_respondents:      { tr: "Anket Yanıtlayanlar",   en: "Survey Respondents" },
+  no_shows:                { tr: "Gelmeyen Kayıtlılar",   en: "No-Shows" },
+  repeat_attendees:        { tr: "Tekrar Katılanlar",      en: "Repeat Attendees" },
+  registration_answer:     { tr: "Kayıt Cevabı",          en: "Registration Answer" },
+  location_filter:         { tr: "Lokasyon Filtresi",      en: "Location Filter" },
+  composition:             { tr: "Kural Grubu",            en: "Rule Group" },
+};
+
 type EventSheetsStatus = {
   google_configured: boolean;
   google_connected: boolean;
@@ -504,9 +515,13 @@ export default function EventSegmentsPage() {
                     onChange={event => setCompositionRules(items => items.map((item, i) => i === index ? { ...item, segment_key: event.target.value as AudienceSegmentKey } : item))}
                     className="w-full min-h-[34px] appearance-none rounded-lg border border-surface-200 bg-white px-2.5 text-xs font-semibold outline-none cursor-pointer"
                   >
-                    {STANDARD_KEYS.map(key => <option key={key} value={key}>{key}</option>)}
-                    <option value="registration_answer">registration_answer</option>
-                    <option value="location_filter">location_filter</option>
+                    {STANDARD_KEYS.map(key => (
+                      <option key={key} value={key}>
+                        {SEGMENT_KEY_LABELS[key]?.[lang] ?? key}
+                      </option>
+                    ))}
+                    <option value="registration_answer">{SEGMENT_KEY_LABELS.registration_answer[lang]}</option>
+                    <option value="location_filter">{SEGMENT_KEY_LABELS.location_filter[lang]}</option>
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-surface-400" />
                 </div>

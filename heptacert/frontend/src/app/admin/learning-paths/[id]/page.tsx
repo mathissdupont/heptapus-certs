@@ -54,7 +54,7 @@ export default function LearningPathBuilderPage() {
   const [enrollments, setEnrollments] = useState<EnrollmentSummary | null>(null);
   const [eventSearch, setEventSearch] = useState("");
   const [eventOptions, setEventOptions] = useState<EventOption[]>([]);
-  const [loadingEvents, setLoadingEvents] = useState(false);
+  const [allEvents, setAllEvents] = useState<EventOption[]>([]);
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
   function showToast(type: "success" | "error", msg: string) {
@@ -95,16 +95,23 @@ export default function LearningPathBuilderPage() {
       .catch(() => {});
   }, [tab, pathId]);
 
-  // Search events
+  // Fetch all events once for local search
+  useEffect(() => {
+    apiFetch("/admin/events")
+      .then((r) => r.json())
+      .then((d: any) => {
+        const list: any[] = Array.isArray(d) ? d : (d.events ?? []);
+        setAllEvents(list.map((e: any) => ({ id: e.id, name: e.name })));
+      })
+      .catch(() => {});
+  }, []);
+
+  // Filter locally as user types
   useEffect(() => {
     if (!eventSearch.trim()) { setEventOptions([]); return; }
-    setLoadingEvents(true);
-    apiFetch(`/admin/events?search=${encodeURIComponent(eventSearch)}&limit=10`)
-      .then((r) => r.json())
-      .then((d: any) => setEventOptions((d.events ?? []).map((e: any) => ({ id: e.id, name: e.name }))))
-      .catch(() => {})
-      .finally(() => setLoadingEvents(false));
-  }, [eventSearch]);
+    const q = eventSearch.toLowerCase();
+    setEventOptions(allEvents.filter((e) => e.name.toLowerCase().includes(q)).slice(0, 10));
+  }, [eventSearch, allEvents]);
 
   // Save meta
   async function handleSaveMeta() {
@@ -349,9 +356,6 @@ export default function LearningPathBuilderPage() {
                 value={eventSearch}
                 onChange={(e) => setEventSearch(e.target.value)}
               />
-              {loadingEvents && (
-                <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-gray-400" />
-              )}
               {eventOptions.length > 0 && (
                 <div className="absolute z-10 mt-1 w-full rounded-xl border border-gray-100 bg-white shadow-lg overflow-hidden">
                   {eventOptions.map((ev) => (

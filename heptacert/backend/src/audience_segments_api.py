@@ -59,7 +59,7 @@ STANDARD_SEGMENTS = {
         "description": "Yerleşik veya harici anket cevabı bulunan katılımcılar.",
     },
     "no_shows": {
-        "label": "No-show",
+        "label": "Gelmeyen Kayıtlılar",
         "description": "Kaydı var ama check-in/oturum katılımı yok.",
     },
     "repeat_attendees": {

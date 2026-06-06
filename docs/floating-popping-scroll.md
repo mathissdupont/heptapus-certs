@@ -1,3 +1,4 @@
+
 # HeptaCert — Kapsamlı SaaS Geliştirme Planı
 
 ## Bağlam

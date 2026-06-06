@@ -56,18 +56,15 @@ async def org_overview(
     org = await _admin_org(db, me, request)
     since = _days_ago(days)
 
-    # Events in org — join via admin_id belongs to org's users
-    # For org events: Event.organization_id if it exists, otherwise filter by admin's org
-    # We use Attendee.event_id joined to events where event has the right org
-    # Simpler: count events where admin is in org's users
+    # Events are linked to org via Event.admin_id == org.user_id
     event_count_res = await db.execute(
-        select(func.count(Event.id)).where(Event.organization_id == org.id)
+        select(func.count(Event.id)).where(Event.admin_id == org.user_id)
     )
     event_count = int(event_count_res.scalar_one() or 0)
 
     events_period_res = await db.execute(
         select(func.count(Event.id)).where(
-            Event.organization_id == org.id,
+            Event.admin_id == org.user_id,
             Event.created_at >= since,
         )
     )
@@ -77,7 +74,7 @@ async def org_overview(
     cert_total_res = await db.execute(
         select(func.count(Certificate.id))
         .join(Event, Certificate.event_id == Event.id)
-        .where(Event.organization_id == org.id, Certificate.status == CertStatus.issued)
+        .where(Event.admin_id == org.user_id, Certificate.status == CertStatus.issued)
     )
     cert_total = int(cert_total_res.scalar_one() or 0)
 
@@ -85,23 +82,31 @@ async def org_overview(
         select(func.count(Certificate.id))
         .join(Event, Certificate.event_id == Event.id)
         .where(
-            Event.organization_id == org.id,
+            Event.admin_id == org.user_id,
             Certificate.status == CertStatus.issued,
             Certificate.issued_at >= since,
         )
     )
     cert_period = int(cert_period_res.scalar_one() or 0)
 
-    # Members
+    # Members: unique public members who attended org events
+    org_event_ids_subq = select(Event.id).where(Event.admin_id == org.user_id).scalar_subquery()
+
     member_total_res = await db.execute(
-        select(func.count(PublicMember.id)).where(PublicMember.organization_id == org.id)
+        select(func.count(func.distinct(Attendee.public_member_id)))
+        .where(
+            Attendee.event_id.in_(org_event_ids_subq),
+            Attendee.public_member_id.is_not(None),
+        )
     )
     member_total = int(member_total_res.scalar_one() or 0)
 
     member_period_res = await db.execute(
-        select(func.count(PublicMember.id)).where(
-            PublicMember.organization_id == org.id,
-            PublicMember.created_at >= since,
+        select(func.count(func.distinct(Attendee.public_member_id)))
+        .where(
+            Attendee.event_id.in_(org_event_ids_subq),
+            Attendee.public_member_id.is_not(None),
+            Attendee.created_at >= since,
         )
     )
     member_period = int(member_period_res.scalar_one() or 0)
@@ -110,14 +115,14 @@ async def org_overview(
     attendee_total_res = await db.execute(
         select(func.count(Attendee.id))
         .join(Event, Attendee.event_id == Event.id)
-        .where(Event.organization_id == org.id)
+        .where(Event.admin_id == org.user_id)
     )
     attendee_total = int(attendee_total_res.scalar_one() or 0)
 
     attendee_period_res = await db.execute(
         select(func.count(Attendee.id))
         .join(Event, Attendee.event_id == Event.id)
-        .where(Event.organization_id == org.id, Attendee.created_at >= since)
+        .where(Event.admin_id == org.user_id, Attendee.created_at >= since)
     )
     attendee_period = int(attendee_period_res.scalar_one() or 0)
 
@@ -152,7 +157,6 @@ async def training_compliance(
 ):
     org = await _admin_org(db, me, request)
 
-    # Per-event completion rates: registrations vs certs issued
     rows = (await db.execute(
         select(
             Event.id,
@@ -167,7 +171,7 @@ async def training_compliance(
             (Certificate.event_id == Event.id) & (Certificate.status == CertStatus.issued),
             isouter=True,
         )
-        .where(Event.organization_id == org.id)
+        .where(Event.admin_id == org.user_id)
         .group_by(Event.id, Event.name, Event.event_date)
         .order_by(Event.event_date.desc())
         .limit(20)
@@ -187,7 +191,6 @@ async def training_compliance(
             "completion_rate": rate,
         })
 
-    # Overall compliance rate
     total_registered = sum(e["registered"] for e in events_compliance)
     total_certified = sum(e["certified"] for e in events_compliance)
     overall_rate = round(total_certified / total_registered * 100, 1) if total_registered else 0
@@ -272,7 +275,6 @@ async def crm_analytics(
 ):
     org = await _admin_org(db, me, request)
 
-    # CRM profile lifecycle distribution
     lifecycle_rows = (await db.execute(
         select(ParticipantCrmProfile.lifecycle_status, func.count(ParticipantCrmProfile.id))
         .where(ParticipantCrmProfile.organization_id == org.id)
@@ -280,7 +282,6 @@ async def crm_analytics(
     )).all()
     lifecycle = {row[0]: row[1] for row in lifecycle_rows}
 
-    # Deal pipeline value by stage
     deal_rows = (await db.execute(
         select(
             CrmDeal.stage,
@@ -299,7 +300,6 @@ async def crm_analytics(
         if row.stage == "won":
             won_value = float(row.value)
 
-    # Total contacts
     total_contacts = int(
         (await db.execute(
             select(func.count(ParticipantCrmProfile.id))
@@ -307,7 +307,6 @@ async def crm_analytics(
         )).scalar_one() or 0
     )
 
-    # High-score leads (lead_score >= 70)
     hot_leads = int(
         (await db.execute(
             select(func.count(ParticipantCrmProfile.id))
@@ -351,7 +350,7 @@ async def cert_timeline(
         )
         .join(Event, Certificate.event_id == Event.id)
         .where(
-            Event.organization_id == org.id,
+            Event.admin_id == org.user_id,
             Certificate.status == CertStatus.issued,
             Certificate.issued_at >= since,
         )

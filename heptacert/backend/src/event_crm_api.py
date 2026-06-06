@@ -72,6 +72,7 @@ class ParticipantCrmMeta(BaseModel):
 
 
 class ParticipantCrmListItem(BaseModel):
+    id: Optional[int] = None
     email: str
     name: str
     event_count: int
@@ -786,6 +787,7 @@ async def list_crm_participants(
             ParticipantCrmProfile.next_follow_up_at,
             ParticipantCrmProfile.custom_fields,
             ParticipantCrmProfile.updated_at,
+            ParticipantCrmProfile.id.label("profile_id"),
         )
         .join(Event, Event.id == Attendee.event_id)
         .outerjoin(
@@ -818,6 +820,7 @@ async def list_crm_participants(
     stmt = (
         stmt.group_by(
             canonical_email,
+            ParticipantCrmProfile.id,
             ParticipantCrmProfile.notes,
             ParticipantCrmProfile.tags,
             ParticipantCrmProfile.lifecycle_status,
@@ -838,6 +841,7 @@ async def list_crm_participants(
         tags = [str(item).strip() for item in (row.tags or []) if str(item).strip()]
         items.append(
             ParticipantCrmListItem(
+                id=row.profile_id,
                 email=row.email,
                 name=row.name or row.email,
                 event_count=int(row.event_count or 0),

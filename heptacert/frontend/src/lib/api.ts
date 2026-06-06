@@ -719,6 +719,7 @@ export interface CrmMeta {
 }
 
 export interface CrmParticipantListItem {
+  id?: number;
   email: string;
   name: string;
   event_count: number;

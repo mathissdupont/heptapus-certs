@@ -10,10 +10,11 @@ import {
 } from "lucide-react";
 import {
   getCrmAccount, updateCrmAccount, listAccountContacts, removeAccountContact,
+  addAccountContact, listCrmParticipants,
   listAccountDeals, createAccountDeal, updateDeal, deleteDeal,
   listDealActivities, addDealActivity, deleteDealActivity,
   type CrmAccountOut, type CrmAccountContactOut,
-  type CrmDealOut, type CrmDealActivityOut,
+  type CrmDealOut, type CrmDealActivityOut, type CrmParticipantListItem,
 } from "@/lib/api";
 
 const DEAL_STAGES = [
@@ -71,6 +72,10 @@ export default function CrmAccountDetailPage() {
   // Contacts
   const [contacts, setContacts] = useState<CrmAccountContactOut[]>([]);
   const [contactsLoading, setContactsLoading] = useState(false);
+  const [contactSearch, setContactSearch] = useState("");
+  const [contactResults, setContactResults] = useState<CrmParticipantListItem[]>([]);
+  const [addingContact, setAddingContact] = useState(false);
+  const [showContactSearch, setShowContactSearch] = useState(false);
 
   // Deals
   const [deals, setDeals] = useState<CrmDealOut[]>([]);
@@ -158,6 +163,33 @@ export default function CrmAccountDetailPage() {
       showToast("error", "Kayıt başarısız.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!contactSearch.trim()) { setContactResults([]); return; }
+    const t = setTimeout(() => {
+      listCrmParticipants({ query: contactSearch, limit: 8 })
+        .then(setContactResults)
+        .catch(() => {});
+    }, 300);
+    return () => clearTimeout(t);
+  }, [contactSearch]);
+
+  async function handleAddContact(profile: CrmParticipantListItem) {
+    if (!profile.id) { showToast("error", "Bu kişinin CRM profili henüz oluşturulmamış."); return; }
+    setAddingContact(true);
+    try {
+      const newContact = await addAccountContact(accountId, { participant_crm_profile_id: profile.id });
+      setContacts((prev) => [...prev, newContact]);
+      setContactSearch("");
+      setContactResults([]);
+      setShowContactSearch(false);
+      showToast("success", "Kişi eklendi.");
+    } catch {
+      showToast("error", "Kişi eklenemedi.");
+    } finally {
+      setAddingContact(false);
     }
   }
 
@@ -386,13 +418,62 @@ export default function CrmAccountDetailPage() {
       {/* ── Contacts Tab ── */}
       {tab === "contacts" && (
         <div className="space-y-4">
+          {/* Add contact */}
+          <div className="flex justify-end">
+            <button
+              onClick={() => { setShowContactSearch(!showContactSearch); setContactSearch(""); setContactResults([]); }}
+              className="flex items-center gap-2 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
+            >
+              <Plus className="h-3.5 w-3.5" /> Kişi Ekle
+            </button>
+          </div>
+
+          {showContactSearch && (
+            <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 space-y-2">
+              <p className="text-xs font-medium text-indigo-800">CRM'de kayıtlı kişiyi ara</p>
+              <div className="relative">
+                <input
+                  autoFocus
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="İsim veya e-posta..."
+                  value={contactSearch}
+                  onChange={(e) => setContactSearch(e.target.value)}
+                />
+                {contactResults.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full rounded-xl border border-gray-100 bg-white shadow-lg overflow-hidden">
+                    {contactResults.map((p) => (
+                      <button
+                        key={p.id ?? p.email}
+                        onClick={() => handleAddContact(p)}
+                        disabled={addingContact || !p.id || contacts.some((c) => c.participant_crm_profile_id === p.id)}
+                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 flex items-center justify-between gap-2 disabled:opacity-40"
+                      >
+                        <span>
+                          <span className="font-medium text-gray-800">{p.name || p.email}</span>
+                          {p.name && <span className="ml-2 text-xs text-gray-400">{p.email}</span>}
+                        </span>
+                        {!p.id && <span className="text-xs text-gray-400">Profil yok</span>}
+                        {p.id && contacts.some((c) => c.participant_crm_profile_id === p.id) && (
+                          <span className="text-xs text-gray-400">Zaten ekli</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {contactSearch.trim() && contactResults.length === 0 && (
+                  <p className="mt-1 text-xs text-gray-400">Sonuç bulunamadı. Önce CRM'e kişi ekleyin.</p>
+                )}
+              </div>
+            </div>
+          )}
+
           {contactsLoading ? (
             <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-gray-400" /></div>
           ) : contacts.length === 0 ? (
             <div className="text-center py-14 text-gray-400">
               <Users className="h-8 w-8 mx-auto mb-2 opacity-40" />
               <p className="text-sm">Bu hesaba bağlı kişi yok.</p>
-              <p className="text-xs mt-1">CRM kişi profilinden bu hesabı bağlayabilirsiniz.</p>
+              <p className="text-xs mt-1">Yukarıdan CRM'deki kişiyi arayıp ekleyebilirsiniz.</p>
             </div>
           ) : (
             <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
