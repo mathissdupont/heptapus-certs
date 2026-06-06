@@ -5447,7 +5447,7 @@ def build_linkedin_share_url(target_url: str, text: str = "") -> str:
     return f"https://www.linkedin.com/sharing/share-offsite/?{query}"
 
 
-app = FastAPI(title="HeptaCert API", version="2.0.0")
+app = FastAPI(title="HeptaCert API", version="2.0.0", docs_url=None, redoc_url=None, openapi_url=None)
 
 # Prefer X-Forwarded-For only when the immediate peer is explicitly configured.
 def _client_ip_for_rate_limit(request: Request) -> str:

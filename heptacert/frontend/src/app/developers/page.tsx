@@ -165,14 +165,6 @@ export default function DevelopersPage() {
               >
                 API Anahtarı Al
               </Link>
-              <a
-                href="/docs"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-secondary text-sm"
-              >
-                Swagger Docs ↗
-              </a>
             </div>
           </div>
         </div>
