@@ -427,9 +427,9 @@ async def enroll_in_path(
 async def get_my_progress(
     path_id: int,
     db: AsyncSession = Depends(get_db),
-    member: CurrentPublicMember = Depends(get_current_public_member),
+    member: Optional[CurrentPublicMember] = Depends(get_optional_public_member),
 ):
-    """Return detailed step-by-step progress for the logged-in member."""
+    """Return detailed step-by-step progress. Works without auth (shows preview)."""
     path_res = await db.execute(
         select(LearningPath)
         .where(LearningPath.id == path_id)
@@ -439,19 +439,20 @@ async def get_my_progress(
     if not path:
         raise HTTPException(status_code=404, detail="Öğrenme yolu bulunamadı.")
 
-    enr_res = await db.execute(
-        select(LearningPathEnrollment)
-        .where(
-            LearningPathEnrollment.path_id == path_id,
-            LearningPathEnrollment.member_id == member.id,
-        )
-        .options(selectinload(LearningPathEnrollment.step_completions))
-    )
-    enr = enr_res.scalar_one_or_none()
-
+    enr = None
     completed_step_ids: set[int] = set()
-    if enr:
-        completed_step_ids = {sc.step_id for sc in enr.step_completions}
+    if member:
+        enr_res = await db.execute(
+            select(LearningPathEnrollment)
+            .where(
+                LearningPathEnrollment.path_id == path_id,
+                LearningPathEnrollment.member_id == member.id,
+            )
+            .options(selectinload(LearningPathEnrollment.step_completions))
+        )
+        enr = enr_res.scalar_one_or_none()
+        if enr:
+            completed_step_ids = {sc.step_id for sc in enr.step_completions}
 
     # Fetch event info
     event_ids = [s.event_id for s in path.steps]
@@ -463,7 +464,7 @@ async def get_my_progress(
 
     # Fetch quiz pass status for member
     quiz_passed_events: set[int] = set()
-    if event_ids:
+    if member and event_ids:
         quiz_res = await db.execute(
             select(Quiz.event_id).where(Quiz.event_id.in_(event_ids))
         )
@@ -476,7 +477,6 @@ async def get_my_progress(
                     Quiz.event_id.in_(quiz_event_ids),
                 )
             )
-            # Map quiz_id → event_id
             qid_res = await db.execute(
                 select(Quiz.id, Quiz.event_id).where(Quiz.event_id.in_(quiz_event_ids))
             )
@@ -487,16 +487,8 @@ async def get_my_progress(
 
     # Fetch certificates for member's events
     cert_events: set[int] = set()
-    if event_ids:
-        # Check by email since certificates are linked by student_name/email
+    if member and event_ids:
         from .main import Attendee, CertStatus
-        cert_res = await db.execute(
-            select(Certificate.event_id).where(
-                Certificate.event_id.in_(event_ids),
-                Certificate.status == CertStatus.active,
-            )
-        )
-        # We need to match by member email — get attendees for this member
         att_res = await db.execute(
             select(Attendee).where(
                 Attendee.event_id.in_(event_ids),
@@ -504,7 +496,6 @@ async def get_my_progress(
             )
         )
         member_attendee_events = {a.event_id for a in att_res.scalars().all()}
-        # Check if certs exist for those events matching member name
         if member_attendee_events:
             cert_match_res = await db.execute(
                 select(Certificate.event_id).where(

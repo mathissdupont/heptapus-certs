@@ -125,7 +125,6 @@ function Navbar() {
   const communitiesLabel   = lang === "tr" ? "Topluluklar"     : "Communities";
   const discoverLabel      = lang === "tr" ? "Merkez"          : "Hub";
   const marketplaceLabel   = lang === "tr" ? "Marketplace"     : "Marketplace";
-  const learningPathsLabel = lang === "tr" ? "Eğitim Yolları"  : "Learning Paths";
   const myEventsLabel      = lang === "tr" ? "Katıldıklarım"   : "My Events";
   const profileLabel       = lang === "tr" ? "Profilim"        : "My Profile";
   const logoutLabel        = lang === "tr" ? "Çıkış Yap"       : "Sign Out";
@@ -137,7 +136,7 @@ function Navbar() {
         { href: "/organizations",   label: communitiesLabel },
         { href: "/discover",        label: discoverLabel },
         { href: "/marketplace",     label: marketplaceLabel },
-        { href: "/learning-paths",  label: learningPathsLabel },
+        { href: "/learning-paths",  label: lang === "tr" ? "Eğitim Yolları" : "Learning Paths" },
         ...(member ? [{ href: "/my-events", label: myEventsLabel }] : []),
         ...(member ? [{ href: "/profile",   label: profileLabel   }] : []),
         { href: "/pricing", label: t("nav_pricing") },

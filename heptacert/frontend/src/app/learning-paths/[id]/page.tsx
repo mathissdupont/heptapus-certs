@@ -48,8 +48,8 @@ export default function LearningPathProgressPage() {
   }
 
   useEffect(() => {
-    if (!token) { setLoading(false); return; }
-    const headers = { Authorization: `Bearer ${token}` };
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
     apiFetch(`/public/learning-paths/${pathId}/progress`, { headers })
       .then((res) => res.json())
       .then((d) => setData(d))
@@ -78,21 +78,6 @@ export default function LearningPathProgressPage() {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
         <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
-      </div>
-    );
-  }
-
-  if (!token) {
-    return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8 text-center">
-        <Lock className="h-10 w-10 text-gray-300" />
-        <div>
-          <p className="font-medium text-gray-800">Bu sayfayı görmek için giriş yapın</p>
-          <p className="text-sm text-gray-500 mt-1">Öğrenme yoluna kaydolmak ve ilerlemenizi takip etmek için üye girişi gereklidir.</p>
-        </div>
-        <Link href="/login" className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700">
-          Giriş Yap
-        </Link>
       </div>
     );
   }
@@ -155,13 +140,19 @@ export default function LearningPathProgressPage() {
           <BookOpen className="h-8 w-8 text-indigo-400 mx-auto" />
           <p className="text-sm font-medium text-indigo-800">Bu öğrenme yoluna kayıt olun</p>
           <p className="text-xs text-indigo-600">İlerlemenizi takip edin ve tamamladığınızda sertifikalarınızı kazanın.</p>
-          <button
-            onClick={handleEnroll}
-            disabled={enrolling}
-            className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-          >
-            {enrolling ? <Loader2 className="h-4 w-4 animate-spin inline" /> : "Kayıt Ol"}
-          </button>
+          {token ? (
+            <button
+              onClick={handleEnroll}
+              disabled={enrolling}
+              className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {enrolling ? <Loader2 className="h-4 w-4 animate-spin inline" /> : "Kayıt Ol"}
+            </button>
+          ) : (
+            <Link href="/login" className="inline-block rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700">
+              Giriş Yap
+            </Link>
+          )}
         </div>
       )}
 
