@@ -64,7 +64,7 @@ export default function LearningPathBuilderPage() {
 
   // Load path
   useEffect(() => {
-    apiFetch(`/admin/learning-paths/${pathId}`)
+    (apiFetch(`/admin/learning-paths/${pathId}`) as Promise<any>)
       .then((d: PathDetail) => {
         setPath(d);
         setName(d.name);
@@ -88,7 +88,7 @@ export default function LearningPathBuilderPage() {
   // Load enrollments
   useEffect(() => {
     if (tab !== "enrollments") return;
-    apiFetch(`/admin/learning-paths/${pathId}/enrollments`)
+    (apiFetch(`/admin/learning-paths/${pathId}/enrollments`) as Promise<any>)
       .then((d) => setEnrollments(d))
       .catch(() => {});
   }, [tab, pathId]);

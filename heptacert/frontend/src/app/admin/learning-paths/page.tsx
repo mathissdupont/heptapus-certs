@@ -29,7 +29,7 @@ export default function AdminLearningPathsPage() {
   }
 
   useEffect(() => {
-    apiFetch("/admin/learning-paths")
+    (apiFetch("/admin/learning-paths") as Promise<any>)
       .then((d) => setPaths(d.paths ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -39,7 +39,7 @@ export default function AdminLearningPathsPage() {
     if (!newName.trim()) return;
     setCreating(true);
     try {
-      const d = await apiFetch("/admin/learning-paths", {
+      const d: any = await apiFetch("/admin/learning-paths", {
         method: "POST",
         body: JSON.stringify({ name: newName.trim(), published: false, steps: [] }),
       });
@@ -56,7 +56,7 @@ export default function AdminLearningPathsPage() {
 
   async function handleTogglePublish(path: PathSummary) {
     try {
-      const updated = await apiFetch(`/admin/learning-paths/${path.id}`, {
+      const updated: any = await apiFetch(`/admin/learning-paths/${path.id}`, {
         method: "PATCH",
         body: JSON.stringify({ published: !path.published }),
       });

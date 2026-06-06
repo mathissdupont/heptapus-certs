@@ -79,7 +79,7 @@ export default function PublicFormPage() {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await apiFetch(`/public/forms/${slug}/submit`, {
+      const res: any = await apiFetch(`/public/forms/${slug}/submit`, {
         method: "POST",
         body: JSON.stringify({
           data: values,

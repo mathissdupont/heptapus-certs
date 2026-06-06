@@ -93,7 +93,7 @@ export default function QuizBuilderPage() {
   useEffect(() => {
     async function load() {
       try {
-        const data = await apiFetch(`/admin/events/${eventId}/quiz`);
+        const data: any = await apiFetch(`/admin/events/${eventId}/quiz`);
         setHasQuiz(true);
         setForm({
           title: data.title,
@@ -126,7 +126,7 @@ export default function QuizBuilderPage() {
   // ── Load results ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (tab !== "results") return;
-    apiFetch(`/admin/events/${eventId}/quiz/results`)
+    (apiFetch(`/admin/events/${eventId}/quiz/results`) as Promise<any>)
       .then((d) => setResults(d))
       .catch(() => {});
   }, [tab, eventId]);
@@ -185,7 +185,7 @@ export default function QuizBuilderPage() {
       await apiFetch(`/admin/events/${eventId}/quiz/attempts/${attemptId}/issue-cert`, { method: "POST" });
       showToast("success", "Sertifika oluşturuluyor.");
       // Refresh results
-      const d = await apiFetch(`/admin/events/${eventId}/quiz/results`);
+      const d: any = await apiFetch(`/admin/events/${eventId}/quiz/results`);
       setResults(d);
     } catch {
       showToast("error", "Sertifika verilemedi.");
