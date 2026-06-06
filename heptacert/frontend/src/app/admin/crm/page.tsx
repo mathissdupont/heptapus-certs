@@ -50,6 +50,26 @@ import { useI18n } from "@/lib/i18n";
 // Lifecycle labels are rendered via copy.lifecycleOptions below (bilingual)
 const LIFECYCLE_VALUES = ["lead", "active", "vip", "renewal", "inactive"] as const;
 
+const TAG_DISPLAY_LABELS: Record<string, string> = {
+  attended_no_certificate: "Katıldı, Sertifikasız",
+  certificate_holders: "Sertifika Alanlar",
+  certificate_holder: "Sertifika Alanlar",
+  survey_respondents: "Anket Yanıtlayanlar",
+  no_shows: "Gelmeyen Kayıtlılar",
+  no_show: "Gelmeyen Kayıtlılar",
+  repeat_attendees: "Tekrar Katılanlar",
+  segment: "Segment",
+};
+
+function formatTag(raw: string): string {
+  // Strip "segment:" prefix if present
+  const stripped = raw.startsWith("segment:") ? raw.slice(8) : raw;
+  if (stripped === "segment") return "Segment";
+  if (TAG_DISPLAY_LABELS[stripped]) return TAG_DISPLAY_LABELS[stripped];
+  // Convert underscores/hyphens to spaces, capitalize first letter
+  return stripped.replace(/[_-]/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+}
+
 function formatDate(value?: string | null) {
   if (!value) return "-";
   const date = new Date(value);
@@ -696,7 +716,7 @@ export default function AdminCrmPage() {
                         <p className="truncate text-11 text-surface-400">{p.email}</p>
                         <div className="mt-2 flex flex-wrap gap-1">
                           {p.meta.tags.slice(0, 3).map((t) => (
-                            <span key={t} className="rounded-md bg-surface-50 px-1.5 py-0.5 text-11 font-semibold text-surface-500">{t}</span>
+                            <span key={t} className="rounded-md bg-surface-50 px-1.5 py-0.5 text-11 font-semibold text-surface-500">{formatTag(t)}</span>
                           ))}
                         </div>
                         {(p.meta.lead_score ?? 0) > 0 && (
@@ -860,7 +880,7 @@ export default function AdminCrmPage() {
                         <div className="mt-2 flex flex-wrap gap-1">
                           {participant.meta.tags.slice(0, 3).map((item) => (
                             <span key={item} className="rounded-md bg-surface-50 px-1.5 py-0.5 text-11 font-semibold text-surface-500">
-                              {item}
+                              {formatTag(item)}
                             </span>
                           ))}
                         </div>

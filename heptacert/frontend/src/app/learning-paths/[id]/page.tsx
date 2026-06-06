@@ -6,7 +6,7 @@ import Link from "next/link";
 import {
   CheckCircle2, Lock, Loader2, BookOpen, ChevronRight, Award, ArrowLeft,
 } from "lucide-react";
-import { apiFetch, getPublicMemberToken } from "@/lib/api";
+import { publicApiFetch, getPublicMemberToken } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 type StepDetail = {
@@ -91,7 +91,7 @@ export default function LearningPathProgressPage() {
   useEffect(() => {
     const headers: Record<string, string> = {};
     if (token) headers["Authorization"] = `Bearer ${token}`;
-    apiFetch(`/public/learning-paths/${pathId}/progress`, { headers })
+    publicApiFetch(`/public/learning-paths/${pathId}/progress`, { headers })
       .then((res) => res.json())
       .then((d) => setData(d))
       .catch(() => {})
@@ -103,8 +103,8 @@ export default function LearningPathProgressPage() {
     setEnrolling(true);
     try {
       const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
-      await apiFetch(`/public/learning-paths/${pathId}/enroll`, { method: "POST", headers });
-      const _progressRes = await apiFetch(`/public/learning-paths/${pathId}/progress`, { headers: { Authorization: `Bearer ${token}` } });
+      await publicApiFetch(`/public/learning-paths/${pathId}/enroll`, { method: "POST", headers });
+      const _progressRes = await publicApiFetch(`/public/learning-paths/${pathId}/progress`, { headers: { Authorization: `Bearer ${token}` } });
       const d = await _progressRes.json();
       setData(d);
       showToast(copy.enrolledToast);

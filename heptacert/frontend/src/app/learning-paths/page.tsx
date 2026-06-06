@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BookOpen, CheckCircle2, Loader2, Lock } from "lucide-react";
-import { apiFetch, getPublicMemberToken } from "@/lib/api";
+import { publicApiFetch, getPublicMemberToken } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 type PathCard = {
@@ -52,7 +52,7 @@ export default function LearningPathsPage() {
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
       try {
-        const response = await apiFetch("/public/learning-paths", { headers });
+        const response = await publicApiFetch("/public/learning-paths", { headers });
         const data = (await response.json()) as { paths?: PathCard[] };
 
         if (!cancelled) {
@@ -143,7 +143,7 @@ export default function LearningPathsPage() {
                     </div>
                   ) : (
                     <div className="text-xs text-indigo-600 font-medium">
-                      {token ? copy.start : copy.loginRequired}
+                      {copy.start}
                     </div>
                   )}
                 </div>

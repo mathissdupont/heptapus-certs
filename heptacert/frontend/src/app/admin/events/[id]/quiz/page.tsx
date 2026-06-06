@@ -145,17 +145,21 @@ export default function QuizBuilderPage() {
         time_limit_minutes: form.time_limit_minutes ? Number(form.time_limit_minutes) : null,
         required_for_cert: form.required_for_cert,
         is_active: form.is_active,
-        questions: form.questions.map((q, qi) => ({
-          question_text: q.question_text,
-          question_type: q.question_type,
-          order: qi,
-          points: q.points,
-          choices: q.choices.map((c, ci) => ({
-            choice_text: c.choice_text,
-            is_correct: c.is_correct,
-            order: ci,
+        questions: form.questions
+          .filter((q) => q.question_text.trim())
+          .map((q, qi) => ({
+            question_text: q.question_text.trim(),
+            question_type: q.question_type,
+            order: qi,
+            points: q.points,
+            choices: q.choices
+              .filter((c) => c.choice_text.trim())
+              .map((c, ci) => ({
+                choice_text: c.choice_text.trim(),
+                is_correct: c.is_correct,
+                order: ci,
+              })),
           })),
-        })),
       };
       await apiFetch(`/admin/events/${eventId}/quiz`, { method: "POST", body: JSON.stringify(body) });
       setHasQuiz(true);

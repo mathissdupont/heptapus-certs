@@ -74,7 +74,7 @@ async def org_overview(
     cert_total_res = await db.execute(
         select(func.count(Certificate.id))
         .join(Event, Certificate.event_id == Event.id)
-        .where(Event.admin_id == org.user_id, Certificate.status == CertStatus.issued)
+        .where(Event.admin_id == org.user_id, Certificate.status == CertStatus.active)
     )
     cert_total = int(cert_total_res.scalar_one() or 0)
 
@@ -83,7 +83,7 @@ async def org_overview(
         .join(Event, Certificate.event_id == Event.id)
         .where(
             Event.admin_id == org.user_id,
-            Certificate.status == CertStatus.issued,
+            Certificate.status == CertStatus.active,
             Certificate.issued_at >= since,
         )
     )
@@ -168,7 +168,7 @@ async def training_compliance(
         .join(Attendee, Attendee.event_id == Event.id, isouter=True)
         .join(
             Certificate,
-            (Certificate.event_id == Event.id) & (Certificate.status == CertStatus.issued),
+            (Certificate.event_id == Event.id) & (Certificate.status == CertStatus.active),
             isouter=True,
         )
         .where(Event.admin_id == org.user_id)
@@ -351,7 +351,7 @@ async def cert_timeline(
         .join(Event, Certificate.event_id == Event.id)
         .where(
             Event.admin_id == org.user_id,
-            Certificate.status == CertStatus.issued,
+            Certificate.status == CertStatus.active,
             Certificate.issued_at >= since,
         )
         .group_by("day")
