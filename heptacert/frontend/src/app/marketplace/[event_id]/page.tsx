@@ -110,9 +110,9 @@ export default async function MarketplaceEventPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
 
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-surface-50">
         {event.event_banner_url ? (
-          <div className="w-full h-64 bg-gray-200 overflow-hidden">
+          <div className="w-full h-56 bg-surface-200 overflow-hidden">
             <img
               src={event.event_banner_url}
               alt={event.name}
@@ -120,46 +120,46 @@ export default async function MarketplaceEventPage({
             />
           </div>
         ) : (
-          <div className="w-full h-48 bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center">
-            <span className="text-7xl">🎓</span>
+          <div className="w-full h-40 bg-surface-100 flex items-center justify-center border-b border-surface-200">
+            <span className="text-5xl opacity-30">🎓</span>
           </div>
         )}
 
         <div className="max-w-3xl mx-auto px-4 py-8">
           <Link
             href="/marketplace"
-            className="text-sm text-indigo-600 hover:underline mb-4 inline-block"
+            className="text-sm text-surface-500 hover:text-surface-900 mb-4 inline-flex items-center gap-1 transition-colors"
           >
             ← Marketplace&apos;e dön
           </Link>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="bg-white rounded-xl border border-surface-200 p-6 mt-3">
             {event.marketplace_category && (
-              <span className="inline-block text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full mb-3">
+              <span className="inline-block text-xs bg-surface-100 text-surface-600 px-2 py-0.5 rounded-md mb-3 font-medium">
                 {event.marketplace_category}
               </span>
             )}
 
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">{event.name}</h1>
+            <h1 className="text-2xl font-bold text-surface-900 mb-2">{event.name}</h1>
 
             {event.org_name && (
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-5 pb-4 border-b border-surface-100">
                 {event.org_logo && (
                   <img
                     src={event.org_logo}
                     alt=""
-                    className="w-8 h-8 rounded-full object-cover"
+                    className="w-7 h-7 rounded-full object-cover"
                   />
                 )}
-                <span className="text-sm text-gray-600">{event.org_name}</span>
+                <span className="text-sm text-surface-600">{event.org_name}</span>
               </div>
             )}
 
             <div className="grid grid-cols-2 gap-4 mb-6">
               {event.event_date && (
                 <div>
-                  <span className="text-xs text-gray-400 uppercase tracking-wide">Tarih</span>
-                  <p className="text-sm text-gray-700 mt-0.5">
+                  <span className="text-xs text-surface-400 uppercase tracking-wide font-medium">Tarih</span>
+                  <p className="text-sm text-surface-800 mt-1">
                     {new Date(event.event_date).toLocaleDateString("tr-TR", {
                       day: "numeric",
                       month: "long",
@@ -170,45 +170,39 @@ export default async function MarketplaceEventPage({
               )}
               {event.event_location && (
                 <div>
-                  <span className="text-xs text-gray-400 uppercase tracking-wide">Konum</span>
-                  <p className="text-sm text-gray-700 mt-0.5">{event.event_location}</p>
+                  <span className="text-xs text-surface-400 uppercase tracking-wide font-medium">Konum</span>
+                  <p className="text-sm text-surface-800 mt-1">{event.event_location}</p>
                 </div>
               )}
               <div>
-                <span className="text-xs text-gray-400 uppercase tracking-wide">Sertifika</span>
-                <p className="text-sm mt-0.5">
+                <span className="text-xs text-surface-400 uppercase tracking-wide font-medium">Sertifika</span>
+                <p className="text-sm mt-1">
                   {event.certificate_enabled ? (
                     <span className="text-green-600 font-medium">✓ Var</span>
                   ) : (
-                    <span className="text-gray-400">Yok</span>
+                    <span className="text-surface-400">Yok</span>
                   )}
                 </p>
               </div>
               <div>
-                <span className="text-xs text-gray-400 uppercase tracking-wide">Ücret</span>
-                <p
-                  className={`text-sm font-semibold mt-0.5 ${
-                    isFree ? "text-green-600" : "text-gray-900"
-                  }`}
-                >
-                  {isFree
-                    ? "Ücretsiz"
-                    : `₺${event.marketplace_price?.toLocaleString("tr-TR")}`}
+                <span className="text-xs text-surface-400 uppercase tracking-wide font-medium">Ücret</span>
+                <p className={`text-sm font-semibold mt-1 ${isFree ? "text-green-600" : "text-surface-900"}`}>
+                  {isFree ? "Ücretsiz" : `₺${event.marketplace_price?.toLocaleString("tr-TR")}`}
                 </p>
               </div>
             </div>
 
             {event.marketplace_description && (
               <div className="mb-6">
-                <h2 className="text-sm font-semibold text-gray-700 mb-2">Program Hakkında</h2>
-                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+                <h2 className="text-sm font-semibold text-surface-700 mb-2">Program Hakkında</h2>
+                <p className="text-sm text-surface-600 leading-relaxed whitespace-pre-line">
                   {event.marketplace_description}
                 </p>
               </div>
             )}
 
-            <div className="pt-4 border-t">
-              <p className="text-xs text-gray-400 text-center">
+            <div className="pt-4 border-t border-surface-100">
+              <p className="text-xs text-surface-400 text-center">
                 Bu programa katılmak için organizasyona başvurun.
               </p>
             </div>

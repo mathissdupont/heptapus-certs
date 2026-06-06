@@ -13,14 +13,10 @@ export const metadata: Metadata = {
     "REST API Turkey",
     "certificate management API",
   ],
-  alternates: {
-    canonical: "/developers",
-    languages: { tr: "/developers", en: "/developers" },
-  },
+  alternates: { canonical: "/developers" },
   openGraph: {
     title: "HeptaCert Developer Portal",
-    description:
-      "REST API ile sertifika ve etkinlik verilerinizi sisteminize entegre edin. Bearer token kimlik doğrulama, JSON yanıtlar, TR/EN destek.",
+    description: "REST API ile sertifika ve etkinlik verilerinizi sisteminize entegre edin.",
     url: "/developers",
     type: "website",
   },
@@ -38,58 +34,58 @@ const ENDPOINTS: { group: string; items: Endpoint[] }[] = [
   {
     group: "Etkinlikler",
     items: [
-      { method: "GET",    path: "/api/admin/events",                      description: "Tüm etkinlikleri listele",          scope: "events:read" },
-      { method: "POST",   path: "/api/admin/events",                      description: "Yeni etkinlik oluştur",             scope: "events:write" },
-      { method: "GET",    path: "/api/admin/events/{id}",                 description: "Etkinlik detayı",                   scope: "events:read" },
-      { method: "PATCH",  path: "/api/admin/events/{id}",                 description: "Etkinlik güncelle",                 scope: "events:write" },
-      { method: "DELETE", path: "/api/admin/events/{id}",                 description: "Etkinliği sil",                     scope: "events:write" },
+      { method: "GET",    path: "/api/admin/events",                      description: "Tüm etkinlikleri listele",    scope: "events:read"  },
+      { method: "POST",   path: "/api/admin/events",                      description: "Yeni etkinlik oluştur",       scope: "events:write" },
+      { method: "GET",    path: "/api/admin/events/{id}",                 description: "Etkinlik detayı",             scope: "events:read"  },
+      { method: "PATCH",  path: "/api/admin/events/{id}",                 description: "Etkinlik güncelle",           scope: "events:write" },
+      { method: "DELETE", path: "/api/admin/events/{id}",                 description: "Etkinliği sil",               scope: "events:write" },
     ],
   },
   {
     group: "Sertifikalar",
     items: [
-      { method: "GET",    path: "/api/admin/events/{id}/certificates",    description: "Sertifikaları listele",             scope: "certificates:read" },
-      { method: "POST",   path: "/api/admin/events/{id}/certificates",    description: "Sertifika oluştur",                 scope: "certificates:write" },
-      { method: "GET",    path: "/api/admin/certificates/{cert_id}",      description: "Sertifika detayı",                  scope: "certificates:read" },
-      { method: "DELETE", path: "/api/admin/certificates/{cert_id}",      description: "Sertifika iptal et",                scope: "certificates:write" },
+      { method: "GET",    path: "/api/admin/events/{id}/certificates",    description: "Sertifikaları listele",       scope: "certificates:read"  },
+      { method: "POST",   path: "/api/admin/events/{id}/certificates",    description: "Sertifika oluştur",           scope: "certificates:write" },
+      { method: "GET",    path: "/api/admin/certificates/{cert_id}",      description: "Sertifika detayı",            scope: "certificates:read"  },
+      { method: "DELETE", path: "/api/admin/certificates/{cert_id}",      description: "Sertifika iptal et",          scope: "certificates:write" },
     ],
   },
   {
     group: "Katılımcılar",
     items: [
-      { method: "GET",    path: "/api/admin/events/{id}/attendees",       description: "Katılımcıları listele",             scope: "attendees:read" },
-      { method: "POST",   path: "/api/admin/events/{id}/attendees",       description: "Katılımcı ekle",                    scope: "attendees:write" },
-      { method: "PATCH",  path: "/api/admin/events/{id}/attendees/{aid}", description: "Katılımcı güncelle",                scope: "attendees:write" },
+      { method: "GET",    path: "/api/admin/events/{id}/attendees",       description: "Katılımcıları listele",       scope: "attendees:read"  },
+      { method: "POST",   path: "/api/admin/events/{id}/attendees",       description: "Katılımcı ekle",              scope: "attendees:write" },
+      { method: "PATCH",  path: "/api/admin/events/{id}/attendees/{aid}", description: "Katılımcı güncelle",          scope: "attendees:write" },
     ],
   },
   {
     group: "CRM",
     items: [
-      { method: "GET",    path: "/api/admin/crm/accounts",                description: "Şirketleri listele",                scope: "crm:read" },
-      { method: "POST",   path: "/api/admin/crm/accounts",                description: "Yeni şirket oluştur",               scope: "crm:write" },
-      { method: "GET",    path: "/api/admin/crm/pipeline",                description: "Pipeline görünümü",                 scope: "crm:read" },
+      { method: "GET",  path: "/api/admin/crm/accounts",  description: "Şirketleri listele",     scope: "crm:read"  },
+      { method: "POST", path: "/api/admin/crm/accounts",  description: "Yeni şirket oluştur",    scope: "crm:write" },
+      { method: "GET",  path: "/api/admin/crm/pipeline",  description: "Pipeline görünümü",      scope: "crm:read"  },
     ],
   },
   {
     group: "Analitik",
     items: [
-      { method: "GET",    path: "/api/admin/analytics/org/overview",      description: "Genel bakış metrikleri",            scope: "analytics:read" },
-      { method: "GET",    path: "/api/admin/analytics/org/crm",           description: "CRM analitik verileri",             scope: "analytics:read" },
-      { method: "GET",    path: "/api/admin/analytics/org/training-compliance", description: "Eğitim uyum raporu",          scope: "analytics:read" },
+      { method: "GET", path: "/api/admin/analytics/org/overview",           description: "Genel bakış metrikleri",  scope: "analytics:read" },
+      { method: "GET", path: "/api/admin/analytics/org/crm",               description: "CRM analitik verileri",   scope: "analytics:read" },
+      { method: "GET", path: "/api/admin/analytics/org/training-compliance",description: "Eğitim uyum raporu",     scope: "analytics:read" },
     ],
   },
   {
     group: "Marketplace (Public)",
     items: [
-      { method: "GET",    path: "/api/public/marketplace",                description: "Listelenmiş programları getir" },
-      { method: "GET",    path: "/api/public/marketplace/{id}",           description: "Program detayı" },
+      { method: "GET", path: "/api/public/marketplace",      description: "Listelenmiş programları getir" },
+      { method: "GET", path: "/api/public/marketplace/{id}", description: "Program detayı"                },
     ],
   },
   {
     group: "Lead Forms (Public)",
     items: [
-      { method: "GET",    path: "/api/public/forms/{slug}/meta",          description: "Form tanımını getir" },
-      { method: "POST",   path: "/api/public/forms/{slug}/submit",        description: "Form gönderimi" },
+      { method: "GET",  path: "/api/public/forms/{slug}/meta",   description: "Form tanımını getir" },
+      { method: "POST", path: "/api/public/forms/{slug}/submit", description: "Form gönderimi"      },
     ],
   },
 ];
@@ -131,18 +127,10 @@ const structuredData = {
   "@context": "https://schema.org",
   "@type": "TechArticle",
   name: "HeptaCert API Dokümantasyonu",
-  headline: "HeptaCert REST API — Sertifika ve Etkinlik Yönetimi Entegrasyon Rehberi",
-  description:
-    "HeptaCert REST API ile dijital sertifika oluşturma, etkinlik yönetimi ve CRM verilerine programatik erişim sağlayın.",
+  description: "HeptaCert REST API ile dijital sertifika oluşturma, etkinlik yönetimi ve CRM verilerine programatik erişim sağlayın.",
   author: { "@type": "Organization", name: "Heptapus Group" },
   publisher: { "@type": "Organization", name: "Heptapus Group", url: "https://heptapusgroup.com" },
   inLanguage: ["tr", "en"],
-  audience: { "@type": "Audience", audienceType: "Developers" },
-  about: [
-    { "@type": "Thing", name: "REST API" },
-    { "@type": "Thing", name: "Digital Certificates" },
-    { "@type": "Thing", name: "Event Management" },
-  ],
 };
 
 const faqStructuredData = {
@@ -158,41 +146,22 @@ const faqStructuredData = {
 export default function DevelopersPage() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqStructuredData) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqStructuredData) }} />
 
-      <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <div className="bg-white border-b px-4 py-4">
-          <div className="max-w-5xl mx-auto flex items-center justify-between">
-            <Link href="/" className="text-xl font-bold text-indigo-700">HeptaCert</Link>
-            <div className="flex gap-4 text-sm">
-              <Link href="/marketplace" className="text-gray-600 hover:text-indigo-700">Marketplace</Link>
-              <Link href="/admin/settings/api" className="text-indigo-600 font-medium hover:underline">
-                API Anahtarları
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        <div className="max-w-5xl mx-auto px-4 py-12">
-          {/* Hero */}
-          <div className="mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 mb-3">Developer Portal</h1>
-            <p className="text-lg text-gray-600 max-w-2xl">
-              HeptaCert REST API ile etkinlik, sertifika ve CRM verilerinizi programatik olarak yönetin.
-              Tüm endpoint&apos;ler JSON döndürür ve Bearer token kimlik doğrulaması gerektirir.
+      <div className="min-h-screen bg-surface-50">
+        {/* Page header */}
+        <div className="bg-white border-b border-surface-200 px-4 py-10">
+          <div className="max-w-5xl mx-auto">
+            <h1 className="text-3xl font-bold text-surface-900 mb-1">Developer Portal</h1>
+            <p className="text-surface-500 text-sm mb-6">
+              REST API ile etkinlik, sertifika ve CRM verilerinizi sisteminize entegre edin.
+              Tüm endpoint&apos;ler JSON döndürür, Bearer token kimlik doğrulama gerektirir.
             </p>
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-3 flex-wrap">
               <Link
                 href="/admin/settings/api"
-                className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
+                className="btn-primary text-sm"
               >
                 API Anahtarı Al
               </Link>
@@ -200,21 +169,23 @@ export default function DevelopersPage() {
                 href="/docs"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-5 py-2.5 border rounded-lg text-sm font-medium hover:bg-gray-50"
+                className="btn-secondary text-sm"
               >
-                Swagger Dokümantasyonu ↗
+                Swagger Docs ↗
               </a>
             </div>
           </div>
+        </div>
 
+        <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
           {/* Auth */}
-          <section className="mb-10" aria-labelledby="auth-heading">
-            <h2 id="auth-heading" className="text-xl font-bold mb-4">Kimlik Doğrulama</h2>
-            <div className="bg-white rounded-xl border p-5">
-              <p className="text-sm text-gray-600 mb-3">
-                Her istekte <code className="font-mono bg-gray-100 px-1 rounded">Authorization</code> header&apos;ı gönderin:
+          <section aria-labelledby="auth-heading">
+            <h2 id="auth-heading" className="text-base font-semibold text-surface-900 mb-3">Kimlik Doğrulama</h2>
+            <div className="bg-white rounded-xl border border-surface-200 p-5">
+              <p className="text-sm text-surface-600 mb-3">
+                Her istekte <code className="font-mono bg-surface-100 px-1.5 py-0.5 rounded text-xs">Authorization</code> header&apos;ı gönderin:
               </p>
-              <pre className="bg-gray-900 text-green-400 text-xs p-4 rounded-lg overflow-x-auto font-mono">
+              <pre className="bg-surface-900 text-green-400 text-xs p-4 rounded-lg overflow-x-auto font-mono leading-relaxed">
 {`curl https://cert.heptapusgroup.com/api/admin/events \\
   -H "Authorization: Bearer hc_YOUR_API_KEY"`}
               </pre>
@@ -222,61 +193,58 @@ export default function DevelopersPage() {
           </section>
 
           {/* Rate Limits */}
-          <section className="mb-10" aria-labelledby="rate-heading">
-            <h2 id="rate-heading" className="text-xl font-bold mb-4">Rate Limit</h2>
-            <div className="bg-white rounded-xl border overflow-hidden">
+          <section aria-labelledby="rate-heading">
+            <h2 id="rate-heading" className="text-base font-semibold text-surface-900 mb-3">Rate Limit</h2>
+            <div className="bg-white rounded-xl border border-surface-200 overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50">
+                <thead className="bg-surface-50 border-b border-surface-100">
                   <tr>
-                    <th className="text-left px-4 py-3 font-medium text-gray-700">Plan</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-700">İstek / Dakika</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-700">İstek / Saat</th>
+                    <th className="text-left px-4 py-3 font-medium text-surface-700 text-xs uppercase tracking-wide">Plan</th>
+                    <th className="text-left px-4 py-3 font-medium text-surface-700 text-xs uppercase tracking-wide">İstek / Dakika</th>
+                    <th className="text-left px-4 py-3 font-medium text-surface-700 text-xs uppercase tracking-wide">İstek / Saat</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
+                <tbody className="divide-y divide-surface-100">
                   {RATE_LIMITS.map((r) => (
-                    <tr key={r.plan}>
-                      <td className="px-4 py-3 font-medium">{r.plan}</td>
-                      <td className="px-4 py-3 text-gray-600">{r.rpm}</td>
-                      <td className="px-4 py-3 text-gray-600">{r.rph}</td>
+                    <tr key={r.plan} className="hover:bg-surface-50">
+                      <td className="px-4 py-3 font-medium text-surface-900">{r.plan}</td>
+                      <td className="px-4 py-3 text-surface-600">{r.rpm}</td>
+                      <td className="px-4 py-3 text-surface-600">{r.rph}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <p className="text-xs text-gray-400 mt-2">
-              Rate limit aşıldığında <code className="font-mono">429 Too Many Requests</code> döner.
-              <code className="font-mono ml-1">Retry-After</code> header&apos;ı bekleme süresini belirtir.
+            <p className="text-xs text-surface-400 mt-2">
+              Limit aşıldığında <code className="font-mono">429 Too Many Requests</code> döner.{" "}
+              <code className="font-mono">Retry-After</code> header&apos;ı bekleme süresini belirtir.
             </p>
           </section>
 
           {/* Endpoints */}
-          <section className="mb-10" aria-labelledby="endpoints-heading">
-            <h2 id="endpoints-heading" className="text-xl font-bold mb-4">Endpoint&apos;ler</h2>
-            <div className="space-y-6">
+          <section aria-labelledby="endpoints-heading">
+            <h2 id="endpoints-heading" className="text-base font-semibold text-surface-900 mb-3">Endpoint&apos;ler</h2>
+            <div className="space-y-4">
               {ENDPOINTS.map((group) => (
                 <div key={group.group}>
-                  <h3 className="text-base font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-indigo-500 inline-block" />
-                    {group.group}
-                  </h3>
-                  <div className="bg-white rounded-xl border overflow-hidden">
+                  <p className="text-xs font-semibold text-surface-500 uppercase tracking-wide mb-1.5 pl-1">{group.group}</p>
+                  <div className="bg-white rounded-xl border border-surface-200 overflow-hidden">
                     <table className="w-full text-sm">
-                      <tbody className="divide-y">
+                      <tbody className="divide-y divide-surface-100">
                         {group.items.map((ep, i) => (
-                          <tr key={i} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 w-20">
-                              <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold font-mono ${METHOD_COLORS[ep.method]}`}>
+                          <tr key={i} className="hover:bg-surface-50">
+                            <td className="px-4 py-2.5 w-16">
+                              <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-bold font-mono ${METHOD_COLORS[ep.method]}`}>
                                 {ep.method}
                               </span>
                             </td>
-                            <td className="px-4 py-3 font-mono text-xs text-gray-800 min-w-64">{ep.path}</td>
-                            <td className="px-4 py-3 text-gray-600">{ep.description}</td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-2.5 font-mono text-xs text-surface-800 min-w-56 max-w-72">{ep.path}</td>
+                            <td className="px-4 py-2.5 text-surface-600 text-xs">{ep.description}</td>
+                            <td className="px-4 py-2.5 text-right">
                               {ep.scope ? (
-                                <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-mono">{ep.scope}</span>
+                                <span className="text-xs bg-surface-100 text-surface-600 px-2 py-0.5 rounded font-mono">{ep.scope}</span>
                               ) : (
-                                <span className="text-xs text-gray-400">Public</span>
+                                <span className="text-xs text-surface-400">Public</span>
                               )}
                             </td>
                           </tr>
@@ -290,10 +258,10 @@ export default function DevelopersPage() {
           </section>
 
           {/* Code example */}
-          <section className="mb-10" aria-labelledby="example-heading">
-            <h2 id="example-heading" className="text-xl font-bold mb-4">Örnek: Sertifika Listele</h2>
-            <div className="bg-white rounded-xl border p-5">
-              <pre className="bg-gray-900 text-green-400 text-xs p-4 rounded-lg overflow-x-auto font-mono">
+          <section aria-labelledby="example-heading">
+            <h2 id="example-heading" className="text-base font-semibold text-surface-900 mb-3">Örnek: Sertifika Listele</h2>
+            <div className="bg-white rounded-xl border border-surface-200 p-5">
+              <pre className="bg-surface-900 text-green-400 text-xs p-4 rounded-lg overflow-x-auto font-mono leading-relaxed">
 {`curl "https://cert.heptapusgroup.com/api/admin/events/123/certificates?limit=50" \\
   -H "Authorization: Bearer hc_YOUR_API_KEY"
 
@@ -303,7 +271,6 @@ export default function DevelopersPage() {
     "id": 9001,
     "public_id": "abc123",
     "attendee_name": "Ahmet Yılmaz",
-    "attendee_email": "ahmet@example.com",
     "issued_at": "2026-06-01T10:00:00Z",
     "cert_url": "https://cert.heptapusgroup.com/c/abc123"
   }
@@ -313,24 +280,24 @@ export default function DevelopersPage() {
           </section>
 
           {/* FAQ */}
-          <section className="mb-10" aria-labelledby="faq-heading">
-            <h2 id="faq-heading" className="text-xl font-bold mb-4">Sık Sorulan Sorular</h2>
-            <div className="space-y-3">
+          <section aria-labelledby="faq-heading">
+            <h2 id="faq-heading" className="text-base font-semibold text-surface-900 mb-3">Sık Sorulan Sorular</h2>
+            <div className="space-y-2">
               {FAQ.map((item, i) => (
-                <div key={i} className="bg-white rounded-xl border p-5">
-                  <h3 className="font-semibold text-gray-900 mb-2">{item.q}</h3>
-                  <p className="text-sm text-gray-600">{item.a}</p>
+                <div key={i} className="bg-white rounded-xl border border-surface-200 p-5">
+                  <h3 className="font-semibold text-surface-900 mb-1.5 text-sm">{item.q}</h3>
+                  <p className="text-xs text-surface-600 leading-relaxed">{item.a}</p>
                 </div>
               ))}
             </div>
           </section>
 
           {/* Support */}
-          <div className="bg-indigo-50 rounded-xl border border-indigo-100 p-5 text-center">
-            <p className="text-sm text-indigo-800">
+          <div className="bg-surface-100 rounded-xl border border-surface-200 p-5 text-center">
+            <p className="text-sm text-surface-700">
               Sorunuz mu var?{" "}
-              <a href="mailto:contact@heptapusgroup.com" className="font-medium underline">
-                contact@heptapusgroup.com
+              <a href="mailto:destek@heptacert.com" className="font-medium text-surface-900 underline underline-offset-2">
+                destek@heptacert.com
               </a>{" "}
               adresine yazın.
             </p>

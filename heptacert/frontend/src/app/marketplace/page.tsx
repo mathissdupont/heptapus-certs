@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { Search, Loader2 } from "lucide-react";
 import { MarketplaceEventOut, listMarketplaceEvents, listMarketplaceCategories } from "@/lib/api";
 
 function EventCard({ event }: { event: MarketplaceEventOut }) {
@@ -10,41 +11,43 @@ function EventCard({ event }: { event: MarketplaceEventOut }) {
   return (
     <Link
       href={`/marketplace/${event.id}`}
-      className="group block bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
+      className="group block bg-white rounded-xl border border-surface-200 overflow-hidden hover:shadow-md transition-all duration-200"
     >
       {event.event_banner_url ? (
-        <img
-          src={event.event_banner_url}
-          alt={event.name}
-          className="w-full h-40 object-cover"
-        />
+        <div className="overflow-hidden">
+          <img
+            src={event.event_banner_url}
+            alt={event.name}
+            className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        </div>
       ) : (
-        <div className="w-full h-40 bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center">
-          <span className="text-5xl">🎓</span>
+        <div className="w-full h-40 bg-surface-100 flex items-center justify-center">
+          <span className="text-4xl opacity-40">🎓</span>
         </div>
       )}
       <div className="p-4">
         {event.marketplace_category && (
-          <span className="inline-block text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full mb-2">
+          <span className="inline-block text-xs bg-surface-100 text-surface-600 px-2 py-0.5 rounded-md mb-2 font-medium">
             {event.marketplace_category}
           </span>
         )}
-        <h3 className="font-semibold text-gray-900 group-hover:text-indigo-600 line-clamp-2 mb-1">
+        <h3 className="font-semibold text-surface-900 group-hover:text-surface-700 line-clamp-2 mb-1 text-sm leading-snug">
           {event.name}
         </h3>
         {event.marketplace_description && (
-          <p className="text-sm text-gray-500 line-clamp-2 mb-3">{event.marketplace_description}</p>
+          <p className="text-xs text-surface-500 line-clamp-2 mb-3 leading-relaxed">
+            {event.marketplace_description}
+          </p>
         )}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs text-gray-400">
+        <div className="flex items-center justify-between pt-2 border-t border-surface-100">
+          <div className="flex items-center gap-1.5 text-xs text-surface-400 min-w-0">
             {event.org_logo && (
-              <img src={event.org_logo} alt="" className="w-5 h-5 rounded-full object-cover" />
+              <img src={event.org_logo} alt="" className="w-4 h-4 rounded-full object-cover flex-shrink-0" />
             )}
-            {event.org_name && <span>{event.org_name}</span>}
+            {event.org_name && <span className="truncate">{event.org_name}</span>}
           </div>
-          <span
-            className={`text-sm font-semibold ${isFree ? "text-green-600" : "text-gray-900"}`}
-          >
+          <span className={`text-sm font-semibold flex-shrink-0 ml-2 ${isFree ? "text-green-600" : "text-surface-900"}`}>
             {isFree ? "Ücretsiz" : `₺${event.marketplace_price?.toLocaleString("tr-TR")}`}
           </span>
         </div>
@@ -86,37 +89,38 @@ export default function MarketplacePage() {
   }, [load]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero */}
-      <div className="bg-gradient-to-br from-indigo-600 to-purple-700 text-white py-16 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl font-bold mb-3">Sertifika Marketplace</h1>
-          <p className="text-indigo-200 text-lg mb-8">
-            Profesyonel gelişiminiz için binlerce sertifika programı
+    <div className="min-h-screen bg-surface-50">
+      {/* Header */}
+      <div className="bg-white border-b border-surface-200 px-4 py-10">
+        <div className="max-w-5xl mx-auto">
+          <h1 className="text-3xl font-bold text-surface-900 mb-1">Eğitim Marketplace</h1>
+          <p className="text-surface-500 text-sm mb-6">
+            Sertifikalı program ve profesyonel gelişim kurslarını keşfedin
           </p>
-          <div className="relative max-w-lg mx-auto">
+          {/* Search */}
+          <div className="relative max-w-xl">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-surface-400 pointer-events-none" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Program ara…"
-              className="w-full px-5 py-3 rounded-full text-gray-900 text-sm shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              placeholder="Program veya organizasyon ara…"
+              className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-surface-200 text-sm text-surface-900 placeholder:text-surface-400 bg-white focus:outline-none focus:ring-2 focus:ring-surface-900 focus:border-transparent transition"
             />
-            <span className="absolute right-4 top-3 text-gray-400 text-lg">🔍</span>
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-5xl mx-auto px-4 py-6">
         {/* Filters */}
-        <div className="flex flex-wrap gap-3 mb-8 items-center">
+        <div className="flex flex-wrap gap-2 mb-6 items-center">
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={() => setSelectedCategory("")}
-              className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                 !selectedCategory
-                  ? "bg-indigo-600 text-white border-indigo-600"
-                  : "bg-white text-gray-700 border-gray-200 hover:border-indigo-300"
+                  ? "bg-surface-900 text-white border-surface-900"
+                  : "bg-white text-surface-600 border-surface-200 hover:border-surface-400 hover:text-surface-900"
               }`}
             >
               Tümü
@@ -125,22 +129,22 @@ export default function MarketplacePage() {
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat === selectedCategory ? "" : cat)}
-                className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                   selectedCategory === cat
-                    ? "bg-indigo-600 text-white border-indigo-600"
-                    : "bg-white text-gray-700 border-gray-200 hover:border-indigo-300"
+                    ? "bg-surface-900 text-white border-surface-900"
+                    : "bg-white text-surface-600 border-surface-200 hover:border-surface-400 hover:text-surface-900"
                 }`}
               >
                 {cat}
               </button>
             ))}
           </div>
-          <label className="ml-auto flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+          <label className="ml-auto flex items-center gap-2 text-xs text-surface-600 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={freeOnly}
               onChange={(e) => setFreeOnly(e.target.checked)}
-              className="rounded"
+              className="rounded border-surface-300"
             />
             Sadece Ücretsiz
           </label>
@@ -148,14 +152,16 @@ export default function MarketplacePage() {
 
         {/* Grid */}
         {loading ? (
-          <div className="text-center py-16 text-gray-400">Yükleniyor…</div>
+          <div className="flex items-center justify-center py-24">
+            <Loader2 className="h-5 w-5 animate-spin text-surface-400" />
+          </div>
         ) : events.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-5xl mb-3">📭</p>
-            <p className="text-gray-500">Bu kriterlere uygun program bulunamadı.</p>
+          <div className="text-center py-24">
+            <p className="text-4xl mb-3 opacity-30">📭</p>
+            <p className="text-surface-500 text-sm">Bu kriterlere uygun program bulunamadı.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {events.map((e) => (
               <EventCard key={e.id} event={e} />
             ))}

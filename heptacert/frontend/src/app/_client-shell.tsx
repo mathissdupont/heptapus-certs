@@ -124,6 +124,7 @@ function Navbar() {
   const eventsLabel      = lang === "tr" ? "Etkinlikler"  : "Events";
   const communitiesLabel = lang === "tr" ? "Topluluklar"  : "Communities";
   const discoverLabel    = lang === "tr" ? "Merkez"       : "Hub";
+  const marketplaceLabel = lang === "tr" ? "Marketplace"  : "Marketplace";
   const myEventsLabel    = lang === "tr" ? "Katıldıklarım": "My Events";
   const profileLabel     = lang === "tr" ? "Profilim"     : "My Profile";
   const logoutLabel      = lang === "tr" ? "Çıkış Yap"   : "Sign Out";
@@ -134,6 +135,7 @@ function Navbar() {
         { href: "/events",        label: eventsLabel },
         { href: "/organizations", label: communitiesLabel },
         { href: "/discover",      label: discoverLabel },
+        { href: "/marketplace",   label: marketplaceLabel },
         ...(member ? [{ href: "/my-events", label: myEventsLabel }] : []),
         ...(member ? [{ href: "/profile",   label: profileLabel   }] : []),
         { href: "/pricing", label: t("nav_pricing") },
