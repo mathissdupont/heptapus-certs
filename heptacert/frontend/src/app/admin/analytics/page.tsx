@@ -11,19 +11,30 @@ import {
   type OrgOverview, type TrainingCompliance, type LearningPathStat,
   type CrmAnalytics, type CertTimelineDay,
 } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 
 type Tab = "overview" | "training" | "learning-paths" | "crm";
 
 const PERIOD_OPTIONS = [7, 30, 90, 365];
 
-const LIFECYCLE_LABELS: Record<string, string> = {
+const LIFECYCLE_LABELS_TR: Record<string, string> = {
   lead: "Lead", prospect: "Aday", customer: "Müşteri",
   churned: "Kayıp", partner: "Partner",
 };
 
-const STAGE_LABELS: Record<string, string> = {
+const LIFECYCLE_LABELS_EN: Record<string, string> = {
+  lead: "Lead", prospect: "Prospect", customer: "Customer",
+  churned: "Churned", partner: "Partner",
+};
+
+const STAGE_LABELS_TR: Record<string, string> = {
   lead: "Lead", qualified: "Nitelikli", proposal: "Teklif",
   negotiation: "Müzakere", won: "Kazanıldı", lost: "Kaybedildi",
+};
+
+const STAGE_LABELS_EN: Record<string, string> = {
+  lead: "Lead", qualified: "Qualified", proposal: "Proposal",
+  negotiation: "Negotiation", won: "Won", lost: "Lost",
 };
 
 function MetricCard({
@@ -87,6 +98,99 @@ function SimpleBarChart({ data, maxVal }: { data: { label: string; value: number
 }
 
 export default function OrgAnalyticsPage() {
+  const { lang } = useI18n();
+  const copy = lang === "tr"
+    ? {
+        pageTitle: "Analitik",
+        pageSubtitle: "Organizasyon geneli raporlar ve metrikler",
+        periodSuffix: "gün",
+        tabOverview: "Genel Bakış",
+        tabTraining: "Eğitim & Uyum",
+        tabLearningPaths: "Öğrenme Yolları",
+        tabCrm: "CRM & Satış",
+        loadError: "Yüklenemedi.",
+        metricTotalEvents: "Toplam Etkinlik",
+        metricCertificates: "Sertifika",
+        metricMembers: "Üye",
+        metricCrmContacts: "CRM Kişi",
+        metricSubPeriod: (period: number) => `son ${period} günde`,
+        metricSubNew: "yeni",
+        certTimelineTitle: (period: number) => `Sertifika Zaman Serisi (son ${period} gün)`,
+        certTooltipSuffix: "sertifika",
+        metricTotalRegistered: "Toplam Kayıt",
+        metricTotalCertified: "Sertifika Alan",
+        metricOverallCompliance: "Genel Uyum",
+        tableEvent: "Etkinlik",
+        tableRegistered: "Kayıt",
+        tableCertified: "Sertifika",
+        tableCompletionRate: "Tamamlama Oranı",
+        noLearningPaths: "Henüz öğrenme yolu yok.",
+        badgeDraft: "Taslak",
+        lpSteps: (n: number) => `${n} adım`,
+        lpEnrolled: "Kayıtlı",
+        lpCompleted: "Tamamladı",
+        lpRate: "Oran",
+        lpCompletion: "Tamamlama",
+        lpAvgProgress: (v: number) => `Ort. İlerleme: %${v}`,
+        crmTotalContacts: "Toplam Kişi",
+        crmHotLeads: "Sıcak Lead",
+        crmHotLeadsSub: "Skor ≥ 70",
+        crmPipelineValue: "Pipeline Değeri",
+        crmWon: "Kazanılan",
+        crmWinRateSub: (r: number) => `%${r} başarı`,
+        lifecycleTitle: "Yaşam Döngüsü Dağılımı",
+        noData: "Veri yok.",
+        pipelineTitle: "Pipeline Aşamaları",
+        noOpportunities: "Fırsat yok.",
+        lifecycleLabels: LIFECYCLE_LABELS_TR,
+        stageLabels: STAGE_LABELS_TR,
+      }
+    : {
+        pageTitle: "Analytics",
+        pageSubtitle: "Organization-wide reports and metrics",
+        periodSuffix: "days",
+        tabOverview: "Overview",
+        tabTraining: "Training & Compliance",
+        tabLearningPaths: "Learning Paths",
+        tabCrm: "CRM & Sales",
+        loadError: "Failed to load.",
+        metricTotalEvents: "Total Events",
+        metricCertificates: "Certificates",
+        metricMembers: "Members",
+        metricCrmContacts: "CRM Contacts",
+        metricSubPeriod: (period: number) => `last ${period} days`,
+        metricSubNew: "new",
+        certTimelineTitle: (period: number) => `Certificate Timeline (last ${period} days)`,
+        certTooltipSuffix: "certificates",
+        metricTotalRegistered: "Total Registered",
+        metricTotalCertified: "Certified",
+        metricOverallCompliance: "Overall Compliance",
+        tableEvent: "Event",
+        tableRegistered: "Registered",
+        tableCertified: "Certified",
+        tableCompletionRate: "Completion Rate",
+        noLearningPaths: "No learning paths yet.",
+        badgeDraft: "Draft",
+        lpSteps: (n: number) => `${n} steps`,
+        lpEnrolled: "Enrolled",
+        lpCompleted: "Completed",
+        lpRate: "Rate",
+        lpCompletion: "Completion",
+        lpAvgProgress: (v: number) => `Avg. Progress: ${v}%`,
+        crmTotalContacts: "Total Contacts",
+        crmHotLeads: "Hot Leads",
+        crmHotLeadsSub: "Score ≥ 70",
+        crmPipelineValue: "Pipeline Value",
+        crmWon: "Won",
+        crmWinRateSub: (r: number) => `${r}% win rate`,
+        lifecycleTitle: "Lifecycle Distribution",
+        noData: "No data.",
+        pipelineTitle: "Pipeline Stages",
+        noOpportunities: "No opportunities.",
+        lifecycleLabels: LIFECYCLE_LABELS_EN,
+        stageLabels: STAGE_LABELS_EN,
+      };
+
   const [tab, setTab] = useState<Tab>("overview");
   const [period, setPeriod] = useState(30);
   const [overview, setOverview] = useState<OrgOverview | null>(null);
@@ -167,8 +271,8 @@ export default function OrgAnalyticsPage() {
         <div className="flex items-center gap-3">
           <BarChart3 className="h-6 w-6 text-indigo-600" />
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">Analitik</h1>
-            <p className="text-sm text-gray-500">Organizasyon geneli raporlar ve metrikler</p>
+            <h1 className="text-xl font-semibold text-gray-900">{copy.pageTitle}</h1>
+            <p className="text-sm text-gray-500">{copy.pageSubtitle}</p>
           </div>
         </div>
         {tab === "overview" && (
@@ -179,7 +283,7 @@ export default function OrgAnalyticsPage() {
               className="rounded-xl border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               {PERIOD_OPTIONS.map((d) => (
-                <option key={d} value={d}>{d} gün</option>
+                <option key={d} value={d}>{d} {copy.periodSuffix}</option>
               ))}
             </select>
             <button
@@ -195,10 +299,10 @@ export default function OrgAnalyticsPage() {
       {/* Tabs */}
       <div className="flex gap-1 rounded-xl bg-gray-100 p-1">
         {([
-          { id: "overview", label: "Genel Bakış" },
-          { id: "training", label: "Eğitim & Uyum" },
-          { id: "learning-paths", label: "Öğrenme Yolları" },
-          { id: "crm", label: "CRM & Satış" },
+          { id: "overview", label: copy.tabOverview },
+          { id: "training", label: copy.tabTraining },
+          { id: "learning-paths", label: copy.tabLearningPaths },
+          { id: "crm", label: copy.tabCrm },
         ] as { id: Tab; label: string }[]).map((t) => (
           <button
             key={t.id}
@@ -218,28 +322,28 @@ export default function OrgAnalyticsPage() {
           {loading.overview ? (
             <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-gray-400" /></div>
           ) : errors.overview ? (
-            <div className="text-center py-12 text-red-400 text-sm"><AlertCircle className="h-6 w-6 mx-auto mb-2" /> Yüklenemedi.</div>
+            <div className="text-center py-12 text-red-400 text-sm"><AlertCircle className="h-6 w-6 mx-auto mb-2" /> {copy.loadError}</div>
           ) : overview ? (
             <>
               {/* Metrics grid */}
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                <MetricCard icon={Calendar} label="Toplam Etkinlik" value={overview.events.total} sub={`+${overview.events.period} son ${period} günde`} color="blue" />
-                <MetricCard icon={Award} label="Sertifika" value={overview.certificates.total} sub={`+${overview.certificates.period} son ${period} günde`} color="green" />
-                <MetricCard icon={Users} label="Üye" value={overview.members.total} sub={`+${overview.members.period} yeni`} color="indigo" />
-                <MetricCard icon={Target} label="CRM Kişi" value={overview.crm_contacts.total} color="amber" />
+                <MetricCard icon={Calendar} label={copy.metricTotalEvents} value={overview.events.total} sub={`+${overview.events.period} ${copy.metricSubPeriod(period)}`} color="blue" />
+                <MetricCard icon={Award} label={copy.metricCertificates} value={overview.certificates.total} sub={`+${overview.certificates.period} ${copy.metricSubPeriod(period)}`} color="green" />
+                <MetricCard icon={Users} label={copy.metricMembers} value={overview.members.total} sub={`+${overview.members.period} ${copy.metricSubNew}`} color="indigo" />
+                <MetricCard icon={Target} label={copy.metricCrmContacts} value={overview.crm_contacts.total} color="amber" />
               </div>
 
               {/* Cert timeline mini chart */}
               {certTimeline.length > 0 && (
                 <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                  <h2 className="text-sm font-medium text-gray-700 mb-4">Sertifika Zaman Serisi (son {period} gün)</h2>
+                  <h2 className="text-sm font-medium text-gray-700 mb-4">{copy.certTimelineTitle(period)}</h2>
                   <div className="flex items-end gap-0.5 h-24">
                     {certTimeline.map((d) => (
                       <div
                         key={d.date}
                         className="flex-1 bg-indigo-200 rounded-t hover:bg-indigo-400 transition cursor-default"
                         style={{ height: `${maxCertDay > 0 ? Math.max(4, Math.round(d.count / maxCertDay * 100)) : 4}%` }}
-                        title={`${d.date}: ${d.count} sertifika`}
+                        title={`${d.date}: ${d.count} ${copy.certTooltipSuffix}`}
                       />
                     ))}
                   </div>
@@ -260,23 +364,23 @@ export default function OrgAnalyticsPage() {
           {loading.compliance ? (
             <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-gray-400" /></div>
           ) : errors.compliance ? (
-            <div className="text-center py-12 text-red-400 text-sm"><AlertCircle className="h-6 w-6 mx-auto mb-2" /> Yüklenemedi.</div>
+            <div className="text-center py-12 text-red-400 text-sm"><AlertCircle className="h-6 w-6 mx-auto mb-2" /> {copy.loadError}</div>
           ) : compliance ? (
             <>
               <div className="grid grid-cols-3 gap-4">
-                <MetricCard icon={Users} label="Toplam Kayıt" value={compliance.total_registered} color="blue" />
-                <MetricCard icon={Award} label="Sertifika Alan" value={compliance.total_certified} color="green" />
-                <MetricCard icon={CheckCircle2} label="Genel Uyum" value={`%${compliance.overall_completion_rate}`} color="amber" />
+                <MetricCard icon={Users} label={copy.metricTotalRegistered} value={compliance.total_registered} color="blue" />
+                <MetricCard icon={Award} label={copy.metricTotalCertified} value={compliance.total_certified} color="green" />
+                <MetricCard icon={CheckCircle2} label={copy.metricOverallCompliance} value={`%${compliance.overall_completion_rate}`} color="amber" />
               </div>
 
               <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-100">
                     <tr>
-                      <th className="text-left px-5 py-3 text-xs font-medium text-gray-500">Etkinlik</th>
-                      <th className="text-center px-4 py-3 text-xs font-medium text-gray-500">Kayıt</th>
-                      <th className="text-center px-4 py-3 text-xs font-medium text-gray-500">Sertifika</th>
-                      <th className="px-4 py-3 text-xs font-medium text-gray-500">Tamamlama Oranı</th>
+                      <th className="text-left px-5 py-3 text-xs font-medium text-gray-500">{copy.tableEvent}</th>
+                      <th className="text-center px-4 py-3 text-xs font-medium text-gray-500">{copy.tableRegistered}</th>
+                      <th className="text-center px-4 py-3 text-xs font-medium text-gray-500">{copy.tableCertified}</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500">{copy.tableCompletionRate}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -319,11 +423,11 @@ export default function OrgAnalyticsPage() {
           {loading.lp ? (
             <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-gray-400" /></div>
           ) : errors.lp ? (
-            <div className="text-center py-12 text-red-400 text-sm"><AlertCircle className="h-6 w-6 mx-auto mb-2" /> Yüklenemedi.</div>
+            <div className="text-center py-12 text-red-400 text-sm"><AlertCircle className="h-6 w-6 mx-auto mb-2" /> {copy.loadError}</div>
           ) : lpStats.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
               <BookOpen className="h-8 w-8 mx-auto mb-2 opacity-40" />
-              <p className="text-sm">Henüz öğrenme yolu yok.</p>
+              <p className="text-sm">{copy.noLearningPaths}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -334,29 +438,29 @@ export default function OrgAnalyticsPage() {
                       <div className="flex items-center gap-2">
                         <h3 className="font-medium text-gray-900 truncate">{lp.path_name}</h3>
                         {!lp.published && (
-                          <span className="text-xs rounded-full px-2 py-0.5 bg-gray-100 text-gray-500">Taslak</span>
+                          <span className="text-xs rounded-full px-2 py-0.5 bg-gray-100 text-gray-500">{copy.badgeDraft}</span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-400 mt-0.5">{lp.step_count} adım</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{copy.lpSteps(lp.step_count)}</p>
                     </div>
                     <div className="flex items-center gap-4 text-right flex-shrink-0">
                       <div>
                         <div className="text-lg font-bold text-gray-900">{lp.enrolled}</div>
-                        <div className="text-xs text-gray-400">Kayıtlı</div>
+                        <div className="text-xs text-gray-400">{copy.lpEnrolled}</div>
                       </div>
                       <div>
                         <div className="text-lg font-bold text-green-600">{lp.completed}</div>
-                        <div className="text-xs text-gray-400">Tamamladı</div>
+                        <div className="text-xs text-gray-400">{copy.lpCompleted}</div>
                       </div>
                       <div>
                         <div className="text-lg font-bold text-indigo-600">%{lp.completion_rate}</div>
-                        <div className="text-xs text-gray-400">Oran</div>
+                        <div className="text-xs text-gray-400">{copy.lpRate}</div>
                       </div>
                     </div>
                   </div>
                   <div className="mt-3 space-y-1.5">
                     <div className="flex justify-between text-xs text-gray-500">
-                      <span>Tamamlama</span>
+                      <span>{copy.lpCompletion}</span>
                       <span>%{lp.completion_rate}</span>
                     </div>
                     <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
@@ -366,7 +470,7 @@ export default function OrgAnalyticsPage() {
                       />
                     </div>
                     <div className="flex justify-between text-xs text-gray-400">
-                      <span>Ort. İlerleme: %{lp.avg_progress}</span>
+                      <span>{copy.lpAvgProgress(lp.avg_progress)}</span>
                     </div>
                   </div>
                 </div>
@@ -382,27 +486,27 @@ export default function OrgAnalyticsPage() {
           {loading.crm ? (
             <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-gray-400" /></div>
           ) : errors.crm ? (
-            <div className="text-center py-12 text-red-400 text-sm"><AlertCircle className="h-6 w-6 mx-auto mb-2" /> Yüklenemedi.</div>
+            <div className="text-center py-12 text-red-400 text-sm"><AlertCircle className="h-6 w-6 mx-auto mb-2" /> {copy.loadError}</div>
           ) : crmStats ? (
             <>
               {/* KPIs */}
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <MetricCard icon={Users} label="Toplam Kişi" value={crmStats.total_contacts} color="blue" />
-                <MetricCard icon={Target} label="Sıcak Lead" value={crmStats.hot_leads} sub="Skor ≥ 70" color="amber" />
-                <MetricCard icon={TrendingUp} label="Pipeline Değeri" value={`₺${crmStats.total_pipeline_value.toLocaleString("tr-TR")}`} color="indigo" />
-                <MetricCard icon={Award} label="Kazanılan" value={`₺${crmStats.won_value.toLocaleString("tr-TR")}`} sub={`%${crmStats.win_rate} başarı`} color="green" />
+                <MetricCard icon={Users} label={copy.crmTotalContacts} value={crmStats.total_contacts} color="blue" />
+                <MetricCard icon={Target} label={copy.crmHotLeads} value={crmStats.hot_leads} sub={copy.crmHotLeadsSub} color="amber" />
+                <MetricCard icon={TrendingUp} label={copy.crmPipelineValue} value={`₺${crmStats.total_pipeline_value.toLocaleString("tr-TR")}`} color="indigo" />
+                <MetricCard icon={Award} label={copy.crmWon} value={`₺${crmStats.won_value.toLocaleString("tr-TR")}`} sub={copy.crmWinRateSub(crmStats.win_rate)} color="green" />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 {/* Lifecycle distribution */}
                 <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm space-y-3">
-                  <h2 className="text-sm font-medium text-gray-700">Yaşam Döngüsü Dağılımı</h2>
+                  <h2 className="text-sm font-medium text-gray-700">{copy.lifecycleTitle}</h2>
                   {Object.keys(crmStats.lifecycle_distribution).length === 0 ? (
-                    <p className="text-xs text-gray-400">Veri yok.</p>
+                    <p className="text-xs text-gray-400">{copy.noData}</p>
                   ) : (
                     <SimpleBarChart
                       data={Object.entries(crmStats.lifecycle_distribution).map(([k, v]) => ({
-                        label: LIFECYCLE_LABELS[k] ?? k,
+                        label: copy.lifecycleLabels[k] ?? k,
                         value: v,
                       }))}
                       maxVal={Math.max(...Object.values(crmStats.lifecycle_distribution))}
@@ -412,15 +516,15 @@ export default function OrgAnalyticsPage() {
 
                 {/* Pipeline by stage */}
                 <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm space-y-3">
-                  <h2 className="text-sm font-medium text-gray-700">Pipeline Aşamaları</h2>
+                  <h2 className="text-sm font-medium text-gray-700">{copy.pipelineTitle}</h2>
                   {Object.keys(crmStats.pipeline_by_stage).length === 0 ? (
-                    <p className="text-xs text-gray-400">Fırsat yok.</p>
+                    <p className="text-xs text-gray-400">{copy.noOpportunities}</p>
                   ) : (
                     <div className="space-y-2.5">
                       {Object.entries(crmStats.pipeline_by_stage).map(([stage, data]) => (
                         <div key={stage} className="flex items-center gap-3">
                           <span className="text-xs text-gray-500 w-24 flex-shrink-0">
-                            {STAGE_LABELS[stage] ?? stage}
+                            {copy.stageLabels[stage] ?? stage}
                           </span>
                           <div className="flex-1 flex items-center gap-2">
                             <div className="flex-1 h-1.5 rounded-full bg-gray-100 overflow-hidden">

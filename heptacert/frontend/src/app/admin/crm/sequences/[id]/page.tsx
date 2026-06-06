@@ -14,6 +14,7 @@ import {
   type SequenceOut, type SequenceEnrollmentOut,
 } from "@/lib/api";
 import EmailTemplateSelect from "@/components/Admin/EmailTemplateSelect";
+import { useI18n } from "@/lib/i18n";
 
 type StepForm = {
   step_order: number;
@@ -29,6 +30,96 @@ export default function SequenceDetailPage() {
   const params = useParams();
   const router = useRouter();
   const seqId = Number(params.id);
+  const { lang } = useI18n();
+  const copy = lang === "tr"
+    ? {
+        active: "Aktif",
+        inactive: "Pasif",
+        tabBuilder: "Yapılandır",
+        tabEnrollments: "Kayıtlar",
+        generalInfo: "Genel Bilgiler",
+        labelName: "İsim",
+        labelDescription: "Açıklama",
+        activeToggleLabel: "Aktif (e-postalar planlanmış zamanda gönderilsin)",
+        emailSteps: "E-posta Adımları",
+        noStepsYet: "Henüz adım yok. Aşağıdan ekleyin.",
+        stepLabel: "Adım",
+        delayAfterEnroll: "Kayıt sonrası",
+        delayAfterPrev: "Önceki adımdan",
+        delayWait: "bekle:",
+        delayDays: "gün",
+        emailTemplate: "E-posta Şablonu",
+        templatePlaceholder: "Şablon seçin...",
+        templateEmptyText: "Sistem şablonları listeleniyor",
+        subjectOverrideLabel: "Konu Geçersiz Kıl (opsiyonel)",
+        subjectOverridePlaceholder: "Boş bırakırsanız şablonun konusu kullanılır",
+        addStep: "Adım Ekle",
+        save: "Kaydet",
+        enrollSectionTitle: "E-posta Ekle",
+        enrollHint: "Virgül, noktalı virgül veya yeni satır ile birden fazla e-posta girebilirsiniz.",
+        enrollPlaceholder: "ornek@sirket.com, diger@sirket.com",
+        enrollButton: "Kayıt Et",
+        enrollInactiveWarning: "Kayıt eklemek için sequence aktif olmalı.",
+        filterActive: "Aktif",
+        filterCompleted: "Tamamlandı",
+        filterUnenrolled: "Çıktı",
+        emptyEnrollments: "Bu durumda kayıt yok.",
+        colEmail: "E-posta",
+        colStep: "Adım",
+        colNextSend: "Sonraki Gönderim",
+        unenrollButton: "Çıkar",
+        toastSaved: "Kaydedildi.",
+        toastSaveError: "Kayıt başarısız.",
+        toastUnenrolled: "Kayıt çıkarıldı.",
+        toastUnenrollError: "İşlem başarısız.",
+        toastEnrollError: "Kayıt başarısız.",
+        enrolledMsg: (enrolled: number, skipped: number) =>
+          `${enrolled} kayıt eklendi, ${skipped} atlandı.`,
+      }
+    : {
+        active: "Active",
+        inactive: "Inactive",
+        tabBuilder: "Configure",
+        tabEnrollments: "Enrollments",
+        generalInfo: "General Info",
+        labelName: "Name",
+        labelDescription: "Description",
+        activeToggleLabel: "Active (emails will be sent at scheduled time)",
+        emailSteps: "Email Steps",
+        noStepsYet: "No steps yet. Add one below.",
+        stepLabel: "Step",
+        delayAfterEnroll: "After enrollment",
+        delayAfterPrev: "After previous step",
+        delayWait: "wait:",
+        delayDays: "days",
+        emailTemplate: "Email Template",
+        templatePlaceholder: "Select template...",
+        templateEmptyText: "Loading system templates",
+        subjectOverrideLabel: "Subject Override (optional)",
+        subjectOverridePlaceholder: "If left blank, the template subject is used",
+        addStep: "Add Step",
+        save: "Save",
+        enrollSectionTitle: "Add Emails",
+        enrollHint: "You can enter multiple emails separated by comma, semicolon, or newline.",
+        enrollPlaceholder: "example@company.com, other@company.com",
+        enrollButton: "Enroll",
+        enrollInactiveWarning: "Sequence must be active to add enrollments.",
+        filterActive: "Active",
+        filterCompleted: "Completed",
+        filterUnenrolled: "Unenrolled",
+        emptyEnrollments: "No enrollments in this state.",
+        colEmail: "Email",
+        colStep: "Step",
+        colNextSend: "Next Send",
+        unenrollButton: "Remove",
+        toastSaved: "Saved.",
+        toastSaveError: "Save failed.",
+        toastUnenrolled: "Enrollment removed.",
+        toastUnenrollError: "Operation failed.",
+        toastEnrollError: "Enrollment failed.",
+        enrolledMsg: (enrolled: number, skipped: number) =>
+          `${enrolled} enrolled, ${skipped} skipped.`,
+      };
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -105,9 +196,9 @@ export default function SequenceDetailPage() {
         })),
       });
       setSeq(updated);
-      showToast("success", "Kaydedildi.");
+      showToast("success", copy.toastSaved);
     } catch {
-      showToast("error", "Kayıt başarısız.");
+      showToast("error", copy.toastSaveError);
     } finally {
       setSaving(false);
     }
@@ -147,14 +238,14 @@ export default function SequenceDetailPage() {
     setEnrolling(true);
     try {
       const result = await enrollInSequence(seqId, emails);
-      showToast("success", `${result.enrolled} kayıt eklendi, ${result.skipped} atlandı.`);
+      showToast("success", copy.enrolledMsg(result.enrolled, result.skipped));
       setEnrollInput("");
       if (enrollFilter === "active") {
         const fresh = await getSequenceEnrollments(seqId, "active");
         setEnrollments(fresh);
       }
     } catch {
-      showToast("error", "Kayıt başarısız.");
+      showToast("error", copy.toastEnrollError);
     } finally {
       setEnrolling(false);
     }
@@ -164,9 +255,9 @@ export default function SequenceDetailPage() {
     try {
       await unenrollFromSequence(seqId, [email]);
       setEnrollments((prev) => prev.filter((e) => e.email !== email));
-      showToast("success", "Kayıt çıkarıldı.");
+      showToast("success", copy.toastUnenrolled);
     } catch {
-      showToast("error", "İşlem başarısız.");
+      showToast("error", copy.toastUnenrollError);
     }
   }
 
@@ -203,7 +294,7 @@ export default function SequenceDetailPage() {
             active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
           }`}
         >
-          {active ? "Aktif" : "Pasif"}
+          {active ? copy.active : copy.inactive}
         </span>
       </div>
 
@@ -217,7 +308,7 @@ export default function SequenceDetailPage() {
               tab === t ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"
             }`}
           >
-            {t === "builder" ? "Yapılandır" : "Kayıtlar"}
+            {t === "builder" ? copy.tabBuilder : copy.tabEnrollments}
           </button>
         ))}
       </div>
@@ -227,10 +318,10 @@ export default function SequenceDetailPage() {
         <div className="space-y-5">
           {/* Meta card */}
           <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
-            <h2 className="text-sm font-medium text-gray-700">Genel Bilgiler</h2>
+            <h2 className="text-sm font-medium text-gray-700">{copy.generalInfo}</h2>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">İsim</label>
+                <label className="block text-xs font-medium text-gray-500 mb-1">{copy.labelName}</label>
                 <input
                   className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   value={name}
@@ -238,7 +329,7 @@ export default function SequenceDetailPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Açıklama</label>
+                <label className="block text-xs font-medium text-gray-500 mb-1">{copy.labelDescription}</label>
                 <textarea
                   rows={2}
                   className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -257,7 +348,7 @@ export default function SequenceDetailPage() {
                     : <ToggleLeft className="h-5 w-5 text-gray-400" />
                   }
                 </button>
-                Aktif (e-postalar planlanmış zamanda gönderilsin)
+                {copy.activeToggleLabel}
               </label>
             </div>
           </div>
@@ -265,12 +356,12 @@ export default function SequenceDetailPage() {
           {/* Steps card */}
           <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-medium text-gray-700">E-posta Adımları ({steps.length})</h2>
+              <h2 className="text-sm font-medium text-gray-700">{copy.emailSteps} ({steps.length})</h2>
             </div>
 
             {steps.length === 0 && (
               <p className="text-sm text-gray-400 text-center py-4">
-                Henüz adım yok. Aşağıdan ekleyin.
+                {copy.noStepsYet}
               </p>
             )}
 
@@ -278,7 +369,7 @@ export default function SequenceDetailPage() {
               {steps.map((step, idx) => (
                 <div key={idx} className="rounded-xl border border-gray-100 bg-gray-50 p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-gray-500">Adım {idx + 1}</span>
+                    <span className="text-xs font-bold text-gray-500">{copy.stepLabel} {idx + 1}</span>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => moveStep(idx, -1)}
@@ -307,7 +398,7 @@ export default function SequenceDetailPage() {
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
                     <label className="text-xs text-gray-500 flex-shrink-0">
-                      {idx === 0 ? "Kayıt sonrası" : "Önceki adımdan"} bekle:
+                      {idx === 0 ? copy.delayAfterEnroll : copy.delayAfterPrev} {copy.delayWait}
                     </label>
                     <input
                       type="number"
@@ -316,26 +407,26 @@ export default function SequenceDetailPage() {
                       value={step.delay_days}
                       onChange={(e) => updateStepField(idx, "delay_days", Number(e.target.value))}
                     />
-                    <span className="text-xs text-gray-500">gün</span>
+                    <span className="text-xs text-gray-500">{copy.delayDays}</span>
                   </div>
 
                   {/* Template */}
                   <EmailTemplateSelect
                     value={step.email_template_id}
                     onChange={(v) => updateStepField(idx, "email_template_id", v)}
-                    label="E-posta Şablonu"
-                    placeholder="Şablon seçin..."
-                    emptyText="Sistem şablonları listeleniyor"
+                    label={copy.emailTemplate}
+                    placeholder={copy.templatePlaceholder}
+                    emptyText={copy.templateEmptyText}
                   />
 
                   {/* Subject override */}
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">
-                      Konu Geçersiz Kıl (opsiyonel)
+                      {copy.subjectOverrideLabel}
                     </label>
                     <input
                       className="w-full rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      placeholder="Boş bırakırsanız şablonun konusu kullanılır"
+                      placeholder={copy.subjectOverridePlaceholder}
                       value={step.subject_override}
                       onChange={(e) => updateStepField(idx, "subject_override", e.target.value)}
                     />
@@ -348,7 +439,7 @@ export default function SequenceDetailPage() {
               onClick={addStep}
               className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 transition"
             >
-              <Plus className="h-4 w-4" /> Adım Ekle
+              <Plus className="h-4 w-4" /> {copy.addStep}
             </button>
           </div>
 
@@ -360,7 +451,7 @@ export default function SequenceDetailPage() {
               className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Kaydet
+              {copy.save}
             </button>
           </div>
         </div>
@@ -372,13 +463,13 @@ export default function SequenceDetailPage() {
           {/* Enroll form */}
           <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm space-y-3">
             <h2 className="text-sm font-medium text-gray-700 flex items-center gap-2">
-              <UserPlus className="h-4 w-4 text-indigo-500" /> E-posta Ekle
+              <UserPlus className="h-4 w-4 text-indigo-500" /> {copy.enrollSectionTitle}
             </h2>
-            <p className="text-xs text-gray-400">Virgül, noktalı virgül veya yeni satır ile birden fazla e-posta girebilirsiniz.</p>
+            <p className="text-xs text-gray-400">{copy.enrollHint}</p>
             <textarea
               rows={3}
               className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="ornek@sirket.com, diger@sirket.com"
+              placeholder={copy.enrollPlaceholder}
               value={enrollInput}
               onChange={(e) => setEnrollInput(e.target.value)}
             />
@@ -388,10 +479,10 @@ export default function SequenceDetailPage() {
               className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
             >
               {enrolling ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-              Kayıt Et
+              {copy.enrollButton}
             </button>
             {!active && (
-              <p className="text-xs text-amber-600">Kayıt eklemek için sequence aktif olmalı.</p>
+              <p className="text-xs text-amber-600">{copy.enrollInactiveWarning}</p>
             )}
           </div>
 
@@ -407,7 +498,7 @@ export default function SequenceDetailPage() {
                     : "border border-gray-200 text-gray-500 hover:bg-gray-50"
                 }`}
               >
-                {s === "active" ? "Aktif" : s === "completed" ? "Tamamlandı" : "Çıktı"}
+                {s === "active" ? copy.filterActive : s === "completed" ? copy.filterCompleted : copy.filterUnenrolled}
               </button>
             ))}
           </div>
@@ -420,16 +511,16 @@ export default function SequenceDetailPage() {
           ) : enrollments.length === 0 ? (
             <div className="text-center py-12 text-gray-400 text-sm">
               <Users className="h-8 w-8 mx-auto mb-2 opacity-40" />
-              Bu durumda kayıt yok.
+              {copy.emptyEnrollments}
             </div>
           ) : (
             <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">E-posta</th>
-                    <th className="text-center px-4 py-3 text-xs font-medium text-gray-500">Adım</th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Sonraki Gönderim</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">{copy.colEmail}</th>
+                    <th className="text-center px-4 py-3 text-xs font-medium text-gray-500">{copy.colStep}</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">{copy.colNextSend}</th>
                     <th className="text-right px-4 py-3 text-xs font-medium text-gray-500"></th>
                   </tr>
                 </thead>
@@ -443,7 +534,7 @@ export default function SequenceDetailPage() {
                       <td className="px-4 py-3 text-center text-gray-500">{e.current_step}</td>
                       <td className="px-4 py-3 text-gray-500">
                         {e.next_send_at
-                          ? new Date(e.next_send_at).toLocaleString("tr-TR", {
+                          ? new Date(e.next_send_at).toLocaleString(lang === "tr" ? "tr-TR" : "en-US", {
                               dateStyle: "short",
                               timeStyle: "short",
                             })
@@ -455,7 +546,7 @@ export default function SequenceDetailPage() {
                             onClick={() => handleUnenroll(e.email)}
                             className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2 py-1 text-xs text-red-500 hover:bg-red-50"
                           >
-                            <UserMinus className="h-3 w-3" /> Çıkar
+                            <UserMinus className="h-3 w-3" /> {copy.unenrollButton}
                           </button>
                         )}
                       </td>

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 
 type StepForm = {
   id?: number;
@@ -42,6 +43,60 @@ export default function LearningPathBuilderPage() {
   const params = useParams();
   const router = useRouter();
   const pathId = params.id as string;
+  const { lang } = useI18n();
+  const copy = lang === "tr"
+    ? {
+        generalInfo: "Genel Bilgiler",
+        title: "Başlık",
+        description: "Açıklama",
+        publish: "Yayınla (üyeler görebilsin)",
+        save: "Kaydet",
+        steps: "Adımlar",
+        saveSteps: "Adımları Kaydet",
+        noSteps: "Henüz adım yok.",
+        addActivity: "Aşağıdan etkinlik arayıp ekleyin.",
+        required: "Zorunlu",
+        minScore: "Min. puan:",
+        editTab: "Düzenle",
+        enrollmentsTab: "Kayıtlar",
+        totalEnrollments: "Toplam Kayıt",
+        completed: "Tamamlayan",
+        completionRate: "Tamamlama Oranı",
+        noEnrollments: "Henüz kayıt yok.",
+        savedMsg: "Kaydedildi.",
+        saveFailedMsg: "Kayıt başarısız.",
+        stepsSavedMsg: "Adımlar kaydedildi.",
+        stepsFailedMsg: "Adımlar kaydedilemedi.",
+        published: "Yayında",
+        draft: "Taslak",
+        searchPlaceholder: "+ Etkinlik adı yazarak ekle...",
+      }
+    : {
+        generalInfo: "General Info",
+        title: "Title",
+        description: "Description",
+        publish: "Publish (visible to members)",
+        save: "Save",
+        steps: "Steps",
+        saveSteps: "Save Steps",
+        noSteps: "No steps yet.",
+        addActivity: "Search and add an activity below.",
+        required: "Required",
+        minScore: "Min. score:",
+        editTab: "Edit",
+        enrollmentsTab: "Enrollments",
+        totalEnrollments: "Total Enrollments",
+        completed: "Completed",
+        completionRate: "Completion Rate",
+        noEnrollments: "No enrollments yet.",
+        savedMsg: "Saved.",
+        saveFailedMsg: "Save failed.",
+        stepsSavedMsg: "Steps saved.",
+        stepsFailedMsg: "Steps could not be saved.",
+        published: "Published",
+        draft: "Draft",
+        searchPlaceholder: "+ Type an activity name to add...",
+      };
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -121,9 +176,9 @@ export default function LearningPathBuilderPage() {
         method: "PATCH",
         body: JSON.stringify({ name, description: description || null, published }),
       });
-      showToast("success", "Kaydedildi.");
+      showToast("success", copy.savedMsg);
     } catch {
-      showToast("error", "Kayıt başarısız.");
+      showToast("error", copy.saveFailedMsg);
     } finally {
       setSaving(false);
     }
@@ -144,9 +199,9 @@ export default function LearningPathBuilderPage() {
           }))
         ),
       });
-      showToast("success", "Adımlar kaydedildi.");
+      showToast("success", copy.stepsSavedMsg);
     } catch {
-      showToast("error", "Adımlar kaydedilemedi.");
+      showToast("error", copy.stepsFailedMsg);
     } finally {
       setSaving(false);
     }
@@ -205,7 +260,7 @@ export default function LearningPathBuilderPage() {
         </Link>
         <h1 className="text-xl font-semibold text-gray-900 flex-1 truncate">{name}</h1>
         <span className={`text-xs rounded-full px-2.5 py-1 font-medium ${published ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
-          {published ? "Yayında" : "Taslak"}
+          {published ? copy.published : copy.draft}
         </span>
       </div>
 
@@ -219,7 +274,7 @@ export default function LearningPathBuilderPage() {
               tab === t ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"
             }`}
           >
-            {t === "builder" ? "Düzenle" : "Kayıtlar"}
+            {t === "builder" ? copy.editTab : copy.enrollmentsTab}
           </button>
         ))}
       </div>
@@ -229,10 +284,10 @@ export default function LearningPathBuilderPage() {
         <div className="space-y-5">
           {/* Meta card */}
           <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
-            <h2 className="text-sm font-medium text-gray-700">Genel Bilgiler</h2>
+            <h2 className="text-sm font-medium text-gray-700">{copy.generalInfo}</h2>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Başlık</label>
+                <label className="block text-xs font-medium text-gray-500 mb-1">{copy.title}</label>
                 <input
                   className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   value={name}
@@ -240,7 +295,7 @@ export default function LearningPathBuilderPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Açıklama</label>
+                <label className="block text-xs font-medium text-gray-500 mb-1">{copy.description}</label>
                 <textarea
                   rows={2}
                   className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -255,7 +310,7 @@ export default function LearningPathBuilderPage() {
                   checked={published}
                   onChange={(e) => setPublished(e.target.checked)}
                 />
-                Yayınla (üyeler görebilsin)
+                {copy.publish}
               </label>
             </div>
             <button
@@ -264,27 +319,27 @@ export default function LearningPathBuilderPage() {
               className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Kaydet
+              {copy.save}
             </button>
           </div>
 
           {/* Steps card */}
           <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-medium text-gray-700">Adımlar ({steps.length})</h2>
+              <h2 className="text-sm font-medium text-gray-700">{copy.steps} ({steps.length})</h2>
               <button
                 onClick={handleSaveSteps}
                 disabled={saving}
                 className="flex items-center gap-1.5 rounded-xl bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
               >
                 {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-                Adımları Kaydet
+                {copy.saveSteps}
               </button>
             </div>
 
             {steps.length === 0 && (
               <p className="text-sm text-gray-400 text-center py-4">
-                Henüz adım yok. Aşağıdan etkinlik arayıp ekleyin.
+                {copy.noSteps} {copy.addActivity}
               </p>
             )}
 
@@ -307,10 +362,10 @@ export default function LearningPathBuilderPage() {
                             )
                           }
                         />
-                        Zorunlu
+                        {copy.required}
                       </label>
                       <div className="flex items-center gap-1">
-                        <label className="text-xs text-gray-400">Min. puan:</label>
+                        <label className="text-xs text-gray-400">{copy.minScore}</label>
                         <input
                           type="number"
                           className="w-14 rounded border border-gray-200 px-1.5 py-0.5 text-xs focus:outline-none"
@@ -352,7 +407,7 @@ export default function LearningPathBuilderPage() {
             <div className="relative">
               <input
                 className="w-full rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white"
-                placeholder="+ Etkinlik adı yazarak ekle..."
+                placeholder={copy.searchPlaceholder}
                 value={eventSearch}
                 onChange={(e) => setEventSearch(e.target.value)}
               />
@@ -383,9 +438,9 @@ export default function LearningPathBuilderPage() {
             <>
               <div className="grid grid-cols-3 gap-4">
                 {[
-                  { label: "Toplam Kayıt", value: enrollments.summary.total },
-                  { label: "Tamamlayan", value: enrollments.summary.completed },
-                  { label: "Tamamlama Oranı", value: `%${enrollments.summary.completion_rate}` },
+                  { label: copy.totalEnrollments, value: enrollments.summary.total },
+                  { label: copy.completed, value: enrollments.summary.completed },
+                  { label: copy.completionRate, value: `%${enrollments.summary.completion_rate}` },
                 ].map((s) => (
                   <div key={s.label} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm text-center">
                     <div className="text-2xl font-bold text-gray-900">{s.value}</div>
@@ -396,7 +451,7 @@ export default function LearningPathBuilderPage() {
               {enrollments.summary.total === 0 && (
                 <div className="text-center py-12 text-gray-400 text-sm">
                   <Users className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                  Henüz kayıt yok.
+                  {copy.noEnrollments}
                 </div>
               )}
             </>

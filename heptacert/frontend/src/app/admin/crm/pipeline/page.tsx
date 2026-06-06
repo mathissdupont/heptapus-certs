@@ -4,14 +4,24 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader2, Briefcase, TrendingUp } from "lucide-react";
 import { getPipeline, updateDeal, type PipelineOut } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 
-const STAGE_LABELS: Record<string, string> = {
-  lead: "Lead",
+const STAGE_LABELS_TR: Record<string, string> = {
+  lead: "Aday",
   qualified: "Nitelikli",
   proposal: "Teklif",
   negotiation: "Müzakere",
   won: "Kazanıldı",
   lost: "Kaybedildi",
+};
+
+const STAGE_LABELS_EN: Record<string, string> = {
+  lead: "Lead",
+  qualified: "Qualified",
+  proposal: "Proposal",
+  negotiation: "Negotiation",
+  won: "Won",
+  lost: "Lost",
 };
 
 const STAGE_COLORS: Record<string, string> = {
@@ -39,6 +49,29 @@ type DealCard = {
 };
 
 export default function CrmPipelinePage() {
+  const { lang } = useI18n();
+  const copy = lang === "tr"
+    ? {
+        pageTitle: "Pipeline",
+        pageSubtitle: "Satış fırsatları kanban görünümü",
+        deals: "fırsat",
+        total: "Toplam",
+        won: "Kazanılan",
+        moveFailed: "Taşıma başarısız.",
+        empty: "Boş",
+      }
+    : {
+        pageTitle: "Pipeline",
+        pageSubtitle: "Sales opportunities kanban view",
+        deals: "deals",
+        total: "Total",
+        won: "Won",
+        moveFailed: "Move failed.",
+        empty: "Empty",
+      };
+
+  const STAGE_LABELS = lang === "tr" ? STAGE_LABELS_TR : STAGE_LABELS_EN;
+
   const [data, setData] = useState<PipelineOut | null>(null);
   const [loading, setLoading] = useState(true);
   const [movingDeal, setMovingDeal] = useState<number | null>(null);
@@ -69,7 +102,7 @@ export default function CrmPipelinePage() {
         return { ...prev, pipeline };
       });
     } catch {
-      showMsg("Taşıma başarısız.");
+      showMsg(copy.moveFailed);
     } finally {
       setMovingDeal(null);
     }
@@ -104,14 +137,14 @@ export default function CrmPipelinePage() {
         <div className="flex items-center gap-3">
           <TrendingUp className="h-6 w-6 text-indigo-600" />
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">Pipeline</h1>
-            <p className="text-sm text-gray-500">Satış fırsatları kanban görünümü</p>
+            <h1 className="text-xl font-semibold text-gray-900">{copy.pageTitle}</h1>
+            <p className="text-sm text-gray-500">{copy.pageSubtitle}</p>
           </div>
         </div>
         <div className="flex items-center gap-4 text-sm text-gray-500">
-          <span><span className="font-semibold text-gray-900">{totalDeals}</span> fırsat</span>
-          <span>Toplam: <span className="font-semibold text-gray-900">₺{totalValue.toLocaleString("tr-TR")}</span></span>
-          <span>Kazanılan: <span className="font-semibold text-green-600">₺{wonValue.toLocaleString("tr-TR")}</span></span>
+          <span><span className="font-semibold text-gray-900">{totalDeals}</span> {copy.deals}</span>
+          <span>{copy.total}: <span className="font-semibold text-gray-900">₺{totalValue.toLocaleString("tr-TR")}</span></span>
+          <span>{copy.won}: <span className="font-semibold text-green-600">₺{wonValue.toLocaleString("tr-TR")}</span></span>
         </div>
       </div>
 
@@ -169,7 +202,7 @@ export default function CrmPipelinePage() {
                 {cards.length === 0 && (
                   <div className="text-center py-6 text-xs text-gray-300">
                     <Briefcase className="h-5 w-5 mx-auto mb-1 opacity-40" />
-                    Boş
+                    {copy.empty}
                   </div>
                 )}
               </div>

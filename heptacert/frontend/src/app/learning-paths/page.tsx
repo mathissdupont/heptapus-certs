@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BookOpen, CheckCircle2, Loader2, Lock } from "lucide-react";
 import { apiFetch, getPublicMemberToken } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 
 type PathCard = {
   id: number;
@@ -18,6 +19,30 @@ export default function LearningPathsPage() {
   const [paths, setPaths] = useState<PathCard[]>([]);
   const [loading, setLoading] = useState(true);
   const token = getPublicMemberToken();
+  const { lang } = useI18n();
+
+  const copy =
+    lang === "tr"
+      ? {
+          pageTitle: "Öğrenme Yolları",
+          pageSubtitle: "Adım adım ilerleyerek sertifika kazanın",
+          empty: "Henüz öğrenme yolu mevcut değil.",
+          steps: "adım",
+          completed: "Tamamlandı",
+          inProgress: "Devam ediyor",
+          start: "Başla →",
+          loginRequired: "Üye girişi gerekli",
+        }
+      : {
+          pageTitle: "Learning Paths",
+          pageSubtitle: "Earn certificates by progressing step by step",
+          empty: "No learning paths available yet.",
+          steps: "steps",
+          completed: "Completed",
+          inProgress: "In progress",
+          start: "Start →",
+          loginRequired: "Login required",
+        };
 
   useEffect(() => {
     let cancelled = false;
@@ -60,15 +85,15 @@ export default function LearningPathsPage() {
       <div className="flex items-center gap-3">
         <BookOpen className="h-6 w-6 text-indigo-600" />
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Öğrenme Yolları</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Adım adım ilerleyerek sertifika kazanın</p>
+          <h1 className="text-2xl font-bold text-gray-900">{copy.pageTitle}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{copy.pageSubtitle}</p>
         </div>
       </div>
 
       {paths.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
           <BookOpen className="h-10 w-10 mx-auto mb-3 opacity-40" />
-          <p>Henüz öğrenme yolu mevcut değil.</p>
+          <p>{copy.empty}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -100,13 +125,13 @@ export default function LearningPathsPage() {
                   {path.description && (
                     <p className="text-xs text-gray-500 line-clamp-2">{path.description}</p>
                   )}
-                  <div className="text-xs text-gray-400">{path.step_count} adım</div>
+                  <div className="text-xs text-gray-400">{path.step_count} {copy.steps}</div>
 
                   {/* Progress bar */}
                   {path.my_enrollment ? (
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs text-gray-500">
-                        <span>{done ? "Tamamlandı" : "Devam ediyor"}</span>
+                        <span>{done ? copy.completed : copy.inProgress}</span>
                         <span>%{pct}</span>
                       </div>
                       <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
@@ -118,7 +143,7 @@ export default function LearningPathsPage() {
                     </div>
                   ) : (
                     <div className="text-xs text-indigo-600 font-medium">
-                      {token ? "Başla →" : "Üye girişi gerekli"}
+                      {token ? copy.start : copy.loginRequired}
                     </div>
                   )}
                 </div>

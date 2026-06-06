@@ -11,9 +11,57 @@ import {
   listSequences, createSequence, updateSequence, deleteSequence,
   type SequenceOut,
 } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 
 export default function CrmSequencesPage() {
   const router = useRouter();
+  const { lang } = useI18n();
+  const copy = lang === "tr"
+    ? {
+        pageTitle: "Drip Sequence'lar",
+        pageSubtitle: "Otomatik e-posta kampanya serileri",
+        newSequence: "Yeni Sequence",
+        createFormTitle: "Yeni sequence oluştur",
+        sequenceNamePlaceholder: "Sequence adı...",
+        create: "Oluştur",
+        cancel: "İptal",
+        active: "Aktif",
+        inactive: "Pasif",
+        steps: "adım",
+        activeEnrollments: "aktif kayıt",
+        edit: "Düzenle",
+        deactivateTitle: "Pasife al",
+        activateTitle: "Aktifleştir",
+        emptyTitle: "Henüz sequence yok.",
+        emptySubtitle: "Kişilere otomatik e-posta serisi gönderin.",
+        errorCreate: "Oluşturulamadı.",
+        errorUpdate: "Güncellenemedi.",
+        errorDelete: "Silinemedi.",
+        deleteConfirm: "Bu sequence'ı silmek istediğinizden emin misiniz? Aktif kayıtlar da silinecek.",
+      }
+    : {
+        pageTitle: "Drip Sequences",
+        pageSubtitle: "Automated email campaign series",
+        newSequence: "New Sequence",
+        createFormTitle: "Create new sequence",
+        sequenceNamePlaceholder: "Sequence name...",
+        create: "Create",
+        cancel: "Cancel",
+        active: "Active",
+        inactive: "Inactive",
+        steps: "steps",
+        activeEnrollments: "active enrollments",
+        edit: "Edit",
+        deactivateTitle: "Deactivate",
+        activateTitle: "Activate",
+        emptyTitle: "No sequences yet.",
+        emptySubtitle: "Send automated email series to contacts.",
+        errorCreate: "Could not create.",
+        errorUpdate: "Could not update.",
+        errorDelete: "Could not delete.",
+        deleteConfirm: "Are you sure you want to delete this sequence? Active enrollments will also be deleted.",
+      };
+
   const [sequences, setSequences] = useState<SequenceOut[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -40,7 +88,7 @@ export default function CrmSequencesPage() {
       const seq = await createSequence({ name: newName.trim(), active: false, steps: [] });
       router.push(`/admin/crm/sequences/${seq.id}`);
     } catch {
-      showMsg("Oluşturulamadı.");
+      showMsg(copy.errorCreate);
       setCreating(false);
     }
   }
@@ -60,17 +108,17 @@ export default function CrmSequencesPage() {
       });
       setSequences((prev) => prev.map((x) => (x.id === seq.id ? updated : x)));
     } catch {
-      showMsg("Güncellenemedi.");
+      showMsg(copy.errorUpdate);
     }
   }
 
   async function handleDelete(id: number) {
-    if (!confirm("Bu sequence'ı silmek istediğinizden emin misiniz? Aktif kayıtlar da silinecek.")) return;
+    if (!confirm(copy.deleteConfirm)) return;
     try {
       await deleteSequence(id);
       setSequences((prev) => prev.filter((x) => x.id !== id));
     } catch {
-      showMsg("Silinemedi.");
+      showMsg(copy.errorDelete);
     }
   }
 
@@ -87,27 +135,27 @@ export default function CrmSequencesPage() {
         <div className="flex items-center gap-3">
           <Zap className="h-6 w-6 text-indigo-600" />
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">Drip Sequence'lar</h1>
-            <p className="text-sm text-gray-500">Otomatik e-posta kampanya serileri</p>
+            <h1 className="text-xl font-semibold text-gray-900">{copy.pageTitle}</h1>
+            <p className="text-sm text-gray-500">{copy.pageSubtitle}</p>
           </div>
         </div>
         <button
           onClick={() => setShowForm(true)}
           className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
         >
-          <Plus className="h-4 w-4" /> Yeni Sequence
+          <Plus className="h-4 w-4" /> {copy.newSequence}
         </button>
       </div>
 
       {/* Create form */}
       {showForm && (
         <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-5 space-y-3">
-          <p className="text-sm font-medium text-indigo-800">Yeni sequence oluştur</p>
+          <p className="text-sm font-medium text-indigo-800">{copy.createFormTitle}</p>
           <div className="flex gap-3">
             <input
               autoFocus
               className="flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Sequence adı..."
+              placeholder={copy.sequenceNamePlaceholder}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleCreate()}
@@ -117,13 +165,13 @@ export default function CrmSequencesPage() {
               onClick={handleCreate}
               className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-indigo-700"
             >
-              {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Oluştur"}
+              {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : copy.create}
             </button>
             <button
               onClick={() => { setShowForm(false); setNewName(""); }}
               className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500"
             >
-              İptal
+              {copy.cancel}
             </button>
           </div>
         </div>
@@ -137,8 +185,8 @@ export default function CrmSequencesPage() {
       ) : sequences.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
           <Zap className="h-10 w-10 mx-auto mb-3 opacity-40" />
-          <p className="text-sm">Henüz sequence yok.</p>
-          <p className="text-xs mt-1">Kişilere otomatik e-posta serisi gönderin.</p>
+          <p className="text-sm">{copy.emptyTitle}</p>
+          <p className="text-xs mt-1">{copy.emptySubtitle}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -162,7 +210,7 @@ export default function CrmSequencesPage() {
                         : "bg-gray-100 text-gray-500"
                     }`}
                   >
-                    {seq.active ? "Aktif" : "Pasif"}
+                    {seq.active ? copy.active : copy.inactive}
                   </span>
                 </div>
                 {seq.description && (
@@ -170,10 +218,10 @@ export default function CrmSequencesPage() {
                 )}
                 <div className="flex items-center gap-4 mt-1.5 text-xs text-gray-400">
                   <span className="flex items-center gap-1">
-                    <Mail className="h-3 w-3" /> {seq.steps.length} adım
+                    <Mail className="h-3 w-3" /> {seq.steps.length} {copy.steps}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Users className="h-3 w-3" /> {seq.enrollment_count} aktif kayıt
+                    <Users className="h-3 w-3" /> {seq.enrollment_count} {copy.activeEnrollments}
                   </span>
                 </div>
               </div>
@@ -183,12 +231,12 @@ export default function CrmSequencesPage() {
                   href={`/admin/crm/sequences/${seq.id}`}
                   className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
                 >
-                  Düzenle <ChevronRight className="h-3 w-3" />
+                  {copy.edit} <ChevronRight className="h-3 w-3" />
                 </Link>
                 <button
                   onClick={() => handleToggleActive(seq)}
                   className="rounded-lg border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-50"
-                  title={seq.active ? "Pasife al" : "Aktifleştir"}
+                  title={seq.active ? copy.deactivateTitle : copy.activateTitle}
                 >
                   {seq.active
                     ? <ToggleRight className="h-4 w-4 text-green-500" />

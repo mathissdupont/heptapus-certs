@@ -8,8 +8,9 @@ import {
   listMarketplaceCategories,
   updateMarketplaceSettings,
 } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 
-const CATEGORIES = [
+const CATEGORIES_TR = [
   "Bilgi Teknolojileri",
   "Proje Yönetimi",
   "İnsan Kaynakları",
@@ -24,6 +25,21 @@ const CATEGORIES = [
   "Diğer",
 ];
 
+const CATEGORIES_EN = [
+  "Information Technology",
+  "Project Management",
+  "Human Resources",
+  "Finance & Accounting",
+  "Marketing",
+  "Sales",
+  "Production & Quality",
+  "Health & Safety",
+  "Legal & Compliance",
+  "Personal Development",
+  "Leadership & Management",
+  "Other",
+];
+
 type EditState = {
   eventId: number;
   category: string;
@@ -32,8 +48,75 @@ type EditState = {
 };
 
 export default function AdminMarketplacePage() {
+  const { lang } = useI18n();
+  const copy =
+    lang === "tr"
+      ? {
+          pageTitle: "Marketplace Yönetimi",
+          pageSubtitle: "Etkinliklerinizi public marketplace kataloğunda listeleyin.",
+          viewMarketplace: "Marketplace'i Gör ↗",
+          closeError: "kapat",
+          modalTitle: "Marketplace Ayarları",
+          labelCategory: "Kategori",
+          selectPlaceholder: "Seçiniz…",
+          labelDescription: "Açıklama",
+          descriptionPlaceholder: "Program hakkında kısa açıklama…",
+          labelPrice: "Ücret (₺) — boş bırakın: Ücretsiz",
+          cancel: "İptal",
+          save: "Kaydet",
+          saving: "Kaydediliyor…",
+          emptyStateMain: "Marketplace'te listelenmiş program yok.",
+          emptyStateHint: "Etkinlik detay sayfasından \"Marketplace'te Listele\" seçeneğini aktif edin.",
+          colEvent: "Etkinlik",
+          colCategory: "Kategori",
+          colPrice: "Ücret",
+          colDate: "Tarih",
+          free: "Ücretsiz",
+          preview: "Önizle",
+          edit: "Düzenle",
+          unlist: "Listeden Kaldır",
+          tipTitle: "İpucu:",
+          tipBody: "Etkinliklerinizi marketplace'e eklemek için etkinlik düzenleme sayfasındaki \"Marketplace\" sekmesini kullanın.",
+          loading: "Yükleniyor…",
+          errorLoad: "Yüklenemedi",
+          errorSave: "Kaydedilemedi",
+          errorUnlist: "Güncelleme başarısız",
+        }
+      : {
+          pageTitle: "Marketplace Management",
+          pageSubtitle: "List your events in the public marketplace catalog.",
+          viewMarketplace: "View Marketplace ↗",
+          closeError: "close",
+          modalTitle: "Marketplace Settings",
+          labelCategory: "Category",
+          selectPlaceholder: "Select…",
+          labelDescription: "Description",
+          descriptionPlaceholder: "Brief description about the program…",
+          labelPrice: "Price (₺) — leave blank for: Free",
+          cancel: "Cancel",
+          save: "Save",
+          saving: "Saving…",
+          emptyStateMain: "No programs listed in the marketplace.",
+          emptyStateHint: "Enable the \"List in Marketplace\" option from the event detail page.",
+          colEvent: "Event",
+          colCategory: "Category",
+          colPrice: "Price",
+          colDate: "Date",
+          free: "Free",
+          preview: "Preview",
+          edit: "Edit",
+          unlist: "Remove from List",
+          tipTitle: "Tip:",
+          tipBody: "To add your events to the marketplace, use the \"Marketplace\" tab on the event editing page.",
+          loading: "Loading…",
+          errorLoad: "Could not load",
+          errorSave: "Could not save",
+          errorUnlist: "Update failed",
+        };
+
+  const categories = lang === "tr" ? CATEGORIES_TR : CATEGORIES_EN;
+
   const [listed, setListed] = useState<MarketplaceEventOut[]>([]);
-  const [categories] = useState<string[]>(CATEGORIES);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editState, setEditState] = useState<EditState | null>(null);
@@ -45,7 +128,7 @@ export default function AdminMarketplacePage() {
       const data = await listMarketplaceEvents();
       setListed(data);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Yüklenemedi");
+      setError(e instanceof Error ? e.message : copy.errorLoad);
     } finally {
       setLoading(false);
     }
@@ -67,7 +150,7 @@ export default function AdminMarketplacePage() {
       await updateMarketplaceSettings(eventId, { is_marketplace_listed: false });
       await load();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Güncelleme başarısız");
+      setError(e instanceof Error ? e.message : copy.errorUnlist);
     }
   }
 
@@ -84,21 +167,21 @@ export default function AdminMarketplacePage() {
       setEditState(null);
       await load();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Kaydedilemedi");
+      setError(e instanceof Error ? e.message : copy.errorSave);
     } finally {
       setSaving(false);
     }
   }
 
-  if (loading) return <div className="p-8 text-gray-400">Yükleniyor…</div>;
+  if (loading) return <div className="p-8 text-gray-400">{copy.loading}</div>;
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Marketplace Yönetimi</h1>
+          <h1 className="text-2xl font-bold">{copy.pageTitle}</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Etkinliklerinizi public marketplace kataloğunda listeleyin.
+            {copy.pageSubtitle}
           </p>
         </div>
         <Link
@@ -106,14 +189,14 @@ export default function AdminMarketplacePage() {
           target="_blank"
           className="px-4 py-2 text-sm border rounded hover:bg-gray-50 text-gray-700"
         >
-          Marketplace'i Gör ↗
+          {copy.viewMarketplace}
         </Link>
       </div>
 
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">
           {error}
-          <button onClick={() => setError(null)} className="ml-2 underline">kapat</button>
+          <button onClick={() => setError(null)} className="ml-2 underline">{copy.closeError}</button>
         </div>
       )}
 
@@ -121,32 +204,32 @@ export default function AdminMarketplacePage() {
       {editState && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
-            <h2 className="text-lg font-semibold mb-4">Marketplace Ayarları</h2>
+            <h2 className="text-lg font-semibold mb-4">{copy.modalTitle}</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{copy.labelCategory}</label>
                 <select
                   value={editState.category}
                   onChange={(e) => setEditState({ ...editState, category: e.target.value })}
                   className="w-full border rounded px-3 py-2 text-sm"
                 >
-                  <option value="">Seçiniz…</option>
+                  <option value="">{copy.selectPlaceholder}</option>
                   {categories.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Açıklama</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{copy.labelDescription}</label>
                 <textarea
                   value={editState.description}
                   onChange={(e) => setEditState({ ...editState, description: e.target.value })}
                   rows={4}
-                  placeholder="Program hakkında kısa açıklama…"
+                  placeholder={copy.descriptionPlaceholder}
                   className="w-full border rounded px-3 py-2 text-sm"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Ücret (₺) — boş bırakın: Ücretsiz
+                  {copy.labelPrice}
                 </label>
                 <input
                   type="number"
@@ -164,14 +247,14 @@ export default function AdminMarketplacePage() {
                 onClick={() => setEditState(null)}
                 className="px-4 py-2 text-sm border rounded hover:bg-gray-50"
               >
-                İptal
+                {copy.cancel}
               </button>
               <button
                 onClick={handleSaveEdit}
                 disabled={saving}
                 className="px-4 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
               >
-                {saving ? "Kaydediliyor…" : "Kaydet"}
+                {saving ? copy.saving : copy.save}
               </button>
             </div>
           </div>
@@ -181,9 +264,9 @@ export default function AdminMarketplacePage() {
       {listed.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-xl border">
           <p className="text-4xl mb-3">🛍️</p>
-          <p className="text-gray-500 text-sm mb-2">Marketplace'te listelenmiş program yok.</p>
+          <p className="text-gray-500 text-sm mb-2">{copy.emptyStateMain}</p>
           <p className="text-gray-400 text-xs">
-            Etkinlik detay sayfasından "Marketplace'te Listele" seçeneğini aktif edin.
+            {copy.emptyStateHint}
           </p>
         </div>
       ) : (
@@ -191,10 +274,10 @@ export default function AdminMarketplacePage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr>
-                <th className="text-left px-4 py-3 font-medium text-gray-700">Etkinlik</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-700">Kategori</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-700">Ücret</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-700">Tarih</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-700">{copy.colEvent}</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-700">{copy.colCategory}</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-700">{copy.colPrice}</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-700">{copy.colDate}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -205,7 +288,7 @@ export default function AdminMarketplacePage() {
                   <td className="px-4 py-3 text-gray-500">{ev.marketplace_category ?? "—"}</td>
                   <td className="px-4 py-3">
                     {!ev.marketplace_price || ev.marketplace_price === 0 ? (
-                      <span className="text-green-600 font-medium">Ücretsiz</span>
+                      <span className="text-green-600 font-medium">{copy.free}</span>
                     ) : (
                       <span>₺{ev.marketplace_price.toLocaleString("tr-TR")}</span>
                     )}
@@ -221,19 +304,19 @@ export default function AdminMarketplacePage() {
                       target="_blank"
                       className="text-indigo-500 hover:underline text-xs mr-3"
                     >
-                      Önizle
+                      {copy.preview}
                     </Link>
                     <button
                       onClick={() => openEdit(ev)}
                       className="text-blue-600 hover:underline text-xs mr-3"
                     >
-                      Düzenle
+                      {copy.edit}
                     </button>
                     <button
                       onClick={() => handleUnlist(ev.id)}
                       className="text-red-500 hover:underline text-xs"
                     >
-                      Listeden Kaldır
+                      {copy.unlist}
                     </button>
                   </td>
                 </tr>
@@ -244,8 +327,7 @@ export default function AdminMarketplacePage() {
       )}
 
       <div className="mt-6 p-4 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-700">
-        <strong>İpucu:</strong> Etkinliklerinizi marketplace'e eklemek için etkinlik düzenleme
-        sayfasındaki "Marketplace" sekmesini kullanın.
+        <strong>{copy.tipTitle}</strong> {copy.tipBody}
       </div>
     </div>
   );

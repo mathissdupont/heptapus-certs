@@ -16,6 +16,7 @@ import {
   type CrmAccountOut, type CrmAccountContactOut,
   type CrmDealOut, type CrmDealActivityOut, type CrmParticipantListItem,
 } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 
 const DEAL_STAGES = [
   { value: "lead", label: "Lead", color: "bg-gray-100 text-gray-700" },
@@ -26,6 +27,15 @@ const DEAL_STAGES = [
   { value: "lost", label: "Kaybedildi", color: "bg-red-100 text-red-700" },
 ];
 
+const DEAL_STAGES_EN = [
+  { value: "lead", label: "Lead", color: "bg-gray-100 text-gray-700" },
+  { value: "qualified", label: "Qualified", color: "bg-blue-100 text-blue-700" },
+  { value: "proposal", label: "Proposal", color: "bg-amber-100 text-amber-700" },
+  { value: "negotiation", label: "Negotiation", color: "bg-orange-100 text-orange-700" },
+  { value: "won", label: "Won", color: "bg-green-100 text-green-700" },
+  { value: "lost", label: "Lost", color: "bg-red-100 text-red-700" },
+];
+
 const ACTIVITY_TYPES = [
   { value: "note", label: "Not", icon: FileText },
   { value: "call", label: "Arama", icon: Phone },
@@ -34,17 +44,30 @@ const ACTIVITY_TYPES = [
   { value: "task", label: "Görev", icon: CheckCircle2 },
 ];
 
-const INDUSTRY_OPTIONS = [
+const ACTIVITY_TYPES_EN = [
+  { value: "note", label: "Note", icon: FileText },
+  { value: "call", label: "Call", icon: Phone },
+  { value: "email", label: "Email", icon: Mail },
+  { value: "meeting", label: "Meeting", icon: Calendar },
+  { value: "task", label: "Task", icon: CheckCircle2 },
+];
+
+const INDUSTRY_OPTIONS_TR = [
   "Teknoloji", "Finans", "Sağlık", "Eğitim", "Üretim",
   "Perakende", "İnşaat", "Lojistik", "Danışmanlık", "Diğer",
 ];
 
+const INDUSTRY_OPTIONS_EN = [
+  "Technology", "Finance", "Healthcare", "Education", "Manufacturing",
+  "Retail", "Construction", "Logistics", "Consulting", "Other",
+];
+
 const SIZE_OPTIONS = [
-  { value: "1-10", label: "1–10 kişi" },
-  { value: "11-50", label: "11–50 kişi" },
-  { value: "51-200", label: "51–200 kişi" },
-  { value: "201-1000", label: "201–1000 kişi" },
-  { value: "1000+", label: "1000+ kişi" },
+  { value: "1-10", label: "1–10 kişi", labelEn: "1–10 people" },
+  { value: "11-50", label: "11–50 kişi", labelEn: "11–50 people" },
+  { value: "51-200", label: "51–200 kişi", labelEn: "51–200 people" },
+  { value: "201-1000", label: "201–1000 kişi", labelEn: "201–1000 people" },
+  { value: "1000+", label: "1000+ kişi", labelEn: "1000+ people" },
 ];
 
 type Tab = "info" | "contacts" | "deals";
@@ -53,6 +76,133 @@ export default function CrmAccountDetailPage() {
   const params = useParams();
   const router = useRouter();
   const accountId = Number(params.id);
+  const { lang } = useI18n();
+
+  const copy = lang === "tr" ? {
+    // Status
+    active: "Aktif",
+    inactive: "Pasif",
+    // Tabs
+    tabInfo: "Bilgiler",
+    tabContacts: "Kişiler",
+    tabDeals: "Fırsatlar",
+    // Info form labels
+    companyName: "Şirket Adı *",
+    domain: "Domain",
+    sector: "Sektör",
+    size: "Büyüklük",
+    annualValue: "Yıllık Değer (₺)",
+    statusLabel: "Durum",
+    notes: "Notlar",
+    selectPlaceholder: "Seçin...",
+    save: "Kaydet",
+    // Contact tab
+    addContact: "Kişi Ekle",
+    searchContactLabel: "CRM'de kayıtlı kişiyi ara",
+    searchContactPlaceholder: "İsim veya e-posta...",
+    noProfile: "Profil yok",
+    alreadyAdded: "Zaten ekli",
+    noContactsSearchResult: "Sonuç bulunamadı. Önce CRM'e kişi ekleyin.",
+    noContacts: "Bu hesaba bağlı kişi yok.",
+    noContactsHint: "Yukarıdan CRM'deki kişiyi arayıp ekleyebilirsiniz.",
+    colEmail: "E-posta",
+    colName: "İsim",
+    colRole: "Rol",
+    colPrimary: "Birincil",
+    // Deal tab
+    newDeal: "Yeni Fırsat",
+    dealNamePlaceholder: "Fırsat adı *",
+    amountPlaceholder: "Tutar (₺)",
+    add: "Ekle",
+    cancel: "İptal",
+    noDeals: "Henüz fırsat yok.",
+    activityCount: "aktivite",
+    // Activity
+    activityPlaceholder: "Aktivite notu...",
+    noActivities: "Henüz aktivite yok.",
+    // Toasts
+    toastSaved: "Kaydedildi.",
+    toastSaveFailed: "Kayıt başarısız.",
+    toastContactAdded: "Kişi eklendi.",
+    toastContactFailed: "Kişi eklenemedi.",
+    toastContactRemoveFailed: "Kaldırılamadı.",
+    toastContactNoProfile: "Bu kişinin CRM profili henüz oluşturulmamış.",
+    toastDealCreated: "Fırsat oluşturuldu.",
+    toastDealCreateFailed: "Oluşturulamadı.",
+    toastDealUpdateFailed: "Güncellenemedi.",
+    toastDealDeleteFailed: "Silinemedi.",
+    toastActivityFailed: "Eklenemedi.",
+    toastActivityDeleteFailed: "Silinemedi.",
+    confirmDeleteDeal: "Bu fırsatı silmek istediğinizden emin misiniz?",
+    // Status options
+    statusActive: "Aktif",
+    statusInactive: "Pasif",
+    statusChurned: "Kaybedildi",
+  } : {
+    // Status
+    active: "Active",
+    inactive: "Inactive",
+    // Tabs
+    tabInfo: "Details",
+    tabContacts: "Contacts",
+    tabDeals: "Deals",
+    // Info form labels
+    companyName: "Company Name *",
+    domain: "Domain",
+    sector: "Industry",
+    size: "Size",
+    annualValue: "Annual Value (₺)",
+    statusLabel: "Status",
+    notes: "Notes",
+    selectPlaceholder: "Select...",
+    save: "Save",
+    // Contact tab
+    addContact: "Add Contact",
+    searchContactLabel: "Search registered CRM contact",
+    searchContactPlaceholder: "Name or email...",
+    noProfile: "No profile",
+    alreadyAdded: "Already added",
+    noContactsSearchResult: "No results. Please add a contact to CRM first.",
+    noContacts: "No contacts linked to this account.",
+    noContactsHint: "Search and add a CRM contact using the button above.",
+    colEmail: "Email",
+    colName: "Name",
+    colRole: "Role",
+    colPrimary: "Primary",
+    // Deal tab
+    newDeal: "New Deal",
+    dealNamePlaceholder: "Deal name *",
+    amountPlaceholder: "Amount (₺)",
+    add: "Add",
+    cancel: "Cancel",
+    noDeals: "No deals yet.",
+    activityCount: "activities",
+    // Activity
+    activityPlaceholder: "Activity note...",
+    noActivities: "No activities yet.",
+    // Toasts
+    toastSaved: "Saved.",
+    toastSaveFailed: "Save failed.",
+    toastContactAdded: "Contact added.",
+    toastContactFailed: "Failed to add contact.",
+    toastContactRemoveFailed: "Failed to remove.",
+    toastContactNoProfile: "This person does not have a CRM profile yet.",
+    toastDealCreated: "Deal created.",
+    toastDealCreateFailed: "Failed to create.",
+    toastDealUpdateFailed: "Failed to update.",
+    toastDealDeleteFailed: "Failed to delete.",
+    toastActivityFailed: "Failed to add.",
+    toastActivityDeleteFailed: "Failed to delete.",
+    confirmDeleteDeal: "Are you sure you want to delete this deal?",
+    // Status options
+    statusActive: "Active",
+    statusInactive: "Inactive",
+    statusChurned: "Churned",
+  };
+
+  const dealStages = lang === "tr" ? DEAL_STAGES : DEAL_STAGES_EN;
+  const activityTypes = lang === "tr" ? ACTIVITY_TYPES : ACTIVITY_TYPES_EN;
+  const industryOptions = lang === "tr" ? INDUSTRY_OPTIONS_TR : INDUSTRY_OPTIONS_EN;
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -158,9 +308,9 @@ export default function CrmAccountDetailPage() {
         tags: account?.tags || [],
       } as any);
       setAccount(updated);
-      showToast("success", "Kaydedildi.");
+      showToast("success", copy.toastSaved);
     } catch {
-      showToast("error", "Kayıt başarısız.");
+      showToast("error", copy.toastSaveFailed);
     } finally {
       setSaving(false);
     }
@@ -177,7 +327,7 @@ export default function CrmAccountDetailPage() {
   }, [contactSearch]);
 
   async function handleAddContact(profile: CrmParticipantListItem) {
-    if (!profile.id) { showToast("error", "Bu kişinin CRM profili henüz oluşturulmamış."); return; }
+    if (!profile.id) { showToast("error", copy.toastContactNoProfile); return; }
     setAddingContact(true);
     try {
       const newContact = await addAccountContact(accountId, { participant_crm_profile_id: profile.id });
@@ -185,9 +335,9 @@ export default function CrmAccountDetailPage() {
       setContactSearch("");
       setContactResults([]);
       setShowContactSearch(false);
-      showToast("success", "Kişi eklendi.");
+      showToast("success", copy.toastContactAdded);
     } catch {
-      showToast("error", "Kişi eklenemedi.");
+      showToast("error", copy.toastContactFailed);
     } finally {
       setAddingContact(false);
     }
@@ -198,7 +348,7 @@ export default function CrmAccountDetailPage() {
       await removeAccountContact(accountId, contactId);
       setContacts((prev) => prev.filter((c) => c.id !== contactId));
     } catch {
-      showToast("error", "Kaldırılamadı.");
+      showToast("error", copy.toastContactRemoveFailed);
     }
   }
 
@@ -214,9 +364,9 @@ export default function CrmAccountDetailPage() {
       setDeals((prev) => [deal, ...prev]);
       setNewDealName(""); setNewDealStage("lead"); setNewDealAmount("");
       setShowDealForm(false);
-      showToast("success", "Fırsat oluşturuldu.");
+      showToast("success", copy.toastDealCreated);
     } catch {
-      showToast("error", "Oluşturulamadı.");
+      showToast("error", copy.toastDealCreateFailed);
     } finally {
       setCreatingDeal(false);
     }
@@ -228,18 +378,18 @@ export default function CrmAccountDetailPage() {
       setDeals((prev) => prev.map((d) => (d.id === deal.id ? updated : d)));
       if (selectedDeal?.id === deal.id) setSelectedDeal(updated);
     } catch {
-      showToast("error", "Güncellenemedi.");
+      showToast("error", copy.toastDealUpdateFailed);
     }
   }
 
   async function handleDeleteDeal(id: number) {
-    if (!confirm("Bu fırsatı silmek istediğinizden emin misiniz?")) return;
+    if (!confirm(copy.confirmDeleteDeal)) return;
     try {
       await deleteDeal(id);
       setDeals((prev) => prev.filter((d) => d.id !== id));
       if (selectedDeal?.id === id) setSelectedDeal(null);
     } catch {
-      showToast("error", "Silinemedi.");
+      showToast("error", copy.toastDealDeleteFailed);
     }
   }
 
@@ -251,7 +401,7 @@ export default function CrmAccountDetailPage() {
       setActivities((prev) => [act, ...prev]);
       setActivityContent("");
     } catch {
-      showToast("error", "Eklenemedi.");
+      showToast("error", copy.toastActivityFailed);
     } finally {
       setAddingActivity(false);
     }
@@ -263,12 +413,12 @@ export default function CrmAccountDetailPage() {
       await deleteDealActivity(selectedDeal.id, actId);
       setActivities((prev) => prev.filter((a) => a.id !== actId));
     } catch {
-      showToast("error", "Silinemedi.");
+      showToast("error", copy.toastActivityDeleteFailed);
     }
   }
 
-  const stageInfo = (stage: string) => DEAL_STAGES.find((s) => s.value === stage) ?? DEAL_STAGES[0];
-  const actTypeInfo = (type: string) => ACTIVITY_TYPES.find((a) => a.value === type) ?? ACTIVITY_TYPES[0];
+  const stageInfo = (stage: string) => dealStages.find((s) => s.value === stage) ?? dealStages[0];
+  const actTypeInfo = (type: string) => activityTypes.find((a) => a.value === type) ?? activityTypes[0];
 
   if (loading) {
     return (
@@ -305,7 +455,7 @@ export default function CrmAccountDetailPage() {
         <span className={`text-xs rounded-full px-2.5 py-1 font-medium ${
           status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
         }`}>
-          {status === "active" ? "Aktif" : "Pasif"}
+          {status === "active" ? copy.active : copy.inactive}
         </span>
       </div>
 
@@ -322,7 +472,7 @@ export default function CrmAccountDetailPage() {
             {t === "info" && <Building2 className="h-4 w-4" />}
             {t === "contacts" && <Users className="h-4 w-4" />}
             {t === "deals" && <Briefcase className="h-4 w-4" />}
-            {t === "info" ? "Bilgiler" : t === "contacts" ? "Kişiler" : "Fırsatlar"}
+            {t === "info" ? copy.tabInfo : t === "contacts" ? copy.tabContacts : copy.tabDeals}
           </button>
         ))}
       </div>
@@ -332,7 +482,7 @@ export default function CrmAccountDetailPage() {
         <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-500 mb-1">Şirket Adı *</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">{copy.companyName}</label>
               <input
                 className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 value={name}
@@ -340,7 +490,7 @@ export default function CrmAccountDetailPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Domain</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">{copy.domain}</label>
               <input
                 className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="acme.com"
@@ -349,29 +499,29 @@ export default function CrmAccountDetailPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Sektör</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">{copy.sector}</label>
               <select
                 className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 value={industry}
                 onChange={(e) => setIndustry(e.target.value)}
               >
-                <option value="">Seçin...</option>
-                {INDUSTRY_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                <option value="">{copy.selectPlaceholder}</option>
+                {industryOptions.map((o) => <option key={o} value={o}>{o}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Büyüklük</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">{copy.size}</label>
               <select
                 className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 value={size}
                 onChange={(e) => setSize(e.target.value)}
               >
-                <option value="">Seçin...</option>
-                {SIZE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                <option value="">{copy.selectPlaceholder}</option>
+                {SIZE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{lang === "tr" ? o.label : o.labelEn}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Yıllık Değer (₺)</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">{copy.annualValue}</label>
               <input
                 type="number"
                 className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -381,19 +531,19 @@ export default function CrmAccountDetailPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Durum</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">{copy.statusLabel}</label>
               <select
                 className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
               >
-                <option value="active">Aktif</option>
-                <option value="inactive">Pasif</option>
-                <option value="churned">Kaybedildi</option>
+                <option value="active">{copy.statusActive}</option>
+                <option value="inactive">{copy.statusInactive}</option>
+                <option value="churned">{copy.statusChurned}</option>
               </select>
             </div>
             <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-500 mb-1">Notlar</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">{copy.notes}</label>
               <textarea
                 rows={4}
                 className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -409,7 +559,7 @@ export default function CrmAccountDetailPage() {
               className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Kaydet
+              {copy.save}
             </button>
           </div>
         </div>
@@ -424,18 +574,18 @@ export default function CrmAccountDetailPage() {
               onClick={() => { setShowContactSearch(!showContactSearch); setContactSearch(""); setContactResults([]); }}
               className="flex items-center gap-2 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
             >
-              <Plus className="h-3.5 w-3.5" /> Kişi Ekle
+              <Plus className="h-3.5 w-3.5" /> {copy.addContact}
             </button>
           </div>
 
           {showContactSearch && (
             <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 space-y-2">
-              <p className="text-xs font-medium text-indigo-800">CRM'de kayıtlı kişiyi ara</p>
+              <p className="text-xs font-medium text-indigo-800">{copy.searchContactLabel}</p>
               <div className="relative">
                 <input
                   autoFocus
                   className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="İsim veya e-posta..."
+                  placeholder={copy.searchContactPlaceholder}
                   value={contactSearch}
                   onChange={(e) => setContactSearch(e.target.value)}
                 />
@@ -452,16 +602,16 @@ export default function CrmAccountDetailPage() {
                           <span className="font-medium text-gray-800">{p.name || p.email}</span>
                           {p.name && <span className="ml-2 text-xs text-gray-400">{p.email}</span>}
                         </span>
-                        {!p.id && <span className="text-xs text-gray-400">Profil yok</span>}
+                        {!p.id && <span className="text-xs text-gray-400">{copy.noProfile}</span>}
                         {p.id && contacts.some((c) => c.participant_crm_profile_id === p.id) && (
-                          <span className="text-xs text-gray-400">Zaten ekli</span>
+                          <span className="text-xs text-gray-400">{copy.alreadyAdded}</span>
                         )}
                       </button>
                     ))}
                   </div>
                 )}
                 {contactSearch.trim() && contactResults.length === 0 && (
-                  <p className="mt-1 text-xs text-gray-400">Sonuç bulunamadı. Önce CRM'e kişi ekleyin.</p>
+                  <p className="mt-1 text-xs text-gray-400">{copy.noContactsSearchResult}</p>
                 )}
               </div>
             </div>
@@ -472,18 +622,18 @@ export default function CrmAccountDetailPage() {
           ) : contacts.length === 0 ? (
             <div className="text-center py-14 text-gray-400">
               <Users className="h-8 w-8 mx-auto mb-2 opacity-40" />
-              <p className="text-sm">Bu hesaba bağlı kişi yok.</p>
-              <p className="text-xs mt-1">Yukarıdan CRM'deki kişiyi arayıp ekleyebilirsiniz.</p>
+              <p className="text-sm">{copy.noContacts}</p>
+              <p className="text-xs mt-1">{copy.noContactsHint}</p>
             </div>
           ) : (
             <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
-                    <th className="text-left px-5 py-3 text-xs font-medium text-gray-500">E-posta</th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">İsim</th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Rol</th>
-                    <th className="text-center px-4 py-3 text-xs font-medium text-gray-500">Birincil</th>
+                    <th className="text-left px-5 py-3 text-xs font-medium text-gray-500">{copy.colEmail}</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">{copy.colName}</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">{copy.colRole}</th>
+                    <th className="text-center px-4 py-3 text-xs font-medium text-gray-500">{copy.colPrimary}</th>
                     <th className="px-4 py-3"></th>
                   </tr>
                 </thead>
@@ -526,7 +676,7 @@ export default function CrmAccountDetailPage() {
               onClick={() => setShowDealForm((v) => !v)}
               className="flex items-center gap-2 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"
             >
-              <Plus className="h-4 w-4" /> Yeni Fırsat
+              <Plus className="h-4 w-4" /> {copy.newDeal}
             </button>
           </div>
 
@@ -536,7 +686,7 @@ export default function CrmAccountDetailPage() {
                 <input
                   autoFocus
                   className="col-span-3 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="Fırsat adı *"
+                  placeholder={copy.dealNamePlaceholder}
                   value={newDealName}
                   onChange={(e) => setNewDealName(e.target.value)}
                 />
@@ -545,12 +695,12 @@ export default function CrmAccountDetailPage() {
                   value={newDealStage}
                   onChange={(e) => setNewDealStage(e.target.value)}
                 >
-                  {DEAL_STAGES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  {dealStages.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
                 <input
                   type="number"
                   className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="Tutar (₺)"
+                  placeholder={copy.amountPlaceholder}
                   value={newDealAmount}
                   onChange={(e) => setNewDealAmount(e.target.value)}
                 />
@@ -560,10 +710,10 @@ export default function CrmAccountDetailPage() {
                     onClick={handleCreateDeal}
                     className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-indigo-700"
                   >
-                    {creatingDeal ? <Loader2 className="h-4 w-4 animate-spin" /> : "Ekle"}
+                    {creatingDeal ? <Loader2 className="h-4 w-4 animate-spin" /> : copy.add}
                   </button>
                   <button onClick={() => setShowDealForm(false)} className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500">
-                    İptal
+                    {copy.cancel}
                   </button>
                 </div>
               </div>
@@ -576,7 +726,7 @@ export default function CrmAccountDetailPage() {
             <div className="space-y-3">
               {deals.length === 0 && !showDealForm && (
                 <div className="text-center py-12 text-gray-400 text-sm">
-                  <Briefcase className="h-8 w-8 mx-auto mb-2 opacity-40" /> Henüz fırsat yok.
+                  <Briefcase className="h-8 w-8 mx-auto mb-2 opacity-40" /> {copy.noDeals}
                 </div>
               )}
               {deals.map((deal) => (
@@ -601,7 +751,7 @@ export default function CrmAccountDetailPage() {
                         {deal.amount != null && (
                           <span>₺{deal.amount.toLocaleString("tr-TR")}</span>
                         )}
-                        <span>{deal.activity_count} aktivite</span>
+                        <span>{deal.activity_count} {copy.activityCount}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
@@ -611,7 +761,7 @@ export default function CrmAccountDetailPage() {
                         onChange={(e) => handleMoveDeal(deal, e.target.value)}
                         className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs focus:outline-none"
                       >
-                        {DEAL_STAGES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                        {dealStages.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                       </select>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDeleteDeal(deal.id); }}
@@ -632,11 +782,11 @@ export default function CrmAccountDetailPage() {
                           onChange={(e) => setActivityType(e.target.value)}
                           className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs focus:outline-none"
                         >
-                          {ACTIVITY_TYPES.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
+                          {activityTypes.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
                         </select>
                         <input
                           className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                          placeholder="Aktivite notu..."
+                          placeholder={copy.activityPlaceholder}
                           value={activityContent}
                           onChange={(e) => setActivityContent(e.target.value)}
                           onKeyDown={(e) => e.key === "Enter" && handleAddActivity()}
@@ -654,7 +804,7 @@ export default function CrmAccountDetailPage() {
                       {activitiesLoading ? (
                         <div className="flex justify-center py-4"><Loader2 className="h-4 w-4 animate-spin text-gray-400" /></div>
                       ) : activities.length === 0 ? (
-                        <p className="text-xs text-gray-400 text-center py-3">Henüz aktivite yok.</p>
+                        <p className="text-xs text-gray-400 text-center py-3">{copy.noActivities}</p>
                       ) : (
                         <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                           {activities.map((act) => {
