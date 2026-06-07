@@ -35,7 +35,7 @@ export default function SpeedGraderPage() {
   async function loadSubmissions() {
     setLoading(true);
     const res = await apiFetch(
-      `/api/admin/lms/courses/${courseId}/assignments/${moduleId}/submissions`
+      `/admin/lms/courses/${courseId}/assignments/${moduleId}/submissions`
     ).then((r) => r.json());
     const subs: Submission[] = Array.isArray(res?.submissions) ? res.submissions : [];
     setSubmissions(subs);
@@ -75,7 +75,7 @@ export default function SpeedGraderPage() {
   async function saveGrade() {
     if (!current || grade === "") return;
     setSaving(true);
-    await apiFetch(`/api/admin/lms/submissions/${current.id}/grade`, {
+    await apiFetch(`/admin/lms/submissions/${current.id}/grade`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ grade: Number(grade), feedback: feedback || null }),

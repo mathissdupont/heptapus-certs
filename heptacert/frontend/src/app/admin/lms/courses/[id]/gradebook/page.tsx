@@ -55,8 +55,8 @@ export default function GradebookPage() {
   async function load() {
     setLoading(true);
     const [gb, gi] = await Promise.all([
-      apiFetch(`/api/admin/lms/courses/${courseId}/gradebook`).then((r) => r.json()),
-      apiFetch(`/api/admin/lms/courses/${courseId}/grade-items`).then((r) => r.json()),
+      apiFetch(`/admin/lms/courses/${courseId}/gradebook`).then((r) => r.json()),
+      apiFetch(`/admin/lms/courses/${courseId}/grade-items`).then((r) => r.json()),
     ]);
     setRows(Array.isArray(gb) ? gb : []);
     setItems(Array.isArray(gi) ? gi : []);
@@ -68,7 +68,7 @@ export default function GradebookPage() {
   async function addItem() {
     if (!newItem.title.trim()) return;
     setAddingItem(true);
-    await apiFetch(`/api/admin/lms/courses/${courseId}/grade-items`, {
+    await apiFetch(`/admin/lms/courses/${courseId}/grade-items`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...newItem, weight_pct: Number(newItem.weight_pct), max_points: Number(newItem.max_points) }),
@@ -79,12 +79,12 @@ export default function GradebookPage() {
   }
 
   async function deleteItem(itemId: number) {
-    await apiFetch(`/api/admin/lms/courses/${courseId}/grade-items/${itemId}`, { method: "DELETE" });
+    await apiFetch(`/admin/lms/courses/${courseId}/grade-items/${itemId}`, { method: "DELETE" });
     load();
   }
 
   async function saveGrade(enrollmentId: number, avg: string) {
-    await apiFetch(`/api/admin/lms/courses/${courseId}/gradebook/${enrollmentId}/summary`, {
+    await apiFetch(`/admin/lms/courses/${courseId}/gradebook/${enrollmentId}/summary`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ weighted_avg: Number(avg) }),

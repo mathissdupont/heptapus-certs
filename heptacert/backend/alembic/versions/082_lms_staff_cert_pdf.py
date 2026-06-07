@@ -22,12 +22,18 @@ def upgrade() -> None:
     existing = _tables()
 
     # cert_pdf_url on course_enrollments
-    with op.batch_alter_table("course_enrollments") as batch_op:
-        batch_op.add_column(sa.Column("cert_pdf_url", sa.Text(), nullable=True))
+    if "course_enrollments" in existing:
+        cols = {c["name"] for c in sa.inspect(op.get_bind()).get_columns("course_enrollments")}
+        if "cert_pdf_url" not in cols:
+            with op.batch_alter_table("course_enrollments") as batch_op:
+                batch_op.add_column(sa.Column("cert_pdf_url", sa.Text(), nullable=True))
 
-    # cert_pdf_url on lms_journey_enrollments
-    with op.batch_alter_table("lms_journey_enrollments") as batch_op:
-        batch_op.add_column(sa.Column("cert_pdf_url", sa.Text(), nullable=True))
+    # cert_pdf_url on lms_journey_enrollments (only if the table was created by 081)
+    if "lms_journey_enrollments" in existing:
+        cols = {c["name"] for c in sa.inspect(op.get_bind()).get_columns("lms_journey_enrollments")}
+        if "cert_pdf_url" not in cols:
+            with op.batch_alter_table("lms_journey_enrollments") as batch_op:
+                batch_op.add_column(sa.Column("cert_pdf_url", sa.Text(), nullable=True))
 
     # org_lms_staff table
     if "org_lms_staff" not in existing:

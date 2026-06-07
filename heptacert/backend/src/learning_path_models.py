@@ -18,7 +18,7 @@ class LearningPath(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     # org_id links to organizations.id — the org that owns this path
     org_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("organizations.id", ondelete="CASCADE"), index=True
+        Integer, ForeignKey("organizations.id", ondelete="CASCADE")
     )
     name: Mapped[str] = mapped_column(String(200))
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

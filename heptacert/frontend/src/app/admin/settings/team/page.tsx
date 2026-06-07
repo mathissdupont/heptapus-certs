@@ -55,7 +55,7 @@ export default function TeamPage() {
 
   async function load() {
     setLoading(true);
-    const data = await apiFetch("/api/admin/org/staff").then((r) => r.json());
+    const data = await apiFetch("/admin/org/staff").then((r) => r.json());
     setStaff(Array.isArray(data?.staff) ? data.staff : []);
     setLoading(false);
   }
@@ -66,7 +66,7 @@ export default function TeamPage() {
     if (!form.email) return;
     setSubmitting(true);
     try {
-      await apiFetch("/api/admin/org/staff/invite", {
+      await apiFetch("/admin/org/staff/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -88,7 +88,7 @@ export default function TeamPage() {
   }
 
   async function handleUpdateRole(id: number, role: string) {
-    await apiFetch(`/api/admin/org/staff/${id}`, {
+    await apiFetch(`/admin/org/staff/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ role }),
@@ -98,7 +98,7 @@ export default function TeamPage() {
   }
 
   async function handleToggleActive(member: StaffMember) {
-    await apiFetch(`/api/admin/org/staff/${member.id}`, {
+    await apiFetch(`/admin/org/staff/${member.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ is_active: !member.is_active }),
@@ -108,7 +108,7 @@ export default function TeamPage() {
 
   async function handleRemove(id: number) {
     if (!confirm("Bu kişiyi ekipten çıkarmak istediğinizden emin misiniz?")) return;
-    await apiFetch(`/api/admin/org/staff/${id}`, { method: "DELETE" });
+    await apiFetch(`/admin/org/staff/${id}`, { method: "DELETE" });
     load();
     showToast("Personel kaldırıldı.");
   }

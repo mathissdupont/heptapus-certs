@@ -53,7 +53,7 @@ export default function LmsBadgesPage() {
 
   async function load() {
     setLoading(true);
-    const data = await apiFetch("/api/admin/lms/badges").then((r) => r.json());
+    const data = await apiFetch("/admin/lms/badges").then((r) => r.json());
     setBadges(Array.isArray(data) ? data : []);
     setLoading(false);
   }
@@ -72,14 +72,14 @@ export default function LmsBadgesPage() {
       trigger_ref_id: form.trigger_ref_id ? Number(form.trigger_ref_id) : null,
     };
     if (editing !== null) {
-      await apiFetch(`/api/admin/lms/badges/${editing}`, {
+      await apiFetch(`/admin/lms/badges/${editing}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       setEditing(null);
     } else {
-      await apiFetch("/api/admin/lms/badges", {
+      await apiFetch("/admin/lms/badges", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -93,7 +93,7 @@ export default function LmsBadgesPage() {
 
   async function remove(id: number) {
     if (!confirm("Bu rozeti silmek istediğinizden emin misiniz?")) return;
-    await apiFetch(`/api/admin/lms/badges/${id}`, { method: "DELETE" });
+    await apiFetch(`/admin/lms/badges/${id}`, { method: "DELETE" });
     load();
   }
 
@@ -101,7 +101,7 @@ export default function LmsBadgesPage() {
     if (!awardBadgeId || !awardMemberId) return;
     setAwarding(true);
     const res = await apiFetch(
-      `/api/admin/lms/badges/${awardBadgeId}/award?member_id=${awardMemberId}`,
+      `/admin/lms/badges/${awardBadgeId}/award?member_id=${awardMemberId}`,
       { method: "POST" }
     );
     setAwarding(false);

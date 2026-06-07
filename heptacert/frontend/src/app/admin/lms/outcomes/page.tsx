@@ -23,7 +23,7 @@ export default function LmsOutcomesPage() {
 
   async function load() {
     setLoading(true);
-    const data = await apiFetch("/api/admin/lms/outcomes").then((r) => r.json());
+    const data = await apiFetch("/admin/lms/outcomes").then((r) => r.json());
     setOutcomes(Array.isArray(data) ? data : []);
     setLoading(false);
   }
@@ -40,14 +40,14 @@ export default function LmsOutcomesPage() {
       display_name: form.display_name || null,
     };
     if (editing !== null) {
-      await apiFetch(`/api/admin/lms/outcomes/${editing}`, {
+      await apiFetch(`/admin/lms/outcomes/${editing}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       setEditing(null);
     } else {
-      await apiFetch("/api/admin/lms/outcomes", {
+      await apiFetch("/admin/lms/outcomes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -61,7 +61,7 @@ export default function LmsOutcomesPage() {
 
   async function remove(id: number) {
     if (!confirm("Bu kazanımı silmek istediğinizden emin misiniz?")) return;
-    await apiFetch(`/api/admin/lms/outcomes/${id}`, { method: "DELETE" });
+    await apiFetch(`/admin/lms/outcomes/${id}`, { method: "DELETE" });
     load();
   }
 

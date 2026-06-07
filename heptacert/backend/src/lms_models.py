@@ -22,7 +22,7 @@ class TrainingCourse(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     org_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("organizations.id", ondelete="CASCADE"), index=True
+        Integer, ForeignKey("organizations.id", ondelete="CASCADE")
     )
     title: Mapped[str] = mapped_column(String(300))
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -35,6 +35,10 @@ class TrainingCourse(Base):
     price: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2), nullable=True)
     cert_template_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     passing_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    is_marketplace_listed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    marketplace_price: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2), nullable=True)
+    marketplace_description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    preview_video_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -229,7 +233,7 @@ class LmsJourney(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     org_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("organizations.id", ondelete="CASCADE"), index=True
+        Integer, ForeignKey("organizations.id", ondelete="CASCADE")
     )
     title: Mapped[str] = mapped_column(String(300))
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

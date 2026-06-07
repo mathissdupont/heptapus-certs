@@ -20477,6 +20477,12 @@ app.include_router(_report_scheduler_api.router)
 from . import marketplace_api as _marketplace_api  # noqa: E402
 app.include_router(_marketplace_api.router)
 
+from . import lti_api as _lti_api  # noqa: E402
+app.include_router(_lti_api.router)
+
+from . import sso_api as _sso_api  # noqa: E402
+app.include_router(_sso_api.router)
+
 from . import api_keys_ext_api as _api_keys_ext_api  # noqa: E402
 app.include_router(_api_keys_ext_api.router)
 

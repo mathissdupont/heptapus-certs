@@ -63,7 +63,7 @@ export default function RubricsPage() {
 
   async function load() {
     setLoading(true);
-    const data = await apiFetch(`/api/admin/lms/courses/${courseId}/rubrics`).then((r) => r.json());
+    const data = await apiFetch(`/admin/lms/courses/${courseId}/rubrics`).then((r) => r.json());
     setRubrics(Array.isArray(data) ? data : []);
     setLoading(false);
   }
@@ -74,7 +74,7 @@ export default function RubricsPage() {
     if (!rubricForm.title.trim()) return;
     setSavingRubric(true);
     try {
-      const res = await apiFetch(`/api/admin/lms/courses/${courseId}/rubrics`, {
+      const res = await apiFetch(`/admin/lms/courses/${courseId}/rubrics`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: rubricForm.title, description: rubricForm.description || null }),
@@ -91,7 +91,7 @@ export default function RubricsPage() {
 
   async function deleteRubric(id: number) {
     if (!confirm("Bu değerlendirme ölçütünü silmek istediğinizden emin misiniz?")) return;
-    await apiFetch(`/api/admin/lms/courses/${courseId}/rubrics/${id}`, { method: "DELETE" });
+    await apiFetch(`/admin/lms/courses/${courseId}/rubrics/${id}`, { method: "DELETE" });
     setRubrics((prev) => prev.filter((r) => r.id !== id));
     if (expanded === id) setExpanded(null);
   }
@@ -105,7 +105,7 @@ export default function RubricsPage() {
     if (!critForm.title.trim()) return;
     setSavingCrit(true);
     try {
-      await apiFetch(`/api/admin/lms/courses/${courseId}/rubrics/${rubricId}/criteria`, {
+      await apiFetch(`/admin/lms/courses/${courseId}/rubrics/${rubricId}/criteria`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -125,7 +125,7 @@ export default function RubricsPage() {
   }
 
   async function deleteCriterion(rubricId: number, critId: number) {
-    await apiFetch(`/api/admin/lms/courses/${courseId}/rubrics/${rubricId}/criteria/${critId}`, {
+    await apiFetch(`/admin/lms/courses/${courseId}/rubrics/${rubricId}/criteria/${critId}`, {
       method: "DELETE",
     });
     setRubrics((prev) =>

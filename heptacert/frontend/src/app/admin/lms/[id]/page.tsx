@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft, BookOpen, ChevronDown, ChevronUp, Globe,
-  GripVertical, Loader2, Lock, Plus, Save, Trash2, ClipboardList,
+  GripVertical, Loader2, Lock, Plus, Save, Trash2, ClipboardList, Store,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
@@ -33,6 +33,11 @@ type CourseForm = {
   is_featured: boolean;
   price: string;
   passing_score: string;
+  // Marketplace fields
+  is_marketplace_listed: boolean;
+  marketplace_price: string;
+  marketplace_description: string;
+  preview_video_url: string;
 };
 
 const CONTENT_TYPE_LABELS: Record<string, string> = {
@@ -81,6 +86,10 @@ export default function LmsCourseDetailPage() {
     is_featured: false,
     price: "",
     passing_score: "",
+    is_marketplace_listed: false,
+    marketplace_price: "",
+    marketplace_description: "",
+    preview_video_url: "",
   });
   const [modules, setModules] = useState<Module[]>([]);
 
@@ -104,6 +113,10 @@ export default function LmsCourseDetailPage() {
           is_featured: d.is_featured ?? false,
           price: d.price != null ? String(d.price) : "",
           passing_score: d.passing_score != null ? String(d.passing_score) : "",
+          is_marketplace_listed: d.is_marketplace_listed ?? false,
+          marketplace_price: d.marketplace_price != null ? String(d.marketplace_price) : "",
+          marketplace_description: d.marketplace_description ?? "",
+          preview_video_url: d.preview_video_url ?? "",
         });
         setModules(
           (d.modules ?? []).map((m: any) => ({
@@ -143,6 +156,17 @@ export default function LmsCourseDetailPage() {
           is_featured: form.is_featured,
           price: form.price ? Number(form.price) : null,
           passing_score: form.passing_score ? Number(form.passing_score) : null,
+        }),
+      });
+
+      // Save marketplace settings
+      await apiFetch(`/admin/lms/courses/${courseId}/marketplace`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          is_marketplace_listed: form.is_marketplace_listed,
+          marketplace_price: form.marketplace_price ? Number(form.marketplace_price) : null,
+          marketplace_description: form.marketplace_description || null,
+          preview_video_url: form.preview_video_url || null,
         }),
       });
 
@@ -330,6 +354,60 @@ export default function LmsCourseDetailPage() {
               Öne Çıkan
             </label>
           </div>
+        </div>
+      </div>
+
+      {/* Marketplace */}
+      <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
+        <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+          <Store className="h-4 w-4 text-indigo-500" />
+          Marketplace
+        </h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2 flex flex-wrap gap-6">
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.is_marketplace_listed}
+                onChange={(e) => setForm((f) => ({ ...f, is_marketplace_listed: e.target.checked }))}
+                className="rounded"
+              />
+              Marketplace'te listele
+            </label>
+          </div>
+          {form.is_marketplace_listed && (
+            <>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Marketplace Fiyatı (₺, boş = ücretsiz)</label>
+                <input
+                  type="number" min={0} step={0.01}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={form.marketplace_price}
+                  onChange={(e) => setForm((f) => ({ ...f, marketplace_price: e.target.value }))}
+                  placeholder="Ücretsiz"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Önizleme Video URL</label>
+                <input
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={form.preview_video_url}
+                  onChange={(e) => setForm((f) => ({ ...f, preview_video_url: e.target.value }))}
+                  placeholder="https://..."
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium text-gray-500 mb-1">Marketplace Açıklaması</label>
+                <textarea
+                  rows={3}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={form.marketplace_description}
+                  onChange={(e) => setForm((f) => ({ ...f, marketplace_description: e.target.value }))}
+                  placeholder="Kursun marketplace'te görünecek açıklaması..."
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
 

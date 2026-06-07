@@ -48,7 +48,7 @@ export default function LmsBridgePage() {
 
   async function load() {
     setLoading(true);
-    const data = await apiFetch("/api/admin/lms/bridges").then((r) => r.json());
+    const data = await apiFetch("/admin/lms/bridges").then((r) => r.json());
     const evBridges = Array.isArray(data)
       ? data.filter((b: Bridge) => b.event_id === Number(eventId))
       : [];
@@ -61,7 +61,7 @@ export default function LmsBridgePage() {
   async function create() {
     if (!form.course_id) return;
     setSaving(true);
-    await apiFetch("/api/admin/lms/bridges", {
+    await apiFetch("/admin/lms/bridges", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -80,7 +80,7 @@ export default function LmsBridgePage() {
   }
 
   async function toggle(bridge: Bridge) {
-    await apiFetch(`/api/admin/lms/bridges/${bridge.id}/toggle?is_active=${!bridge.is_active}`, {
+    await apiFetch(`/admin/lms/bridges/${bridge.id}/toggle?is_active=${!bridge.is_active}`, {
       method: "PATCH",
     });
     load();
@@ -88,7 +88,7 @@ export default function LmsBridgePage() {
 
   async function remove(id: number) {
     if (!confirm("Bu köprüyü silmek istediğinizden emin misiniz?")) return;
-    await apiFetch(`/api/admin/lms/bridges/${id}`, { method: "DELETE" });
+    await apiFetch(`/admin/lms/bridges/${id}`, { method: "DELETE" });
     load();
   }
 
