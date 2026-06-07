@@ -5,42 +5,7 @@ import { apiFetch, logLegalDocumentEvent } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight, CheckCircle2, CalendarCheck2, School, Building2, GraduationCap } from "lucide-react";
-
-const ORG_TYPES = [
-  {
-    value: "event_organizer",
-    icon: CalendarCheck2,
-    labelTr: "Etkinlik Organizatörü",
-    labelEn: "Event Organizer",
-    descTr: "Etkinlikler düzenler, sertifika verir",
-    descEn: "Organize events, issue certificates",
-  },
-  {
-    value: "training_institute",
-    icon: School,
-    labelTr: "Eğitim Kurumu",
-    labelEn: "Training Institute",
-    descTr: "Online/yüz yüze eğitim ve kurslar",
-    descEn: "Online / in-person courses",
-  },
-  {
-    value: "corporate_training",
-    icon: Building2,
-    labelTr: "Kurumsal Eğitim",
-    labelEn: "Corporate Training",
-    descTr: "Şirket içi eğitim ve uyum takibi",
-    descEn: "Internal training & compliance",
-  },
-  {
-    value: "university",
-    icon: GraduationCap,
-    labelTr: "Üniversite / Lise",
-    labelEn: "University / School",
-    descTr: "Akademik LMS ve akreditasyon",
-    descEn: "Academic LMS & accreditation",
-  },
-] as const;
+import { Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight, CheckCircle2 } from "lucide-react";
 
 export default function RegisterPage() {
   const { lang } = useI18n();
@@ -107,7 +72,6 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [orgType, setOrgType] = useState<string>("event_organizer");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -147,8 +111,6 @@ export default function RegisterPage() {
         method: "POST",
         body: JSON.stringify({ email, password, terms_accepted: termsAccepted }),
       });
-      // Store org_type so the onboarding step can pick it up after email verification + login
-      try { localStorage.setItem("heptacert-pending-org-type", orgType); } catch { /* ignore */ }
       setSuccess(true);
     } catch (e: any) {
       setErr(e?.message || copy.registerFailed);
@@ -194,39 +156,6 @@ export default function RegisterPage() {
         </div>
 
         <form onSubmit={onSubmit} className="space-y-5">
-          {/* Org type selector */}
-          <div>
-            <label className="label mb-2 block">
-              {lang === "tr" ? "Kurumunuz ne yapıyor?" : "What does your organization do?"}
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {ORG_TYPES.map((t) => {
-                const Icon = t.icon;
-                const selected = orgType === t.value;
-                return (
-                  <button
-                    key={t.value}
-                    type="button"
-                    onClick={() => setOrgType(t.value)}
-                    className={`flex flex-col items-start gap-1 rounded-xl border px-3 py-2.5 text-left transition-all ${
-                      selected
-                        ? "border-brand-600 bg-brand-50 ring-1 ring-brand-600"
-                        : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
-                    }`}
-                  >
-                    <Icon className={`h-4 w-4 ${selected ? "text-brand-600" : "text-slate-400"}`} />
-                    <span className={`text-xs font-semibold leading-tight ${selected ? "text-brand-700" : "text-slate-700"}`}>
-                      {lang === "tr" ? t.labelTr : t.labelEn}
-                    </span>
-                    <span className="text-11 leading-tight text-slate-400">
-                      {lang === "tr" ? t.descTr : t.descEn}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           <div>
             <label className="label">{copy.email}</label>
             <div className="relative">

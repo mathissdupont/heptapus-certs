@@ -42,6 +42,8 @@ import {
   School,
   Route,
   UserPlus,
+  CheckCircle2,
+  ArrowRight,
 } from "lucide-react";
 
 type NavItem = {
@@ -68,6 +70,69 @@ type OrganizationContext = {
 };
 
 const DEFAULT_MODULES: OrgModules = { events: true, lms: true, accreditation: true };
+
+type OrgModulesResponse = {
+  modules: OrgModules;
+  org_type: string | null;
+  org_name?: string | null;
+  onboarding_completed?: boolean;
+};
+
+const ORG_TYPE_PRESETS: Record<string, OrgModules> = {
+  event_organizer: { events: true, lms: false, accreditation: false },
+  training_institute: { events: true, lms: true, accreditation: true },
+  university: { events: true, lms: true, accreditation: true },
+  corporate_training: { events: false, lms: true, accreditation: false },
+  professional_association: { events: true, lms: true, accreditation: true },
+};
+
+const ONBOARDING_TYPES = [
+  {
+    value: "event_organizer",
+    icon: CalendarCheck2,
+    label: { tr: "Etkinlik düzenliyoruz", en: "We run events" },
+    description: { tr: "Konferans, seminer, webinar ve katılımcı sertifikaları", en: "Conferences, seminars, webinars and attendance certificates" },
+  },
+  {
+    value: "training_institute",
+    icon: School,
+    label: { tr: "Kurs ve eğitim satıyoruz", en: "We sell courses and training" },
+    description: { tr: "Kurslar, öğrenme yolları, LMS ve sertifika programları", en: "Courses, learning paths, LMS and certificate programs" },
+  },
+  {
+    value: "corporate_training",
+    icon: Building2,
+    label: { tr: "Şirket içi eğitim yapıyoruz", en: "We train our team" },
+    description: { tr: "Uyum takibi, ekip eğitimleri ve zorunlu öğrenme süreçleri", en: "Compliance, internal training and required learning flows" },
+  },
+  {
+    value: "professional_association",
+    icon: ChartNoAxesCombined,
+    label: { tr: "Akreditasyon / CPD önemli", en: "Accreditation / CPD matters" },
+    description: { tr: "CPD kredileri, akreditasyon kurumları ve profesyonel gelişim", en: "CPD credits, accrediting bodies and professional development" },
+  },
+] as const;
+
+const ONBOARDING_MODULES = [
+  {
+    key: "events" as keyof OrgModules,
+    icon: CalendarCheck2,
+    label: { tr: "Etkinlikler", en: "Events" },
+    description: { tr: "Etkinlik, katılımcı, check-in ve sertifika yönetimi", en: "Events, attendees, check-in and certificates" },
+  },
+  {
+    key: "lms" as keyof OrgModules,
+    icon: BookOpen,
+    label: { tr: "Öğrenme / Kurs", en: "Learning / Courses" },
+    description: { tr: "Kurslar, modüller, rozetler ve öğrenme yolları", en: "Courses, modules, badges and learning journeys" },
+  },
+  {
+    key: "accreditation" as keyof OrgModules,
+    icon: GraduationCap,
+    label: { tr: "Akreditasyon", en: "Accreditation" },
+    description: { tr: "CPD, akreditasyon ve uyum odaklı sertifikalar", en: "CPD, accreditation and compliance certificates" },
+  },
+] as const;
 
 // Group indices (0-based):
 // 0: Genel          — always visible
@@ -301,12 +366,208 @@ function SidebarContent({
   );
 }
 
+function OnboardingWizard({
+  lang,
+  initialName,
+  initialOrgType,
+  initialModules,
+  submitting,
+  error,
+  onSubmit,
+}: {
+  lang: string;
+  initialName: string;
+  initialOrgType: string;
+  initialModules: OrgModules;
+  submitting: boolean;
+  error: string | null;
+  onSubmit: (payload: { org_type: string; org_name: string; modules: OrgModules }) => void;
+}) {
+  const [step, setStep] = useState<0 | 1 | 2>(0);
+  const [orgName, setOrgName] = useState(initialName);
+  const [orgType, setOrgType] = useState(initialOrgType);
+  const [selectedModules, setSelectedModules] = useState<OrgModules>(initialModules);
+  const locale = lang === "en" ? "en" : "tr";
+
+  useEffect(() => {
+    setOrgName(initialName);
+    setOrgType(initialOrgType);
+    setSelectedModules(initialModules);
+  }, [initialName, initialOrgType, initialModules]);
+
+  const copy = lang === "tr"
+    ? {
+        title: "Çalışma alanınızı hazırlayalım",
+        subtitle: "Birkaç hızlı soruyla menüyü ve modülleri ilk kullanımınıza göre ayarlayacağız. Sonradan Ayarlar > Modüller kısmından değiştirebilirsiniz.",
+        orgName: "Organizasyon adı",
+        orgNamePlaceholder: "Örn. Heptapus Academy",
+        usageTitle: "HeptaCert'i en çok ne için kullanacaksınız?",
+        modulesTitle: "Hangi modüller aktif olsun?",
+        next: "Devam",
+        back: "Geri",
+        finish: "Çalışma alanını oluştur",
+        saving: "Kaydediliyor...",
+        step: "Adım",
+      }
+    : {
+        title: "Set up your workspace",
+        subtitle: "A few quick choices will tailor the menu and modules for your first run. You can change everything later in Settings > Modules.",
+        orgName: "Organization name",
+        orgNamePlaceholder: "Example: Heptapus Academy",
+        usageTitle: "What will you use HeptaCert for most?",
+        modulesTitle: "Which modules should be active?",
+        next: "Continue",
+        back: "Back",
+        finish: "Create workspace",
+        saving: "Saving...",
+        step: "Step",
+      };
+
+  function chooseOrgType(value: string) {
+    setOrgType(value);
+    setSelectedModules(ORG_TYPE_PRESETS[value] || DEFAULT_MODULES);
+  }
+
+  function toggleModule(key: keyof OrgModules) {
+    const next = { ...selectedModules, [key]: !selectedModules[key] };
+    if (!next.events && !next.lms && !next.accreditation) return;
+    setSelectedModules(next);
+  }
+
+  function submit() {
+    onSubmit({
+      org_type: orgType,
+      org_name: orgName.trim(),
+      modules: selectedModules,
+    });
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-950/45 px-4 py-8 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, y: 16, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-surface-200"
+      >
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase text-brand-600">{copy.step} {step + 1}/3</p>
+            <h2 className="mt-1 text-2xl font-bold text-surface-950">{copy.title}</h2>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-surface-500">{copy.subtitle}</p>
+          </div>
+          <HeptaCertLogoMark className="h-10 w-10 shrink-0 rounded-xl shadow-brand" />
+        </div>
+
+        {step === 0 && (
+          <div className="space-y-3">
+            <label className="label">{copy.orgName}</label>
+            <input
+              className="input-field"
+              value={orgName}
+              onChange={(e) => setOrgName(e.target.value)}
+              placeholder={copy.orgNamePlaceholder}
+              autoFocus
+            />
+          </div>
+        )}
+
+        {step === 1 && (
+          <div>
+            <h3 className="mb-3 text-sm font-semibold text-surface-800">{copy.usageTitle}</h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {ONBOARDING_TYPES.map((item) => {
+                const Icon = item.icon;
+                const selected = orgType === item.value;
+                return (
+                  <button
+                    key={item.value}
+                    type="button"
+                    onClick={() => chooseOrgType(item.value)}
+                    className={`rounded-xl border p-4 text-left transition ${
+                      selected ? "border-brand-500 bg-brand-50 ring-1 ring-brand-500" : "border-surface-200 bg-white hover:bg-surface-50"
+                    }`}
+                  >
+                    <Icon className={`mb-3 h-5 w-5 ${selected ? "text-brand-600" : "text-surface-400"}`} />
+                    <div className="text-sm font-semibold text-surface-900">{item.label[locale]}</div>
+                    <p className="mt-1 text-xs leading-5 text-surface-500">{item.description[locale]}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div>
+            <h3 className="mb-3 text-sm font-semibold text-surface-800">{copy.modulesTitle}</h3>
+            <div className="space-y-3">
+              {ONBOARDING_MODULES.map((item) => {
+                const Icon = item.icon;
+                const selected = selectedModules[item.key];
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => toggleModule(item.key)}
+                    className={`flex w-full items-center gap-4 rounded-xl border p-4 text-left transition ${
+                      selected ? "border-brand-500 bg-brand-50" : "border-surface-200 bg-white hover:bg-surface-50"
+                    }`}
+                  >
+                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${selected ? "bg-brand-600 text-white" : "bg-surface-100 text-surface-500"}`}>
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold text-surface-900">{item.label[locale]}</span>
+                      <span className="mt-1 block text-xs leading-5 text-surface-500">{item.description[locale]}</span>
+                    </span>
+                    {selected && <CheckCircle2 className="h-5 w-5 shrink-0 text-brand-600" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {error && <div className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+
+        <div className="mt-6 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            disabled={step === 0 || submitting}
+            onClick={() => setStep((value) => (value > 0 ? ((value - 1) as 0 | 1 | 2) : value))}
+            className="btn-secondary"
+          >
+            {copy.back}
+          </button>
+          {step < 2 ? (
+            <button type="button" onClick={() => setStep((value) => ((value + 1) as 0 | 1 | 2))} className="btn-primary">
+              {copy.next}
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          ) : (
+            <button type="button" disabled={submitting} onClick={submit} className="btn-primary">
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              {submitting ? copy.saving : copy.finish}
+            </button>
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 export function AdminLayoutShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname() || "";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [modules, setModules] = useState<OrgModules>(DEFAULT_MODULES);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [onboardingSubmitting, setOnboardingSubmitting] = useState(false);
+  const [onboardingError, setOnboardingError] = useState<string | null>(null);
+  const [onboardingOrgName, setOnboardingOrgName] = useState("");
+  const [onboardingOrgType, setOnboardingOrgType] = useState("event_organizer");
+  const [onboardingModules, setOnboardingModules] = useState<OrgModules>(ORG_TYPE_PRESETS.event_organizer);
 
   useLayoutEffect(() => {
     try {
@@ -394,26 +655,54 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
 
     apiFetch("/admin/organization/modules")
       .then((r) => r.json())
-      .then(async (d: { modules: OrgModules; org_type: string | null }) => {
+      .then((d: OrgModulesResponse) => {
         if (d?.modules) setModules(d.modules);
 
-        // If onboarding not yet done and we have a pending org type from registration
-        if (!d?.org_type && pendingOrgType) {
-          try {
-            const onboarded = await apiFetch("/admin/organization/onboarding", {
-              method: "POST",
-              body: JSON.stringify({ org_type: pendingOrgType }),
-            }).then((r) => r.json());
-            if (onboarded?.modules) setModules(onboarded.modules);
-            localStorage.removeItem("heptacert-pending-org-type");
-          } catch { /* non-critical */ }
-        }
+        const nextOrgType = d?.org_type || pendingOrgType || "event_organizer";
+        const nextModules = d?.modules || ORG_TYPE_PRESETS[nextOrgType] || DEFAULT_MODULES;
+        setOnboardingOrgName(d?.org_name || "");
+        setOnboardingOrgType(nextOrgType);
+        setOnboardingModules(nextModules);
+        const activeContext = organizationContexts.find((ctx) => String(ctx.id) === activeOrganizationId);
+        const canOnboardOwnOrganization = organizationContexts.length === 0 || Boolean(activeContext?.owned);
+        setOnboardingOpen(role !== "superadmin" && canOnboardOwnOrganization && !d?.onboarding_completed);
       })
       .catch(() => {
         // keep defaults — non-critical
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeOrganizationId]);
+  }, [activeOrganizationId, role, organizationContexts]);
+
+  async function completeOrganizationOnboarding(payload: { org_type: string; org_name: string; modules: OrgModules }) {
+    setOnboardingSubmitting(true);
+    setOnboardingError(null);
+    try {
+      const response = await apiFetch("/admin/organization/onboarding", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }).then((r) => r.json()) as OrgModulesResponse;
+      const nextModules = response?.modules || payload.modules;
+      setModules(nextModules);
+      setOnboardingOpen(false);
+      try { localStorage.removeItem("heptacert-pending-org-type"); } catch { /* ignore */ }
+      setOrganizationContexts((items) =>
+        items.map((item) =>
+          item.owned && payload.org_name.trim() ? { ...item, org_name: payload.org_name.trim() } : item
+        )
+      );
+      if (!nextModules.events && nextModules.lms) {
+        router.push("/admin/lms");
+      } else if (!nextModules.events && !nextModules.lms && nextModules.accreditation) {
+        router.push("/admin/accreditation");
+      } else if (pathname === "/admin/events") {
+        router.push("/admin/dashboard");
+      }
+    } catch (ex: any) {
+      setOnboardingError(ex?.message || (lang === "tr" ? "Onboarding kaydedilemedi." : "Could not save onboarding."));
+    } finally {
+      setOnboardingSubmitting(false);
+    }
+  }
 
   // Poll active job count every 10s
   useEffect(() => {
@@ -545,6 +834,19 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
 
         <InAppTourGuide />
         <AIAssistant />
+        <AnimatePresence>
+          {onboardingOpen && (
+            <OnboardingWizard
+              lang={lang}
+              initialName={onboardingOrgName}
+              initialOrgType={onboardingOrgType}
+              initialModules={onboardingModules}
+              submitting={onboardingSubmitting}
+              error={onboardingError}
+              onSubmit={completeOrganizationOnboarding}
+            />
+          )}
+        </AnimatePresence>
 
         <nav className="mobile-bottom-nav" aria-label={lang === "tr" ? "Hızlı gezinti" : "Quick navigation"}>
           <div className="flex items-stretch gap-1">

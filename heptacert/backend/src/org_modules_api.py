@@ -68,7 +68,13 @@ async def get_org_modules(
     db: AsyncSession = Depends(get_db),
 ):
     org = await get_organization_for_access(db, me, "organization:view", organization_id_from_request(request))
-    return {"modules": _get_modules(org), "org_type": (org.settings or {}).get("org_type")}
+    settings: dict[str, Any] = dict(getattr(org, "settings", {}) or {})
+    return {
+        "modules": _get_modules(org),
+        "org_type": settings.get("org_type"),
+        "org_name": org.org_name,
+        "onboarding_completed": bool(settings.get("onboarding_completed")),
+    }
 
 
 @router.patch(
@@ -114,4 +120,9 @@ async def complete_onboarding(
         org.org_name = payload.org_name.strip()
 
     await db.commit()
-    return {"modules": modules, "org_type": payload.org_type}
+    return {
+        "modules": modules,
+        "org_type": payload.org_type,
+        "org_name": org.org_name,
+        "onboarding_completed": True,
+    }
