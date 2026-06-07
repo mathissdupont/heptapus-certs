@@ -55,13 +55,13 @@ ISSUE_UNITS_PER_CERT = 10
 
 
 class QuizChoiceIn(BaseModel):
-    choice_text: str = Field(min_length=1, max_length=500)
+    choice_text: str = Field(default="", max_length=500)
     is_correct: bool = False
     order: int = 0
 
 
 class QuizQuestionIn(BaseModel):
-    question_text: str = Field(min_length=1, max_length=2000)
+    question_text: str = Field(default="", max_length=2000)
     question_type: str = Field(default="mcq", pattern="^(mcq|true_false|open_text)$")
     order: int = 0
     points: int = Field(default=1, ge=1, le=10)
@@ -370,21 +370,22 @@ async def create_or_replace_quiz(
     db.add(quiz)
     await db.flush()
 
-    for q_in in payload.questions:
+    valid_questions = [q for q in payload.questions if q.question_text.strip()]
+    for q_in in valid_questions:
         q = QuizQuestion(
             quiz_id=quiz.id,
-            question_text=q_in.question_text,
+            question_text=q_in.question_text.strip(),
             question_type=q_in.question_type,
             order=q_in.order,
             points=q_in.points,
         )
         db.add(q)
         await db.flush()
-        for c_in in q_in.choices:
+        for c_in in (c for c in q_in.choices if c.choice_text.strip()):
             db.add(
                 QuizChoice(
                     question_id=q.id,
-                    choice_text=c_in.choice_text,
+                    choice_text=c_in.choice_text.strip(),
                     is_correct=c_in.is_correct,
                     order=c_in.order,
                 )

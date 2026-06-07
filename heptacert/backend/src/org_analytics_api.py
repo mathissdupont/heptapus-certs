@@ -106,7 +106,7 @@ async def org_overview(
         .where(
             Attendee.event_id.in_(org_event_ids_subq),
             Attendee.public_member_id.is_not(None),
-            Attendee.created_at >= since,
+            Attendee.registered_at >= since,
         )
     )
     member_period = int(member_period_res.scalar_one() or 0)
@@ -122,7 +122,7 @@ async def org_overview(
     attendee_period_res = await db.execute(
         select(func.count(Attendee.id))
         .join(Event, Attendee.event_id == Event.id)
-        .where(Event.admin_id == org.user_id, Attendee.created_at >= since)
+        .where(Event.admin_id == org.user_id, Attendee.registered_at >= since)
     )
     attendee_period = int(attendee_period_res.scalar_one() or 0)
 
