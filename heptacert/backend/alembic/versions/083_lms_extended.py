@@ -22,9 +22,12 @@ def upgrade() -> None:
     existing = _tables()
 
     # 1B: TrainingAssignment → course_id
-    with op.batch_alter_table("training_assignments") as batch_op:
-        batch_op.add_column(sa.Column("course_id", sa.Integer(), nullable=True))
-        batch_op.create_foreign_key("fk_training_assignment_course", "training_courses", ["course_id"], ["id"], ondelete="SET NULL")
+    if "training_assignments" in existing:
+        ta_cols = {c["name"] for c in sa.inspect(op.get_bind()).get_columns("training_assignments")}
+        if "course_id" not in ta_cols:
+            with op.batch_alter_table("training_assignments") as batch_op:
+                batch_op.add_column(sa.Column("course_id", sa.Integer(), nullable=True))
+                batch_op.create_foreign_key("fk_training_assignment_course", "training_courses", ["course_id"], ["id"], ondelete="SET NULL")
 
     # 2A: Gradebook
     if "course_grade_items" not in existing:
@@ -96,6 +99,36 @@ def upgrade() -> None:
             sa.PrimaryKeyConstraint("id"),
         )
         op.create_index("ix_discussion_replies_discussion", "discussion_replies", ["discussion_id"])
+
+    # Ensure course_assignments + assignment_submissions exist (may have been skipped by old 081)
+    if "course_assignments" not in existing:
+        op.create_table(
+            "course_assignments",
+            sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
+            sa.Column("module_id", sa.Integer(), sa.ForeignKey("course_modules.id", ondelete="CASCADE"), nullable=False, unique=True),
+            sa.Column("instructions", sa.Text(), nullable=True),
+            sa.Column("due_date", sa.DateTime(timezone=True), nullable=True),
+            sa.Column("max_points", sa.Integer(), nullable=False, server_default="100"),
+            sa.Column("submission_type", sa.String(50), nullable=False, server_default="text"),
+        )
+
+    if "assignment_submissions" not in existing:
+        op.create_table(
+            "assignment_submissions",
+            sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
+            sa.Column("assignment_id", sa.Integer(), sa.ForeignKey("course_assignments.id", ondelete="CASCADE"), nullable=False),
+            sa.Column("member_id", sa.Integer(), sa.ForeignKey("public_members.id", ondelete="CASCADE"), nullable=False),
+            sa.Column("submitted_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+            sa.Column("submission_text", sa.Text(), nullable=True),
+            sa.Column("submission_url", sa.Text(), nullable=True),
+            sa.Column("file_url", sa.Text(), nullable=True),
+            sa.Column("grade", sa.Integer(), nullable=True),
+            sa.Column("feedback", sa.Text(), nullable=True),
+            sa.Column("graded_at", sa.DateTime(timezone=True), nullable=True),
+            sa.Column("graded_by_user_id", sa.Integer(), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
+            sa.UniqueConstraint("assignment_id", "member_id", name="uq_assignment_submission"),
+        )
+        op.create_index("ix_assignment_submissions_member", "assignment_submissions", ["member_id"])
 
     # 2C: Rubrics
     if "rubrics" not in existing:
