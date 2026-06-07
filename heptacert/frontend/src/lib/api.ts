@@ -4763,3 +4763,38 @@ export async function updateLmsCourse(
 export async function deleteLmsCourse(courseId: number): Promise<void> {
   await apiFetch(`/admin/lms/courses/${courseId}`, { method: "DELETE" });
 }
+
+// ---------------------------------------------------------------------------
+// Org module settings
+// ---------------------------------------------------------------------------
+
+export interface OrgModules {
+  events: boolean;
+  lms: boolean;
+  accreditation: boolean;
+}
+
+export async function getOrgModules(): Promise<{ modules: OrgModules; org_type: string | null }> {
+  const res = await apiFetch("/admin/organization/modules");
+  return res.json();
+}
+
+export async function updateOrgModules(modules: OrgModules): Promise<{ modules: OrgModules }> {
+  const res = await apiFetch("/admin/organization/modules", {
+    method: "PATCH",
+    body: JSON.stringify(modules),
+  });
+  return res.json();
+}
+
+export async function completeOnboarding(payload: {
+  org_type: string;
+  org_name?: string;
+  modules?: OrgModules;
+}): Promise<{ modules: OrgModules; org_type: string }> {
+  const res = await apiFetch("/admin/organization/onboarding", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}

@@ -12,7 +12,10 @@ import {
   setSelectedOrganizationId,
   startReservationGoogleCalendarOAuth,
   syncReservationGoogleCalendar,
+  getOrgModules,
+  updateOrgModules,
   type GoogleCalendarReservationStatus,
+  type OrgModules,
 } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -22,7 +25,8 @@ import {
   History, TrendingUp, TrendingDown, Globe, Settings,
   Building2, Sparkles, RefreshCcw, Trash2,
   BadgeCheck, Link2, UploadCloud, MonitorSmartphone,
-  UserCog, CalendarDays, Download, FileText
+  UserCog, CalendarDays, Download, FileText,
+  Blocks, CalendarCheck2, School, ChartNoAxesCombined,
 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
 import { useToast } from "@/hooks/useToast";
@@ -33,6 +37,7 @@ const TABS = [
   { id: "account", label: "Hesap", description: "Şifre ve e-posta", icon: Lock },
   { id: "2fa", label: "2FA Güvenlik", description: "Kimlik koruması", icon: ShieldCheck },
   { id: "transactions", label: "Bakiye", description: "Harcama geçmişi", icon: History },
+  { id: "modules", label: "Modüller", description: "Aktif özellikler", icon: Blocks, permission: "organization:profile_write" },
   { id: "domain", label: "Özel Domain", description: "DNS ayarları", icon: Globe, permission: "organization:profile_write" },
   { id: "team", label: "Çalışanlar", description: "Kurum yetkileri", icon: UserCog, permission: "organization:team_manage" },
   { id: "venues", label: "Salonlar", description: "Kapasite yönetimi", icon: Building2, permission: "venues:read" },
@@ -1438,6 +1443,184 @@ function BrandingTab() {
   );
 }
 
+// ─── Modules Tab ─────────────────────────────────────────────────────────────
+const MODULE_META = [
+  {
+    key: "events" as keyof OrgModules,
+    icon: CalendarCheck2,
+    labelTr: "Etkinlik Yönetimi",
+    labelEn: "Event Management",
+    descTr: "Etkinlik oluşturma, katılımcı kaydı, sertifika verme ve quiz motoru.",
+    descEn: "Event creation, attendee registration, certificate issuance and quiz engine.",
+    color: "indigo",
+  },
+  {
+    key: "lms" as keyof OrgModules,
+    icon: School,
+    labelTr: "LMS (Öğrenme Yönetimi)",
+    labelEn: "LMS (Learning Management)",
+    descTr: "Kurslar, öğrenme yolları, modül takibi, ödev ve uyum takibi.",
+    descEn: "Courses, learning journeys, module tracking, assignments and compliance.",
+    color: "violet",
+  },
+  {
+    key: "accreditation" as keyof OrgModules,
+    icon: ChartNoAxesCombined,
+    labelTr: "Akreditasyon & CPD",
+    labelEn: "Accreditation & CPD",
+    descTr: "MYK, SMMM, TMMOB gibi akreditasyon kurumlarına CPD saati kaydı ve raporlama.",
+    descEn: "CPD hour tracking and reporting for accreditation bodies like MYK, SMMM, TMMOB.",
+    color: "emerald",
+  },
+];
+
+const COLOR_MAP: Record<string, { ring: string; bg: string; text: string; dot: string; badge: string }> = {
+  indigo: {
+    ring: "ring-indigo-500",
+    bg: "bg-indigo-50",
+    text: "text-indigo-700",
+    dot: "bg-indigo-500",
+    badge: "bg-indigo-100 text-indigo-700",
+  },
+  violet: {
+    ring: "ring-violet-500",
+    bg: "bg-violet-50",
+    text: "text-violet-700",
+    dot: "bg-violet-500",
+    badge: "bg-violet-100 text-violet-700",
+  },
+  emerald: {
+    ring: "ring-emerald-500",
+    bg: "bg-emerald-50",
+    text: "text-emerald-700",
+    dot: "bg-emerald-500",
+    badge: "bg-emerald-100 text-emerald-700",
+  },
+};
+
+function ModulesTab() {
+  const toast = useToast();
+  const [modules, setModules] = useState<OrgModules>({ events: true, lms: true, accreditation: true });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    getOrgModules()
+      .then((d) => { if (d?.modules) setModules(d.modules); })
+      .catch(() => null)
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function toggle(key: keyof OrgModules) {
+    const next = { ...modules, [key]: !modules[key] };
+    setModules(next);
+    setSaving(true);
+    try {
+      const res = await updateOrgModules(next);
+      if (res?.modules) setModules(res.modules);
+      toast.success("Modül ayarları kaydedildi.");
+    } catch (e: any) {
+      setModules(modules); // revert
+      toast.error(e?.message || "Kaydedilemedi.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[200px] items-center justify-center">
+        <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
+      </div>
+    );
+  }
+
+  const enabledCount = Object.values(modules).filter(Boolean).length;
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+      <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-5 py-4">
+        <p className="text-sm text-zinc-600 leading-relaxed">
+          Kullanmadığınız modülleri kapatarak yönetim panelini sadelştirebilirsiniz.
+          Kapatılan modüllerin menü öğeleri gizlenir; veriler silinmez.
+        </p>
+        <p className="mt-2 text-xs font-medium text-zinc-400">
+          {enabledCount} / {MODULE_META.length} modül aktif
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        {MODULE_META.map((m) => {
+          const Icon = m.icon;
+          const enabled = modules[m.key];
+          const c = COLOR_MAP[m.color];
+
+          return (
+            <div
+              key={m.key}
+              className={`flex items-start gap-4 rounded-2xl border bg-white p-5 shadow-sm transition-all ${
+                enabled ? `ring-2 ${c.ring} ring-offset-1 border-transparent` : "border-zinc-200"
+              }`}
+            >
+              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${enabled ? c.bg : "bg-zinc-100"}`}>
+                <Icon className={`h-5 w-5 ${enabled ? c.text : "text-zinc-400"}`} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className={`text-sm font-semibold ${enabled ? "text-zinc-900" : "text-zinc-500"}`}>
+                    {m.labelTr}
+                  </p>
+                  {enabled ? (
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${c.badge}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${c.dot}`} />
+                      Aktif
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500">
+                      <span className="h-1.5 w-1.5 rounded-full bg-zinc-400" />
+                      Kapalı
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-zinc-500 leading-relaxed">{m.descTr}</p>
+              </div>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => void toggle(m.key)}
+                className={`relative mt-0.5 inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 ${
+                  enabled ? `${c.bg} focus:ring-current` : "bg-zinc-200 focus:ring-zinc-400"
+                }`}
+                style={enabled ? { backgroundColor: "" } : undefined}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition-transform ${
+                    enabled ? "translate-x-5" : "translate-x-0"
+                  }`}
+                  style={
+                    enabled
+                      ? { backgroundColor: "white" }
+                      : undefined
+                  }
+                />
+                <span
+                  className="absolute inset-0 rounded-full transition-colors"
+                  style={{ backgroundColor: enabled ? (m.color === "indigo" ? "#6366f1" : m.color === "violet" ? "#8b5cf6" : "#10b981") : "#e4e4e7" }}
+                />
+                <span className={`pointer-events-none absolute top-0.5 left-0.5 inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform ${enabled ? "translate-x-5" : "translate-x-0"}`} />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="text-xs text-zinc-400 px-1">
+        Modül ayarları anlık olarak kaydedilir. Sayfayı yeniledikten sonra menü değişiklikleri görünür olur.
+      </p>
+    </div>
+  );
+}
+
 function ComplianceTab() {
   const toast = useToast();
   const [downloading, setDownloading] = useState<"csv" | "pdf" | null>(null);
@@ -1609,6 +1792,7 @@ export default function AdminSettingsPage() {
             {activeTab === "account" && <AccountTab me={me} />}
             {activeTab === "2fa" && <TwoFATab />}
             {activeTab === "transactions" && <TransactionsTab />}
+            {activeTab === "modules" && <ModulesTab />}
             {activeTab === "domain" && <CustomDomainTab />}
             {activeTab === "team" && <OrganizationTeamTab />}
             {activeTab === "venues" && <VenuesTab />}

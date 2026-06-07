@@ -20400,6 +20400,9 @@ app.include_router(_lead_forms_api.router)
 from . import lms_api as _lms_api  # noqa: E402
 app.include_router(_lms_api.router)
 
+from . import org_modules_api as _org_modules_api  # noqa: E402
+app.include_router(_org_modules_api.router)
+
 from . import org_analytics_api as _org_analytics_api  # noqa: E402
 app.include_router(_org_analytics_api.router)
 

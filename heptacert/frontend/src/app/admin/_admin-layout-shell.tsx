@@ -1,10 +1,10 @@
-﻿"use client";
+"use client";
 
 import type { ReactNode } from "react";
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { apiFetch, clearToken, getRoleFromToken, getSelectedOrganizationId, setSelectedOrganizationId } from "@/lib/api";
+import { apiFetch, clearToken, getRoleFromToken, getSelectedOrganizationId, setSelectedOrganizationId, type OrgModules } from "@/lib/api";
 import { LanguageToggle, useI18n } from "@/lib/i18n";
 import InAppTourGuide from "@/components/Admin/InAppTourGuide";
 import AIAssistant from "@/components/Admin/AIAssistant";
@@ -54,6 +54,8 @@ type NavItem = {
 type NavGroup = {
   label: { tr: string; en: string };
   items: NavItem[];
+  /** If set, this group is hidden when the corresponding module is disabled */
+  module?: keyof OrgModules;
 };
 
 type OrganizationContext = {
@@ -63,6 +65,18 @@ type OrganizationContext = {
   owned: boolean;
   permissions: string[];
 };
+
+const DEFAULT_MODULES: OrgModules = { events: true, lms: true, accreditation: true };
+
+// Group indices (0-based):
+// 0: Genel          — always visible
+// 1: Etkinlikler    — module: events
+// 2: LMS            — module: lms
+// 3: Akreditasyon   — module: accreditation
+// 4: CRM & Satış    — always visible
+// 5: İletişim       — always visible
+// 6: Analitik       — always visible
+// 7: Platform       — always visible
 
 const NAV_GROUPS: NavGroup[] = [
   {
@@ -74,6 +88,7 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: { tr: "Etkinlikler", en: "Events" },
+    module: "events",
     items: [
       { href: "/admin/events", label: { tr: "Etkinlikler", en: "Events" }, icon: CalendarCheck2 },
       { href: "/admin/learning-paths", label: { tr: "Sertifika Programları", en: "Certificate Programs" }, icon: BookOpen },
@@ -81,10 +96,17 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: { tr: "LMS", en: "LMS" },
+    module: "lms",
     items: [
       { href: "/admin/lms", label: { tr: "Kurslar", en: "Courses" }, icon: School },
       { href: "/admin/lms/journeys", label: { tr: "Öğrenme Yolları", en: "Learning Journeys" }, icon: Route },
       { href: "/admin/training", label: { tr: "Uyum Takibi", en: "Compliance" }, icon: Award },
+    ],
+  },
+  {
+    label: { tr: "Akreditasyon", en: "Accreditation" },
+    module: "accreditation",
+    items: [
       { href: "/admin/accreditation", label: { tr: "CPD / Akreditasyon", en: "CPD / Accreditation" }, icon: ChartNoAxesCombined },
     ],
   },
@@ -126,12 +148,14 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
+// Primary mobile nav — always-visible items (module-gated items excluded here)
+// Indices: [0]=Genel, [4]=CRM, [5]=İletişim, [7]=Platform
 const PRIMARY_MOBILE_ITEMS: NavItem[] = [
-  NAV_GROUPS[0].items[0],  // Dashboard  (Genel[0])
-  NAV_GROUPS[1].items[0],  // Etkinlikler (Events[0])
-  NAV_GROUPS[4].items[0],  // Email Merkezi (İletişim[0])
-  NAV_GROUPS[3].items[0],  // Katılımcı CRM (CRM & Satış[0])
-  NAV_GROUPS[6].items[4],  // Settings (Platform[4])
+  NAV_GROUPS[0].items[0],  // Dashboard
+  NAV_GROUPS[1].items[0],  // Etkinlikler
+  NAV_GROUPS[5].items[0],  // Email Merkezi
+  NAV_GROUPS[4].items[0],  // CRM
+  NAV_GROUPS[7].items[4],  // Settings
 ];
 
 const AUTH_PATH_PREFIXES = ["/admin/login", "/admin/magic-verify", "/admin/auth"];
@@ -161,7 +185,6 @@ function getTourIdByHref(href: string): string {
     "/admin/events": "nav-events",
     "/admin/email-dashboard": "nav-email-dashboard",
     "/admin/email-analytics": "nav-email-analytics",
-    "/admin/webhooks": "nav-webhooks",
     "/admin/settings": "nav-settings",
     "/admin/superadmin": "nav-superadmin",
   };
@@ -171,10 +194,12 @@ function getTourIdByHref(href: string): string {
 function SidebarContent({
   pathname,
   collapsed,
+  modules,
   onClose,
 }: {
   pathname: string;
   collapsed: boolean;
+  modules: OrgModules;
   onClose?: () => void;
 }) {
   const router = useRouter();
@@ -186,6 +211,8 @@ function SidebarContent({
     router.push("/admin/login");
     onClose?.();
   }
+
+  const visibleGroups = NAV_GROUPS.filter((g) => !g.module || modules[g.module]);
 
   return (
     <div className="flex h-full flex-col">
@@ -200,7 +227,7 @@ function SidebarContent({
       </div>
 
       <nav className={`flex-1 space-y-5 overflow-y-auto py-4 ${collapsed ? "px-2" : "px-3"}`}>
-        {NAV_GROUPS.map((group) => (
+        {visibleGroups.map((group) => (
           <div key={group.label.en}>
             {!collapsed && (
               <p className="mb-1.5 px-2 text-11 font-semibold uppercase tracking-wider text-surface-400">
@@ -272,35 +299,44 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() || "";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [modules, setModules] = useState<OrgModules>(DEFAULT_MODULES);
 
-  // Restore sidebar collapsed state from localStorage before first paint
   useLayoutEffect(() => {
     try {
       const stored = localStorage.getItem("heptacert-sidebar-collapsed");
       if (stored === "true") setCollapsed(true);
     } catch {
-      // storage unavailable — ignore
+      // storage unavailable
     }
   }, []);
 
-  // Persist collapsed state whenever it changes
   useEffect(() => {
     try {
       localStorage.setItem("heptacert-sidebar-collapsed", String(collapsed));
     } catch {
-      // storage unavailable — ignore
+      // storage unavailable
     }
   }, [collapsed]);
+
   const [organizationContexts, setOrganizationContexts] = useState<OrganizationContext[]>([]);
   const [activeOrganizationId, setActiveOrganizationId] = useState("");
   const [activeJobCount, setActiveJobCount] = useState(0);
   const currentSection = getCurrentSection(pathname);
   const { lang } = useI18n();
   const role = getRoleFromToken();
-  const mobileNavItems =
-    role === "superadmin"
-      ? [...PRIMARY_MOBILE_ITEMS.slice(0, 4), NAV_GROUPS[6].items[5]]
-      : PRIMARY_MOBILE_ITEMS;
+
+  // Mobile nav: swap Etkinlikler for first available module item
+  const mobileNavItems = useMemo(() => {
+    const base = [...PRIMARY_MOBILE_ITEMS];
+    // Replace Etkinlikler with LMS item if events is disabled but lms is enabled
+    if (!modules.events && modules.lms) {
+      base[1] = NAV_GROUPS[2].items[0];
+    }
+    if (role === "superadmin") {
+      base[4] = NAV_GROUPS[7].items[5];
+    }
+    return base;
+  }, [modules, role]);
 
   const topbarText = useMemo(
     () => ({
@@ -341,7 +377,38 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
       });
   }, [pathname]);
 
-  // Poll active job count every 10s to show indicator in header
+  // Load module settings once after contexts are available; run onboarding if pending
+  useEffect(() => {
+    if (isAuthPage(pathname)) return;
+
+    // Check if a pending org_type was stored during registration
+    let pendingOrgType: string | null = null;
+    try { pendingOrgType = localStorage.getItem("heptacert-pending-org-type"); } catch { /* ignore */ }
+
+    apiFetch("/admin/organization/modules")
+      .then((r) => r.json())
+      .then(async (d: { modules: OrgModules; org_type: string | null }) => {
+        if (d?.modules) setModules(d.modules);
+
+        // If onboarding not yet done and we have a pending org type from registration
+        if (!d?.org_type && pendingOrgType) {
+          try {
+            const onboarded = await apiFetch("/admin/organization/onboarding", {
+              method: "POST",
+              body: JSON.stringify({ org_type: pendingOrgType }),
+            }).then((r) => r.json());
+            if (onboarded?.modules) setModules(onboarded.modules);
+            localStorage.removeItem("heptacert-pending-org-type");
+          } catch { /* non-critical */ }
+        }
+      })
+      .catch(() => {
+        // keep defaults — non-critical
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeOrganizationId]);
+
+  // Poll active job count every 10s
   useEffect(() => {
     if (isAuthPage(pathname)) return;
     const poll = () => {
@@ -366,14 +433,14 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
           collapsed ? "lg:w-[64px]" : "lg:w-[240px]"
         }`}
       >
-        <SidebarContent pathname={pathname} collapsed={collapsed} />
+        <SidebarContent pathname={pathname} collapsed={collapsed} modules={modules} />
       </aside>
 
       {mobileOpen && (
         <div className="fixed inset-0 z-50 flex lg:hidden">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
           <aside className="relative z-10 w-[min(88vw,320px)] border-r border-sidebar-border bg-sidebar/95 backdrop-blur">
-            <SidebarContent pathname={pathname} collapsed={false} onClose={() => setMobileOpen(false)} />
+            <SidebarContent pathname={pathname} collapsed={false} modules={modules} onClose={() => setMobileOpen(false)} />
           </aside>
         </div>
       )}
