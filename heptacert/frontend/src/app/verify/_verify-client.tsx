@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, CheckCircle2, ImageUp, Loader2, QrCode, Search, ShieldCheck, Upload, XCircle, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { apiFetch, ApiError, apiUrl, normalizeApiAssetUrl } from "@/lib/api";
+import { publicApiFetch, ApiError, apiUrl, normalizeApiAssetUrl } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 type Tab = "uuid" | "image";
@@ -142,7 +142,7 @@ export default function VerifyIndexPage() {
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const res = await apiFetch("/verify-watermark", { method: "POST", body: fd });
+      const res = await publicApiFetch("/verify-watermark", { method: "POST", body: fd });
       setResult(await res.json());
     } catch (err) {
       if (err instanceof ApiError) setResult({ valid: false, message: err.message });

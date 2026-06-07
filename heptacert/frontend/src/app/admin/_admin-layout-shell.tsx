@@ -39,6 +39,7 @@ import {
   FileText,
   Store,
   Award,
+  School,
 } from "lucide-react";
 
 type NavItem = {
@@ -67,10 +68,17 @@ const NAV_GROUPS: NavGroup[] = [
     label: { tr: "Genel", en: "General" },
     items: [
       { href: "/admin/dashboard", label: { tr: "Dashboard", en: "Dashboard" }, icon: Gauge, exact: true },
-      { href: "/admin/events", label: { tr: "Etkinlikler", en: "Events" }, icon: CalendarCheck2 },
-      { href: "/admin/learning-paths", label: { tr: "Öğrenme Yolları", en: "Learning Paths" }, icon: BookOpen },
-      { href: "/admin/training", label: { tr: "Eğitim", en: "Training" }, icon: GraduationCap },
       { href: "/admin/jobs", label: { tr: "İşler", en: "Jobs" }, icon: Loader2, exact: true },
+    ],
+  },
+  {
+    label: { tr: "Etkinlikler & Eğitim", en: "Events & Training" },
+    items: [
+      { href: "/admin/events", label: { tr: "Etkinlikler", en: "Events" }, icon: CalendarCheck2 },
+      { href: "/admin/learning-paths", label: { tr: "Sertifika Programları", en: "Certificate Programs" }, icon: BookOpen },
+      { href: "/admin/lms", label: { tr: "LMS — Kurslar", en: "LMS — Courses" }, icon: School },
+      { href: "/admin/training", label: { tr: "Eğitim Uyumu", en: "Training Compliance" }, icon: GraduationCap },
+      { href: "/admin/accreditation", label: { tr: "Akreditasyon", en: "Accreditation" }, icon: Award },
     ],
   },
   {
@@ -102,24 +110,21 @@ const NAV_GROUPS: NavGroup[] = [
     label: { tr: "Platform", en: "Platform" },
     items: [
       { href: "/admin/marketplace", label: { tr: "Marketplace", en: "Marketplace" }, icon: Store },
-      { href: "/admin/accreditation", label: { tr: "Akreditasyon", en: "Accreditation" }, icon: Award },
       { href: "/admin/integrations", label: { tr: "Entegrasyonlar", en: "Integrations" }, icon: Plug, exact: true },
       { href: "/admin/payments/transactions", label: { tr: "Ödemeler", en: "Payments" }, icon: CreditCard },
-      { href: "/admin/webhooks", label: { tr: "Webhooks", en: "Webhooks" }, icon: Webhook },
       { href: "/admin/api-keys", label: { tr: "API Anahtarları", en: "API Keys" }, icon: KeyRound },
       { href: "/admin/settings", label: { tr: "Ayarlar", en: "Settings" }, icon: Settings },
-      { href: "/admin/organization-social", label: { tr: "Kurumsal Sosyal", en: "Org Social" }, icon: Building2 },
       { href: "/admin/superadmin", label: { tr: "Super Admin", en: "Super Admin" }, icon: Shield, superadminOnly: true },
     ],
   },
 ];
 
 const PRIMARY_MOBILE_ITEMS: NavItem[] = [
-  NAV_GROUPS[0].items[0],  // Dashboard
-  NAV_GROUPS[0].items[1],  // Events
-  NAV_GROUPS[2].items[0],  // Email Center (İletişim[0])
-  NAV_GROUPS[1].items[0],  // Katılımcı CRM (CRM & Satış[0])
-  NAV_GROUPS[4].items[6],  // Settings (Platform[6])
+  NAV_GROUPS[0].items[0],  // Dashboard  (Genel[0])
+  NAV_GROUPS[1].items[0],  // Etkinlikler (Events & Training[0])
+  NAV_GROUPS[3].items[0],  // Email Merkezi (İletişim[0])
+  NAV_GROUPS[2].items[0],  // Katılımcı CRM (CRM & Satış[0])
+  NAV_GROUPS[5].items[4],  // Settings (Platform[4])
 ];
 
 const AUTH_PATH_PREFIXES = ["/admin/login", "/admin/magic-verify", "/admin/auth"];
@@ -287,7 +292,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
   const role = getRoleFromToken();
   const mobileNavItems =
     role === "superadmin"
-      ? [...PRIMARY_MOBILE_ITEMS.slice(0, 4), NAV_GROUPS[4].items[8]]
+      ? [...PRIMARY_MOBILE_ITEMS.slice(0, 4), NAV_GROUPS[5].items[5]]
       : PRIMARY_MOBILE_ITEMS;
 
   const topbarText = useMemo(

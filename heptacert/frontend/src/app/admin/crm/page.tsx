@@ -59,6 +59,12 @@ const TAG_DISPLAY_LABELS: Record<string, string> = {
   no_show: "Gelmeyen Kayıtlılar",
   repeat_attendees: "Tekrar Katılanlar",
   segment: "Segment",
+  // Lifecycle statuses
+  lead: "Lead",
+  active: "Aktif",
+  vip: "VIP",
+  renewal: "Yenileme",
+  inactive: "Pasif",
 };
 
 function formatTag(raw: string): string {
@@ -864,7 +870,7 @@ export default function AdminCrmPage() {
                           <p className="truncate text-11 font-medium text-surface-400 mt-0.5">{participant.email}</p>
                         </div>
                         <span className="shrink-0 inline-flex rounded-md border border-surface-100 bg-white px-1.5 py-0.5 text-11 font-bold text-surface-500 uppercase tracking-tight shadow-sm">
-                          {participant.meta.lifecycle_status}
+                          {formatTag(participant.meta.lifecycle_status ?? "lead")}
                         </span>
                       </div>
                       

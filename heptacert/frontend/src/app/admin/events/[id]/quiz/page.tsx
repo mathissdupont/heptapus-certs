@@ -138,10 +138,10 @@ export default function QuizBuilderPage() {
     setSaving(true);
     try {
       const body = {
-        title: form.title,
+        title: form.title.trim() || "Sınav",
         description: form.description || null,
-        passing_score: form.passing_score,
-        max_attempts: form.max_attempts,
+        passing_score: form.passing_score >= 1 ? form.passing_score : 70,
+        max_attempts: form.max_attempts >= 1 ? form.max_attempts : 3,
         time_limit_minutes: form.time_limit_minutes ? Number(form.time_limit_minutes) : null,
         required_for_cert: form.required_for_cert,
         is_active: form.is_active,
@@ -164,8 +164,8 @@ export default function QuizBuilderPage() {
       await apiFetch(`/admin/events/${eventId}/quiz`, { method: "POST", body: JSON.stringify(body) });
       setHasQuiz(true);
       showToast("success", "Sınav kaydedildi.");
-    } catch {
-      showToast("error", "Kayıt başarısız.");
+    } catch (err: any) {
+      showToast("error", err?.message ? `Kayıt başarısız: ${err.message}` : "Kayıt başarısız.");
     } finally {
       setSaving(false);
     }

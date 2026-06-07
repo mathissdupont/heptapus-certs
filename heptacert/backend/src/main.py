@@ -2527,6 +2527,7 @@ class PublicEventDetailOut(BaseModel):
     data_controller_name: Optional[str] = None
     data_controller_contact_email: Optional[str] = None
     data_retention_note: Optional[str] = None
+    has_active_quiz: bool = False
 
 
 class EventTicketOut(BaseModel):
@@ -16141,6 +16142,7 @@ def _build_public_event_detail(
     sessions: List[EventSession],
     survey: Optional["EventSurvey"],
     organization: Optional[Organization] = None,
+    has_active_quiz: bool = False,
 ) -> PublicEventDetailOut:
     return PublicEventDetailOut(
         id=event.id,
@@ -16178,6 +16180,7 @@ def _build_public_event_detail(
         data_controller_name=_get_event_data_controller_name(event),
         data_controller_contact_email=_get_event_data_controller_contact_email(event),
         data_retention_note=_get_event_data_retention_note(event),
+        has_active_quiz=has_active_quiz,
         sessions=[
             {
                 "id": s.id,
@@ -16325,7 +16328,14 @@ async def get_public_event_detail(event_id: str, request: Request, db: AsyncSess
     )
     survey_res = await db.execute(select(EventSurvey).where(EventSurvey.event_id == event.id))
     org_res = await db.execute(select(Organization).where(Organization.user_id == event.admin_id))
-    return _build_public_event_detail(event, sessions_res.scalars().all(), survey_res.scalar_one_or_none(), org_res.scalar_one_or_none())
+
+    from .quiz_models import Quiz as _Quiz
+    quiz_count_res = await db.execute(
+        select(func.count(_Quiz.id)).where(_Quiz.event_id == event.id, _Quiz.is_active == True)
+    )
+    has_active_quiz = (quiz_count_res.scalar_one() or 0) > 0
+
+    return _build_public_event_detail(event, sessions_res.scalars().all(), survey_res.scalar_one_or_none(), org_res.scalar_one_or_none(), has_active_quiz=has_active_quiz)
 
 
 @app.get("/api/public/events/{event_id}/comments", response_model=list[PublicEventCommentOut])
@@ -20386,6 +20396,9 @@ app.include_router(_crm_accounts_api.router)
 
 from . import lead_forms_api as _lead_forms_api  # noqa: E402
 app.include_router(_lead_forms_api.router)
+
+from . import lms_api as _lms_api  # noqa: E402
+app.include_router(_lms_api.router)
 
 from . import org_analytics_api as _org_analytics_api  # noqa: E402
 app.include_router(_org_analytics_api.router)

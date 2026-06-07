@@ -132,11 +132,9 @@ function Navbar() {
   const links = isWhiteLabel
     ? [{ href: "/verify", label: t("nav_verify") }]
     : [
-        { href: "/events",          label: eventsLabel },
-        { href: "/organizations",   label: communitiesLabel },
-        { href: "/discover",        label: discoverLabel },
-        { href: "/marketplace",     label: marketplaceLabel },
-        { href: "/learning-paths",  label: lang === "tr" ? "Eğitim Yolları" : "Learning Paths" },
+        { href: "/events",        label: eventsLabel },
+        { href: "/discover",      label: discoverLabel },
+        { href: "/marketplace",   label: marketplaceLabel },
         ...(member ? [{ href: "/my-events", label: myEventsLabel }] : []),
         ...(member ? [{ href: "/profile",   label: profileLabel   }] : []),
         { href: "/pricing", label: t("nav_pricing") },

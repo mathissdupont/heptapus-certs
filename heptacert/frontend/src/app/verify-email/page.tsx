@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { publicApiFetch } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 function VerifyEmailContent() {
@@ -49,7 +49,7 @@ function VerifyEmailContent() {
       setMessage(copy.invalid);
       return;
     }
-    apiFetch(`/auth/verify-email?token=${encodeURIComponent(token)}`, { method: "GET" })
+    publicApiFetch(`/auth/verify-email?token=${encodeURIComponent(token)}`, { method: "GET" })
       .then(async (r) => {
         const d = await r.json();
         setMessage(d.detail || copy.success);

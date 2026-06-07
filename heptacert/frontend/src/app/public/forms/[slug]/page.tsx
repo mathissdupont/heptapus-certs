@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Loader2, CheckCircle2, AlertCircle, Send } from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { publicApiFetch } from "@/lib/api";
 
 type FieldDef = {
   name: string;
@@ -42,7 +42,7 @@ export default function PublicFormPage() {
 
     (async () => {
       try {
-        const response = await apiFetch(`/public/forms/${slug}/meta`);
+        const response = await publicApiFetch(`/public/forms/${slug}/meta`);
         const data = (await response.json()) as FormMeta;
 
         if (!cancelled) {
@@ -91,7 +91,7 @@ export default function PublicFormPage() {
     setSubmitting(true);
     setError(null);
     try {
-      const _sr = await apiFetch(`/public/forms/${slug}/submit`, {
+      const _sr = await publicApiFetch(`/public/forms/${slug}/submit`, {
         method: "POST",
         body: JSON.stringify({
           data: values,

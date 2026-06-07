@@ -19,6 +19,7 @@ import {
   FileText,
   CheckCircle2,
   Ticket,
+  FileQuestion,
 } from "lucide-react";
 import {
   createPublicEventComment,
@@ -94,6 +95,7 @@ export default function PublicEventDetailClient() {
             writeError: "Yorum gönderilemedi.",
             sessionLabel: "Oturum",
             viewStatus: "Durumu Görüntüle",
+            takeQuiz: "Sınava Gir",
           }
         : {
             back: "Back to events",
@@ -125,6 +127,7 @@ export default function PublicEventDetailClient() {
             writeError: "Failed to submit comment.",
             sessionLabel: "Session",
             viewStatus: "View Status",
+            takeQuiz: "Take Quiz",
           },
     [lang],
   );
@@ -385,6 +388,15 @@ export default function PublicEventDetailClient() {
                   className="inline-flex items-center justify-center px-6 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
                 >
                   {copy.viewStatus}
+                </Link>
+              )}
+              {event.has_active_quiz && (
+                <Link
+                  href={`/events/${event.public_id}/quiz`}
+                  className="inline-flex items-center gap-2 justify-center px-6 py-2.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 text-sm font-medium hover:bg-indigo-100 transition-colors shadow-sm"
+                >
+                  <FileQuestion className="h-4 w-4" />
+                  {copy.takeQuiz}
                 </Link>
               )}
             </div>

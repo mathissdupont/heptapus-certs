@@ -69,7 +69,7 @@ class QuizQuestionIn(BaseModel):
 
 
 class QuizIn(BaseModel):
-    title: str = Field(default="Sınav", min_length=1, max_length=200)
+    title: str = Field(default="Sınav", max_length=200)
     description: Optional[str] = Field(default=None, max_length=2000)
     passing_score: int = Field(default=70, ge=1, le=100)
     max_attempts: int = Field(default=3, ge=1, le=10)
@@ -80,7 +80,7 @@ class QuizIn(BaseModel):
 
 
 class QuizPatch(BaseModel):
-    title: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    title: Optional[str] = Field(default=None, max_length=200)
     description: Optional[str] = Field(default=None, max_length=2000)
     passing_score: Optional[int] = Field(default=None, ge=1, le=100)
     max_attempts: Optional[int] = Field(default=None, ge=1, le=10)
@@ -359,7 +359,7 @@ async def create_or_replace_quiz(
 
     quiz = Quiz(
         event_id=ev.id,
-        title=payload.title,
+        title=payload.title.strip() or "Sınav",
         description=payload.description,
         passing_score=payload.passing_score,
         max_attempts=payload.max_attempts,

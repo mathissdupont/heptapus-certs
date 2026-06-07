@@ -1494,6 +1494,7 @@ export interface PublicEventDetail {
   data_controller_name?: string | null;
   data_controller_contact_email?: string | null;
   data_retention_note?: string | null;
+  has_active_quiz?: boolean;
 }
 
 export interface RegistrationDocumentUploadOut {
@@ -3951,7 +3952,7 @@ export async function issueCertForAttempt(eventId: number | string, attemptId: n
 export async function getPublicQuiz(eventId: number | string, memberToken?: string | null) {
   const headers: Record<string, string> = {};
   if (memberToken) headers["Authorization"] = `Bearer ${memberToken}`;
-  const res = await apiFetch(`/public/events/${eventId}/quiz`, { headers });
+  const res = await publicApiFetch(`/public/events/${eventId}/quiz`, { headers });
   return res.json();
 }
 
@@ -3962,7 +3963,7 @@ export async function startQuizAttempt(
 ) {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (memberToken) headers["Authorization"] = `Bearer ${memberToken}`;
-  const res = await apiFetch(`/public/events/${eventId}/quiz/start`, {
+  const res = await publicApiFetch(`/public/events/${eventId}/quiz/start`, {
     method: "POST",
     headers,
     body: JSON.stringify(payload),
@@ -3977,7 +3978,7 @@ export async function submitQuizAttempt(
 ) {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (memberToken) headers["Authorization"] = `Bearer ${memberToken}`;
-  const res = await apiFetch(`/public/events/${eventId}/quiz/submit`, {
+  const res = await publicApiFetch(`/public/events/${eventId}/quiz/submit`, {
     method: "POST",
     headers,
     body: JSON.stringify(payload),
@@ -4690,4 +4691,75 @@ export async function updateMarketplaceSettings(
     body: JSON.stringify(body),
   });
   return res.json();
+}
+
+// ---------------------------------------------------------------------------
+// LMS API wrappers
+// ---------------------------------------------------------------------------
+
+export interface TrainingCourseOut {
+  id: number;
+  org_id: number;
+  title: string;
+  description: string | null;
+  thumbnail_url: string | null;
+  category: string | null;
+  level: string;
+  language: string;
+  is_published: boolean;
+  is_featured: boolean;
+  price: number | null;
+  passing_score: number | null;
+  module_count: number;
+  created_at: string;
+  updated_at: string;
+  modules?: CourseModuleOut[];
+}
+
+export interface CourseModuleOut {
+  id: number;
+  course_id: number;
+  title: string;
+  description: string | null;
+  order: number;
+  content_type: string;
+  content_url: string | null;
+  content_text: string | null;
+  duration_minutes: number | null;
+  is_required: boolean;
+  created_at: string;
+}
+
+export async function listLmsCourses(): Promise<TrainingCourseOut[]> {
+  const res = await apiFetch("/admin/lms/courses");
+  const d = await res.json();
+  return d.courses ?? [];
+}
+
+export async function getLmsCourse(courseId: number): Promise<TrainingCourseOut> {
+  const res = await apiFetch(`/admin/lms/courses/${courseId}`);
+  return res.json();
+}
+
+export async function createLmsCourse(body: Partial<TrainingCourseOut>): Promise<TrainingCourseOut> {
+  const res = await apiFetch("/admin/lms/courses", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
+
+export async function updateLmsCourse(
+  courseId: number,
+  body: Partial<TrainingCourseOut>
+): Promise<TrainingCourseOut> {
+  const res = await apiFetch(`/admin/lms/courses/${courseId}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
+
+export async function deleteLmsCourse(courseId: number): Promise<void> {
+  await apiFetch(`/admin/lms/courses/${courseId}`, { method: "DELETE" });
 }
