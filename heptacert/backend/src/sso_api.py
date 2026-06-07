@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func, select
@@ -110,11 +110,22 @@ class SsoConfigPatch(BaseModel):
 
 
 async def _get_org(me: CurrentUser, db: AsyncSession) -> Organization:
-    res = await db.execute(select(Organization).where(Organization.owner_id == me.id))
+    res = await db.execute(select(Organization).where(Organization.user_id == me.id))
     org = res.scalar_one_or_none()
     if org is None:
         raise HTTPException(404, "Organizasyon bulunamadı.")
     return org
+
+
+async def _get_org_from_request(request: Request, me: CurrentUser, db: AsyncSession) -> Organization:
+    from .organization_access_api import get_organization_for_access, organization_id_from_request
+
+    return await get_organization_for_access(
+        db,
+        me,
+        "organization:view",
+        organization_id_from_request(request),
+    )
 
 
 def _config_out(c: OrgSsoConfig) -> dict:
@@ -151,10 +162,11 @@ def _get_redirect_uri(provider: str) -> str:
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
 )
 async def list_sso_configs(
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org(me, db)
+    org = await _get_org_from_request(request, me, db)
     rows = (await db.execute(
         select(OrgSsoConfig).where(OrgSsoConfig.org_id == org.id)
     )).scalars().all()
@@ -171,10 +183,11 @@ async def list_sso_configs(
 )
 async def create_sso_config(
     body: SsoConfigIn,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org(me, db)
+    org = await _get_org_from_request(request, me, db)
     existing = (await db.execute(
         select(OrgSsoConfig).where(
             OrgSsoConfig.org_id == org.id, OrgSsoConfig.provider == body.provider
@@ -206,10 +219,11 @@ async def create_sso_config(
 async def update_sso_config(
     config_id: int,
     body: SsoConfigPatch,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org(me, db)
+    org = await _get_org_from_request(request, me, db)
     config = (await db.execute(
         select(OrgSsoConfig).where(OrgSsoConfig.id == config_id, OrgSsoConfig.org_id == org.id)
     )).scalar_one_or_none()
@@ -237,10 +251,11 @@ async def update_sso_config(
 )
 async def delete_sso_config(
     config_id: int,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org(me, db)
+    org = await _get_org_from_request(request, me, db)
     config = (await db.execute(
         select(OrgSsoConfig).where(OrgSsoConfig.id == config_id, OrgSsoConfig.org_id == org.id)
     )).scalar_one_or_none()

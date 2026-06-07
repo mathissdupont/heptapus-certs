@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from html import escape
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -85,11 +85,22 @@ class StaffAcceptIn(BaseModel):
 
 
 async def _get_org(me: CurrentUser, db: AsyncSession) -> Organization:
-    res = await db.execute(select(Organization).where(Organization.owner_id == me.id))
+    res = await db.execute(select(Organization).where(Organization.user_id == me.id))
     org = res.scalar_one_or_none()
     if org is None:
         raise HTTPException(status_code=404, detail="Organizasyon bulunamadı.")
     return org
+
+
+async def _get_org_from_request(request: Request, me: CurrentUser, db: AsyncSession) -> Organization:
+    from .organization_access_api import get_organization_for_access, organization_id_from_request
+
+    return await get_organization_for_access(
+        db,
+        me,
+        "organization:view",
+        organization_id_from_request(request),
+    )
 
 
 def _staff_out(s: OrgStaff) -> dict:
@@ -148,10 +159,11 @@ async def _send_invite_email(email: str, org_name: str, role: str, invited_by_em
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
 )
 async def list_staff(
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org(me, db)
+    org = await _get_org_from_request(request, me, db)
     res = await db.execute(
         select(OrgStaff)
         .where(OrgStaff.org_id == org.id)
@@ -168,13 +180,14 @@ async def list_staff(
 async def invite_staff(
     payload: StaffInviteIn,
     background_tasks: BackgroundTasks,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     if payload.role not in ORG_STAFF_ROLES:
         raise HTTPException(status_code=400, detail=f"Geçersiz rol. Seçenekler: {', '.join(sorted(ORG_STAFF_ROLES))}")
 
-    org = await _get_org(me, db)
+    org = await _get_org_from_request(request, me, db)
     normalized = payload.email.strip().lower()
 
     # Check for existing active staff
@@ -185,7 +198,7 @@ async def invite_staff(
     if existing:
         # Re-send invite if not yet joined
         if existing.joined_at is None:
-            background_tasks.add_task(_send_invite_email, normalized, org.name, existing.role, me.email)
+            background_tasks.add_task(_send_invite_email, normalized, org.org_name, existing.role, me.email)
             return {**_staff_out(existing), "resent": True}
         raise HTTPException(status_code=409, detail="Bu e-posta zaten ekipte.")
 
@@ -201,7 +214,7 @@ async def invite_staff(
     await db.commit()
     await db.refresh(staff)
 
-    background_tasks.add_task(_send_invite_email, normalized, org.name, payload.role, me.email)
+    background_tasks.add_task(_send_invite_email, normalized, org.org_name, payload.role, me.email)
     return _staff_out(staff)
 
 
@@ -212,10 +225,11 @@ async def invite_staff(
 async def update_staff(
     staff_id: int,
     payload: StaffPatch,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org(me, db)
+    org = await _get_org_from_request(request, me, db)
     res = await db.execute(
         select(OrgStaff).where(OrgStaff.id == staff_id, OrgStaff.org_id == org.id)
     )
@@ -241,10 +255,11 @@ async def update_staff(
 )
 async def remove_staff(
     staff_id: int,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org(me, db)
+    org = await _get_org_from_request(request, me, db)
     res = await db.execute(
         select(OrgStaff).where(OrgStaff.id == staff_id, OrgStaff.org_id == org.id)
     )

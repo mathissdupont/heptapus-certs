@@ -7,7 +7,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -290,7 +290,16 @@ def _module_to_dict(module: CourseModule) -> dict[str, Any]:
     }
 
 
-async def _get_org_for_user(me: CurrentUser, db: AsyncSession) -> Organization:
+async def _get_org_for_user(
+    me: CurrentUser,
+    db: AsyncSession,
+    organization_id: Optional[int] = None,
+    required_permission: str = "organization:view",
+) -> Organization:
+    if organization_id is not None:
+        from .organization_access_api import get_organization_for_access
+
+        return await get_organization_for_access(db, me, required_permission, organization_id)
     res = await db.execute(
         select(Organization).where(Organization.user_id == me.id).limit(1)
     )
@@ -300,8 +309,17 @@ async def _get_org_for_user(me: CurrentUser, db: AsyncSession) -> Organization:
     return org
 
 
+def _organization_id_from_request(request: Request) -> Optional[int]:
+    from .organization_access_api import organization_id_from_request
+
+    return organization_id_from_request(request)
+
+
 async def _get_course_for_admin(
-    course_id: int, me: CurrentUser, db: AsyncSession
+    course_id: int,
+    me: CurrentUser,
+    db: AsyncSession,
+    organization_id: Optional[int] = None,
 ) -> TrainingCourse:
     res = await db.execute(
         select(TrainingCourse)
@@ -312,9 +330,11 @@ async def _get_course_for_admin(
     if not course:
         raise HTTPException(status_code=404, detail="Kurs bulunamadı.")
     if me.role != Role.superadmin:
-        org = await _get_org_for_user(me, db)
+        org = await _get_org_for_user(me, db, organization_id, "organization:view")
         if course.org_id != org.id:
             raise HTTPException(status_code=403, detail="Bu kursa erişim yetkiniz yok.")
+    if me.role == Role.superadmin and organization_id is not None and course.org_id != organization_id:
+        raise HTTPException(status_code=403, detail="Bu kurs seçili organizasyona ait değil.")
     return course
 
 
@@ -369,10 +389,11 @@ class OrgLmsStaffIn(BaseModel):
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
 )
 async def list_lms_staff(
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org_for_user(me, db)
+    org = await _get_org_for_user(me, db, _organization_id_from_request(request), "organization:team_manage")
     res = await db.execute(
         select(OrgLmsStaff, User)
         .join(User, User.id == OrgLmsStaff.user_id)
@@ -401,10 +422,11 @@ async def list_lms_staff(
 )
 async def add_lms_staff(
     payload: OrgLmsStaffIn,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org_for_user(me, db)
+    org = await _get_org_for_user(me, db, _organization_id_from_request(request), "organization:team_manage")
     # Resolve user by email
     user_res = await db.execute(
         select(User).where(func.lower(User.email) == payload.user_email.strip().lower())
@@ -442,10 +464,11 @@ async def add_lms_staff(
 )
 async def remove_lms_staff(
     staff_id: int,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org_for_user(me, db)
+    org = await _get_org_for_user(me, db, _organization_id_from_request(request), "organization:team_manage")
     res = await db.execute(
         select(OrgLmsStaff).where(OrgLmsStaff.id == staff_id, OrgLmsStaff.org_id == org.id)
     )
@@ -467,10 +490,11 @@ async def remove_lms_staff(
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
 )
 async def list_courses_admin(
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org_for_user(me, db)
+    org = await _get_org_for_user(me, db, _organization_id_from_request(request), "organization:view")
     res = await db.execute(
         select(TrainingCourse)
         .where(TrainingCourse.org_id == org.id)
@@ -487,10 +511,11 @@ async def list_courses_admin(
 )
 async def create_course(
     payload: CourseIn,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org_for_user(me, db)
+    org = await _get_org_for_user(me, db, _organization_id_from_request(request), "organization:view")
     course = TrainingCourse(
         org_id=org.id,
         title=payload.title.strip() or "Yeni Kurs",
@@ -516,10 +541,11 @@ async def create_course(
 )
 async def get_course_admin(
     course_id: int,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    course = await _get_course_for_admin(course_id, me, db)
+    course = await _get_course_for_admin(course_id, me, db, _organization_id_from_request(request))
     return _course_to_dict(course, include_modules=True)
 
 
@@ -530,10 +556,11 @@ async def get_course_admin(
 async def update_course(
     course_id: int,
     payload: CoursePatch,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    course = await _get_course_for_admin(course_id, me, db)
+    course = await _get_course_for_admin(course_id, me, db, _organization_id_from_request(request))
     for field, value in payload.model_dump(exclude_unset=True).items():
         if field == "title" and value is not None:
             value = value.strip() or course.title
@@ -550,10 +577,11 @@ async def update_course(
 )
 async def delete_course(
     course_id: int,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    course = await _get_course_for_admin(course_id, me, db)
+    course = await _get_course_for_admin(course_id, me, db, _organization_id_from_request(request))
     await db.delete(course)
     await db.commit()
     return {"ok": True}
@@ -571,10 +599,11 @@ async def delete_course(
 async def add_module(
     course_id: int,
     payload: CourseModuleIn,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    course = await _get_course_for_admin(course_id, me, db)
+    course = await _get_course_for_admin(course_id, me, db, _organization_id_from_request(request))
     module = CourseModule(
         course_id=course.id,
         title=payload.title.strip() or "Modül",
@@ -600,10 +629,11 @@ async def update_module(
     course_id: int,
     module_id: int,
     payload: CourseModulePatch,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_course_for_admin(course_id, me, db)
+    await _get_course_for_admin(course_id, me, db, _organization_id_from_request(request))
     res = await db.execute(
         select(CourseModule).where(
             CourseModule.id == module_id, CourseModule.course_id == course_id
@@ -628,10 +658,11 @@ async def update_module(
 async def delete_module(
     course_id: int,
     module_id: int,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_course_for_admin(course_id, me, db)
+    await _get_course_for_admin(course_id, me, db, _organization_id_from_request(request))
     res = await db.execute(
         select(CourseModule).where(
             CourseModule.id == module_id, CourseModule.course_id == course_id
@@ -958,10 +989,11 @@ def _journey_to_dict(j: LmsJourney) -> dict[str, Any]:
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
 )
 async def list_journeys(
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org_for_user(me, db)
+    org = await _get_org_for_user(me, db, _organization_id_from_request(request), "organization:view")
     res = await db.execute(
         select(LmsJourney)
         .where(LmsJourney.org_id == org.id)
@@ -978,10 +1010,11 @@ async def list_journeys(
 )
 async def create_journey(
     payload: JourneyIn,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org_for_user(me, db)
+    org = await _get_org_for_user(me, db, _organization_id_from_request(request), "organization:view")
     journey = LmsJourney(
         org_id=org.id,
         title=payload.title.strip() or "Yeni Öğrenme Yolu",
@@ -1007,10 +1040,11 @@ async def create_journey(
 )
 async def get_journey(
     journey_id: int,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org_for_user(me, db)
+    org = await _get_org_for_user(me, db, _organization_id_from_request(request), "organization:view")
     res = await db.execute(
         select(LmsJourney)
         .where(LmsJourney.id == journey_id, LmsJourney.org_id == org.id)
@@ -1029,10 +1063,11 @@ async def get_journey(
 async def update_journey(
     journey_id: int,
     payload: JourneyPatch,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org_for_user(me, db)
+    org = await _get_org_for_user(me, db, _organization_id_from_request(request), "organization:view")
     res = await db.execute(
         select(LmsJourney)
         .where(LmsJourney.id == journey_id, LmsJourney.org_id == org.id)
@@ -1070,10 +1105,11 @@ async def update_journey(
 )
 async def delete_journey(
     journey_id: int,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org_for_user(me, db)
+    org = await _get_org_for_user(me, db, _organization_id_from_request(request), "organization:view")
     res = await db.execute(
         select(LmsJourney).where(LmsJourney.id == journey_id, LmsJourney.org_id == org.id)
     )

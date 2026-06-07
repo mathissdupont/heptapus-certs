@@ -54,9 +54,17 @@ def _sync_additive_schema(sync_conn: sa.Connection) -> None:
         _add_column_if_missing(sync_conn, inspector, "superadmin_bulk_email_jobs", '"job_kind" VARCHAR(32) NOT NULL DEFAULT \'manual\'')
 
 
+def _create_schema_if_empty(sync_conn: sa.Connection) -> None:
+    inspector = sa.inspect(sync_conn)
+    table_names = set(inspector.get_table_names())
+    app_tables = table_names - {"alembic_version"}
+    if not app_tables:
+        Base.metadata.create_all(sync_conn)
+
+
 async def _create_schema() -> None:
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(_create_schema_if_empty)
         await conn.run_sync(_sync_additive_schema)
 
 

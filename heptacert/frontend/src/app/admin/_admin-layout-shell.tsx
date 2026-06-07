@@ -101,7 +101,6 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/admin/lms", label: { tr: "Kurslar", en: "Courses" }, icon: School },
       { href: "/admin/lms/journeys", label: { tr: "Öğrenme Yolları", en: "Learning Journeys" }, icon: Route },
-      { href: "/admin/lms/staff", label: { tr: "LMS Personeli", en: "LMS Staff" }, icon: UsersRound },
       { href: "/admin/lms/outcomes", label: { tr: "Kazanımlar", en: "Outcomes" }, icon: GraduationCap },
       { href: "/admin/lms/badges", label: { tr: "Rozetler", en: "Badges" }, icon: Award },
       { href: "/admin/lms/lti", label: { tr: "LTI Araçları", en: "LTI Tools" }, icon: Zap },

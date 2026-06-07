@@ -8,7 +8,7 @@ import urllib.parse
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -148,11 +148,22 @@ def _build_lti_launch_params(
 
 
 async def _get_org(me: CurrentUser, db: AsyncSession) -> Organization:
-    res = await db.execute(select(Organization).where(Organization.owner_id == me.id))
+    res = await db.execute(select(Organization).where(Organization.user_id == me.id))
     org = res.scalar_one_or_none()
     if org is None:
         raise HTTPException(404, "Organizasyon bulunamadı.")
     return org
+
+
+async def _get_org_from_request(request: Request, me: CurrentUser, db: AsyncSession) -> Organization:
+    from .organization_access_api import get_organization_for_access, organization_id_from_request
+
+    return await get_organization_for_access(
+        db,
+        me,
+        "organization:view",
+        organization_id_from_request(request),
+    )
 
 
 def _tool_out(t: LtiTool) -> dict:
@@ -179,10 +190,11 @@ def _tool_out(t: LtiTool) -> dict:
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
 )
 async def list_lti_tools(
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org(me, db)
+    org = await _get_org_from_request(request, me, db)
     rows = (await db.execute(
         select(LtiTool).where(LtiTool.org_id == org.id).order_by(LtiTool.created_at.desc())
     )).scalars().all()
@@ -196,10 +208,11 @@ async def list_lti_tools(
 )
 async def create_lti_tool(
     body: LtiToolIn,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org(me, db)
+    org = await _get_org_from_request(request, me, db)
     tool = LtiTool(
         org_id=org.id,
         name=body.name,
@@ -222,10 +235,11 @@ async def create_lti_tool(
 async def update_lti_tool(
     tool_id: int,
     body: LtiToolPatch,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org(me, db)
+    org = await _get_org_from_request(request, me, db)
     tool = (await db.execute(
         select(LtiTool).where(LtiTool.id == tool_id, LtiTool.org_id == org.id)
     )).scalar_one_or_none()
@@ -254,10 +268,11 @@ async def update_lti_tool(
 )
 async def delete_lti_tool(
     tool_id: int,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org(me, db)
+    org = await _get_org_from_request(request, me, db)
     tool = (await db.execute(
         select(LtiTool).where(LtiTool.id == tool_id, LtiTool.org_id == org.id)
     )).scalar_one_or_none()
