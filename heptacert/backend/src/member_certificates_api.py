@@ -22,6 +22,7 @@ from .main import (
     build_certificate_verify_url,
     get_current_public_member,
     get_db,
+    _certificate_png_public_url,
 )
 
 router = APIRouter()
@@ -258,7 +259,8 @@ async def ensure_certificate_share_cache(
     cert = (await db.execute(select(Certificate).where(Certificate.uuid == certificate_uuid, Certificate.deleted_at.is_(None)))).scalar_one_or_none()
     if not cert:
         return {"ok": False, "reason": "not_found"}
-    version_source = f"{cert.uuid}:{cert.student_name}:{cert.status}:{cert.issued_at}:{cert.pdf_url}:{cert.png_url}"
+    png_url = _certificate_png_public_url(cert.event_id, cert.uuid)
+    version_source = f"{cert.uuid}:{cert.student_name}:{cert.status}:{cert.issued_at}:{cert.pdf_url}:{png_url}"
     version_hash = hashlib.sha256(version_source.encode("utf-8")).hexdigest()
     cache_key = f"share:{cert.id}:{version_hash[:32]}"
     row = (await db.execute(select(CertificateShareCache).where(CertificateShareCache.cache_key == cache_key))).scalar_one_or_none()

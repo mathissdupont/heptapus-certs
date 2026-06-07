@@ -53,6 +53,25 @@ def _sync_additive_schema(sync_conn: sa.Connection) -> None:
     if "superadmin_bulk_email_jobs" in table_names:
         _add_column_if_missing(sync_conn, inspector, "superadmin_bulk_email_jobs", '"job_kind" VARCHAR(32) NOT NULL DEFAULT \'manual\'')
 
+    if "training_courses" in table_names:
+        _add_column_if_missing(sync_conn, inspector, "training_courses", '"is_marketplace_listed" BOOLEAN NOT NULL DEFAULT FALSE')
+        _add_column_if_missing(sync_conn, inspector, "training_courses", '"marketplace_price" NUMERIC(10, 2)')
+        _add_column_if_missing(sync_conn, inspector, "training_courses", '"marketplace_description" TEXT')
+        _add_column_if_missing(sync_conn, inspector, "training_courses", '"preview_video_url" TEXT')
+
+    if "course_modules" in table_names:
+        _add_column_if_missing(sync_conn, inspector, "course_modules", '"quiz_id" INTEGER')
+        _add_column_if_missing(sync_conn, inspector, "course_modules", '"lti_tool_id" INTEGER')
+        _add_column_if_missing(sync_conn, inspector, "course_modules", '"lti_custom_params" TEXT')
+
+    if "course_enrollments" in table_names:
+        _add_column_if_missing(sync_conn, inspector, "course_enrollments", '"final_grade" INTEGER')
+        _add_column_if_missing(sync_conn, inspector, "course_enrollments", '"cert_pdf_url" TEXT')
+        _add_column_if_missing(sync_conn, inspector, "course_enrollments", '"status" VARCHAR(32) NOT NULL DEFAULT \'enrolled\'')
+
+    if "lms_journey_enrollments" in table_names:
+        _add_column_if_missing(sync_conn, inspector, "lms_journey_enrollments", '"cert_pdf_url" TEXT')
+
 
 def _create_schema_if_empty(sync_conn: sa.Connection) -> None:
     inspector = sa.inspect(sync_conn)
