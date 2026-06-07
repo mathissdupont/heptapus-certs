@@ -5707,8 +5707,11 @@ async def public_event_capacities(event_id: str, db: AsyncSession = Depends(get_
 @app.on_event("startup")
 async def startup():
     ensure_dirs()
-    async with engine.begin() as conn:
-        await conn.run_sync(lambda conn: Base.metadata.create_all(conn, checkfirst=True))
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(lambda conn: Base.metadata.create_all(conn, checkfirst=True))
+    except Exception:
+        pass  # Tables already exist (created by alembic); ignore race on multi-worker startup
 
     async with SessionLocal() as db:
         res = await db.execute(select(User).where(User.email == str(settings.bootstrap_superadmin_email)))
