@@ -41,6 +41,7 @@ import {
   Award,
   School,
   Route,
+  UserPlus,
 } from "lucide-react";
 
 type NavItem = {
@@ -100,7 +101,11 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/admin/lms", label: { tr: "Kurslar", en: "Courses" }, icon: School },
       { href: "/admin/lms/journeys", label: { tr: "Öğrenme Yolları", en: "Learning Journeys" }, icon: Route },
-      { href: "/admin/training", label: { tr: "Uyum Takibi", en: "Compliance" }, icon: Award },
+      { href: "/admin/lms/staff", label: { tr: "LMS Personeli", en: "LMS Staff" }, icon: UsersRound },
+      { href: "/admin/lms/outcomes", label: { tr: "Kazanımlar", en: "Outcomes" }, icon: GraduationCap },
+      { href: "/admin/lms/badges", label: { tr: "Rozetler", en: "Badges" }, icon: Award },
+      { href: "/admin/lms/analytics", label: { tr: "LMS Analitik", en: "LMS Analytics" }, icon: BarChart3 },
+      { href: "/admin/training", label: { tr: "Uyum Takibi", en: "Compliance" }, icon: ClipboardList },
     ],
   },
   {
@@ -142,6 +147,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/admin/integrations", label: { tr: "Entegrasyonlar", en: "Integrations" }, icon: Plug, exact: true },
       { href: "/admin/payments/transactions", label: { tr: "Ödemeler", en: "Payments" }, icon: CreditCard },
       { href: "/admin/api-keys", label: { tr: "API Anahtarları", en: "API Keys" }, icon: KeyRound },
+      { href: "/admin/settings/team", label: { tr: "Ekip", en: "Team" }, icon: UserPlus },
       { href: "/admin/settings", label: { tr: "Ayarlar", en: "Settings" }, icon: Settings },
       { href: "/admin/superadmin", label: { tr: "Super Admin", en: "Super Admin" }, icon: Shield, superadminOnly: true },
     ],

@@ -12,14 +12,14 @@
 | Event yönetimi | ✅ Tam |
 | Quiz motoru | ✅ Tam |
 | LMS temel (kurs + modül + journey) | ✅ Altyapı hazır (081 migration) |
-| Rol sistemi | ⚠️ Sadece `superadmin` + `admin` |
-| Org personel modeli | ❌ Yok |
-| Gradebook | ❌ Yok |
-| Discussions | ❌ Yok |
-| Rubrics | ❌ Yok |
-| Learning Outcomes | ❌ Yok |
-| Automation LMS trigger'ları | ❌ Yok |
-| TrainingAssignment → LMS bağlantısı | ❌ Yok |
+| Rol sistemi | ✅ OrgStaff + OrgLmsStaff uygulandı |
+| Org personel modeli | ✅ org_staff_api.py + migration 085 |
+| Gradebook | ✅ lms_extended_api.py + /admin/lms/courses/[id]/gradebook |
+| Discussions | ✅ lms_extended_api.py + /courses/[id]/discussions |
+| Rubrics | ✅ lms_extended_api.py + /admin/lms/courses/[id]/rubrics |
+| Learning Outcomes | ✅ lms_extended_api.py + /admin/lms/outcomes |
+| Automation LMS trigger'ları | ✅ automation_api.py genişletildi |
+| TrainingAssignment → LMS bağlantısı | ✅ course_id FK eklendi + migration 083 |
 
 ---
 

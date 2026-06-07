@@ -1,11 +1,13 @@
 """LMS (Learning Management System) API — independent of Events."""
 
+import asyncio
 import logging
 from datetime import datetime, timezone
 from decimal import Decimal
+from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,12 +18,27 @@ from .main import (
     CurrentUser,
     Organization,
     Role,
+    SessionLocal,
+    User,
+    build_certificate_verify_url,
+    build_public_pdf_url,
+    compute_hosting_ends,
     get_current_public_member,
     get_current_user,
     get_db,
     get_optional_public_member,
+    hosting_units,
+    ISSUE_UNITS_PER_CERT,
+    local_path_from_url,
     require_role,
+    send_email_async,
+    settings,
+    Certificate,
+    CertStatus,
+    EmailTemplate,
+    PublicMember,
 )
+from .generator import TemplateConfig, render_certificate_pdf, new_certificate_uuid
 from .lms_models import (
     AssignmentSubmission,
     CourseAssignment,
@@ -32,6 +49,7 @@ from .lms_models import (
     LmsJourneyEnrollment,
     LmsJourneyStep,
     ModuleProgress,
+    OrgLmsStaff,
     TrainingCourse,
 )
 
@@ -91,6 +109,141 @@ class CourseModulePatch(BaseModel):
     content_text: Optional[str] = None
     duration_minutes: Optional[int] = Field(default=None, ge=1, le=600)
     is_required: Optional[bool] = None
+
+
+# ---------------------------------------------------------------------------
+# Certificate generation background task
+# ---------------------------------------------------------------------------
+
+
+async def _issue_lms_course_cert(enrollment_id: int, member_name: str) -> None:
+    """Generate and store a course completion certificate. Runs as a background task."""
+    async with SessionLocal() as db:
+        try:
+            enr_res = await db.execute(
+                select(CourseEnrollment)
+                .where(CourseEnrollment.id == enrollment_id)
+                .options(selectinload(CourseEnrollment.course))
+            )
+            enr = enr_res.scalar_one_or_none()
+            if not enr or enr.cert_pdf_url:
+                return
+
+            course = enr.course
+            if not course or not course.cert_template_url:
+                return
+
+            # Load org for branding + billing user
+            org_res = await db.execute(
+                select(Organization).where(Organization.id == course.org_id)
+            )
+            org = org_res.scalar_one_or_none()
+            if not org:
+                return
+
+            user_res = await db.execute(select(User).where(User.id == org.user_id))
+            user = user_res.scalar_one_or_none()
+            if not user:
+                return
+
+            # Load template image bytes
+            try:
+                template_path = local_path_from_url(course.cert_template_url)
+                if not template_path.exists():
+                    logger.warning("lms cert: template missing for course %d", course.id)
+                    return
+                template_bytes = template_path.read_bytes()
+            except Exception as exc:
+                logger.warning("lms cert: template read error: %s", exc)
+                return
+
+            # Brand logo (best-effort)
+            brand_logo_bytes: Optional[bytes] = None
+            if org.brand_logo:
+                try:
+                    logo_path = local_path_from_url(org.brand_logo)
+                    if logo_path.exists():
+                        brand_logo_bytes = logo_path.read_bytes()
+                except Exception:
+                    pass
+
+            certificate_footer: Optional[str] = None
+            try:
+                certificate_footer = (org.settings or {}).get("certificate_footer")
+            except Exception:
+                pass
+
+            cert_uuid = new_certificate_uuid()
+            public_id = f"LMS{course.id}-{cert_uuid[:8].upper()}"
+            verify_url = build_certificate_verify_url(cert_uuid)
+            cfg = TemplateConfig(isim_x=500, isim_y=400)
+
+            pdf_bytes = await asyncio.to_thread(
+                render_certificate_pdf,
+                template_image_bytes=template_bytes,
+                student_name=member_name,
+                verify_url=verify_url,
+                config=cfg,
+                public_id=public_id,
+                brand_logo_bytes=brand_logo_bytes,
+                certificate_footer=certificate_footer,
+            )
+
+            rel_pdf_path = f"pdfs/course_{course.id}/{cert_uuid}.pdf"
+            abs_pdf_path = Path(settings.local_storage_dir) / rel_pdf_path
+            abs_pdf_path.parent.mkdir(parents=True, exist_ok=True)
+            abs_pdf_path.write_bytes(pdf_bytes)
+            asset_size_bytes = abs_pdf_path.stat().st_size
+
+            term = "yearly"
+            spend_units = ISSUE_UNITS_PER_CERT + hosting_units(term, asset_size_bytes)
+            if user.heptacoin_balaonce < spend_units:
+                logger.warning(
+                    "lms cert: insufficient HeptaCoin for course %d (need %d, have %d)",
+                    course.id, spend_units, user.heptacoin_balaonce,
+                )
+                abs_pdf_path.unlink(missing_ok=True)
+                return
+
+            pdf_url = build_public_pdf_url(rel_pdf_path)
+            user.heptacoin_balaonce -= spend_units
+            enr.cert_pdf_url = pdf_url
+            await db.commit()
+
+        except Exception as exc:
+            logger.error("lms cert background error for enrollment %d: %s", enrollment_id, exc)
+
+
+async def _dispatch_lms_automation(
+    trigger: str,
+    member_email: str,
+    member_name: str,
+    course_title: str,
+    org_id: int,
+) -> None:
+    """Send emails for LMS email templates whose template_type matches the trigger."""
+    try:
+        async with SessionLocal() as db:
+            templates_res = await db.execute(
+                select(EmailTemplate).where(
+                    EmailTemplate.org_id == org_id,
+                    EmailTemplate.template_type == trigger,
+                )
+            )
+            templates = templates_res.scalars().all()
+            for tmpl in templates:
+                if not member_email:
+                    continue
+                from .email_rendering import render_template_string
+                variables = {
+                    "member_name": member_name,
+                    "course_title": course_title,
+                }
+                subject = render_template_string(tmpl.subject_tr, variables)
+                body = render_template_string(tmpl.body_html, variables)
+                await send_email_async(member_email, subject, body)
+    except Exception as exc:
+        logger.warning("lms automation dispatch error [%s]: %s", trigger, exc)
 
 
 # ---------------------------------------------------------------------------
@@ -163,6 +316,145 @@ async def _get_course_for_admin(
         if course.org_id != org.id:
             raise HTTPException(status_code=403, detail="Bu kursa erişim yetkiniz yok.")
     return course
+
+
+LMS_EDIT_ROLES = {"instructor", "content_editor", "department_admin"}
+LMS_ALL_ROLES = LMS_EDIT_ROLES | {"teaching_assistant", "viewer"}
+
+
+async def _get_course_for_lms_user(
+    course_id: int, me: CurrentUser, db: AsyncSession, *, require_edit: bool = True
+) -> TrainingCourse:
+    """Allow admin/superadmin OR org LMS staff with sufficient role."""
+    if me.role in (Role.admin, Role.superadmin):
+        return await _get_course_for_admin(course_id, me, db)
+
+    # Check OrgLmsStaff
+    res = await db.execute(
+        select(TrainingCourse)
+        .where(TrainingCourse.id == course_id)
+        .options(selectinload(TrainingCourse.modules))
+    )
+    course = res.scalar_one_or_none()
+    if not course:
+        raise HTTPException(status_code=404, detail="Kurs bulunamadı.")
+
+    allowed_roles = LMS_EDIT_ROLES if require_edit else LMS_ALL_ROLES
+    staff_res = await db.execute(
+        select(OrgLmsStaff).where(
+            OrgLmsStaff.org_id == course.org_id,
+            OrgLmsStaff.user_id == me.id,
+            OrgLmsStaff.role.in_(allowed_roles),
+        )
+    )
+    staff = staff_res.scalar_one_or_none()
+    if not staff:
+        raise HTTPException(status_code=403, detail="Bu kursa erişim yetkiniz yok.")
+    return course
+
+
+# ---------------------------------------------------------------------------
+# Admin: OrgLmsStaff CRUD
+# ---------------------------------------------------------------------------
+
+
+class OrgLmsStaffIn(BaseModel):
+    user_email: str = Field(max_length=320)
+    role: str = Field(pattern="^(instructor|teaching_assistant|content_editor|department_admin|viewer)$")
+    course_id: Optional[int] = None
+
+
+@router.get(
+    "/api/admin/lms/staff",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def list_lms_staff(
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _get_org_for_user(me, db)
+    res = await db.execute(
+        select(OrgLmsStaff, User)
+        .join(User, User.id == OrgLmsStaff.user_id)
+        .where(OrgLmsStaff.org_id == org.id)
+        .order_by(OrgLmsStaff.created_at.desc())
+    )
+    rows = res.all()
+    return {
+        "staff": [
+            {
+                "id": s.id,
+                "user_id": s.user_id,
+                "user_email": u.email,
+                "role": s.role,
+                "course_id": s.course_id,
+                "created_at": s.created_at.isoformat(),
+            }
+            for s, u in rows
+        ]
+    }
+
+
+@router.post(
+    "/api/admin/lms/staff",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def add_lms_staff(
+    payload: OrgLmsStaffIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _get_org_for_user(me, db)
+    # Resolve user by email
+    user_res = await db.execute(
+        select(User).where(func.lower(User.email) == payload.user_email.strip().lower())
+    )
+    target_user = user_res.scalar_one_or_none()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Bu e-postada kayıtlı kullanıcı bulunamadı.")
+
+    staff = OrgLmsStaff(
+        org_id=org.id,
+        user_id=target_user.id,
+        role=payload.role,
+        course_id=payload.course_id,
+    )
+    db.add(staff)
+    try:
+        await db.commit()
+        await db.refresh(staff)
+    except Exception:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Bu kullanıcı zaten eklenmiş.")
+    return {
+        "id": staff.id,
+        "user_id": staff.user_id,
+        "user_email": target_user.email,
+        "role": staff.role,
+        "course_id": staff.course_id,
+        "created_at": staff.created_at.isoformat(),
+    }
+
+
+@router.delete(
+    "/api/admin/lms/staff/{staff_id}",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def remove_lms_staff(
+    staff_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _get_org_for_user(me, db)
+    res = await db.execute(
+        select(OrgLmsStaff).where(OrgLmsStaff.id == staff_id, OrgLmsStaff.org_id == org.id)
+    )
+    staff = res.scalar_one_or_none()
+    if not staff:
+        raise HTTPException(status_code=404, detail="Personel kaydı bulunamadı.")
+    await db.delete(staff)
+    await db.commit()
+    return {"ok": True}
 
 
 # ---------------------------------------------------------------------------
@@ -439,6 +731,7 @@ async def get_course_public(
                 "progress_pct": enr.progress_pct,
                 "completed_at": enr.completed_at.isoformat() if enr.completed_at else None,
                 "completed_module_ids": list(completed_module_ids),
+                "cert_pdf_url": enr.cert_pdf_url,
             }
         else:
             d["enrollment"] = None
@@ -476,6 +769,18 @@ async def enroll_in_course(
     db.add(enr)
     await db.commit()
     await db.refresh(enr)
+
+    import asyncio
+    asyncio.create_task(
+        _dispatch_lms_automation(
+            "lms_course_enrolled",
+            member.email or "",
+            member.display_name or member.email or "Katılımcı",
+            course.title,
+            course.org_id,
+        )
+    )
+
     return {"enrollment_id": enr.id, "progress_pct": 0}
 
 
@@ -483,6 +788,7 @@ async def enroll_in_course(
 async def complete_module(
     course_id: int,
     module_id: int,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     member: CurrentPublicMember = Depends(get_current_public_member),
 ):
@@ -550,10 +856,27 @@ async def complete_module(
         pct = 100
 
     enr.progress_pct = pct
-    if pct == 100 and enr.completed_at is None:
+    newly_completed = pct == 100 and enr.completed_at is None
+    if newly_completed:
         enr.completed_at = now
 
     await db.commit()
+
+    # Trigger certificate + automation on first completion
+    if newly_completed:
+        member_name = member.display_name or member.email or "Katılımcı"
+        member_email = member.email or ""
+        if course.cert_template_url and not enr.cert_pdf_url:
+            background_tasks.add_task(_issue_lms_course_cert, enr.id, member_name)
+        background_tasks.add_task(
+            _dispatch_lms_automation,
+            "lms_course_completed",
+            member_email,
+            member_name,
+            course.title,
+            course.org_id,
+        )
+
     return {"progress_pct": pct, "completed": pct == 100}
 
 
@@ -676,6 +999,27 @@ async def create_journey(
         select(LmsJourney).where(LmsJourney.id == journey.id).options(selectinload(LmsJourney.steps))
     )
     return _journey_to_dict(res.scalar_one())
+
+
+@router.get(
+    "/api/admin/lms/journeys/{journey_id}",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def get_journey(
+    journey_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _get_org_for_user(me, db)
+    res = await db.execute(
+        select(LmsJourney)
+        .where(LmsJourney.id == journey_id, LmsJourney.org_id == org.id)
+        .options(selectinload(LmsJourney.steps))
+    )
+    journey = res.scalar_one_or_none()
+    if not journey:
+        raise HTTPException(status_code=404, detail="Öğrenme yolu bulunamadı.")
+    return _journey_to_dict(journey)
 
 
 @router.patch(

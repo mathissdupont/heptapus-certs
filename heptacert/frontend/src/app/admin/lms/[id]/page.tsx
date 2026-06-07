@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   ArrowLeft, BookOpen, ChevronDown, ChevronUp, Globe,
-  GripVertical, Loader2, Lock, Plus, Save, Trash2,
+  GripVertical, Loader2, Lock, Plus, Save, Trash2, ClipboardList,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
@@ -222,6 +223,20 @@ export default function LmsCourseDetailPage() {
           <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${form.is_published ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
             {form.is_published ? <><Globe className="h-3 w-3" /> Yayında</> : <><Lock className="h-3 w-3" /> Taslak</>}
           </span>
+          <Link
+            href={`/admin/lms/courses/${courseId}/gradebook`}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            <BookOpen className="h-4 w-4" />
+            Not Defteri
+          </Link>
+          <Link
+            href={`/admin/lms/courses/${courseId}/rubrics`}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            <ClipboardList className="h-4 w-4" />
+            Rubrics
+          </Link>
           <button
             onClick={handleSave}
             disabled={saving}

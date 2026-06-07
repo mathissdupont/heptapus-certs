@@ -183,6 +183,12 @@ export default function LmsJourneysPage() {
                   ? <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700"><Globe className="h-3 w-3" />{isTr ? "Yayında" : "Published"}</span>
                   : <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500"><Lock className="h-3 w-3" />{isTr ? "Taslak" : "Draft"}</span>
                 }
+                <Link
+                  href={`/admin/lms/journeys/${j.id}`}
+                  className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                >
+                  {isTr ? "Düzenle" : "Edit"} <ChevronRight className="h-3 w-3" />
+                </Link>
                 <button
                   onClick={() => handleDelete(j.id)}
                   className="text-gray-300 hover:text-red-500 transition-colors"

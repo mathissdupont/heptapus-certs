@@ -117,9 +117,16 @@ class CourseEnrollment(Base):
         Integer, ForeignKey("certificates.id", ondelete="SET NULL"), nullable=True
     )
 
+    cert_pdf_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # enrolled | in_progress | completed | dropped
+    status: Mapped[str] = mapped_column(String(32), default="enrolled", index=True)
+
     course: Mapped["TrainingCourse"] = relationship(back_populates="enrollments")
     module_progress: Mapped[List["ModuleProgress"]] = relationship(
         back_populates="enrollment", cascade="all, delete-orphan"
+    )
+    grade_summary: Mapped[Optional["CourseGradeSummary"]] = relationship(
+        "CourseGradeSummary", back_populates="enrollment", uselist=False
     )
 
     __table_args__ = (
@@ -290,6 +297,8 @@ class LmsJourneyEnrollment(Base):
         Integer, ForeignKey("certificates.id", ondelete="SET NULL"), nullable=True
     )
 
+    cert_pdf_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
     journey: Mapped["LmsJourney"] = relationship(back_populates="enrollments")
 
     __table_args__ = (
@@ -319,6 +328,38 @@ class CourseAnnouncement(Base):
     )
 
     course: Mapped["TrainingCourse"] = relationship(back_populates="announcements")
+
+
+# ---------------------------------------------------------------------------
+# Organization LMS Staff (instructor, TA, content_editor roles)
+# ---------------------------------------------------------------------------
+
+class OrgLmsStaff(Base):
+    """Maps a user to an LMS role within an organization."""
+    __tablename__ = "org_lms_staff"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    org_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("organizations.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    # instructor | teaching_assistant | content_editor | department_admin | viewer
+    role: Mapped[str] = mapped_column(String(50), default="instructor")
+    # Optional: restrict to specific course. NULL means org-wide.
+    course_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("training_courses.id", ondelete="CASCADE"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("org_id", "user_id", "course_id", name="uq_org_lms_staff"),
+        Index("ix_org_lms_staff_org", "org_id"),
+        Index("ix_org_lms_staff_user", "user_id"),
+    )
 
 
 # ---------------------------------------------------------------------------

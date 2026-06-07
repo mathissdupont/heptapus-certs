@@ -1,0 +1,1648 @@
+"""Extended LMS API — Gradebook, Discussions, Rubrics, Outcomes, Groups, Badges, Calendar, Bridge, Analytics."""
+
+import logging
+from datetime import datetime, timezone
+from decimal import Decimal
+from typing import Any, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
+from sqlalchemy import func, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from .main import (
+    CurrentPublicMember,
+    CurrentUser,
+    Organization,
+    Role,
+    SessionLocal,
+    User,
+    get_current_public_member,
+    get_current_user,
+    get_db,
+    get_optional_public_member,
+    require_role,
+)
+from .lms_models import (
+    AssignmentSubmission,
+    CourseEnrollment,
+    CourseModule,
+    LmsJourneyEnrollment,
+    ModuleProgress,
+    OrgLmsStaff,
+    TrainingCourse,
+)
+from .lms_extended_models import (
+    Badge,
+    BadgeAward,
+    CourseCalendarEvent,
+    CourseDiscussion,
+    CourseGradeItem,
+    CourseGradeSummary,
+    CourseGroup,
+    CourseGroupMember,
+    CourseOutcomeAlignment,
+    CourseSyllabus,
+    DiscussionReply,
+    EventLmsBridge,
+    LearningOutcome,
+    OutcomeMastery,
+    Rubric,
+    RubricCriterion,
+    RubricRating,
+    SubmissionRubricScore,
+)
+
+logger = logging.getLogger("heptacert.lms_extended")
+router = APIRouter()
+
+LMS_EDIT_ROLES = {"instructor", "content_editor", "department_admin"}
+LMS_ALL_ROLES = LMS_EDIT_ROLES | {"teaching_assistant", "viewer"}
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+async def _get_org_for_user(me: CurrentUser, db: AsyncSession) -> Organization:
+    res = await db.execute(
+        select(Organization).where(Organization.user_id == me.id).limit(1)
+    )
+    org = res.scalar_one_or_none()
+    if not org:
+        raise HTTPException(404, "Organizasyon bulunamadı.")
+    return org
+
+
+async def _get_course_for_admin(course_id: int, me: CurrentUser, db: AsyncSession) -> TrainingCourse:
+    res = await db.execute(select(TrainingCourse).where(TrainingCourse.id == course_id))
+    course = res.scalar_one_or_none()
+    if not course:
+        raise HTTPException(404, "Kurs bulunamadı.")
+    if me.role != Role.superadmin:
+        org = await _get_org_for_user(me, db)
+        if course.org_id != org.id:
+            raise HTTPException(403, "Erişim yetkiniz yok.")
+    return course
+
+
+async def _get_course_lms(
+    course_id: int, me: CurrentUser, db: AsyncSession, *, edit: bool = True
+) -> TrainingCourse:
+    if me.role in (Role.admin, Role.superadmin):
+        return await _get_course_for_admin(course_id, me, db)
+    res = await db.execute(select(TrainingCourse).where(TrainingCourse.id == course_id))
+    course = res.scalar_one_or_none()
+    if not course:
+        raise HTTPException(404, "Kurs bulunamadı.")
+    roles = LMS_EDIT_ROLES if edit else LMS_ALL_ROLES
+    staff = (await db.execute(
+        select(OrgLmsStaff).where(
+            OrgLmsStaff.org_id == course.org_id,
+            OrgLmsStaff.user_id == me.id,
+            OrgLmsStaff.role.in_(roles),
+        )
+    )).scalar_one_or_none()
+    if not staff:
+        raise HTTPException(403, "Erişim yetkiniz yok.")
+    return course
+
+
+def _compute_letter(avg: float) -> str:
+    if avg >= 90:
+        return "AA"
+    if avg >= 80:
+        return "BA"
+    if avg >= 70:
+        return "BB"
+    if avg >= 60:
+        return "CB"
+    if avg >= 50:
+        return "CC"
+    return "FF"
+
+
+# ===========================================================================
+# 2A — GRADEBOOK
+# ===========================================================================
+
+
+class GradeItemIn(BaseModel):
+    title: str = Field(max_length=300)
+    item_type: str = Field(default="assignment", pattern="^(quiz|assignment|participation|custom)$")
+    item_ref_id: Optional[int] = None
+    max_points: int = Field(default=100, ge=1, le=10000)
+    weight_pct: Decimal = Field(default=Decimal("0"), ge=0, le=100)
+    order: int = Field(default=0, ge=0)
+
+
+class GradeItemPatch(BaseModel):
+    title: Optional[str] = Field(default=None, max_length=300)
+    item_type: Optional[str] = Field(default=None, pattern="^(quiz|assignment|participation|custom)$")
+    max_points: Optional[int] = Field(default=None, ge=1, le=10000)
+    weight_pct: Optional[Decimal] = Field(default=None, ge=0, le=100)
+    order: Optional[int] = Field(default=None, ge=0)
+
+
+@router.get("/api/admin/lms/courses/{course_id}/grade-items")
+async def list_grade_items(
+    course_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db, edit=False)
+    rows = (await db.execute(
+        select(CourseGradeItem)
+        .where(CourseGradeItem.course_id == course_id)
+        .order_by(CourseGradeItem.order)
+    )).scalars().all()
+    return [_grade_item_dict(r) for r in rows]
+
+
+@router.post("/api/admin/lms/courses/{course_id}/grade-items", status_code=201)
+async def create_grade_item(
+    course_id: int,
+    body: GradeItemIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db)
+    item = CourseGradeItem(
+        course_id=course_id,
+        title=body.title,
+        item_type=body.item_type,
+        item_ref_id=body.item_ref_id,
+        max_points=body.max_points,
+        weight_pct=body.weight_pct,
+        order=body.order,
+    )
+    db.add(item)
+    await db.commit()
+    await db.refresh(item)
+    return _grade_item_dict(item)
+
+
+@router.patch("/api/admin/lms/courses/{course_id}/grade-items/{item_id}")
+async def patch_grade_item(
+    course_id: int,
+    item_id: int,
+    body: GradeItemPatch,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db)
+    item = (await db.execute(
+        select(CourseGradeItem).where(
+            CourseGradeItem.id == item_id, CourseGradeItem.course_id == course_id
+        )
+    )).scalar_one_or_none()
+    if not item:
+        raise HTTPException(404, "Not found.")
+    for f, v in body.model_dump(exclude_none=True).items():
+        setattr(item, f, v)
+    await db.commit()
+    await db.refresh(item)
+    return _grade_item_dict(item)
+
+
+@router.delete("/api/admin/lms/courses/{course_id}/grade-items/{item_id}", status_code=204)
+async def delete_grade_item(
+    course_id: int,
+    item_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db)
+    item = (await db.execute(
+        select(CourseGradeItem).where(
+            CourseGradeItem.id == item_id, CourseGradeItem.course_id == course_id
+        )
+    )).scalar_one_or_none()
+    if item:
+        await db.delete(item)
+        await db.commit()
+
+
+@router.get("/api/admin/lms/courses/{course_id}/gradebook")
+async def get_gradebook(
+    course_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Returns enrollments with their grade summaries for the course."""
+    await _get_course_lms(course_id, me, db, edit=False)
+    rows = (await db.execute(
+        select(CourseEnrollment)
+        .where(CourseEnrollment.course_id == course_id)
+        .options(selectinload(CourseEnrollment.grade_summary))
+        .order_by(CourseEnrollment.enrolled_at)
+    )).scalars().all()
+    return [
+        {
+            "enrollment_id": e.id,
+            "member_id": e.member_id,
+            "status": e.status,
+            "progress_pct": float(e.progress_pct) if e.progress_pct else 0,
+            "weighted_avg": float(e.grade_summary.weighted_avg) if e.grade_summary and e.grade_summary.weighted_avg else None,
+            "letter_grade": e.grade_summary.letter_grade if e.grade_summary else None,
+            "passed": e.grade_summary.passed if e.grade_summary else None,
+        }
+        for e in rows
+    ]
+
+
+class GradeSummaryIn(BaseModel):
+    weighted_avg: Decimal = Field(ge=0, le=100)
+    passed: Optional[bool] = None
+
+
+@router.post("/api/admin/lms/courses/{course_id}/gradebook/{enrollment_id}/summary")
+async def upsert_grade_summary(
+    course_id: int,
+    enrollment_id: int,
+    body: GradeSummaryIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db)
+    enr = (await db.execute(
+        select(CourseEnrollment).where(
+            CourseEnrollment.id == enrollment_id, CourseEnrollment.course_id == course_id
+        )
+    )).scalar_one_or_none()
+    if not enr:
+        raise HTTPException(404, "Enrollment bulunamadı.")
+
+    avg = float(body.weighted_avg)
+    letter = _compute_letter(avg)
+    passed = body.passed if body.passed is not None else (avg >= 50)
+
+    existing = (await db.execute(
+        select(CourseGradeSummary).where(CourseGradeSummary.enrollment_id == enrollment_id)
+    )).scalar_one_or_none()
+
+    if existing:
+        existing.weighted_avg = body.weighted_avg
+        existing.letter_grade = letter
+        existing.passed = passed
+        existing.computed_at = datetime.now(timezone.utc)
+    else:
+        db.add(CourseGradeSummary(
+            enrollment_id=enrollment_id,
+            weighted_avg=body.weighted_avg,
+            letter_grade=letter,
+            passed=passed,
+        ))
+    await db.commit()
+    return {"ok": True, "letter_grade": letter, "passed": passed}
+
+
+def _grade_item_dict(item: CourseGradeItem) -> dict:
+    return {
+        "id": item.id,
+        "course_id": item.course_id,
+        "title": item.title,
+        "item_type": item.item_type,
+        "item_ref_id": item.item_ref_id,
+        "max_points": item.max_points,
+        "weight_pct": float(item.weight_pct),
+        "order": item.order,
+        "created_at": item.created_at.isoformat(),
+    }
+
+
+# ===========================================================================
+# 2B — DISCUSSIONS
+# ===========================================================================
+
+
+class DiscussionIn(BaseModel):
+    title: str = Field(max_length=300)
+    body: str
+    module_id: Optional[int] = None
+    is_pinned: bool = False
+
+
+class ReplyIn(BaseModel):
+    body: str
+    parent_reply_id: Optional[int] = None
+    is_instructor_reply: bool = False
+
+
+@router.get("/api/admin/lms/courses/{course_id}/discussions")
+async def list_discussions(
+    course_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db, edit=False)
+    rows = (await db.execute(
+        select(CourseDiscussion)
+        .where(CourseDiscussion.course_id == course_id)
+        .order_by(CourseDiscussion.is_pinned.desc(), CourseDiscussion.created_at.desc())
+    )).scalars().all()
+    return [_discussion_dict(d) for d in rows]
+
+
+@router.post("/api/admin/lms/courses/{course_id}/discussions", status_code=201)
+async def create_discussion(
+    course_id: int,
+    body: DiscussionIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db, edit=False)
+    d = CourseDiscussion(
+        course_id=course_id,
+        module_id=body.module_id,
+        title=body.title,
+        body=body.body,
+        is_pinned=body.is_pinned,
+    )
+    db.add(d)
+    await db.commit()
+    await db.refresh(d)
+    return _discussion_dict(d)
+
+
+@router.get("/api/admin/lms/courses/{course_id}/discussions/{discussion_id}")
+async def get_discussion(
+    course_id: int,
+    discussion_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db, edit=False)
+    d = (await db.execute(
+        select(CourseDiscussion)
+        .where(CourseDiscussion.id == discussion_id, CourseDiscussion.course_id == course_id)
+        .options(selectinload(CourseDiscussion.replies))
+    )).scalar_one_or_none()
+    if not d:
+        raise HTTPException(404, "Tartışma bulunamadı.")
+    result = _discussion_dict(d)
+    result["replies"] = [_reply_dict(r) for r in d.replies]
+    return result
+
+
+@router.post("/api/admin/lms/courses/{course_id}/discussions/{discussion_id}/replies", status_code=201)
+async def add_reply(
+    course_id: int,
+    discussion_id: int,
+    body: ReplyIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db, edit=False)
+    d = (await db.execute(
+        select(CourseDiscussion).where(
+            CourseDiscussion.id == discussion_id, CourseDiscussion.course_id == course_id
+        )
+    )).scalar_one_or_none()
+    if not d:
+        raise HTTPException(404, "Tartışma bulunamadı.")
+    if d.is_locked:
+        raise HTTPException(400, "Bu tartışma kilitli.")
+    r = DiscussionReply(
+        discussion_id=discussion_id,
+        parent_reply_id=body.parent_reply_id,
+        body=body.body,
+        is_instructor_reply=body.is_instructor_reply,
+    )
+    db.add(r)
+    d.reply_count = (d.reply_count or 0) + 1
+    await db.commit()
+    await db.refresh(r)
+    return _reply_dict(r)
+
+
+@router.patch("/api/admin/lms/courses/{course_id}/discussions/{discussion_id}/lock")
+async def toggle_lock(
+    course_id: int,
+    discussion_id: int,
+    locked: bool = Query(...),
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db)
+    d = (await db.execute(
+        select(CourseDiscussion).where(
+            CourseDiscussion.id == discussion_id, CourseDiscussion.course_id == course_id
+        )
+    )).scalar_one_or_none()
+    if not d:
+        raise HTTPException(404, "Tartışma bulunamadı.")
+    d.is_locked = locked
+    await db.commit()
+    return {"ok": True, "is_locked": locked}
+
+
+def _discussion_dict(d: CourseDiscussion) -> dict:
+    return {
+        "id": d.id,
+        "course_id": d.course_id,
+        "module_id": d.module_id,
+        "title": d.title,
+        "body": d.body,
+        "is_pinned": d.is_pinned,
+        "is_locked": d.is_locked,
+        "reply_count": d.reply_count,
+        "created_at": d.created_at.isoformat(),
+    }
+
+
+def _reply_dict(r: DiscussionReply) -> dict:
+    return {
+        "id": r.id,
+        "discussion_id": r.discussion_id,
+        "parent_reply_id": r.parent_reply_id,
+        "author_member_id": r.author_member_id,
+        "body": r.body,
+        "is_instructor_reply": r.is_instructor_reply,
+        "created_at": r.created_at.isoformat(),
+    }
+
+
+# ===========================================================================
+# 2C — RUBRICS
+# ===========================================================================
+
+
+class RubricIn(BaseModel):
+    title: str = Field(max_length=300)
+    description: Optional[str] = None
+
+
+class CriterionIn(BaseModel):
+    title: str = Field(max_length=300)
+    description: Optional[str] = None
+    points: int = Field(default=10, ge=1)
+    order: int = Field(default=0, ge=0)
+    ratings: list["RatingIn"] = []
+
+
+class RatingIn(BaseModel):
+    description: str = Field(max_length=300)
+    points: int = Field(ge=0)
+
+
+class SubmissionScoreIn(BaseModel):
+    scores: list["CriterionScoreIn"]
+
+
+class CriterionScoreIn(BaseModel):
+    criterion_id: int
+    rating_id: Optional[int] = None
+    points_earned: int = Field(ge=0)
+    comment: Optional[str] = None
+
+
+@router.get("/api/admin/lms/courses/{course_id}/rubrics")
+async def list_rubrics(
+    course_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db, edit=False)
+    rows = (await db.execute(
+        select(Rubric).where(Rubric.course_id == course_id)
+        .options(selectinload(Rubric.criteria).selectinload(RubricCriterion.ratings))
+    )).scalars().all()
+    return [_rubric_dict(r) for r in rows]
+
+
+@router.post("/api/admin/lms/courses/{course_id}/rubrics", status_code=201)
+async def create_rubric(
+    course_id: int,
+    body: RubricIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db)
+    rubric = Rubric(course_id=course_id, title=body.title, description=body.description)
+    db.add(rubric)
+    await db.commit()
+    await db.refresh(rubric)
+    return _rubric_dict(rubric)
+
+
+@router.post("/api/admin/lms/courses/{course_id}/rubrics/{rubric_id}/criteria", status_code=201)
+async def add_criterion(
+    course_id: int,
+    rubric_id: int,
+    body: CriterionIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db)
+    rubric = (await db.execute(
+        select(Rubric).where(Rubric.id == rubric_id, Rubric.course_id == course_id)
+    )).scalar_one_or_none()
+    if not rubric:
+        raise HTTPException(404, "Rubric bulunamadı.")
+    crit = RubricCriterion(
+        rubric_id=rubric_id,
+        title=body.title,
+        description=body.description,
+        points=body.points,
+        order=body.order,
+    )
+    db.add(crit)
+    await db.flush()
+    for r in body.ratings:
+        db.add(RubricRating(criterion_id=crit.id, description=r.description, points=r.points))
+    await db.commit()
+    await db.refresh(crit)
+    return {"id": crit.id, "rubric_id": rubric_id, "title": crit.title}
+
+
+@router.post("/api/admin/lms/submissions/{submission_id}/rubric-scores")
+async def score_submission_rubric(
+    submission_id: int,
+    body: SubmissionScoreIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    sub = (await db.execute(
+        select(AssignmentSubmission).where(AssignmentSubmission.id == submission_id)
+    )).scalar_one_or_none()
+    if not sub:
+        raise HTTPException(404, "Submission bulunamadı.")
+    # verify course access
+    from .lms_models import CourseAssignment
+    asn = (await db.execute(
+        select(CourseAssignment).where(CourseAssignment.id == sub.assignment_id)
+    )).scalar_one_or_none()
+    if asn:
+        await _get_course_lms(asn.course_id, me, db)
+
+    for sc in body.scores:
+        existing = (await db.execute(
+            select(SubmissionRubricScore).where(
+                SubmissionRubricScore.submission_id == submission_id,
+                SubmissionRubricScore.criterion_id == sc.criterion_id,
+            )
+        )).scalar_one_or_none()
+        if existing:
+            existing.rating_id = sc.rating_id
+            existing.points_earned = sc.points_earned
+            existing.comment = sc.comment
+        else:
+            db.add(SubmissionRubricScore(
+                submission_id=submission_id,
+                criterion_id=sc.criterion_id,
+                rating_id=sc.rating_id,
+                points_earned=sc.points_earned,
+                comment=sc.comment,
+            ))
+    await db.commit()
+    return {"ok": True}
+
+
+@router.delete("/api/admin/lms/courses/{course_id}/rubrics/{rubric_id}")
+async def delete_rubric(
+    course_id: int,
+    rubric_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db)
+    rubric = (await db.execute(
+        select(Rubric).where(Rubric.id == rubric_id, Rubric.course_id == course_id)
+    )).scalar_one_or_none()
+    if not rubric:
+        raise HTTPException(404, "Rubric bulunamadı.")
+    await db.delete(rubric)
+    await db.commit()
+    return {"ok": True}
+
+
+@router.delete("/api/admin/lms/courses/{course_id}/rubrics/{rubric_id}/criteria/{criterion_id}")
+async def delete_criterion(
+    course_id: int,
+    rubric_id: int,
+    criterion_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db)
+    crit = (await db.execute(
+        select(RubricCriterion).where(
+            RubricCriterion.id == criterion_id,
+            RubricCriterion.rubric_id == rubric_id,
+        )
+    )).scalar_one_or_none()
+    if not crit:
+        raise HTTPException(404, "Kriter bulunamadı.")
+    await db.delete(crit)
+    await db.commit()
+    return {"ok": True}
+
+
+def _rubric_dict(r: Rubric) -> dict:
+    return {
+        "id": r.id,
+        "course_id": r.course_id,
+        "title": r.title,
+        "description": r.description,
+        "criteria": [
+            {
+                "id": c.id,
+                "title": c.title,
+                "description": c.description,
+                "points": c.points,
+                "order": c.order,
+                "ratings": [
+                    {"id": rt.id, "description": rt.description, "points": rt.points}
+                    for rt in (c.ratings or [])
+                ],
+            }
+            for c in (r.criteria or [])
+        ],
+    }
+
+
+# ===========================================================================
+# 2D — LEARNING OUTCOMES
+# ===========================================================================
+
+
+class OutcomeIn(BaseModel):
+    title: str = Field(max_length=300)
+    description: Optional[str] = None
+    mastery_points: int = Field(default=70, ge=1, le=100)
+    display_name: Optional[str] = Field(default=None, max_length=100)
+
+
+class OutcomePatch(BaseModel):
+    title: Optional[str] = Field(default=None, max_length=300)
+    description: Optional[str] = None
+    mastery_points: Optional[int] = Field(default=None, ge=1, le=100)
+    display_name: Optional[str] = Field(default=None, max_length=100)
+
+
+class AlignmentIn(BaseModel):
+    outcome_id: int
+    module_id: Optional[int] = None
+
+
+@router.get("/api/admin/lms/outcomes", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def list_outcomes(
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _get_org_for_user(me, db)
+    rows = (await db.execute(
+        select(LearningOutcome).where(LearningOutcome.org_id == org.id)
+        .order_by(LearningOutcome.created_at.desc())
+    )).scalars().all()
+    return [_outcome_dict(o) for o in rows]
+
+
+@router.post("/api/admin/lms/outcomes", status_code=201, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def create_outcome(
+    body: OutcomeIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _get_org_for_user(me, db)
+    o = LearningOutcome(
+        org_id=org.id,
+        title=body.title,
+        description=body.description,
+        mastery_points=body.mastery_points,
+        display_name=body.display_name,
+    )
+    db.add(o)
+    await db.commit()
+    await db.refresh(o)
+    return _outcome_dict(o)
+
+
+@router.patch("/api/admin/lms/outcomes/{outcome_id}", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def patch_outcome(
+    outcome_id: int,
+    body: OutcomePatch,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _get_org_for_user(me, db)
+    o = (await db.execute(
+        select(LearningOutcome).where(LearningOutcome.id == outcome_id, LearningOutcome.org_id == org.id)
+    )).scalar_one_or_none()
+    if not o:
+        raise HTTPException(404, "Kazanım bulunamadı.")
+    for f, v in body.model_dump(exclude_none=True).items():
+        setattr(o, f, v)
+    await db.commit()
+    await db.refresh(o)
+    return _outcome_dict(o)
+
+
+@router.delete("/api/admin/lms/outcomes/{outcome_id}", status_code=204, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def delete_outcome(
+    outcome_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _get_org_for_user(me, db)
+    o = (await db.execute(
+        select(LearningOutcome).where(LearningOutcome.id == outcome_id, LearningOutcome.org_id == org.id)
+    )).scalar_one_or_none()
+    if o:
+        await db.delete(o)
+        await db.commit()
+
+
+@router.get("/api/admin/lms/courses/{course_id}/outcomes")
+async def list_course_outcomes(
+    course_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db, edit=False)
+    rows = (await db.execute(
+        select(CourseOutcomeAlignment)
+        .where(CourseOutcomeAlignment.course_id == course_id)
+        .options(selectinload(CourseOutcomeAlignment.outcome))
+    )).scalars().all()
+    return [
+        {
+            "alignment_id": a.id,
+            "module_id": a.module_id,
+            "outcome": _outcome_dict(a.outcome),
+        }
+        for a in rows
+    ]
+
+
+@router.post("/api/admin/lms/courses/{course_id}/outcomes", status_code=201)
+async def align_outcome(
+    course_id: int,
+    body: AlignmentIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db)
+    existing = (await db.execute(
+        select(CourseOutcomeAlignment).where(
+            CourseOutcomeAlignment.course_id == course_id,
+            CourseOutcomeAlignment.outcome_id == body.outcome_id,
+            CourseOutcomeAlignment.module_id == body.module_id,
+        )
+    )).scalar_one_or_none()
+    if existing:
+        return {"alignment_id": existing.id, "ok": True}
+    a = CourseOutcomeAlignment(
+        course_id=course_id, outcome_id=body.outcome_id, module_id=body.module_id
+    )
+    db.add(a)
+    await db.commit()
+    await db.refresh(a)
+    return {"alignment_id": a.id, "ok": True}
+
+
+@router.delete("/api/admin/lms/courses/{course_id}/outcomes/{alignment_id}", status_code=204)
+async def remove_outcome_alignment(
+    course_id: int,
+    alignment_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db)
+    a = (await db.execute(
+        select(CourseOutcomeAlignment).where(
+            CourseOutcomeAlignment.id == alignment_id,
+            CourseOutcomeAlignment.course_id == course_id,
+        )
+    )).scalar_one_or_none()
+    if a:
+        await db.delete(a)
+        await db.commit()
+
+
+def _outcome_dict(o: LearningOutcome) -> dict:
+    return {
+        "id": o.id,
+        "org_id": o.org_id,
+        "title": o.title,
+        "description": o.description,
+        "mastery_points": o.mastery_points,
+        "display_name": o.display_name,
+        "created_at": o.created_at.isoformat(),
+    }
+
+
+# ===========================================================================
+# 2E — COURSE GROUPS
+# ===========================================================================
+
+
+class GroupIn(BaseModel):
+    name: str = Field(max_length=200)
+    max_members: Optional[int] = Field(default=None, ge=2, le=100)
+
+
+@router.get("/api/admin/lms/courses/{course_id}/groups")
+async def list_groups(
+    course_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db, edit=False)
+    rows = (await db.execute(
+        select(CourseGroup).where(CourseGroup.course_id == course_id)
+        .options(selectinload(CourseGroup.members))
+    )).scalars().all()
+    return [
+        {
+            "id": g.id,
+            "name": g.name,
+            "max_members": g.max_members,
+            "member_count": len(g.members),
+            "members": [{"id": m.id, "member_id": m.member_id} for m in g.members],
+        }
+        for g in rows
+    ]
+
+
+@router.post("/api/admin/lms/courses/{course_id}/groups", status_code=201)
+async def create_group(
+    course_id: int,
+    body: GroupIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db)
+    g = CourseGroup(
+        course_id=course_id,
+        name=body.name,
+        max_members=body.max_members,
+        created_by_user_id=me.id,
+    )
+    db.add(g)
+    await db.commit()
+    await db.refresh(g)
+    return {"id": g.id, "name": g.name, "max_members": g.max_members}
+
+
+@router.post("/api/admin/lms/courses/{course_id}/groups/{group_id}/members", status_code=201)
+async def add_group_member(
+    course_id: int,
+    group_id: int,
+    member_id: int = Query(...),
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db)
+    g = (await db.execute(
+        select(CourseGroup).where(CourseGroup.id == group_id, CourseGroup.course_id == course_id)
+        .options(selectinload(CourseGroup.members))
+    )).scalar_one_or_none()
+    if not g:
+        raise HTTPException(404, "Grup bulunamadı.")
+    if g.max_members and len(g.members) >= g.max_members:
+        raise HTTPException(400, "Grup dolu.")
+    existing = (await db.execute(
+        select(CourseGroupMember).where(
+            CourseGroupMember.group_id == group_id, CourseGroupMember.member_id == member_id
+        )
+    )).scalar_one_or_none()
+    if existing:
+        return {"ok": True}
+    db.add(CourseGroupMember(group_id=group_id, member_id=member_id))
+    await db.commit()
+    return {"ok": True}
+
+
+@router.delete("/api/admin/lms/courses/{course_id}/groups/{group_id}/members/{member_id}", status_code=204)
+async def remove_group_member(
+    course_id: int,
+    group_id: int,
+    member_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db)
+    m = (await db.execute(
+        select(CourseGroupMember).where(
+            CourseGroupMember.group_id == group_id, CourseGroupMember.member_id == member_id
+        )
+    )).scalar_one_or_none()
+    if m:
+        await db.delete(m)
+        await db.commit()
+
+
+# ===========================================================================
+# 2G — BADGES
+# ===========================================================================
+
+
+class BadgeIn(BaseModel):
+    name: str = Field(max_length=200)
+    description: Optional[str] = None
+    image_url: Optional[str] = Field(default=None, max_length=1000)
+    criteria_text: Optional[str] = None
+    trigger_type: str = Field(
+        default="manual",
+        pattern="^(course_completed|journey_completed|manual|automation)$",
+    )
+    trigger_ref_id: Optional[int] = None
+
+
+class BadgePatch(BaseModel):
+    name: Optional[str] = Field(default=None, max_length=200)
+    description: Optional[str] = None
+    image_url: Optional[str] = Field(default=None, max_length=1000)
+    criteria_text: Optional[str] = None
+    trigger_type: Optional[str] = Field(
+        default=None, pattern="^(course_completed|journey_completed|manual|automation)$"
+    )
+    trigger_ref_id: Optional[int] = None
+
+
+@router.get("/api/admin/lms/badges", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def list_badges(
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _get_org_for_user(me, db)
+    rows = (await db.execute(
+        select(Badge).where(Badge.org_id == org.id).order_by(Badge.created_at.desc())
+    )).scalars().all()
+    return [_badge_dict(b) for b in rows]
+
+
+@router.post("/api/admin/lms/badges", status_code=201, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def create_badge(
+    body: BadgeIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _get_org_for_user(me, db)
+    b = Badge(
+        org_id=org.id,
+        name=body.name,
+        description=body.description,
+        image_url=body.image_url,
+        criteria_text=body.criteria_text,
+        trigger_type=body.trigger_type,
+        trigger_ref_id=body.trigger_ref_id,
+    )
+    db.add(b)
+    await db.commit()
+    await db.refresh(b)
+    return _badge_dict(b)
+
+
+@router.patch("/api/admin/lms/badges/{badge_id}", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def patch_badge(
+    badge_id: int,
+    body: BadgePatch,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _get_org_for_user(me, db)
+    b = (await db.execute(
+        select(Badge).where(Badge.id == badge_id, Badge.org_id == org.id)
+    )).scalar_one_or_none()
+    if not b:
+        raise HTTPException(404, "Rozet bulunamadı.")
+    for f, v in body.model_dump(exclude_none=True).items():
+        setattr(b, f, v)
+    await db.commit()
+    await db.refresh(b)
+    return _badge_dict(b)
+
+
+@router.delete("/api/admin/lms/badges/{badge_id}", status_code=204, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def delete_badge(
+    badge_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _get_org_for_user(me, db)
+    b = (await db.execute(
+        select(Badge).where(Badge.id == badge_id, Badge.org_id == org.id)
+    )).scalar_one_or_none()
+    if b:
+        await db.delete(b)
+        await db.commit()
+
+
+@router.post("/api/admin/lms/badges/{badge_id}/award", status_code=201, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def award_badge(
+    badge_id: int,
+    member_id: int = Query(...),
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _get_org_for_user(me, db)
+    b = (await db.execute(
+        select(Badge).where(Badge.id == badge_id, Badge.org_id == org.id)
+    )).scalar_one_or_none()
+    if not b:
+        raise HTTPException(404, "Rozet bulunamadı.")
+    existing = (await db.execute(
+        select(BadgeAward).where(BadgeAward.badge_id == badge_id, BadgeAward.member_id == member_id)
+    )).scalar_one_or_none()
+    if existing:
+        return {"ok": True, "award_id": existing.id}
+    award = BadgeAward(badge_id=badge_id, member_id=member_id, issued_by_user_id=me.id)
+    db.add(award)
+    await db.commit()
+    await db.refresh(award)
+    return {"ok": True, "award_id": award.id}
+
+
+@router.get("/api/admin/lms/badges/{badge_id}/awards", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def list_badge_awards(
+    badge_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _get_org_for_user(me, db)
+    b = (await db.execute(
+        select(Badge).where(Badge.id == badge_id, Badge.org_id == org.id)
+    )).scalar_one_or_none()
+    if not b:
+        raise HTTPException(404, "Rozet bulunamadı.")
+    rows = (await db.execute(
+        select(BadgeAward).where(BadgeAward.badge_id == badge_id)
+        .order_by(BadgeAward.issued_at.desc())
+    )).scalars().all()
+    return [{"id": a.id, "member_id": a.member_id, "issued_at": a.issued_at.isoformat()} for a in rows]
+
+
+def _badge_dict(b: Badge) -> dict:
+    return {
+        "id": b.id,
+        "org_id": b.org_id,
+        "name": b.name,
+        "description": b.description,
+        "image_url": b.image_url,
+        "criteria_text": b.criteria_text,
+        "trigger_type": b.trigger_type,
+        "trigger_ref_id": b.trigger_ref_id,
+        "created_at": b.created_at.isoformat(),
+    }
+
+
+# ===========================================================================
+# 2H — CALENDAR + SYLLABUS
+# ===========================================================================
+
+
+class CalendarEventIn(BaseModel):
+    title: str = Field(max_length=300)
+    event_type: str = Field(
+        default="other",
+        pattern="^(due_date|lecture|exam|office_hours|other)$",
+    )
+    starts_at: datetime
+    ends_at: Optional[datetime] = None
+    module_id: Optional[int] = None
+    conference_url: Optional[str] = Field(default=None, max_length=1000)
+    description: Optional[str] = None
+
+
+class SyllabusIn(BaseModel):
+    content_html: str
+
+
+@router.get("/api/admin/lms/courses/{course_id}/calendar")
+async def list_calendar_events(
+    course_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db, edit=False)
+    rows = (await db.execute(
+        select(CourseCalendarEvent)
+        .where(CourseCalendarEvent.course_id == course_id)
+        .order_by(CourseCalendarEvent.starts_at)
+    )).scalars().all()
+    return [_cal_event_dict(e) for e in rows]
+
+
+@router.post("/api/admin/lms/courses/{course_id}/calendar", status_code=201)
+async def create_calendar_event(
+    course_id: int,
+    body: CalendarEventIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db)
+    e = CourseCalendarEvent(
+        course_id=course_id,
+        title=body.title,
+        event_type=body.event_type,
+        starts_at=body.starts_at,
+        ends_at=body.ends_at,
+        module_id=body.module_id,
+        conference_url=body.conference_url,
+        description=body.description,
+    )
+    db.add(e)
+    await db.commit()
+    await db.refresh(e)
+    return _cal_event_dict(e)
+
+
+@router.delete("/api/admin/lms/courses/{course_id}/calendar/{event_id}", status_code=204)
+async def delete_calendar_event(
+    course_id: int,
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db)
+    e = (await db.execute(
+        select(CourseCalendarEvent).where(
+            CourseCalendarEvent.id == event_id, CourseCalendarEvent.course_id == course_id
+        )
+    )).scalar_one_or_none()
+    if e:
+        await db.delete(e)
+        await db.commit()
+
+
+@router.get("/api/admin/lms/courses/{course_id}/syllabus")
+async def get_syllabus(
+    course_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db, edit=False)
+    s = (await db.execute(
+        select(CourseSyllabus).where(CourseSyllabus.course_id == course_id)
+    )).scalar_one_or_none()
+    return {"course_id": course_id, "content_html": s.content_html if s else ""}
+
+
+@router.put("/api/admin/lms/courses/{course_id}/syllabus")
+async def upsert_syllabus(
+    course_id: int,
+    body: SyllabusIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db)
+    s = (await db.execute(
+        select(CourseSyllabus).where(CourseSyllabus.course_id == course_id)
+    )).scalar_one_or_none()
+    if s:
+        s.content_html = body.content_html
+        s.updated_at = datetime.now(timezone.utc)
+    else:
+        s = CourseSyllabus(course_id=course_id, content_html=body.content_html)
+        db.add(s)
+    await db.commit()
+    return {"ok": True}
+
+
+def _cal_event_dict(e: CourseCalendarEvent) -> dict:
+    return {
+        "id": e.id,
+        "course_id": e.course_id,
+        "title": e.title,
+        "event_type": e.event_type,
+        "starts_at": e.starts_at.isoformat(),
+        "ends_at": e.ends_at.isoformat() if e.ends_at else None,
+        "module_id": e.module_id,
+        "conference_url": e.conference_url,
+        "description": e.description,
+    }
+
+
+# ===========================================================================
+# 3A — EVENTS ↔ LMS BRIDGE
+# ===========================================================================
+
+
+class BridgeIn(BaseModel):
+    event_id: int
+    course_id: Optional[int] = None
+    trigger_on: str = Field(
+        default="attendance",
+        pattern="^(attendance|cert_issued|quiz_pass)$",
+    )
+    action: str = Field(
+        default="enroll_in_course",
+        pattern="^(enroll_in_course|unlock_module|award_badge)$",
+    )
+    action_ref_id: Optional[int] = None
+    is_active: bool = True
+
+
+@router.get("/api/admin/lms/bridges", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def list_bridges(
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _get_org_for_user(me, db)
+    rows = (await db.execute(
+        select(EventLmsBridge)
+        .join(TrainingCourse, TrainingCourse.id == EventLmsBridge.course_id, isouter=True)
+        .where(TrainingCourse.org_id == org.id)
+        .order_by(EventLmsBridge.created_at.desc())
+    )).scalars().all()
+    return [_bridge_dict(b) for b in rows]
+
+
+@router.post("/api/admin/lms/bridges", status_code=201, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def create_bridge(
+    body: BridgeIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    b = EventLmsBridge(
+        event_id=body.event_id,
+        course_id=body.course_id,
+        trigger_on=body.trigger_on,
+        action=body.action,
+        action_ref_id=body.action_ref_id,
+        is_active=body.is_active,
+    )
+    db.add(b)
+    await db.commit()
+    await db.refresh(b)
+    return _bridge_dict(b)
+
+
+@router.patch("/api/admin/lms/bridges/{bridge_id}/toggle", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def toggle_bridge(
+    bridge_id: int,
+    is_active: bool = Query(...),
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    b = (await db.execute(select(EventLmsBridge).where(EventLmsBridge.id == bridge_id))).scalar_one_or_none()
+    if not b:
+        raise HTTPException(404, "Bridge bulunamadı.")
+    b.is_active = is_active
+    await db.commit()
+    return {"ok": True, "is_active": is_active}
+
+
+@router.delete("/api/admin/lms/bridges/{bridge_id}", status_code=204, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def delete_bridge(
+    bridge_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    b = (await db.execute(select(EventLmsBridge).where(EventLmsBridge.id == bridge_id))).scalar_one_or_none()
+    if b:
+        await db.delete(b)
+        await db.commit()
+
+
+def _bridge_dict(b: EventLmsBridge) -> dict:
+    return {
+        "id": b.id,
+        "event_id": b.event_id,
+        "course_id": b.course_id,
+        "trigger_on": b.trigger_on,
+        "action": b.action,
+        "action_ref_id": b.action_ref_id,
+        "is_active": b.is_active,
+        "created_at": b.created_at.isoformat(),
+    }
+
+
+# ===========================================================================
+# 4D — LMS ANALYTICS
+# ===========================================================================
+
+
+@router.get("/api/admin/lms/analytics", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def lms_analytics(
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _get_org_for_user(me, db)
+    org_id = org.id
+
+    # Courses count
+    total_courses = (await db.execute(
+        select(func.count()).where(TrainingCourse.org_id == org_id)
+    )).scalar() or 0
+
+    published_courses = (await db.execute(
+        select(func.count()).where(
+            TrainingCourse.org_id == org_id, TrainingCourse.is_published == True
+        )
+    )).scalar() or 0
+
+    # Enrollments
+    total_enrollments = (await db.execute(
+        select(func.count(CourseEnrollment.id))
+        .join(TrainingCourse, TrainingCourse.id == CourseEnrollment.course_id)
+        .where(TrainingCourse.org_id == org_id)
+    )).scalar() or 0
+
+    completed_enrollments = (await db.execute(
+        select(func.count(CourseEnrollment.id))
+        .join(TrainingCourse, TrainingCourse.id == CourseEnrollment.course_id)
+        .where(TrainingCourse.org_id == org_id, CourseEnrollment.status == "completed")
+    )).scalar() or 0
+
+    # Certs issued via LMS
+    certs_issued = (await db.execute(
+        select(func.count(CourseEnrollment.id))
+        .join(TrainingCourse, TrainingCourse.id == CourseEnrollment.course_id)
+        .where(TrainingCourse.org_id == org_id, CourseEnrollment.cert_pdf_url.isnot(None))
+    )).scalar() or 0
+
+    # Badges awarded
+    total_badges = (await db.execute(
+        select(func.count(BadgeAward.id))
+        .join(Badge, Badge.id == BadgeAward.badge_id)
+        .where(Badge.org_id == org_id)
+    )).scalar() or 0
+
+    # Per-course breakdown
+    course_rows = (await db.execute(
+        select(
+            TrainingCourse.id,
+            TrainingCourse.title,
+            func.count(CourseEnrollment.id).label("enrollments"),
+            func.count(
+                CourseEnrollment.id.distinct()
+            ).filter(CourseEnrollment.status == "completed").label("completed"),
+        )
+        .outerjoin(CourseEnrollment, CourseEnrollment.course_id == TrainingCourse.id)
+        .where(TrainingCourse.org_id == org_id)
+        .group_by(TrainingCourse.id, TrainingCourse.title)
+        .order_by(func.count(CourseEnrollment.id).desc())
+        .limit(20)
+    )).all()
+
+    return {
+        "total_courses": total_courses,
+        "published_courses": published_courses,
+        "total_enrollments": total_enrollments,
+        "completed_enrollments": completed_enrollments,
+        "completion_rate_pct": round(completed_enrollments / total_enrollments * 100, 1) if total_enrollments else 0,
+        "certs_issued": certs_issued,
+        "total_badges_awarded": total_badges,
+        "top_courses": [
+            {
+                "course_id": r.id,
+                "title": r.title,
+                "enrollments": r.enrollments,
+                "completed": r.completed,
+            }
+            for r in course_rows
+        ],
+    }
+
+
+@router.get("/api/admin/lms/courses/{course_id}/analytics")
+async def course_analytics(
+    course_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    course = await _get_course_lms(course_id, me, db, edit=False)
+
+    total = (await db.execute(
+        select(func.count()).where(CourseEnrollment.course_id == course_id)
+    )).scalar() or 0
+
+    completed = (await db.execute(
+        select(func.count()).where(
+            CourseEnrollment.course_id == course_id, CourseEnrollment.status == "completed"
+        )
+    )).scalar() or 0
+
+    in_progress = (await db.execute(
+        select(func.count()).where(
+            CourseEnrollment.course_id == course_id, CourseEnrollment.status == "in_progress"
+        )
+    )).scalar() or 0
+
+    avg_progress = (await db.execute(
+        select(func.avg(CourseEnrollment.progress_pct))
+        .where(CourseEnrollment.course_id == course_id)
+    )).scalar()
+
+    # Module completion breakdown
+    module_rows = (await db.execute(
+        select(
+            CourseModule.id,
+            CourseModule.title,
+            func.count(ModuleProgress.id).label("started"),
+            func.count(ModuleProgress.id).filter(ModuleProgress.completed_at.isnot(None)).label("completed"),
+        )
+        .outerjoin(ModuleProgress, ModuleProgress.module_id == CourseModule.id)
+        .where(CourseModule.course_id == course_id)
+        .group_by(CourseModule.id, CourseModule.title)
+        .order_by(CourseModule.order)
+    )).all()
+
+    return {
+        "course_id": course_id,
+        "title": course.title,
+        "total_enrollments": total,
+        "completed": completed,
+        "in_progress": in_progress,
+        "not_started": total - completed - in_progress,
+        "avg_progress_pct": round(float(avg_progress), 1) if avg_progress else 0,
+        "completion_rate_pct": round(completed / total * 100, 1) if total else 0,
+        "modules": [
+            {
+                "module_id": r.id,
+                "title": r.title,
+                "started": r.started,
+                "completed": r.completed,
+            }
+            for r in module_rows
+        ],
+    }
+
+
+# ===========================================================================
+# PUBLIC — Discussions (member-facing)
+# ===========================================================================
+
+
+@router.get("/api/public/courses/{course_id}/discussions")
+async def public_list_discussions(
+    course_id: int,
+    db: AsyncSession = Depends(get_db),
+    member: Optional[CurrentPublicMember] = Depends(get_optional_public_member),
+):
+    rows = (await db.execute(
+        select(CourseDiscussion)
+        .where(CourseDiscussion.course_id == course_id)
+        .order_by(CourseDiscussion.is_pinned.desc(), CourseDiscussion.created_at.desc())
+    )).scalars().all()
+    return [_discussion_dict(d) for d in rows]
+
+
+@router.get("/api/public/courses/{course_id}/discussions/{discussion_id}")
+async def public_get_discussion(
+    course_id: int,
+    discussion_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    d = (await db.execute(
+        select(CourseDiscussion)
+        .where(CourseDiscussion.id == discussion_id, CourseDiscussion.course_id == course_id)
+        .options(selectinload(CourseDiscussion.replies))
+    )).scalar_one_or_none()
+    if not d:
+        raise HTTPException(404, "Tartışma bulunamadı.")
+    result = _discussion_dict(d)
+    result["replies"] = [_reply_dict(r) for r in d.replies]
+    return result
+
+
+@router.post("/api/public/courses/{course_id}/discussions", status_code=201)
+async def public_create_discussion(
+    course_id: int,
+    body: DiscussionIn,
+    db: AsyncSession = Depends(get_db),
+    member: CurrentPublicMember = Depends(get_current_public_member),
+):
+    enr = (await db.execute(
+        select(CourseEnrollment).where(
+            CourseEnrollment.course_id == course_id,
+            CourseEnrollment.member_id == member.id,
+        )
+    )).scalar_one_or_none()
+    if not enr:
+        raise HTTPException(403, "Bu kursa kayıtlı değilsiniz.")
+    d = CourseDiscussion(
+        course_id=course_id,
+        module_id=body.module_id,
+        author_member_id=member.id,
+        title=body.title,
+        body=body.body,
+        is_pinned=False,
+    )
+    db.add(d)
+    await db.commit()
+    await db.refresh(d)
+    return _discussion_dict(d)
+
+
+@router.post("/api/public/courses/{course_id}/discussions/{discussion_id}/replies", status_code=201)
+async def public_add_reply(
+    course_id: int,
+    discussion_id: int,
+    body: ReplyIn,
+    db: AsyncSession = Depends(get_db),
+    member: CurrentPublicMember = Depends(get_current_public_member),
+):
+    d = (await db.execute(
+        select(CourseDiscussion).where(
+            CourseDiscussion.id == discussion_id, CourseDiscussion.course_id == course_id
+        )
+    )).scalar_one_or_none()
+    if not d:
+        raise HTTPException(404, "Tartışma bulunamadı.")
+    if d.is_locked:
+        raise HTTPException(400, "Bu tartışma kilitli.")
+    r = DiscussionReply(
+        discussion_id=discussion_id,
+        parent_reply_id=body.parent_reply_id,
+        author_member_id=member.id,
+        body=body.body,
+        is_instructor_reply=False,
+    )
+    db.add(r)
+    d.reply_count = (d.reply_count or 0) + 1
+    await db.commit()
+    await db.refresh(r)
+    return _reply_dict(r)
+
+
+# ===========================================================================
+# PUBLIC — Calendar (member-facing)
+# ===========================================================================
+
+
+@router.get("/api/public/courses/{course_id}/calendar")
+async def public_course_calendar(
+    course_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    rows = (await db.execute(
+        select(CourseCalendarEvent)
+        .where(CourseCalendarEvent.course_id == course_id)
+        .order_by(CourseCalendarEvent.starts_at)
+    )).scalars().all()
+    return [_cal_event_dict(e) for e in rows]
+
+
+# ===========================================================================
+# PUBLIC — My Grades (member-facing)
+# ===========================================================================
+
+
+@router.get("/api/public/courses/{course_id}/my-grades")
+async def my_grades(
+    course_id: int,
+    db: AsyncSession = Depends(get_db),
+    member: CurrentPublicMember = Depends(get_current_public_member),
+):
+    enr = (await db.execute(
+        select(CourseEnrollment)
+        .where(
+            CourseEnrollment.course_id == course_id,
+            CourseEnrollment.member_id == member.id,
+        )
+        .options(
+            selectinload(CourseEnrollment.grade_summary),
+            selectinload(CourseEnrollment.module_progress),
+        )
+    )).scalar_one_or_none()
+    if not enr:
+        raise HTTPException(404, "Bu kursa kayıtlı değilsiniz.")
+
+    course = (await db.execute(
+        select(TrainingCourse).where(TrainingCourse.id == course_id)
+    )).scalar_one_or_none()
+
+    grade_items = (await db.execute(
+        select(CourseGradeItem)
+        .where(CourseGradeItem.course_id == course_id)
+        .order_by(CourseGradeItem.order)
+    )).scalars().all()
+
+    modules = (await db.execute(
+        select(CourseModule)
+        .where(CourseModule.course_id == course_id)
+        .order_by(CourseModule.order)
+    )).scalars().all()
+
+    completed_module_ids = {p.module_id for p in enr.module_progress if p.completed_at}
+    quiz_scores = {p.module_id: p.quiz_score for p in enr.module_progress}
+
+    gs = enr.grade_summary
+    return {
+        "course_id": course_id,
+        "course_title": course.title if course else "",
+        "progress_pct": enr.progress_pct,
+        "status": enr.status,
+        "grade_summary": {
+            "weighted_avg": float(gs.weighted_avg) if gs and gs.weighted_avg is not None else None,
+            "letter_grade": gs.letter_grade if gs else None,
+            "passed": gs.passed if gs else None,
+        } if gs else None,
+        "grade_items": [_grade_item_dict(i) for i in grade_items],
+        "modules": [
+            {
+                "module_id": m.id,
+                "title": m.title,
+                "completed": m.id in completed_module_ids,
+                "quiz_score": quiz_scores.get(m.id),
+            }
+            for m in modules
+        ],
+    }

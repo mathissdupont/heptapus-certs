@@ -52,6 +52,13 @@ AutomationTrigger = Literal[
     "survey_not_completed",
     "badge_earned",
     "audience_segment",
+    # LMS triggers
+    "lms_course_enrolled",
+    "lms_course_completed",
+    "lms_module_completed",
+    "lms_assignment_graded",
+    "lms_journey_completed",
+    "compliance_overdue",
 ]
 AutomationActionType = Literal["send_email", "create_reminder", "webhook_dispatch"]
 
@@ -62,6 +69,13 @@ TRIGGER_LABELS: dict[str, str] = {
     "survey_not_completed": "Anketi tamamlamadı",
     "badge_earned": "Rozet kazandı",
     "audience_segment": "Katılımcı segmenti",
+    # LMS triggers
+    "lms_course_enrolled": "LMS — Kursa kayıt oldu",
+    "lms_course_completed": "LMS — Kursu tamamladı",
+    "lms_module_completed": "LMS — Modülü tamamladı",
+    "lms_assignment_graded": "LMS — Ödevi notlandırıldı",
+    "lms_journey_completed": "LMS — Öğrenme yolunu tamamladı",
+    "compliance_overdue": "Uyum görevi tarihi geçti",
 }
 
 ACTION_LABELS: dict[str, str] = {

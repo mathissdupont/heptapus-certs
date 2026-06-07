@@ -535,6 +535,7 @@ class TrainingAssignment(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
     event_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("events.id", ondelete="SET NULL"), nullable=True, index=True)
+    course_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("training_courses.id", ondelete="SET NULL"), nullable=True, index=True)
     renewal_event_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("events.id", ondelete="SET NULL"), nullable=True, index=True)
     certificate_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("certificates.id", ondelete="SET NULL"), nullable=True, index=True)
     title: Mapped[str] = mapped_column(String(200))
@@ -5707,7 +5708,7 @@ async def public_event_capacities(event_id: str, db: AsyncSession = Depends(get_
 async def startup():
     ensure_dirs()
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(lambda conn: Base.metadata.create_all(conn, checkfirst=True))
 
     async with SessionLocal() as db:
         res = await db.execute(select(User).where(User.email == str(settings.bootstrap_superadmin_email)))
@@ -6537,6 +6538,61 @@ async def startup():
             except Exception as exc:
                 logger.warning("Auto badge calculation failed: %s", exc)
 
+        async def _notify_lms_due_dates():
+            """Daily: send due-date reminders for LMS assignments 3 days away."""
+            try:
+                from .lms_extended_models import CourseCalendarEvent
+                from .lms_models import CourseEnrollment, TrainingCourse
+                now = datetime.now(timezone.utc)
+                window_start = now + timedelta(hours=68)
+                window_end = now + timedelta(hours=76)
+                async with SessionLocal() as db_sch:
+                    events_res = await db_sch.execute(
+                        select(CourseCalendarEvent).where(
+                            CourseCalendarEvent.event_type == "due_date",
+                            CourseCalendarEvent.starts_at >= window_start,
+                            CourseCalendarEvent.starts_at < window_end,
+                        )
+                    )
+                    cal_events = events_res.scalars().all()
+                    for cal in cal_events:
+                        course_res = await db_sch.execute(
+                            select(TrainingCourse).where(TrainingCourse.id == cal.course_id)
+                        )
+                        course = course_res.scalar_one_or_none()
+                        if not course:
+                            continue
+                        enrollments_res = await db_sch.execute(
+                            select(CourseEnrollment, PublicMember)
+                            .join(PublicMember, PublicMember.id == CourseEnrollment.member_id)
+                            .where(
+                                CourseEnrollment.course_id == cal.course_id,
+                                CourseEnrollment.completed_at.is_(None),
+                            )
+                        )
+                        for enrollment, member in enrollments_res.all():
+                            if not member.email:
+                                continue
+                            due_str = cal.starts_at.strftime("%d/%m/%Y %H:%M") if cal.starts_at else ""
+                            subject = f"Ödev hatırlatma: {cal.title} — 3 gün kaldı"
+                            html_body = f"""
+<div style="font-family:Inter,Arial,sans-serif;line-height:1.6;color:#1f2937">
+  <h2 style="margin:0 0 12px">Ödev Son Tarihi Yaklaşıyor</h2>
+  <p><strong>{cal.title}</strong> ödevi için son tarih <strong>{due_str}</strong>.</p>
+  <p>Kurs: <strong>{course.title}</strong></p>
+  <p>Ödevi zamanında teslim etmeyi unutmayın!</p>
+</div>"""
+                            try:
+                                await send_email_async(
+                                    to_email=member.email,
+                                    subject=subject,
+                                    html_body=html_body,
+                                )
+                            except Exception as mail_exc:
+                                logger.warning("LMS due-date email failed for %s: %s", member.email, mail_exc)
+            except Exception as exc:
+                logger.warning("LMS due-date notification job failed: %s", exc)
+
         if settings.enable_scheduler:
             scheduler.add_job(_notify_expiring_certs, "cron", hour=2, minute=0)
             scheduler.add_job(_auto_renew_certificates, "interval", hours=1)
@@ -6549,6 +6605,7 @@ async def startup():
             scheduler.add_job(_process_document_export_jobs, "interval", seconds=10)
             scheduler.add_job(_process_bulk_certificate_jobs, "interval", seconds=3)
             scheduler.add_job(_auto_calculate_badges, "interval", minutes=30)
+            scheduler.add_job(_notify_lms_due_dates, "cron", hour=7, minute=0)
             scheduler.start()
             logger.info("APScheduler started Ã¢â‚¬â€ cert notifications + monthly HC renewal + system digest + bulk email processing + bulk certificate queue")
         else:
@@ -20400,8 +20457,16 @@ app.include_router(_lead_forms_api.router)
 from . import lms_api as _lms_api  # noqa: E402
 app.include_router(_lms_api.router)
 
+from . import lms_extended_models as _lms_extended_models  # noqa: E402, F401
+
+from . import lms_extended_api as _lms_extended_api  # noqa: E402
+app.include_router(_lms_extended_api.router)
+
 from . import org_modules_api as _org_modules_api  # noqa: E402
 app.include_router(_org_modules_api.router)
+
+from . import org_staff_api as _org_staff_api  # noqa: E402
+app.include_router(_org_staff_api.router)
 
 from . import org_analytics_api as _org_analytics_api  # noqa: E402
 app.include_router(_org_analytics_api.router)
