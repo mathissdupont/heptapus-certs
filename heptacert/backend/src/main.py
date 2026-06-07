@@ -8925,6 +8925,8 @@ async def login(request: Request, data: LoginIn, db: AsyncSession = Depends(get_
         await db.commit()
         raise HTTPException(status_code=403, detail="E-posta adresinizi doğrulamanız gerekiyor. Lütfen gelen kutunuzu kontrol edin.")
 
+    owns_admin_workspace = user.role in (Role.admin, Role.superadmin)
+
     # Organization employees need admin-panel access even if they registered as a public member first.
     if user.role not in (Role.admin, Role.superadmin):
         try:
@@ -8954,6 +8956,9 @@ async def login(request: Request, data: LoginIn, db: AsyncSession = Depends(get_
                 await db.flush()
         except Exception:
             logger.exception("Failed to synchronize organization employee role for user %s", user.id)
+
+    if owns_admin_workspace:
+        await _get_or_create_admin_organization(db, user.id)
 
     # Check if 2FA is enabled for this user
     totp_res = await db.execute(select(TotpSecret).where(TotpSecret.user_id == user.id, TotpSecret.enabled.is_(True)))
@@ -9148,10 +9153,15 @@ async def verify_email_endpoint(token: str = Query(...), db: AsyncSession = Depe
     if (not user.is_verified) and (not user.verification_token or not hmac.compare_digest(str(user.verification_token), token)):
         raise bad_request("Geçersiz doğrulama bağlantısı.")
     if user.is_verified:
+        if user.role in (Role.admin, Role.superadmin):
+            await _get_or_create_admin_organization(db, user.id)
+            await db.commit()
         return {"detail": "Hesabınız zaten doğrulanmış."}
 
     user.is_verified = True
     user.verification_token = None
+    if user.role in (Role.admin, Role.superadmin):
+        await _get_or_create_admin_organization(db, user.id)
     await db.commit()
     return {"detail": "E-posta başarıyla doğrulandı. Giriş yapabilirsiniz."}
 
