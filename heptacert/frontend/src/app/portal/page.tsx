@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   BookOpen,
@@ -13,7 +14,17 @@ import {
   Star,
   TrendingUp,
 } from "lucide-react";
-import { memberApiFetch } from "@/lib/api";
+import { memberApiFetch, publicApiFetch } from "@/lib/api";
+
+type OrgBranding = {
+  org_id: number;
+  org_name: string;
+  brand_color: string;
+  brand_logo: string | null;
+  lms_portal_title: string;
+  lms_support_email: string;
+  lms_welcome_text: string;
+};
 
 type Enrollment = {
   id: number;
@@ -46,9 +57,13 @@ type Stats = {
 };
 
 export default function PortalDashboard() {
+  const searchParams = useSearchParams();
+  const orgParam = searchParams.get("org");
+
   const [courses, setCourses] = useState<Course[]>([]);
   const [stats, setStats] = useState<Stats>({ total: 0, in_progress: 0, completed: 0 });
   const [loading, setLoading] = useState(true);
+  const [branding, setBranding] = useState<OrgBranding | null>(null);
 
   useEffect(() => {
     memberApiFetch("/public/my-courses")
@@ -61,6 +76,14 @@ export default function PortalDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (!orgParam) return;
+    publicApiFetch(`/public/orgs/${orgParam}/lms-branding`)
+      .then((r) => (r as Response).json())
+      .then((d: OrgBranding) => setBranding(d))
+      .catch(() => null);
+  }, [orgParam]);
+
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -72,8 +95,34 @@ export default function PortalDashboard() {
   const activeCourses = courses.filter((c) => !c.enrollment.completed_at);
   const completedCourses = courses.filter((c) => c.enrollment.completed_at);
 
+  const brandColor = branding?.brand_color || "#6366f1";
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 space-y-8">
+
+      {/* Welcome banner */}
+      {branding && (
+        <div
+          className="rounded-2xl px-6 py-5 text-white flex items-center gap-4"
+          style={{ backgroundColor: brandColor }}
+        >
+          {branding.brand_logo ? (
+            <img src={branding.brand_logo} className="h-12 w-12 rounded-xl object-cover bg-white/20 shrink-0" alt="" />
+          ) : (
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/20">
+              <GraduationCap className="h-6 w-6 text-white" />
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="font-bold text-base leading-tight">
+              {branding.lms_portal_title || branding.org_name}
+            </p>
+            {branding.lms_welcome_text && (
+              <p className="mt-0.5 text-sm opacity-90 line-clamp-2">{branding.lms_welcome_text}</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-4">

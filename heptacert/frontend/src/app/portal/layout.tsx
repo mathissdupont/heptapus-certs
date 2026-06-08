@@ -76,10 +76,16 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const [mobileOpen, setMobileOpen] = useState(false);
   const [ready, setReady] = useState(false);
 
+  const isLoginPage = pathname === "/portal/login";
+
   useEffect(() => {
+    if (isLoginPage) { setReady(true); return; }
     const token = getPublicMemberToken();
     if (!token) {
-      router.push(`/login?next=/portal${orgParam ? `?org=${orgParam}` : ""}`);
+      const dest = orgParam
+        ? `/portal/login?org=${orgParam}`
+        : `/portal/login`;
+      router.push(dest);
       return;
     }
     setReady(true);
@@ -87,7 +93,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       .then((r) => r.json())
       .then((d: Me) => setMe(d))
       .catch(() => null);
-  }, []);
+  }, [isLoginPage]);
 
   useEffect(() => {
     if (!orgParam) return;
@@ -105,6 +111,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   }
 
   if (!ready) return null;
+
+  if (isLoginPage) return <>{children}</>;
 
   const brandColor = branding?.brand_color || "#6366f1";
   const portalTitle = branding?.lms_portal_title || branding?.org_name || "Öğrenci Portalı";

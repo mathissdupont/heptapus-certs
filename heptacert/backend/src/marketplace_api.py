@@ -6,7 +6,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .main import (
@@ -169,7 +169,7 @@ async def update_marketplace_settings(
 # ===========================================================================
 
 
-def _course_to_marketplace_dict(c: TrainingCourse, org: Optional[Organization] = None) -> dict:
+def _course_to_marketplace_dict(c: TrainingCourse, org: Optional[Organization] = None, module_count: int = 0) -> dict:
     return {
         "id": c.id,
         "title": c.title,
@@ -180,7 +180,7 @@ def _course_to_marketplace_dict(c: TrainingCourse, org: Optional[Organization] =
         "level": c.level,
         "language": c.language,
         "price": float(c.marketplace_price) if c.marketplace_price is not None else (float(c.price) if c.price else None),
-        "module_count": len(c.modules) if hasattr(c, "modules") and c.modules else 0,
+        "module_count": module_count,
         "org_name": org.org_name if org else None,
         "org_logo": org.brand_logo if org else None,
     }
@@ -195,15 +195,22 @@ async def list_marketplace_courses(
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
 ):
-    from sqlalchemy.orm import selectinload
+    from .lms_models import CourseModule
+
+    module_count_sub = (
+        select(func.count(CourseModule.id))
+        .where(CourseModule.course_id == TrainingCourse.id)
+        .correlate(TrainingCourse)
+        .scalar_subquery()
+    )
+
     stmt = (
-        select(TrainingCourse, Organization)
+        select(TrainingCourse, Organization, module_count_sub.label("module_count"))
         .join(Organization, Organization.id == TrainingCourse.org_id, isouter=True)
         .where(
             TrainingCourse.is_marketplace_listed.is_(True),
             TrainingCourse.is_published.is_(True),
         )
-        .options(selectinload(TrainingCourse.modules))
     )
     if category:
         stmt = stmt.where(TrainingCourse.category == category)
@@ -218,25 +225,32 @@ async def list_marketplace_courses(
         )
     stmt = stmt.order_by(TrainingCourse.created_at.desc()).limit(limit).offset(offset)
     rows = (await db.execute(stmt)).all()
-    return [_course_to_marketplace_dict(c, org) for c, org in rows]
+    return [_course_to_marketplace_dict(c, org, int(cnt or 0)) for c, org, cnt in rows]
 
 
 @router.get("/api/public/marketplace/courses/{course_id}")
 async def get_marketplace_course(course_id: int, db: AsyncSession = Depends(get_db)):
-    from sqlalchemy.orm import selectinload
+    from .lms_models import CourseModule
+
+    module_count_sub = (
+        select(func.count(CourseModule.id))
+        .where(CourseModule.course_id == TrainingCourse.id)
+        .correlate(TrainingCourse)
+        .scalar_subquery()
+    )
+
     row = (await db.execute(
-        select(TrainingCourse, Organization)
+        select(TrainingCourse, Organization, module_count_sub.label("module_count"))
         .join(Organization, Organization.id == TrainingCourse.org_id, isouter=True)
         .where(
             TrainingCourse.id == course_id,
             TrainingCourse.is_marketplace_listed.is_(True),
             TrainingCourse.is_published.is_(True),
         )
-        .options(selectinload(TrainingCourse.modules))
     )).first()
     if not row:
         raise HTTPException(404, "Kurs marketplace'te bulunamadı.")
-    return _course_to_marketplace_dict(row[0], row[1])
+    return _course_to_marketplace_dict(row[0], row[1], int(row[2] or 0))
 
 
 class CourseMarketplaceSettingsIn(BaseModel):
