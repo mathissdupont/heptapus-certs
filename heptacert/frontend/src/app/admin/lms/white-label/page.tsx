@@ -91,7 +91,7 @@ export default function LmsWhiteLabelPage() {
     );
   }
 
-  const portalUrl = form.custom_domain ? `https://${form.custom_domain}/courses` : "/courses";
+  const portalUrl = form.custom_domain ? `https://${form.custom_domain}/portal` : "/portal";
 
   return (
     <div className="mx-auto grid max-w-6xl gap-6 p-6 lg:grid-cols-[1fr_360px]">
