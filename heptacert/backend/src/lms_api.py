@@ -1609,9 +1609,9 @@ async def get_quiz_public(
 ):
     """Quiz metadata (no correct answers revealed here)."""
     q = (await db.execute(
-        select(Quiz)
-        .where(Quiz.id == quiz_id)
-        .options(selectinload(Quiz.questions).selectinload(QuizQuestion.choices))
+        select(LMSQuiz)
+        .where(LMSQuiz.id == quiz_id)
+        .options(selectinload(LMSQuiz.questions).selectinload(LMSQuizQuestion.choices))
     )).scalar_one_or_none()
     if not q:
         raise HTTPException(404, "Quiz bulunamadı.")
@@ -1656,9 +1656,9 @@ async def my_quiz_attempts(
     member: CurrentPublicMember = Depends(get_current_public_member),
 ):
     attempts = (await db.execute(
-        select(QuizAttempt)
-        .where(QuizAttempt.quiz_id == quiz_id, QuizAttempt.member_id == member.id)
-        .order_by(QuizAttempt.started_at.desc())
+        select(LMSQuizAttempt)
+        .where(LMSQuizAttempt.quiz_id == quiz_id, LMSQuizAttempt.member_id == member.id)
+        .order_by(LMSQuizAttempt.started_at.desc())
     )).scalars().all()
     return [
         {
@@ -1679,7 +1679,7 @@ async def start_quiz_attempt(
     db: AsyncSession = Depends(get_db),
     member: CurrentPublicMember = Depends(get_current_public_member),
 ):
-    q = (await db.execute(select(Quiz).where(Quiz.id == quiz_id))).scalar_one_or_none()
+    q = (await db.execute(select(LMSQuiz).where(LMSQuiz.id == quiz_id))).scalar_one_or_none()
     if not q:
         raise HTTPException(404, "Quiz bulunamadı.")
     enr = (await db.execute(
@@ -1691,13 +1691,13 @@ async def start_quiz_attempt(
     if not enr:
         raise HTTPException(403, "Bu kursa kayıtlı değilsiniz.")
     prev_attempts = (await db.execute(
-        select(QuizAttempt)
-        .where(QuizAttempt.quiz_id == quiz_id, QuizAttempt.member_id == member.id)
+        select(LMSQuizAttempt)
+        .where(LMSQuizAttempt.quiz_id == quiz_id, LMSQuizAttempt.member_id == member.id)
     )).scalars().all()
     submitted_count = sum(1 for a in prev_attempts if a.submitted_at)
     if submitted_count >= q.attempts_allowed:
         raise HTTPException(409, "Deneme hakkınızı kullandınız.")
-    attempt = QuizAttempt(
+    attempt = LMSQuizAttempt(
         quiz_id=quiz_id,
         member_id=member.id,
         attempt_number=len(prev_attempts) + 1,
@@ -1726,16 +1726,16 @@ async def submit_quiz_attempt(
     member: CurrentPublicMember = Depends(get_current_public_member),
 ):
     attempt = (await db.execute(
-        select(QuizAttempt).where(QuizAttempt.id == attempt_id, QuizAttempt.member_id == member.id)
+        select(LMSQuizAttempt).where(LMSQuizAttempt.id == attempt_id, LMSQuizAttempt.member_id == member.id)
     )).scalar_one_or_none()
     if not attempt:
         raise HTTPException(404, "Deneme bulunamadı.")
     if attempt.submitted_at:
         raise HTTPException(409, "Bu deneme zaten gönderildi.")
     q = (await db.execute(
-        select(Quiz)
-        .where(Quiz.id == attempt.quiz_id)
-        .options(selectinload(Quiz.questions).selectinload(QuizQuestion.choices))
+        select(LMSQuiz)
+        .where(LMSQuiz.id == attempt.quiz_id)
+        .options(selectinload(LMSQuiz.questions).selectinload(LMSQuizQuestion.choices))
     )).scalar_one()
     questions_by_id = {qu.id: qu for qu in q.questions}
     total_points = sum(qu.points for qu in q.questions)
@@ -1744,7 +1744,7 @@ async def submit_quiz_attempt(
         question = questions_by_id.get(ans.question_id)
         if not question:
             continue
-        db.add(QuizAnswer(
+        db.add(LMSQuizAnswer(
             attempt_id=attempt.id,
             question_id=ans.question_id,
             selected_choice_ids=ans.selected_choice_ids,
@@ -1779,18 +1779,18 @@ async def get_quiz_attempt_result(
     member: CurrentPublicMember = Depends(get_current_public_member),
 ):
     attempt = (await db.execute(
-        select(QuizAttempt)
-        .where(QuizAttempt.id == attempt_id, QuizAttempt.member_id == member.id)
-        .options(selectinload(QuizAttempt.answers))
+        select(LMSQuizAttempt)
+        .where(LMSQuizAttempt.id == attempt_id, LMSQuizAttempt.member_id == member.id)
+        .options(selectinload(LMSQuizAttempt.answers))
     )).scalar_one_or_none()
     if not attempt:
         raise HTTPException(404, "Deneme bulunamadı.")
     if not attempt.submitted_at:
         raise HTTPException(400, "Deneme henüz gönderilmedi.")
     q = (await db.execute(
-        select(Quiz)
-        .where(Quiz.id == attempt.quiz_id)
-        .options(selectinload(Quiz.questions).selectinload(QuizQuestion.choices))
+        select(LMSQuiz)
+        .where(LMSQuiz.id == attempt.quiz_id)
+        .options(selectinload(LMSQuiz.questions).selectinload(LMSQuizQuestion.choices))
     )).scalar_one()
     answers_by_question = {a.question_id: a for a in attempt.answers}
     questions_out = []

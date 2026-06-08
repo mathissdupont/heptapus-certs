@@ -1982,7 +1982,7 @@ async def replace_choices(
         new_choices.append(c)
     await db.commit()
     question.choices = (await db.execute(
-        select(LMSQuizChoice).where(LMSQuizChoice.question_id == question_id).order_by(QuizChoice.order)
+        select(LMSQuizChoice).where(LMSQuizChoice.question_id == question_id).order_by(LMSQuizChoice.order)
     )).scalars().all()
     return _question_dict(question)
 
