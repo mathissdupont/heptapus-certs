@@ -13,7 +13,7 @@ function SsoSuccessContent() {
     const token = params.get("token");
     if (token) {
       setPublicMemberToken(token);
-      router.replace("/courses");
+      router.replace("/marketplace/courses");
     } else {
       router.replace("/login?error=sso_failed");
     }

@@ -5127,6 +5127,9 @@ async def get_current_user(db: AsyncSession = Depends(get_db), Authorization: Op
         user = user_res.scalar_one_or_none()
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
+        if user.role in (Role.admin, Role.superadmin):
+            await _get_or_create_admin_organization(db, user.id)
+            await db.commit()
         return CurrentUser(id=user.id, role=user.role, email=user.email)
 
     # JWT path
@@ -5145,13 +5148,20 @@ async def get_current_user(db: AsyncSession = Depends(get_db), Authorization: Op
     if cached_user:
         if cached_user.get("deleted_at"):
             raise HTTPException(status_code=401, detail="Bu hesap silinmiştir.")
-        return CurrentUser(id=cached_user["id"], role=Role(cached_user["role"]), email=cached_user["email"])
+        cached_role = Role(cached_user["role"])
+        if cached_role in (Role.admin, Role.superadmin):
+            await _get_or_create_admin_organization(db, int(cached_user["id"]))
+            await db.commit()
+        return CurrentUser(id=cached_user["id"], role=cached_role, email=cached_user["email"])
     res = await db.execute(select(User).where(User.id == user_id))
     user = res.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     if user.deleted_at is not None:
         raise HTTPException(status_code=401, detail="Bu hesap silinmiştir.")
+    if user.role in (Role.admin, Role.superadmin):
+        await _get_or_create_admin_organization(db, user.id)
+        await db.commit()
     await cache.set(f"user:{user_id}", {"id": user.id, "role": str(user.role.value), "email": user.email, "deleted_at": None}, ttl=USER_TTL)
     return CurrentUser(id=user.id, role=user.role, email=user.email)
 
@@ -9103,25 +9113,41 @@ async def register(request: Request, data: RegisterIn, db: AsyncSession = Depend
     if not data.terms_accepted:
         raise bad_request("Kayıt icin kullanım koşullarını kabul etmelisiniz.")
 
-    res = await db.execute(select(User).where(User.email == str(data.email)))
-    if res.scalar_one_or_none():
+    email = str(data.email).strip().lower()
+    res = await db.execute(select(User).where(func.lower(User.email) == email))
+    existing_user = res.scalar_one_or_none()
+    if existing_user and existing_user.deleted_at is None:
         raise bad_request("Bu e-posta adresi zaten kayıtlı.")
 
-    token = make_email_token({"email": str(data.email), "action": "verify"})
-    user = User(
-        email=str(data.email),
-        password_hash=hash_password(data.password),
-        role=Role.admin,
-        heptacoin_balaonce=100,  # 100 HC hoÅŸ geldin hediyesi
-        is_verified=False,
-        verification_token=token,
-    )
-    db.add(user)
+    token = make_email_token({"email": email, "action": "verify"})
+    if existing_user:
+        existing_user.email = email
+        existing_user.password_hash = hash_password(data.password)
+        existing_user.role = Role.admin
+        existing_user.deleted_at = None
+        existing_user.is_verified = False
+        existing_user.verification_token = token
+        existing_user.password_reset_token = None
+        existing_user.magic_link_token = None
+        existing_user.heptacoin_balaonce = existing_user.heptacoin_balaonce or 100
+        user = existing_user
+        from .cache import cache
+        await cache.delete(f"user:{user.id}")
+    else:
+        user = User(
+            email=email,
+            password_hash=hash_password(data.password),
+            role=Role.admin,
+            heptacoin_balaonce=100,  # 100 HC welcome bonus
+            is_verified=False,
+            verification_token=token,
+        )
+        db.add(user)
     await db.commit()
 
     verify_link = f"{settings.frontend_base_url.rstrip('/')}/verify-email?token={token}"
     await send_email_async(
-        to=str(data.email),
+        to=email,
         subject="HeptaCert - E-posta Adresinizi Doğrulayın",
         html_body=f"""
         <p>Merhaba,</p>
