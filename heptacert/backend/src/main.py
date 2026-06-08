@@ -14156,6 +14156,9 @@ async def update_admin_organization_settings(payload: dict[str, Any], request: R
         "public_github_url",
         "public_x_url",
         "public_instagram_url",
+        "lms_portal_title",
+        "lms_support_email",
+        "lms_welcome_text",
     ):
         if key in payload:
             value = payload.get(key)

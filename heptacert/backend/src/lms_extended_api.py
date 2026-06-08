@@ -15,6 +15,7 @@ from .main import (
     CurrentPublicMember,
     CurrentUser,
     Organization,
+    PublicMember,
     Role,
     SessionLocal,
     User,
@@ -36,6 +37,8 @@ from .lms_models import (
 from .lms_extended_models import (
     Badge,
     BadgeAward,
+    CourseAttendanceRecord,
+    CourseAttendanceSession,
     CourseCalendarEvent,
     CourseDiscussion,
     CourseGradeItem,
@@ -1239,6 +1242,291 @@ def _cal_event_dict(e: CourseCalendarEvent) -> dict:
 # ===========================================================================
 # 3A — EVENTS ↔ LMS BRIDGE
 # ===========================================================================
+
+
+# ===========================================================================
+# 2I - ATTENDANCE
+# ===========================================================================
+
+
+class AttendanceSessionIn(BaseModel):
+    title: str = Field(max_length=300)
+    session_type: str = Field(default="lecture", pattern="^(lecture|lab|seminar|exam|office_hours|other)$")
+    starts_at: datetime
+    ends_at: Optional[datetime] = None
+    location: Optional[str] = Field(default=None, max_length=300)
+    required: bool = True
+    notes: Optional[str] = Field(default=None, max_length=3000)
+
+
+class AttendanceSessionPatch(BaseModel):
+    title: Optional[str] = Field(default=None, max_length=300)
+    session_type: Optional[str] = Field(default=None, pattern="^(lecture|lab|seminar|exam|office_hours|other)$")
+    starts_at: Optional[datetime] = None
+    ends_at: Optional[datetime] = None
+    location: Optional[str] = Field(default=None, max_length=300)
+    required: Optional[bool] = None
+    notes: Optional[str] = Field(default=None, max_length=3000)
+
+
+class AttendanceRecordIn(BaseModel):
+    enrollment_id: int
+    status: str = Field(pattern="^(present|late|excused|absent)$")
+    minutes_attended: Optional[int] = Field(default=None, ge=0, le=10000)
+    note: Optional[str] = Field(default=None, max_length=2000)
+
+
+class AttendanceBulkIn(BaseModel):
+    records: list[AttendanceRecordIn] = Field(min_length=1, max_length=1000)
+
+
+@router.get("/api/admin/lms/courses/{course_id}/attendance-sessions")
+async def list_attendance_sessions(
+    course_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db, edit=False)
+    rows = (await db.execute(
+        select(
+            CourseAttendanceSession,
+            func.count(CourseAttendanceRecord.id).label("record_count"),
+            func.count(CourseAttendanceRecord.id).filter(CourseAttendanceRecord.status == "present").label("present_count"),
+            func.count(CourseAttendanceRecord.id).filter(CourseAttendanceRecord.status == "late").label("late_count"),
+            func.count(CourseAttendanceRecord.id).filter(CourseAttendanceRecord.status == "excused").label("excused_count"),
+            func.count(CourseAttendanceRecord.id).filter(CourseAttendanceRecord.status == "absent").label("absent_count"),
+        )
+        .outerjoin(CourseAttendanceRecord, CourseAttendanceRecord.session_id == CourseAttendanceSession.id)
+        .where(CourseAttendanceSession.course_id == course_id)
+        .group_by(CourseAttendanceSession.id)
+        .order_by(CourseAttendanceSession.starts_at.desc())
+    )).all()
+    return [
+        _attendance_session_dict(
+            s,
+            record_count=int(record_count or 0),
+            present_count=int(present_count or 0),
+            late_count=int(late_count or 0),
+            excused_count=int(excused_count or 0),
+            absent_count=int(absent_count or 0),
+        )
+        for s, record_count, present_count, late_count, excused_count, absent_count in rows
+    ]
+
+
+@router.post("/api/admin/lms/courses/{course_id}/attendance-sessions", status_code=201)
+async def create_attendance_session(
+    course_id: int,
+    body: AttendanceSessionIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db)
+    session = CourseAttendanceSession(
+        course_id=course_id,
+        title=body.title.strip() or "Yoklama",
+        session_type=body.session_type,
+        starts_at=body.starts_at,
+        ends_at=body.ends_at,
+        location=body.location,
+        required=body.required,
+        notes=body.notes,
+        created_by_user_id=me.id,
+    )
+    db.add(session)
+    await db.commit()
+    await db.refresh(session)
+    return _attendance_session_dict(session)
+
+
+@router.patch("/api/admin/lms/courses/{course_id}/attendance-sessions/{session_id}")
+async def patch_attendance_session(
+    course_id: int,
+    session_id: int,
+    body: AttendanceSessionPatch,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db)
+    session = (await db.execute(
+        select(CourseAttendanceSession).where(
+            CourseAttendanceSession.id == session_id,
+            CourseAttendanceSession.course_id == course_id,
+        )
+    )).scalar_one_or_none()
+    if not session:
+        raise HTTPException(404, "Yoklama oturumu bulunamadi.")
+    for field, value in body.model_dump(exclude_unset=True).items():
+        if field == "title" and value is not None:
+            value = value.strip() or session.title
+        setattr(session, field, value)
+    await db.commit()
+    await db.refresh(session)
+    return _attendance_session_dict(session)
+
+
+@router.delete("/api/admin/lms/courses/{course_id}/attendance-sessions/{session_id}", status_code=204)
+async def delete_attendance_session(
+    course_id: int,
+    session_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db)
+    session = (await db.execute(
+        select(CourseAttendanceSession).where(
+            CourseAttendanceSession.id == session_id,
+            CourseAttendanceSession.course_id == course_id,
+        )
+    )).scalar_one_or_none()
+    if session:
+        await db.delete(session)
+        await db.commit()
+    return None
+
+
+@router.get("/api/admin/lms/courses/{course_id}/attendance-sessions/{session_id}/records")
+async def list_attendance_records(
+    course_id: int,
+    session_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db, edit=False)
+    session = (await db.execute(
+        select(CourseAttendanceSession).where(
+            CourseAttendanceSession.id == session_id,
+            CourseAttendanceSession.course_id == course_id,
+        )
+    )).scalar_one_or_none()
+    if not session:
+        raise HTTPException(404, "Yoklama oturumu bulunamadi.")
+
+    enrollments = (await db.execute(
+        select(CourseEnrollment)
+        .where(CourseEnrollment.course_id == course_id)
+        .order_by(CourseEnrollment.enrolled_at)
+    )).scalars().all()
+    member_ids = [e.member_id for e in enrollments]
+    members: dict[int, PublicMember] = {}
+    if member_ids:
+        member_rows = await db.execute(select(PublicMember).where(PublicMember.id.in_(member_ids)))
+        members = {m.id: m for m in member_rows.scalars().all()}
+    records = (await db.execute(
+        select(CourseAttendanceRecord).where(CourseAttendanceRecord.session_id == session_id)
+    )).scalars().all()
+    by_enrollment = {r.enrollment_id: r for r in records}
+
+    return {
+        "session": _attendance_session_dict(session),
+        "records": [
+            _attendance_record_dict(by_enrollment.get(e.id), e, members.get(e.member_id))
+            for e in enrollments
+        ],
+    }
+
+
+@router.put("/api/admin/lms/courses/{course_id}/attendance-sessions/{session_id}/records")
+async def upsert_attendance_records(
+    course_id: int,
+    session_id: int,
+    body: AttendanceBulkIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db)
+    session = (await db.execute(
+        select(CourseAttendanceSession).where(
+            CourseAttendanceSession.id == session_id,
+            CourseAttendanceSession.course_id == course_id,
+        )
+    )).scalar_one_or_none()
+    if not session:
+        raise HTTPException(404, "Yoklama oturumu bulunamadi.")
+
+    enrollment_ids = [r.enrollment_id for r in body.records]
+    enrollments = (await db.execute(
+        select(CourseEnrollment).where(
+            CourseEnrollment.course_id == course_id,
+            CourseEnrollment.id.in_(enrollment_ids),
+        )
+    )).scalars().all()
+    by_enrollment = {e.id: e for e in enrollments}
+    if len(by_enrollment) != len(set(enrollment_ids)):
+        raise HTTPException(400, "Bazi enrollment kayitlari bu kursa ait degil.")
+
+    existing = (await db.execute(
+        select(CourseAttendanceRecord).where(
+            CourseAttendanceRecord.session_id == session_id,
+            CourseAttendanceRecord.enrollment_id.in_(enrollment_ids),
+        )
+    )).scalars().all()
+    existing_by_enrollment = {r.enrollment_id: r for r in existing}
+
+    for item in body.records:
+        enrollment = by_enrollment[item.enrollment_id]
+        record = existing_by_enrollment.get(item.enrollment_id)
+        if not record:
+            record = CourseAttendanceRecord(
+                session_id=session_id,
+                enrollment_id=enrollment.id,
+                member_id=enrollment.member_id,
+            )
+            db.add(record)
+        record.status = item.status
+        record.minutes_attended = item.minutes_attended
+        record.note = item.note
+        record.recorded_by_user_id = me.id
+        record.recorded_at = datetime.now(timezone.utc)
+
+    await db.commit()
+    return {"ok": True, "updated": len(body.records)}
+
+
+def _attendance_session_dict(
+    s: CourseAttendanceSession,
+    *,
+    record_count: int = 0,
+    present_count: int = 0,
+    late_count: int = 0,
+    excused_count: int = 0,
+    absent_count: int = 0,
+) -> dict[str, Any]:
+    return {
+        "id": s.id,
+        "course_id": s.course_id,
+        "title": s.title,
+        "session_type": s.session_type,
+        "starts_at": s.starts_at.isoformat(),
+        "ends_at": s.ends_at.isoformat() if s.ends_at else None,
+        "location": s.location,
+        "required": s.required,
+        "notes": s.notes,
+        "record_count": record_count,
+        "present_count": present_count,
+        "late_count": late_count,
+        "excused_count": excused_count,
+        "absent_count": absent_count,
+        "created_at": s.created_at.isoformat(),
+    }
+
+
+def _attendance_record_dict(
+    record: Optional[CourseAttendanceRecord],
+    enrollment: CourseEnrollment,
+    member: Optional[PublicMember],
+) -> dict[str, Any]:
+    return {
+        "record_id": record.id if record else None,
+        "enrollment_id": enrollment.id,
+        "member_id": enrollment.member_id,
+        "member_name": member.display_name if member else None,
+        "member_email": member.email if member else None,
+        "status": record.status if record else "absent",
+        "minutes_attended": record.minutes_attended if record else None,
+        "note": record.note if record else None,
+        "recorded_at": record.recorded_at.isoformat() if record else None,
+    }
 
 
 class BridgeIn(BaseModel):

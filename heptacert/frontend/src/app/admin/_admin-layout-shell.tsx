@@ -44,6 +44,7 @@ import {
   UserPlus,
   CheckCircle2,
   ArrowRight,
+  Palette,
 } from "lucide-react";
 
 type NavItem = {
@@ -171,6 +172,8 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/admin/lms/outcomes", label: { tr: "Kazanımlar", en: "Outcomes" }, icon: GraduationCap },
       { href: "/admin/lms/badges", label: { tr: "Rozetler", en: "Badges" }, icon: Award },
       { href: "/admin/lms/lti", label: { tr: "LTI Araçları", en: "LTI Tools" }, icon: Zap },
+      { href: "/admin/lms/staff", label: { tr: "LMS Ekip", en: "LMS Team" }, icon: UsersRound },
+      { href: "/admin/lms/white-label", label: { tr: "LMS White-label", en: "LMS White-label" }, icon: Palette },
       { href: "/admin/lms/analytics", label: { tr: "LMS Analitik", en: "LMS Analytics" }, icon: BarChart3 },
       { href: "/admin/training", label: { tr: "Uyum Takibi", en: "Compliance" }, icon: ClipboardList },
     ],

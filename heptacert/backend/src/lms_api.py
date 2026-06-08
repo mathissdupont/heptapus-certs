@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import secrets
 from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -37,6 +38,9 @@ from .main import (
     CertStatus,
     EmailTemplate,
     PublicMember,
+    _generate_public_member_public_id,
+    hash_password,
+    make_email_token,
 )
 from .generator import TemplateConfig, render_certificate_pdf, new_certificate_uuid
 from .lms_models import (
@@ -95,6 +99,15 @@ class CourseIn(BaseModel):
     description: Optional[str] = Field(default=None, max_length=5000)
     thumbnail_url: Optional[str] = Field(default=None, max_length=1000)
     category: Optional[str] = Field(default=None, max_length=100)
+    course_code: Optional[str] = Field(default=None, max_length=50)
+    department: Optional[str] = Field(default=None, max_length=120)
+    term: Optional[str] = Field(default=None, max_length=80)
+    section: Optional[str] = Field(default=None, max_length=50)
+    credits: Optional[Decimal] = Field(default=None, ge=0, le=30)
+    capacity: Optional[int] = Field(default=None, ge=1, le=100000)
+    enrollment_policy: str = Field(default="open", pattern="^(open|approval|required_invite|closed)$")
+    starts_at: Optional[datetime] = None
+    ends_at: Optional[datetime] = None
     level: str = Field(default="beginner", pattern="^(beginner|intermediate|advanced)$")
     language: str = Field(default="tr", max_length=10)
     is_published: bool = False
@@ -108,6 +121,15 @@ class CoursePatch(BaseModel):
     description: Optional[str] = Field(default=None, max_length=5000)
     thumbnail_url: Optional[str] = Field(default=None, max_length=1000)
     category: Optional[str] = Field(default=None, max_length=100)
+    course_code: Optional[str] = Field(default=None, max_length=50)
+    department: Optional[str] = Field(default=None, max_length=120)
+    term: Optional[str] = Field(default=None, max_length=80)
+    section: Optional[str] = Field(default=None, max_length=50)
+    credits: Optional[Decimal] = Field(default=None, ge=0, le=30)
+    capacity: Optional[int] = Field(default=None, ge=1, le=100000)
+    enrollment_policy: Optional[str] = Field(default=None, pattern="^(open|approval|required_invite|closed)$")
+    starts_at: Optional[datetime] = None
+    ends_at: Optional[datetime] = None
     level: Optional[str] = Field(default=None, pattern="^(beginner|intermediate|advanced)$")
     language: Optional[str] = Field(default=None, max_length=10)
     is_published: Optional[bool] = None
@@ -125,6 +147,21 @@ class CourseModulePatch(BaseModel):
     content_text: Optional[str] = None
     duration_minutes: Optional[int] = Field(default=None, ge=1, le=600)
     is_required: Optional[bool] = None
+
+
+class EnrollmentImportStudent(BaseModel):
+    email: str = Field(max_length=320)
+    display_name: Optional[str] = Field(default=None, max_length=120)
+    student_no: Optional[str] = Field(default=None, max_length=80)
+    department: Optional[str] = Field(default=None, max_length=120)
+
+
+class EnrollmentImportIn(BaseModel):
+    students: list[EnrollmentImportStudent] = Field(min_length=1, max_length=1000)
+
+
+class EnrollmentInviteIn(BaseModel):
+    enrollment_ids: Optional[list[int]] = Field(default=None, max_length=1000)
 
 
 # ---------------------------------------------------------------------------
@@ -275,12 +312,25 @@ def _course_to_dict(course: TrainingCourse, include_modules: bool = False) -> di
         "description": course.description,
         "thumbnail_url": course.thumbnail_url,
         "category": course.category,
+        "course_code": course.course_code,
+        "department": course.department,
+        "term": course.term,
+        "section": course.section,
+        "credits": float(course.credits) if course.credits is not None else None,
+        "capacity": course.capacity,
+        "enrollment_policy": course.enrollment_policy,
+        "starts_at": course.starts_at.isoformat() if course.starts_at else None,
+        "ends_at": course.ends_at.isoformat() if course.ends_at else None,
         "level": course.level,
         "language": course.language,
         "is_published": course.is_published,
         "is_featured": course.is_featured,
         "price": float(course.price) if course.price is not None else None,
         "passing_score": course.passing_score,
+        "is_marketplace_listed": course.is_marketplace_listed,
+        "marketplace_price": float(course.marketplace_price) if course.marketplace_price is not None else None,
+        "marketplace_description": course.marketplace_description,
+        "preview_video_url": course.preview_video_url,
         "created_at": course.created_at.isoformat(),
         "updated_at": course.updated_at.isoformat(),
         "module_count": len(course.modules) if course.modules else 0,
@@ -538,6 +588,15 @@ async def create_course(
         description=payload.description,
         thumbnail_url=payload.thumbnail_url,
         category=payload.category,
+        course_code=payload.course_code,
+        department=payload.department,
+        term=payload.term,
+        section=payload.section,
+        credits=payload.credits,
+        capacity=payload.capacity,
+        enrollment_policy=payload.enrollment_policy,
+        starts_at=payload.starts_at,
+        ends_at=payload.ends_at,
         level=payload.level,
         language=payload.language,
         is_published=payload.is_published,
@@ -941,19 +1000,146 @@ async def list_enrollments(
         .order_by(CourseEnrollment.enrolled_at.desc())
     )
     enrollments = res.scalars().all()
+    member_ids = [e.member_id for e in enrollments]
+    members: dict[int, PublicMember] = {}
+    if member_ids:
+        member_rows = await db.execute(select(PublicMember).where(PublicMember.id.in_(member_ids)))
+        members = {m.id: m for m in member_rows.scalars().all()}
     return {
         "enrollments": [
             {
                 "id": e.id,
                 "member_id": e.member_id,
+                "member_email": members[e.member_id].email if e.member_id in members else None,
+                "member_name": members[e.member_id].display_name if e.member_id in members else None,
                 "enrolled_at": e.enrolled_at.isoformat(),
                 "completed_at": e.completed_at.isoformat() if e.completed_at else None,
                 "progress_pct": e.progress_pct,
                 "final_grade": e.final_grade,
+                "status": e.status,
             }
             for e in enrollments
         ]
     }
+
+
+@router.post("/api/admin/lms/courses/{course_id}/enrollments/import")
+async def import_course_enrollments(
+    course_id: int,
+    payload: EnrollmentImportIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    course = await _get_course_for_admin(course_id, me, db)
+    existing_count = (await db.execute(
+        select(func.count()).where(CourseEnrollment.course_id == course_id)
+    )).scalar_one()
+
+    created_members = 0
+    created_enrollments = 0
+    skipped: list[dict[str, str]] = []
+    seen_emails: set[str] = set()
+
+    for row in payload.students:
+        email = row.email.strip().lower()
+        if not email or "@" not in email:
+            skipped.append({"email": row.email, "reason": "invalid_email"})
+            continue
+        if email in seen_emails:
+            skipped.append({"email": email, "reason": "duplicate_in_import"})
+            continue
+        seen_emails.add(email)
+
+        if course.capacity is not None and existing_count + created_enrollments >= course.capacity:
+            skipped.append({"email": email, "reason": "capacity_full"})
+            continue
+
+        member = (await db.execute(select(PublicMember).where(PublicMember.email == email))).scalar_one_or_none()
+        if not member:
+            token = make_email_token({"email": email, "action": "public_member_verify"})
+            member = PublicMember(
+                public_id=await _generate_public_member_public_id(db),
+                email=email,
+                display_name=(row.display_name or email.split("@")[0]).strip()[:120],
+                headline=row.student_no,
+                bio=row.department,
+                password_hash=hash_password(secrets.token_urlsafe(32)),
+                is_verified=False,
+                verification_token=token,
+            )
+            db.add(member)
+            await db.flush()
+            created_members += 1
+        elif member.deleted_at is not None:
+            member.deleted_at = None
+            if row.display_name:
+                member.display_name = row.display_name.strip()[:120]
+
+        exists = (await db.execute(
+            select(CourseEnrollment.id).where(
+                CourseEnrollment.course_id == course_id,
+                CourseEnrollment.member_id == member.id,
+            )
+        )).scalar_one_or_none()
+        if exists:
+            skipped.append({"email": email, "reason": "already_enrolled"})
+            continue
+
+        db.add(CourseEnrollment(course_id=course_id, member_id=member.id))
+        created_enrollments += 1
+
+    await db.commit()
+    return {
+        "created_members": created_members,
+        "created_enrollments": created_enrollments,
+        "skipped": skipped,
+        "capacity": course.capacity,
+    }
+
+
+@router.post("/api/admin/lms/courses/{course_id}/enrollments/invite")
+async def invite_course_enrollments(
+    course_id: int,
+    payload: EnrollmentInviteIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    course = await _get_course_for_admin(course_id, me, db)
+    stmt = select(CourseEnrollment).where(CourseEnrollment.course_id == course_id)
+    if payload.enrollment_ids:
+        stmt = stmt.where(CourseEnrollment.id.in_(payload.enrollment_ids))
+    enrollments = (await db.execute(stmt)).scalars().all()
+    if not enrollments:
+        return {"sent": 0, "skipped": []}
+
+    member_ids = [e.member_id for e in enrollments]
+    members = (await db.execute(select(PublicMember).where(PublicMember.id.in_(member_ids)))).scalars().all()
+    by_id = {m.id: m for m in members}
+    skipped: list[dict[str, str]] = []
+    sent = 0
+
+    for enrollment in enrollments:
+        member = by_id.get(enrollment.member_id)
+        if not member or not member.email:
+            skipped.append({"member_id": str(enrollment.member_id), "reason": "missing_email"})
+            continue
+        login_link = f"{settings.frontend_base_url.rstrip('/')}/login?mode=member"
+        if not member.is_verified and not member.verification_token:
+            member.verification_token = make_email_token({"email": member.email, "action": "public_member_verify"})
+        verify_link = f"{settings.frontend_base_url.rstrip('/')}/member/verify-email?token={member.verification_token}" if not member.is_verified else login_link
+        subject = f"{course.title} kurs davetiniz"
+        body = f"""
+        <p>Merhaba {member.display_name or member.email},</p>
+        <p><strong>{course.title}</strong> kursuna kaydiniz olusturuldu.</p>
+        <p>Ogrenci hesabinizla giris yapmak icin once e-postanizi dogrulayin:</p>
+        <p><a href="{verify_link}">E-postayi dogrula</a></p>
+        <p>Daha once dogruladiysaniz buradan giris yapabilirsiniz: <a href="{login_link}">{login_link}</a></p>
+        """
+        await send_email_async(member.email, subject, body)
+        sent += 1
+
+    await db.commit()
+    return {"sent": sent, "skipped": skipped}
 
 
 # ---------------------------------------------------------------------------

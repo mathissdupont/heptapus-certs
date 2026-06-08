@@ -58,6 +58,15 @@ def _sync_additive_schema(sync_conn: sa.Connection) -> None:
         _add_column_if_missing(sync_conn, inspector, "training_courses", '"marketplace_price" NUMERIC(10, 2)')
         _add_column_if_missing(sync_conn, inspector, "training_courses", '"marketplace_description" TEXT')
         _add_column_if_missing(sync_conn, inspector, "training_courses", '"preview_video_url" TEXT')
+        _add_column_if_missing(sync_conn, inspector, "training_courses", '"course_code" VARCHAR(50)')
+        _add_column_if_missing(sync_conn, inspector, "training_courses", '"department" VARCHAR(120)')
+        _add_column_if_missing(sync_conn, inspector, "training_courses", '"term" VARCHAR(80)')
+        _add_column_if_missing(sync_conn, inspector, "training_courses", '"section" VARCHAR(50)')
+        _add_column_if_missing(sync_conn, inspector, "training_courses", '"credits" NUMERIC(4, 1)')
+        _add_column_if_missing(sync_conn, inspector, "training_courses", '"capacity" INTEGER')
+        _add_column_if_missing(sync_conn, inspector, "training_courses", '"enrollment_policy" VARCHAR(32) NOT NULL DEFAULT \'open\'')
+        _add_column_if_missing(sync_conn, inspector, "training_courses", '"starts_at" TIMESTAMP WITH TIME ZONE')
+        _add_column_if_missing(sync_conn, inspector, "training_courses", '"ends_at" TIMESTAMP WITH TIME ZONE')
 
     if "course_modules" in table_names:
         _add_column_if_missing(sync_conn, inspector, "course_modules", '"quiz_id" INTEGER')

@@ -394,6 +394,65 @@ class CourseSyllabus(Base):
 # 3A — Events ↔ LMS Bridge
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# 2I - Attendance
+# ---------------------------------------------------------------------------
+
+class CourseAttendanceSession(Base):
+    __tablename__ = "course_attendance_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    course_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("training_courses.id", ondelete="CASCADE"), index=True
+    )
+    title: Mapped[str] = mapped_column(String(300))
+    session_type: Mapped[str] = mapped_column(String(50), default="lecture")
+    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    ends_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    location: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    required: Mapped[bool] = mapped_column(Boolean, default=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_by_user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    records: Mapped[List["CourseAttendanceRecord"]] = relationship(
+        back_populates="session", cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (Index("ix_attendance_sessions_course_start", "course_id", "starts_at"),)
+
+
+class CourseAttendanceRecord(Base):
+    __tablename__ = "course_attendance_records"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    session_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("course_attendance_sessions.id", ondelete="CASCADE"), index=True
+    )
+    enrollment_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("course_enrollments.id", ondelete="CASCADE"), index=True
+    )
+    member_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("public_members.id", ondelete="CASCADE"), index=True
+    )
+    status: Mapped[str] = mapped_column(String(32), default="present")
+    minutes_attended: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    recorded_by_user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    session: Mapped["CourseAttendanceSession"] = relationship(back_populates="records")
+
+    __table_args__ = (
+        UniqueConstraint("session_id", "enrollment_id", name="uq_attendance_session_enrollment"),
+        Index("ix_attendance_records_member", "member_id"),
+    )
+
+
 class EventLmsBridge(Base):
     __tablename__ = "event_lms_bridges"
 

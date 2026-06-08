@@ -28,6 +28,15 @@ class TrainingCourse(Base):
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     thumbnail_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    course_code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    department: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    term: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    section: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    credits: Mapped[Optional[Decimal]] = mapped_column(Numeric(4, 1), nullable=True)
+    capacity: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    enrollment_policy: Mapped[str] = mapped_column(String(32), default="open", server_default="open")
+    starts_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    ends_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     level: Mapped[str] = mapped_column(String(50), default="beginner")
     language: Mapped[str] = mapped_column(String(10), default="tr")
     is_published: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -59,7 +68,11 @@ class TrainingCourse(Base):
         order_by="CourseAnnouncement.created_at.desc()",
     )
 
-    __table_args__ = (Index("ix_training_courses_org_id", "org_id"),)
+    __table_args__ = (
+        Index("ix_training_courses_org_id", "org_id"),
+        Index("ix_training_courses_org_code", "org_id", "course_code"),
+        Index("ix_training_courses_org_term", "org_id", "term"),
+    )
 
 
 class CourseModule(Base):

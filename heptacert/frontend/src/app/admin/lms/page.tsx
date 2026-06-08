@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   BookOpen, ChevronRight, Globe, Loader2, Lock,
-  Plus, Trash2, Users,
+  Plus, Trash2,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
@@ -16,6 +16,15 @@ type CourseOut = {
   description: string | null;
   thumbnail_url: string | null;
   category: string | null;
+  course_code: string | null;
+  department: string | null;
+  term: string | null;
+  section: string | null;
+  credits: number | null;
+  capacity: number | null;
+  enrollment_policy: string;
+  starts_at: string | null;
+  ends_at: string | null;
   level: string;
   language: string;
   is_published: boolean;
@@ -74,6 +83,12 @@ export default function LmsCoursesPage() {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle] = useState("");
+  const [newCode, setNewCode] = useState("");
+  const [newDepartment, setNewDepartment] = useState("");
+  const [newTerm, setNewTerm] = useState("");
+  const [newSection, setNewSection] = useState("");
+  const [newCredits, setNewCredits] = useState("");
+  const [newCapacity, setNewCapacity] = useState("");
   const [creating, setCreating] = useState(false);
 
   async function load() {
@@ -97,7 +112,15 @@ export default function LmsCoursesPage() {
     try {
       const res = await apiFetch("/admin/lms/courses", {
         method: "POST",
-        body: JSON.stringify({ title: newTitle.trim() }),
+        body: JSON.stringify({
+          title: newTitle.trim(),
+          course_code: newCode.trim() || null,
+          department: newDepartment.trim() || null,
+          term: newTerm.trim() || null,
+          section: newSection.trim() || null,
+          credits: newCredits ? Number(newCredits) : null,
+          capacity: newCapacity ? Number(newCapacity) : null,
+        }),
       });
       const created = (await res.json()) as CourseOut;
       router.push(`/admin/lms/${created.id}`);
@@ -153,9 +176,61 @@ export default function LmsCoursesPage() {
               onKeyDown={(e) => e.key === "Enter" && handleCreate()}
               placeholder={isTr ? "Kurs başlığı..." : "Course title..."}
             />
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <input
+                className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                value={newCode}
+                onChange={(e) => setNewCode(e.target.value)}
+                placeholder={isTr ? "Ders kodu" : "Course code"}
+              />
+              <input
+                className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                value={newDepartment}
+                onChange={(e) => setNewDepartment(e.target.value)}
+                placeholder={isTr ? "Bolum" : "Department"}
+              />
+              <input
+                className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                value={newTerm}
+                onChange={(e) => setNewTerm(e.target.value)}
+                placeholder={isTr ? "Donem" : "Term"}
+              />
+              <input
+                className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                value={newSection}
+                onChange={(e) => setNewSection(e.target.value)}
+                placeholder={isTr ? "Sube" : "Section"}
+              />
+              <input
+                type="number"
+                min={0}
+                step={0.5}
+                className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                value={newCredits}
+                onChange={(e) => setNewCredits(e.target.value)}
+                placeholder={isTr ? "Kredi" : "Credits"}
+              />
+              <input
+                type="number"
+                min={1}
+                className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                value={newCapacity}
+                onChange={(e) => setNewCapacity(e.target.value)}
+                placeholder={isTr ? "Kontenjan" : "Capacity"}
+              />
+            </div>
             <div className="mt-4 flex justify-end gap-2">
               <button
-                onClick={() => { setShowCreate(false); setNewTitle(""); }}
+                onClick={() => {
+                  setShowCreate(false);
+                  setNewTitle("");
+                  setNewCode("");
+                  setNewDepartment("");
+                  setNewTerm("");
+                  setNewSection("");
+                  setNewCredits("");
+                  setNewCapacity("");
+                }}
                 className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
               >
                 {copy.cancel}
@@ -217,9 +292,20 @@ export default function LmsCoursesPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 text-xs text-gray-400">
+                {(course.course_code || course.department || course.term || course.section) && (
+                  <div className="flex flex-wrap gap-1.5 text-[11px] text-gray-500">
+                    {course.course_code && <span className="rounded-md bg-gray-100 px-2 py-0.5 font-semibold text-gray-700">{course.course_code}</span>}
+                    {course.department && <span className="rounded-md bg-gray-50 px-2 py-0.5">{course.department}</span>}
+                    {course.term && <span className="rounded-md bg-gray-50 px-2 py-0.5">{course.term}</span>}
+                    {course.section && <span className="rounded-md bg-gray-50 px-2 py-0.5">{course.section}</span>}
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400">
                   <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" />{copy.modules(course.module_count)}</span>
                   <span className="capitalize">{LEVEL_LABELS[course.level] ?? course.level}</span>
+                  {course.credits != null && <span>{course.credits} kredi</span>}
+                  {course.capacity != null && <span>{course.capacity} kontenjan</span>}
                   {course.price != null && course.price > 0
                     ? <span>₺{course.price}</span>
                     : <span>{copy.free}</span>

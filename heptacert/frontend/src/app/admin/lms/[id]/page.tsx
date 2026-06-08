@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeft, BookOpen, ChevronDown, ChevronUp, Globe,
-  GripVertical, Loader2, Lock, Plus, Save, Trash2, ClipboardList, Store,
+  ArrowLeft, BookOpen, CalendarCheck, ChevronDown, ChevronUp, Globe,
+  GripVertical, Loader2, Lock, Plus, Save, Trash2, ClipboardList, Store, Users,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
@@ -27,6 +27,15 @@ type CourseForm = {
   title: string;
   description: string;
   category: string;
+  course_code: string;
+  department: string;
+  term: string;
+  section: string;
+  credits: string;
+  capacity: string;
+  enrollment_policy: "open" | "approval" | "required_invite" | "closed";
+  starts_at: string;
+  ends_at: string;
   level: "beginner" | "intermediate" | "advanced";
   language: string;
   is_published: boolean;
@@ -80,6 +89,15 @@ export default function LmsCourseDetailPage() {
     title: "",
     description: "",
     category: "",
+    course_code: "",
+    department: "",
+    term: "",
+    section: "",
+    credits: "",
+    capacity: "",
+    enrollment_policy: "open",
+    starts_at: "",
+    ends_at: "",
     level: "beginner",
     language: "tr",
     is_published: false,
@@ -107,6 +125,15 @@ export default function LmsCourseDetailPage() {
           title: d.title ?? "",
           description: d.description ?? "",
           category: d.category ?? "",
+          course_code: d.course_code ?? "",
+          department: d.department ?? "",
+          term: d.term ?? "",
+          section: d.section ?? "",
+          credits: d.credits != null ? String(d.credits) : "",
+          capacity: d.capacity != null ? String(d.capacity) : "",
+          enrollment_policy: d.enrollment_policy ?? "open",
+          starts_at: d.starts_at ? String(d.starts_at).slice(0, 10) : "",
+          ends_at: d.ends_at ? String(d.ends_at).slice(0, 10) : "",
           level: d.level ?? "beginner",
           language: d.language ?? "tr",
           is_published: d.is_published ?? false,
@@ -150,6 +177,15 @@ export default function LmsCourseDetailPage() {
           title: form.title.trim() || "Kurs",
           description: form.description || null,
           category: form.category || null,
+          course_code: form.course_code || null,
+          department: form.department || null,
+          term: form.term || null,
+          section: form.section || null,
+          credits: form.credits ? Number(form.credits) : null,
+          capacity: form.capacity ? Number(form.capacity) : null,
+          enrollment_policy: form.enrollment_policy,
+          starts_at: form.starts_at ? `${form.starts_at}T00:00:00.000Z` : null,
+          ends_at: form.ends_at ? `${form.ends_at}T23:59:59.000Z` : null,
           level: form.level,
           language: form.language,
           is_published: form.is_published,
@@ -248,6 +284,20 @@ export default function LmsCourseDetailPage() {
             {form.is_published ? <><Globe className="h-3 w-3" /> Yayında</> : <><Lock className="h-3 w-3" /> Taslak</>}
           </span>
           <Link
+            href={`/admin/lms/courses/${courseId}/students`}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            <Users className="h-4 w-4" />
+            Ogrenciler
+          </Link>
+          <Link
+            href={`/admin/lms/courses/${courseId}/attendance`}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            <CalendarCheck className="h-4 w-4" />
+            Yoklama
+          </Link>
+          <Link
             href={`/admin/lms/courses/${courseId}/gradebook`}
             className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
@@ -300,6 +350,96 @@ export default function LmsCourseDetailPage() {
               value={form.category}
               onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
               placeholder="Teknoloji, İş, Sağlık..."
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Ders Kodu</label>
+            <input
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              value={form.course_code}
+              onChange={(e) => setForm((f) => ({ ...f, course_code: e.target.value }))}
+              placeholder="CS101"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Bolum / Fakulte</label>
+            <input
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              value={form.department}
+              onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))}
+              placeholder="Computer Science"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Donem</label>
+            <input
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              value={form.term}
+              onChange={(e) => setForm((f) => ({ ...f, term: e.target.value }))}
+              placeholder="2026 Bahar"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Sube</label>
+            <input
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              value={form.section}
+              onChange={(e) => setForm((f) => ({ ...f, section: e.target.value }))}
+              placeholder="A"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Kredi</label>
+            <input
+              type="number"
+              min={0}
+              step={0.5}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              value={form.credits}
+              onChange={(e) => setForm((f) => ({ ...f, credits: e.target.value }))}
+              placeholder="3"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Kontenjan</label>
+            <input
+              type="number"
+              min={1}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              value={form.capacity}
+              onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))}
+              placeholder="120"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Kayit Politikasi</label>
+            <select
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              value={form.enrollment_policy}
+              onChange={(e) => setForm((f) => ({ ...f, enrollment_policy: e.target.value as CourseForm["enrollment_policy"] }))}
+            >
+              <option value="open">Acik kayit</option>
+              <option value="approval">Onay gerekli</option>
+              <option value="required_invite">Davet gerekli</option>
+              <option value="closed">Kapali</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Baslangic Tarihi</label>
+            <input
+              type="date"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              value={form.starts_at}
+              onChange={(e) => setForm((f) => ({ ...f, starts_at: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Bitis Tarihi</label>
+            <input
+              type="date"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              value={form.ends_at}
+              onChange={(e) => setForm((f) => ({ ...f, ends_at: e.target.value }))}
             />
           </div>
           <div>
