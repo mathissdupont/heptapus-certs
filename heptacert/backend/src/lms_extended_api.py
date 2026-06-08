@@ -52,11 +52,11 @@ from .lms_extended_models import (
     EventLmsBridge,
     LearningOutcome,
     OutcomeMastery,
-    Quiz,
-    QuizAnswer,
-    QuizAttempt,
-    QuizChoice,
-    QuizQuestion,
+    LMSQuiz,
+    LMSQuizAnswer,
+    LMSQuizAttempt,
+    LMSQuizChoice,
+    LMSQuizQuestion,
     Rubric,
     RubricCriterion,
     RubricRating,
@@ -1744,7 +1744,7 @@ class QuizQuestionPatch(BaseModel):
     explanation: Optional[str] = None
 
 
-def _quiz_dict(q: Quiz, include_questions: bool = False) -> dict:
+def _quiz_dict(q: LMSQuiz, include_questions: bool = False) -> dict:
     d: dict = {
         "id": q.id,
         "course_id": q.course_id,
@@ -1763,7 +1763,7 @@ def _quiz_dict(q: Quiz, include_questions: bool = False) -> dict:
     return d
 
 
-def _question_dict(q: QuizQuestion) -> dict:
+def _question_dict(q: LMSQuizQuestion) -> dict:
     return {
         "id": q.id,
         "quiz_id": q.quiz_id,
@@ -1787,10 +1787,10 @@ async def list_quizzes(
 ):
     await _get_course_lms(course_id, me, db, edit=False)
     rows = (await db.execute(
-        select(Quiz)
-        .where(Quiz.course_id == course_id)
-        .options(selectinload(Quiz.questions))
-        .order_by(Quiz.created_at)
+        select(LMSQuiz)
+        .where(LMSQuiz.course_id == course_id)
+        .options(selectinload(LMSQuiz.questions))
+        .order_by(LMSQuiz.created_at)
     )).scalars().all()
     return [_quiz_dict(q) for q in rows]
 
@@ -1803,7 +1803,7 @@ async def create_quiz(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_course_lms(course_id, me, db)
-    q = Quiz(
+    q = LMSQuiz(
         course_id=course_id,
         title=body.title,
         description=body.description,
@@ -1827,9 +1827,9 @@ async def get_quiz(
     db: AsyncSession = Depends(get_db),
 ):
     q = (await db.execute(
-        select(Quiz)
-        .where(Quiz.id == quiz_id)
-        .options(selectinload(Quiz.questions).selectinload(QuizQuestion.choices))
+        select(LMSQuiz)
+        .where(LMSQuiz.id == quiz_id)
+        .options(selectinload(LMSQuiz.questions).selectinload(LMSQuizQuestion.choices))
     )).scalar_one_or_none()
     if not q:
         raise HTTPException(404, "Quiz bulunamadı.")
@@ -1845,8 +1845,8 @@ async def patch_quiz(
     db: AsyncSession = Depends(get_db),
 ):
     q = (await db.execute(
-        select(Quiz).where(Quiz.id == quiz_id)
-        .options(selectinload(Quiz.questions))
+        select(LMSQuiz).where(LMSQuiz.id == quiz_id)
+        .options(selectinload(LMSQuiz.questions))
     )).scalar_one_or_none()
     if not q:
         raise HTTPException(404, "Quiz bulunamadı.")
@@ -1864,7 +1864,7 @@ async def delete_quiz(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    q = (await db.execute(select(Quiz).where(Quiz.id == quiz_id))).scalar_one_or_none()
+    q = (await db.execute(select(LMSQuiz).where(LMSQuiz.id == quiz_id))).scalar_one_or_none()
     if q:
         await _get_course_lms(q.course_id, me, db)
         await db.delete(q)
@@ -1878,11 +1878,11 @@ async def add_question(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    q = (await db.execute(select(Quiz).where(Quiz.id == quiz_id))).scalar_one_or_none()
+    q = (await db.execute(select(LMSQuiz).where(LMSQuiz.id == quiz_id))).scalar_one_or_none()
     if not q:
         raise HTTPException(404, "Quiz bulunamadı.")
     await _get_course_lms(q.course_id, me, db)
-    question = QuizQuestion(
+    question = LMSQuizQuestion(
         quiz_id=quiz_id,
         question_text=body.question_text,
         question_type=body.question_type,
@@ -1893,7 +1893,7 @@ async def add_question(
     db.add(question)
     await db.flush()
     for ch in body.choices:
-        db.add(QuizChoice(
+        db.add(LMSQuizChoice(
             question_id=question.id,
             choice_text=ch.choice_text,
             is_correct=ch.is_correct,
@@ -1902,7 +1902,7 @@ async def add_question(
     await db.commit()
     await db.refresh(question)
     question.choices = (await db.execute(
-        select(QuizChoice).where(QuizChoice.question_id == question.id).order_by(QuizChoice.order)
+        select(LMSQuizChoice).where(LMSQuizChoice.question_id == question.id).order_by(LMSQuizChoice.order)
     )).scalars().all()
     return _question_dict(question)
 
@@ -1915,17 +1915,17 @@ async def patch_question(
     db: AsyncSession = Depends(get_db),
 ):
     question = (await db.execute(
-        select(QuizQuestion).where(QuizQuestion.id == question_id)
+        select(LMSQuizQuestion).where(LMSQuizQuestion.id == question_id)
     )).scalar_one_or_none()
     if not question:
         raise HTTPException(404, "Soru bulunamadı.")
-    q = (await db.execute(select(Quiz).where(Quiz.id == question.quiz_id))).scalar_one()
+    q = (await db.execute(select(LMSQuiz).where(LMSQuiz.id == question.quiz_id))).scalar_one()
     await _get_course_lms(q.course_id, me, db)
     for f, v in body.model_dump(exclude_none=True).items():
         setattr(question, f, v)
     await db.commit()
     question.choices = (await db.execute(
-        select(QuizChoice).where(QuizChoice.question_id == question.id).order_by(QuizChoice.order)
+        select(LMSQuizChoice).where(LMSQuizChoice.question_id == question.id).order_by(LMSQuizChoice.order)
     )).scalars().all()
     return _question_dict(question)
 
@@ -1937,10 +1937,10 @@ async def delete_question(
     db: AsyncSession = Depends(get_db),
 ):
     question = (await db.execute(
-        select(QuizQuestion).where(QuizQuestion.id == question_id)
+        select(LMSQuizQuestion).where(LMSQuizQuestion.id == question_id)
     )).scalar_one_or_none()
     if question:
-        q = (await db.execute(select(Quiz).where(Quiz.id == question.quiz_id))).scalar_one()
+        q = (await db.execute(select(LMSQuiz).where(LMSQuiz.id == question.quiz_id))).scalar_one()
         await _get_course_lms(q.course_id, me, db)
         await db.delete(question)
         await db.commit()
@@ -1955,24 +1955,24 @@ async def replace_choices(
 ):
     """Replace all choices for a question (PUT semantics)."""
     question = (await db.execute(
-        select(QuizQuestion).where(QuizQuestion.id == question_id)
+        select(LMSQuizQuestion).where(LMSQuizQuestion.id == question_id)
     )).scalar_one_or_none()
     if not question:
         raise HTTPException(404, "Soru bulunamadı.")
-    q = (await db.execute(select(Quiz).where(Quiz.id == question.quiz_id))).scalar_one()
+    q = (await db.execute(select(LMSQuiz).where(LMSQuiz.id == question.quiz_id))).scalar_one()
     await _get_course_lms(q.course_id, me, db)
     await db.execute(
-        select(QuizChoice).where(QuizChoice.question_id == question_id)
+        select(LMSQuizChoice).where(LMSQuizChoice.question_id == question_id)
     )
     existing = (await db.execute(
-        select(QuizChoice).where(QuizChoice.question_id == question_id)
+        select(LMSQuizChoice).where(LMSQuizChoice.question_id == question_id)
     )).scalars().all()
     for c in existing:
         await db.delete(c)
     await db.flush()
     new_choices = []
     for ch in body:
-        c = QuizChoice(
+        c = LMSQuizChoice(
             question_id=question_id,
             choice_text=ch.choice_text,
             is_correct=ch.is_correct,
@@ -1982,7 +1982,7 @@ async def replace_choices(
         new_choices.append(c)
     await db.commit()
     question.choices = (await db.execute(
-        select(QuizChoice).where(QuizChoice.question_id == question_id).order_by(QuizChoice.order)
+        select(LMSQuizChoice).where(LMSQuizChoice.question_id == question_id).order_by(QuizChoice.order)
     )).scalars().all()
     return _question_dict(question)
 
@@ -1993,13 +1993,13 @@ async def list_quiz_attempts_admin(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    q = (await db.execute(select(Quiz).where(Quiz.id == quiz_id))).scalar_one_or_none()
+    q = (await db.execute(select(LMSQuiz).where(LMSQuiz.id == quiz_id))).scalar_one_or_none()
     if not q:
         raise HTTPException(404, "Quiz bulunamadı.")
     await _get_course_lms(q.course_id, me, db, edit=False)
     attempts = (await db.execute(
-        select(QuizAttempt).where(QuizAttempt.quiz_id == quiz_id)
-        .order_by(QuizAttempt.started_at.desc())
+        select(LMSQuizAttempt).where(LMSQuizAttempt.quiz_id == quiz_id)
+        .order_by(LMSQuizAttempt.started_at.desc())
     )).scalars().all()
     return [
         {

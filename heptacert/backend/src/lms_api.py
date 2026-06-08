@@ -58,11 +58,11 @@ from .lms_models import (
 )
 from .lms_extended_models import (
     CourseSyllabus,
-    Quiz,
-    QuizAnswer,
-    QuizAttempt,
-    QuizChoice,
-    QuizQuestion,
+    LMSQuiz,
+    LMSQuizAnswer,
+    LMSQuizAttempt,
+    LMSQuizChoice,
+    LMSQuizQuestion,
 )
 
 logger = logging.getLogger("heptacert.lms")

@@ -478,7 +478,7 @@ class EventLmsBridge(Base):
 # QUIZ SYSTEM
 # ---------------------------------------------------------------------------
 
-class Quiz(Base):
+class LMSQuiz(Base):
     __tablename__ = "lms_quizzes"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -494,18 +494,18 @@ class Quiz(Base):
     show_correct_answers: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    questions: Mapped[List["QuizQuestion"]] = relationship(
+    questions: Mapped[List["LMSQuizQuestion"]] = relationship(
         back_populates="quiz", cascade="all, delete-orphan",
-        order_by="QuizQuestion.order"
+        order_by="LMSQuizQuestion.order"
     )
-    attempts: Mapped[List["QuizAttempt"]] = relationship(
+    attempts: Mapped[List["LMSQuizAttempt"]] = relationship(
         back_populates="quiz", cascade="all, delete-orphan"
     )
 
     __table_args__ = (Index("ix_lms_quizzes_course", "course_id"),)
 
 
-class QuizQuestion(Base):
+class LMSQuizQuestion(Base):
     __tablename__ = "lms_quiz_questions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -519,16 +519,16 @@ class QuizQuestion(Base):
     order: Mapped[int] = mapped_column(Integer, default=0)
     explanation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
-    quiz: Mapped["Quiz"] = relationship(back_populates="questions")
-    choices: Mapped[List["QuizChoice"]] = relationship(
+    quiz: Mapped["LMSQuiz"] = relationship(back_populates="questions")
+    choices: Mapped[List["LMSQuizChoice"]] = relationship(
         back_populates="question", cascade="all, delete-orphan",
-        order_by="QuizChoice.order"
+        order_by="LMSQuizChoice.order"
     )
 
     __table_args__ = (Index("ix_lms_quiz_questions_quiz", "quiz_id"),)
 
 
-class QuizChoice(Base):
+class LMSQuizChoice(Base):
     __tablename__ = "lms_quiz_choices"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -539,12 +539,12 @@ class QuizChoice(Base):
     is_correct: Mapped[bool] = mapped_column(Boolean, default=False)
     order: Mapped[int] = mapped_column(Integer, default=0)
 
-    question: Mapped["QuizQuestion"] = relationship(back_populates="choices")
+    question: Mapped["LMSQuizQuestion"] = relationship(back_populates="choices")
 
     __table_args__ = (Index("ix_lms_quiz_choices_question", "question_id"),)
 
 
-class QuizAttempt(Base):
+class LMSQuizAttempt(Base):
     __tablename__ = "lms_quiz_attempts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -560,15 +560,15 @@ class QuizAttempt(Base):
     passed: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
     attempt_number: Mapped[int] = mapped_column(Integer, default=1)
 
-    quiz: Mapped["Quiz"] = relationship(back_populates="attempts")
-    answers: Mapped[List["QuizAnswer"]] = relationship(
+    quiz: Mapped["LMSQuiz"] = relationship(back_populates="attempts")
+    answers: Mapped[List["LMSQuizAnswer"]] = relationship(
         back_populates="attempt", cascade="all, delete-orphan"
     )
 
     __table_args__ = (Index("ix_lms_quiz_attempts_quiz_member", "quiz_id", "member_id"),)
 
 
-class QuizAnswer(Base):
+class LMSQuizAnswer(Base):
     __tablename__ = "lms_quiz_answers"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -581,7 +581,7 @@ class QuizAnswer(Base):
     selected_choice_ids: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
     text_answer: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
-    attempt: Mapped["QuizAttempt"] = relationship(back_populates="answers")
+    attempt: Mapped["LMSQuizAttempt"] = relationship(back_populates="answers")
 
     __table_args__ = (
         UniqueConstraint("attempt_id", "question_id", name="uq_lms_quiz_answer_attempt_question"),
