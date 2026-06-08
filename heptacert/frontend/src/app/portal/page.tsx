@@ -168,14 +168,7 @@ export default function PortalDashboard() {
         <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-12 text-center">
           <GraduationCap className="mx-auto h-10 w-10 text-slate-300 mb-4" />
           <p className="text-sm font-semibold text-slate-600">Henüz bir kursa kayıtlı değilsiniz</p>
-          <p className="mt-1 text-xs text-slate-400">Kurs kataloğunu inceleyerek başlayabilirsiniz.</p>
-          <Link
-            href="/marketplace/courses"
-            className="mt-5 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
-          >
-            <BookOpen className="h-4 w-4" />
-            Kurs Kataloğu
-          </Link>
+          <p className="mt-1 text-xs text-slate-400">Kurs kaydınız için kurumunuzla iletişime geçin.</p>
         </div>
       )}
 

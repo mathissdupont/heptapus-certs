@@ -56,7 +56,7 @@ export default function PortalLoginPage() {
   }
 
   const brandColor = branding?.brand_color || "#6366f1";
-  const portalTitle = branding?.lms_portal_title || branding?.org_name || "Öğrenci Portalı";
+  const portalTitle = branding?.lms_portal_title || branding?.org_name || "HeptaLMS Portalı";
   const welcomeText = branding?.lms_welcome_text || "Kurslarınıza ve sertifikalarınıza erişmek için giriş yapın.";
 
   return (

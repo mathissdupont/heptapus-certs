@@ -159,11 +159,10 @@ const NAV_GROUPS: NavGroup[] = [
     module: "events",
     items: [
       { href: "/admin/events", label: { tr: "Etkinlikler", en: "Events" }, icon: CalendarCheck2 },
-      { href: "/admin/learning-paths", label: { tr: "Sertifika Programları", en: "Certificate Programs" }, icon: BookOpen },
     ],
   },
   {
-    label: { tr: "LMS", en: "LMS" },
+    label: { tr: "HeptaLMS", en: "HeptaLMS" },
     enterpriseOnly: true,
     module: "lms",
     items: [
@@ -171,8 +170,8 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/admin/lms/journeys", label: { tr: "Öğrenme Yolları", en: "Learning Journeys" }, icon: Route },
       { href: "/admin/lms/outcomes", label: { tr: "Kazanımlar", en: "Outcomes" }, icon: GraduationCap },
       { href: "/admin/lms/badges", label: { tr: "Rozetler", en: "Badges" }, icon: Award },
-      { href: "/admin/lms/lti", label: { tr: "LTI Araçları", en: "LTI Tools" }, icon: Zap },
-      { href: "/admin/lms/staff", label: { tr: "LMS Ekip", en: "LMS Team" }, icon: UsersRound },
+      { href: "/admin/lms/integrations", label: { tr: "Entegrasyonlar", en: "Integrations" }, icon: Plug },
+      { href: "/admin/lms/staff", label: { tr: "Akademik Kadro", en: "Academic Staff" }, icon: UsersRound },
       { href: "/admin/lms/white-label", label: { tr: "LMS White-label", en: "LMS White-label" }, icon: Palette },
       { href: "/admin/lms/analytics", label: { tr: "LMS Analitik", en: "LMS Analytics" }, icon: BarChart3 },
       { href: "/admin/training", label: { tr: "Uyum Takibi", en: "Compliance" }, icon: ClipboardList },

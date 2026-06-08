@@ -82,9 +82,9 @@ export default function LmsStaffPage() {
       <div>
         <h2 className="flex items-center gap-2 text-2xl font-bold text-slate-950">
           <Users className="h-6 w-6 text-indigo-600" />
-          LMS Ekip
+          Akademik Kadro
         </h2>
-        <p className="mt-1 text-sm text-slate-500">Instructor, TA, editor ve department admin rollerini LMS modulune ozel yonetin.</p>
+        <p className="mt-1 text-sm text-slate-500">Eğitmenler, asistanlar, içerik editörleri ve departman yöneticilerini LMS sistemine özel yönetin.</p>
       </div>
 
       <form onSubmit={addStaff} className="grid gap-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-[1fr_220px_260px_auto]">

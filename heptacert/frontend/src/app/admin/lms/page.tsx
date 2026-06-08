@@ -47,7 +47,7 @@ export default function LmsCoursesPage() {
 
   const copy = isTr
     ? {
-        pageTitle: "LMS — Kurslar",
+        pageTitle: "HeptaLMS — Kurslar",
         pageSubtitle: "Etkinliklerden bağımsız eğitim içerikleri oluşturun",
         newCourse: "Yeni Kurs",
         empty: "Henüz kurs yok.",
@@ -63,7 +63,7 @@ export default function LmsCoursesPage() {
         cancel: "İptal",
       }
     : {
-        pageTitle: "LMS — Courses",
+        pageTitle: "HeptaLMS — Courses",
         pageSubtitle: "Create training content independent of events",
         newCourse: "New Course",
         empty: "No courses yet.",

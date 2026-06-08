@@ -115,7 +115,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   if (isLoginPage) return <>{children}</>;
 
   const brandColor = branding?.brand_color || "#6366f1";
-  const portalTitle = branding?.lms_portal_title || branding?.org_name || "Öğrenci Portalı";
+  const portalTitle = branding?.lms_portal_title || branding?.org_name || "HeptaLMS Portalı";
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">

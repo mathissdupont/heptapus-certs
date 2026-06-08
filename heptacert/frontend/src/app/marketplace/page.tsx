@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { BookOpen, CalendarDays, Search, Loader2 } from "lucide-react";
+import { CalendarDays, Search, Loader2 } from "lucide-react";
 import { MarketplaceEventOut, listMarketplaceEvents, listMarketplaceCategories } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
@@ -125,20 +125,6 @@ export default function MarketplacePage() {
           <p className="text-surface-500 text-sm mb-4">
             {copy.pageSubtitle}
           </p>
-          {/* Category tabs: Events / Courses */}
-          <div className="flex gap-2 mb-6">
-            <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-surface-900 text-white text-sm font-medium">
-              <CalendarDays className="w-4 h-4" />
-              {lang === "tr" ? "Etkinlikler" : "Events"}
-            </span>
-            <Link
-              href="/marketplace/courses"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-surface-200 text-surface-600 text-sm font-medium hover:bg-surface-100 transition-colors"
-            >
-              <BookOpen className="w-4 h-4" />
-              {lang === "tr" ? "Kurslar" : "Courses"}
-            </Link>
-          </div>
           {/* Search */}
           <div className="relative max-w-xl">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-surface-400 pointer-events-none" />

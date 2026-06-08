@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /c/Users/samet/OneDrive/Masaüstü\\\\heptapus-certs\\\\heptacert && ls -la frontend/src/app/admin/lms/)",
+      "Read(//c/Users/samet/OneDrive/**)"
+    ]
+  }
+}

@@ -9,10 +9,10 @@ import {
   BookOpen,
   GraduationCap,
   Palette,
+  Plug,
   Route,
   UserPlus,
   Users,
-  Zap,
 } from "lucide-react";
 import { FeatureGate } from "@/lib/useSubscription";
 
@@ -25,7 +25,7 @@ export default function AdminLmsLayout({ children }: { children: ReactNode }) {
     { href: "/admin/lms/badges", label: "Rozetler", icon: Award },
     { href: "/admin/lms/staff", label: "Ekip", icon: Users },
     { href: "/admin/lms/white-label", label: "White-label", icon: Palette },
-    { href: "/admin/lms/lti", label: "LTI", icon: Zap },
+    { href: "/admin/lms/integrations", label: "Entegrasyonlar", icon: Plug },
     { href: "/admin/lms/analytics", label: "Analitik", icon: BarChart3 },
   ];
 
@@ -38,9 +38,9 @@ export default function AdminLmsLayout({ children }: { children: ReactNode }) {
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
                   <UserPlus className="h-3.5 w-3.5" />
-                  Enterprise LMS
+                  HeptaLMS
                 </div>
-                <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">Learning Management</h1>
+                <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">HeptaLMS</h1>
                 <p className="mt-1 text-sm text-slate-500">Kurs, ogrenci, akademik ekip, white-label portal ve entegrasyon yonetimi.</p>
               </div>
             </div>

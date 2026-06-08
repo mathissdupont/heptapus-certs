@@ -34,7 +34,6 @@ import {
   FolderKanban,
   FileQuestion,
   ShoppingBag,
-  BookOpen,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { apiFetch, getEventAccess, type EventAccessOut, type EventOut, type EventTeamPermission } from "@/lib/api";
@@ -58,7 +57,6 @@ type EventAdminTab =
   | "automations"
   | "quiz"
   | "marketplace"
-  | "lms_bridge"
   | "settings";
 
 type NavItem = {
@@ -88,7 +86,6 @@ const NAV_ITEMS: NavItem[] = [
   { tab: "ops",          label: { tr: "Canlı Ops",      en: "Live Ops"     }, icon: Activity,     href: (id) => `/admin/events/${id}/ops` },
   { tab: "quiz",         label: { tr: "Sınav",          en: "Quiz"         }, icon: FileQuestion, href: (id) => `/admin/events/${id}/quiz` },
   { tab: "marketplace",  label: { tr: "Marketplace",    en: "Marketplace"  }, icon: ShoppingBag,  href: (id) => `/admin/events/${id}/marketplace` },
-  { tab: "lms_bridge",   label: { tr: "LMS Köprüsü",   en: "LMS Bridge"   }, icon: BookOpen,     href: (id) => `/admin/events/${id}/lms-bridge` },
   { tab: "settings",     label: { tr: "Ayarlar",        en: "Settings"     }, icon: Settings,     href: (id) => `/admin/events/${id}/settings` },
 ];
 
