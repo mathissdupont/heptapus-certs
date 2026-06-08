@@ -59,6 +59,7 @@ type NavGroup = {
   items: NavItem[];
   /** If set, this group is hidden when the corresponding module is disabled */
   module?: keyof OrgModules;
+  enterpriseOnly?: boolean;
 };
 
 type OrganizationContext = {
@@ -162,6 +163,7 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: { tr: "LMS", en: "LMS" },
+    enterpriseOnly: true,
     module: "lms",
     items: [
       { href: "/admin/lms", label: { tr: "Kurslar", en: "Courses" }, icon: School },
@@ -182,6 +184,7 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: { tr: "CRM & Satış", en: "CRM & Sales" },
+    enterpriseOnly: true,
     items: [
       { href: "/admin/crm", label: { tr: "Katılımcı CRM", en: "Participant CRM" }, icon: UsersRound, exact: true },
       { href: "/admin/crm/accounts", label: { tr: "Şirket Hesapları", en: "Accounts" }, icon: Building2 },
@@ -267,11 +270,13 @@ function SidebarContent({
   pathname,
   collapsed,
   modules,
+  enterpriseEnabled,
   onClose,
 }: {
   pathname: string;
   collapsed: boolean;
   modules: OrgModules;
+  enterpriseEnabled: boolean;
   onClose?: () => void;
 }) {
   const router = useRouter();
@@ -284,7 +289,7 @@ function SidebarContent({
     onClose?.();
   }
 
-  const visibleGroups = NAV_GROUPS.filter((g) => !g.module || modules[g.module]);
+  const visibleGroups = NAV_GROUPS.filter((g) => (!g.module || modules[g.module]) && (!g.enterpriseOnly || enterpriseEnabled));
 
   return (
     <div className="flex h-full flex-col">
@@ -589,22 +594,43 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
   const [organizationContexts, setOrganizationContexts] = useState<OrganizationContext[]>([]);
   const [activeOrganizationId, setActiveOrganizationId] = useState("");
   const [activeJobCount, setActiveJobCount] = useState(0);
+  const [enterpriseEnabled, setEnterpriseEnabled] = useState(false);
   const currentSection = getCurrentSection(pathname);
   const { lang } = useI18n();
   const role = getRoleFromToken();
+
+  useEffect(() => {
+    if (isAuthPage(pathname)) return;
+    if (role === "superadmin") {
+      setEnterpriseEnabled(true);
+      return;
+    }
+    let cancelled = false;
+    apiFetch("/billing/subscription")
+      .then((r) => r.json())
+      .then((subscription: { active?: boolean; plan_id?: string | null }) => {
+        if (!cancelled) setEnterpriseEnabled(Boolean(subscription?.active && subscription?.plan_id === "enterprise"));
+      })
+      .catch(() => {
+        if (!cancelled) setEnterpriseEnabled(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, role]);
 
   // Mobile nav: swap Etkinlikler for first available module item
   const mobileNavItems = useMemo(() => {
     const base = [...PRIMARY_MOBILE_ITEMS];
     // Replace Etkinlikler with LMS item if events is disabled but lms is enabled
-    if (!modules.events && modules.lms) {
+    if (!modules.events && modules.lms && enterpriseEnabled) {
       base[1] = NAV_GROUPS[2].items[0];
     }
     if (role === "superadmin") {
       base[4] = NAV_GROUPS[7].items[5];
     }
     return base;
-  }, [modules, role]);
+  }, [enterpriseEnabled, modules, role]);
 
   const topbarText = useMemo(
     () => ({
@@ -729,14 +755,14 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
           collapsed ? "lg:w-[64px]" : "lg:w-[240px]"
         }`}
       >
-        <SidebarContent pathname={pathname} collapsed={collapsed} modules={modules} />
+        <SidebarContent pathname={pathname} collapsed={collapsed} modules={modules} enterpriseEnabled={enterpriseEnabled} />
       </aside>
 
       {mobileOpen && (
         <div className="fixed inset-0 z-50 flex lg:hidden">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
           <aside className="relative z-10 w-[min(88vw,320px)] border-r border-sidebar-border bg-sidebar/95 backdrop-blur">
-            <SidebarContent pathname={pathname} collapsed={false} modules={modules} onClose={() => setMobileOpen(false)} />
+            <SidebarContent pathname={pathname} collapsed={false} modules={modules} enterpriseEnabled={enterpriseEnabled} onClose={() => setMobileOpen(false)} />
           </aside>
         </div>
       )}

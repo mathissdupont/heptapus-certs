@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -55,7 +55,25 @@ from .lms_extended_models import (
 )
 
 logger = logging.getLogger("heptacert.lms_extended")
-router = APIRouter()
+
+
+async def _require_admin_lms_enterprise(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    Authorization: Optional[str] = Header(default=None),
+) -> None:
+    if not request.url.path.startswith("/api/admin/lms"):
+        return
+    me = await get_current_user(db=db, Authorization=Authorization)
+    if me.role == Role.superadmin:
+        return
+    from .organization_access_api import ensure_organization_enterprise, get_organization_for_access, organization_id_from_request
+
+    org = await get_organization_for_access(db, me, "organization:view", organization_id_from_request(request))
+    await ensure_organization_enterprise(db, org)
+
+
+router = APIRouter(dependencies=[Depends(_require_admin_lms_enterprise)])
 
 LMS_EDIT_ROLES = {"instructor", "content_editor", "department_admin"}
 LMS_ALL_ROLES = LMS_EDIT_ROLES | {"teaching_assistant", "viewer"}

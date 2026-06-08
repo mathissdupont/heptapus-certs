@@ -208,7 +208,7 @@ async def ensure_organization_enterprise(db: AsyncSession, organization: Organiz
     if not await organization_owner_has_enterprise_plan(db, organization):
         raise HTTPException(
             status_code=403,
-            detail="Kurum calisanlari ve yetki yonetimi sadece Enterprise planda kullanilabilir.",
+            detail="Bu alan yalnizca Enterprise planda kullanilabilir.",
         )
 
 

@@ -4,6 +4,7 @@ export type FeatureKey =
   | "automation"
   | "segmentation"
   | "crm"
+  | "lms"
   | "training"
   | "certificate_templates"
   | "kiosk"
@@ -15,6 +16,7 @@ export const FEATURE_METADATA: Record<FeatureKey, { requiredPlans: string[]; tit
   automation: { requiredPlans: ["growth", "enterprise"], title: { tr: "Otomasyon", en: "Automation" } },
   segmentation: { requiredPlans: ["growth", "enterprise"], title: { tr: "Katılımcı segmentasyonu", en: "Audience segmentation" } },
   crm: { requiredPlans: ["enterprise"], title: { tr: "Event CRM", en: "Event CRM" }, enterpriseOnlyForStaff: true },
+  lms: { requiredPlans: ["enterprise"], title: { tr: "LMS", en: "LMS" }, enterpriseOnlyForStaff: true },
   training: { requiredPlans: ["enterprise"], title: { tr: "Kurum içi eğitim", en: "Training compliance" }, enterpriseOnlyForStaff: true },
   certificate_templates: { requiredPlans: ["growth", "enterprise"], title: { tr: "Sertifika şablonları", en: "Certificate templates" } },
   kiosk: { requiredPlans: ["enterprise"], title: { tr: "Kiosk modu", en: "Kiosk mode" }, enterpriseOnlyForStaff: true },

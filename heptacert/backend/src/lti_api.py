@@ -8,7 +8,7 @@ import urllib.parse
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,7 +25,23 @@ from .main import (
     settings,
 )
 
-router = APIRouter()
+async def _require_admin_lms_enterprise(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    Authorization: Optional[str] = Header(default=None),
+) -> None:
+    if not request.url.path.startswith("/api/admin/lms"):
+        return
+    me = await get_current_user(db=db, Authorization=Authorization)
+    if me.role == Role.superadmin:
+        return
+    from .organization_access_api import ensure_organization_enterprise, get_organization_for_access, organization_id_from_request
+
+    org = await get_organization_for_access(db, me, "organization:view", organization_id_from_request(request))
+    await ensure_organization_enterprise(db, org)
+
+
+router = APIRouter(dependencies=[Depends(_require_admin_lms_enterprise)])
 
 
 # ---------------------------------------------------------------------------
