@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   BookOpen,
@@ -13,12 +13,22 @@ import {
   UserCircle,
   X,
 } from "lucide-react";
-import { getPublicMemberToken, memberApiFetch } from "@/lib/api";
+import { getPublicMemberToken, memberApiFetch, publicApiFetch } from "@/lib/api";
 
 type Me = {
   display_name: string | null;
   email: string | null;
   avatar_url: string | null;
+};
+
+type OrgBranding = {
+  org_id: number;
+  org_name: string;
+  brand_color: string;
+  brand_logo: string | null;
+  lms_portal_title: string;
+  lms_support_email: string;
+  lms_welcome_text: string;
 };
 
 const NAV = [
@@ -27,17 +37,49 @@ const NAV = [
   { href: "/portal/calendar", label: "Takvim", icon: CalendarDays },
 ];
 
+function NavLink({
+  item,
+  pathname,
+  brandColor,
+  onClick,
+}: {
+  item: (typeof NAV)[number];
+  pathname: string;
+  brandColor: string;
+  onClick?: () => void;
+}) {
+  const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+  const Icon = item.icon;
+  return (
+    <Link
+      href={item.href}
+      onClick={onClick}
+      style={active ? { backgroundColor: `${brandColor}18`, color: brandColor } : undefined}
+      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+        active ? "" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+      }`}
+    >
+      <Icon className="h-4 w-4 shrink-0" />
+      {item.label}
+    </Link>
+  );
+}
+
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const orgParam = searchParams.get("org");
+
   const [me, setMe] = useState<Me | null>(null);
+  const [branding, setBranding] = useState<OrgBranding | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const token = getPublicMemberToken();
     if (!token) {
-      router.push(`/login?next=/portal`);
+      router.push(`/login?next=/portal${orgParam ? `?org=${orgParam}` : ""}`);
       return;
     }
     setReady(true);
@@ -46,6 +88,14 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       .then((d: Me) => setMe(d))
       .catch(() => null);
   }, []);
+
+  useEffect(() => {
+    if (!orgParam) return;
+    publicApiFetch(`/public/orgs/${orgParam}/lms-branding`)
+      .then((r) => (r as Response).json())
+      .then((d: OrgBranding) => setBranding(d))
+      .catch(() => null);
+  }, [orgParam]);
 
   function logout() {
     if (typeof window !== "undefined") {
@@ -56,15 +106,22 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   if (!ready) return null;
 
+  const brandColor = branding?.brand_color || "#6366f1";
+  const portalTitle = branding?.lms_portal_title || branding?.org_name || "Öğrenci Portalı";
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Mobile topbar */}
       <header className="md:hidden sticky top-0 z-40 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600">
-            <GraduationCap className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-sm font-bold text-slate-900">Öğrenci Portalı</span>
+          {branding?.brand_logo ? (
+            <img src={branding.brand_logo} className="h-7 w-7 rounded-lg object-cover" alt={portalTitle} />
+          ) : (
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ backgroundColor: brandColor }}>
+              <GraduationCap className="h-4 w-4 text-white" />
+            </div>
+          )}
+          <span className="text-sm font-bold text-slate-900">{portalTitle}</span>
         </div>
         <button onClick={() => setMobileOpen((v) => !v)} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100">
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -76,23 +133,15 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         <div className="md:hidden fixed inset-0 z-30 flex pt-14">
           <div className="w-64 bg-white border-r border-slate-200 flex flex-col shadow-xl">
             <nav className="flex-1 space-y-1 p-3 pt-4">
-              {NAV.map((item) => {
-                const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileOpen(false)}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                      active ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" />
-                    {item.label}
-                  </Link>
-                );
-              })}
+              {NAV.map((item) => (
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  pathname={pathname}
+                  brandColor={brandColor}
+                  onClick={() => setMobileOpen(false)}
+                />
+              ))}
             </nav>
             {me && (
               <div className="border-t border-slate-100 p-3">
@@ -120,35 +169,26 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         <aside className="hidden md:flex flex-col w-60 border-r border-slate-200 bg-white shrink-0 sticky top-0 h-screen">
           {/* Brand */}
           <div className="flex items-center gap-3 px-5 py-5 border-b border-slate-100">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600">
-              <GraduationCap className="h-5 w-5 text-white" />
-            </div>
+            {branding?.brand_logo ? (
+              <img src={branding.brand_logo} className="h-9 w-9 rounded-xl object-cover" alt={portalTitle} />
+            ) : (
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: brandColor }}>
+                <GraduationCap className="h-5 w-5 text-white" />
+              </div>
+            )}
             <div>
-              <p className="text-sm font-bold text-slate-900">Öğrenci Portalı</p>
-              <p className="text-xs text-slate-400">Learning Hub</p>
+              <p className="text-sm font-bold text-slate-900 leading-tight">{portalTitle}</p>
+              {branding?.org_name && branding.lms_portal_title && (
+                <p className="text-xs text-slate-400 leading-tight">{branding.org_name}</p>
+              )}
             </div>
           </div>
 
           {/* Nav */}
           <nav className="flex-1 space-y-1 p-3 pt-4">
-            {NAV.map((item) => {
-              const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    active
-                      ? "bg-indigo-50 text-indigo-700"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                  }`}
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  {item.label}
-                </Link>
-              );
-            })}
+            {NAV.map((item) => (
+              <NavLink key={item.href} item={item} pathname={pathname} brandColor={brandColor} />
+            ))}
           </nav>
 
           {/* User block */}

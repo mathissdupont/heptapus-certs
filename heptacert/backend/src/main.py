@@ -14124,6 +14124,7 @@ async def _get_or_create_admin_organization(db: AsyncSession, user_id: int) -> O
 
 def _serialize_admin_organization(org: Organization) -> dict[str, Any]:
     return {
+        "id": org.id,
         "public_id": org.public_id,
         "org_name": org.org_name,
         "brand_logo": org.brand_logo,

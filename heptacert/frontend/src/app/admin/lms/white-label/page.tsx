@@ -5,6 +5,7 @@ import { Globe, Loader2, Palette, Save, UploadCloud } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 
 type OrgSettings = {
+  id?: number;
   org_name: string;
   brand_logo?: string | null;
   brand_color: string;
@@ -17,6 +18,7 @@ export default function LmsWhiteLabelPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [orgId, setOrgId] = useState<number | null>(null);
   const [form, setForm] = useState({
     org_name: "",
     brand_color: "#6366f1",
@@ -30,6 +32,7 @@ export default function LmsWhiteLabelPage() {
   async function load() {
     setLoading(true);
     const data = (await apiFetch("/admin/organization/settings").then((r) => r.json())) as OrgSettings;
+    if (data.id) setOrgId(data.id);
     setForm({
       org_name: data.org_name || "",
       brand_color: data.brand_color || "#6366f1",
@@ -91,7 +94,11 @@ export default function LmsWhiteLabelPage() {
     );
   }
 
-  const portalUrl = form.custom_domain ? `https://${form.custom_domain}/portal` : "/portal";
+  const portalUrl = form.custom_domain
+    ? `https://${form.custom_domain}/portal`
+    : orgId
+    ? `/portal?org=${orgId}`
+    : "/portal";
 
   return (
     <div className="mx-auto grid max-w-6xl gap-6 p-6 lg:grid-cols-[1fr_360px]">

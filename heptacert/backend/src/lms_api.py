@@ -1574,6 +1574,24 @@ async def submit_assignment(
     return {"ok": True, "submission_id": sub.id}
 
 
+@router.get("/api/public/orgs/{org_id}/lms-branding")
+async def get_org_lms_branding(org_id: int, db: AsyncSession = Depends(get_db)):
+    res = await db.execute(select(Organization).where(Organization.id == org_id))
+    org = res.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organizasyon bulunamadı.")
+    settings = getattr(org, "settings", {}) or {}
+    return {
+        "org_id": org.id,
+        "org_name": org.org_name,
+        "brand_color": org.brand_color or "#6366f1",
+        "brand_logo": org.brand_logo,
+        "lms_portal_title": settings.get("lms_portal_title") or "",
+        "lms_support_email": settings.get("lms_support_email") or "",
+        "lms_welcome_text": settings.get("lms_welcome_text") or "",
+    }
+
+
 @router.get("/api/public/my-courses")
 async def my_enrolled_courses(
     db: AsyncSession = Depends(get_db),
