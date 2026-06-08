@@ -9,7 +9,10 @@
       "Bash(python -m py_compile src/lms_extended_models.py)",
       "Bash(python -m py_compile src/lms_extended_api.py)",
       "Bash(python -m py_compile alembic/versions/092_lms_quiz.py)",
-      "Bash(python -m py_compile src/lms_extended_models.py src/lms_models.py alembic/versions/092_lms_quiz.py alembic/versions/093_lms_module_quiz_fk.py)"
+      "Bash(python -m py_compile src/lms_extended_models.py src/lms_models.py alembic/versions/092_lms_quiz.py alembic/versions/093_lms_module_quiz_fk.py)",
+      "Bash(Get-ChildItem \"c:\\\\Users\\\\samet\\\\OneDrive\\\\Masaüstü\\\\heptapus-certs\\\\heptacert\\\\backend\\\\src\\\\__pycache__\" -Filter \"lms_extended_models*.pyc\")",
+      "Bash(Remove-Item -Force)",
+      "Bash(docker exec *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\samet\\OneDrive\\Masaüstü\\heptapus-certs\\heptacert\\frontend\\src\\app\\admin\\lms\\courses\\[id]\\quizzes",
