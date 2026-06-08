@@ -1572,3 +1572,53 @@ async def submit_assignment(
     db.add(sub)
     await db.commit()
     return {"ok": True, "submission_id": sub.id}
+
+
+@router.get("/api/public/my-courses")
+async def my_enrolled_courses(
+    db: AsyncSession = Depends(get_db),
+    member: CurrentPublicMember = Depends(get_current_public_member),
+):
+    from sqlalchemy.orm import joinedload
+
+    res = await db.execute(
+        select(CourseEnrollment)
+        .where(CourseEnrollment.member_id == member.id)
+        .options(
+            selectinload(CourseEnrollment.module_progress),
+            joinedload(CourseEnrollment.course).selectinload(TrainingCourse.modules),
+        )
+        .order_by(CourseEnrollment.enrolled_at.desc())
+    )
+    enrollments = res.unique().scalars().all()
+
+    result = []
+    for enr in enrollments:
+        course = enr.course
+        if not course:
+            continue
+        completed_module_ids = [mp.module_id for mp in enr.module_progress if mp.completed_at]
+        d = _course_to_dict(course)
+        d["enrollment"] = {
+            "id": enr.id,
+            "status": enr.status,
+            "progress_pct": enr.progress_pct,
+            "completed_at": enr.completed_at.isoformat() if enr.completed_at else None,
+            "enrolled_at": enr.enrolled_at.isoformat() if enr.enrolled_at else None,
+            "completed_module_ids": completed_module_ids,
+            "final_grade": enr.final_grade,
+            "cert_pdf_url": enr.cert_pdf_url,
+        }
+        result.append(d)
+
+    in_progress = sum(1 for r in result if r["enrollment"]["progress_pct"] > 0 and not r["enrollment"]["completed_at"])
+    completed = sum(1 for r in result if r["enrollment"]["completed_at"])
+
+    return {
+        "courses": result,
+        "stats": {
+            "total": len(result),
+            "in_progress": in_progress,
+            "completed": completed,
+        },
+    }
