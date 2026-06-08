@@ -2,10 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import Link from "next/link";
+import "@uiw/react-md-editor/markdown-editor.css";
+
+const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
 import {
-  ArrowLeft, BookOpen, CalendarCheck, ChevronDown, ChevronUp, Globe,
-  GripVertical, Loader2, Lock, Plus, Save, Trash2, ClipboardList, Store, Users,
+  ArrowLeft, BookOpen, CalendarCheck, ChevronDown, ChevronUp, FileText, Globe,
+  GripVertical, Loader2, Lock, Megaphone, Plus, Save, Trash2, ClipboardList, Store, Users,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
@@ -310,6 +314,20 @@ export default function LmsCourseDetailPage() {
           >
             <ClipboardList className="h-4 w-4" />
             Rubrics
+          </Link>
+          <Link
+            href={`/admin/lms/courses/${courseId}/announcements`}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            <Megaphone className="h-4 w-4" />
+            Duyurular
+          </Link>
+          <Link
+            href={`/admin/lms/courses/${courseId}/syllabus`}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            <FileText className="h-4 w-4" />
+            Ders Planı
           </Link>
           <button
             onClick={handleSave}
@@ -665,18 +683,17 @@ export default function LmsCourseDetailPage() {
                     </div>
                   )}
                   {m.content_type === "article" && (
-                    <div className="sm:col-span-2">
+                    <div className="sm:col-span-2" data-color-mode="light">
                       <label className="block text-xs font-medium text-gray-500 mb-1">İçerik Metni (Markdown)</label>
-                      <textarea
-                        rows={5}
-                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      <MDEditor
                         value={m.content_text}
-                        onChange={(e) => setModules((prev) => {
+                        onChange={(val) => setModules((prev) => {
                           const next = [...prev];
-                          next[idx] = { ...next[idx], content_text: e.target.value };
+                          next[idx] = { ...next[idx], content_text: val ?? "" };
                           return next;
                         })}
-                        placeholder="# Modül içeriği..."
+                        height={260}
+                        preview="edit"
                       />
                     </div>
                   )}

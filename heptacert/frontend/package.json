@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@tanstack/react-table": "^8.21.3",
+    "@uiw/react-md-editor": "^4.1.1",
     "framer-motion": "^11.0.0",
     "html5-qrcode": "^2.3.4",
     "lucide-react": "0.460.0",
@@ -16,6 +17,7 @@
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-draggable": "4.4.6",
+    "react-markdown": "^10.1.0",
     "zustand": "^5.0.11"
   },
   "devDependencies": {

@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft, BookOpen, CheckCircle2, ChevronRight, Clock,
-  FileText, Loader2, Lock, Play, Star, Video,
+  FileText, Loader2, Lock, Megaphone, Play, Star, Video,
 } from "lucide-react";
 import { publicApiFetch, memberApiFetch, getPublicMemberToken } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
@@ -96,6 +96,7 @@ export default function CourseDetailPage() {
   const [enrolling, setEnrolling] = useState(false);
   const [completingModule, setCompletingModule] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [announcements, setAnnouncements] = useState<{ id: number; title: string; body: string; created_at: string }[]>([]);
 
   function showToast(msg: string) {
     setToast(msg);
@@ -117,6 +118,14 @@ export default function CourseDetailPage() {
   }
 
   useEffect(() => { void loadCourse(); }, [courseId, token]);
+
+  useEffect(() => {
+    if (!token || !course?.enrollment) return;
+    memberApiFetch(`/public/courses/${courseId}/announcements`)
+      .then((r) => r.json())
+      .then((d) => setAnnouncements(Array.isArray(d) ? d.slice(0, 3) : []))
+      .catch(() => null);
+  }, [courseId, token, course?.enrollment?.id]);
 
   async function handleEnroll() {
     if (!token) { router.push("/login"); return; }
@@ -249,9 +258,31 @@ export default function CourseDetailPage() {
         </div>
       </div>
 
+      {/* Announcements banner */}
+      {enr && announcements.length > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-2">
+          <div className="flex items-center gap-2 mb-1">
+            <Megaphone className="h-4 w-4 text-amber-600" />
+            <span className="text-sm font-semibold text-amber-800">Duyurular</span>
+            <Link
+              href={`/courses/${courseId}/announcements`}
+              className="ml-auto text-xs text-amber-600 hover:underline"
+            >
+              Tümü
+            </Link>
+          </div>
+          {announcements.map((a) => (
+            <div key={a.id} className="rounded-lg bg-white border border-amber-100 px-3 py-2">
+              <p className="text-xs font-semibold text-amber-900">{a.title}</p>
+              <p className="text-xs text-amber-700 mt-0.5 line-clamp-2">{a.body}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Quick nav links for enrolled members */}
       {enr && (
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-5 gap-2">
           <Link
             href={`/courses/${courseId}/discussions`}
             className="flex flex-col items-center gap-1.5 rounded-xl border border-gray-200 bg-white p-3 text-center hover:border-blue-300 hover:shadow-sm transition-all"
@@ -272,6 +303,20 @@ export default function CourseDetailPage() {
           >
             <span className="text-xl">📅</span>
             <span className="text-xs font-medium text-gray-700">Takvim</span>
+          </Link>
+          <Link
+            href={`/courses/${courseId}/syllabus`}
+            className="flex flex-col items-center gap-1.5 rounded-xl border border-gray-200 bg-white p-3 text-center hover:border-blue-300 hover:shadow-sm transition-all"
+          >
+            <span className="text-xl">📄</span>
+            <span className="text-xs font-medium text-gray-700">Ders Planı</span>
+          </Link>
+          <Link
+            href={`/courses/${courseId}/announcements`}
+            className="flex flex-col items-center gap-1.5 rounded-xl border border-gray-200 bg-white p-3 text-center hover:border-blue-300 hover:shadow-sm transition-all"
+          >
+            <span className="text-xl">📢</span>
+            <span className="text-xs font-medium text-gray-700">Duyurular</span>
           </Link>
         </div>
       )}

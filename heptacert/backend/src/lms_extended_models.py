@@ -9,7 +9,7 @@ from decimal import Decimal
 from typing import List, Optional
 
 from sqlalchemy import (
-    Boolean, DateTime, ForeignKey, Index, Integer, Numeric,
+    Boolean, DateTime, ForeignKey, Index, Integer, JSON, Numeric,
     String, Text, UniqueConstraint, func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -472,3 +472,118 @@ class EventLmsBridge(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (Index("ix_event_lms_bridges_event", "event_id"),)
+
+
+# ---------------------------------------------------------------------------
+# QUIZ SYSTEM
+# ---------------------------------------------------------------------------
+
+class Quiz(Base):
+    __tablename__ = "quizzes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    course_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("training_courses.id", ondelete="CASCADE"), index=True
+    )
+    title: Mapped[str] = mapped_column(String(300))
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    time_limit_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    attempts_allowed: Mapped[int] = mapped_column(Integer, default=1)
+    passing_score: Mapped[int] = mapped_column(Integer, default=60)
+    shuffle_questions: Mapped[bool] = mapped_column(Boolean, default=False)
+    show_correct_answers: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    questions: Mapped[List["QuizQuestion"]] = relationship(
+        back_populates="quiz", cascade="all, delete-orphan",
+        order_by="QuizQuestion.order"
+    )
+    attempts: Mapped[List["QuizAttempt"]] = relationship(
+        back_populates="quiz", cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (Index("ix_quizzes_course", "course_id"),)
+
+
+class QuizQuestion(Base):
+    __tablename__ = "quiz_questions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    quiz_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("quizzes.id", ondelete="CASCADE"), index=True
+    )
+    question_text: Mapped[str] = mapped_column(Text)
+    # multiple_choice | true_false | short_answer
+    question_type: Mapped[str] = mapped_column(String(50), default="multiple_choice")
+    points: Mapped[int] = mapped_column(Integer, default=1)
+    order: Mapped[int] = mapped_column(Integer, default=0)
+    explanation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    quiz: Mapped["Quiz"] = relationship(back_populates="questions")
+    choices: Mapped[List["QuizChoice"]] = relationship(
+        back_populates="question", cascade="all, delete-orphan",
+        order_by="QuizChoice.order"
+    )
+
+    __table_args__ = (Index("ix_quiz_questions_quiz", "quiz_id"),)
+
+
+class QuizChoice(Base):
+    __tablename__ = "quiz_choices"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    question_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("quiz_questions.id", ondelete="CASCADE"), index=True
+    )
+    choice_text: Mapped[str] = mapped_column(String(1000))
+    is_correct: Mapped[bool] = mapped_column(Boolean, default=False)
+    order: Mapped[int] = mapped_column(Integer, default=0)
+
+    question: Mapped["QuizQuestion"] = relationship(back_populates="choices")
+
+    __table_args__ = (Index("ix_quiz_choices_question", "question_id"),)
+
+
+class QuizAttempt(Base):
+    __tablename__ = "quiz_attempts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    quiz_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("quizzes.id", ondelete="CASCADE"), index=True
+    )
+    member_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("public_members.id", ondelete="CASCADE"), index=True
+    )
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    submitted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    score: Mapped[Optional[Decimal]] = mapped_column(Numeric(6, 2), nullable=True)
+    passed: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    attempt_number: Mapped[int] = mapped_column(Integer, default=1)
+
+    quiz: Mapped["Quiz"] = relationship(back_populates="attempts")
+    answers: Mapped[List["QuizAnswer"]] = relationship(
+        back_populates="attempt", cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (Index("ix_quiz_attempts_quiz_member", "quiz_id", "member_id"),)
+
+
+class QuizAnswer(Base):
+    __tablename__ = "quiz_answers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    attempt_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("quiz_attempts.id", ondelete="CASCADE"), index=True
+    )
+    question_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("quiz_questions.id", ondelete="CASCADE"), index=True
+    )
+    selected_choice_ids: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    text_answer: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    attempt: Mapped["QuizAttempt"] = relationship(back_populates="answers")
+
+    __table_args__ = (
+        UniqueConstraint("attempt_id", "question_id", name="uq_quiz_answer_attempt_question"),
+        Index("ix_quiz_answers_attempt", "attempt_id"),
+    )

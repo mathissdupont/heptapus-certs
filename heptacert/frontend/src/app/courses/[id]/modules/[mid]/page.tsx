@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft, ArrowRight, Award, BookOpen, CheckCircle2,
@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { memberApiFetch, publicApiFetch, getPublicMemberToken } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import ReactMarkdown from "react-markdown";
 
 type ModuleDetail = {
   id: number;
@@ -18,8 +19,40 @@ type ModuleDetail = {
   content_type: string;
   content_url: string | null;
   content_text: string | null;
+  quiz_id: number | null;
   duration_minutes: number | null;
   is_required: boolean;
+};
+
+type QuizChoice = { id: number; choice_text: string; order: number; is_correct?: boolean };
+type QuizQuestion = {
+  id: number;
+  question_text: string;
+  question_type: string;
+  points: number;
+  order: number;
+  choices: QuizChoice[];
+  explanation?: string;
+  your_selected_choice_ids?: number[] | null;
+  your_text_answer?: string | null;
+};
+type QuizData = {
+  id: number;
+  title: string;
+  description: string | null;
+  time_limit_minutes: number | null;
+  attempts_allowed: number;
+  passing_score: number;
+  question_count: number;
+  questions?: QuizQuestion[];
+};
+type AttemptResult = {
+  attempt_id: number;
+  score: number;
+  passed: boolean;
+  passing_score: number;
+  submitted_at: string;
+  questions: QuizQuestion[];
 };
 
 type CourseData = {
@@ -74,7 +107,6 @@ function VideoEmbed({ url }: { url: string }) {
 
 export default function ModuleViewerPage() {
   const { id: courseId, mid: moduleId } = useParams<{ id: string; mid: string }>();
-  const router = useRouter();
   const { lang } = useI18n();
   const isTr = lang === "tr";
   const token = getPublicMemberToken();
@@ -83,6 +115,16 @@ export default function ModuleViewerPage() {
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
+
+  // Quiz state
+  const [quizData, setQuizData] = useState<QuizData | null>(null);
+  const [quizAttemptId, setQuizAttemptId] = useState<number | null>(null);
+  const [quizAnswers, setQuizAnswers] = useState<Record<number, { choice_ids?: number[]; text?: string }>>({});
+  const [quizCurrentQ, setQuizCurrentQ] = useState(0);
+  const [quizResult, setQuizResult] = useState<AttemptResult | null>(null);
+  const [quizSubmitting, setQuizSubmitting] = useState(false);
+  const [quizError, setQuizError] = useState<string | null>(null);
+  const [quizPhase, setQuizPhase] = useState<"info" | "taking" | "result">("info");
 
   async function loadCourse() {
     const headers: Record<string, string> = {};
@@ -99,6 +141,74 @@ export default function ModuleViewerPage() {
   }
 
   useEffect(() => { void loadCourse(); }, [courseId, token]);
+
+  const currentModule = course?.modules.find((m) => String(m.id) === moduleId);
+
+  useEffect(() => {
+    if (currentModule?.content_type === "quiz" && currentModule.quiz_id) {
+      loadQuiz(currentModule.quiz_id);
+    }
+  }, [currentModule?.id]);
+
+  async function loadQuiz(quizId: number) {
+    try {
+      const r = await memberApiFetch(`/public/quizzes/${quizId}`);
+      if (!r.ok) return;
+      const d = await r.json();
+      setQuizData(d);
+    } catch {}
+  }
+
+  async function startQuiz(quizId: number) {
+    setQuizError(null);
+    setQuizSubmitting(true);
+    try {
+      const r = await memberApiFetch(`/public/quizzes/${quizId}/start`, { method: "POST" });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err?.detail || "Başlatma başarısız.");
+      }
+      const d = await r.json();
+      setQuizAttemptId(d.attempt_id);
+      setQuizAnswers({});
+      setQuizCurrentQ(0);
+      setQuizPhase("taking");
+    } catch (e: any) {
+      setQuizError(e?.message || "Sınav başlatılamadı.");
+    } finally {
+      setQuizSubmitting(false);
+    }
+  }
+
+  async function submitQuiz() {
+    if (!quizAttemptId || !quizData?.questions) return;
+    setQuizSubmitting(true);
+    setQuizError(null);
+    try {
+      const answers = quizData.questions.map((q) => {
+        const ans = quizAnswers[q.id];
+        return {
+          question_id: q.id,
+          selected_choice_ids: ans?.choice_ids ?? null,
+          text_answer: ans?.text ?? null,
+        };
+      });
+      const r = await memberApiFetch(`/public/quiz-attempts/${quizAttemptId}/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers }),
+      });
+      if (!r.ok) throw new Error("Gönderim başarısız.");
+      const resultR = await memberApiFetch(`/public/quiz-attempts/${quizAttemptId}/result`);
+      const result = await resultR.json();
+      setQuizResult(result);
+      setQuizPhase("result");
+    } catch (e: any) {
+      setQuizError(e?.message || "Sınav gönderilemedi.");
+    } finally {
+      setQuizSubmitting(false);
+    }
+  }
 
   const module = course?.modules.find((m) => String(m.id) === moduleId);
   const modules = course?.modules ?? [];
@@ -206,8 +316,8 @@ export default function ModuleViewerPage() {
         ) : module.content_type === "article" ? (
           <div className="p-6">
             {module.content_text ? (
-              <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap leading-relaxed">
-                {module.content_text}
+              <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed">
+                <ReactMarkdown>{module.content_text}</ReactMarkdown>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-12 text-gray-400">
@@ -236,28 +346,212 @@ export default function ModuleViewerPage() {
             </a>
           </div>
         ) : module.content_type === "quiz" ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50">
-              <BookOpen className="h-7 w-7 text-amber-500" />
-            </div>
-            <div className="text-center">
-              <p className="text-sm font-medium text-gray-700">
-                {isTr ? "Bu modül bir sınav içeriyor." : "This module contains a quiz."}
-              </p>
-              <p className="text-xs text-gray-400 mt-1">
-                {isTr ? "Tamamlamak için sınavı geçmeniz gerekiyor." : "You need to pass the quiz to complete it."}
-              </p>
-            </div>
-            {module.content_url && (
-              <a
-                href={module.content_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-amber-600"
-              >
-                <ExternalLink className="h-4 w-4" />
-                {isTr ? "Sınava Başla" : "Start Quiz"}
-              </a>
+          <div className="p-6">
+            {!module.quiz_id ? (
+              <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                <BookOpen className="h-10 w-10 mb-3" />
+                <p className="text-sm">Sınav henüz hazırlanmadı.</p>
+              </div>
+            ) : quizPhase === "info" ? (
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-50">
+                    <BookOpen className="h-6 w-6 text-amber-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">{quizData?.title || module.title}</h3>
+                    {quizData?.description && <p className="text-xs text-gray-500 mt-0.5">{quizData.description}</p>}
+                  </div>
+                </div>
+                {quizData && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-xl bg-gray-50 px-4 py-3 text-center">
+                      <p className="text-xl font-bold text-gray-900">{quizData.question_count}</p>
+                      <p className="text-xs text-gray-500">Soru</p>
+                    </div>
+                    <div className="rounded-xl bg-gray-50 px-4 py-3 text-center">
+                      <p className="text-xl font-bold text-gray-900">
+                        {quizData.time_limit_minutes ? `${quizData.time_limit_minutes} dk` : "∞"}
+                      </p>
+                      <p className="text-xs text-gray-500">Süre</p>
+                    </div>
+                    <div className="rounded-xl bg-gray-50 px-4 py-3 text-center">
+                      <p className="text-xl font-bold text-gray-900">%{quizData.passing_score}</p>
+                      <p className="text-xs text-gray-500">Geçme Puanı</p>
+                    </div>
+                    <div className="rounded-xl bg-gray-50 px-4 py-3 text-center">
+                      <p className="text-xl font-bold text-gray-900">{quizData.attempts_allowed}</p>
+                      <p className="text-xs text-gray-500">Deneme Hakkı</p>
+                    </div>
+                  </div>
+                )}
+                {quizError && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{quizError}</p>}
+                <button
+                  onClick={() => startQuiz(module.quiz_id!)}
+                  disabled={quizSubmitting || !quizData}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-amber-500 py-3 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-60 transition"
+                >
+                  {quizSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                  {quizSubmitting ? "Başlatılıyor…" : "Sınava Başla"}
+                </button>
+              </div>
+            ) : quizPhase === "taking" && quizData?.questions ? (
+              <div className="space-y-6">
+                {/* Progress */}
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>Soru {quizCurrentQ + 1} / {quizData.questions.length}</span>
+                  <div className="h-1.5 w-32 rounded-full bg-gray-100 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-amber-400 transition-all"
+                      style={{ width: `${((quizCurrentQ + 1) / quizData.questions.length) * 100}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Current question */}
+                {(() => {
+                  const q = quizData.questions[quizCurrentQ];
+                  const ans = quizAnswers[q.id];
+                  return (
+                    <div className="space-y-4">
+                      <p className="text-sm font-semibold text-gray-900 leading-relaxed">{q.question_text}</p>
+                      {q.question_type === "short_answer" ? (
+                        <textarea
+                          value={ans?.text || ""}
+                          onChange={(e) => setQuizAnswers((prev) => ({
+                            ...prev,
+                            [q.id]: { text: e.target.value },
+                          }))}
+                          rows={4}
+                          placeholder="Cevabınızı yazın…"
+                          className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+                        />
+                      ) : (
+                        <div className="space-y-2">
+                          {q.choices.map((c) => {
+                            const selected = ans?.choice_ids?.includes(c.id) ?? false;
+                            return (
+                              <button
+                                key={c.id}
+                                onClick={() => setQuizAnswers((prev) => ({
+                                  ...prev,
+                                  [q.id]: { choice_ids: [c.id] },
+                                }))}
+                                className={`w-full flex items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition ${
+                                  selected
+                                    ? "border-amber-400 bg-amber-50 font-medium text-amber-900"
+                                    : "border-gray-200 bg-white text-gray-700 hover:border-amber-300 hover:bg-amber-50/50"
+                                }`}
+                              >
+                                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
+                                  selected ? "border-amber-500 bg-amber-500" : "border-gray-300"
+                                }`}>
+                                  {selected && <CheckCircle2 className="h-3 w-3 text-white" />}
+                                </span>
+                                {c.choice_text}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {quizError && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{quizError}</p>}
+
+                {/* Navigation */}
+                <div className="flex gap-2">
+                  {quizCurrentQ > 0 && (
+                    <button
+                      onClick={() => setQuizCurrentQ((q) => q - 1)}
+                      className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+                    >
+                      Önceki
+                    </button>
+                  )}
+                  {quizCurrentQ < quizData.questions.length - 1 ? (
+                    <button
+                      onClick={() => setQuizCurrentQ((q) => q + 1)}
+                      className="flex-1 rounded-xl bg-amber-500 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 transition"
+                    >
+                      Sonraki
+                    </button>
+                  ) : (
+                    <button
+                      onClick={submitQuiz}
+                      disabled={quizSubmitting}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60 transition"
+                    >
+                      {quizSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                      {quizSubmitting ? "Gönderiliyor…" : "Sınavı Bitir"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : quizPhase === "result" && quizResult ? (
+              <div className="space-y-6">
+                {/* Score card */}
+                <div className={`rounded-2xl p-6 text-center ${quizResult.passed ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"}`}>
+                  <div className={`text-4xl font-bold mb-1 ${quizResult.passed ? "text-emerald-700" : "text-red-600"}`}>
+                    %{quizResult.score.toFixed(0)}
+                  </div>
+                  <p className={`text-sm font-semibold ${quizResult.passed ? "text-emerald-700" : "text-red-600"}`}>
+                    {quizResult.passed ? "Geçtiniz!" : "Kaldınız"}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Geçme puanı: %{quizResult.passing_score}</p>
+                </div>
+
+                {/* Review */}
+                <div className="space-y-4">
+                  {quizResult.questions.map((q, qi) => {
+                    const correct = q.choices?.find((c) => c.is_correct);
+                    const userSelected = q.your_selected_choice_ids ?? [];
+                    const isCorrect = correct && userSelected.includes(correct.id);
+                    return (
+                      <div key={q.id} className={`rounded-xl border p-4 ${isCorrect === false ? "border-red-200 bg-red-50" : isCorrect ? "border-emerald-200 bg-emerald-50" : "border-gray-200"}`}>
+                        <p className="text-xs font-semibold text-gray-800 mb-2">{qi + 1}. {q.question_text}</p>
+                        {q.question_type === "short_answer" ? (
+                          <p className="text-xs text-gray-600">Cevabınız: {q.your_text_answer || "—"}</p>
+                        ) : (
+                          <div className="space-y-1">
+                            {q.choices?.map((c) => {
+                              const isSelected = userSelected.includes(c.id);
+                              return (
+                                <div
+                                  key={c.id}
+                                  className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs ${
+                                    c.is_correct ? "bg-emerald-100 text-emerald-800 font-medium" :
+                                    isSelected ? "bg-red-100 text-red-700" : "text-gray-600"
+                                  }`}
+                                >
+                                  <span>{isSelected ? "▶" : "○"}</span>
+                                  {c.choice_text}
+                                  {c.is_correct && <span className="ml-auto text-emerald-600">✓ Doğru</span>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {q.explanation && (
+                          <p className="text-xs text-gray-500 mt-2 italic">{q.explanation}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={() => { setQuizPhase("info"); setQuizResult(null); setQuizAttemptId(null); }}
+                  className="w-full rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+                >
+                  Bilgi Ekranına Dön
+                </button>
+              </div>
+            ) : (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+              </div>
             )}
           </div>
         ) : module.content_type === "assignment" ? (

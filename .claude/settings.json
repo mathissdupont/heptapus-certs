@@ -2,7 +2,17 @@
   "permissions": {
     "allow": [
       "Bash(cd /c/Users/samet/OneDrive/Masaüstü\\\\heptapus-certs\\\\heptacert && ls -la frontend/src/app/admin/lms/)",
-      "Read(//c/Users/samet/OneDrive/**)"
+      "Read(//c/Users/samet/OneDrive/**)",
+      "Bash(npm install *)",
+      "Bash(mkdir \"c:\\\\Users\\\\samet\\\\OneDrive\\\\Masaüstü\\\\heptapus-certs\\\\heptacert\\\\frontend\\\\src\\\\app\\\\admin\\\\lms\\\\courses\\\\[id]\\\\quizzes\\\\[qid]\" 2>&1; echo \"done\")",
+      "Bash(New-Item -ItemType Directory -Force \"c:\\\\Users\\\\samet\\\\OneDrive\\\\Masaüstü\\\\heptapus-certs\\\\heptacert\\\\frontend\\\\src\\\\app\\\\admin\\\\lms\\\\courses\\\\[id]\\\\quizzes\\\\[qid]\")",
+      "Bash(python -m py_compile src/lms_extended_models.py)",
+      "Bash(python -m py_compile src/lms_extended_api.py)",
+      "Bash(python -m py_compile alembic/versions/092_lms_quiz.py)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\samet\\OneDrive\\Masaüstü\\heptapus-certs\\heptacert\\frontend\\src\\app\\admin\\lms\\courses\\[id]\\quizzes",
+      "c:\\Users\\samet\\OneDrive\\Masa�st�\\heptapus-certs\\heptacert\\frontend\\src\\app\\admin\\lms\\courses\\[id]\\quizzes"
     ]
   }
 }

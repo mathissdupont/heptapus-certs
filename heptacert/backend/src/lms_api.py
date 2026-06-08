@@ -56,6 +56,14 @@ from .lms_models import (
     OrgLmsStaff,
     TrainingCourse,
 )
+from .lms_extended_models import (
+    CourseSyllabus,
+    Quiz,
+    QuizAnswer,
+    QuizAttempt,
+    QuizChoice,
+    QuizQuestion,
+)
 
 logger = logging.getLogger("heptacert.lms")
 
@@ -350,6 +358,7 @@ def _module_to_dict(module: CourseModule) -> dict[str, Any]:
         "content_type": module.content_type,
         "content_url": module.content_url,
         "content_text": module.content_text,
+        "quiz_id": module.quiz_id,
         "duration_minutes": module.duration_minutes,
         "is_required": module.is_required,
         "created_at": module.created_at.isoformat(),
@@ -1590,6 +1599,281 @@ async def get_org_lms_branding(org_id: int, db: AsyncSession = Depends(get_db)):
         "lms_support_email": settings.get("lms_support_email") or "",
         "lms_welcome_text": settings.get("lms_welcome_text") or "",
     }
+
+
+@router.get("/api/public/quizzes/{quiz_id}")
+async def get_quiz_public(
+    quiz_id: int,
+    db: AsyncSession = Depends(get_db),
+    member: CurrentPublicMember = Depends(get_current_public_member),
+):
+    """Quiz metadata (no correct answers revealed here)."""
+    q = (await db.execute(
+        select(Quiz)
+        .where(Quiz.id == quiz_id)
+        .options(selectinload(Quiz.questions).selectinload(QuizQuestion.choices))
+    )).scalar_one_or_none()
+    if not q:
+        raise HTTPException(404, "Quiz bulunamadı.")
+    enr = (await db.execute(
+        select(CourseEnrollment).where(
+            CourseEnrollment.course_id == q.course_id,
+            CourseEnrollment.member_id == member.id,
+        )
+    )).scalar_one_or_none()
+    if not enr:
+        raise HTTPException(403, "Bu kursa kayıtlı değilsiniz.")
+    questions = sorted(q.questions, key=lambda qu: qu.order)
+    return {
+        "id": q.id,
+        "title": q.title,
+        "description": q.description,
+        "time_limit_minutes": q.time_limit_minutes,
+        "attempts_allowed": q.attempts_allowed,
+        "passing_score": q.passing_score,
+        "question_count": len(questions),
+        "questions": [
+            {
+                "id": qu.id,
+                "question_text": qu.question_text,
+                "question_type": qu.question_type,
+                "points": qu.points,
+                "order": qu.order,
+                "choices": [
+                    {"id": c.id, "choice_text": c.choice_text, "order": c.order}
+                    for c in sorted(qu.choices, key=lambda c: c.order)
+                ],
+            }
+            for qu in questions
+        ],
+    }
+
+
+@router.get("/api/public/quizzes/{quiz_id}/my-attempts")
+async def my_quiz_attempts(
+    quiz_id: int,
+    db: AsyncSession = Depends(get_db),
+    member: CurrentPublicMember = Depends(get_current_public_member),
+):
+    attempts = (await db.execute(
+        select(QuizAttempt)
+        .where(QuizAttempt.quiz_id == quiz_id, QuizAttempt.member_id == member.id)
+        .order_by(QuizAttempt.started_at.desc())
+    )).scalars().all()
+    return [
+        {
+            "id": a.id,
+            "attempt_number": a.attempt_number,
+            "started_at": a.started_at.isoformat(),
+            "submitted_at": a.submitted_at.isoformat() if a.submitted_at else None,
+            "score": float(a.score) if a.score is not None else None,
+            "passed": a.passed,
+        }
+        for a in attempts
+    ]
+
+
+@router.post("/api/public/quizzes/{quiz_id}/start", status_code=201)
+async def start_quiz_attempt(
+    quiz_id: int,
+    db: AsyncSession = Depends(get_db),
+    member: CurrentPublicMember = Depends(get_current_public_member),
+):
+    q = (await db.execute(select(Quiz).where(Quiz.id == quiz_id))).scalar_one_or_none()
+    if not q:
+        raise HTTPException(404, "Quiz bulunamadı.")
+    enr = (await db.execute(
+        select(CourseEnrollment).where(
+            CourseEnrollment.course_id == q.course_id,
+            CourseEnrollment.member_id == member.id,
+        )
+    )).scalar_one_or_none()
+    if not enr:
+        raise HTTPException(403, "Bu kursa kayıtlı değilsiniz.")
+    prev_attempts = (await db.execute(
+        select(QuizAttempt)
+        .where(QuizAttempt.quiz_id == quiz_id, QuizAttempt.member_id == member.id)
+    )).scalars().all()
+    submitted_count = sum(1 for a in prev_attempts if a.submitted_at)
+    if submitted_count >= q.attempts_allowed:
+        raise HTTPException(409, "Deneme hakkınızı kullandınız.")
+    attempt = QuizAttempt(
+        quiz_id=quiz_id,
+        member_id=member.id,
+        attempt_number=len(prev_attempts) + 1,
+    )
+    db.add(attempt)
+    await db.commit()
+    await db.refresh(attempt)
+    return {"attempt_id": attempt.id, "started_at": attempt.started_at.isoformat()}
+
+
+class QuizAnswerIn(BaseModel):
+    question_id: int
+    selected_choice_ids: Optional[list[int]] = None
+    text_answer: Optional[str] = None
+
+
+class QuizSubmitIn(BaseModel):
+    answers: list[QuizAnswerIn]
+
+
+@router.post("/api/public/quiz-attempts/{attempt_id}/submit")
+async def submit_quiz_attempt(
+    attempt_id: int,
+    body: QuizSubmitIn,
+    db: AsyncSession = Depends(get_db),
+    member: CurrentPublicMember = Depends(get_current_public_member),
+):
+    attempt = (await db.execute(
+        select(QuizAttempt).where(QuizAttempt.id == attempt_id, QuizAttempt.member_id == member.id)
+    )).scalar_one_or_none()
+    if not attempt:
+        raise HTTPException(404, "Deneme bulunamadı.")
+    if attempt.submitted_at:
+        raise HTTPException(409, "Bu deneme zaten gönderildi.")
+    q = (await db.execute(
+        select(Quiz)
+        .where(Quiz.id == attempt.quiz_id)
+        .options(selectinload(Quiz.questions).selectinload(QuizQuestion.choices))
+    )).scalar_one()
+    questions_by_id = {qu.id: qu for qu in q.questions}
+    total_points = sum(qu.points for qu in q.questions)
+    earned_points = 0.0
+    for ans in body.answers:
+        question = questions_by_id.get(ans.question_id)
+        if not question:
+            continue
+        db.add(QuizAnswer(
+            attempt_id=attempt.id,
+            question_id=ans.question_id,
+            selected_choice_ids=ans.selected_choice_ids,
+            text_answer=ans.text_answer,
+        ))
+        if question.question_type in ("multiple_choice", "true_false") and ans.selected_choice_ids:
+            correct_ids = {c.id for c in question.choices if c.is_correct}
+            selected = set(ans.selected_choice_ids)
+            if selected == correct_ids:
+                earned_points += question.points
+    score = (earned_points / total_points * 100) if total_points > 0 else 0
+    passed = score >= q.passing_score
+    from datetime import timezone
+    attempt.submitted_at = datetime.now(timezone.utc)
+    attempt.score = round(score, 2)
+    attempt.passed = passed
+    await db.commit()
+    return {
+        "attempt_id": attempt.id,
+        "score": round(score, 2),
+        "passed": passed,
+        "passing_score": q.passing_score,
+        "earned_points": earned_points,
+        "total_points": total_points,
+    }
+
+
+@router.get("/api/public/quiz-attempts/{attempt_id}/result")
+async def get_quiz_attempt_result(
+    attempt_id: int,
+    db: AsyncSession = Depends(get_db),
+    member: CurrentPublicMember = Depends(get_current_public_member),
+):
+    attempt = (await db.execute(
+        select(QuizAttempt)
+        .where(QuizAttempt.id == attempt_id, QuizAttempt.member_id == member.id)
+        .options(selectinload(QuizAttempt.answers))
+    )).scalar_one_or_none()
+    if not attempt:
+        raise HTTPException(404, "Deneme bulunamadı.")
+    if not attempt.submitted_at:
+        raise HTTPException(400, "Deneme henüz gönderilmedi.")
+    q = (await db.execute(
+        select(Quiz)
+        .where(Quiz.id == attempt.quiz_id)
+        .options(selectinload(Quiz.questions).selectinload(QuizQuestion.choices))
+    )).scalar_one()
+    answers_by_question = {a.question_id: a for a in attempt.answers}
+    questions_out = []
+    for question in sorted(q.questions, key=lambda qu: qu.order):
+        ans = answers_by_question.get(question.id)
+        q_out: dict = {
+            "id": question.id,
+            "question_text": question.question_text,
+            "question_type": question.question_type,
+            "points": question.points,
+            "your_selected_choice_ids": ans.selected_choice_ids if ans else None,
+            "your_text_answer": ans.text_answer if ans else None,
+        }
+        if q.show_correct_answers:
+            q_out["explanation"] = question.explanation
+            q_out["choices"] = [
+                {"id": c.id, "choice_text": c.choice_text, "is_correct": c.is_correct, "order": c.order}
+                for c in sorted(question.choices, key=lambda c: c.order)
+            ]
+        else:
+            q_out["choices"] = [
+                {"id": c.id, "choice_text": c.choice_text, "order": c.order}
+                for c in sorted(question.choices, key=lambda c: c.order)
+            ]
+        questions_out.append(q_out)
+    return {
+        "attempt_id": attempt.id,
+        "score": float(attempt.score) if attempt.score is not None else None,
+        "passed": attempt.passed,
+        "passing_score": q.passing_score,
+        "submitted_at": attempt.submitted_at.isoformat(),
+        "questions": questions_out,
+    }
+
+
+@router.get("/api/public/courses/{course_id}/announcements")
+async def get_course_announcements_public(
+    course_id: int,
+    db: AsyncSession = Depends(get_db),
+    member: CurrentPublicMember = Depends(get_current_public_member),
+):
+    enr = (await db.execute(
+        select(CourseEnrollment).where(
+            CourseEnrollment.course_id == course_id,
+            CourseEnrollment.member_id == member.id,
+        )
+    )).scalar_one_or_none()
+    if not enr:
+        raise HTTPException(403, "Bu kursa kayıtlı değilsiniz.")
+    rows = (await db.execute(
+        select(CourseAnnouncement)
+        .where(CourseAnnouncement.course_id == course_id)
+        .order_by(CourseAnnouncement.created_at.desc())
+    )).scalars().all()
+    return [
+        {
+            "id": a.id,
+            "title": a.title,
+            "body": a.body,
+            "created_at": a.created_at.isoformat(),
+        }
+        for a in rows
+    ]
+
+
+@router.get("/api/public/courses/{course_id}/syllabus")
+async def get_course_syllabus_public(
+    course_id: int,
+    db: AsyncSession = Depends(get_db),
+    member: CurrentPublicMember = Depends(get_current_public_member),
+):
+    enr = (await db.execute(
+        select(CourseEnrollment).where(
+            CourseEnrollment.course_id == course_id,
+            CourseEnrollment.member_id == member.id,
+        )
+    )).scalar_one_or_none()
+    if not enr:
+        raise HTTPException(403, "Bu kursa kayıtlı değilsiniz.")
+    s = (await db.execute(
+        select(CourseSyllabus).where(CourseSyllabus.course_id == course_id)
+    )).scalar_one_or_none()
+    return {"course_id": course_id, "content_html": s.content_html if s else ""}
 
 
 @router.get("/api/public/my-courses")

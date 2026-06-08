@@ -27,6 +27,7 @@ from .main import (
 )
 from .lms_models import (
     AssignmentSubmission,
+    CourseAnnouncement,
     CourseEnrollment,
     CourseModule,
     LmsJourneyEnrollment,
@@ -51,6 +52,11 @@ from .lms_extended_models import (
     EventLmsBridge,
     LearningOutcome,
     OutcomeMastery,
+    Quiz,
+    QuizAnswer,
+    QuizAttempt,
+    QuizChoice,
+    QuizQuestion,
     Rubric,
     RubricCriterion,
     RubricRating,
@@ -1592,6 +1598,421 @@ async def toggle_bridge(
     b.is_active = is_active
     await db.commit()
     return {"ok": True, "is_active": is_active}
+
+
+# ===========================================================================
+# ANNOUNCEMENTS
+# ===========================================================================
+
+
+class AnnouncementIn(BaseModel):
+    title: str = Field(max_length=300)
+    body: str = Field(min_length=1)
+
+
+class AnnouncementPatch(BaseModel):
+    title: Optional[str] = Field(default=None, max_length=300)
+    body: Optional[str] = None
+
+
+@router.get("/api/admin/lms/courses/{course_id}/announcements")
+async def list_announcements(
+    course_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db, edit=False)
+    rows = (await db.execute(
+        select(CourseAnnouncement)
+        .where(CourseAnnouncement.course_id == course_id)
+        .order_by(CourseAnnouncement.created_at.desc())
+    )).scalars().all()
+    return [_announcement_dict(a) for a in rows]
+
+
+@router.post("/api/admin/lms/courses/{course_id}/announcements", status_code=201)
+async def create_announcement(
+    course_id: int,
+    body: AnnouncementIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db)
+    a = CourseAnnouncement(
+        course_id=course_id,
+        author_user_id=me.id,
+        title=body.title,
+        body=body.body,
+    )
+    db.add(a)
+    await db.commit()
+    await db.refresh(a)
+    return _announcement_dict(a)
+
+
+@router.patch("/api/admin/lms/announcements/{announcement_id}")
+async def patch_announcement(
+    announcement_id: int,
+    body: AnnouncementPatch,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    a = (await db.execute(
+        select(CourseAnnouncement).where(CourseAnnouncement.id == announcement_id)
+    )).scalar_one_or_none()
+    if not a:
+        raise HTTPException(404, "Duyuru bulunamadı.")
+    await _get_course_lms(a.course_id, me, db)
+    for f, v in body.model_dump(exclude_none=True).items():
+        setattr(a, f, v)
+    await db.commit()
+    await db.refresh(a)
+    return _announcement_dict(a)
+
+
+@router.delete("/api/admin/lms/announcements/{announcement_id}", status_code=204)
+async def delete_announcement(
+    announcement_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    a = (await db.execute(
+        select(CourseAnnouncement).where(CourseAnnouncement.id == announcement_id)
+    )).scalar_one_or_none()
+    if a:
+        await _get_course_lms(a.course_id, me, db)
+        await db.delete(a)
+        await db.commit()
+
+
+def _announcement_dict(a: CourseAnnouncement) -> dict:
+    return {
+        "id": a.id,
+        "course_id": a.course_id,
+        "author_user_id": a.author_user_id,
+        "title": a.title,
+        "body": a.body,
+        "created_at": a.created_at.isoformat(),
+    }
+
+
+# ===========================================================================
+# QUIZ SYSTEM — Admin
+# ===========================================================================
+
+
+class QuizIn(BaseModel):
+    title: str = Field(max_length=300)
+    description: Optional[str] = None
+    time_limit_minutes: Optional[int] = Field(default=None, ge=1, le=300)
+    attempts_allowed: int = Field(default=1, ge=1, le=10)
+    passing_score: int = Field(default=60, ge=0, le=100)
+    shuffle_questions: bool = False
+    show_correct_answers: bool = True
+
+
+class QuizPatch(BaseModel):
+    title: Optional[str] = Field(default=None, max_length=300)
+    description: Optional[str] = None
+    time_limit_minutes: Optional[int] = Field(default=None, ge=1, le=300)
+    attempts_allowed: Optional[int] = Field(default=None, ge=1, le=10)
+    passing_score: Optional[int] = Field(default=None, ge=0, le=100)
+    shuffle_questions: Optional[bool] = None
+    show_correct_answers: Optional[bool] = None
+
+
+class QuizChoiceIn(BaseModel):
+    choice_text: str = Field(max_length=1000)
+    is_correct: bool = False
+    order: int = Field(default=0, ge=0)
+
+
+class QuizQuestionIn(BaseModel):
+    question_text: str
+    question_type: str = Field(default="multiple_choice", pattern="^(multiple_choice|true_false|short_answer)$")
+    points: int = Field(default=1, ge=1, le=100)
+    order: int = Field(default=0, ge=0)
+    explanation: Optional[str] = None
+    choices: list[QuizChoiceIn] = []
+
+
+class QuizQuestionPatch(BaseModel):
+    question_text: Optional[str] = None
+    question_type: Optional[str] = Field(default=None, pattern="^(multiple_choice|true_false|short_answer)$")
+    points: Optional[int] = Field(default=None, ge=1, le=100)
+    order: Optional[int] = Field(default=None, ge=0)
+    explanation: Optional[str] = None
+
+
+def _quiz_dict(q: Quiz, include_questions: bool = False) -> dict:
+    d: dict = {
+        "id": q.id,
+        "course_id": q.course_id,
+        "title": q.title,
+        "description": q.description,
+        "time_limit_minutes": q.time_limit_minutes,
+        "attempts_allowed": q.attempts_allowed,
+        "passing_score": q.passing_score,
+        "shuffle_questions": q.shuffle_questions,
+        "show_correct_answers": q.show_correct_answers,
+        "created_at": q.created_at.isoformat(),
+        "question_count": len(q.questions) if q.questions else 0,
+    }
+    if include_questions:
+        d["questions"] = [_question_dict(qu) for qu in q.questions]
+    return d
+
+
+def _question_dict(q: QuizQuestion) -> dict:
+    return {
+        "id": q.id,
+        "quiz_id": q.quiz_id,
+        "question_text": q.question_text,
+        "question_type": q.question_type,
+        "points": q.points,
+        "order": q.order,
+        "explanation": q.explanation,
+        "choices": [
+            {"id": c.id, "choice_text": c.choice_text, "is_correct": c.is_correct, "order": c.order}
+            for c in q.choices
+        ],
+    }
+
+
+@router.get("/api/admin/lms/courses/{course_id}/quizzes")
+async def list_quizzes(
+    course_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db, edit=False)
+    rows = (await db.execute(
+        select(Quiz)
+        .where(Quiz.course_id == course_id)
+        .options(selectinload(Quiz.questions))
+        .order_by(Quiz.created_at)
+    )).scalars().all()
+    return [_quiz_dict(q) for q in rows]
+
+
+@router.post("/api/admin/lms/courses/{course_id}/quizzes", status_code=201)
+async def create_quiz(
+    course_id: int,
+    body: QuizIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_course_lms(course_id, me, db)
+    q = Quiz(
+        course_id=course_id,
+        title=body.title,
+        description=body.description,
+        time_limit_minutes=body.time_limit_minutes,
+        attempts_allowed=body.attempts_allowed,
+        passing_score=body.passing_score,
+        shuffle_questions=body.shuffle_questions,
+        show_correct_answers=body.show_correct_answers,
+    )
+    db.add(q)
+    await db.commit()
+    await db.refresh(q)
+    q.questions = []
+    return _quiz_dict(q)
+
+
+@router.get("/api/admin/lms/quizzes/{quiz_id}")
+async def get_quiz(
+    quiz_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    q = (await db.execute(
+        select(Quiz)
+        .where(Quiz.id == quiz_id)
+        .options(selectinload(Quiz.questions).selectinload(QuizQuestion.choices))
+    )).scalar_one_or_none()
+    if not q:
+        raise HTTPException(404, "Quiz bulunamadı.")
+    await _get_course_lms(q.course_id, me, db, edit=False)
+    return _quiz_dict(q, include_questions=True)
+
+
+@router.patch("/api/admin/lms/quizzes/{quiz_id}")
+async def patch_quiz(
+    quiz_id: int,
+    body: QuizPatch,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    q = (await db.execute(
+        select(Quiz).where(Quiz.id == quiz_id)
+        .options(selectinload(Quiz.questions))
+    )).scalar_one_or_none()
+    if not q:
+        raise HTTPException(404, "Quiz bulunamadı.")
+    await _get_course_lms(q.course_id, me, db)
+    for f, v in body.model_dump(exclude_none=True).items():
+        setattr(q, f, v)
+    await db.commit()
+    await db.refresh(q)
+    return _quiz_dict(q)
+
+
+@router.delete("/api/admin/lms/quizzes/{quiz_id}", status_code=204)
+async def delete_quiz(
+    quiz_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    q = (await db.execute(select(Quiz).where(Quiz.id == quiz_id))).scalar_one_or_none()
+    if q:
+        await _get_course_lms(q.course_id, me, db)
+        await db.delete(q)
+        await db.commit()
+
+
+@router.post("/api/admin/lms/quizzes/{quiz_id}/questions", status_code=201)
+async def add_question(
+    quiz_id: int,
+    body: QuizQuestionIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    q = (await db.execute(select(Quiz).where(Quiz.id == quiz_id))).scalar_one_or_none()
+    if not q:
+        raise HTTPException(404, "Quiz bulunamadı.")
+    await _get_course_lms(q.course_id, me, db)
+    question = QuizQuestion(
+        quiz_id=quiz_id,
+        question_text=body.question_text,
+        question_type=body.question_type,
+        points=body.points,
+        order=body.order,
+        explanation=body.explanation,
+    )
+    db.add(question)
+    await db.flush()
+    for ch in body.choices:
+        db.add(QuizChoice(
+            question_id=question.id,
+            choice_text=ch.choice_text,
+            is_correct=ch.is_correct,
+            order=ch.order,
+        ))
+    await db.commit()
+    await db.refresh(question)
+    question.choices = (await db.execute(
+        select(QuizChoice).where(QuizChoice.question_id == question.id).order_by(QuizChoice.order)
+    )).scalars().all()
+    return _question_dict(question)
+
+
+@router.patch("/api/admin/lms/questions/{question_id}")
+async def patch_question(
+    question_id: int,
+    body: QuizQuestionPatch,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    question = (await db.execute(
+        select(QuizQuestion).where(QuizQuestion.id == question_id)
+    )).scalar_one_or_none()
+    if not question:
+        raise HTTPException(404, "Soru bulunamadı.")
+    q = (await db.execute(select(Quiz).where(Quiz.id == question.quiz_id))).scalar_one()
+    await _get_course_lms(q.course_id, me, db)
+    for f, v in body.model_dump(exclude_none=True).items():
+        setattr(question, f, v)
+    await db.commit()
+    question.choices = (await db.execute(
+        select(QuizChoice).where(QuizChoice.question_id == question.id).order_by(QuizChoice.order)
+    )).scalars().all()
+    return _question_dict(question)
+
+
+@router.delete("/api/admin/lms/questions/{question_id}", status_code=204)
+async def delete_question(
+    question_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    question = (await db.execute(
+        select(QuizQuestion).where(QuizQuestion.id == question_id)
+    )).scalar_one_or_none()
+    if question:
+        q = (await db.execute(select(Quiz).where(Quiz.id == question.quiz_id))).scalar_one()
+        await _get_course_lms(q.course_id, me, db)
+        await db.delete(question)
+        await db.commit()
+
+
+@router.put("/api/admin/lms/questions/{question_id}/choices")
+async def replace_choices(
+    question_id: int,
+    body: list[QuizChoiceIn],
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Replace all choices for a question (PUT semantics)."""
+    question = (await db.execute(
+        select(QuizQuestion).where(QuizQuestion.id == question_id)
+    )).scalar_one_or_none()
+    if not question:
+        raise HTTPException(404, "Soru bulunamadı.")
+    q = (await db.execute(select(Quiz).where(Quiz.id == question.quiz_id))).scalar_one()
+    await _get_course_lms(q.course_id, me, db)
+    await db.execute(
+        select(QuizChoice).where(QuizChoice.question_id == question_id)
+    )
+    existing = (await db.execute(
+        select(QuizChoice).where(QuizChoice.question_id == question_id)
+    )).scalars().all()
+    for c in existing:
+        await db.delete(c)
+    await db.flush()
+    new_choices = []
+    for ch in body:
+        c = QuizChoice(
+            question_id=question_id,
+            choice_text=ch.choice_text,
+            is_correct=ch.is_correct,
+            order=ch.order,
+        )
+        db.add(c)
+        new_choices.append(c)
+    await db.commit()
+    question.choices = (await db.execute(
+        select(QuizChoice).where(QuizChoice.question_id == question_id).order_by(QuizChoice.order)
+    )).scalars().all()
+    return _question_dict(question)
+
+
+@router.get("/api/admin/lms/quizzes/{quiz_id}/attempts")
+async def list_quiz_attempts_admin(
+    quiz_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    q = (await db.execute(select(Quiz).where(Quiz.id == quiz_id))).scalar_one_or_none()
+    if not q:
+        raise HTTPException(404, "Quiz bulunamadı.")
+    await _get_course_lms(q.course_id, me, db, edit=False)
+    attempts = (await db.execute(
+        select(QuizAttempt).where(QuizAttempt.quiz_id == quiz_id)
+        .order_by(QuizAttempt.started_at.desc())
+    )).scalars().all()
+    return [
+        {
+            "id": a.id,
+            "member_id": a.member_id,
+            "attempt_number": a.attempt_number,
+            "started_at": a.started_at.isoformat(),
+            "submitted_at": a.submitted_at.isoformat() if a.submitted_at else None,
+            "score": float(a.score) if a.score is not None else None,
+            "passed": a.passed,
+        }
+        for a in attempts
+    ]
 
 
 @router.delete("/api/admin/lms/bridges/{bridge_id}", status_code=204, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
