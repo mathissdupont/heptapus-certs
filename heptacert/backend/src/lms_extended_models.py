@@ -479,7 +479,7 @@ class EventLmsBridge(Base):
 # ---------------------------------------------------------------------------
 
 class Quiz(Base):
-    __tablename__ = "quizzes"
+    __tablename__ = "lms_quizzes"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     course_id: Mapped[int] = mapped_column(
@@ -502,15 +502,15 @@ class Quiz(Base):
         back_populates="quiz", cascade="all, delete-orphan"
     )
 
-    __table_args__ = (Index("ix_quizzes_course", "course_id"),)
+    __table_args__ = (Index("ix_lms_quizzes_course", "course_id"),)
 
 
 class QuizQuestion(Base):
-    __tablename__ = "quiz_questions"
+    __tablename__ = "lms_quiz_questions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     quiz_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("quizzes.id", ondelete="CASCADE"), index=True
+        Integer, ForeignKey("lms_quizzes.id", ondelete="CASCADE"), index=True
     )
     question_text: Mapped[str] = mapped_column(Text)
     # multiple_choice | true_false | short_answer
@@ -525,15 +525,15 @@ class QuizQuestion(Base):
         order_by="QuizChoice.order"
     )
 
-    __table_args__ = (Index("ix_quiz_questions_quiz", "quiz_id"),)
+    __table_args__ = (Index("ix_lms_quiz_questions_quiz", "quiz_id"),)
 
 
 class QuizChoice(Base):
-    __tablename__ = "quiz_choices"
+    __tablename__ = "lms_quiz_choices"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     question_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("quiz_questions.id", ondelete="CASCADE"), index=True
+        Integer, ForeignKey("lms_quiz_questions.id", ondelete="CASCADE"), index=True
     )
     choice_text: Mapped[str] = mapped_column(String(1000))
     is_correct: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -541,15 +541,15 @@ class QuizChoice(Base):
 
     question: Mapped["QuizQuestion"] = relationship(back_populates="choices")
 
-    __table_args__ = (Index("ix_quiz_choices_question", "question_id"),)
+    __table_args__ = (Index("ix_lms_quiz_choices_question", "question_id"),)
 
 
 class QuizAttempt(Base):
-    __tablename__ = "quiz_attempts"
+    __tablename__ = "lms_quiz_attempts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     quiz_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("quizzes.id", ondelete="CASCADE"), index=True
+        Integer, ForeignKey("lms_quizzes.id", ondelete="CASCADE"), index=True
     )
     member_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("public_members.id", ondelete="CASCADE"), index=True
@@ -565,18 +565,18 @@ class QuizAttempt(Base):
         back_populates="attempt", cascade="all, delete-orphan"
     )
 
-    __table_args__ = (Index("ix_quiz_attempts_quiz_member", "quiz_id", "member_id"),)
+    __table_args__ = (Index("ix_lms_quiz_attempts_quiz_member", "quiz_id", "member_id"),)
 
 
 class QuizAnswer(Base):
-    __tablename__ = "quiz_answers"
+    __tablename__ = "lms_quiz_answers"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     attempt_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("quiz_attempts.id", ondelete="CASCADE"), index=True
+        Integer, ForeignKey("lms_quiz_attempts.id", ondelete="CASCADE"), index=True
     )
     question_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("quiz_questions.id", ondelete="CASCADE"), index=True
+        Integer, ForeignKey("lms_quiz_questions.id", ondelete="CASCADE"), index=True
     )
     selected_choice_ids: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
     text_answer: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -584,6 +584,6 @@ class QuizAnswer(Base):
     attempt: Mapped["QuizAttempt"] = relationship(back_populates="answers")
 
     __table_args__ = (
-        UniqueConstraint("attempt_id", "question_id", name="uq_quiz_answer_attempt_question"),
-        Index("ix_quiz_answers_attempt", "attempt_id"),
+        UniqueConstraint("attempt_id", "question_id", name="uq_lms_quiz_answer_attempt_question"),
+        Index("ix_lms_quiz_answers_attempt", "attempt_id"),
     )

@@ -1,4 +1,4 @@
-"""Add LMS quiz system (quizzes, questions, choices, attempts, answers).
+"""Add LMS quiz system (lms_quizzes, lms_quiz_questions, lms_quiz_choices, lms_quiz_attempts, lms_quiz_answers).
 
 Revision ID: 092_lms_quiz
 Revises: 091_lms_attendance
@@ -22,9 +22,9 @@ def _tables() -> set[str]:
 def upgrade() -> None:
     existing = _tables()
 
-    if "quizzes" not in existing:
+    if "lms_quizzes" not in existing:
         op.create_table(
-            "quizzes",
+            "lms_quizzes",
             sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
             sa.Column("course_id", sa.Integer(), nullable=False),
             sa.Column("title", sa.String(length=300), nullable=False),
@@ -38,40 +38,39 @@ def upgrade() -> None:
             sa.ForeignKeyConstraint(["course_id"], ["training_courses.id"], ondelete="CASCADE"),
             sa.PrimaryKeyConstraint("id"),
         )
-        op.create_index("ix_quizzes_course", "quizzes", ["course_id"])
+        op.create_index("ix_lms_quizzes_course", "lms_quizzes", ["course_id"])
 
-    if "quiz_questions" not in existing:
+    if "lms_quiz_questions" not in existing:
         op.create_table(
-            "quiz_questions",
+            "lms_quiz_questions",
             sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
             sa.Column("quiz_id", sa.Integer(), nullable=False),
             sa.Column("question_text", sa.Text(), nullable=False),
-            # multiple_choice | true_false | short_answer
             sa.Column("question_type", sa.String(length=50), nullable=False, server_default="multiple_choice"),
             sa.Column("points", sa.Integer(), nullable=False, server_default="1"),
             sa.Column("order", sa.Integer(), nullable=False, server_default="0"),
             sa.Column("explanation", sa.Text(), nullable=True),
-            sa.ForeignKeyConstraint(["quiz_id"], ["quizzes.id"], ondelete="CASCADE"),
+            sa.ForeignKeyConstraint(["quiz_id"], ["lms_quizzes.id"], ondelete="CASCADE"),
             sa.PrimaryKeyConstraint("id"),
         )
-        op.create_index("ix_quiz_questions_quiz", "quiz_questions", ["quiz_id"])
+        op.create_index("ix_lms_quiz_questions_quiz", "lms_quiz_questions", ["quiz_id"])
 
-    if "quiz_choices" not in existing:
+    if "lms_quiz_choices" not in existing:
         op.create_table(
-            "quiz_choices",
+            "lms_quiz_choices",
             sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
             sa.Column("question_id", sa.Integer(), nullable=False),
             sa.Column("choice_text", sa.String(length=1000), nullable=False),
             sa.Column("is_correct", sa.Boolean(), nullable=False, server_default="false"),
             sa.Column("order", sa.Integer(), nullable=False, server_default="0"),
-            sa.ForeignKeyConstraint(["question_id"], ["quiz_questions.id"], ondelete="CASCADE"),
+            sa.ForeignKeyConstraint(["question_id"], ["lms_quiz_questions.id"], ondelete="CASCADE"),
             sa.PrimaryKeyConstraint("id"),
         )
-        op.create_index("ix_quiz_choices_question", "quiz_choices", ["question_id"])
+        op.create_index("ix_lms_quiz_choices_question", "lms_quiz_choices", ["question_id"])
 
-    if "quiz_attempts" not in existing:
+    if "lms_quiz_attempts" not in existing:
         op.create_table(
-            "quiz_attempts",
+            "lms_quiz_attempts",
             sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
             sa.Column("quiz_id", sa.Integer(), nullable=False),
             sa.Column("member_id", sa.Integer(), nullable=False),
@@ -80,38 +79,37 @@ def upgrade() -> None:
             sa.Column("score", sa.Numeric(6, 2), nullable=True),
             sa.Column("passed", sa.Boolean(), nullable=True),
             sa.Column("attempt_number", sa.Integer(), nullable=False, server_default="1"),
-            sa.ForeignKeyConstraint(["quiz_id"], ["quizzes.id"], ondelete="CASCADE"),
+            sa.ForeignKeyConstraint(["quiz_id"], ["lms_quizzes.id"], ondelete="CASCADE"),
             sa.ForeignKeyConstraint(["member_id"], ["public_members.id"], ondelete="CASCADE"),
             sa.PrimaryKeyConstraint("id"),
         )
-        op.create_index("ix_quiz_attempts_quiz_member", "quiz_attempts", ["quiz_id", "member_id"])
+        op.create_index("ix_lms_quiz_attempts_quiz_member", "lms_quiz_attempts", ["quiz_id", "member_id"])
 
-    if "quiz_answers" not in existing:
+    if "lms_quiz_answers" not in existing:
         op.create_table(
-            "quiz_answers",
+            "lms_quiz_answers",
             sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
             sa.Column("attempt_id", sa.Integer(), nullable=False),
             sa.Column("question_id", sa.Integer(), nullable=False),
-            # JSON array of selected choice IDs (for multiple_choice / true_false)
             sa.Column("selected_choice_ids", sa.JSON(), nullable=True),
             sa.Column("text_answer", sa.Text(), nullable=True),
-            sa.ForeignKeyConstraint(["attempt_id"], ["quiz_attempts.id"], ondelete="CASCADE"),
-            sa.ForeignKeyConstraint(["question_id"], ["quiz_questions.id"], ondelete="CASCADE"),
+            sa.ForeignKeyConstraint(["attempt_id"], ["lms_quiz_attempts.id"], ondelete="CASCADE"),
+            sa.ForeignKeyConstraint(["question_id"], ["lms_quiz_questions.id"], ondelete="CASCADE"),
             sa.PrimaryKeyConstraint("id"),
-            sa.UniqueConstraint("attempt_id", "question_id", name="uq_quiz_answer_attempt_question"),
+            sa.UniqueConstraint("attempt_id", "question_id", name="uq_lms_quiz_answer_attempt_question"),
         )
-        op.create_index("ix_quiz_answers_attempt", "quiz_answers", ["attempt_id"])
+        op.create_index("ix_lms_quiz_answers_attempt", "lms_quiz_answers", ["attempt_id"])
 
 
 def downgrade() -> None:
     existing = _tables()
-    if "quiz_answers" in existing:
-        op.drop_table("quiz_answers")
-    if "quiz_attempts" in existing:
-        op.drop_table("quiz_attempts")
-    if "quiz_choices" in existing:
-        op.drop_table("quiz_choices")
-    if "quiz_questions" in existing:
-        op.drop_table("quiz_questions")
-    if "quizzes" in existing:
-        op.drop_table("quizzes")
+    if "lms_quiz_answers" in existing:
+        op.drop_table("lms_quiz_answers")
+    if "lms_quiz_attempts" in existing:
+        op.drop_table("lms_quiz_attempts")
+    if "lms_quiz_choices" in existing:
+        op.drop_table("lms_quiz_choices")
+    if "lms_quiz_questions" in existing:
+        op.drop_table("lms_quiz_questions")
+    if "lms_quizzes" in existing:
+        op.drop_table("lms_quizzes")

@@ -94,7 +94,7 @@ class CourseModule(Base):
     is_required: Mapped[bool] = mapped_column(Boolean, default=True)
     # Optional FK to quiz engine — used when content_type == "quiz"
     quiz_id: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("quizzes.id", ondelete="SET NULL"), nullable=True
+        Integer, ForeignKey("lms_quizzes.id", ondelete="SET NULL"), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

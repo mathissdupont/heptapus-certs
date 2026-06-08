@@ -8,7 +8,8 @@
       "Bash(New-Item -ItemType Directory -Force \"c:\\\\Users\\\\samet\\\\OneDrive\\\\Masaüstü\\\\heptapus-certs\\\\heptacert\\\\frontend\\\\src\\\\app\\\\admin\\\\lms\\\\courses\\\\[id]\\\\quizzes\\\\[qid]\")",
       "Bash(python -m py_compile src/lms_extended_models.py)",
       "Bash(python -m py_compile src/lms_extended_api.py)",
-      "Bash(python -m py_compile alembic/versions/092_lms_quiz.py)"
+      "Bash(python -m py_compile alembic/versions/092_lms_quiz.py)",
+      "Bash(python -m py_compile src/lms_extended_models.py src/lms_models.py alembic/versions/092_lms_quiz.py alembic/versions/093_lms_module_quiz_fk.py)"
     ],
     "additionalDirectories": [
       "c:\\Users\\samet\\OneDrive\\Masaüstü\\heptapus-certs\\heptacert\\frontend\\src\\app\\admin\\lms\\courses\\[id]\\quizzes",
