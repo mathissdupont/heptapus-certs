@@ -36,7 +36,6 @@ import {
   ClipboardList,
   BarChart3,
   FileText,
-  Store,
   CheckCircle2,
   ArrowRight,
 } from "lucide-react";
@@ -186,7 +185,6 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: { tr: "Platform", en: "Platform" },
     items: [
-      { href: "/admin/marketplace", label: { tr: "Marketplace", en: "Marketplace" }, icon: Store },
       { href: "/admin/integrations", label: { tr: "Entegrasyonlar", en: "Integrations" }, icon: Plug, exact: true },
       { href: "/admin/payments/transactions", label: { tr: "Ödemeler", en: "Payments" }, icon: CreditCard },
       { href: "/admin/api-keys", label: { tr: "API Anahtarları", en: "API Keys" }, icon: KeyRound },
@@ -204,7 +202,7 @@ const PRIMARY_MOBILE_ITEMS: NavItem[] = [
   NAV_GROUPS[1].items[0],  // Etkinlikler
   NAV_GROUPS[4].items[0],  // Email Merkezi
   NAV_GROUPS[3].items[0],  // CRM
-  NAV_GROUPS[6].items[5],  // Settings
+  NAV_GROUPS[6].items[4],  // Settings
 ];
 
 const AUTH_PATH_PREFIXES = ["/admin/login", "/admin/magic-verify", "/admin/auth"];
@@ -601,7 +599,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
     //   base[1] = NAV_GROUPS[2].items[0];
     // }
     if (role === "superadmin") {
-      base[4] = NAV_GROUPS[6].items[6];
+      base[4] = NAV_GROUPS[6].items[5];
     }
     return base;
   }, [enterpriseEnabled, modules, role]);
