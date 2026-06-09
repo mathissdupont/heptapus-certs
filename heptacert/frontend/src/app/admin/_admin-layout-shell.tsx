@@ -22,7 +22,6 @@ import {
   Settings,
   Building2,
   Shield,
-  Webhook,
   LogOut,
   Menu,
   PanelLeftClose,
@@ -196,7 +195,7 @@ const NAV_GROUPS: NavGroup[] = [
 ];
 
 // Primary mobile nav — always-visible items (module-gated items excluded here)
-// Indices: [0]=Genel, [3]=CRM, [4]=İletişim, [6]=Platform
+// Indices: [0]=Genel, [1]=Etkinlikler, [3]=CRM, [4]=İletişim, [6]=Platform
 const PRIMARY_MOBILE_ITEMS: NavItem[] = [
   NAV_GROUPS[0].items[0],  // Dashboard
   NAV_GROUPS[1].items[0],  // Etkinlikler
