@@ -26,7 +26,7 @@ import {
   Building2, Sparkles, RefreshCcw, Trash2,
   BadgeCheck, Link2, UploadCloud, MonitorSmartphone,
   UserCog, CalendarDays, Download, FileText,
-  Blocks, CalendarCheck2, School, ChartNoAxesCombined,
+  Blocks, CalendarCheck2, ChartNoAxesCombined,
 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
 import { useToast } from "@/hooks/useToast";
@@ -1455,15 +1455,6 @@ const MODULE_META = [
     color: "indigo",
   },
   {
-    key: "lms" as keyof OrgModules,
-    icon: School,
-    labelTr: "LMS (Öğrenme Yönetimi)",
-    labelEn: "LMS (Learning Management)",
-    descTr: "Kurslar, öğrenme yolları, modül takibi, ödev ve uyum takibi.",
-    descEn: "Courses, learning journeys, module tracking, assignments and compliance.",
-    color: "violet",
-  },
-  {
     key: "accreditation" as keyof OrgModules,
     icon: ChartNoAxesCombined,
     labelTr: "Akreditasyon & CPD",
@@ -1500,7 +1491,7 @@ const COLOR_MAP: Record<string, { ring: string; bg: string; text: string; dot: s
 
 function ModulesTab() {
   const toast = useToast();
-  const [modules, setModules] = useState<OrgModules>({ events: true, lms: true, accreditation: true });
+  const [modules, setModules] = useState<OrgModules>({ events: true, lms: false, accreditation: true });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 

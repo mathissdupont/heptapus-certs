@@ -31,20 +31,14 @@ import {
   GraduationCap,
   Loader2,
   Plug,
-  BookOpen,
   Zap,
   Briefcase,
   ClipboardList,
   BarChart3,
   FileText,
   Store,
-  Award,
-  School,
-  Route,
-  UserPlus,
   CheckCircle2,
   ArrowRight,
-  Palette,
 } from "lucide-react";
 
 type NavItem = {
@@ -71,7 +65,7 @@ type OrganizationContext = {
   permissions: string[];
 };
 
-const DEFAULT_MODULES: OrgModules = { events: true, lms: true, accreditation: true };
+const DEFAULT_MODULES: OrgModules = { events: true, lms: false, accreditation: true };
 
 type OrgModulesResponse = {
   modules: OrgModules;
@@ -82,10 +76,7 @@ type OrgModulesResponse = {
 
 const ORG_TYPE_PRESETS: Record<string, OrgModules> = {
   event_organizer: { events: true, lms: false, accreditation: false },
-  training_institute: { events: true, lms: true, accreditation: true },
-  university: { events: true, lms: true, accreditation: true },
-  corporate_training: { events: false, lms: true, accreditation: false },
-  professional_association: { events: true, lms: true, accreditation: true },
+  professional_association: { events: true, lms: false, accreditation: true },
 };
 
 const ONBOARDING_TYPES = [
@@ -94,18 +85,6 @@ const ONBOARDING_TYPES = [
     icon: CalendarCheck2,
     label: { tr: "Etkinlik düzenliyoruz", en: "We run events" },
     description: { tr: "Konferans, seminer, webinar ve katılımcı sertifikaları", en: "Conferences, seminars, webinars and attendance certificates" },
-  },
-  {
-    value: "training_institute",
-    icon: School,
-    label: { tr: "Kurs ve eğitim satıyoruz", en: "We sell courses and training" },
-    description: { tr: "Kurslar, öğrenme yolları, LMS ve sertifika programları", en: "Courses, learning paths, LMS and certificate programs" },
-  },
-  {
-    value: "corporate_training",
-    icon: Building2,
-    label: { tr: "Şirket içi eğitim yapıyoruz", en: "We train our team" },
-    description: { tr: "Uyum takibi, ekip eğitimleri ve zorunlu öğrenme süreçleri", en: "Compliance, internal training and required learning flows" },
   },
   {
     value: "professional_association",
@@ -123,12 +102,6 @@ const ONBOARDING_MODULES = [
     description: { tr: "Etkinlik, katılımcı, check-in ve sertifika yönetimi", en: "Events, attendees, check-in and certificates" },
   },
   {
-    key: "lms" as keyof OrgModules,
-    icon: BookOpen,
-    label: { tr: "Öğrenme / Kurs", en: "Learning / Courses" },
-    description: { tr: "Kurslar, modüller, rozetler ve öğrenme yolları", en: "Courses, modules, badges and learning journeys" },
-  },
-  {
     key: "accreditation" as keyof OrgModules,
     icon: GraduationCap,
     label: { tr: "Akreditasyon", en: "Accreditation" },
@@ -139,12 +112,11 @@ const ONBOARDING_MODULES = [
 // Group indices (0-based):
 // 0: Genel          — always visible
 // 1: Etkinlikler    — module: events
-// 2: LMS            — module: lms
-// 3: Akreditasyon   — module: accreditation
-// 4: CRM & Satış    — always visible
-// 5: İletişim       — always visible
-// 6: Analitik       — always visible
-// 7: Platform       — always visible
+// 2: Akreditasyon   — module: accreditation
+// 3: CRM & Satış    — always visible
+// 4: İletişim       — always visible
+// 5: Analitik       — always visible
+// 6: Platform       — always visible
 
 const NAV_GROUPS: NavGroup[] = [
   {
@@ -218,7 +190,6 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/admin/integrations", label: { tr: "Entegrasyonlar", en: "Integrations" }, icon: Plug, exact: true },
       { href: "/admin/payments/transactions", label: { tr: "Ödemeler", en: "Payments" }, icon: CreditCard },
       { href: "/admin/api-keys", label: { tr: "API Anahtarları", en: "API Keys" }, icon: KeyRound },
-      { href: "/admin/settings/team", label: { tr: "Ekip", en: "Team" }, icon: UserPlus },
       { href: "/admin/settings/sso", label: { tr: "SSO / OAuth2", en: "SSO / OAuth2" }, icon: Shield },
       { href: "/admin/settings", label: { tr: "Ayarlar", en: "Settings" }, icon: Settings },
       { href: "/admin/superadmin", label: { tr: "Super Admin", en: "Super Admin" }, icon: Shield, superadminOnly: true },
@@ -227,13 +198,13 @@ const NAV_GROUPS: NavGroup[] = [
 ];
 
 // Primary mobile nav — always-visible items (module-gated items excluded here)
-// Indices: [0]=Genel, [4]=CRM, [5]=İletişim, [7]=Platform
+// Indices: [0]=Genel, [3]=CRM, [4]=İletişim, [6]=Platform
 const PRIMARY_MOBILE_ITEMS: NavItem[] = [
   NAV_GROUPS[0].items[0],  // Dashboard
   NAV_GROUPS[1].items[0],  // Etkinlikler
-  NAV_GROUPS[5].items[0],  // Email Merkezi
-  NAV_GROUPS[4].items[0],  // CRM
-  NAV_GROUPS[7].items[4],  // Settings
+  NAV_GROUPS[4].items[0],  // Email Merkezi
+  NAV_GROUPS[3].items[0],  // CRM
+  NAV_GROUPS[6].items[5],  // Settings
 ];
 
 const AUTH_PATH_PREFIXES = ["/admin/login", "/admin/magic-verify", "/admin/auth"];
@@ -438,7 +409,7 @@ function OnboardingWizard({
 
   function toggleModule(key: keyof OrgModules) {
     const next = { ...selectedModules, [key]: !selectedModules[key] };
-    if (!next.events && !next.lms && !next.accreditation) return;
+    if (!next.events && !next.accreditation) return;
     setSelectedModules(next);
   }
 
@@ -630,7 +601,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
     //   base[1] = NAV_GROUPS[2].items[0];
     // }
     if (role === "superadmin") {
-      base[4] = NAV_GROUPS[7].items[5];
+      base[4] = NAV_GROUPS[6].items[6];
     }
     return base;
   }, [enterpriseEnabled, modules, role]);
