@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
-  BookOpen,
   CalendarDays,
   GraduationCap,
   LayoutDashboard,
@@ -33,7 +32,7 @@ type OrgBranding = {
 
 const NAV = [
   { href: "/portal", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { href: "/portal/courses", label: "Kurslarım", icon: BookOpen },
+  // { href: "/portal/courses", label: "Kurslarım", icon: BookOpen }, // LMS devre disi
   { href: "/portal/calendar", label: "Takvim", icon: CalendarDays },
 ];
 

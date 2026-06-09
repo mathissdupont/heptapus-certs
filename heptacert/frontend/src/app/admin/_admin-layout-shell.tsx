@@ -161,22 +161,23 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/admin/events", label: { tr: "Etkinlikler", en: "Events" }, icon: CalendarCheck2 },
     ],
   },
-  {
-    label: { tr: "HeptaLMS", en: "HeptaLMS" },
-    enterpriseOnly: true,
-    module: "lms",
-    items: [
-      { href: "/admin/lms", label: { tr: "Kurslar", en: "Courses" }, icon: School },
-      { href: "/admin/lms/journeys", label: { tr: "Öğrenme Yolları", en: "Learning Journeys" }, icon: Route },
-      { href: "/admin/lms/outcomes", label: { tr: "Kazanımlar", en: "Outcomes" }, icon: GraduationCap },
-      { href: "/admin/lms/badges", label: { tr: "Rozetler", en: "Badges" }, icon: Award },
-      { href: "/admin/lms/integrations", label: { tr: "Entegrasyonlar", en: "Integrations" }, icon: Plug },
-      { href: "/admin/lms/staff", label: { tr: "Akademik Kadro", en: "Academic Staff" }, icon: UsersRound },
-      { href: "/admin/lms/white-label", label: { tr: "LMS White-label", en: "LMS White-label" }, icon: Palette },
-      { href: "/admin/lms/analytics", label: { tr: "LMS Analitik", en: "LMS Analytics" }, icon: BarChart3 },
-      { href: "/admin/training", label: { tr: "Uyum Takibi", en: "Compliance" }, icon: ClipboardList },
-    ],
-  },
+  // LMS sistemi devre disi birakildi — arsivlendi
+  // {
+  //   label: { tr: "HeptaLMS", en: "HeptaLMS" },
+  //   enterpriseOnly: true,
+  //   module: "lms",
+  //   items: [
+  //     { href: "/admin/lms", label: { tr: "Kurslar", en: "Courses" }, icon: School },
+  //     { href: "/admin/lms/journeys", label: { tr: "Öğrenme Yolları", en: "Learning Journeys" }, icon: Route },
+  //     { href: "/admin/lms/outcomes", label: { tr: "Kazanımlar", en: "Outcomes" }, icon: GraduationCap },
+  //     { href: "/admin/lms/badges", label: { tr: "Rozetler", en: "Badges" }, icon: Award },
+  //     { href: "/admin/lms/integrations", label: { tr: "Entegrasyonlar", en: "Integrations" }, icon: Plug },
+  //     { href: "/admin/lms/staff", label: { tr: "Akademik Kadro", en: "Academic Staff" }, icon: UsersRound },
+  //     { href: "/admin/lms/white-label", label: { tr: "LMS White-label", en: "LMS White-label" }, icon: Palette },
+  //     { href: "/admin/lms/analytics", label: { tr: "LMS Analitik", en: "LMS Analytics" }, icon: BarChart3 },
+  //     { href: "/admin/training", label: { tr: "Uyum Takibi", en: "Compliance" }, icon: ClipboardList },
+  //   ],
+  // },
   {
     label: { tr: "Akreditasyon", en: "Accreditation" },
     module: "accreditation",
@@ -624,10 +625,10 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
   // Mobile nav: swap Etkinlikler for first available module item
   const mobileNavItems = useMemo(() => {
     const base = [...PRIMARY_MOBILE_ITEMS];
-    // Replace Etkinlikler with LMS item if events is disabled but lms is enabled
-    if (!modules.events && modules.lms && enterpriseEnabled) {
-      base[1] = NAV_GROUPS[2].items[0];
-    }
+    // LMS devre disi — LMS fallback kaldirildi
+    // if (!modules.events && modules.lms && enterpriseEnabled) {
+    //   base[1] = NAV_GROUPS[2].items[0];
+    // }
     if (role === "superadmin") {
       base[4] = NAV_GROUPS[7].items[5];
     }
@@ -718,9 +719,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
           item.owned && payload.org_name.trim() ? { ...item, org_name: payload.org_name.trim() } : item
         )
       );
-      if (!nextModules.events && nextModules.lms) {
-        router.push("/admin/lms");
-      } else if (!nextModules.events && !nextModules.lms && nextModules.accreditation) {
+      if (!nextModules.events && !nextModules.lms && nextModules.accreditation) {
         router.push("/admin/accreditation");
       } else if (pathname === "/admin/events") {
         router.push("/admin/dashboard");
