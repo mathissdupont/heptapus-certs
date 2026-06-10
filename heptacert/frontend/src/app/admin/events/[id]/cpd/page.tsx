@@ -100,7 +100,7 @@ export default function EventCpdPage() {
 
   return (
     <div>
-      <EventAdminNav eventId={eventId} eventName={eventName} active="settings" />
+      <EventAdminNav eventId={eventId} eventName={eventName} active="cpd" />
 
       <div className="max-w-2xl mx-auto p-6">
         <h1 className="text-xl font-bold mb-1">CPD Ayarları</h1>
@@ -109,20 +109,20 @@ export default function EventCpdPage() {
         </p>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
             {error}
           </div>
         )}
 
         {saved && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded text-sm">
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-xl text-sm">
             Kaydedildi.
           </div>
         )}
 
-        <div className="bg-white rounded-xl border p-6 space-y-5">
+        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm space-y-5">
           {/* Enable toggle */}
-          <div className="flex items-center justify-between pb-4 border-b">
+          <div className="flex items-center justify-between pb-4 border-b border-gray-100">
             <div>
               <p className="font-medium text-gray-900">CPD Sertifikasyonunu Etkinleştir</p>
               <p className="text-sm text-gray-500 mt-0.5">
@@ -150,7 +150,7 @@ export default function EventCpdPage() {
                 <select
                   value={bodyId}
                   onChange={(e) => setBodyId(e.target.value)}
-                  className="w-full border rounded px-3 py-2 text-sm"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 >
                   <option value="">Seçiniz…</option>
                   {bodies.map((b) => (
@@ -172,7 +172,7 @@ export default function EventCpdPage() {
                     value={cpdHours}
                     onChange={(e) => setCpdHours(e.target.value)}
                     placeholder="3.0"
-                    className="w-full border rounded px-3 py-2 text-sm"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -180,7 +180,7 @@ export default function EventCpdPage() {
                   <select
                     value={cpdUnitType}
                     onChange={(e) => setCpdUnitType(e.target.value)}
-                    className="w-full border rounded px-3 py-2 text-sm"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   >
                     <option value="hours">Saat</option>
                     <option value="credits">Kredi</option>
@@ -194,7 +194,7 @@ export default function EventCpdPage() {
                 <select
                   value={cpdCategory}
                   onChange={(e) => setCpdCategory(e.target.value)}
-                  className="w-full border rounded px-3 py-2 text-sm"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 >
                   <option value="">Seçiniz…</option>
                   {CPD_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -202,7 +202,7 @@ export default function EventCpdPage() {
               </div>
 
               {cpd && (
-                <div className="p-3 bg-indigo-50 rounded-lg text-xs text-indigo-700">
+                <div className="p-3 bg-indigo-50 rounded-xl text-xs text-indigo-700">
                   Mevcut kayıt: <strong>{cpd.body_code}</strong> — {cpd.cpd_hours} {cpd.cpd_unit_type}
                   {cpd.cpd_category ? ` (${cpd.cpd_category})` : ""}
                 </div>

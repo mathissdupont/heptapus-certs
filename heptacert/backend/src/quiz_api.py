@@ -321,6 +321,12 @@ async def _issue_cert_background(event_id: int, student_name: str, attempt_id: i
             attempt = attempt_res.scalar_one_or_none()
             if attempt:
                 attempt.cert_issued = True
+                await db.flush()
+                try:
+                    from .main import _maybe_log_cpd
+                    await _maybe_log_cpd(db, event_id, cert.id, attendee_email=attempt.attendee_email)
+                except Exception:
+                    pass
 
             await db.commit()
             logger.info(

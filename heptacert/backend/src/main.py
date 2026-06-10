@@ -7559,6 +7559,11 @@ async def _process_one_bulk_certificate_job(job_id: int) -> None:
                     asset_size_bytes=asset_size_bytes,
                 )
                 db_job.add(cert)
+                await db_job.flush()
+                try:
+                    await _maybe_log_cpd(db_job, ev.id, cert.id, student_name=student_name)
+                except Exception:
+                    pass
 
                 user.heptacoin_balaonce -= spend_units
                 db_job.add(Transaction(user_id=user.id, amount=spend_units, type=TxType.spend))
@@ -14594,6 +14599,12 @@ async def issue_certificate(
     await db.commit()
     await db.refresh(cert)
 
+    try:
+        await _maybe_log_cpd(db, ev.id, cert.id, student_name=payload.student_name)
+        await db.commit()
+    except Exception:
+        pass
+
     attendee_res = await db.execute(
         select(Attendee)
         .where(
@@ -20527,4 +20538,56 @@ app.include_router(_api_keys_ext_api.router)
 
 from . import accreditation_api as _accreditation_api  # noqa: E402
 app.include_router(_accreditation_api.router)
+
+
+async def _maybe_log_cpd(
+    db: AsyncSession,
+    event_id: int,
+    certificate_id: Optional[int],
+    *,
+    student_name: Optional[str] = None,
+    attendee_email: Optional[str] = None,
+) -> None:
+    """MemberCpdLog yaz: event CPD config varsa ve attendee PublicMember'a bağlıysa."""
+    from .accreditation_models import EventCpdConfig, MemberCpdLog
+
+    cpd = (await db.execute(
+        select(EventCpdConfig).where(EventCpdConfig.event_id == event_id)
+    )).scalar_one_or_none()
+    if not cpd:
+        return
+
+    q = select(Attendee.public_member_id).where(
+        Attendee.event_id == event_id,
+        Attendee.public_member_id.is_not(None),
+    )
+    if student_name:
+        q = q.where(func.lower(func.trim(Attendee.name)) == student_name.strip().lower())
+    elif attendee_email:
+        q = q.where(func.lower(func.trim(Attendee.email)) == attendee_email.strip().lower())
+    else:
+        return
+
+    member_id = (await db.execute(q.limit(1))).scalar_one_or_none()
+    if not member_id:
+        return
+
+    already = (await db.execute(
+        select(MemberCpdLog.id).where(
+            MemberCpdLog.member_id == member_id,
+            MemberCpdLog.event_id == event_id,
+        )
+    )).scalar_one_or_none()
+    if already:
+        return
+
+    db.add(MemberCpdLog(
+        member_id=member_id,
+        event_id=event_id,
+        body_id=cpd.body_id,
+        cpd_hours=cpd.cpd_hours,
+        cpd_category=cpd.cpd_category,
+        certificate_id=certificate_id,
+        earned_at=datetime.now(timezone.utc),
+    ))
 

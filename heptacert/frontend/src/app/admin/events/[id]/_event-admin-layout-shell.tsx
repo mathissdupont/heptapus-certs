@@ -34,6 +34,7 @@ const ROUTE_PERMISSIONS: Array<{ match: string; href: (id: string) => string; pe
   { match: "/raffles", href: (id) => `/admin/events/${id}/raffles`, permission: "settings:write" },
   { match: "/surveys", href: (id) => `/admin/events/${id}/surveys`, permission: "settings:write" },
   { match: "/quiz", href: (id) => `/admin/events/${id}/quiz`, permission: "certificates:write" },
+  { match: "/cpd", href: (id) => `/admin/events/${id}/cpd`, permission: "settings:write" },
 ];
 
 function currentRoutePermission(pathname: string): EventTeamPermission {

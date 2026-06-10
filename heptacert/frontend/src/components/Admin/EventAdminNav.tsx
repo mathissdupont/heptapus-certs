@@ -34,6 +34,7 @@ import {
   FolderKanban,
   FileQuestion,
   ShoppingBag,
+  GraduationCap,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { apiFetch, getEventAccess, type EventAccessOut, type EventOut, type EventTeamPermission } from "@/lib/api";
@@ -56,6 +57,7 @@ type EventAdminTab =
   | "email"
   | "automations"
   | "quiz"
+  | "cpd"
   | "marketplace"
   | "settings";
 
@@ -84,8 +86,9 @@ const NAV_ITEMS: NavItem[] = [
   { tab: "raffles",      label: { tr: "Çekilişler",     en: "Raffles"      }, icon: Gift,         href: (id) => `/admin/events/${id}/raffles` },
   { tab: "automations",  label: { tr: "Otomasyon",      en: "Automation"   }, icon: Workflow,     href: (id) => `/admin/events/${id}/automations` },
   { tab: "ops",          label: { tr: "Canlı Ops",      en: "Live Ops"     }, icon: Activity,     href: (id) => `/admin/events/${id}/ops` },
-  { tab: "quiz",         label: { tr: "Sınav",          en: "Quiz"         }, icon: FileQuestion, href: (id) => `/admin/events/${id}/quiz` },
-  { tab: "marketplace",  label: { tr: "Marketplace",    en: "Marketplace"  }, icon: ShoppingBag,  href: (id) => `/admin/events/${id}/marketplace` },
+  { tab: "quiz",         label: { tr: "Sınav",          en: "Quiz"         }, icon: FileQuestion,  href: (id) => `/admin/events/${id}/quiz` },
+  { tab: "cpd",          label: { tr: "CPD",            en: "CPD"          }, icon: GraduationCap, href: (id) => `/admin/events/${id}/cpd` },
+  { tab: "marketplace",  label: { tr: "Marketplace",    en: "Marketplace"  }, icon: ShoppingBag,   href: (id) => `/admin/events/${id}/marketplace` },
   { tab: "settings",     label: { tr: "Ayarlar",        en: "Settings"     }, icon: Settings,     href: (id) => `/admin/events/${id}/settings` },
 ];
 
@@ -114,6 +117,7 @@ const TAB_PERMISSIONS: Partial<Record<EventAdminTab, EventTeamPermission>> = {
   email:         "email:write",
   automations:   "email:write",
   quiz:          "certificates:write",
+  cpd:           "settings:write",
   marketplace:   "settings:write",
   settings:      "settings:write",
 };
@@ -181,6 +185,7 @@ function getActiveFromPath(pathname: string): EventAdminTab {
   if (pathname.includes("/editor") || pathname.includes("/preview") || pathname.includes("/qr-present")) return "editor";
   if (pathname.includes("/email-templates") || pathname.includes("/bulk-emails") || pathname.includes("/schedule-email")) return "email";
   if (pathname.includes("/automations"))        return "automations";
+  if (pathname.includes("/cpd"))               return "cpd";
   if (pathname.includes("/settings"))           return "settings";
   return "details";
 }

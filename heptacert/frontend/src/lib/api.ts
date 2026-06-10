@@ -4653,6 +4653,39 @@ export async function deleteOrgAccreditation(id: number): Promise<void> {
   return apiFetch(`/admin/accreditation/${id}`, { method: "DELETE" });
 }
 
+export type CpdBodySummary = {
+  body_id: number;
+  body_name: string;
+  body_code: string;
+  total_hours: number;
+  member_count: number;
+  log_count: number;
+};
+
+export type CpdRecentLog = {
+  id: number;
+  member_name: string | null;
+  event_name: string;
+  body_name: string;
+  body_code: string;
+  cpd_hours: number;
+  cpd_category: string | null;
+  earned_at: string;
+};
+
+export type CpdSummaryOut = {
+  by_body: CpdBodySummary[];
+  recent_logs: CpdRecentLog[];
+  total_hours: number;
+  total_members: number;
+  total_logs: number;
+};
+
+export async function getOrgCpdSummary(): Promise<CpdSummaryOut> {
+  const res = await apiFetch("/admin/accreditation/cpd-summary");
+  return res.json();
+}
+
 export async function getEventCpd(eventId: number): Promise<EventCpdOut | null> {
   const res = await apiFetch(`/admin/events/${eventId}/cpd`);
   return res.json();

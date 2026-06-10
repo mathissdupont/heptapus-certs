@@ -497,6 +497,15 @@ async def _apply_payload(db: AsyncSession, org_user_id: int, row: TrainingAssign
         cert = await _infer_certificate(db, org_user_id, row)
         if cert:
             row.certificate_id = cert.id
+            if row.event_id:
+                try:
+                    from .main import _maybe_log_cpd
+                    await _maybe_log_cpd(
+                        db, row.event_id, row.certificate_id,
+                        attendee_email=row.assignee_email,
+                    )
+                except Exception:
+                    pass
 
 
 @router.get(

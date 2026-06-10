@@ -12,7 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .main import (
     CurrentUser,
+    Event,
     Organization,
+    PublicMember,
     Role,
     get_current_user,
     get_db,
@@ -338,3 +340,109 @@ async def get_member_cpd(
         "by_body": [{"body": k, "total_hours": v} for k, v in by_body.items()],
         "logs": logs,
     }
+
+
+# ── Org CPD Summary ───────────────────────────────────────────────────────────
+
+class CpdBodySummary(BaseModel):
+    body_id: int
+    body_name: str
+    body_code: str
+    total_hours: float
+    member_count: int
+    log_count: int
+
+
+class CpdRecentLog(BaseModel):
+    id: int
+    member_name: Optional[str]
+    event_name: str
+    body_name: str
+    body_code: str
+    cpd_hours: float
+    cpd_category: Optional[str]
+    earned_at: str
+
+
+class CpdSummaryOut(BaseModel):
+    by_body: list[CpdBodySummary]
+    recent_logs: list[CpdRecentLog]
+    total_hours: float
+    total_members: int
+    total_logs: int
+
+
+@router.get(
+    "/api/admin/accreditation/cpd-summary",
+    response_model=CpdSummaryOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def get_org_cpd_summary(
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await _admin_org(db, me, request)
+
+    rows = (
+        await db.execute(
+            select(MemberCpdLog, AccreditationBody, Event, PublicMember)
+            .join(AccreditationBody, AccreditationBody.id == MemberCpdLog.body_id)
+            .join(Event, Event.id == MemberCpdLog.event_id)
+            .join(PublicMember, PublicMember.id == MemberCpdLog.member_id)
+            .where(Event.admin_id == org.user_id)
+            .order_by(MemberCpdLog.earned_at.desc())
+        )
+    ).all()
+
+    by_body: dict[int, dict] = {}
+    for log, body, _ev, _mem in rows:
+        if log.body_id not in by_body:
+            by_body[log.body_id] = {
+                "body_id": body.id,
+                "body_name": body.name,
+                "body_code": body.short_code,
+                "total_hours": 0.0,
+                "member_ids": set(),
+                "log_count": 0,
+            }
+        entry = by_body[log.body_id]
+        entry["total_hours"] += float(log.cpd_hours)
+        entry["member_ids"].add(log.member_id)
+        entry["log_count"] += 1
+
+    recent_logs = [
+        CpdRecentLog(
+            id=log.id,
+            member_name=mem.display_name,
+            event_name=ev.name,
+            body_name=body.name,
+            body_code=body.short_code,
+            cpd_hours=float(log.cpd_hours),
+            cpd_category=log.cpd_category,
+            earned_at=log.earned_at.isoformat() if log.earned_at else "",
+        )
+        for log, body, ev, mem in rows[:50]
+    ]
+
+    body_summaries = [
+        CpdBodySummary(
+            body_id=v["body_id"],
+            body_name=v["body_name"],
+            body_code=v["body_code"],
+            total_hours=round(v["total_hours"], 2),
+            member_count=len(v["member_ids"]),
+            log_count=v["log_count"],
+        )
+        for v in by_body.values()
+    ]
+
+    all_member_ids = {log.member_id for log, *_ in rows}
+
+    return CpdSummaryOut(
+        by_body=body_summaries,
+        recent_logs=recent_logs,
+        total_hours=round(sum(v["total_hours"] for v in by_body.values()), 2),
+        total_members=len(all_member_ids),
+        total_logs=len(rows),
+    )
