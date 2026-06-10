@@ -23,7 +23,10 @@
       "Bash(python3 -c \"import json; print\\('Python is available'\\)\")",
       "Bash(awk '/^import \\\\{/,/\\\\} from \"lucide-react\"/' \"c:\\\\Users\\\\samet\\\\OneDrive\\\\Masaüstü\\\\heptapus-certs\\\\heptacert\\\\frontend\\\\src\\\\app\\\\admin\\\\_admin-layout-shell.tsx\")",
       "Bash(git -C \"c:\\\\Users\\\\samet\\\\OneDrive\\\\Masaüstü\\\\heptapus-certs\\\\heptacert\" log --all --oneline --grep=\"unused\\\\|remove\")",
-      "Bash(git -C \"c:\\\\Users\\\\samet\\\\OneDrive\\\\Masaüstü\\\\heptapus-certs\\\\heptacert\" show a7ad1f6)"
+      "Bash(git -C \"c:\\\\Users\\\\samet\\\\OneDrive\\\\Masaüstü\\\\heptapus-certs\\\\heptacert\" show a7ad1f6)",
+      "Bash(xargs grep -l \"^class Event\\\\|^class Attendee\")",
+      "Bash(grep -E \"^[a-z]*\\\\.py$\")",
+      "Bash(xargs grep -l \"cpd\\\\|CPD\\\\|accredit\\\\|Accredit\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\samet\\OneDrive\\Masaüstü\\heptapus-certs\\heptacert\\frontend\\src\\app\\admin\\lms\\courses\\[id]\\quizzes",

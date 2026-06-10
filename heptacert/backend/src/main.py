@@ -20492,10 +20492,12 @@ app.include_router(_crm_accounts_api.router)
 from . import lead_forms_api as _lead_forms_api  # noqa: E402
 app.include_router(_lead_forms_api.router)
 
-# LMS sistemi devre disi birakildi — arsivlendi
+# LMS sistemi devre disi birakildi — arsivlendi (router'lar kapali)
+# Model import zorunlu: marketplace_api lms_models'i yukluyor, CourseEnrollment->CourseGradeSummary
+# iliskisi cozumlenemezse SQLAlchemy startup'ta kiliyor.
+from . import lms_extended_models as _lms_extended_models  # noqa: E402, F401
 # from . import lms_api as _lms_api  # noqa: E402
 # app.include_router(_lms_api.router)
-# from . import lms_extended_models as _lms_extended_models  # noqa: E402, F401
 # from . import lms_extended_api as _lms_extended_api  # noqa: E402
 # app.include_router(_lms_extended_api.router)
 
