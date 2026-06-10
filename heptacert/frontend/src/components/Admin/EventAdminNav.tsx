@@ -188,7 +188,9 @@ function getActiveFromPath(pathname: string): EventAdminTab {
   if (pathname.includes("/email-templates") || pathname.includes("/bulk-emails") || pathname.includes("/schedule-email")) return "email";
   if (pathname.includes("/automations"))        return "automations";
   if (pathname.includes("/cpd"))               return "cpd";
-  if (pathname.includes("/settings"))           return "settings";
+  if (pathname.includes("/quiz"))              return "quiz";
+  if (pathname.includes("/marketplace"))       return "marketplace";
+  if (pathname.includes("/settings"))          return "settings";
   return "details";
 }
 

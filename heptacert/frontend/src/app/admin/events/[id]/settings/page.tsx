@@ -307,7 +307,7 @@ export default function EventSettingsPage() {
   const copy = lang === "tr"
     ? {
         title: "Etkinlik Ayarları",
-        subtitle: "Etkinlik bilgisini, sertifika görünümünü och otomatik e-posta akışını tek yerden yönetin.",
+        subtitle: "Etkinlik bilgisini, sertifika görünümünü ve otomatik e-posta akışını tek yerden yönetin.",
         loadingError: "Veriler yüklenemedi.",
         requiredName: "Etkinlik adı zorunludur.",
         saveSuccess: "Ayarlar kaydedildi.",
@@ -552,6 +552,12 @@ export default function EventSettingsPage() {
   const [authBridgeReady, setAuthBridgeReady] = useState(false);
 
   const isDirty = savedFormSnapshot !== "" && JSON.stringify(formData) !== savedFormSnapshot;
+
+  useEffect(() => {
+    if (!success) return;
+    const t = setTimeout(() => setSuccess(null), 4000);
+    return () => clearTimeout(t);
+  }, [success]);
   
   useUnsavedChanges(isDirty && !saving, lang === "tr" ? "Kaydedilmemiş etkinlik ayarları var." : "You have unsaved event settings.");
   useKeyboardShortcut("s", () => void handleSave(), { meta: true, enabled: !saving });
@@ -890,7 +896,7 @@ export default function EventSettingsPage() {
     return () => {
       active = false;
     };
-  }, [activeTab, eventId, copy.commentsFallback]);
+  }, [activeTab, eventId, lang]);
 
   function handleBannerSelect(file: File) {
     setBannerFile(file);
@@ -1124,7 +1130,7 @@ export default function EventSettingsPage() {
           <span>{error}</span>
         </div>
       )}
-      {window.navigator.onLine && success && (
+      {success && (
         <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4 text-xs font-semibold text-emerald-600 flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           <span>{success}</span>
@@ -1327,10 +1333,11 @@ export default function EventSettingsPage() {
                   </label>
                   <p className="text-11 leading-normal text-surface-400 font-medium pl-6">{copy.registrationQuotaHint}</p>
                   
-                  <div className="pl-6 pt-1">
-                    <input type="number" min={1} step={1} value={formData.registration_quota} disabled={!formData.registration_quota_enabled} onChange={(e) => setFormData((curr) => ({ ...curr, registration_quota: e.target.value }))} className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold font-mono outline-none transition focus:border-surface-900 placeholder:text-surface-400" placeholder={copy.registrationQuotaPlaceholder} />
-                    {!formData.registration_quota_enabled && <p className="mt-1 text-11 font-semibold text-surface-400">Kota eşiği kapatıldığında kayıt tavanı sınırsız kalır.</p>}
-                  </div>
+                  {formData.registration_quota_enabled && (
+                    <div className="pl-6 pt-1">
+                      <input type="number" min={1} step={1} value={formData.registration_quota} onChange={(e) => setFormData((curr) => ({ ...curr, registration_quota: e.target.value }))} className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold font-mono outline-none transition focus:border-surface-900 placeholder:text-surface-400" placeholder={copy.registrationQuotaPlaceholder} />
+                    </div>
+                  )}
                 </div>
               </div>
             </section>
@@ -1697,7 +1704,7 @@ export default function EventSettingsPage() {
       </div>
 
       {/* SÜZÜLEN ALT ANA AKSİYON OPERASYON KONSOLU */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex flex-col gap-2.5 items-center w-full max-w-xs px-4">
+      {(isDirty || saving) && <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex flex-col gap-2.5 items-center w-full max-w-xs px-4">
         <button
           type="button"
           onClick={handleSave}
@@ -1708,7 +1715,7 @@ export default function EventSettingsPage() {
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 stroke-[2.5]" />}
           <span className="text-xs">{saving ? copy.saving : copy.save}</span>
         </button>
-      </div>
+      </div>}
 
     </div>
   );
