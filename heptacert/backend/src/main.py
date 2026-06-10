@@ -81,8 +81,10 @@ from .event_features import (
     FEATURE_DEFAULTS,
     is_certificate_enabled,
     is_checkin_enabled,
+    is_cpd_enabled,
     is_gamification_enabled,
     is_public_registration_enabled,
+    is_quiz_enabled,
     is_raffles_enabled,
     is_ticketing_enabled,
     normalize_event_type,
@@ -454,6 +456,8 @@ class Event(Base):
     raffles_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     gamification_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     requires_approval: Mapped[bool] = mapped_column(Boolean, default=False)
+    quiz_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    cpd_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     # Marketplace fields (migration 079)
     is_marketplace_listed: Mapped[bool] = mapped_column(Boolean, default=False)
     marketplace_category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
@@ -2161,6 +2165,8 @@ class EventRenameIn(BaseModel):
     raffles_enabled: Optional[bool] = Field(default=None)
     gamification_enabled: Optional[bool] = Field(default=None)
     requires_approval: Optional[bool] = Field(default=None)
+    quiz_enabled: Optional[bool] = Field(default=None)
+    cpd_enabled: Optional[bool] = Field(default=None)
     organizer_privacy_notice_enabled: Optional[bool] = Field(default=None)
     organizer_privacy_notice_text: Optional[str] = Field(default=None, max_length=20000)
     show_cross_border_transfer_notice: Optional[bool] = Field(default=None)
@@ -2191,6 +2197,8 @@ class EventCreateIn(BaseModel):
     raffles_enabled: Optional[bool] = Field(default=None)
     gamification_enabled: Optional[bool] = Field(default=None)
     requires_approval: Optional[bool] = Field(default=None)
+    quiz_enabled: Optional[bool] = Field(default=None)
+    cpd_enabled: Optional[bool] = Field(default=None)
     organization_venue_id: Optional[int] = Field(default=None, ge=1)
     auto_reserve_venue: Optional[bool] = Field(default=None)
     venue_reservation_start_at: Optional[datetime] = None
@@ -2273,6 +2281,8 @@ class EventOut(BaseModel):
     raffles_enabled: bool = False
     gamification_enabled: bool = False
     requires_approval: bool = False
+    quiz_enabled: bool = False
+    cpd_enabled: bool = False
     organization_venue_id: Optional[int] = None
     venue_reservation_id: Optional[int] = None
     venue_reservation_start_at: Optional[str] = None
@@ -2489,6 +2499,8 @@ class PublicEventListItemOut(BaseModel):
     registration_enabled: bool = True
     raffles_enabled: bool = False
     gamification_enabled: bool = False
+    quiz_enabled: bool = False
+    cpd_enabled: bool = False
 
 
 class PublicEventDetailOut(BaseModel):
@@ -12292,6 +12304,8 @@ async def create_event(
         raffles_enabled=normalize_feature_bool(payload.raffles_enabled, default=FEATURE_DEFAULTS["raffles_enabled"]),
         gamification_enabled=normalize_feature_bool(payload.gamification_enabled, default=FEATURE_DEFAULTS["gamification_enabled"]),
         requires_approval=normalize_feature_bool(payload.requires_approval, default=FEATURE_DEFAULTS["requires_approval"]),
+        quiz_enabled=normalize_feature_bool(payload.quiz_enabled, default=FEATURE_DEFAULTS["quiz_enabled"]),
+        cpd_enabled=normalize_feature_bool(payload.cpd_enabled, default=FEATURE_DEFAULTS["cpd_enabled"]),
     )
     db.add(ev)
     await db.flush()
@@ -13334,6 +13348,10 @@ async def rename_event(
         ev.gamification_enabled = normalize_feature_bool(payload.gamification_enabled, default=FEATURE_DEFAULTS["gamification_enabled"])
     if "requires_approval" in payload.model_fields_set:
         ev.requires_approval = normalize_feature_bool(payload.requires_approval, default=FEATURE_DEFAULTS["requires_approval"])
+    if "quiz_enabled" in payload.model_fields_set:
+        ev.quiz_enabled = normalize_feature_bool(payload.quiz_enabled, default=FEATURE_DEFAULTS["quiz_enabled"])
+    if "cpd_enabled" in payload.model_fields_set:
+        ev.cpd_enabled = normalize_feature_bool(payload.cpd_enabled, default=FEATURE_DEFAULTS["cpd_enabled"])
     if "organizer_privacy_notice_enabled" in payload.model_fields_set:
         next_config["organizer_privacy_notice_enabled"] = bool(payload.organizer_privacy_notice_enabled)
         config_dirty = True
@@ -16277,6 +16295,8 @@ def _build_public_event_detail(
         raffles_enabled=is_raffles_enabled(event),
         gamification_enabled=is_gamification_enabled(event),
         requires_approval=normalize_feature_bool(getattr(event, "requires_approval", None), default=FEATURE_DEFAULTS["requires_approval"]),
+        quiz_enabled=is_quiz_enabled(event),
+        cpd_enabled=is_cpd_enabled(event),
         kvkk_consent_required=_is_event_kvkk_consent_required(event),
         kvkk_consent_text=_get_event_kvkk_consent_text(event),
         organizer_privacy_notice_enabled=_is_event_organizer_privacy_notice_enabled(event),
@@ -16417,6 +16437,8 @@ async def list_public_events(
             registration_enabled=is_public_registration_enabled(event),
             raffles_enabled=is_raffles_enabled(event),
             gamification_enabled=is_gamification_enabled(event),
+            quiz_enabled=is_quiz_enabled(event),
+            cpd_enabled=is_cpd_enabled(event),
         )
         for event in visible_events
     ]

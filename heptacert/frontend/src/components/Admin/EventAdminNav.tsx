@@ -145,6 +145,8 @@ function isNavItemEnabled(item: NavItem, event: EventOut | null) {
   if (event.checkin_enabled === false && (item.tab === "sessions" || item.tab === "ops" || item.tab === "checkin")) return false;
   if (item.tab === "raffles" && event.raffles_enabled !== true) return false;
   if (item.tab === "gamification" && event.gamification_enabled !== true) return false;
+  if (item.tab === "quiz" && event.quiz_enabled !== true) return false;
+  if (item.tab === "cpd" && event.cpd_enabled !== true) return false;
   return true;
 }
 

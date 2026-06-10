@@ -289,6 +289,8 @@ export interface EventOut {
   raffles_enabled?: boolean;
   gamification_enabled?: boolean;
   requires_approval?: boolean;
+  quiz_enabled?: boolean;
+  cpd_enabled?: boolean;
 }
 
 export interface CertificateTemplatePreset {
@@ -1398,6 +1400,8 @@ export interface PublicEventListItem {
   registration_enabled?: boolean;
   raffles_enabled?: boolean;
   gamification_enabled?: boolean;
+  quiz_enabled?: boolean;
+  cpd_enabled?: boolean;
 }
 
 export interface PublicSurvey {
@@ -1431,6 +1435,8 @@ export interface PublicEventInfo {
   raffles_enabled?: boolean;
   gamification_enabled?: boolean;
   requires_approval?: boolean;
+  quiz_enabled?: boolean;
+  cpd_enabled?: boolean;
   event_banner_url: string | null;
   registration_fields?: RegistrationField[];
   survey?: PublicSurvey | null;

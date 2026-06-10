@@ -24,6 +24,8 @@ FEATURE_DEFAULTS = {
     "raffles_enabled": False,
     "gamification_enabled": False,
     "requires_approval": False,
+    "quiz_enabled": False,
+    "cpd_enabled": False,
 }
 
 
@@ -75,3 +77,11 @@ def is_raffles_enabled(event: Any) -> bool:
 
 def is_gamification_enabled(event: Any) -> bool:
     return feature_value(event, "gamification_enabled")
+
+
+def is_quiz_enabled(event: Any) -> bool:
+    return feature_value(event, "quiz_enabled")
+
+
+def is_cpd_enabled(event: Any) -> bool:
+    return feature_value(event, "cpd_enabled")
