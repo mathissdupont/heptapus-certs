@@ -8901,55 +8901,80 @@ async def openapi_schema():
 @app.get("/api/openapi-actions.json", include_in_schema=False)
 @limiter.exempt
 async def openapi_actions_schema():
-    """Slim OpenAPI schema for ChatGPT Actions / third-party integrations."""
+    """Compressed OpenAPI schema for ChatGPT Actions — all admin endpoints, stripped for size."""
+    import json as _json
+    import re as _re
+
+    _STRIP_OP = {"description", "x-openapi-router-controller"}
+    _STRIP_SCHEMA = {"title", "description", "example", "examples"}
+
+    def _slim_schema(obj):
+        if isinstance(obj, dict):
+            return {
+                k: _slim_schema(v)
+                for k, v in obj.items()
+                if k not in _STRIP_SCHEMA
+            }
+        if isinstance(obj, list):
+            return [_slim_schema(i) for i in obj]
+        return obj
+
+    def _slim_op(op: dict, path: str, method: str) -> dict:
+        slim = {k: v for k, v in op.items() if k not in _STRIP_OP}
+        # Keep only 200/201 response without schema detail (saves ~40% size)
+        if "responses" in slim:
+            compact_resp = {}
+            for code, resp in slim["responses"].items():
+                compact_resp[code] = {"description": resp.get("description", "")}
+            slim["responses"] = compact_resp
+        # Slim request body schemas
+        if "requestBody" in slim:
+            slim["requestBody"] = _slim_schema(slim["requestBody"])
+        # Slim parameters
+        if "parameters" in slim:
+            slim["parameters"] = [
+                {k: v for k, v in p.items() if k not in ("description", "example")}
+                for p in slim["parameters"]
+            ]
+        if "operationId" not in slim:
+            slim["operationId"] = f"{method}_{path.replace('/', '_').strip('_')}"
+        return slim
+
     full = app.openapi()
+    slim_paths: dict = {}
+    for path, path_item in full.get("paths", {}).items():
+        if not path.startswith("/api/admin/") and path not in ("/api/health",):
+            continue
+        slim_paths[path] = {
+            method: _slim_op(op, path, method)
+            for method, op in path_item.items()
+            if method in ("get", "post", "patch", "put", "delete")
+        }
 
-    # Only include the most useful admin paths
-    KEEP = (
-        "/api/admin/events",
-        "/api/admin/events/{event_id}/attendees",
-        "/api/admin/events/{event_id}/certificates",
-        "/api/admin/events/{event_id}/sessions",
-        "/api/admin/events/{event_id}/attendance",
-        "/api/admin/certificates/{cert_id}/revoke",
-        "/api/admin/api-keys",
-        "/api/health",
-    )
-    filtered_paths: dict = {}
-    for path, ops in full.get("paths", {}).items():
-        if any(path == k or path.startswith(k + "/") or path == k for k in KEEP):
-            # Strip verbose descriptions to save space
-            slim_ops = {}
-            for method, op in ops.items():
-                slim_op = {k: v for k, v in op.items() if k not in ("description",)}
-                if "summary" not in slim_op:
-                    slim_op["summary"] = f"{method.upper()} {path}"
-                slim_ops[method] = slim_op
-            filtered_paths[path] = slim_ops
+    # Collect only $refs actually used
+    refs_txt = _json.dumps(slim_paths)
+    used_refs: set = set(_re.findall(r'"#/components/schemas/(\w+)"', refs_txt))
+    all_comp = full.get("components", {}).get("schemas", {})
 
-    # Collect $ref names used in filtered paths
-    import json, re
-    refs_used = set(re.findall(r'"#/components/schemas/(\w+)"', json.dumps(filtered_paths)))
-    all_schemas = full.get("components", {}).get("schemas", {})
-
-    def collect_refs(name: str, seen: set):
-        if name in seen or name not in all_schemas:
+    def _collect(name: str, seen: set):
+        if name in seen or name not in all_comp:
             return
         seen.add(name)
-        nested = set(re.findall(r'"#/components/schemas/(\w+)"', json.dumps(all_schemas[name])))
-        for n in nested:
-            collect_refs(n, seen)
+        for n in _re.findall(r'"#/components/schemas/(\w+)"', _json.dumps(all_comp[name])):
+            _collect(n, seen)
 
-    all_refs: set = set()
-    for r in refs_used:
-        collect_refs(r, all_refs)
+    all_used: set = set()
+    for r in used_refs:
+        _collect(r, all_used)
 
     return {
-        "openapi": full.get("openapi", "3.1.0"),
+        "openapi": "3.1.0",
         "info": {"title": "HeptaCert API", "version": "2.0.0"},
         "servers": [{"url": "https://heptacert.com/api"}],
-        "paths": filtered_paths,
-        "components": {"schemas": {k: v for k, v in all_schemas.items() if k in all_refs}},
+        "paths": slim_paths,
+        "components": {
+            "schemas": {k: _slim_schema(v) for k, v in all_comp.items() if k in all_used},
+        },
     }
 
 
