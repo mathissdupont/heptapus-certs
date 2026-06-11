@@ -30,7 +30,8 @@
       "Bash(Select-Object -Last 5)",
       "Skill(claude-api)",
       "Skill(claude-api:*)",
-      "Bash(xargs ls -1)"
+      "Bash(xargs ls -1)",
+      "Bash(del index.tr.mdx quickstart.tr.mdx authentication.tr.mdx api-reference.tr.mdx mcp-agent.tr.mdx cli.tr.mdx webhooks.tr.mdx _meta.tr.json _meta.en.json)"
     ],
     "additionalDirectories": [
       "c:\\Users\\samet\\OneDrive\\Masaüstü\\heptapus-certs\\heptacert\\frontend\\src\\app\\admin\\lms\\courses\\[id]\\quizzes",

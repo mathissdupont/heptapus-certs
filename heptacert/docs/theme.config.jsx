@@ -1,7 +1,5 @@
 import { useRouter } from "next/router";
 
-const SITE_ROOT = "https://docs.heptacert.com";
-
 export default {
   logo: (
     <span style={{ fontWeight: 700, fontSize: "1.1rem", letterSpacing: "-0.02em" }}>
@@ -62,9 +60,7 @@ export default {
       const { locale } = useRouter();
       return (
         <span>
-          {locale === "en"
-            ? "© 2026 HeptaCert. "
-            : "© 2026 HeptaCert. "}
+          © 2026 HeptaCert.{" "}
           <a href="https://heptacert.com" target="_blank" rel="noopener" style={{ color: "#6366f1" }}>
             {locale === "en" ? "Back to app →" : "Uygulamaya dön →"}
           </a>
