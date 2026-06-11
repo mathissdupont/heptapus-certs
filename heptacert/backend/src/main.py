@@ -5124,8 +5124,8 @@ async def get_current_user(db: AsyncSession = Depends(get_db), Authorization: Op
         raise HTTPException(status_code=401, detail="Missing bearer token")
     token = Authorization.split(" ", 1)[1].strip()
 
-    # API key path: tokens start with "hc_live_"
-    if token.startswith("hc_live_"):
+    # API key path: tokens start with "hc_"
+    if token.startswith("hc_"):
         key_hash = _hash_api_key(token)
         res = await db.execute(
             select(ApiKey).where(
@@ -14638,8 +14638,7 @@ async def list_api_keys(me: CurrentUser = Depends(get_current_user), db: AsyncSe
 
 @app.post("/api/admin/api-keys", response_model=ApiKeyCreateOut, status_code=201, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
 async def create_api_key(payload: ApiKeyCreateIn, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    rand_prefix = secrets.token_hex(4)
-    full_key = f"hc_{rand_prefix}_{secrets.token_urlsafe(32)}"
+    full_key = f"hc_live_{secrets.token_urlsafe(32)}"
     key_prefix = full_key[:8]
     expires_at = None
     if payload.expires_days is not None:
@@ -14725,8 +14724,7 @@ async def list_api_keys_v2(me: CurrentUser = Depends(get_current_user), db: Asyn
 
 @app.post("/api/admin/api-keys/v2", response_model=ApiKeyCreateOut, status_code=201, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
 async def create_api_key_v2(payload: ApiKeyCreateIn, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    rand_prefix = secrets.token_hex(4)
-    full_key = f"hc_{rand_prefix}_{secrets.token_urlsafe(32)}"
+    full_key = f"hc_live_{secrets.token_urlsafe(32)}"
     key_prefix = full_key[:8]
     expires_at = None
     if payload.expires_days is not None:
