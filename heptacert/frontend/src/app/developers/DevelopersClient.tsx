@@ -188,7 +188,7 @@ export default function DevelopersClient() {
               {copy.authDesc2}
             </p>
             <pre className="bg-surface-900 text-green-400 text-xs p-4 rounded-lg overflow-x-auto font-mono leading-relaxed">
-{`curl https://cert.heptapusgroup.com/api/admin/events \\
+{`curl https://heptacert.com/api/admin/events \\
   -H "Authorization: Bearer hc_YOUR_API_KEY"`}
             </pre>
           </div>
@@ -271,7 +271,7 @@ export default function DevelopersClient() {
           <h2 id="example-heading" className="text-base font-semibold text-surface-900 mb-3">{copy.exampleHeading}</h2>
           <div className="bg-white rounded-xl border border-surface-200 p-5">
             <pre className="bg-surface-900 text-green-400 text-xs p-4 rounded-lg overflow-x-auto font-mono leading-relaxed">
-{`curl "https://cert.heptapusgroup.com/api/admin/events/123/certificates?limit=50" \\
+{`curl "https://heptacert.com/api/admin/events/123/certificates?limit=50" \\
   -H "Authorization: Bearer hc_YOUR_API_KEY"
 
 ${copy.codeComment}
@@ -281,7 +281,7 @@ ${copy.codeComment}
     "public_id": "abc123",
     "attendee_name": "Ahmet Yılmaz",
     "issued_at": "2026-06-01T10:00:00Z",
-    "cert_url": "https://cert.heptapusgroup.com/c/abc123"
+    "cert_url": "https://heptacert.com/c/abc123"
   }
 ]`}
             </pre>

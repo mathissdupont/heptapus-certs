@@ -389,7 +389,7 @@ function CustomDomainTab() {
   const [checking, setChecking] = useState(false);
   const [createdAt, setCreatedAt] = useState<string | null>(null);
   const [existingDomain, setExistingDomain] = useState<string | null>(null);
-  const [dnsTarget, setDnsTarget] = useState("cert.heptapusgroup.com");
+  const [dnsTarget, setDnsTarget] = useState("heptacert.com");
 
   async function refreshDomains() {
     try {
@@ -417,7 +417,7 @@ function CustomDomainTab() {
             setToken(selected.token || null);
             setStatus(selected.status || null);
             setCreatedAt(selected.created_at || null);
-            setDnsTarget(selected.dns_target || "cert.heptapusgroup.com");
+            setDnsTarget(selected.dns_target || "heptacert.com");
           }
         }
       })
@@ -432,7 +432,7 @@ function CustomDomainTab() {
       .then(d => {
         if (d) {
           setToken(d.token || null); setStatus(d.status || null); setCreatedAt(d.created_at || null);
-          setDnsTarget(d.dns_target || "cert.heptapusgroup.com");
+          setDnsTarget(d.dns_target || "heptacert.com");
         }
       })
       .catch(() => {})
@@ -455,7 +455,7 @@ function CustomDomainTab() {
       const resp = await apiFetch("/domains", { method: "POST", body: JSON.stringify({ domain: dom, owner: undefined }) });
       const data = await resp.json();
       setToken(data.token || null); setStatus(data.status || null); setCreatedAt(data.created_at || null); setExistingDomain(data.domain || dom);
-      setDnsTarget(data.dns_target || "cert.heptapusgroup.com");
+      setDnsTarget(data.dns_target || "heptacert.com");
       setOk(true); await refreshDomains(); setTimeout(() => setOk(false), 3000);
       toast.success("Özel domain kaydedildi.", "Kurumsal Alan Adı");
     } catch (e: any) { setErr(e?.message || "Kaydedilemedi."); } finally { setSaving(false); }
@@ -571,7 +571,7 @@ function CustomDomainTab() {
                     <div className="flex items-center gap-2 shrink-0">
                       <button type="button" className="rounded-lg bg-white border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 transition shadow-sm inline-flex items-center gap-1.5"
                         onClick={() => {
-                          setDomain(d.domain); setExistingDomain(d.domain); setToken(d.token || null); setStatus(d.status || null); setCreatedAt(d.created_at || null); setDnsTarget(d.dns_target || "cert.heptapusgroup.com");
+                          setDomain(d.domain); setExistingDomain(d.domain); setToken(d.token || null); setStatus(d.status || null); setCreatedAt(d.created_at || null); setDnsTarget(d.dns_target || "heptacert.com");
                         }}
                       >
                         <Link2 className="h-3.5 w-3.5" /> Seç

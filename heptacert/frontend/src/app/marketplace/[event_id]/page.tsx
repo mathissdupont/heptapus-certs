@@ -19,7 +19,7 @@ type MarketplaceEvent = {
 const apiBase =
   process.env.NEXT_SERVER_API_BASE ||
   process.env.NEXT_PUBLIC_API_BASE ||
-  "https://cert.heptapusgroup.com/api";
+  "https://heptacert.com/api";
 
 async function fetchEvent(eventId: string): Promise<MarketplaceEvent | null> {
   try {
@@ -77,7 +77,7 @@ export default async function MarketplaceEventPage({
 
   const isFree = !event.marketplace_price || event.marketplace_price === 0;
   const baseUrl =
-    process.env.NEXT_PUBLIC_FRONTEND_BASE_URL || "https://cert.heptapusgroup.com";
+    process.env.NEXT_PUBLIC_FRONTEND_BASE_URL || "https://heptacert.com";
 
   const structuredData = {
     "@context": "https://schema.org",

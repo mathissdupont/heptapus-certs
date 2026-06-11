@@ -2,7 +2,7 @@
 import VerifyDetailClient from "./_verify-detail-client";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8765/api";
-const FRONTEND_BASE = process.env.NEXT_PUBLIC_FRONTEND_BASE_URL || "https://cert.heptapusgroup.com";
+const FRONTEND_BASE = process.env.NEXT_PUBLIC_FRONTEND_BASE_URL || "https://heptacert.com";
 
 function absoluteUrl(value: string | null | undefined, base = FRONTEND_BASE) {
   if (!value) return null;

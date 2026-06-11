@@ -66,7 +66,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const icon = branding?.brand_logo || null;
 
   return {
-    metadataBase: new URL(process.env.NEXT_PUBLIC_FRONTEND_BASE_URL || "https://cert.heptapusgroup.com"),
+    metadataBase: new URL(process.env.NEXT_PUBLIC_FRONTEND_BASE_URL || "https://heptacert.com"),
     manifest: "/manifest.json",
     appleWebApp: {
       capable: true,
@@ -143,7 +143,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const branding = await currentBranding();
   const brandName = branding?.org_name || "HeptaCert";
   const brandLogo = branding?.brand_logo || null;
-  const baseUrl = process.env.NEXT_PUBLIC_FRONTEND_BASE_URL || "https://cert.heptapusgroup.com";
+  const baseUrl = process.env.NEXT_PUBLIC_FRONTEND_BASE_URL || "https://heptacert.com";
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
