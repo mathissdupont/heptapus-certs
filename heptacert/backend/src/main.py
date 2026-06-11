@@ -5635,6 +5635,7 @@ _AUDIT_SKIP_PREFIXES = (
     "/api/admin/microsoft/excel/callback",
     "/api/admin/microsoft/calendar/callback",
     "/docs", "/openapi", "/redoc",
+    "/api/openapi.json",
 )
 
 
