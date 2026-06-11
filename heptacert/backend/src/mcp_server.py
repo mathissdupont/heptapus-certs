@@ -65,8 +65,6 @@ and query analytics — all within proper security boundaries.
     }
 """
 
-from __future__ import annotations
-
 import asyncio
 import json
 import os
