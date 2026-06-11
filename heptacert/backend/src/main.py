@@ -8894,7 +8894,7 @@ async def health_check():
 @limiter.exempt
 async def openapi_schema():
     schema = app.openapi()
-    schema.setdefault("servers", [{"url": "https://heptacert.com/api"}])
+    schema.setdefault("servers", [{"url": "https://heptacert.com"}])
     return schema
 
 
@@ -9005,7 +9005,7 @@ async def openapi_actions_schema():
     return {
         "openapi": "3.1.0",
         "info": {"title": "HeptaCert API", "version": "2.0.0"},
-        "servers": [{"url": "https://heptacert.com/api"}],
+        "servers": [{"url": "https://heptacert.com"}],
         "paths": slim_paths,
         "components": {
             "schemas": {k: _slim_schema(v) for k, v in all_comp.items() if k in all_used},
