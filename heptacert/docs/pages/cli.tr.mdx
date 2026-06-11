@@ -146,6 +146,39 @@ hc logs list --tool create_event
 hc logs list --limit 50 --output json
 ```
 
+### Webhooks
+
+```bash
+hc webhooks list
+hc webhooks create https://myapp.com/hooks/heptacert \
+  --events "certificate.issued,attendee.registered" \
+  --secret mygizlisifre
+hc webhooks delete 3
+hc webhooks test 3 --event certificate.issued
+```
+
+### Konfigürasyon
+
+```bash
+hc config show                             # Mevcut ayarları göster
+hc config set --api-base https://heptacert.com  # API base URL güncelle
+hc config path                             # Config dosyasının yolunu göster
+```
+
+### Bağlantı Testi
+
+```bash
+hc ping                                    # API bağlantısını ve auth'u test et
+```
+
+Örnek çıktı:
+```
+✓ Connected to https://heptacert.com
+  API:     ok  v1.0.0
+  Account: admin@example.com
+  Scopes:  all (unscoped)
+```
+
 ## Çıktı Formatları
 
 Tüm komutlar `--output` / `-o` parametresini destekler:

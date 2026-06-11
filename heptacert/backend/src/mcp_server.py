@@ -1268,6 +1268,257 @@ async def list_agent_logs(
     return _fmt(data)
 
 
+# ── Tools: Automation Rules (write) ───────────────────────────────────────────
+
+
+@mcp.tool()
+async def update_automation_rule(
+    ctx: Context,
+    event_id: int,
+    rule_id: int,
+    name: Optional[str] = None,
+    enabled: Optional[bool] = None,
+    actions: Optional[list] = None,
+) -> str:
+    """
+    Update an existing automation rule.
+
+    Args:
+        event_id: The event that owns the rule.
+        rule_id: The rule ID to update.
+        name: New name for the rule. Optional.
+        enabled: True to enable, False to disable. Optional.
+        actions: Replacement actions list. Optional.
+
+    Returns the updated rule object.
+    """
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "automations:write")
+    body: dict = {}
+    if name is not None:
+        body["name"] = name
+    if enabled is not None:
+        body["enabled"] = enabled
+    if actions is not None:
+        body["actions"] = actions
+    data = await _patch(f"/api/admin/events/{event_id}/automations/{rule_id}", api_key, body)
+    _fire_and_forget_log(api_key, "update_automation_rule", event_id=event_id,
+                         payload={"rule_id": rule_id, **body}, result_summary=f"rule {rule_id} updated")
+    return _fmt(data)
+
+
+@mcp.tool()
+async def delete_automation_rule(
+    ctx: Context,
+    event_id: int,
+    rule_id: int,
+    confirm: bool = False,
+) -> str:
+    """
+    Delete an automation rule.
+
+    Args:
+        event_id: The event that owns the rule.
+        rule_id: The rule ID to delete.
+        confirm: Must be True to proceed. Without it returns a preview.
+
+    Returns confirmation or a preview of what will be deleted.
+    """
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "automations:write")
+    if not confirm:
+        rules = await _get(f"/api/admin/events/{event_id}/automations", api_key)
+        rule_list = rules.get("rules", []) if isinstance(rules, dict) else rules
+        rule = next((r for r in rule_list if r.get("id") == rule_id), None)
+        return _fmt({
+            "status": "preview",
+            "warning": f"⚠️ This will permanently delete automation rule {rule_id}.",
+            "rule": rule,
+            "instruction": "Call again with confirm=True to proceed.",
+        })
+    await _delete(f"/api/admin/events/{event_id}/automations/{rule_id}", api_key)
+    _fire_and_forget_log(api_key, "delete_automation_rule", event_id=event_id,
+                         payload={"rule_id": rule_id}, result_summary=f"rule {rule_id} deleted")
+    return _fmt({"status": "deleted", "rule_id": rule_id})
+
+
+# ── Tools: Webhooks ────────────────────────────────────────────────────────────
+
+
+@mcp.tool()
+async def list_webhooks(ctx: Context) -> str:
+    """
+    List all webhooks configured for this account.
+
+    Returns a list of webhooks with: id, url, events, is_active, created_at.
+    """
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "events:read")
+    data = await _get("/api/admin/webhooks", api_key)
+    return _fmt(data)
+
+
+@mcp.tool()
+async def create_webhook(
+    ctx: Context,
+    url: str,
+    events: list,
+    secret: Optional[str] = None,
+) -> str:
+    """
+    Create a new webhook endpoint.
+
+    Args:
+        url: The HTTPS URL that will receive POST requests.
+        events: List of event types to subscribe to. Available:
+                attendee.registered, attendee.checkin, certificate.issued,
+                certificate.revoked, event.created, event.updated, payment.completed
+        secret: Optional signing secret for HMAC-SHA256 signature verification.
+
+    Returns the created webhook object with its id.
+    """
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "events:write")
+    body: dict = {"url": url, "events": events}
+    if secret:
+        body["secret"] = secret
+    data = await _post("/api/admin/webhooks", api_key, body)
+    _fire_and_forget_log(api_key, "create_webhook", payload={"url": url, "events": events},
+                         result_summary=f"webhook created for {url}")
+    return _fmt(data)
+
+
+@mcp.tool()
+async def delete_webhook(
+    ctx: Context,
+    webhook_id: int,
+    confirm: bool = False,
+) -> str:
+    """
+    Delete a webhook endpoint.
+
+    Args:
+        webhook_id: The webhook ID to delete.
+        confirm: Must be True to proceed.
+
+    Returns confirmation or a preview.
+    """
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "events:write")
+    if not confirm:
+        webhooks = await _get("/api/admin/webhooks", api_key)
+        hook = next(
+            (w for w in (webhooks if isinstance(webhooks, list) else [])
+             if w.get("id") == webhook_id), None
+        )
+        return _fmt({
+            "status": "preview",
+            "warning": f"⚠️ This will permanently delete webhook {webhook_id}.",
+            "webhook": hook,
+            "instruction": "Call again with confirm=True to proceed.",
+        })
+    await _delete(f"/api/admin/webhooks/{webhook_id}", api_key)
+    _fire_and_forget_log(api_key, "delete_webhook", payload={"webhook_id": webhook_id},
+                         result_summary=f"webhook {webhook_id} deleted")
+    return _fmt({"status": "deleted", "webhook_id": webhook_id})
+
+
+# ── Tools: Cross-event & Export ────────────────────────────────────────────────
+
+
+@mcp.tool()
+async def search_attendees_across_events(
+    ctx: Context,
+    query: str,
+    limit: int = 20,
+) -> str:
+    """
+    Search for an attendee across ALL events by name or email.
+
+    Useful for finding a person's full history: which events they attended,
+    whether they have certificates, check-in status.
+
+    Args:
+        query: Name or email to search (case-insensitive, partial match).
+        limit: Max results. Default: 20.
+
+    Returns a list of matches with event context for each.
+    """
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "attendees:read")
+    data = await _get("/api/admin/crm/contacts", api_key, params={"search": query, "limit": limit})
+    return _fmt(data)
+
+
+@mcp.tool()
+async def export_event_attendees(
+    ctx: Context,
+    event_id: int,
+    include_certificates: bool = True,
+) -> str:
+    """
+    Export all attendees for an event as a structured list.
+    Fetches all pages automatically (up to 2000 attendees).
+
+    Args:
+        event_id: The event ID.
+        include_certificates: Include certificate status per attendee. Default: True.
+
+    Returns a complete list of attendees suitable for reporting or bulk operations.
+    """
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "attendees:read")
+    all_attendees = []
+    page = 1
+    while True:
+        data = await _get(f"/api/admin/events/{event_id}/attendees", api_key,
+                          params={"page": page, "limit": 200})
+        rows = data if isinstance(data, list) else data.get("attendees", data.get("items", []))
+        if not rows:
+            break
+        all_attendees.extend(rows)
+        if len(rows) < 200 or len(all_attendees) >= 2000:
+            break
+        page += 1
+    return _fmt({"event_id": event_id, "total": len(all_attendees), "attendees": all_attendees})
+
+
+@mcp.tool()
+async def get_event_analytics(ctx: Context, event_id: int) -> str:
+    """
+    Get detailed analytics for an event: registration trend, check-in timeline,
+    certificate issuance stats, email open rates, session attendance breakdown.
+
+    Args:
+        event_id: The event ID.
+
+    Returns a rich analytics object.
+    """
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "analytics:read")
+    data = await _get(f"/api/admin/events/{event_id}/analytics", api_key)
+    return _fmt(data)
+
+
+@mcp.tool()
+async def get_certificate_by_public_id(ctx: Context, public_id: str) -> str:
+    """
+    Look up a certificate by its public verification ID (from the verify URL).
+
+    Useful for: checking if a certificate is valid, getting attendee details,
+    verifying authenticity from a cert URL like heptacert.com/c/abc123xyz.
+
+    Args:
+        public_id: The short alphanumeric ID from the certificate URL.
+
+    Returns certificate details including status, attendee, event, issued_at.
+    """
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "certificates:read")
+    data = await _get(f"/api/verify/{public_id}", api_key)
+    return _fmt(data)
+
+
 # ── Entry point ────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":

@@ -146,6 +146,39 @@ hc logs list --tool create_event
 hc logs list --limit 50 --output json
 ```
 
+### Webhooks
+
+```bash
+hc webhooks list
+hc webhooks create https://myapp.com/hooks/heptacert \
+  --events "certificate.issued,attendee.registered" \
+  --secret mysecret
+hc webhooks delete 3
+hc webhooks test 3 --event certificate.issued
+```
+
+### Configuration
+
+```bash
+hc config show                              # Show current config
+hc config set --api-base https://heptacert.com  # Update API base URL
+hc config path                              # Print config file path
+```
+
+### Connectivity Test
+
+```bash
+hc ping                                     # Test API connectivity and auth
+```
+
+Example output:
+```
+✓ Connected to https://heptacert.com
+  API:     ok  v1.0.0
+  Account: admin@example.com
+  Scopes:  all (unscoped)
+```
+
 ## Output Formats
 
 All commands support the `--output` / `-o` flag:

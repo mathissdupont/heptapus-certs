@@ -1,122 +1,235 @@
 # MCP & AI Agents
 
-HeptaCert offers full integration with AI assistants via the [Model Context Protocol (MCP)](https://modelcontextprotocol.io). Claude, GPT-4, or any MCP-compatible agent — they can manage your events in natural language.
+HeptaCert integrates with any MCP-compatible AI client via the [Model Context Protocol](https://modelcontextprotocol.io). MCP is an open standard — not specific to Claude.
 
 import { Callout, Steps, Tabs } from "nextra/components";
 
-## What is MCP?
+## Supported Clients
 
-MCP allows AI models to securely access external tools and data through a standard protocol. The HeptaCert MCP server includes 35+ tools: event creation, attendee management, certificate issuance, and more.
+| Client | Type | MCP Support |
+|--------|------|-------------|
+| [Claude Desktop](https://claude.ai/download) | Desktop app | ✅ Built-in |
+| [Cursor](https://cursor.sh) | IDE | ✅ Built-in |
+| [Windsurf](https://codeium.com/windsurf) | IDE | ✅ Built-in |
+| [Continue.dev](https://continue.dev) | VS Code ext. | ✅ Built-in |
+| [Cline](https://github.com/cline/cline) | VS Code ext. | ✅ Built-in |
+| [Zed](https://zed.dev) | Editor | ✅ Built-in |
+| Your own agent | Python/JS SDK | ✅ [MCP SDK](https://github.com/modelcontextprotocol/python-sdk) |
+| ChatGPT | Web | ❌ Not MCP — [use Actions](#chatgpt--openai-actions) |
 
-## Setup with Claude Desktop
+<Callout>
+The HeptaCert MCP server speaks standard MCP. Any compatible client gets the same toolset and authentication.
+</Callout>
 
-<Steps>
+## Setup
 
-### Create an API Key
+All clients need two things:
+- **URL (hosted mode):** `https://heptacert.com/mcp`
+- **Authorization header:** `Bearer hc_live_YOUR_KEY`
 
-Go to [Settings → API Keys](https://heptacert.com/admin/settings/api) and create a new key. Required scopes depend on what the agent will do — leave scopes empty for full access.
+<Tabs items={["Claude Desktop", "Cursor", "Windsurf", "Continue.dev", "Cline", "Python SDK"]}>
+  <Tabs.Tab>
+  Config file: `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows)
 
-### Open the Claude Desktop Config File
-
-`~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
-`%APPDATA%\Claude\claude_desktop_config.json` (Windows)
-
-### Add the MCP Server
-
-**Hosted mode (recommended — no local install):**
-```json
-{
-  "mcpServers": {
-    "heptacert": {
-      "url": "https://heptacert.com/mcp",
-      "headers": {
-        "Authorization": "Bearer hc_live_YOUR_KEY"
+  ```json
+  {
+    "mcpServers": {
+      "heptacert": {
+        "url": "https://heptacert.com/mcp",
+        "headers": {
+          "Authorization": "Bearer hc_live_YOUR_KEY"
+        }
       }
     }
   }
-}
-```
+  ```
+  Save and restart Claude Desktop. A 🔌 icon appears in the right panel.
+  </Tabs.Tab>
 
-**Local script mode:**
-```json
-{
-  "mcpServers": {
-    "heptacert": {
-      "command": "python",
-      "args": ["/path/to/heptacert/backend/src/mcp_server.py"],
-      "env": {
-        "HEPTACERT_API_KEY": "hc_live_YOUR_KEY",
-        "HEPTACERT_API_BASE": "https://heptacert.com"
+  <Tabs.Tab>
+  Go to **Settings → MCP** in Cursor or edit `.cursor/mcp.json`:
+
+  ```json
+  {
+    "mcpServers": {
+      "heptacert": {
+        "url": "https://heptacert.com/mcp",
+        "headers": {
+          "Authorization": "Bearer hc_live_YOUR_KEY"
+        }
       }
     }
   }
-}
+  ```
+  Restart Cursor. Use `@heptacert` in the chat panel to invoke tools.
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+  In Windsurf go to **Settings → MCP Servers → Add**:
+
+  ```json
+  {
+    "mcpServers": {
+      "heptacert": {
+        "serverUrl": "https://heptacert.com/mcp",
+        "headers": {
+          "Authorization": "Bearer hc_live_YOUR_KEY"
+        }
+      }
+    }
+  }
+  ```
+  Tools appear automatically in the Cascade chat.
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+  Add to `~/.continue/config.json`:
+
+  ```json
+  {
+    "experimental": {
+      "modelContextProtocolServers": [
+        {
+          "transport": {
+            "type": "streamable-http",
+            "url": "https://heptacert.com/mcp",
+            "requestOptions": {
+              "headers": {
+                "Authorization": "Bearer hc_live_YOUR_KEY"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+  ```
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+  In VS Code settings or `.vscode/settings.json`:
+
+  ```json
+  {
+    "cline.mcpServers": {
+      "heptacert": {
+        "url": "https://heptacert.com/mcp",
+        "headers": {
+          "Authorization": "Bearer hc_live_YOUR_KEY"
+        }
+      }
+    }
+  }
+  ```
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+  Build your own agent in Python:
+
+  ```python
+  import asyncio
+  from mcp.client.streamable_http import streamablehttp_client
+  from mcp import ClientSession
+
+  async def main():
+      async with streamablehttp_client(
+          "https://heptacert.com/mcp",
+          headers={"Authorization": "Bearer hc_live_YOUR_KEY"}
+      ) as (read, write, _):
+          async with ClientSession(read, write) as session:
+              await session.initialize()
+
+              # List available tools
+              tools = await session.list_tools()
+              print([t.name for t in tools.tools])
+
+              # Call a tool
+              result = await session.call_tool("list_events", {"limit": 5})
+              print(result.content[0].text)
+
+  asyncio.run(main())
+  ```
+
+  Install: `pip install mcp`
+  </Tabs.Tab>
+</Tabs>
+
+## ChatGPT / OpenAI Actions
+
+ChatGPT doesn't support MCP — it uses OpenAPI-based **Actions** instead.
+
+To connect HeptaCert to ChatGPT:
+1. ChatGPT → My GPTs → Create a GPT → Configure → Add Action
+2. **Authentication:** API Key, `Authorization: Bearer hc_live_...`
+3. **Schema:** fetch the OpenAPI spec from `https://heptacert.com/api/openapi.json`
+
+If you're using the OpenAI Agents SDK, MCP is supported:
+```python
+from agents.mcp import MCPServerStreamableHttp
+
+server = MCPServerStreamableHttp(
+    url="https://heptacert.com/mcp",
+    headers={"Authorization": "Bearer hc_live_YOUR_KEY"},
+)
 ```
-
-### Restart Claude Desktop
-
-After restarting, a 🔌 icon will appear in Claude's right panel.
-
-</Steps>
 
 ## Example Conversations
 
 ```
-User: How many attendees checked in today?
+User: Which event had the most check-ins today?
 
-Claude: Calling list_events...
-        Calling get_event_stats (event_id=42)...
+Agent: Calling list_events...
+       Calling get_attendance_summary (3 events)...
 
-        "Python Summit 2026" has 150 registered attendees,
-        127 of whom (84.7%) have checked in.
+       Highest attendance: "Python Summit 2026" — 127/150 (84.7%)
 ```
 
 ```
-User: Create a new event called "React Workshop",
-      date October 15 2026, with certificates enabled.
+User: Which events did john@example.com attend?
 
-Claude: Creating event...
-        ✅ "React Workshop" created (ID: 89).
-        A certificate template image URL is needed.
-        Would you like to add one?
+Agent: Calling search_attendees_across_events...
+
+       John Doe (john@example.com) attended 3 events:
+       - Python Summit 2026 (certificate issued)
+       - React Workshop (no certificate — did not check in)
+       - DevFest 2025 (certificate issued)
 ```
 
 <Callout type="warning">
-**Destructive operations require two steps.** When deleting an event, attendee, or certificate, Claude first previews what will be deleted. The operation executes only after you confirm with `confirm=True`.
+**Destructive operations require two steps.** The agent previews what will be deleted first. Nothing executes without your explicit confirmation.
 </Callout>
 
-## Available Tools (35 Tools)
+## Tools (44 Tools)
 
-### Events
-| Tool | Description | Scope |
-|------|-------------|-------|
-| `list_events` | List events | `events:read` |
-| `get_event` | Single event detail | `events:read` |
-| `get_event_stats` | Statistics | `events:read` |
-| `create_event` | Create event | `events:write` |
-| `update_event` | Update fields | `events:write` |
-| `delete_event` | Delete (confirm required) | `events:write` |
-| `close_registration` | Close registrations | `events:write` |
-| `open_registration` | Reopen registrations | `events:write` |
+### Events (8)
+`list_events` · `get_event` · `get_event_stats` · `create_event` · `update_event` · `delete_event` · `close_registration` · `open_registration`
 
-### Attendees
-| Tool | Description | Scope |
-|------|-------------|-------|
-| `list_attendees` | List attendees | `attendees:read` |
-| `add_attendee` | Add attendee | `attendees:write` |
-| `update_attendee` | Update fields | `attendees:write` |
-| `remove_attendee` | Remove (confirm required) | `attendees:write` |
-| `bulk_import_attendees` | CSV bulk import | `attendees:write` |
+### Attendees (6)
+`list_attendees` · `add_attendee` · `bulk_add_attendees` · `update_attendee` · `remove_attendee` · `export_event_attendees`
 
-### Certificates
-| Tool | Description | Scope |
-|------|-------------|-------|
-| `list_certificates` | List | `certificates:read` |
-| `issue_certificates` | Issue | `certificates:write` |
-| `revoke_certificate` | Revoke (confirm required) | `certificates:write` |
+### Certificates (5)
+`list_certificates` · `issue_certificates` · `revoke_certificate` · `get_certificate_tier_summary` · `get_certificate_by_public_id`
 
-### Sessions, Check-in, LMS, Automation
-Sessions (4 tools), check-in (3 tools), LMS (6 tools), automation (2 tools), analytics (3 tools).
+### Sessions (4)
+`list_sessions` · `create_session` · `update_session` · `delete_session`
+
+### Check-in (3)
+`checkin_lookup` · `manual_checkin` · `get_attendance_summary`
+
+### Automation (4)
+`list_automation_rules` · `create_automation_rule` · `update_automation_rule` · `delete_automation_rule`
+
+### Webhooks (3)
+`list_webhooks` · `create_webhook` · `delete_webhook`
+
+### Analytics & Search (3)
+`get_event_analytics` · `get_survey_responses` · `search_attendees_across_events`
+
+### LMS (6)
+`list_lms_courses` · `get_lms_course` · `list_lms_enrollments` · `enroll_in_lms_course` · `get_lms_course_analytics` · `get_lms_analytics`
+
+### System (2)
+`get_organization_settings` · `list_agent_logs`
 
 ## Security
 
