@@ -56,3 +56,5 @@ migrate_attendance.sql
 *.key
 *.crt
 heptacert/frontend/tsconfig.tsbuildinfo
+
+.mcp.json

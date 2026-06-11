@@ -8888,6 +8888,12 @@ async def health_check():
     return {"status": "ok"}
 
 
+@app.get("/api/openapi.json", include_in_schema=False)
+@limiter.exempt
+async def openapi_schema():
+    return app.openapi()
+
+
 def editor_config_to_template_config(raw: dict) -> "TemplateConfig":
     """Translate nested EditorConfig or flat legacy format â†’ TemplateConfig."""
     if "name" in raw and isinstance(raw.get("name"), dict):
