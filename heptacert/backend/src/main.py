@@ -5636,6 +5636,7 @@ _AUDIT_SKIP_PREFIXES = (
     "/api/admin/microsoft/calendar/callback",
     "/docs", "/openapi", "/redoc",
     "/api/openapi.json",
+    "/api/openapi-actions.json",
 )
 
 
@@ -8892,7 +8893,64 @@ async def health_check():
 @app.get("/api/openapi.json", include_in_schema=False)
 @limiter.exempt
 async def openapi_schema():
-    return app.openapi()
+    schema = app.openapi()
+    schema.setdefault("servers", [{"url": "https://heptacert.com/api"}])
+    return schema
+
+
+@app.get("/api/openapi-actions.json", include_in_schema=False)
+@limiter.exempt
+async def openapi_actions_schema():
+    """Slim OpenAPI schema for ChatGPT Actions / third-party integrations."""
+    full = app.openapi()
+
+    # Only include the most useful admin paths
+    KEEP = (
+        "/api/admin/events",
+        "/api/admin/events/{event_id}/attendees",
+        "/api/admin/events/{event_id}/certificates",
+        "/api/admin/events/{event_id}/sessions",
+        "/api/admin/events/{event_id}/attendance",
+        "/api/admin/certificates/{cert_id}/revoke",
+        "/api/admin/api-keys",
+        "/api/health",
+    )
+    filtered_paths: dict = {}
+    for path, ops in full.get("paths", {}).items():
+        if any(path == k or path.startswith(k + "/") or path == k for k in KEEP):
+            # Strip verbose descriptions to save space
+            slim_ops = {}
+            for method, op in ops.items():
+                slim_op = {k: v for k, v in op.items() if k not in ("description",)}
+                if "summary" not in slim_op:
+                    slim_op["summary"] = f"{method.upper()} {path}"
+                slim_ops[method] = slim_op
+            filtered_paths[path] = slim_ops
+
+    # Collect $ref names used in filtered paths
+    import json, re
+    refs_used = set(re.findall(r'"#/components/schemas/(\w+)"', json.dumps(filtered_paths)))
+    all_schemas = full.get("components", {}).get("schemas", {})
+
+    def collect_refs(name: str, seen: set):
+        if name in seen or name not in all_schemas:
+            return
+        seen.add(name)
+        nested = set(re.findall(r'"#/components/schemas/(\w+)"', json.dumps(all_schemas[name])))
+        for n in nested:
+            collect_refs(n, seen)
+
+    all_refs: set = set()
+    for r in refs_used:
+        collect_refs(r, all_refs)
+
+    return {
+        "openapi": full.get("openapi", "3.1.0"),
+        "info": {"title": "HeptaCert API", "version": "2.0.0"},
+        "servers": [{"url": "https://heptacert.com/api"}],
+        "paths": filtered_paths,
+        "components": {"schemas": {k: v for k, v in all_schemas.items() if k in all_refs}},
+    }
 
 
 def editor_config_to_template_config(raw: dict) -> "TemplateConfig":
