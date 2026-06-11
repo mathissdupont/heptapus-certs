@@ -8940,16 +8940,50 @@ async def openapi_actions_schema():
             slim["operationId"] = f"{method}_{path.replace('/', '_').strip('_')}"
         return slim
 
+    # Exactly 30 operations for ChatGPT Actions limit
+    ALLOWED: set[tuple[str, str]] = {
+        ("/api/health",                                                          "get"),
+        ("/api/admin/events",                                                    "get"),
+        ("/api/admin/events",                                                    "post"),
+        ("/api/admin/events/{event_id}",                                         "get"),
+        ("/api/admin/events/{event_id}",                                         "patch"),
+        ("/api/admin/events/{event_id}",                                         "delete"),
+        ("/api/admin/events/{event_id}/attendees",                               "get"),
+        ("/api/admin/events/{event_id}/attendees",                               "post"),
+        ("/api/admin/events/{event_id}/attendees/{attendee_id}",                 "patch"),
+        ("/api/admin/events/{event_id}/attendees/{attendee_id}",                 "delete"),
+        ("/api/admin/events/{event_id}/certificates",                            "get"),
+        ("/api/admin/events/{event_id}/certificates",                            "post"),
+        ("/api/admin/certificates/{cert_id}/revoke",                             "post"),
+        ("/api/admin/events/{event_id}/sessions",                                "get"),
+        ("/api/admin/events/{event_id}/sessions",                                "post"),
+        ("/api/admin/events/{event_id}/sessions/{session_id}",                   "patch"),
+        ("/api/admin/events/{event_id}/sessions/{session_id}",                   "delete"),
+        ("/api/admin/events/{event_id}/checkin-lookup",                          "get"),
+        ("/api/admin/events/{event_id}/sessions/{session_id}/checkin",           "post"),
+        ("/api/admin/events/{event_id}/attendance",                              "get"),
+        ("/api/admin/events/{event_id}/automations",                             "get"),
+        ("/api/admin/events/{event_id}/automations",                             "post"),
+        ("/api/admin/events/{event_id}/stats",                                   "get"),
+        ("/api/admin/webhooks",                                                  "get"),
+        ("/api/admin/webhooks",                                                  "post"),
+        ("/api/admin/webhooks/{webhook_id}",                                     "delete"),
+        ("/api/admin/api-keys",                                                  "get"),
+        ("/api/admin/api-keys",                                                  "post"),
+        ("/api/admin/api-keys/{key_id}",                                         "delete"),
+        ("/api/admin/events/{event_id}/certificates/tier-summary",               "get"),
+    }
+
     full = app.openapi()
     slim_paths: dict = {}
     for path, path_item in full.get("paths", {}).items():
-        if not path.startswith("/api/admin/") and path not in ("/api/health",):
-            continue
-        slim_paths[path] = {
+        methods = {
             method: _slim_op(op, path, method)
             for method, op in path_item.items()
-            if method in ("get", "post", "patch", "put", "delete")
+            if (path, method) in ALLOWED
         }
+        if methods:
+            slim_paths[path] = methods
 
     # Collect only $refs actually used
     refs_txt = _json.dumps(slim_paths)
