@@ -1,0 +1,162 @@
+# CLI (hc)
+
+HeptaCert komut satırı aracı — otomasyon, scripting ve hızlı yönetim için.
+
+## Kurulum
+
+```bash
+pip install heptacert-cli
+```
+
+Veya kaynak koddan:
+```bash
+cd heptacert/cli
+pip install -e .
+```
+
+Kurulum sonrası `hc` komutu kullanılabilir olur:
+```bash
+hc --version
+```
+
+## Kimlik Doğrulama
+
+```bash
+hc auth login
+# API anahtarınızı girin: hc_live_...
+```
+
+Anahtar `~/.heptacert/config.json` dosyasına kaydedilir.
+
+```bash
+hc auth status    # Giriş durumunu göster
+hc auth logout    # Kayıtlı anahtarı sil
+```
+
+Ortam değişkeni ile de kullanılabilir:
+```bash
+export HEPTACERT_API_KEY=hc_live_...
+hc events list
+```
+
+## Komutlar
+
+### Etkinlikler
+
+```bash
+hc events list                          # Tüm etkinlikleri listele
+hc events list --search "python"        # Filtrele
+hc events list --output json            # JSON çıktısı
+hc events get 42                        # Tek etkinlik detayı
+hc events stats 42                      # İstatistikler
+
+hc events create "React Workshop" \
+  --date 2026-10-15 \
+  --type workshop \
+  --location "İstanbul"
+
+hc events update 42 --name "Yeni İsim" --visibility public
+hc events delete 42                     # Onay sorar
+hc events delete 42 --yes               # Onay sormadan sil
+hc events close-registration 42
+hc events open-registration 42
+```
+
+### Katılımcılar
+
+```bash
+hc attendees list 42                    # Etkinlik 42'nin katılımcıları
+hc attendees list 42 --search "ahmet" --limit 50
+hc attendees list 42 --output csv       # CSV çıktısı
+
+hc attendees add 42 \
+  --first-name Ahmet \
+  --last-name Yılmaz \
+  --email ahmet@example.com
+
+hc attendees import 42 katilimcilar.csv   # Toplu import
+hc attendees export 42 --output csv       # Tüm katılımcıları dışa aktar
+
+hc attendees update 42 101 --email yeni@example.com
+hc attendees remove 42 101
+```
+
+**CSV Import Formatı:**
+```csv
+first_name,last_name,email
+Ahmet,Yılmaz,ahmet@example.com
+Fatma,Demir,fatma@example.com
+```
+
+### Sertifikalar
+
+```bash
+hc certs list 42
+hc certs list 42 --status active
+hc certs issue 42                       # Tüm uygun katılımcılar
+hc certs issue 42 --ids "1,2,3"         # Belirli katılımcılar
+hc certs revoke 9001                    # Sertifika ID'si ile iptal
+hc certs tier-summary 42
+```
+
+### Oturumlar
+
+```bash
+hc sessions list 42
+hc sessions create 42 --title "Keynote" --start "2026-10-15T09:00" --speaker "Dr. Kaya"
+hc sessions update 42 7 --location "B Salonu"
+hc sessions delete 42 7
+```
+
+### Check-in
+
+```bash
+hc checkin lookup 42 "ahmet@example.com"
+hc checkin manual 42 7 ahmet@example.com   # event oturum email
+hc checkin summary 42
+```
+
+### LMS
+
+```bash
+hc lms courses
+hc lms course 5
+hc lms enrollments 5
+hc lms enroll 5 --email ali@example.com --first-name Ali --last-name Veli
+hc lms analytics
+hc lms analytics 5
+```
+
+### Otomasyon Kuralları
+
+```bash
+hc automations list 42
+hc automations create 42 \
+  --name "Sertifika E-postası" \
+  --trigger certificate_issued \
+  --actions '[{"type":"send_email","template_id":5}]'
+```
+
+### Agent Logları
+
+```bash
+hc logs list                    # Son 20 agent aksiyonu
+hc logs list --event 42         # Belirli etkinlik
+hc logs list --tool create_event
+hc logs list --limit 50 --output json
+```
+
+## Çıktı Formatları
+
+Tüm komutlar `--output` / `-o` parametresini destekler:
+
+| Format | Açıklama |
+|--------|----------|
+| `table` | Renkli tablo (varsayılan) |
+| `json` | Ham JSON |
+| `csv` | Virgülle ayrılmış, başka araçlara pipe etmek için |
+
+```bash
+hc attendees list 42 --output csv > katilimcilar.csv
+hc events list --output json | jq '.[].name'
+```

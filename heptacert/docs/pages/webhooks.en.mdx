@@ -1,0 +1,117 @@
+# Webhooks
+
+HeptaCert can send HTTP POST requests to trigger your systems in real time when specific events occur.
+
+## Creating a Webhook
+
+Admin dashboard → **Webhooks** — enter your URL and select which events to listen for.
+
+## Events
+
+| Event | Triggered When |
+|-------|---------------|
+| `attendee.registered` | A new attendee registers |
+| `attendee.checkin` | An attendee checks in |
+| `certificate.issued` | A certificate is issued |
+| `certificate.revoked` | A certificate is revoked |
+| `event.created` | A new event is created |
+| `event.updated` | Event details are updated |
+| `payment.completed` | A payment is completed |
+
+## Payload Format
+
+```json
+{
+  "event": "certificate.issued",
+  "timestamp": "2026-09-15T10:30:00Z",
+  "data": {
+    "certificate_id": 9001,
+    "public_id": "abc123xyz",
+    "attendee_name": "John Doe",
+    "attendee_email": "john@example.com",
+    "event_id": 42,
+    "event_name": "Python Summit 2026",
+    "cert_url": "https://heptacert.com/c/abc123xyz",
+    "issued_at": "2026-09-15T10:30:00Z"
+  }
+}
+```
+
+## Signature Verification
+
+Every webhook request includes an `X-HeptaCert-Signature` header containing an HMAC-SHA256 signature of the payload.
+
+```python
+import hashlib
+import hmac
+
+def verify_webhook(payload_bytes: bytes, signature: str, secret: str) -> bool:
+    expected = hmac.new(
+        secret.encode(),
+        payload_bytes,
+        hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(expected, signature)
+```
+
+import { Callout } from "nextra/components";
+
+<Callout type="warning">
+  Use `hmac.compare_digest` — it protects against timing attacks.
+</Callout>
+
+## Express.js Example
+
+```javascript
+const express = require("express");
+const crypto = require("crypto");
+
+const app = express();
+app.use(express.raw({ type: "application/json" }));
+
+app.post("/webhooks/heptacert", (req, res) => {
+  const sig = req.headers["x-heptacert-signature"];
+  const expected = crypto
+    .createHmac("sha256", process.env.WEBHOOK_SECRET)
+    .update(req.body)
+    .digest("hex");
+
+  if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {
+    return res.status(401).send("Invalid signature");
+  }
+
+  const payload = JSON.parse(req.body);
+  console.log("Webhook received:", payload.event);
+
+  if (payload.event === "certificate.issued") {
+    // Notify CRM, send Slack message, etc.
+  }
+
+  res.sendStatus(200);
+});
+```
+
+## Retry Policy
+
+If your endpoint returns a non-`2xx` response or doesn't respond within 10 seconds, HeptaCert retries at these intervals:
+
+| Attempt | Wait |
+|---------|------|
+| 1st | Immediately |
+| 2nd | 5 minutes |
+| 3rd | 30 minutes |
+| 4th | 2 hours |
+| 5th | 24 hours |
+
+After 5 failed attempts the webhook is disabled and a notification email is sent.
+
+## Testing
+
+Use the **Send Test** button on the Webhooks page to send a sample payload.
+
+Or expose your local environment with `ngrok`:
+
+```bash
+ngrok http 3000
+# https://xxxx.ngrok.io → localhost:3000
+```

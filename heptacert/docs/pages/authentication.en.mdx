@@ -1,0 +1,79 @@
+# Authentication
+
+## API Keys
+
+HeptaCert uses Bearer token authentication. Include your key in every request header:
+
+```
+Authorization: Bearer hc_live_YOUR_KEY
+```
+
+### Key Format
+
+| Prefix | Description |
+|--------|-------------|
+| `hc_live_` | Live key — accesses real data |
+
+### Creating a Key
+
+Go to **Settings → API Keys** in the admin dashboard. During creation:
+- **Name** — describes the key's purpose (e.g. "CI/CD Pipeline")
+- **Scopes** — allowed operation types
+- **Expiry** — leave blank for no expiry
+
+import { Callout } from "nextra/components";
+
+<Callout>
+  The full key is only displayed once, at creation time. Save it immediately.
+</Callout>
+
+## Scopes (Permissions)
+
+A key without scopes has full access. A scoped key can only perform its assigned operations.
+
+| Scope | Description |
+|-------|-------------|
+| `events:read` | List and view events |
+| `events:write` | Create, update, delete events |
+| `attendees:read` | List attendees |
+| `attendees:write` | Add, update, remove attendees |
+| `certificates:read` | List certificates |
+| `certificates:write` | Issue and revoke certificates |
+| `analytics:read` | Access analytics and reports |
+| `sessions:read` | List sessions |
+| `sessions:write` | Create, update, delete sessions |
+| `checkin:write` | Perform manual check-ins |
+| `automations:read` | View automation rules |
+| `automations:write` | Create automation rules |
+
+### Principle of Least Privilege
+
+Only assign scopes your integration actually needs. A reporting tool only needs `analytics:read`.
+
+## Rate Limiting
+
+| Plan | Req/Minute | Req/Hour |
+|------|-----------|----------|
+| Starter | 60 | 1,000 |
+| Pro | 300 | 10,000 |
+| Enterprise | 1,000 | 50,000 |
+
+When exceeded, the API returns `429 Too Many Requests`. The `Retry-After` header tells you how many seconds to wait.
+
+```
+HTTP/1.1 429 Too Many Requests
+Retry-After: 12
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1718100012
+```
+
+## Key Rotation
+
+If you suspect a key has been compromised, revoke it immediately:
+
+1. Admin dashboard → **Settings → API Keys**
+2. Click **Revoke** next to the key
+3. Create a new key and update your environment variables
+
+Revoked keys are invalidated instantly.

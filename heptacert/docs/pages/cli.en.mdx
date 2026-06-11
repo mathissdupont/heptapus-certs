@@ -1,0 +1,162 @@
+# CLI (hc)
+
+The HeptaCert command-line tool — for automation, scripting, and quick management.
+
+## Installation
+
+```bash
+pip install heptacert-cli
+```
+
+Or from source:
+```bash
+cd heptacert/cli
+pip install -e .
+```
+
+After installation the `hc` command is available:
+```bash
+hc --version
+```
+
+## Authentication
+
+```bash
+hc auth login
+# Enter your API key: hc_live_...
+```
+
+The key is stored in `~/.heptacert/config.json`.
+
+```bash
+hc auth status    # Show current auth state
+hc auth logout    # Remove stored key
+```
+
+You can also use an environment variable:
+```bash
+export HEPTACERT_API_KEY=hc_live_...
+hc events list
+```
+
+## Commands
+
+### Events
+
+```bash
+hc events list                          # List all events
+hc events list --search "python"        # Filter by name
+hc events list --output json            # JSON output
+hc events get 42                        # Single event details
+hc events stats 42                      # Statistics
+
+hc events create "React Workshop" \
+  --date 2026-10-15 \
+  --type workshop \
+  --location "Istanbul"
+
+hc events update 42 --name "New Name" --visibility public
+hc events delete 42                     # Asks for confirmation
+hc events delete 42 --yes               # Skip confirmation
+hc events close-registration 42
+hc events open-registration 42
+```
+
+### Attendees
+
+```bash
+hc attendees list 42                    # Attendees for event 42
+hc attendees list 42 --search "john" --limit 50
+hc attendees list 42 --output csv
+
+hc attendees add 42 \
+  --first-name John \
+  --last-name Doe \
+  --email john@example.com
+
+hc attendees import 42 attendees.csv     # Bulk import
+hc attendees export 42 --output csv      # Export all
+
+hc attendees update 42 101 --email new@example.com
+hc attendees remove 42 101
+```
+
+**CSV Import Format:**
+```csv
+first_name,last_name,email
+John,Doe,john@example.com
+Jane,Smith,jane@example.com
+```
+
+### Certificates
+
+```bash
+hc certs list 42
+hc certs list 42 --status active
+hc certs issue 42                       # All eligible attendees
+hc certs issue 42 --ids "1,2,3"         # Specific attendees
+hc certs revoke 9001                    # Revoke by certificate ID
+hc certs tier-summary 42
+```
+
+### Sessions
+
+```bash
+hc sessions list 42
+hc sessions create 42 --title "Keynote" --start "2026-10-15T09:00" --speaker "Dr. Smith"
+hc sessions update 42 7 --location "Hall B"
+hc sessions delete 42 7
+```
+
+### Check-in
+
+```bash
+hc checkin lookup 42 "john@example.com"
+hc checkin manual 42 7 john@example.com    # event session email
+hc checkin summary 42
+```
+
+### LMS
+
+```bash
+hc lms courses
+hc lms course 5
+hc lms enrollments 5
+hc lms enroll 5 --email ali@example.com --first-name Ali --last-name Veli
+hc lms analytics
+hc lms analytics 5
+```
+
+### Automation Rules
+
+```bash
+hc automations list 42
+hc automations create 42 \
+  --name "Certificate Email" \
+  --trigger certificate_issued \
+  --actions '[{"type":"send_email","template_id":5}]'
+```
+
+### Agent Logs
+
+```bash
+hc logs list                    # Last 20 agent actions
+hc logs list --event 42         # Filter by event
+hc logs list --tool create_event
+hc logs list --limit 50 --output json
+```
+
+## Output Formats
+
+All commands support the `--output` / `-o` flag:
+
+| Format | Description |
+|--------|-------------|
+| `table` | Colored table (default) |
+| `json` | Raw JSON |
+| `csv` | Comma-separated, for piping to other tools |
+
+```bash
+hc attendees list 42 --output csv > attendees.csv
+hc events list --output json | jq '.[].name'
+```

@@ -1,0 +1,88 @@
+# Hızlı Başlangıç
+
+5 dakikada HeptaCert API'si ile ilk isteğinizi yapın.
+
+## 1. API Anahtarı Oluşturun
+
+1. [HeptaCert Admin](https://heptacert.com/admin/settings/api) paneline giriş yapın
+2. **Ayarlar → API Anahtarları** sayfasına gidin
+3. **+ Yeni Anahtar** butonuna tıklayın
+4. Anahtara bir isim verin ve gerekli izinleri (scope) seçin
+5. Oluşturulan anahtarı kopyalayın — **tek seferlik gösterilir**
+
+Anahtar formatı: `hc_live_xxxxxxxxxxxxxxxxxxxxxxxx`
+
+import { Callout } from "nextra/components";
+
+<Callout type="warning">
+  API anahtarınızı güvenli saklayın. Git repository'lerine, client-side koda veya log dosyalarına eklemeyin.
+</Callout>
+
+## 2. İlk API Çağrısı
+
+Etkinlikleri listeleyin:
+
+```bash
+curl https://heptacert.com/api/admin/events \
+  -H "Authorization: Bearer hc_live_YOUR_KEY"
+```
+
+Başarılı yanıt:
+
+```json
+[
+  {
+    "id": 42,
+    "name": "Python Summit 2026",
+    "event_date": "2026-09-15",
+    "certificate_enabled": true,
+    "registration_enabled": true
+  }
+]
+```
+
+## 3. Yeni Etkinlik Oluşturun
+
+```bash
+curl -X POST https://heptacert.com/api/admin/events \
+  -H "Authorization: Bearer hc_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "React Workshop",
+    "template_image_url": "placeholder",
+    "event_type": "workshop",
+    "certificate_enabled": true,
+    "registration_enabled": true,
+    "checkin_enabled": true
+  }'
+```
+
+## 4. Python ile Kullanım
+
+```python
+import httpx
+
+API_KEY = "hc_live_YOUR_KEY"
+BASE = "https://heptacert.com/api"
+
+headers = {"Authorization": f"Bearer {API_KEY}"}
+
+# Etkinlikleri listele
+events = httpx.get(f"{BASE}/admin/events", headers=headers).json()
+print(events)
+
+# Yeni katılımcı ekle
+event_id = events[0]["id"]
+httpx.post(
+    f"{BASE}/admin/events/{event_id}/attendees",
+    headers=headers,
+    json={"first_name": "Ahmet", "last_name": "Yılmaz", "email": "ahmet@example.com"}
+)
+```
+
+## Sonraki Adımlar
+
+- [Kimlik Doğrulama ve Scope'lar →](/authentication)
+- [Tüm API Endpoint'leri →](/api-reference)
+- [MCP ile AI Agent Kurulumu →](/mcp-agent)
+- [CLI Kurulumu →](/cli)

@@ -1,0 +1,79 @@
+# Kimlik Doğrulama
+
+## API Anahtarları
+
+HeptaCert API'si Bearer token kimlik doğrulaması kullanır. Her istekte HTTP başlığına anahtarınızı ekleyin:
+
+```
+Authorization: Bearer hc_live_YOUR_KEY
+```
+
+### Anahtar Formatı
+
+| Prefix | Açıklama |
+|--------|----------|
+| `hc_live_` | Canlı anahtar — gerçek veriye erişir |
+
+### Anahtar Oluşturma
+
+Admin panelinde **Ayarlar → API Anahtarları** sayfasından oluşturulur. Oluşturma sırasında:
+- **İsim** — anahtarın kullanım amacı (örn. "CI/CD Pipeline")
+- **Scope'lar** — izin verilen işlem tipleri
+- **Son kullanma tarihi** — boş bırakılırsa sonsuz
+
+import { Callout } from "nextra/components";
+
+<Callout>
+  Anahtar yalnızca oluşturulurken bir kez tam olarak gösterilir. Kaydetmeyi unutmayın.
+</Callout>
+
+## Scope'lar (İzinler)
+
+Scope'suz anahtar tüm kaynaklara erişir. Scope atanmış anahtarlar yalnızca ilgili işlemleri yapabilir.
+
+| Scope | Açıklama |
+|-------|----------|
+| `events:read` | Etkinlikleri listele ve görüntüle |
+| `events:write` | Etkinlik oluştur, güncelle, sil |
+| `attendees:read` | Katılımcıları listele |
+| `attendees:write` | Katılımcı ekle, güncelle, sil |
+| `certificates:read` | Sertifikaları listele |
+| `certificates:write` | Sertifika yayımla, iptal et |
+| `analytics:read` | Analitik ve raporlara eriş |
+| `sessions:read` | Oturumları listele |
+| `sessions:write` | Oturum oluştur, güncelle, sil |
+| `checkin:write` | Manuel check-in yap |
+| `automations:read` | Otomasyon kurallarını görüntüle |
+| `automations:write` | Otomasyon kuralı oluştur |
+
+### Minimum Scope Prensibi
+
+Entegrasyonunuz için yalnızca gereken scope'ları ekleyin. Örneğin yalnızca raporlama yapan bir araç `analytics:read` ile yeterlidir.
+
+## Hız Sınırları (Rate Limiting)
+
+| Plan | İstek/Dakika | İstek/Saat |
+|------|-------------|------------|
+| Starter | 60 | 1 000 |
+| Pro | 300 | 10 000 |
+| Enterprise | 1 000 | 50 000 |
+
+Sınır aşılınca `429 Too Many Requests` döner. `Retry-After` başlığı kaç saniye beklenileceğini gösterir.
+
+```
+HTTP/1.1 429 Too Many Requests
+Retry-After: 12
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1718100012
+```
+
+## Anahtar Rotasyonu
+
+Güvenlik ihlali şüphesi durumunda anahtarı hemen iptal edin:
+
+1. Admin paneli → **Ayarlar → API Anahtarları**
+2. İlgili anahtarın yanındaki **İptal Et** butonuna tıklayın
+3. Yeni anahtar oluşturun ve ortam değişkenlerinizi güncelleyin
+
+İptal edilen anahtarlar derhal geçersiz olur.

@@ -1,0 +1,125 @@
+# MCP & AI Agents
+
+HeptaCert, [Model Context Protocol (MCP)](https://modelcontextprotocol.io) üzerinden AI asistanlara tam entegrasyon sunar. Claude, GPT-4 veya destekleyen başka herhangi bir AI aracı — etkinliklerinizi doğal dil ile yönetebilir.
+
+import { Callout, Steps, Tabs } from "nextra/components";
+
+## MCP Nedir?
+
+MCP, AI modellerinin harici araçlara ve verilere standart bir protokol üzerinden güvenli erişmesini sağlar. HeptaCert MCP sunucusu 35+ araç içerir: etkinlik oluşturma, katılımcı yönetimi, sertifika yayımlama ve daha fazlası.
+
+## Claude Desktop ile Kurulum
+
+<Steps>
+
+### API Anahtarı Oluşturun
+
+[Settings → API Keys](https://heptacert.com/admin/settings/api) sayfasından yeni bir anahtar oluşturun. MCP için gereken scope'lar kullanım amacınıza göre değişir — tam yetki için scope seçmeyin.
+
+### Claude Desktop Config Dosyasını Açın
+
+`~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
+`%APPDATA%\Claude\claude_desktop_config.json` (Windows)
+
+### MCP Sunucusunu Ekleyin
+
+**Hosted mod (önerilen — kurulum gerektirmez):**
+```json
+{
+  "mcpServers": {
+    "heptacert": {
+      "url": "https://heptacert.com/mcp",
+      "headers": {
+        "Authorization": "Bearer hc_live_YOUR_KEY"
+      }
+    }
+  }
+}
+```
+
+**Lokal script modu:**
+```json
+{
+  "mcpServers": {
+    "heptacert": {
+      "command": "python",
+      "args": ["/path/to/heptacert/backend/src/mcp_server.py"],
+      "env": {
+        "HEPTACERT_API_KEY": "hc_live_YOUR_KEY",
+        "HEPTACERT_API_BASE": "https://heptacert.com"
+      }
+    }
+  }
+}
+```
+
+### Claude Desktop'ı Yeniden Başlatın
+
+Yeniden başlattıktan sonra Claude'un sağ panelinde 🔌 simgesi görünecektir.
+
+</Steps>
+
+## Örnek Konuşmalar
+
+```
+Kullanıcı: Bugünkü katılımcı sayısı nedir?
+
+Claude: list_events çağrısı yapıyorum...
+       get_event_stats çağrısı yapıyorum (event_id=42)...
+
+       "Python Summit 2026" etkinliğinde toplam 150 kayıtlı
+       katılımcı var, bunların 127'si (%84.7) check-in yaptı.
+```
+
+```
+Kullanıcı: "React Workshop" adlı yeni bir etkinlik oluştur,
+           tarih 15 Ekim 2026, sertifikalı olsun.
+
+Claude: Etkinliği oluşturuyorum...
+       ✅ "React Workshop" etkinliği oluşturuldu (ID: 89).
+       Sertifika şablonu için şablon resmi URL'si gerekiyor.
+       Eklemek ister misiniz?
+```
+
+<Callout type="warning">
+**Silme işlemleri iki adımlıdır.** Bir etkinliği, katılımcıyı veya sertifikayı silmek istediğinizde Claude önce ne silineceğini önizler. `confirm=True` ile onayladıktan sonra işlem gerçekleşir.
+</Callout>
+
+## Mevcut Araçlar (35 Araç)
+
+### Etkinlikler
+| Araç | Açıklama | Scope |
+|------|----------|-------|
+| `list_events` | Etkinlikleri listele | `events:read` |
+| `get_event` | Tek etkinlik detayı | `events:read` |
+| `get_event_stats` | İstatistikler | `events:read` |
+| `create_event` | Yeni etkinlik | `events:write` |
+| `update_event` | Bilgileri güncelle | `events:write` |
+| `delete_event` | Sil (confirm gerekli) | `events:write` |
+| `close_registration` | Kayıtları kapat | `events:write` |
+| `open_registration` | Kayıtları aç | `events:write` |
+
+### Katılımcılar
+| Araç | Açıklama | Scope |
+|------|----------|-------|
+| `list_attendees` | Katılımcıları listele | `attendees:read` |
+| `add_attendee` | Katılımcı ekle | `attendees:write` |
+| `update_attendee` | Bilgi güncelle | `attendees:write` |
+| `remove_attendee` | Kaldır (confirm gerekli) | `attendees:write` |
+| `bulk_import_attendees` | CSV ile toplu yükle | `attendees:write` |
+
+### Sertifikalar
+| Araç | Açıklama | Scope |
+|------|----------|-------|
+| `list_certificates` | Listele | `certificates:read` |
+| `issue_certificates` | Yayımla | `certificates:write` |
+| `revoke_certificate` | İptal et (confirm gerekli) | `certificates:write` |
+
+### Oturumlar, Check-in, LMS, Otomasyon
+Oturumlar (4 araç), check-in (3 araç), LMS (6 araç), otomasyon (2 araç), analitik (3 araç).
+
+## Güvenlik
+
+- Her MCP isteği Bearer token ile doğrulanır
+- Scope'lar MCP katmanında uygulanır — scope eksikse araç çalışmaz
+- Tüm yazma işlemleri **Agent Logs** sayfasına kaydedilir (Admin → Ayarlar → Agent Logları)

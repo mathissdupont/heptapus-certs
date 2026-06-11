@@ -1,0 +1,88 @@
+# Quickstart
+
+Make your first HeptaCert API request in 5 minutes.
+
+## 1. Create an API Key
+
+1. Log in to your [HeptaCert Admin](https://heptacert.com/admin/settings/api) dashboard
+2. Go to **Settings → API Keys**
+3. Click **+ New Key**
+4. Give the key a name and select the required scopes
+5. Copy the key — **it's only shown once**
+
+Key format: `hc_live_xxxxxxxxxxxxxxxxxxxxxxxx`
+
+import { Callout } from "nextra/components";
+
+<Callout type="warning">
+  Keep your API key secure. Never commit it to Git, embed it in client-side code, or write it to log files.
+</Callout>
+
+## 2. Your First API Call
+
+List events:
+
+```bash
+curl https://heptacert.com/api/admin/events \
+  -H "Authorization: Bearer hc_live_YOUR_KEY"
+```
+
+Successful response:
+
+```json
+[
+  {
+    "id": 42,
+    "name": "Python Summit 2026",
+    "event_date": "2026-09-15",
+    "certificate_enabled": true,
+    "registration_enabled": true
+  }
+]
+```
+
+## 3. Create an Event
+
+```bash
+curl -X POST https://heptacert.com/api/admin/events \
+  -H "Authorization: Bearer hc_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "React Workshop",
+    "template_image_url": "placeholder",
+    "event_type": "workshop",
+    "certificate_enabled": true,
+    "registration_enabled": true,
+    "checkin_enabled": true
+  }'
+```
+
+## 4. Using Python
+
+```python
+import httpx
+
+API_KEY = "hc_live_YOUR_KEY"
+BASE = "https://heptacert.com/api"
+
+headers = {"Authorization": f"Bearer {API_KEY}"}
+
+# List events
+events = httpx.get(f"{BASE}/admin/events", headers=headers).json()
+print(events)
+
+# Add an attendee
+event_id = events[0]["id"]
+httpx.post(
+    f"{BASE}/admin/events/{event_id}/attendees",
+    headers=headers,
+    json={"first_name": "John", "last_name": "Doe", "email": "john@example.com"}
+)
+```
+
+## Next Steps
+
+- [Authentication & Scopes →](/authentication)
+- [Full API Reference →](/api-reference)
+- [Set up an MCP AI Agent →](/mcp-agent)
+- [Install the CLI →](/cli)

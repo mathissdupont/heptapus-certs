@@ -1,0 +1,9 @@
+{
+  "index": "Introduction",
+  "quickstart": "Quickstart",
+  "authentication": "Authentication",
+  "api-reference": "API Reference",
+  "mcp-agent": "MCP & AI Agents",
+  "cli": "CLI",
+  "webhooks": "Webhooks"
+}

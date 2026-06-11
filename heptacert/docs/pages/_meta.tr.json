@@ -1,0 +1,9 @@
+{
+  "index": "Giriş",
+  "quickstart": "Hızlı Başlangıç",
+  "authentication": "Kimlik Doğrulama",
+  "api-reference": "API Referansı",
+  "mcp-agent": "MCP & AI Agents",
+  "cli": "CLI",
+  "webhooks": "Webhooks"
+}

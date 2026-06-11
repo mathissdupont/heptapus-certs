@@ -1,0 +1,117 @@
+# Webhooks
+
+HeptaCert, belirli olaylar gerçekleştiğinde HTTP POST isteği göndererek sistemlerinizi gerçek zamanlı olarak tetikleyebilir.
+
+## Webhook Oluşturma
+
+Admin paneli → **Webhooks** sayfasından URL ve dinlenecek olayları seçin.
+
+## Olaylar
+
+| Olay | Tetiklenme |
+|------|-----------|
+| `attendee.registered` | Yeni katılımcı kaydolduğunda |
+| `attendee.checkin` | Katılımcı check-in yaptığında |
+| `certificate.issued` | Sertifika yayımlandığında |
+| `certificate.revoked` | Sertifika iptal edildiğinde |
+| `event.created` | Yeni etkinlik oluşturulduğunda |
+| `event.updated` | Etkinlik bilgileri güncellendiğinde |
+| `payment.completed` | Ödeme tamamlandığında |
+
+## Payload Formatı
+
+```json
+{
+  "event": "certificate.issued",
+  "timestamp": "2026-09-15T10:30:00Z",
+  "data": {
+    "certificate_id": 9001,
+    "public_id": "abc123xyz",
+    "attendee_name": "Ahmet Yılmaz",
+    "attendee_email": "ahmet@example.com",
+    "event_id": 42,
+    "event_name": "Python Summit 2026",
+    "cert_url": "https://heptacert.com/c/abc123xyz",
+    "issued_at": "2026-09-15T10:30:00Z"
+  }
+}
+```
+
+## İmza Doğrulama
+
+Her webhook isteği `X-HeptaCert-Signature` başlığı içerir. Bu başlık, payload'ın HMAC-SHA256 imzasıdır.
+
+```python
+import hashlib
+import hmac
+
+def verify_webhook(payload_bytes: bytes, signature: str, secret: str) -> bool:
+    expected = hmac.new(
+        secret.encode(),
+        payload_bytes,
+        hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(expected, signature)
+```
+
+import { Callout } from "nextra/components";
+
+<Callout type="warning">
+  `hmac.compare_digest` kullanın — timing attack'lardan korur.
+</Callout>
+
+## Express.js Örneği
+
+```javascript
+const express = require("express");
+const crypto = require("crypto");
+
+const app = express();
+app.use(express.raw({ type: "application/json" }));
+
+app.post("/webhooks/heptacert", (req, res) => {
+  const sig = req.headers["x-heptacert-signature"];
+  const expected = crypto
+    .createHmac("sha256", process.env.WEBHOOK_SECRET)
+    .update(req.body)
+    .digest("hex");
+
+  if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {
+    return res.status(401).send("Invalid signature");
+  }
+
+  const payload = JSON.parse(req.body);
+  console.log("Webhook alındı:", payload.event);
+
+  if (payload.event === "certificate.issued") {
+    // CRM'e bildir, Slack'e mesaj gönder, vs.
+  }
+
+  res.sendStatus(200);
+});
+```
+
+## Yeniden Deneme Politikası
+
+Endpoint `2xx` dışında bir yanıt döndürürse veya 10 saniye içinde yanıt vermezse HeptaCert şu aralıklarla yeniden dener:
+
+| Deneme | Bekleme |
+|--------|---------|
+| 1. | Hemen |
+| 2. | 5 dakika |
+| 3. | 30 dakika |
+| 4. | 2 saat |
+| 5. | 24 saat |
+
+5 başarısız denemeden sonra webhook devre dışı bırakılır ve bildirim e-postası gönderilir.
+
+## Test Etme
+
+Webhook sayfasında **Test Gönder** butonunu kullanarak örnek bir payload gönderebilirsiniz.
+
+Ya da `ngrok` ile lokal geliştirme ortamını dışarıya açın:
+
+```bash
+ngrok http 3000
+# https://xxxx.ngrok.io → localhost:3000
+```

@@ -1,0 +1,182 @@
+# API Reference
+
+**Base URL:** `https://heptacert.com/api`
+
+All requests require an `Authorization: Bearer hc_live_...` header.
+
+import { Callout } from "nextra/components";
+
+## Events
+
+### `GET /admin/events`
+List all events in the account.
+
+**Response:**
+```json
+[
+  {
+    "id": 42,
+    "name": "Python Summit 2026",
+    "event_date": "2026-09-15T09:00:00",
+    "event_type": "conference",
+    "visibility": "public",
+    "certificate_enabled": true,
+    "registration_enabled": true,
+    "registration_closed": false,
+    "checkin_enabled": true,
+    "attendee_count": 150
+  }
+]
+```
+
+### `GET /admin/events/{id}`
+Get full details of a single event.
+
+### `POST /admin/events`
+Create a new event.
+
+**Request body:**
+```json
+{
+  "name": "React Workshop",
+  "template_image_url": "placeholder",
+  "event_type": "workshop",
+  "event_date": "2026-10-01T10:00:00",
+  "event_location": "Istanbul",
+  "event_description": "Advanced React training.",
+  "certificate_enabled": true,
+  "registration_enabled": true,
+  "checkin_enabled": true,
+  "visibility": "private"
+}
+```
+
+### `PATCH /admin/events/{id}`
+Update event fields. Only fields present in the request body are changed.
+
+### `DELETE /admin/events/{id}`
+Permanently delete an event. **Irreversible.**
+
+---
+
+## Attendees
+
+### `GET /admin/events/{id}/attendees`
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `page` | int | Page number (default: 1) |
+| `limit` | int | Records per page (default: 20, max: 200) |
+| `search` | string | Filter by name or email |
+
+### `POST /admin/events/{id}/attendees`
+Add a single attendee.
+```json
+{ "first_name": "John", "last_name": "Doe", "email": "john@example.com" }
+```
+
+### `PATCH /admin/events/{event_id}/attendees/{attendee_id}`
+Update attendee fields (`first_name`, `last_name`, `email`).
+
+### `DELETE /admin/events/{event_id}/attendees/{attendee_id}`
+Remove an attendee from the event.
+
+---
+
+## Certificates
+
+### `GET /admin/events/{id}/certificates`
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `page` | int | Page number |
+| `limit` | int | Records per page |
+| `search` | string | Filter by name |
+| `status` | string | `active` \| `revoked` \| `expired` |
+
+### `POST /admin/events/{id}/certificates`
+Trigger certificate issuance.
+```json
+{ "attendee_ids": [1, 2, 3] }
+```
+Omitting `attendee_ids` issues certificates for all eligible attendees.
+
+### `POST /admin/certificates/{cert_id}/revoke`
+Revoke a certificate. The PDF link becomes inaccessible.
+
+---
+
+## Sessions
+
+### `GET /admin/events/{id}/sessions`
+List sessions (agenda items) for an event.
+
+### `POST /admin/events/{id}/sessions`
+```json
+{
+  "title": "Keynote: The Future of the Web",
+  "start_time": "2026-09-15T09:00:00",
+  "end_time": "2026-09-15T10:00:00",
+  "location": "Main Hall",
+  "speaker": "Dr. Jane Smith",
+  "capacity": 300
+}
+```
+
+### `PATCH /admin/events/{event_id}/sessions/{session_id}`
+### `DELETE /admin/events/{event_id}/sessions/{session_id}`
+
+---
+
+## Check-in
+
+### `GET /admin/events/{id}/checkin-lookup`
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `query` | string | Name or email search |
+
+### `POST /admin/events/{event_id}/sessions/{session_id}/checkin`
+Manually check in an attendee.
+```json
+{ "email": "john@example.com" }
+```
+
+### `GET /admin/events/{id}/attendance`
+Returns attendance statistics (total, checked-in, rate, per-session breakdown).
+
+---
+
+## Automation Rules
+
+### `GET /admin/events/{id}/automations`
+### `POST /admin/events/{id}/automations`
+```json
+{
+  "name": "Post-Certificate Email",
+  "trigger": "certificate_issued",
+  "actions": [
+    { "type": "send_email", "template_id": 5, "delay_hours": 0 }
+  ],
+  "enabled": true
+}
+```
+
+**Trigger types:** `attended_event`, `registered_no_show`, `certificate_issued`, `survey_not_completed`, `badge_earned`, `lms_course_completed`, `compliance_overdue`
+
+---
+
+## Error Codes
+
+| HTTP | Description |
+|------|-------------|
+| `400` | Bad request — missing or invalid fields |
+| `401` | Authentication failed — invalid key |
+| `403` | Forbidden — required scope missing |
+| `404` | Record not found |
+| `409` | Conflict — record already exists (e.g. duplicate email) |
+| `422` | Validation error |
+| `429` | Rate limit exceeded |
+| `500` | Server error |
+
+Error response format:
+```json
+{ "detail": "No registration found for this event." }
+```

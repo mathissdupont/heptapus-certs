@@ -194,6 +194,18 @@ services:
     restart: unless-stopped
 
 
+  docs:
+    build:
+      context: ./docs
+    ports:
+      - "3031:3001"
+    networks:
+      default:
+      caddy_net:
+        aliases:
+          - heptacert-docs
+    restart: unless-stopped
+
   db_init:
     profiles: ["ops"]
     image: postgres:16

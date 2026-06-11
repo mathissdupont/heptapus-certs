@@ -1,0 +1,182 @@
+# API Referansı
+
+**Base URL:** `https://heptacert.com/api`
+
+Tüm istekler `Authorization: Bearer hc_live_...` başlığı gerektirir.
+
+import { Callout } from "nextra/components";
+
+## Etkinlikler
+
+### `GET /admin/events`
+Hesabınızdaki tüm etkinlikleri listeler.
+
+**Yanıt:**
+```json
+[
+  {
+    "id": 42,
+    "name": "Python Summit 2026",
+    "event_date": "2026-09-15T09:00:00",
+    "event_type": "conference",
+    "visibility": "public",
+    "certificate_enabled": true,
+    "registration_enabled": true,
+    "registration_closed": false,
+    "checkin_enabled": true,
+    "attendee_count": 150
+  }
+]
+```
+
+### `GET /admin/events/{id}`
+Tek etkinliğin tam detayını getirir.
+
+### `POST /admin/events`
+Yeni etkinlik oluşturur.
+
+**İstek gövdesi:**
+```json
+{
+  "name": "React Workshop",
+  "template_image_url": "placeholder",
+  "event_type": "workshop",
+  "event_date": "2026-10-01T10:00:00",
+  "event_location": "İstanbul",
+  "event_description": "İleri seviye React eğitimi.",
+  "certificate_enabled": true,
+  "registration_enabled": true,
+  "checkin_enabled": true,
+  "visibility": "private"
+}
+```
+
+### `PATCH /admin/events/{id}`
+Etkinlik bilgilerini günceller. Yalnızca gönderilen alanlar değişir.
+
+### `DELETE /admin/events/{id}`
+Etkinliği kalıcı olarak siler. **Geri alınamaz.**
+
+---
+
+## Katılımcılar
+
+### `GET /admin/events/{id}/attendees`
+| Parametre | Tip | Açıklama |
+|-----------|-----|----------|
+| `page` | int | Sayfa numarası (varsayılan: 1) |
+| `limit` | int | Sayfa başına kayıt (varsayılan: 20, maks: 200) |
+| `search` | string | İsim veya e-posta filtresi |
+
+### `POST /admin/events/{id}/attendees`
+Tek katılımcı ekler.
+```json
+{ "first_name": "Ahmet", "last_name": "Yılmaz", "email": "ahmet@example.com" }
+```
+
+### `PATCH /admin/events/{event_id}/attendees/{attendee_id}`
+Katılımcı bilgilerini günceller (`first_name`, `last_name`, `email`).
+
+### `DELETE /admin/events/{event_id}/attendees/{attendee_id}`
+Katılımcıyı etkinlikten kaldırır.
+
+---
+
+## Sertifikalar
+
+### `GET /admin/events/{id}/certificates`
+| Parametre | Tip | Açıklama |
+|-----------|-----|----------|
+| `page` | int | Sayfa numarası |
+| `limit` | int | Sayfa başına kayıt |
+| `search` | string | İsim filtresi |
+| `status` | string | `active` \| `revoked` \| `expired` |
+
+### `POST /admin/events/{id}/certificates`
+Sertifika yayımlama işlemi başlatır.
+```json
+{ "attendee_ids": [1, 2, 3] }
+```
+`attendee_ids` boş bırakılırsa tüm uygun katılımcılar için yayımlanır.
+
+### `POST /admin/certificates/{cert_id}/revoke`
+Sertifikayı iptal eder. PDF linki erişilemez hale gelir.
+
+---
+
+## Oturumlar
+
+### `GET /admin/events/{id}/sessions`
+Etkinliğin oturumlarını (agenda) listeler.
+
+### `POST /admin/events/{id}/sessions`
+```json
+{
+  "title": "Keynote: Web'in Geleceği",
+  "start_time": "2026-09-15T09:00:00",
+  "end_time": "2026-09-15T10:00:00",
+  "location": "Ana Salon",
+  "speaker": "Dr. Ayşe Kaya",
+  "capacity": 300
+}
+```
+
+### `PATCH /admin/events/{event_id}/sessions/{session_id}`
+### `DELETE /admin/events/{event_id}/sessions/{session_id}`
+
+---
+
+## Check-in
+
+### `GET /admin/events/{id}/checkin-lookup`
+| Parametre | Tip | Açıklama |
+|-----------|-----|----------|
+| `query` | string | İsim veya e-posta araması |
+
+### `POST /admin/events/{event_id}/sessions/{session_id}/checkin`
+Manuel check-in yapar.
+```json
+{ "email": "ahmet@example.com" }
+```
+
+### `GET /admin/events/{id}/attendance`
+Etkinlik devam istatistiklerini döner (toplam, check-in yapılan, oran, oturum bazlı).
+
+---
+
+## Otomasyon Kuralları
+
+### `GET /admin/events/{id}/automations`
+### `POST /admin/events/{id}/automations`
+```json
+{
+  "name": "Sertifika Sonrası E-posta",
+  "trigger": "certificate_issued",
+  "actions": [
+    { "type": "send_email", "template_id": 5, "delay_hours": 0 }
+  ],
+  "enabled": true
+}
+```
+
+**Trigger tipleri:** `attended_event`, `registered_no_show`, `certificate_issued`, `survey_not_completed`, `badge_earned`, `lms_course_completed`, `compliance_overdue`
+
+---
+
+## Hata Kodları
+
+| HTTP | Açıklama |
+|------|----------|
+| `400` | Geçersiz istek — eksik veya hatalı alan |
+| `401` | Kimlik doğrulama başarısız — geçersiz anahtar |
+| `403` | Yetkisiz — gerekli scope eksik |
+| `404` | Kayıt bulunamadı |
+| `409` | Çakışma — kayıt zaten var (örn. aynı e-posta) |
+| `422` | Doğrulama hatası |
+| `429` | Hız sınırı aşıldı |
+| `500` | Sunucu hatası |
+
+Hata yanıtı formatı:
+```json
+{ "detail": "Bu etkinliğe ait kayıt bulunamadı." }
+```
