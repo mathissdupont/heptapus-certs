@@ -2822,8 +2822,15 @@ class VerifyOut(BaseModel):
 
 class ApiKeyCreateIn(BaseModel):
     name: str = Field(min_length=1, max_length=200)
+    scopes: List[str] = Field(default=[])
     expires_days: Optional[int] = Field(default=None, ge=1, le=3650)
     rate_limit_per_min: Optional[int] = Field(default=None, ge=10, le=10000)
+
+
+class ApiKeyScopePatchIn(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    scopes: Optional[List[str]] = None
+    is_active: Optional[bool] = None
 
 
 class ApiKeyOut(BaseModel):
@@ -14518,7 +14525,7 @@ async def create_api_key(payload: ApiKeyCreateIn, me: CurrentUser = Depends(get_
         name=payload.name.strip()[:200],
         key_prefix=key_prefix,
         key_hash=_hash_api_key(full_key),
-        scopes=[],
+        scopes=payload.scopes,
         is_active=True,
         expires_at=expires_at,
         rate_limit_per_min=payload.rate_limit_per_min,
@@ -14550,6 +14557,88 @@ async def delete_api_key(key_id: int, me: CurrentUser = Depends(get_current_user
     return {"ok": True}
 
 
+_DEFINED_SCOPES = [
+    {"value": "events:read",        "label": "View events"},
+    {"value": "events:write",       "label": "Create and manage events"},
+    {"value": "attendees:read",     "label": "View attendees"},
+    {"value": "attendees:write",    "label": "Add and manage attendees"},
+    {"value": "certificates:read",  "label": "View certificates"},
+    {"value": "certificates:write", "label": "Issue and revoke certificates"},
+    {"value": "sessions:read",      "label": "View sessions"},
+    {"value": "sessions:write",     "label": "Create and manage sessions"},
+    {"value": "checkin:write",      "label": "Perform check-ins"},
+    {"value": "analytics:read",     "label": "Access analytics and reports"},
+    {"value": "automations:read",   "label": "View automation rules"},
+    {"value": "automations:write",  "label": "Create and manage automation rules"},
+]
+
+
+def _api_key_to_out(api_key: ApiKey) -> ApiKeyOut:
+    return ApiKeyOut(
+        id=api_key.id,
+        name=api_key.name,
+        key_prefix=api_key.key_prefix,
+        is_active=api_key.is_active,
+        scopes=list(api_key.scopes or []),
+        last_used_at=api_key.last_used_at,
+        expires_at=api_key.expires_at,
+        created_at=api_key.created_at,
+        rate_limit_per_min=api_key.rate_limit_per_min,
+    )
+
+
+@app.get("/api/admin/api-keys/scopes", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def list_api_key_scopes():
+    return _DEFINED_SCOPES
+
+
+@app.get("/api/admin/api-keys/v2", response_model=list[ApiKeyOut], dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def list_api_keys_v2(me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    res = await db.execute(select(ApiKey).where(ApiKey.user_id == me.id).order_by(ApiKey.created_at.desc()))
+    return [_api_key_to_out(k) for k in res.scalars().all()]
+
+
+@app.post("/api/admin/api-keys/v2", response_model=ApiKeyCreateOut, status_code=201, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def create_api_key_v2(payload: ApiKeyCreateIn, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    rand_prefix = secrets.token_hex(4)
+    full_key = f"hc_{rand_prefix}_{secrets.token_urlsafe(32)}"
+    key_prefix = full_key[:8]
+    expires_at = None
+    if payload.expires_days is not None:
+        expires_at = datetime.now(timezone.utc) + timedelta(days=payload.expires_days)
+
+    api_key = ApiKey(
+        user_id=me.id,
+        name=payload.name.strip()[:200],
+        key_prefix=key_prefix,
+        key_hash=_hash_api_key(full_key),
+        scopes=payload.scopes,
+        is_active=True,
+        expires_at=expires_at,
+        rate_limit_per_min=payload.rate_limit_per_min,
+    )
+    db.add(api_key)
+    await db.commit()
+    await db.refresh(api_key)
+    out = _api_key_to_out(api_key)
+    return ApiKeyCreateOut(**out.model_dump(), full_key=full_key)
+
+
+@app.patch("/api/admin/api-keys/{key_id}/scopes", response_model=ApiKeyOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def update_api_key_scopes(key_id: int, payload: ApiKeyScopePatchIn, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    res = await db.execute(select(ApiKey).where(ApiKey.id == key_id, ApiKey.user_id == me.id))
+    api_key = res.scalar_one_or_none()
+    if not api_key:
+        raise HTTPException(status_code=404, detail="API key not found")
+    if payload.name is not None:
+        api_key.name = payload.name.strip()[:200]
+    if payload.scopes is not None:
+        api_key.scopes = payload.scopes
+    if payload.is_active is not None:
+        api_key.is_active = payload.is_active
+    await db.commit()
+    await db.refresh(api_key)
+    return _api_key_to_out(api_key)
 
 
 @app.get("/public/branding")
