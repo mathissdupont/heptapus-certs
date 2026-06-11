@@ -186,7 +186,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/admin/integrations", label: { tr: "Entegrasyonlar", en: "Integrations" }, icon: Plug, exact: true },
       { href: "/admin/payments/transactions", label: { tr: "Ödemeler", en: "Payments" }, icon: CreditCard },
-      { href: "/admin/api-keys", label: { tr: "API Anahtarları", en: "API Keys" }, icon: KeyRound },
+      { href: "/admin/settings/api", label: { tr: "API Anahtarları", en: "API Keys" }, icon: KeyRound },
       { href: "/admin/settings/sso", label: { tr: "SSO / OAuth2", en: "SSO / OAuth2" }, icon: Shield },
       { href: "/admin/settings", label: { tr: "Ayarlar", en: "Settings" }, icon: Settings },
       { href: "/admin/superadmin", label: { tr: "Super Admin", en: "Super Admin" }, icon: Shield, superadminOnly: true },
