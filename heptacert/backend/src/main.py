@@ -311,6 +311,8 @@ class Settings(BaseSettings):
     enable_scheduler: bool = Field(default=True, alias="ENABLE_SCHEDULER")
     openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
     openai_model: str = Field(default="gpt-4.1-mini", alias="OPENAI_MODEL")
+    anthropic_api_key: str = Field(default="", alias="ANTHROPIC_API_KEY")
+    anthropic_model: str = Field(default="claude-sonnet-4-6", alias="ANTHROPIC_MODEL")
 
 
 settings = Settings()
@@ -1888,6 +1890,25 @@ class CheckinActivityLog(Base):
     __table_args__ = (
         Index("ix_checkin_activity_event_created", "event_id", "created_at"),
         Index("ix_checkin_activity_event_actor", "event_id", "actor_user_id"),
+    )
+
+
+class AgentActionLog(Base):
+    __tablename__ = "agent_action_logs"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    api_key_prefix: Mapped[Optional[str]] = mapped_column(String(12), nullable=True)
+    tool_name: Mapped[str] = mapped_column(String(100))
+    event_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    payload: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    result_summary: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    ip_address: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_agent_action_logs_user_created", "user_id", "created_at"),
+        Index("ix_agent_action_logs_tool", "tool_name"),
     )
 
 
@@ -12423,6 +12444,38 @@ def _build_local_ai_assistant_response(payload: AIAssistantIn, event: Optional[E
     )
 
 
+_AI_SYSTEM_PROMPT = (
+    "You are HeptaCert's admin AI assistant. HeptaCert is an event management and certificate issuance platform. "
+    "Help event organizers in Turkish or English (match the user's language). "
+    "You can suggest event descriptions, email copy, survey questions, registration field configs, "
+    "certificate/check-in settings, session agendas, and LMS course outlines. "
+    "Never claim changes were saved — you only suggest. Keep answers concise and practical. "
+    "When useful, structure your response with clear sections for: event_update suggestions, "
+    "registration_fields, and sessions."
+)
+
+
+def _build_ai_event_context(event: Optional[Event]) -> Dict[str, Any]:
+    if not event:
+        return {}
+    return {
+        "id": event.id,
+        "name": event.name,
+        "event_type": getattr(event, "event_type", None),
+        "event_date": event.event_date.isoformat() if event.event_date else None,
+        "event_location": getattr(event, "event_location", None),
+        "event_description": (getattr(event, "event_description", None) or "")[:300] or None,
+        "certificate_enabled": bool(getattr(event, "certificate_enabled", False)),
+        "checkin_enabled": bool(getattr(event, "checkin_enabled", False)),
+        "ticketing_enabled": bool(getattr(event, "ticketing_enabled", False)),
+        "registration_enabled": bool(getattr(event, "registration_enabled", False)),
+        "quiz_enabled": bool(getattr(event, "quiz_enabled", False)),
+        "cpd_enabled": bool(getattr(event, "cpd_enabled", False)),
+        "visibility": getattr(event, "visibility", "private"),
+        "registration_closed": bool(getattr(event, "registration_closed", False)),
+    }
+
+
 def _extract_openai_response_text(data: Dict[str, Any]) -> str:
     output_text = data.get("output_text")
     if isinstance(output_text, str) and output_text.strip():
@@ -12440,31 +12493,10 @@ def _extract_openai_response_text(data: Dict[str, Any]) -> str:
 
 
 async def _call_openai_ai_assistant(payload: AIAssistantIn, event: Optional[Event]) -> AIAssistantOut:
-    system_prompt = (
-        "You are HeptaCert's admin AI assistant. Help event organizers in Turkish or English. "
-        "You can suggest event descriptions, emails, surveys, registration fields, certificate/check-in settings, "
-        "and draft smart event builder plans. Never claim changes were saved. Keep answers concise. "
-        "Return practical suggestions, and when useful include sections for event_update, registration_fields, and sessions."
-    )
-    event_context = {}
-    if event:
-        event_context = {
-            "id": event.id,
-            "name": event.name,
-            "event_type": getattr(event, "event_type", None),
-            "event_date": event.event_date.isoformat() if event.event_date else None,
-            "event_location": event.event_location,
-            "certificate_enabled": bool(getattr(event, "certificate_enabled", False)),
-            "checkin_enabled": bool(getattr(event, "checkin_enabled", False)),
-            "ticketing_enabled": bool(getattr(event, "ticketing_enabled", False)),
-            "registration_enabled": bool(getattr(event, "registration_enabled", False)),
-            "config": event.config if isinstance(event.config, dict) else {},
-        }
-
     input_text = json.dumps(
         {
             "language": payload.language,
-            "event_context": event_context,
+            "event_context": _build_ai_event_context(event),
             "history": [m.model_dump() for m in payload.history[-6:]],
             "user_message": payload.message,
         },
@@ -12472,7 +12504,7 @@ async def _call_openai_ai_assistant(payload: AIAssistantIn, event: Optional[Even
     )
     body = {
         "model": settings.openai_model,
-        "instructions": system_prompt,
+        "instructions": _AI_SYSTEM_PROMPT,
         "input": input_text,
         "max_output_tokens": 900,
     }
@@ -12500,6 +12532,64 @@ async def _call_openai_ai_assistant(payload: AIAssistantIn, event: Optional[Even
     if not answer:
         return _build_local_ai_assistant_response(payload, event)
     return AIAssistantOut(answer=answer, provider="openai", suggestions={})
+
+
+async def _call_claude_ai_assistant(payload: AIAssistantIn, event: Optional[Event]) -> AIAssistantOut:
+    event_context = _build_ai_event_context(event)
+    messages: List[Dict[str, Any]] = []
+    for m in payload.history[-6:]:
+        role = "user" if m.role in ("user", "human") else "assistant"
+        messages.append({"role": role, "content": m.message})
+
+    user_content = payload.message
+    if event_context:
+        user_content = (
+            f"[Event context: {json.dumps(event_context, ensure_ascii=False)}]\n\n"
+            f"Language: {payload.language}\n\n"
+            f"{payload.message}"
+        )
+    elif payload.language:
+        user_content = f"Language: {payload.language}\n\n{payload.message}"
+
+    messages.append({"role": "user", "content": user_content})
+
+    body = {
+        "model": settings.anthropic_model,
+        "system": _AI_SYSTEM_PROMPT,
+        "messages": messages,
+        "max_tokens": 1024,
+    }
+    try:
+        async with httpx.AsyncClient(timeout=25.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": settings.anthropic_api_key,
+                    "anthropic-version": "2023-06-01",
+                    "Content-Type": "application/json",
+                },
+                json=body,
+            )
+    except httpx.HTTPError as exc:
+        logger.warning("Anthropic assistant request failed: %s", exc)
+        return _build_local_ai_assistant_response(payload, event)
+    if resp.status_code >= 400:
+        logger.warning("Anthropic assistant call failed status=%s body=%s", resp.status_code, resp.text[:500])
+        return _build_local_ai_assistant_response(payload, event)
+    try:
+        data = resp.json()
+        parts = [
+            block.get("text", "")
+            for block in (data.get("content") or [])
+            if isinstance(block, dict) and block.get("type") == "text"
+        ]
+        answer = "\n".join(parts).strip()
+    except (ValueError, AttributeError):
+        logger.warning("Anthropic assistant returned invalid JSON")
+        return _build_local_ai_assistant_response(payload, event)
+    if not answer:
+        return _build_local_ai_assistant_response(payload, event)
+    return AIAssistantOut(answer=answer, provider="claude", suggestions={})
 
 
 async def _get_optional_ai_event_context(event_id: Optional[int], me: CurrentUser, db: AsyncSession) -> Optional[Event]:
@@ -12538,9 +12628,174 @@ async def ai_event_assistant(
     db: AsyncSession = Depends(get_db),
 ):
     event = await _get_optional_ai_event_context(payload.event_id, me, db)
-    if not settings.openai_api_key.strip():
-        return _build_local_ai_assistant_response(payload, event)
-    return await _call_openai_ai_assistant(payload, event)
+    # Provider priority: Claude → OpenAI → local fallback
+    if settings.anthropic_api_key.strip():
+        return await _call_claude_ai_assistant(payload, event)
+    if settings.openai_api_key.strip():
+        return await _call_openai_ai_assistant(payload, event)
+    return _build_local_ai_assistant_response(payload, event)
+
+
+# ── MCP Agent endpoints ────────────────────────────────────────────────────────
+
+
+class AgentMeOut(BaseModel):
+    user_id: int
+    email: str
+    api_key_prefix: Optional[str] = None
+    scopes: List[str] = Field(default_factory=list)
+
+
+@app.get(
+    "/api/admin/mcp/me",
+    response_model=AgentMeOut,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def mcp_me(
+    Authorization: Optional[str] = FastAPIHeader(default=None),
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return current user identity and API key scopes. Used by MCP server to validate scope."""
+    scopes: List[str] = []
+    key_prefix: Optional[str] = None
+    token = (Authorization or "").split(" ", 1)[-1].strip()
+    if token.startswith("hc_live_"):
+        key_hash = _hash_api_key(token)
+        res = await db.execute(select(ApiKey).where(ApiKey.key_hash == key_hash, ApiKey.is_active.is_(True)))
+        api_key = res.scalar_one_or_none()
+        if api_key:
+            scopes = list(api_key.scopes or [])
+            key_prefix = api_key.key_prefix
+    return AgentMeOut(user_id=me.id, email=str(me.email), api_key_prefix=key_prefix, scopes=scopes)
+
+
+class AgentLogIn(BaseModel):
+    tool_name: str = Field(max_length=100)
+    event_id: Optional[int] = None
+    payload: Optional[Dict[str, Any]] = None
+    result_summary: Optional[str] = Field(default=None, max_length=500)
+    api_key_prefix: Optional[str] = Field(default=None, max_length=12)
+
+
+@app.post(
+    "/api/admin/mcp/agent-log",
+    status_code=201,
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def mcp_agent_log(
+    payload: AgentLogIn,
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Record an agent action in the audit trail."""
+    log = AgentActionLog(
+        user_id=me.id,
+        api_key_prefix=payload.api_key_prefix,
+        tool_name=payload.tool_name,
+        event_id=payload.event_id,
+        payload=payload.payload,
+        result_summary=payload.result_summary,
+        ip_address=_client_ip_for_rate_limit(request),
+    )
+    db.add(log)
+    await db.commit()
+    return {"ok": True}
+
+
+@app.get(
+    "/api/admin/mcp/agent-logs",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def list_agent_logs(
+    event_id: Optional[int] = None,
+    tool_name: Optional[str] = None,
+    limit: int = 50,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List recent agent (MCP) actions for this account."""
+    q = select(AgentActionLog).where(AgentActionLog.user_id == me.id)
+    if event_id:
+        q = q.where(AgentActionLog.event_id == event_id)
+    if tool_name:
+        q = q.where(AgentActionLog.tool_name == tool_name)
+    q = q.order_by(AgentActionLog.created_at.desc()).limit(min(limit, 200))
+    rows = (await db.execute(q)).scalars().all()
+    return [
+        {
+            "id": r.id,
+            "tool_name": r.tool_name,
+            "event_id": r.event_id,
+            "api_key_prefix": r.api_key_prefix,
+            "payload": r.payload,
+            "result_summary": r.result_summary,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        }
+        for r in rows
+    ]
+
+
+# ── Attendee CRUD (for agent use) ──────────────────────────────────────────────
+
+
+class AttendeeUpdateIn(BaseModel):
+    first_name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    last_name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    email: Optional[EmailStr] = None
+
+
+@app.patch(
+    "/api/admin/events/{event_id}/attendees/{attendee_id}",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+)
+async def update_attendee(
+    event_id: int,
+    attendee_id: int,
+    payload: AttendeeUpdateIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_event_for_admin(event_id, me, db, "attendees:write")
+    res = await db.execute(select(Attendee).where(Attendee.id == attendee_id, Attendee.event_id == event_id))
+    attendee = res.scalar_one_or_none()
+    if not attendee:
+        raise HTTPException(status_code=404, detail="Attendee not found")
+    if payload.first_name is not None or payload.last_name is not None:
+        first = payload.first_name or (attendee.name or "").split(" ", 1)[0]
+        last = payload.last_name or (" ".join((attendee.name or "").split(" ")[1:]) or "")
+        attendee.name = f"{first} {last}".strip()
+    if payload.email is not None:
+        attendee.email = str(payload.email).strip().lower()
+    await db.commit()
+    await db.refresh(attendee)
+    return {"id": attendee.id, "name": attendee.name, "email": attendee.email}
+
+
+
+# ── Certificate revoke (for agent use) ─────────────────────────────────────────
+
+
+@app.post(
+    "/api/admin/certificates/{cert_id}/revoke",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def revoke_certificate(
+    cert_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    res = await db.execute(select(Certificate).where(Certificate.id == cert_id))
+    cert = res.scalar_one_or_none()
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+    ev = await _get_event_for_admin(cert.event_id, me, db, "certificates:write")
+    if cert.status == CertStatus.revoked:
+        raise HTTPException(status_code=409, detail="Certificate is already revoked")
+    cert.status = CertStatus.revoked
+    await db.commit()
+    return {"id": cert.id, "status": "revoked"}
 
 
 def _event_team_invite_url(token: str) -> str:
@@ -20560,6 +20815,13 @@ app.include_router(_api_keys_ext_api.router)
 
 from . import accreditation_api as _accreditation_api  # noqa: E402
 app.include_router(_accreditation_api.router)
+
+# ── MCP hosted endpoint (/mcp) ─────────────────────────────────────────────────
+# Agents connect to https://yourapp.com/mcp with Authorization: Bearer hc_live_...
+# Each request is authenticated per-user via the MCP server's Context-based auth.
+from . import mcp_server as _mcp_server_module  # noqa: E402
+
+app.mount("/mcp", _mcp_server_module.mcp.streamable_http_app())
 
 
 async def _maybe_log_cpd(

@@ -1,0 +1,1 @@
+"""HeptaCert CLI — hc"""
