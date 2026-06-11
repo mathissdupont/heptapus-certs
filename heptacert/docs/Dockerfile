@@ -5,8 +5,10 @@ RUN npm install --frozen-lockfile 2>/dev/null || npm install
 
 FROM node:20-alpine AS builder
 WORKDIR /app
+RUN apk add --no-cache git
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+RUN git init -q
 RUN npm run build
 
 FROM node:20-alpine AS runner
