@@ -8930,11 +8930,12 @@ async def openapi_actions_schema():
         # Slim request body schemas
         if "requestBody" in slim:
             slim["requestBody"] = _slim_schema(slim["requestBody"])
-        # Slim parameters
+        # Slim parameters — drop Authorization header (ChatGPT manages auth separately)
         if "parameters" in slim:
             slim["parameters"] = [
                 {k: v for k, v in p.items() if k not in ("description", "example")}
                 for p in slim["parameters"]
+                if not (p.get("in") == "header" and p.get("name", "").lower() == "authorization")
             ]
         if "operationId" not in slim:
             slim["operationId"] = f"{method}_{path.replace('/', '_').strip('_')}"
