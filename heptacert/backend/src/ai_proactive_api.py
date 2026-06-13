@@ -25,7 +25,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from .main import (
     Base, CurrentUser, Event, Role,
-    get_current_user, get_db, require_role, send_email, settings,
+    get_current_user, get_db, require_role, send_email_async, settings,
 )
 
 logger = logging.getLogger(__name__)
@@ -331,7 +331,7 @@ async def trigger_digest(
     # Try to send email
     try:
         subject = f"HeptaCert Haftalık Özet — {week_start.strftime('%d %B %Y')}"
-        await send_email(to=str(me.email), subject=subject, html_body=html)
+        await send_email_async(to=str(me.email), subject=subject, html_body=html)
         if existing:
             existing.status = "sent"
             existing.sent_at = datetime.now(timezone.utc)
@@ -409,7 +409,7 @@ async def run_weekly_digest(
 
             html = await _build_digest_html(str(user.email), summaries)
             subject = f"HeptaCert Haftalık Özet — {week_start.strftime('%d %B %Y')}"
-            await send_email(to=str(user.email), subject=subject, html_body=html)
+            await send_email_async(to=str(user.email), subject=subject, html_body=html)
 
             db.add(AIDigestJob(
                 user_id=user.id,
