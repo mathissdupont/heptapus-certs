@@ -332,10 +332,25 @@ export default function OAuthConsentClient() {
                 </ul>
               )}
 
-              <p className="mt-4 text-center text-11 text-slate-400">
+              {/* KVKK Aydınlatma */}
+              <div className="mt-4 rounded-lg border border-slate-100 bg-slate-50 px-3 py-3 text-11 text-slate-500">
+                <p className="font-semibold text-slate-700">KVKK Aydınlatma Metni</p>
+                <p className="mt-1 leading-relaxed">
+                  6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında bilginize sunarız:{" "}
+                  <span className="font-medium text-slate-700">{client.client_name}</span> uygulamasına yalnızca{" "}
+                  <span className="font-medium text-slate-700">e-posta adresiniz</span> aktarılacaktır.
+                  Telefon, adres veya ödeme bilgisi gibi diğer kişisel verileriniz paylaşılmaz.
+                  Bu erişim iznini istediğiniz zaman{" "}
+                  <a href="/admin/integrations" className="font-medium text-slate-700 underline" target="_blank">
+                    Entegrasyonlar
+                  </a>{" "}
+                  sayfasından kaldırabilirsiniz.
+                </p>
+              </div>
+
+              <p className="mt-3 text-center text-11 text-slate-400">
                 İzin verdiğinizde bu oturum{" "}
                 <span className="font-medium">30 gün</span> geçerli olur.
-                Dilediğiniz zaman Admin Panel → Ayarlar bölümünden iptal edebilirsiniz.
               </p>
             </div>
 

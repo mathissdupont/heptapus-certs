@@ -49,7 +49,7 @@ router = APIRouter()
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 
-ACCESS_TOKEN_MINUTES  = 60          # short-lived JWT
+ACCESS_TOKEN_MINUTES  = 60          # short-lived JWT (revocation is handled via DB check in get_current_user)
 REFRESH_TOKEN_DAYS    = 30          # long-lived opaque token
 AUTH_CODE_MINUTES     = 10          # one-time auth code window
 
@@ -128,14 +128,15 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _make_access_token(*, user_id: int, role: str, scopes: list[str]) -> str:
+def _make_access_token(*, user_id: int, role: str, scopes: list[str], client_id: str) -> str:
     now = _now()
     payload = {
-        "sub": str(user_id),
-        "role": role,
-        "scope": " ".join(scopes),
-        "iat": int(now.timestamp()),
-        "exp": now + timedelta(minutes=ACCESS_TOKEN_MINUTES),
+        "sub":       str(user_id),
+        "role":      role,
+        "scope":     " ".join(scopes),
+        "client_id": client_id,          # allows instant revocation check in get_current_user
+        "iat":       int(now.timestamp()),
+        "exp":       now + timedelta(minutes=ACCESS_TOKEN_MINUTES),
     }
     return pyjwt.encode(payload, settings.jwt_secret, algorithm="HS256")
 
@@ -325,6 +326,7 @@ async def token_endpoint(
             user_id=user.id,
             role=user.role.value if hasattr(user.role, "value") else str(user.role),
             scopes=code_rec.scopes,
+            client_id=code_rec.client_id,
         )
         raw_refresh   = secrets.token_urlsafe(48)
         db.add(OAuthRefreshToken(
@@ -377,6 +379,7 @@ async def token_endpoint(
             user_id=user.id,
             role=user.role.value if hasattr(user.role, "value") else str(user.role),
             scopes=rt_rec.scopes,
+            client_id=rt_rec.client_id,
         )
         return {
             "access_token": access_token,
@@ -538,6 +541,20 @@ async def revoke_all_tokens_for_client(
     )
     await db.commit()
     return {"client_id": client_id, "tokens_revoked": True}
+
+
+@router.get("/api/oauth/userinfo", tags=["oauth"])
+async def oauth_userinfo(
+    me: CurrentUser = Depends(get_current_user),
+) -> dict:
+    """
+    Standard OIDC userinfo endpoint.
+    Returns ONLY sub + email — no extra PII — to comply with KVKK data minimisation.
+    """
+    return {
+        "sub":   str(me.id),
+        "email": str(me.email),
+    }
 
 
 class MyConnectionOut(BaseModel):

@@ -5183,6 +5183,21 @@ async def get_current_user(db: AsyncSession = Depends(get_db), Authorization: Op
     except (JWTError, ValueError, TypeError):
         raise HTTPException(status_code=401, detail="Invalid token")
 
+    # OAuth access token: instantly reject if user disconnected (refresh token revoked)
+    oauth_client_id = payload.get("client_id")
+    if oauth_client_id:
+        from sqlalchemy import text as _sa_text
+        active_rt = (await db.execute(
+            _sa_text(
+                "SELECT 1 FROM oauth_refresh_tokens "
+                "WHERE user_id = :uid AND client_id = :cid AND revoked = false AND expires_at > now() "
+                "LIMIT 1"
+            ),
+            {"uid": user_id, "cid": oauth_client_id},
+        )).scalar()
+        if not active_rt:
+            raise HTTPException(status_code=401, detail="OAuth session revoked")
+
     from .cache import cache, USER_TTL
     cached_user = await cache.get(f"user:{user_id}")
     if cached_user:
