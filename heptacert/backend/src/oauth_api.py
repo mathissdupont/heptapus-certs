@@ -538,3 +538,73 @@ async def revoke_all_tokens_for_client(
     )
     await db.commit()
     return {"client_id": client_id, "tokens_revoked": True}
+
+
+class MyConnectionOut(BaseModel):
+    client_id:   str
+    name:        str
+    logo_url:    Optional[str]
+    scopes:      list[str]
+    connected_at: str
+
+
+@router.get(
+    "/api/admin/me/oauth-connections",
+    response_model=list[MyConnectionOut],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    tags=["oauth"],
+)
+async def list_my_oauth_connections(
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[MyConnectionOut]:
+    """List OAuth clients the current user has granted access to."""
+    rows = (await db.execute(
+        select(OAuthRefreshToken, OAuthClient)
+        .join(OAuthClient, OAuthClient.client_id == OAuthRefreshToken.client_id)
+        .where(
+            OAuthRefreshToken.user_id  == me.id,
+            OAuthRefreshToken.revoked.is_(False),
+            OAuthRefreshToken.expires_at > _now(),
+        )
+        .order_by(OAuthRefreshToken.created_at.desc())
+    )).all()
+
+    seen: set[str] = set()
+    result: list[MyConnectionOut] = []
+    for rt, client in rows:
+        if client.client_id in seen:
+            continue
+        seen.add(client.client_id)
+        result.append(MyConnectionOut(
+            client_id    = client.client_id,
+            name         = client.name,
+            logo_url     = client.logo_url,
+            scopes       = rt.scopes or [],
+            connected_at = rt.created_at.isoformat(),
+        ))
+    return result
+
+
+@router.delete(
+    "/api/oauth/disconnect/{client_id}",
+    tags=["oauth"],
+)
+async def disconnect_my_oauth(
+    client_id: str,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Revoke the calling user's refresh tokens for a specific client. Allows re-auth with a different account."""
+    from sqlalchemy import update as sa_update
+    result = await db.execute(
+        sa_update(OAuthRefreshToken)
+        .where(
+            OAuthRefreshToken.client_id == client_id,
+            OAuthRefreshToken.user_id   == me.id,
+            OAuthRefreshToken.revoked.is_(False),
+        )
+        .values(revoked=True)
+    )
+    await db.commit()
+    return {"disconnected": True, "tokens_revoked": result.rowcount}

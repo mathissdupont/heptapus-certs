@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Copy, CheckCircle2, AlertTriangle, ToggleLeft, ToggleRight, Pencil, X, Check } from "lucide-react";
+import { Plus, Trash2, Copy, CheckCircle2, AlertTriangle, ToggleLeft, ToggleRight, Pencil, X, Check, LogOut } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 
 type OAuthClient = {
@@ -281,8 +281,9 @@ export default function OAuthClientsPage() {
   const [clients, setClients]       = useState<OAuthClient[]>([]);
   const [loading, setLoading]       = useState(true);
   const [newSecret, setNewSecret]   = useState<NewSecret | null>(null);
-  const [revoking, setRevoking]     = useState<string | null>(null);
-  const [editingUris, setEditingUris] = useState<string | null>(null);
+  const [revoking, setRevoking]         = useState<string | null>(null);
+  const [disconnecting, setDisconnecting] = useState<string | null>(null);
+  const [editingUris, setEditingUris]   = useState<string | null>(null);
 
   async function loadClients() {
     try {
@@ -315,6 +316,16 @@ export default function OAuthClientsPage() {
       alert("Tüm tokenlar iptal edildi.");
     } catch { /* ignore */ } finally {
       setRevoking(null);
+    }
+  }
+
+  async function disconnectMyAccount(clientId: string) {
+    setDisconnecting(clientId);
+    try {
+      await apiFetch(`/oauth/disconnect/${clientId}`, { method: "DELETE" });
+      alert("Kendi bağlantın kesildi. Artık farklı bir hesapla giriş yapabilirsin.");
+    } catch { /* ignore */ } finally {
+      setDisconnecting(null);
     }
   }
 
@@ -401,6 +412,15 @@ export default function OAuthClientsPage() {
                     </button>
                     <button
                       type="button"
+                      onClick={() => disconnectMyAccount(c.client_id)}
+                      disabled={disconnecting === c.client_id}
+                      title="Kendi bağlantımı kes (farklı hesapla test için)"
+                      className="rounded-lg p-2 text-slate-400 hover:bg-amber-50 hover:text-amber-600 disabled:opacity-40"
+                    >
+                      <LogOut className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => toggleActive(c)}
                       title={c.is_active ? "Pasif yap" : "Aktif yap"}
                       className="rounded-lg p-2 text-slate-400 hover:bg-slate-50 hover:text-slate-700"
@@ -414,7 +434,7 @@ export default function OAuthClientsPage() {
                       type="button"
                       onClick={() => revokeTokens(c.client_id)}
                       disabled={revoking === c.client_id}
-                      title="Tüm tokenları iptal et"
+                      title="Tüm tokenları iptal et (herkesi çıkar)"
                       className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
                     >
                       <Trash2 className="h-4 w-4" />

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   Bell,
+  Bot,
   CalendarDays,
   Check,
   Database,
@@ -11,6 +12,7 @@ import {
   FileSpreadsheet,
   KeyRound,
   Loader2,
+  LogOut,
   MessageSquare,
   Plug,
   RefreshCw,
@@ -51,7 +53,16 @@ import {
   type OidcSsoConfig,
   type WebinarImportConfig,
 } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+
+type MyOAuthConnection = {
+  client_id:    string;
+  name:         string;
+  logo_url:     string | null;
+  scopes:       string[];
+  connected_at: string;
+};
 
 type IntegrationStatus = "loading" | "connected" | "disconnected" | "not_configured" | "error";
 type NotificationChannelKey = "slack" | "teams" | "custom";
@@ -370,6 +381,26 @@ export default function AdminIntegrationsPage() {
   const [providerForms, setProviderForms] = useState<Record<GenericProviderKey, GenericProviderConfig>>(() =>
     providerKeys.reduce((acc, key) => ({ ...acc, [key]: emptyProviderConfig(key) }), {} as Record<GenericProviderKey, GenericProviderConfig>),
   );
+  const [myConnections, setMyConnections]       = useState<MyOAuthConnection[]>([]);
+  const [disconnecting, setDisconnecting]       = useState<string | null>(null);
+
+  const loadMyConnections = async () => {
+    try {
+      const res = await apiFetch<Response>("/admin/me/oauth-connections");
+      const data = await res.json() as MyOAuthConnection[];
+      setMyConnections(data);
+    } catch { /* ignore */ }
+  };
+
+  const handleDisconnect = async (clientId: string) => {
+    setDisconnecting(clientId);
+    try {
+      await apiFetch(`/oauth/disconnect/${clientId}`, { method: "DELETE" });
+      await loadMyConnections();
+    } catch { /* ignore */ } finally {
+      setDisconnecting(null);
+    }
+  };
 
   const load = async () => {
     try {
@@ -398,6 +429,7 @@ export default function AdminIntegrationsPage() {
 
   useEffect(() => {
     void load();
+    void loadMyConnections();
   }, []);
 
   useEffect(() => {
@@ -592,6 +624,49 @@ export default function AdminIntegrationsPage() {
           </div>
         </div>
       </div>
+
+      {myConnections.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-surface-400">
+            {isTr ? "Bağlı AI Asistanlar" : "Connected AI Assistants"}
+          </h2>
+          <div className="grid gap-3 lg:grid-cols-2">
+            {myConnections.map((conn) => (
+              <div key={conn.client_id} className="card flex items-start justify-between gap-4 p-4 ring-1 ring-emerald-100">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-surface-200 bg-white text-surface-700">
+                    {conn.logo_url
+                      ? <img src={conn.logo_url} alt={conn.name} className="h-7 w-7 rounded object-contain" />
+                      : <Bot className="h-5 w-5" />
+                    }
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-surface-900">{conn.name}</p>
+                    <p className="mt-0.5 font-mono text-10 text-surface-400">{conn.client_id}</p>
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {conn.scopes.map((s) => (
+                        <span key={s} className="rounded-full border border-surface-200 bg-surface-50 px-2 py-0.5 text-10 text-surface-500">{s}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void handleDisconnect(conn.client_id)}
+                  disabled={disconnecting === conn.client_id}
+                  title={isTr ? "Bağlantıyı kes" : "Disconnect"}
+                  className="shrink-0 rounded-lg border border-surface-200 p-2 text-surface-400 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40"
+                >
+                  {disconnecting === conn.client_id
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <LogOut className="h-4 w-4" />
+                  }
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="space-y-3">
         <h2 className="text-xs font-bold uppercase tracking-widest text-surface-400">{isTr ? "Canli baglantilar" : "Live connectors"}</h2>
