@@ -20778,6 +20778,12 @@ app.include_router(_notification_integrations_api.router)
 from . import oauth_api as _oauth_api
 app.include_router(_oauth_api.router)
 
+from . import ai_content_api as _ai_content_api
+app.include_router(_ai_content_api.router)
+
+from . import ai_proactive_api as _ai_proactive_api
+app.include_router(_ai_proactive_api.router)
+
 
 # ── Background job status dashboard ──────────────────────────────────────────
 

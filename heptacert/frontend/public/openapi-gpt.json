@@ -1,0 +1,361 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "HeptaCert API",
+    "description": "End-to-end event management: create events, manage attendees, run QR check-in, issue certificates, trigger automation, and view analytics.",
+    "version": "1.0.0"
+  },
+  "servers": [{ "url": "https://heptacert.com" }],
+  "security": [{ "bearerAuth": [] }],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "paths": {
+    "/api/admin/events": {
+      "get": {
+        "operationId": "listEvents",
+        "summary": "List all events",
+        "parameters": [
+          { "name": "search", "in": "query", "schema": { "type": "string" }, "description": "Filter by event name" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": { "200": { "description": "List of events" } }
+      },
+      "post": {
+        "operationId": "createEvent",
+        "summary": "Create a new event",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string", "description": "Event name" },
+                  "event_date": { "type": "string", "format": "date", "description": "YYYY-MM-DD" },
+                  "event_description": { "type": "string" },
+                  "event_location": { "type": "string" },
+                  "event_type": {
+                    "type": "string",
+                    "enum": ["certificate_event", "seminar", "workshop", "conference", "training", "online_event"],
+                    "default": "certificate_event"
+                  },
+                  "certificate_enabled": { "type": "boolean", "default": true },
+                  "registration_enabled": { "type": "boolean", "default": true },
+                  "checkin_enabled": { "type": "boolean", "default": true },
+                  "ticketing_enabled": { "type": "boolean", "default": false },
+                  "visibility": { "type": "string", "enum": ["private", "public"], "default": "private" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Created event with numeric id" } }
+      }
+    },
+    "/api/admin/events/{event_id}": {
+      "get": {
+        "operationId": "getEvent",
+        "summary": "Get full details of an event",
+        "parameters": [{ "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Event object" } }
+      },
+      "patch": {
+        "operationId": "updateEvent",
+        "summary": "Update event fields. Use registration_closed=true/false to open or close registration.",
+        "parameters": [{ "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "event_date": { "type": "string", "format": "date" },
+                  "event_description": { "type": "string" },
+                  "event_location": { "type": "string" },
+                  "visibility": { "type": "string", "enum": ["private", "public"] },
+                  "registration_closed": { "type": "boolean" },
+                  "certificate_enabled": { "type": "boolean" },
+                  "checkin_enabled": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Updated event" } }
+      }
+    },
+    "/api/admin/events/{event_id}/health": {
+      "get": {
+        "operationId": "getEventStats",
+        "summary": "Get event statistics: attendee count, check-in count, certificates issued, tickets sold",
+        "parameters": [{ "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Stats object" } }
+      }
+    },
+    "/api/admin/events/{event_id}/analytics": {
+      "get": {
+        "operationId": "getEventAnalytics",
+        "summary": "Get detailed analytics for an event (registrations over time, check-in rate, certificate rate)",
+        "parameters": [{ "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Analytics data" } }
+      }
+    },
+    "/api/admin/events/{event_id}/attendees": {
+      "get": {
+        "operationId": "listAttendees",
+        "summary": "List attendees for an event",
+        "parameters": [
+          { "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "search", "in": "query", "schema": { "type": "string" }, "description": "Filter by name or email" },
+          { "name": "checked_in", "in": "query", "schema": { "type": "boolean" } },
+          { "name": "has_certificate", "in": "query", "schema": { "type": "boolean" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 50 } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 } }
+        ],
+        "responses": { "200": { "description": "Attendee list" } }
+      },
+      "post": {
+        "operationId": "addAttendee",
+        "summary": "Add a single attendee to an event",
+        "parameters": [{ "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "email": { "type": "string", "format": "email" },
+                  "company": { "type": "string" },
+                  "job_title": { "type": "string" },
+                  "phone": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Created attendee" } }
+      }
+    },
+    "/api/admin/events/{event_id}/attendees/{attendee_id}": {
+      "patch": {
+        "operationId": "updateAttendee",
+        "summary": "Update attendee fields",
+        "parameters": [
+          { "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "attendee_id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "email": { "type": "string" },
+                  "company": { "type": "string" },
+                  "job_title": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Updated attendee" } }
+      },
+      "delete": {
+        "operationId": "removeAttendee",
+        "summary": "Remove an attendee from an event",
+        "parameters": [
+          { "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "attendee_id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Deleted" } }
+      }
+    },
+    "/api/admin/events/{event_id}/sessions": {
+      "get": {
+        "operationId": "listSessions",
+        "summary": "List sessions (sub-tracks) for an event",
+        "parameters": [{ "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Session list" } }
+      },
+      "post": {
+        "operationId": "createSession",
+        "summary": "Create a session within an event",
+        "parameters": [{ "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "start_time": { "type": "string" },
+                  "end_time": { "type": "string" },
+                  "location": { "type": "string" },
+                  "capacity": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Created session with id" } }
+      }
+    },
+    "/api/admin/events/{event_id}/checkin-lookup": {
+      "get": {
+        "operationId": "checkinLookup",
+        "summary": "Look up an attendee by name, email, or QR code before checking in",
+        "parameters": [
+          { "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "query", "in": "query", "required": true, "schema": { "type": "string" }, "description": "Name, email, or QR code value" }
+        ],
+        "responses": { "200": { "description": "Matching attendees" } }
+      }
+    },
+    "/api/admin/events/{event_id}/sessions/{session_id}/checkin": {
+      "post": {
+        "operationId": "manualCheckin",
+        "summary": "Manually check in an attendee to a session",
+        "parameters": [
+          { "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "session_id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["attendee_id"],
+                "properties": {
+                  "attendee_id": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Check-in record" } }
+      }
+    },
+    "/api/admin/events/{event_id}/attendance": {
+      "get": {
+        "operationId": "getAttendanceSummary",
+        "summary": "Get attendance summary: total registered, checked-in count, check-in rate per session",
+        "parameters": [{ "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Attendance summary" } }
+      }
+    },
+    "/api/admin/events/{event_id}/certificates": {
+      "get": {
+        "operationId": "listCertificates",
+        "summary": "List certificates for an event",
+        "parameters": [
+          { "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["issued", "revoked", "pending"] } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 50 } }
+        ],
+        "responses": { "200": { "description": "Certificate list" } }
+      },
+      "post": {
+        "operationId": "issueCertificates",
+        "summary": "Issue certificates to attendees. Leave attendee_ids empty to issue to all eligible attendees.",
+        "parameters": [{ "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "attendee_ids": {
+                    "type": "array",
+                    "items": { "type": "integer" },
+                    "description": "Specific attendee IDs, or empty array to issue to all"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Issue result with count" } }
+      }
+    },
+    "/api/admin/certificates/{cert_id}/revoke": {
+      "post": {
+        "operationId": "revokeCertificate",
+        "summary": "Revoke a specific certificate by its ID",
+        "parameters": [{ "name": "cert_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Revoked" } }
+      }
+    },
+    "/api/admin/events/{event_id}/automations": {
+      "get": {
+        "operationId": "listAutomationRules",
+        "summary": "List automation rules for an event (e.g. send email when registered)",
+        "parameters": [{ "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Automation rules" } }
+      },
+      "post": {
+        "operationId": "createAutomationRule",
+        "summary": "Create an automation rule. Trigger: registration_confirmed, checked_in, certificate_issued. Action: send_email.",
+        "parameters": [{ "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["trigger", "action_type"],
+                "properties": {
+                  "trigger": {
+                    "type": "string",
+                    "enum": ["registration_confirmed", "checked_in", "certificate_issued"]
+                  },
+                  "action_type": { "type": "string", "enum": ["send_email"] },
+                  "email_subject": { "type": "string" },
+                  "email_body": { "type": "string" },
+                  "is_active": { "type": "boolean", "default": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Created rule" } }
+      }
+    },
+    "/api/admin/organization/settings": {
+      "get": {
+        "operationId": "getOrganizationSettings",
+        "summary": "Get organization name, logo, contact info, and platform settings",
+        "responses": { "200": { "description": "Organization settings" } }
+      }
+    },
+    "/api/admin/crm/contacts": {
+      "get": {
+        "operationId": "searchContacts",
+        "summary": "Search contacts/attendees across all events by name or email",
+        "parameters": [
+          { "name": "search", "in": "query", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": { "200": { "description": "Contact list" } }
+      }
+    }
+  }
+}
