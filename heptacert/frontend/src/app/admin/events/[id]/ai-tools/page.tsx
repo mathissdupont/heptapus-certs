@@ -384,7 +384,7 @@ export default function AIToolsPage() {
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
         <PageHeader
           title="AI Araçları"
-          description="Claude AI ile etkinliğiniz için içerik ve form oluşturun."
+          subtitle="Claude AI ile etkinliğiniz için içerik ve form oluşturun."
           icon={<Sparkles className="h-5 w-5" />}
         />
 
