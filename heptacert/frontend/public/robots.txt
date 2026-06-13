@@ -1,0 +1,24 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+# AI crawlers — platform overview
+User-agent: GPTBot
+Allow: /
+Allow: /llms.txt
+Allow: /discover
+Allow: /events
+Allow: /organizations
+Allow: /marketplace
+Allow: /verify
+Allow: /developers
+
+User-agent: Claude-Web
+Allow: /
+Allow: /llms.txt
+
+User-agent: PerplexityBot
+Allow: /
+
+Sitemap: https://heptacert.com/sitemap.xml

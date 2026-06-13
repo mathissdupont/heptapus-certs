@@ -1,7 +1,7 @@
 {
-  "name": "HeptaCert",
+  "name": "HeptaCert — Etkinlik Yönetim Platformu",
   "short_name": "HeptaCert",
-  "description": "Etkinlik, check-in ve sertifika yönetimi.",
+  "description": "Kayıt formları, QR check-in, otomatik sertifika, e-posta kampanyaları ve CRM — etkinliğin tüm akışı tek platformda.",
   "start_url": "/discover",
   "scope": "/",
   "display": "standalone",

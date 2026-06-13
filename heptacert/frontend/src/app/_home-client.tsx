@@ -55,7 +55,7 @@ type StatsData = {
   certs_issued?: string;
 };
 
-const HOSTS = new Set(["heptacert.com", "www.heptacert.com", "cert.heptapusgroup.com", "localhost", "127.0.0.1"]);
+const HOSTS = new Set(["heptacert.com", "www.heptacert.com", "localhost", "127.0.0.1"]);
 
 // ── Premium Light Minimalist Hero ───────────────────────────────────────
 function ParallaxHero({ children }: { children: React.ReactNode }) {
@@ -320,11 +320,11 @@ export default function LandingPage() {
     () =>
       lang === "tr"
         ? {
-            eyebrow: "Etkinlik, sertifika ve topluluk yönetimi",
+            eyebrow: "Uçtan uca etkinlik yönetim platformu",
             heroLine1: "Organizatörlerin",
             heroLine2: "ihtiyaç duyduğu",
             heroLine3: "her şey.",
-            heroDesc: "Kayıt formlarından QR yoklamaya, doğrulanabilir sertifikadan e-posta kampanyasına — hepsi tek platformda, ekstra karmaşa olmadan.",
+            heroDesc: "Kayıt formlarından QR yoklamaya, otomatik sertifikadan e-posta kampanyasına, CRM'den analitiğe — etkinliğin tüm akışı tek platformda.",
             primaryBtn: "Ücretsiz Başla",
             secondaryBtn: "Etkinlikleri Keşfet",
             statsUsers: "Aktif Üye",
@@ -336,10 +336,10 @@ export default function LandingPage() {
             features: [
               { title: "Kayıt & Form Yönetimi", desc: "Özel kayıt formları, onay akışları, belge yüklemeleri ve katılımcı listeleri." },
               { title: "QR Yoklama & Oturum", desc: "Oturum bazlı QR check-in, canlı operasyon ekranı ve kapı kontrolü." },
-              { title: "Doğrulanabilir Sertifika", desc: "Katılımcılar sertifikalarını paylaşır, herkes anında doğrulayabilir." },
-              { title: "E-posta Kampanyası", desc: "Toplu e-posta gönderimi, şablonlar, otomasyonlar ve açılma takibi." },
-              { title: "Topluluk & Keşif", desc: "Etkinlik sayfaları, topluluk akışı ve organizasyon profilleri." },
-              { title: "Analitik & Raporlama", desc: "Katılım oranları, sertifika sağlığı ve etkinlik bazında detaylı istatistikler." },
+              { title: "Otomatik Sertifika", desc: "Yoklama, quiz veya öğrenme yolu tamamlandığında sertifika anında üretilir ve doğrulanabilir." },
+              { title: "E-posta & Otomasyon", desc: "Toplu e-posta, drip sekanslar, tetikleyici otomasyonlar ve açılma takibi." },
+              { title: "CRM & Lead Yönetimi", desc: "Kişi ve şirket profilleri, fırsat pipeline'ı, aktivite zaman çizelgesi ve embed formlar." },
+              { title: "Analitik & Raporlama", desc: "Katılım oranları, e-posta performansı, CRM hunisi ve zamanlanmış PDF raporları." },
             ],
             forLabel: "Kimler için?",
             forTitle: "Her ölçekte organizatör için",
@@ -355,11 +355,11 @@ export default function LandingPage() {
             ctaSecondary: "Fiyatlandırma",
           }
         : {
-            eyebrow: "Event, certificate & community management",
+            eyebrow: "End-to-end event management platform",
             heroLine1: "Everything",
             heroLine2: "event teams",
             heroLine3: "actually need.",
-            heroDesc: "From registration forms to QR check-in, verifiable credentials to email campaigns — one platform, no extra chaos.",
+            heroDesc: "From registration forms to QR check-in, automatic certificates to email campaigns, CRM to analytics — the full event workflow in one platform.",
             primaryBtn: "Start Free",
             secondaryBtn: "Explore Events",
             statsUsers: "Active Members",
@@ -371,10 +371,10 @@ export default function LandingPage() {
             features: [
               { title: "Registration & Forms", desc: "Custom registration forms, approvals, document uploads and attendee lists." },
               { title: "QR Check-in & Sessions", desc: "Session-level QR attendance, live ops screen, and gate control." },
-              { title: "Verifiable Certificates", desc: "Participants share credentials; anyone can verify authenticity instantly." },
-              { title: "Email Campaigns", desc: "Bulk email, templates, automations, and open-rate tracking." },
-              { title: "Community & Discovery", desc: "Event pages, community feed, and organization profiles." },
-              { title: "Analytics & Reporting", desc: "Attendance rates, certificate health, and per-event statistics." },
+              { title: "Automated Certificates", desc: "Certificates issued automatically on attendance, quiz pass, or learning path completion — publicly verifiable." },
+              { title: "Email & Automation", desc: "Bulk email, drip sequences, trigger-based automations, and open-rate tracking." },
+              { title: "CRM & Lead Capture", desc: "Contact and company profiles, deal pipeline, activity timeline, and embeddable lead forms." },
+              { title: "Analytics & Reporting", desc: "Attendance rates, email performance, CRM funnel, and scheduled PDF reports." },
             ],
             forLabel: "Who is it for?",
             forTitle: "For organizers of every scale",

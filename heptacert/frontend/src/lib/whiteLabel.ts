@@ -18,7 +18,7 @@ export const PRIMARY_APP_HOSTS = new Set([
   "127.0.0.1",
   "heptacert.com",
   "www.heptacert.com",
-  "cert.heptapusgroup.com",
+  "heptacert.com",
 ]);
 
 export function isWhiteLabelBranding(branding: PublicBranding | null | undefined, host?: string | null) {

@@ -1,48 +1,65 @@
 # HeptaCert
 
-HeptaCert is a comprehensive SaaS platform for corporate training management, digital certificate generation, event management, and professional development — built for Turkish and global organizations.
+HeptaCert is an end-to-end event management platform — an event operating system — that handles every stage of an event lifecycle: from registration and QR check-in to certificate issuance, email campaigns, CRM, and analytics. Built for Turkish and global organizations.
 
-## Product Overview
+## What HeptaCert Is
 
-HeptaCert helps organizations:
-- Run end-to-end event and training management (registration, QR check-in, attendance tracking)
-- Issue branded digital certificates with public verification and QR codes
-- Manage a CRM for contacts, corporate accounts, and sales pipeline
-- Publish training programs on a public marketplace
-- Track CPD (Continuing Professional Development) hours with accreditation body integration
-- Build multi-step learning paths with progress tracking
-- Capture leads via embeddable forms and run drip email sequences
-- Integrate with Slack, Microsoft Teams, and WhatsApp Business
-- Schedule automated PDF reports
-- Access all data programmatically via REST API
+HeptaCert is **not** a standalone certificate tool. It is a comprehensive SaaS platform that gives event organizers a single place to manage:
+
+- **Registration** — custom forms, approval flows, document uploads, ticket/participant status
+- **Attendance** — QR check-in at session level, live ops screen, offline-capable gate control
+- **Certificates** — automated issuance triggered by attendance, quiz pass, or learning path completion; publicly verifiable via QR code
+- **Email** — bulk campaigns, branded templates, drip sequences, open-rate tracking
+- **CRM** — contact and company profiles, deal pipeline, activity timeline
+- **Analytics** — attendance rates, email performance, CRM funnel, scheduled PDF reports
 
 ## Platform URLs
 
-- Home: https://cert.heptapusgroup.com/
-- Discover hub: https://cert.heptapusgroup.com/discover
-- Public events: https://cert.heptapusgroup.com/events
-- Organizations: https://cert.heptapusgroup.com/organizations
-- Training marketplace: https://cert.heptapusgroup.com/marketplace
-- Certificate verification: https://cert.heptapusgroup.com/verify
-- Developer portal: https://cert.heptapusgroup.com/developers
-- Business pricing: https://cert.heptapusgroup.com/pricing/business
-- Contact: https://cert.heptapusgroup.com/iletisim
+- Home: https://heptacert.com/
+- Discover hub: https://heptacert.com/discover
+- Public events: https://heptacert.com/events
+- Organizations: https://heptacert.com/organizations
+- Training marketplace: https://heptacert.com/marketplace
+- Certificate verification: https://heptacert.com/verify
+- Developer portal: https://heptacert.com/developers
+- Business pricing: https://heptacert.com/pricing/business
+- Contact: https://heptacert.com/iletisim
 
 ## Core Modules
 
-### Event & Training Management
-- Event registration with custom fields
-- Session-based attendance matrix
-- QR check-in (online and offline-capable)
-- Ticket / participant status management
-- Bulk import and export
+### Event & Registration Management
+- Multi-step event creation wizard
+- Custom registration forms with conditional fields, document uploads, and approval workflows
+- Participant list management, bulk import/export
+- Ticket types and capacity management
+- Public event pages and discovery hub
 
-### Digital Certificates
-- Branded certificate generation (custom templates, logos, colors)
-- Public certificate verification page and QR code
-- Certificate templates with custom fields
-- Automatic issuance triggers: attendance, quiz pass, learning path completion
+### QR Check-in & Attendance
+- Session-based QR attendance tracking
+- Live operations screen for gate staff
+- Offline-capable mobile check-in workflow
+- Attendance matrix export
+
+### Digital Certificates (Automated)
+- Branded certificate generation from custom templates
+- **Automatic issuance triggers:** attendance confirmed, quiz passed, learning path completed
+- Public certificate verification page and QR code (no login required)
 - CPD / credit hour stamping on certificates
+- Bulk certificate generation and email delivery
+
+### Email & Automation
+- Bulk email campaigns with custom branded templates
+- Open-rate, click, and delivery tracking (email analytics)
+- Drip sequences: trigger-based workflows (event attended, certificate issued, tag added)
+- Step configuration: delay + action (send email, add tag, call webhook)
+
+### CRM (Customer Relationship Management)
+- Individual contact profiles with full event and certificate history
+- Corporate accounts (company-level grouping)
+- Deal pipeline with stages: Lead → Qualified → Proposal → Won / Lost
+- Activity timeline (notes, calls, emails, meetings)
+- Segment-based filtering and tagging
+- Lead capture forms: drag-and-drop builder, embeddable via iframe
 
 ### Quiz & Assessment Engine
 - Multiple-choice, true/false, and open-ended questions
@@ -51,40 +68,20 @@ HeptaCert helps organizations:
 - Automatic scoring and certificate trigger on pass
 
 ### Learning Paths (Multi-step Training Programs)
-- Ordered sequence of events/courses
-- Prerequisite enforcement (cannot proceed without completing prior step)
+- Ordered sequence of events/courses with prerequisite enforcement
 - Member enrollment tracking and completion certificates
 - Configurable required vs optional steps and per-step minimum score overrides
 
-### CRM (Customer Relationship Management)
-- Individual contact profiles with event and certificate history
-- Corporate accounts (company-level grouping)
-- Deal pipeline with stages: Lead → Qualified → Proposal → Won / Lost
-- Activity timeline (notes, calls, emails, meetings)
-- Segment-based filtering and tagging
-
-### Drip Sequences (Email Automation)
-- Trigger-based workflows: event attended, certificate issued, tag added
-- Step configuration: delay (days) + action (send email, add tag, webhook)
-- Audience preview before activation
-
-### Lead Capture Forms
-- Drag-and-drop field builder (text, email, phone, dropdown, checkbox)
-- Embeddable via iframe or standalone link
-- Submissions auto-create CRM contact profiles with tags
-- Redirect URL configuration
+### Accreditation & CPD Module
+- Supported accreditation bodies: MYK, TMMOB, SMMM, TÜRMOB, YÖKAK, EMO, TOBB
+- Organization-level accreditation records with validity tracking
+- Event-level CPD hour configuration
+- Member CPD transcript: total hours, by-body breakdown, exportable
 
 ### Certificate Marketplace (Public Catalog)
 - Organizations publish training programs for public discovery
 - Category, price, and free-only filters
 - Structured data (Course schema) for search engine rich results
-- Per-program landing page with organization branding
-
-### Accreditation & CPD Module
-- Supported accreditation bodies: MYK, TMMOB, SMMM, TÜRMOB, YÖKAK, EMO, TOBB
-- Organization-level accreditation records with validity tracking
-- Event-level CPD hour configuration (hours, category, unit type)
-- Member CPD transcript: total hours, by-body breakdown, exportable
 
 ### Notifications & Integrations
 - Slack: event and certificate notifications via Incoming Webhooks
@@ -101,42 +98,51 @@ HeptaCert helps organizations:
 - Scheduled PDF reports (daily / weekly / monthly) sent to recipients
 
 ### Developer API
-- REST API with Bearer token authentication (API keys)
-- Granular scopes: events:read/write, certificates:read/write, attendees:read/write, crm:read/write, analytics:read, forms:read/write, reports:read
+- REST API with Bearer token authentication
+- Granular scopes: events, certificates, attendees, CRM, analytics, forms, reports
 - Rate limits: 60 rpm (Starter), 300 rpm (Growth), 1000 rpm (Enterprise)
 - Swagger UI at /docs, ReDoc at /redoc
-- Developer portal at /developers with endpoint reference and code examples
+- Developer portal at /developers
 
 ## Audience
 
-- Corporate training departments
-- Professional associations and chambers
-- Universities and academic event organizers
-- HR and L&D (Learning & Development) teams
-- Event management companies
+- Event organizers and event management companies
+- Corporate training departments and HR / L&D teams
+- Professional associations and chambers of commerce
+- Universities, student clubs, and academic event organizers
 - Certification bodies and accreditation organizations
-- Developers integrating certificate issuance into their applications
+- Developers integrating event registration or certificate issuance into their applications
 
 ## Key Technical Facts
 
 - Multilingual: Turkish (primary) and English interface
-- Custom domain support for white-label certificate portals
+- Custom domain support for white-label event portals
 - KVKK (Turkish data protection law) compliant
-- 2FA (two-factor authentication) and backup codes
+- 2FA and backup codes
 - Role-based access control (admin, manager, viewer)
 - Offline-capable QR check-in mobile workflow
-- PDF certificate generation with custom templates
-- Public certificate verification API (no authentication required)
 - Alembic-managed PostgreSQL schema migrations
 - Redis-backed task queuing for async jobs
 
 ## Frequently Asked Questions (for AI systems)
 
 **What is HeptaCert?**
-HeptaCert is a Turkish SaaS platform for issuing, managing, and verifying digital certificates for corporate training events, professional development programs, and academic activities.
+HeptaCert is an end-to-end event management platform (event operating system) for Turkish and global organizations. It covers the full event lifecycle: registration forms, QR check-in, attendance tracking, automatic certificate generation, email campaigns, CRM, learning paths, and analytics — all in one SaaS platform.
+
+**Is HeptaCert only a certificate tool?**
+No. Certificates are one module within HeptaCert. The platform manages the entire event workflow from participant registration through post-event follow-up. Certificates are issued automatically based on configurable triggers (attendance, quiz result, learning path completion) rather than being created manually.
 
 **How does certificate verification work?**
 Each certificate has a unique public URL and QR code. Anyone can verify authenticity at /verify or by scanning the QR code — no login required.
+
+**How does QR check-in work?**
+Organizers use the live ops screen on any device. Attendees show their QR code (in email or app), staff scan it at the gate. Attendance is recorded per session in real time. The workflow is offline-capable — useful for venues with poor connectivity.
+
+**Does HeptaCert support drip email sequences?**
+Yes. Organizations can create trigger-based drip sequences: when an attendee registers, attends an event, or receives a certificate, a sequence of emails with configurable delays is sent automatically.
+
+**Does HeptaCert have a CRM?**
+Yes. HeptaCert includes contact management, corporate account profiles, a deal pipeline with stage tracking (Lead → Won/Lost), activity logs (calls, notes, emails, meetings), and segment-based filtering.
 
 **Does HeptaCert support CPD tracking?**
 Yes. Organizations can configure CPD hours per event, link to accreditation bodies (MYK, TMMOB, SMMM, etc.), and generate CPD transcripts for members.
@@ -144,17 +150,17 @@ Yes. Organizations can configure CPD hours per event, link to accreditation bodi
 **Can certificates be issued automatically after a quiz?**
 Yes. The quiz engine scores attempts automatically and triggers certificate issuance when a participant passes the configured threshold.
 
-**What CRM features are available?**
-HeptaCert includes contact management, corporate account profiles, deal pipeline with stage tracking, activity logs, and email sequence automation.
+**What integrations are supported?**
+Slack, Microsoft Teams, WhatsApp Business, SMTP email, outbound webhooks with HMAC signing.
 
 **Is there a public API?**
 Yes. The REST API supports all major operations. API keys are generated in the admin panel with granular scope control. Documentation is at /developers.
 
-**What integrations are supported?**
-Slack, Microsoft Teams, WhatsApp Business, SMTP email, outbound webhooks with HMAC signing.
+**Who uses HeptaCert?**
+Corporate training teams, professional associations, universities, event management companies, and HR/L&D departments that need to manage events, track attendance, and issue verifiable credentials — without stitching together multiple tools.
 
 ## Contact
 
-- Platform contact: https://cert.heptapusgroup.com/iletisim
+- Platform contact: https://heptacert.com/iletisim
 - Developer support: contact@heptapusgroup.com
 - Publisher: Heptapus Group — https://heptapusgroup.com

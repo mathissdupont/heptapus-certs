@@ -6,7 +6,6 @@ const PRIMARY_APP_HOSTS = new Set([
   "127.0.0.1",
   "heptacert.com",
   "www.heptacert.com",
-  "cert.heptapusgroup.com",
 ]);
 
 export function getApiBase(): string {

@@ -31,11 +31,13 @@
       "Skill(claude-api)",
       "Skill(claude-api:*)",
       "Bash(xargs ls -1)",
-      "Bash(del index.tr.mdx quickstart.tr.mdx authentication.tr.mdx api-reference.tr.mdx mcp-agent.tr.mdx cli.tr.mdx webhooks.tr.mdx _meta.tr.json _meta.en.json)"
+      "Bash(del index.tr.mdx quickstart.tr.mdx authentication.tr.mdx api-reference.tr.mdx mcp-agent.tr.mdx cli.tr.mdx webhooks.tr.mdx _meta.tr.json _meta.en.json)",
+      "Bash(Remove-Item \"c:\\\\Users\\\\samet\\\\OneDrive\\\\Masaüstü\\\\heptapus-certs\\\\heptacert\\\\backend\\\\migrations\\\\011_oauth_server.sql\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\samet\\OneDrive\\Masaüstü\\heptapus-certs\\heptacert\\frontend\\src\\app\\admin\\lms\\courses\\[id]\\quizzes",
-      "c:\\Users\\samet\\OneDrive\\Masa�st�\\heptapus-certs\\heptacert\\frontend\\src\\app\\admin\\lms\\courses\\[id]\\quizzes"
+      "c:\\Users\\samet\\OneDrive\\Masa�st�\\heptapus-certs\\heptacert\\frontend\\src\\app\\admin\\lms\\courses\\[id]\\quizzes",
+      "c:\\Users\\samet\\OneDrive\\Masa�st�\\heptapus-certs\\heptacert\\backend\\migrations"
     ]
   }
 }

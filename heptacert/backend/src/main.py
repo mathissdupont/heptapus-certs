@@ -20775,6 +20775,9 @@ app.include_router(_venue_reservations_api.router)
 from . import notification_integrations_api as _notification_integrations_api
 app.include_router(_notification_integrations_api.router)
 
+from . import oauth_api as _oauth_api
+app.include_router(_oauth_api.router)
+
 
 # ── Background job status dashboard ──────────────────────────────────────────
 

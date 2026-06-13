@@ -5,7 +5,7 @@ const PRIMARY_APP_HOSTS = new Set([
   "127.0.0.1",
   "heptacert.com",
   "www.heptacert.com",
-  "cert.heptapusgroup.com",
+  "heptacert.com",
 ]);
 
 const WHITE_LABEL_BLOCKED_AUTH_PATHS = [

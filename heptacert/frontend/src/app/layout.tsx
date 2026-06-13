@@ -21,11 +21,10 @@ const PLATFORM_HOSTS = new Set([
   "127.0.0.1",
   "heptacert.com",
   "www.heptacert.com",
-  "cert.heptapusgroup.com",
 ]);
 
-const DEFAULT_DESCRIPTION = "Create, manage, and verify digital certificates for your events with Turkish and English support.";
-const DEFAULT_TR_DESCRIPTION = "Etkinlik kayıtları, QR check-in, yoklama, sertifika üretimi ve doğrulama süreçlerini tek platformda yönetin.";
+const DEFAULT_DESCRIPTION = "HeptaCert is an end-to-end event operating system: registration forms, QR check-in, attendance, automated certificates, email campaigns, CRM, and analytics — all in one platform.";
+const DEFAULT_TR_DESCRIPTION = "HeptaCert, etkinlik organizatörlerinin ihtiyaç duyduğu her şeyi tek platformda sunar: kayıt formları, QR check-in, yoklama takibi, otomatik sertifika, e-posta kampanyaları, CRM ve analitik.";
 
 function metadataApiBase() {
   return (
@@ -77,16 +76,30 @@ export async function generateMetadata(): Promise<Metadata> {
       telephone: false,
     },
     title: {
-      default: brandName,
+      default: `${brandName} — Etkinlik Yönetim Platformu`,
       template: `%s | ${brandName}`,
     },
     description,
     keywords: [
-      "digital certificate",
-      "sertifika yönetimi",
-      "etkinlik yönetimi",
+      "etkinlik yönetim platformu",
+      "event management platform",
+      "event operating system",
+      "etkinlik organizasyonu",
+      "kayıt formu",
       "QR check-in",
+      "etkinlik kaydı",
+      "sertifika yönetimi",
+      "dijital sertifika",
+      "digital certificate",
       "certificate verification",
+      "sertifika doğrulama",
+      "yoklama takibi",
+      "e-posta kampanyası",
+      "email automation",
+      "etkinlik analitik",
+      "CPD takibi",
+      "kurumsal eğitim yönetimi",
+      "learning management",
       brandName,
     ],
     alternates: {
@@ -144,45 +157,79 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const brandName = branding?.org_name || "HeptaCert";
   const brandLogo = branding?.brand_logo || null;
   const baseUrl = process.env.NEXT_PUBLIC_FRONTEND_BASE_URL || "https://heptacert.com";
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    name: brandName,
-    applicationCategory: "BusinessApplication",
-    applicationSubCategory: "Training Management, Certificate Issuance, Event Management",
-    operatingSystem: "Web, iOS, Android",
-    url: baseUrl,
-    description: branding?.settings?.public_bio || DEFAULT_TR_DESCRIPTION,
-    inLanguage: ["tr", "en"],
-    countriesSupported: "TR",
-    featureList: [
-      "Dijital sertifika üretimi ve doğrulama",
-      "Etkinlik yönetimi ve katılımcı kaydı",
-      "QR check-in ve yoklama takibi",
-      "Quiz motoru ve sınav bazlı sertifika",
-      "Öğrenme yolu (Learning Path) oluşturma",
-      "CRM: kişi, şirket ve fırsat yönetimi",
-      "Drip e-posta sekansları ve otomasyon",
-      "Lead yakalama formları",
-      "Sertifika marketplace",
-      "CPD saati takibi ve akreditasyon entegrasyonu",
-      "Slack, Teams ve WhatsApp entegrasyonu",
-      "Gelişmiş analitik dashboard",
-      "Zamanlanmış PDF rapor gönderimi",
-      "REST API ve geliştirici portal",
-      "Özel domain ve beyaz etiket desteği",
-    ],
-    publisher: {
+  const structuredData = [
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: brandName,
+      alternateName: ["HeptaCert Event Platform", "HeptaCert Etkinlik Platformu"],
+      applicationCategory: "BusinessApplication",
+      applicationSubCategory: "Event Management, Event Operating System, Training Management",
+      operatingSystem: "Web, iOS, Android",
+      url: baseUrl,
+      description: branding?.settings?.public_bio || DEFAULT_TR_DESCRIPTION,
+      inLanguage: ["tr", "en"],
+      countriesSupported: "TR",
+      featureList: [
+        "Etkinlik oluşturma ve yönetimi (uçtan uca)",
+        "Özelleştirilebilir kayıt formları ve onay akışları",
+        "QR check-in ve oturum bazlı yoklama takibi",
+        "Canlı operasyon ekranı ve kapı kontrolü",
+        "Otomatik dijital sertifika üretimi ve doğrulama",
+        "Toplu e-posta kampanyaları ve açılma takibi",
+        "Drip e-posta sekansları ve otomasyon",
+        "CRM: kişi, şirket ve fırsat yönetimi",
+        "Lead yakalama formları (iframe embed desteği)",
+        "Quiz motoru ve sınav bazlı sertifika",
+        "Öğrenme yolu (Learning Path) oluşturma",
+        "CPD saati takibi ve akreditasyon entegrasyonu",
+        "Sertifika marketplace (kamuya açık katalog)",
+        "Slack, Teams ve WhatsApp Business entegrasyonu",
+        "Gelişmiş analitik dashboard ve raporlama",
+        "Zamanlanmış PDF rapor gönderimi",
+        "REST API ve geliştirici portal",
+        "Özel domain ve beyaz etiket (white-label) desteği",
+        "Raffle (çekiliş) modülü",
+        "Webhook ve HMAC imzalama",
+      ],
+      publisher: {
+        "@type": "Organization",
+        name: "Heptapus Group",
+        url: "https://heptapusgroup.com",
+      },
+      offers: {
+        "@type": "Offer",
+        category: "SaaS",
+        url: `${baseUrl}/pricing/business`,
+      },
+    },
+    {
+      "@context": "https://schema.org",
       "@type": "Organization",
       name: "Heptapus Group",
       url: "https://heptapusgroup.com",
+      sameAs: ["https://heptacert.com"],
+      foundingLocation: { "@type": "Place", addressCountry: "TR" },
+      product: {
+        "@type": "SoftwareApplication",
+        name: brandName,
+        url: baseUrl,
+      },
     },
-    offers: {
-      "@type": "Offer",
-      category: "SaaS",
-      url: `${baseUrl}/pricing/business`,
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: brandName,
+      url: baseUrl,
+      description: DEFAULT_TR_DESCRIPTION,
+      inLanguage: ["tr", "en"],
+      potentialAction: {
+        "@type": "SearchAction",
+        target: { "@type": "EntryPoint", urlTemplate: `${baseUrl}/discover?q={search_term_string}` },
+        "query-input": "required name=search_term_string",
+      },
     },
-  };
+  ];
 
   return (
     <html lang="tr" className="scroll-smooth" suppressHydrationWarning>
@@ -201,6 +248,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
+        <meta name="application-name" content="HeptaCert" />
+        <meta name="category" content="event management, certificate platform, training management" />
         <ThemeInitializer />
       </head>
       <body className="min-h-screen bg-slate-50 text-gray-900 antialiased transition-colors">
