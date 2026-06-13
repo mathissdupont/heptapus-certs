@@ -1,0 +1,331 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "HeptaCert Pazarlama API",
+    "version": "1.0.0",
+    "description": "Toplu e-posta, segmentasyon, otomasyon ve CRM işlemleri için HeptaCert API"
+  },
+  "servers": [{ "url": "https://heptacert.com" }],
+  "security": [{ "bearerAuth": [] }],
+  "components": {
+    "schemas": {},
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "oauth2",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://heptacert.com/oauth/authorize",
+            "tokenUrl": "https://heptacert.com/oauth/token",
+            "scopes": {
+              "admin": "Admin access to HeptaCert"
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/admin/events/{event_id}/email-templates": {
+      "get": {
+        "operationId": "listEmailTemplates",
+        "summary": "List email templates for an event",
+        "parameters": [{ "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Email template list" } }
+      },
+      "post": {
+        "operationId": "createEmailTemplate",
+        "summary": "Create a new email template for an event",
+        "parameters": [{ "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "subject", "html_body"],
+                "properties": {
+                  "name": { "type": "string", "description": "Internal template name" },
+                  "subject": { "type": "string", "description": "Email subject line" },
+                  "html_body": { "type": "string", "description": "HTML content of the email" },
+                  "text_body": { "type": "string", "description": "Plain text fallback" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created template" } }
+      }
+    },
+    "/api/admin/events/{event_id}/email-templates/{template_id}": {
+      "patch": {
+        "operationId": "updateEmailTemplate",
+        "summary": "Update an email template (subject, body, name)",
+        "parameters": [
+          { "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "template_id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "subject": { "type": "string" },
+                  "html_body": { "type": "string" },
+                  "text_body": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Updated template" } }
+      },
+      "delete": {
+        "operationId": "deleteEmailTemplate",
+        "summary": "Delete an email template",
+        "parameters": [
+          { "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "template_id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Deleted" } }
+      }
+    },
+    "/api/admin/events/{event_id}/bulk-email": {
+      "post": {
+        "operationId": "sendBulkEmail",
+        "summary": "Send a bulk email to event attendees using a saved template",
+        "parameters": [{ "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email_template_id"],
+                "properties": {
+                  "email_template_id": { "type": "integer", "description": "ID of the email template to send" },
+                  "recipient_type": {
+                    "type": "string",
+                    "enum": ["attendees", "certified", "not_certified", "checked_in", "not_checked_in"],
+                    "default": "attendees",
+                    "description": "Which group of attendees receives this email"
+                  },
+                  "scheduled_at": { "type": "string", "format": "date-time", "description": "ISO datetime to schedule send, omit to send immediately" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Bulk email job created" } }
+      }
+    },
+    "/api/admin/events/{event_id}/bulk-emails": {
+      "get": {
+        "operationId": "listBulkEmailJobs",
+        "summary": "List all bulk email send jobs for an event, with status and stats",
+        "parameters": [{ "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Bulk email job list" } }
+      }
+    },
+    "/api/admin/events/{event_id}/bulk-email-jobs/{job_id}/delivery-stats": {
+      "get": {
+        "operationId": "getBulkEmailDeliveryStats",
+        "summary": "Get delivery stats (sent, opened, clicked, bounced) for a bulk email job",
+        "parameters": [
+          { "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "job_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Delivery statistics" } }
+      }
+    },
+    "/api/admin/email-analytics/summary": {
+      "get": {
+        "operationId": "getEmailAnalyticsSummary",
+        "summary": "Get overall email analytics across all events (open rates, click rates, bounce rates)",
+        "parameters": [
+          { "name": "days", "in": "query", "schema": { "type": "integer", "default": 30 }, "description": "Lookback window in days" }
+        ],
+        "responses": { "200": { "description": "Email analytics summary" } }
+      }
+    },
+    "/api/admin/events/{event_id}/automations": {
+      "get": {
+        "operationId": "listAutomations",
+        "summary": "List email automation rules for an event (triggers: registration, check-in, certificate)",
+        "parameters": [{ "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Automation rule list" } }
+      },
+      "post": {
+        "operationId": "createAutomation",
+        "summary": "Create an automation rule that automatically sends an email on a trigger",
+        "parameters": [{ "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["trigger", "email_template_id"],
+                "properties": {
+                  "trigger": {
+                    "type": "string",
+                    "enum": ["registration", "check_in", "certificate_issued", "event_reminder"],
+                    "description": "Event that triggers the email"
+                  },
+                  "email_template_id": { "type": "integer" },
+                  "delay_minutes": { "type": "integer", "default": 0, "description": "Minutes to wait after trigger before sending" },
+                  "is_active": { "type": "boolean", "default": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created automation rule" } }
+      }
+    },
+    "/api/admin/events/{event_id}/automations/{rule_id}": {
+      "patch": {
+        "operationId": "updateAutomation",
+        "summary": "Enable, disable, or update an automation rule",
+        "parameters": [
+          { "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "rule_id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "is_active": { "type": "boolean" },
+                  "delay_minutes": { "type": "integer" },
+                  "email_template_id": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Updated automation" } }
+      },
+      "delete": {
+        "operationId": "deleteAutomation",
+        "summary": "Delete an automation rule",
+        "parameters": [
+          { "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "rule_id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Deleted" } }
+      }
+    },
+    "/api/admin/events/{event_id}/segments": {
+      "get": {
+        "operationId": "getSegmentStats",
+        "summary": "Get attendee counts for all segments of an event (registered, checked-in, certified, no-show, etc.)",
+        "parameters": [{ "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Segment statistics" } }
+      }
+    },
+    "/api/admin/events/{event_id}/segments/saved/list": {
+      "get": {
+        "operationId": "listSavedSegments",
+        "summary": "List saved custom audience segments for an event",
+        "parameters": [{ "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Saved segments list" } }
+      }
+    },
+    "/api/admin/events/{event_id}/segments/saved": {
+      "post": {
+        "operationId": "saveSegment",
+        "summary": "Save a custom audience segment (e.g. 'VIP attendees who did not check in')",
+        "parameters": [{ "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "filters"],
+                "properties": {
+                  "name": { "type": "string", "description": "Descriptive segment name" },
+                  "filters": { "type": "object", "description": "Filter criteria object" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Saved segment" } }
+      }
+    },
+    "/api/admin/events/{event_id}/segments/{segment_key}": {
+      "get": {
+        "operationId": "getSegmentAttendees",
+        "summary": "Get attendee list for a specific segment (registered, checked_in, certified, no_show)",
+        "parameters": [
+          { "name": "event_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          {
+            "name": "segment_key",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "enum": ["registered", "checked_in", "certified", "no_show", "not_certified"] }
+          },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 50 } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 } }
+        ],
+        "responses": { "200": { "description": "Attendees in segment" } }
+      }
+    },
+    "/api/admin/crm/participants": {
+      "get": {
+        "operationId": "searchCrmParticipants",
+        "summary": "Search and filter CRM contacts across all events with advanced filters",
+        "parameters": [
+          { "name": "search", "in": "query", "schema": { "type": "string" }, "description": "Name or email search" },
+          { "name": "event_id", "in": "query", "schema": { "type": "integer" }, "description": "Filter by specific event" },
+          { "name": "tag", "in": "query", "schema": { "type": "string" }, "description": "Filter by CRM tag" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 25 } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 } }
+        ],
+        "responses": { "200": { "description": "CRM participant list with pagination" } }
+      }
+    },
+    "/api/admin/crm/summary": {
+      "get": {
+        "operationId": "getCrmSummary",
+        "summary": "Get CRM dashboard stats: total contacts, top events, engagement scores",
+        "responses": { "200": { "description": "CRM summary statistics" } }
+      }
+    },
+    "/api/admin/crm/bulk-email": {
+      "post": {
+        "operationId": "sendCrmBulkEmail",
+        "summary": "Send a bulk email to a filtered set of CRM contacts across events",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email_template_id"],
+                "properties": {
+                  "email_template_id": { "type": "integer" },
+                  "filters": {
+                    "type": "object",
+                    "description": "Optional CRM filter criteria (same as participants filter)",
+                    "properties": {
+                      "event_id": { "type": "integer" },
+                      "tag": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Bulk email job created" } }
+      }
+    }
+  }
+}
