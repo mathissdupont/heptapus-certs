@@ -477,9 +477,10 @@ async def create_oauth_client(
 
 
 class OAuthClientPatchIn(BaseModel):
-    is_active: Optional[bool] = None
-    name:      Optional[str]  = None
-    logo_url:  Optional[str]  = None
+    is_active:     Optional[bool]      = None
+    name:          Optional[str]       = None
+    logo_url:      Optional[str]       = None
+    redirect_uris: Optional[list[str]] = None
 
 
 @router.patch(
@@ -498,15 +499,14 @@ async def update_oauth_client(
     )).scalar_one_or_none()
     if not client:
         raise HTTPException(status_code=404, detail="OAuth client not found")
-    is_active = payload.is_active
-    name      = payload.name
-    logo_url  = payload.logo_url
-    if is_active is not None:
-        client.is_active = is_active
-    if name is not None:
-        client.name = name.strip()
-    if logo_url is not None:
-        client.logo_url = logo_url
+    if payload.is_active is not None:
+        client.is_active = payload.is_active
+    if payload.name is not None:
+        client.name = payload.name.strip()
+    if payload.logo_url is not None:
+        client.logo_url = payload.logo_url
+    if payload.redirect_uris is not None:
+        client.redirect_uris = [u.strip() for u in payload.redirect_uris if u.strip()]
     await db.commit()
     await db.refresh(client)
     return OAuthClientOut(

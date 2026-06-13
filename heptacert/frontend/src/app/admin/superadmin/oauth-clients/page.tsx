@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Copy, CheckCircle2, AlertTriangle, ToggleLeft, ToggleRight } from "lucide-react";
+import { Plus, Trash2, Copy, CheckCircle2, AlertTriangle, ToggleLeft, ToggleRight, Pencil, X, Check } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 
 type OAuthClient = {
@@ -207,6 +207,74 @@ function SecretReveal({ data, onDismiss }: { data: NewSecret; onDismiss: () => v
   );
 }
 
+// ── Edit redirect URIs inline ──────────────────────────────────────────────────
+
+function EditUris({
+  clientId,
+  current,
+  onSaved,
+  onCancel,
+}: {
+  clientId: string;
+  current: string[];
+  onSaved: () => void;
+  onCancel: () => void;
+}) {
+  const [value, setValue]   = useState(current.join("\n"));
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState("");
+
+  async function handleSave() {
+    const uris = value.split("\n").map((u) => u.trim()).filter(Boolean);
+    if (!uris.length) { setError("En az bir URI gerekli"); return; }
+    setSaving(true);
+    setError("");
+    try {
+      await apiFetch(`/admin/superadmin/oauth-clients/${clientId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ redirect_uris: uris }),
+      });
+      onSaved();
+    } catch {
+      setError("Kaydedilemedi");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="mt-3 space-y-2">
+      <textarea
+        rows={4}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs font-mono outline-none focus:border-slate-500"
+        placeholder="Her satıra bir URI"
+      />
+      {error && <p className="text-xs text-red-500">{error}</p>}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-60"
+        >
+          <Check className="h-3.5 w-3.5" />
+          {saving ? "Kaydediliyor…" : "Kaydet"}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600"
+        >
+          <X className="h-3.5 w-3.5" />
+          İptal
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function OAuthClientsPage() {
@@ -214,6 +282,7 @@ export default function OAuthClientsPage() {
   const [loading, setLoading]       = useState(true);
   const [newSecret, setNewSecret]   = useState<NewSecret | null>(null);
   const [revoking, setRevoking]     = useState<string | null>(null);
+  const [editingUris, setEditingUris] = useState<string | null>(null);
 
   async function loadClients() {
     try {
@@ -307,12 +376,29 @@ export default function OAuthClientsPage() {
 
                     <div className="mt-2 space-y-0.5">
                       {c.redirect_uris.map((u) => (
-                        <p key={u} className="truncate font-mono text-10 text-slate-400">{u}</p>
+                        <p key={u} className="break-all font-mono text-10 text-slate-400">{u}</p>
                       ))}
                     </div>
+
+                    {editingUris === c.client_id && (
+                      <EditUris
+                        clientId={c.client_id}
+                        current={c.redirect_uris}
+                        onSaved={() => { setEditingUris(null); void loadClients(); }}
+                        onCancel={() => setEditingUris(null)}
+                      />
+                    )}
                   </div>
 
                   <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingUris(editingUris === c.client_id ? null : c.client_id)}
+                      title="Redirect URI düzenle"
+                      className="rounded-lg p-2 text-slate-400 hover:bg-slate-50 hover:text-slate-700"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
                     <button
                       type="button"
                       onClick={() => toggleActive(c)}
