@@ -11,6 +11,8 @@
 
 **Kapsam yanıltıcı olabilir:** `models.py`/`schemas.py` sırf import edildikleri için %100 görünür. Asıl önemli olan **route handler** kapsamı (şu an main.py %21).
 
+> **2026-06-15 bulgusu (önemli):** 22 yeni test (auth + event CRUD + IDOR) eklendi → 402'den **424'e** çıktı, AMA kapsam %'si neredeyse hiç değişmedi (main.py %21 sabit). Sebep: mevcut testler büyük handler'ların **happy path'lerini setup olarak zaten çalıştırıyor** (event/member oluşturuyorlar). Yeni testler **risk/davranış değeri** yüksek (kritik akış + güvenlik kilitlendi) ama **% düşük**. **Sonuç:** kapsam %'sini hareket ettirmek için **mevcut hiçbir testin dokunmadığı SOĞUK yolları** hedefle — büyük hiç-çağrılmayan API modülleri (`event_crm_api`, `email_api`, `analytics_api`...) ve handler'ların **hata/edge branch'leri**. "Risk kilidi" ile "% artışı" iki ayrı hedef; ikisini de bilinçli seç.
+
 ---
 
 ## 2. Test Altyapısı Nasıl Çalışır
