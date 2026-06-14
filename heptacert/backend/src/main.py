@@ -91,6 +91,7 @@ from .event_features import (
     normalize_feature_bool,
 )
 from .generator import TemplateConfig, render_certificate_pdf, render_certificate_png_watermarked, new_certificate_uuid
+from .enums import Role, CertStatus, TxType, OrderStatus, AttendeeSource  # enums.py'a tasindi (god-dosya bolme)
 
 logger = logging.getLogger("heptacert")
 
@@ -274,20 +275,7 @@ class Base(DeclarativeBase):
     pass
 
 
-class Role(str, Enum):
-    superadmin = "superadmin"
-    admin = "admin"
-
-
-class CertStatus(str, Enum):
-    active = "active"
-    revoked = "revoked"
-    expired = "expired"
-
-
-class TxType(str, Enum):
-    credit = "credit"
-    spend = "spend"
+# Role, CertStatus, TxType -> enums.py (yukarida import edildi)
 
 
 class User(Base):
@@ -1165,11 +1153,7 @@ async def _sync_registration_option_capacities(db: AsyncSession, event: "Event")
 
 # Ã¢â€â‚¬Ã¢â€â‚¬ Payment DB models (created by migration 002) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
-class OrderStatus(str, Enum):
-    pending  = "pending"
-    paid     = "paid"
-    failed   = "failed"
-    refunded = "refunded"
+# OrderStatus -> enums.py (yukarida import edildi)
 
 
 class Order(Base):
@@ -1663,9 +1647,7 @@ class WebhookLog(Base):
 
 # Ã¢â€â‚¬Ã¢â€â‚¬ Attendaonce management models (migration 003) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
-class AttendeeSource(str, Enum):
-    import_ = "import"
-    self_register = "self_register"
+# AttendeeSource -> enums.py (yukarida import edildi)
 
 
 class EventSession(Base):
