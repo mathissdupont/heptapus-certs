@@ -85,13 +85,16 @@ Sonuç: **0 → 392 passed.**
 
 ---
 
-## 3) SONRAKİ: Schema Extraction (bayat testler bitince)
+## 3) Schema Extraction — Durum
 
-Plan: [docs/main_py_refactor_plan.md](main_py_refactor_plan.md). Sıra (her adımda Docker pytest, "yeni hata yok" kapısı):
-1. **config.py** — `Settings` sınıfı (main.py:247-318) + `settings = Settings()`. main.py'da `from .config import settings, Settings` ile geri ver. En düşük risk.
-2. **utils.py** — saf yardımcılar (rich-text sanitizer, token/format helper'ları).
-3. **schemas/** — ~164 Pydantic `BaseModel`. main.py'da `from .schemas import *` ile isimleri koru (72 dosya `from .main import X` yapıyor → re-export şart).
-4+ (ayrı oturum, daha riskli): models → db.py/models/, deps.py, routers/.
+Plan: [docs/main_py_refactor_plan.md](main_py_refactor_plan.md). Her adımda Docker pytest, "402 passed korunmalı" kapısı.
+
+- ✅ **Adım 1 — config.py** TAMAMLANDI (commit'li). `Settings` + `settings` → `src/config.py`; main.py re-export ediyor. Suite hâlâ 402/0. main.py 21117 → 21047 satır.
+- ⬜ **Adım 2 — utils.py** (saf yardımcılar: rich-text sanitizer, token/format). Yapılmadı.
+- ⬜ **Adım 3 — schemas/** (~164 Pydantic `BaseModel`). **DİKKAT — fizibilite analizi:** 117 model erken kümede (satır ~2017-3999, SQLAlchemy modellerinden hemen sonra) ama **47 model dosyaya serpilmiş** (10k-15k arası, route handler'larla iç içe). Bu yüzden tek seferde taşıma riskli; serpilmiş olanlar yanlarındaki route/enum/constant'lara bağlı olabilir. Önerilen: önce 117'lik kümeyi taşı + doğrula, sonra serpilmiş 47'yi parça parça. main.py'da `from .schemas import *` ile isimleri koru (72 dosya `from .main import X` yapıyor → re-export şart). 5 Enum da gerekebilir (şemalar referans veriyorsa beraber taşı).
+- ⬜ **Adım 4+** (ayrı oturum, daha riskli): models → db.py/models/, deps.py, routers/. 79 SQLAlchemy modeli (satır 293-2001) tek `Base`'de; import sırası kritik.
+
+**Not:** Backend deps yalnızca Docker imajında (`heptacert-backend-test`). Yerel Python'da pydantic/fastapi YOK. Doğrulama hep Docker üzerinden (bkz. Bölüm 0).
 
 **Kritik not:** 72 dosyada 166 `from .main import ...` var → main.py merkezi hub. Bir şeyi çıkarınca main.py'da MUTLAKA geri re-export et, yoksa import zinciri kırılır. Model/relationship taşımada import sırası kritik (LMS dersi: yanlış sıra SQLAlchemy startup'ını kilitler).
 
