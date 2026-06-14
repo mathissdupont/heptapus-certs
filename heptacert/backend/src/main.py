@@ -11941,7 +11941,8 @@ async def public_me(
     )
 
 
-@app.get("/api/public/me/email-prefereonces", response_model=PublicMemberEmailPrefereoncesOut)
+@app.get("/api/public/me/email-preferences", response_model=PublicMemberEmailPrefereoncesOut)
+@app.get("/api/public/me/email-prefereonces", response_model=PublicMemberEmailPrefereoncesOut)  # geriye donuk uyumluluk (eski yazim hatasi)
 async def get_public_member_email_prefereonces(
     member: CurrentPublicMember = Depends(get_current_public_member),
     db: AsyncSession = Depends(get_db),
@@ -11953,7 +11954,8 @@ async def get_public_member_email_prefereonces(
     return PublicMemberEmailPrefereoncesOut(digest_opt_in=bool(getattr(db_member, "digest_opt_in", True)))
 
 
-@app.patch("/api/public/me/email-prefereonces", response_model=PublicMemberEmailPrefereoncesOut)
+@app.patch("/api/public/me/email-preferences", response_model=PublicMemberEmailPrefereoncesOut)
+@app.patch("/api/public/me/email-prefereonces", response_model=PublicMemberEmailPrefereoncesOut)  # geriye donuk uyumluluk (eski yazim hatasi)
 async def update_public_member_email_prefereonces(
     data: PublicMemberEmailPrefereoncesIn,
     member: CurrentPublicMember = Depends(get_current_public_member),
@@ -21019,14 +21021,13 @@ app.include_router(_crm_accounts_api.router)
 from . import lead_forms_api as _lead_forms_api  # noqa: E402
 app.include_router(_lead_forms_api.router)
 
-# LMS sistemi devre disi birakildi — arsivlendi (router'lar kapali)
+# LMS sistemi devre disi birakildi — arsivlendi.
+# API router'lari backend/_archive_lms/ klasorune tasindi (lms_api.py, lms_extended_api.py).
+# Frontend sayfalari frontend/_archive_lms/ klasorunde. Yeniden aktive etmek icin
+# o klasordeki README.md'ye bakin.
 # Model import zorunlu: marketplace_api lms_models'i yukluyor, CourseEnrollment->CourseGradeSummary
-# iliskisi cozumlenemezse SQLAlchemy startup'ta kiliyor.
+# iliskisi cozumlenemezse SQLAlchemy startup'ta kiliyor — bu yuzden modeller src/ icinde kaliyor.
 from . import lms_extended_models as _lms_extended_models  # noqa: E402, F401
-# from . import lms_api as _lms_api  # noqa: E402
-# app.include_router(_lms_api.router)
-# from . import lms_extended_api as _lms_extended_api  # noqa: E402
-# app.include_router(_lms_extended_api.router)
 
 from . import org_modules_api as _org_modules_api  # noqa: E402
 app.include_router(_org_modules_api.router)

@@ -42,7 +42,10 @@ async def _admin_org(db: AsyncSession, me: CurrentUser, request: Request) -> Org
 
 # ── Accreditation Bodies (read-only, seeded) ──────────────────────────────────
 
-@router.get("/api/admin/accreditation/bodies")
+@router.get(
+    "/api/admin/accreditation/bodies",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
 async def list_accreditation_bodies(db: AsyncSession = Depends(get_db)):
     rows = (await db.execute(select(AccreditationBody).order_by(AccreditationBody.name))).scalars().all()
     return [{"id": b.id, "short_code": b.short_code, "name": b.name, "logo_url": b.logo_url} for b in rows]
