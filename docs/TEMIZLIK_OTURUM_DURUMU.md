@@ -89,10 +89,11 @@ Sonuç: **0 → 392 passed.**
 
 Plan: [docs/main_py_refactor_plan.md](main_py_refactor_plan.md). Her adımda Docker pytest, "402 passed korunmalı" kapısı.
 
-- ✅ **Adım 1 — config.py** TAMAMLANDI (commit'li). `Settings` + `settings` → `src/config.py`; main.py re-export ediyor. Suite hâlâ 402/0.
-- ✅ **Adım 2 — enums.py** TAMAMLANDI (commit'li). `Role, CertStatus, TxType, OrderStatus, AttendeeSource` → `src/enums.py`. Hem modeller hem şemalar kullanıyor; ayrılması main↔schemas dögüsel importunu kırar. main.py re-export ediyor. 402/0.
-- ⬜ **Adım 3 — schemas/** (~164 Pydantic `BaseModel`). **FİZİBİLİTE DERİNLEŞTİ:** Şemalar yalnızca enum'lara değil, **main.py'daki modül-seviyesi SABİTLERE de bağımlı** (ör. `EVENT_TEAM_PERMISSION_LABELS`, `EVENT_TEAM_ROLES`, `EVENT_TEAM_ROLE_PERMISSIONS`, `EVENT_TEAM_STATUSES`) ve bazı model isimlerine (`EventTeamMember`). `schemas.py` bunları main'den alırsa **circular import** olur (main şemaları `*` ile alıyor). **Doğru sıra:** (a) önce paylaşılan sabitleri `constants.py`'a ayıkla, (b) sonra şemaları `schemas.py`'a taşı (`from .enums import *`, `from .constants import *`), (c) main.py'da `from .schemas import *` ile re-export et. Serpilmiş 47 şema daha fazla sabit referans edebilir → her blokta `grep` ile dış bağımlılıkları çıkar (bkz. bu oturumda kullanılan tarama script'i). Bu yüzden Adım 3 = **ayrı, dikkatli, çok-iterasyonlu** iş; kör yapılmamalı.
-- ⬜ **Adım 2b (opsiyonel) — utils.py** (saf yardımcılar: rich-text sanitizer, token/format, password hash). 3523+ bölgesinde; bazıları model/db'ye bağımlı (saf değil) → seçici taşıma gerek.
+- ✅ **Adım 1 — config.py** TAMAMLANDI. `Settings` + `settings` → `src/config.py`.
+- ✅ **Adım 2 — enums.py** TAMAMLANDI. `Role, CertStatus, TxType, OrderStatus, AttendeeSource` → `src/enums.py`.
+- ✅ **Adım 3a — event_team.py** TAMAMLANDI. EVENT_TEAM_* sabitleri + 2 helper → `src/event_team.py` (şema bağımlılığını izole etmek için).
+- ✅ **Adım 3 — schemas.py** TAMAMLANDI. **166 Pydantic şema** AST ile (orijinal sıra korunarak) `src/schemas.py`'a taşındı. main.py `from .schemas import *` ile re-export ediyor → 72 dosyadaki `from .main import <Schema>` etkilenmedi. Dış bağımlılıklar AST ile çıkarıldı: enums + event_team + stdlib (re/ipaddress/urlparse) + datetime/pydantic. **main.py 21117 → 19591 satır.** Her adım Docker pytest ile 402/0 doğrulandı.
+- ⬜ **Adım 4 (opsiyonel, RİSKLİ, ayrı oturum) — models/deps/routers.** 79 SQLAlchemy modeli (main.py) tek `Base`'de; `db.py` (Base/engine/get_db) + `models/` + `deps.py` (auth dependency'leri) + `routers/` (230 route). Model taşımada **import sırası kritik** — SQLAlchemy ilişkileri startup'ta çözülür, yanlış sıra kilitler (LMS dersi). En riskli adım; dikkatli, parça parça yapılmalı.
 - ⬜ **Adım 4+** (ayrı oturum, daha riskli): models → db.py/models/, deps.py, routers/. 79 SQLAlchemy modeli (satır 293-2001) tek `Base`'de; import sırası kritik.
 
 **Not:** Backend deps yalnızca Docker imajında (`heptacert-backend-test`). Yerel Python'da pydantic/fastapi YOK. Doğrulama hep Docker üzerinden (bkz. Bölüm 0).
