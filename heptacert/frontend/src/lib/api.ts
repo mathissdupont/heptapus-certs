@@ -4768,39 +4768,9 @@ export interface CourseModuleOut {
   created_at: string;
 }
 
-export async function listLmsCourses(): Promise<TrainingCourseOut[]> {
-  const res = await apiFetch("/admin/lms/courses");
-  const d = await res.json();
-  return d.courses ?? [];
-}
-
-export async function getLmsCourse(courseId: number): Promise<TrainingCourseOut> {
-  const res = await apiFetch(`/admin/lms/courses/${courseId}`);
-  return res.json();
-}
-
-export async function createLmsCourse(body: Partial<TrainingCourseOut>): Promise<TrainingCourseOut> {
-  const res = await apiFetch("/admin/lms/courses", {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
-  return res.json();
-}
-
-export async function updateLmsCourse(
-  courseId: number,
-  body: Partial<TrainingCourseOut>
-): Promise<TrainingCourseOut> {
-  const res = await apiFetch(`/admin/lms/courses/${courseId}`, {
-    method: "PATCH",
-    body: JSON.stringify(body),
-  });
-  return res.json();
-}
-
-export async function deleteLmsCourse(courseId: number): Promise<void> {
-  await apiFetch(`/admin/lms/courses/${courseId}`, { method: "DELETE" });
-}
+// LMS kurs yönetimi fonksiyonları (listLmsCourses/getLmsCourse/createLmsCourse/
+// updateLmsCourse/deleteLmsCourse) LMS arşivlendiği için kaldırıldı.
+// Bkz. frontend/_archive_lms/README.md
 
 // ---------------------------------------------------------------------------
 // Org module settings
