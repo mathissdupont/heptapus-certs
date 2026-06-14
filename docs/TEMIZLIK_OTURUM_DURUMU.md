@@ -18,7 +18,7 @@ docker run --rm heptacert-backend-test python -m pytest -o addopts="" -p no:cach
 
 - `pytest.ini` içinde `-x` var (ilk hatada durur); tüm hataları görmek için yukarıdaki gibi `-o addopts=""` ile override et.
 - Testler **SQLite in-memory** kullanır (PostgreSQL gerekmez); env'leri `tests/conftest.py` ayarlar.
-- **BASELINE (bu notun yazıldığı an): 392 passed, 10 failed.** Kalan 10 = bayat testler (aşağıda).
+- **BASELINE: 398 passed, 4 failed.** (Başlangıçta 392/10 idi; 6 bayat test düzeltildi.) Kalan 4 = davranış/ürün kararı gerektiren testler (aşağıda).
 - Refactor kapısı: "yeni hata çıkmadı" = hâlâ tam olarak bu 10 (veya daha az) hata.
 
 ---
@@ -60,26 +60,28 @@ Sonuç: **0 → 392 passed.**
 
 ---
 
-## 2) ŞU AN: Kalan 10 Bayat Test (temizlenecek)
+## 2) Test Temizliği: 6 düzeltildi, 4 kaldı (398/4)
 
-> Hepsi koddan sapmış testler. **Gerçek bug / güvenlik açığı YOK** (3 "güvenlik kokan" test ayrıca incelendi). Sıra: önce kolay/net olanlar.
+> Kalan 10 hatanın **6'sı düzeltildi** (commit'lendi). Kalan 4 = davranış/ürün kararı gerektiren testler; tahminle yazılırsa gerçek bug maskeleyebilir.
 
-| # | Test | Teşhis | Fix yaklaşımı | Durum |
-|---|------|--------|---------------|-------|
-| 1 | `test_training.py::...::test_html_escape_in_training_email` | Kod doğru escape ediyor; test `'onerror' not in escaped` diye yanlış varsayıyor (escape edilmiş metinde substring zararsız) | Assertion'ı düzelt: escaped çıktıda `<`/`>` yok / `&lt;` var şeklinde kontrol et | ⬜ |
-| 2 | `test_training.py::...::test_html_in_event_name_escaped` | Aynı (yanlış `'onload' not in`) | Aynı | ⬜ |
-| 3 | `test_jobs.py::...::test_stripe_rejects_expired_timestamp` | `StripeProvider(publishable_key=...)` — constructor'da artık bu param yok | Testteki constructor çağrısını güncel imzaya göre düzelt | ⬜ |
-| 4 | `test_jobs.py::TestAutomationLoopProtection::test_validate_no_circular_trigger_passes_for_different_segments` | İncelenecek | İncele → muhtemelen API/sinyatür değişimi | ⬜ |
-| 5 | `test_jobs.py::TestAutomationLoopProtection::test_validate_detects_duplicate_active_segment` | İncelenecek | İncele | ⬜ |
-| 6 | `test_venues_api.py::test_venue_manager_can_reserve_but_cannot_manage_organization_team` | İncelenecek (izin/rol) | İncele | ⬜ |
-| 7 | `test_venues_api.py::test_profile_manager_can_update_profile_but_not_venues` | İncelenecek | İncele | ⬜ |
-| 8 | `test_venues_api.py::test_event_manager_sees_and_updates_organization_events` | İncelenecek | İncele | ⬜ |
-| 9 | `test_api.py::TestAccountDeletionFlows::test_public_member_delete_account_removes_related_social_data` | Kod **soft-delete + anonimleştirme** yapıyor (KVKK), test eski **hard-delete** bekliyor | ⚠️ ÜRÜN KARARI gerek (aşağı bak) | ⬜ |
-| 10 | `test_api.py::TestAccountDeletionFlows::test_admin_delete_account_success` | Muhtemelen aynı soft-delete semantiği | ⚠️ ÜRÜN KARARI | ⬜ |
+### ✅ Düzeltilen 6 (commit'lendi)
+- `test_html_escape_in_training_email`, `test_html_in_event_name_escaped` — assertion'lar yanlıştı (escape doğru çalışıyor; güvenlik özelliği "ham `<tag>` kalmamalı" olarak düzeltildi).
+- `test_stripe_rejects_expired_timestamp` — `StripeProvider(publishable_key=...)` artık geçersiz kwarg; kaldırıldı.
+- automation loop protection ×2 — AsyncMock çocuk mock'ları `.scalars()`'ı coroutine yapıyordu; `db.execute.return_value` düz MagicMock'a sabitlendi.
+- `test_event_manager_sees_and_updates_organization_events` — team_manage artık Enterprise gerektiriyor; owner'a enterprise Subscription eklendi (bu test tam geçti).
 
-### ⚠️ Açık Ürün Sorusu (Test #9, #10 için)
-Üye/admin hesap silme `DELETE /api/public/me` ([main.py:12139](../heptacert/backend/src/main.py)) şu an: `deleted_at` set ediyor, PII anonimleştiriyor (`display_name="Silinmiş Üye"`), OrganizationFollower + CommunityPostLike siliyor. AMA post/comment/attendee'yi **silmiyor** (anonim kalıyor). Test ise hepsinin silinmesini + member'ın hard-delete olmasını bekliyor.
-**Karar gerekli:** Doğru davranış soft-delete+anonimleştirme mi (testi ona göre yaz), yoksa post/comment de silinmeli mi (kod eksikse düzelt)? Sahibinin onayı olmadan tahminle yazılmamalı.
+### ⬜ Kalan 4 (KARAR GEREKTİRİR)
+
+**A) Hesap silme ×2** — `test_public_member_delete_account_removes_related_social_data`, `test_admin_delete_account_success`
+- Kod `DELETE /api/public/me` ([main.py:12139](../heptacert/backend/src/main.py)): **soft-delete + anonimleştirme** (`deleted_at` set, `display_name="Silinmiş Üye"`, PII temizle, OrganizationFollower+CommunityPostLike sil). Post/comment/attendee silinMİYOR (anonim kalıyor). Yanıt: "30 gün içinde kalıcı temizlenecek".
+- Test eski **hard-delete** bekliyor (`member is None`, tüm sosyal veri silinmiş).
+- **KARAR:** Doğru davranış soft-delete+anonimleştirme mi (→ testi ona göre yaz)? Yoksa post/comment de silinmeli mi (→ kod eksik, düzelt)? KVKK açısından soft-delete+anonimleştirme yaygın ve makul görünüyor.
+
+**B) Venues çok-org context ×2** — `test_venue_manager_can_reserve_but_cannot_manage_organization_team` (line 82), `test_profile_manager_can_update_profile_but_not_venues` (line 220)
+- Enterprise fix sonrası team oluşturma 201 oldu; testler artık DAHA SONRAKİ assertion'larda kalıyor:
+  - venue_manager: employee `/contexts` 1 dönüyor, test ≥2 bekliyor (kendi org'u + üye olunan org). Employee'nin kendi org'u lazy oluşuyor olabilir.
+  - profile_manager: employee kendi org'unda venue oluşturabiliyor (201), test 403 bekliyor. Test, izin sınırını ölçmek için `X-Organization-Id: owner_org` header'ı ile owner'ın org'unu hedeflemeli.
+- **KARAR:** Bunlar çok-org context semantiği soruları. Doğru beklenen davranış netleşince testler X-Organization-Id ile düzeltilebilir. (Enterprise Subscription kurulumu zaten eklendi; commit'li.)
 
 ---
 
