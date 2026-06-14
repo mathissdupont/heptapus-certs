@@ -30,7 +30,7 @@ import jwt as pyjwt
 from fastapi import APIRouter, Depends, Form, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import Boolean, DateTime, Integer, String, Text, select
-from sqlalchemy.dialects.postgresql import JSONB
+from .db_types import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 

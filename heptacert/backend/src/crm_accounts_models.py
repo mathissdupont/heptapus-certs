@@ -8,7 +8,7 @@ from sqlalchemy import (
     Boolean, DateTime, ForeignKey, Index, Integer,
     Numeric, String, Text, UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import JSONB
+from .db_types import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 

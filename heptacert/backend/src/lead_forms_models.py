@@ -6,7 +6,7 @@ from typing import Optional
 from sqlalchemy import (
     DateTime, ForeignKey, Index, Integer, String, Text,
 )
-from sqlalchemy.dialects.postgresql import JSONB
+from .db_types import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
@@ -59,6 +59,7 @@ class LeadCaptureSubmission(Base):
     )
 
     __table_args__ = (
-        Index("ix_lead_capture_submissions_form_id", "form_id"),
+        # NOT: form_id zaten kolonda index=True ile indexleniyor; ayni isimli
+        # explicit Index cift tanim olusturup SQLite create_all'i kiriyordu.
         Index("ix_lead_capture_submissions_org_id", "organization_id"),
     )
