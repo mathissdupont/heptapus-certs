@@ -135,3 +135,7 @@ Her batch sonrası bu komutla kapsamı kaydet ve karşılaştır:
 docker run --rm heptacert-backend-test python -m pytest -o addopts="" -p no:cacheprovider --cov=src --cov-report=term 2>&1 | grep -E "TOTAL|<modül>"
 ```
 Baseline (2026-06-14): **TOTAL 22769 stmt, 13444 miss, %41** · main.py %21 · services.py %39.
+
+### İlerleme kaydı
+- **2026-06-15:** +40 test (402→442). Bulgular: analytics CSV/XLSX export 500 bug'ı **bulundu+düzeltildi**; event_crm DELETE-integration persist etmiyor olabilir (**flag'lendi**). Modül kapsamı: analytics %14→%20, event_crm_api %28→%31. TOTAL ~%41 (büyük modüllerin derin branch'leri hâlâ açık).
+- **Gerçek:** derin-per-modül ~8-12 test → o modülde +3-6%, ama feature-zengin veri kurulumu emek ister. 41→55 hedefi ~10+ modül = çok-oturumluk. **En yüksek pratik değer: bug bulma** (2 batch'te 1 kesin + 1 olası bug). "Test everything" için en hızlı yol smoke-test taramasıdır (bkz. Bölüm 4 notu).
