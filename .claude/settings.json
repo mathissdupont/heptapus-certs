@@ -59,7 +59,9 @@
       "Bash(docker build *)",
       "Bash(docker run *)",
       "Bash(python -m py_compile src/main.py src/config.py)",
-      "Bash(python -m py_compile src/main.py src/enums.py)"
+      "Bash(python -m py_compile src/main.py src/enums.py)",
+      "Bash(python -m py_compile src/main.py src/event_team.py)",
+      "Bash(python -m py_compile src/main.py src/schemas.py)"
     ],
     "additionalDirectories": [
       "c:\\Users\\samet\\OneDrive\\Masaüstü\\heptapus-certs\\heptacert\\frontend\\src\\app\\admin\\lms\\courses\\[id]\\quizzes",
