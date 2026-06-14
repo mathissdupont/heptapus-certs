@@ -469,7 +469,7 @@ async def export_event_analytics_csv(
             "yes" if att.survey_completed_at else "no",
             attendance_map.get(att.id, 0),
             "yes" if cert_map.get((att.name or "").strip().lower()) else "no",
-            "yes" if att.checked_in_at else "no",
+            "yes" if attendance_map.get(att.id, 0) else "no",
         ])
     output.seek(0)
     safe_name = (event.name or f"event_{event_id}").replace(" ", "_")[:60]
@@ -537,7 +537,7 @@ async def export_event_analytics_xlsx(
             "yes" if att.survey_completed_at else "no",
             attendance_map.get(att.id, 0),
             "yes" if cert_map.get((att.name or "").strip().lower()) else "no",
-            "yes" if att.checked_in_at else "no",
+            "yes" if attendance_map.get(att.id, 0) else "no",
         ])
     for col in ws.columns:
         ws.column_dimensions[col[0].column_letter].width = min(max(len(str(col[0].value or "")) + 4, 12), 40)
