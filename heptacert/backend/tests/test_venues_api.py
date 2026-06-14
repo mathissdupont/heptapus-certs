@@ -79,7 +79,9 @@ async def test_venue_manager_can_reserve_but_cannot_manage_organization_team():
         contexts = await client.get("/api/admin/organization/contexts", headers=employee_headers)
         assert contexts.status_code == 200
         context_items = contexts.json()
-        assert len(context_items) >= 2
+        # Calisan baska bir org'a uye; kendi org'u yoksa yalnizca uyelik context'i
+        # doner (kendi org'u sadece hic context yoksa lazy olusur). En az 1 (uye) yeter.
+        assert len(context_items) >= 1
         owner_context = next(item for item in context_items if not item["owned"])
         employee_headers = {**employee_headers, "X-Organization-Id": str(owner_context["id"])}
 
@@ -203,6 +205,13 @@ async def test_profile_manager_can_update_profile_but_not_venues():
             json={"email": "profile-manager@test.com", "role": "profile_manager"},
         )
         assert member_response.status_code == 201
+
+        # Calisan, izin sinirini test etmek icin OWNER'in org'unu hedeflemeli
+        # (X-Organization-Id'siz istek kendi org'una gider ve 201 doner).
+        contexts = await client.get("/api/admin/organization/contexts", headers=employee_headers)
+        assert contexts.status_code == 200
+        owner_context = next(item for item in contexts.json() if not item["owned"])
+        employee_headers = {**employee_headers, "X-Organization-Id": str(owner_context["id"])}
 
         updated = await client.patch(
             "/api/admin/organization/settings",

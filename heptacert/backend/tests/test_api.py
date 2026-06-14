@@ -1176,13 +1176,18 @@ class TestAccountDeletionFlows:
                 select(func.count(CommunityPost.id)).where(CommunityPost.author_public_member_id == member_id)
             )
 
-        assert member is None
-        assert attendee_res is not None
-        assert attendee_res.public_member_id is None
+        # Hesap silme = soft-delete + anonimlestirme (KVKK yasal saklama):
+        # member silinmez, deleted_at set edilir, PII anonimlestirilir.
+        # OrganizationFollower + CommunityPostLike kaldirilir; post/comment ise
+        # anonim olarak korunur (silinmez); attendee kaydi da korunur.
+        assert member is not None
+        assert member.deleted_at is not None
+        assert member.display_name == "Silinmiş Üye"
         assert follower_count == 0
         assert like_count == 0
-        assert comment_count == 0
-        assert post_count == 0
+        assert comment_count == 1
+        assert post_count == 1
+        assert attendee_res is not None
 
     @pytest.mark.asyncio
     async def test_public_member_delete_account_rejects_wrong_password(self):
@@ -1227,7 +1232,9 @@ class TestAccountDeletionFlows:
 
         async with SessionLocal() as db:
             admin = await db.get(User, admin_id)
-        assert admin is None
+        # Admin hesap silme de soft-delete: kayit kalir, deleted_at isaretlenir
+        assert admin is not None
+        assert admin.deleted_at is not None
 
     @pytest.mark.asyncio
     async def test_superadmin_delete_account_blocked(self):
