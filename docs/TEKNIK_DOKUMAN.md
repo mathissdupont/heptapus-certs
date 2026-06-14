@@ -83,9 +83,14 @@
 heptacert/
 ├── backend/
 │   ├── src/
-│   │   ├── main.py              # ~21k satır: app + ~245 model + 164 şema + 230 route + helper
+│   │   ├── main.py              # ~18k satır: app + ~230 route + auth deps + helper'lar
 │   │   ├── config.py           # Settings (env) — main.py'dan ayıklandı
-│   │   ├── db_types.py         # Dialect-aware JSONB/INET (postgres⇄sqlite)
+│   │   ├── db.py               # engine, SessionLocal, Base, get_db
+│   │   ├── enums.py            # Role, CertStatus, TxType, OrderStatus, AttendeeSource
+│   │   ├── db_types.py         # Dialect-aware JSONB/INET/BIGINT_PK (postgres⇄sqlite)
+│   │   ├── event_team.py       # Event-team rol/izin sabitleri + yardımcıları
+│   │   ├── models.py           # 79 çekirdek SQLAlchemy modeli (tek Base.registry)
+│   │   ├── schemas.py          # 166 Pydantic request/response şeması
 │   │   ├── *_api.py            # ~43 router modülü (events, crm, community, venues, ...)
 │   │   ├── *_models.py         # Ayrı SQLAlchemy modelleri (lms, crm, quiz, lead_forms, ...)
 │   │   ├── generator.py        # Sertifika PDF/PNG üretimi
