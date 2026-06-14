@@ -239,15 +239,18 @@ class TestNotificationEmailSafety:
         malicious_title = '<img src=x onerror=alert(1)>'
         escaped_name = escape(malicious_name)
         escaped_title = escape(malicious_title)
+        # HTML escape karakterleri (< > & ") entity'ye cevirir; oznitelik metni
+        # (onerror) kalir ama tag nötralize oldugu icin calismaz. Guvenlik ozelligi:
+        # ciktida ham acili parantezli tag kalmamali.
         assert '<script>' not in escaped_name
-        assert 'onerror' not in escaped_title
+        assert '<img' not in escaped_title
         assert '&lt;script&gt;' in escaped_name
 
     def test_html_in_event_name_escaped(self):
         from html import escape
         event_name = '"><svg onload=alert(1)>'
         escaped = escape(event_name)
-        assert 'onload' not in escaped
+        assert '<svg' not in escaped  # tag escape edildi -> calismaz
         assert '&gt;' in escaped
 
 

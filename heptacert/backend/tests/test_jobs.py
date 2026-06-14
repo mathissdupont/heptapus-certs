@@ -204,7 +204,6 @@ class TestPaymentWebhookIdempotency:
         provider = StripeProvider(
             secret_key="sk_test_xxx",
             webhook_secret="whsec_test",
-            publishable_key="pk_test_xxx",
         )
         old_timestamp = str(int(time.time()) - 400)  # > 300s tolerance
         payload = b'{"type":"payment_intent.succeeded"}'
@@ -268,8 +267,12 @@ class TestAutomationLoopProtection:
         existing_rule.trigger_config = {"segment_key": "attended_no_certificate"}
         existing_rule.enabled = True
 
+        # await db.execute(...) duz bir MagicMock dondurmeli ki .scalars().all()
+        # senkron calissin; aksi halde AsyncMock cocuk mock'lari coroutine uretir.
+        _exec_result = MagicMock()
+        _exec_result.scalars.return_value.all.return_value = [existing_rule]
         db = AsyncMock()
-        db.execute.return_value.scalars.return_value.all.return_value = [existing_rule]
+        db.execute.return_value = _exec_result
 
         async def run():
             # Should not raise
@@ -293,8 +296,12 @@ class TestAutomationLoopProtection:
         existing_rule.trigger_config = {"segment_key": "no_shows"}  # same!
         existing_rule.enabled = True
 
+        # await db.execute(...) duz bir MagicMock dondurmeli ki .scalars().all()
+        # senkron calissin; aksi halde AsyncMock cocuk mock'lari coroutine uretir.
+        _exec_result = MagicMock()
+        _exec_result.scalars.return_value.all.return_value = [existing_rule]
         db = AsyncMock()
-        db.execute.return_value.scalars.return_value.all.return_value = [existing_rule]
+        db.execute.return_value = _exec_result
 
         async def run():
             with pytest.raises(HTTPException) as exc_info:

@@ -1,7 +1,7 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from src.main import Event, Role, SessionLocal, User, app, create_access_token, hash_password
+from src.main import Event, Role, SessionLocal, Subscription, User, app, create_access_token, hash_password
 
 
 @pytest.mark.asyncio
@@ -52,6 +52,9 @@ async def test_venue_manager_can_reserve_but_cannot_manage_organization_team():
         await db.commit()
         await db.refresh(owner)
         await db.refresh(employee)
+        # team_manage (calisan yonetimi) Enterprise plan gerektirir
+        db.add(Subscription(user_id=owner.id, plan_id="enterprise"))
+        await db.commit()
         owner_headers = {"Authorization": f"Bearer {create_access_token(user_id=owner.id, role=Role.admin)}"}
         employee_headers = {"Authorization": f"Bearer {create_access_token(user_id=employee.id, role=Role.admin)}"}
 
@@ -185,6 +188,9 @@ async def test_profile_manager_can_update_profile_but_not_venues():
         await db.commit()
         await db.refresh(owner)
         await db.refresh(employee)
+        # team_manage (calisan yonetimi) Enterprise plan gerektirir
+        db.add(Subscription(user_id=owner.id, plan_id="enterprise"))
+        await db.commit()
         owner_headers = {"Authorization": f"Bearer {create_access_token(user_id=owner.id, role=Role.admin)}"}
         employee_headers = {"Authorization": f"Bearer {create_access_token(user_id=employee.id, role=Role.admin)}"}
 
@@ -233,6 +239,9 @@ async def test_event_manager_sees_and_updates_organization_events():
         await db.refresh(owner)
         await db.refresh(employee)
         await db.refresh(event)
+        # team_manage (calisan yonetimi) Enterprise plan gerektirir
+        db.add(Subscription(user_id=owner.id, plan_id="enterprise"))
+        await db.commit()
         event_id = event.id
         owner_headers = {"Authorization": f"Bearer {create_access_token(user_id=owner.id, role=Role.admin)}"}
         employee_headers = {"Authorization": f"Bearer {create_access_token(user_id=employee.id, role=Role.admin)}"}
