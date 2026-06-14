@@ -526,9 +526,9 @@ class TestPublicSocialAndEventControls:
                     "organizer_privacy_notice_text": "Organizator aydinlatma metni",
                     "show_cross_border_transfer_notice": True,
                     "require_cross_border_transfer_consent": True,
+                    "require_email_verification": False,
                 },
                 registration_enabled=True,
-                require_email_verification=False,
             )
             db.add(event)
             await db.commit()
