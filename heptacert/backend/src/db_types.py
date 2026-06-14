@@ -9,10 +9,12 @@ hatası alınır (production davranışı PostgreSQL'de birebir aynı kalır).
 
 from __future__ import annotations
 
-from sqlalchemy import JSON as _JSON, String
+from sqlalchemy import JSON as _JSON, BigInteger, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB as _PgJSONB, INET as _PgINET
 
 JSONB = _JSON().with_variant(_PgJSONB(), "postgresql")
 INET = String(45).with_variant(_PgINET(), "postgresql")
+# PostgreSQL'de BIGINT, SQLite'da INTEGER (autoincrement PK uyumlulugu icin)
+BIGINT_PK = BigInteger().with_variant(Integer, "sqlite")
 
-__all__ = ["JSONB", "INET"]
+__all__ = ["JSONB", "INET", "BIGINT_PK"]
