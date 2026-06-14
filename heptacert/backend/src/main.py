@@ -249,16 +249,7 @@ from .config import Settings, settings  # Settings + settings config.py'a tasind
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 _startup_time: float = time.time()
 
-engine_options: Dict[str, Any] = {"pool_pre_ping": True}
-if not settings.database_url.lower().startswith("sqlite"):
-    engine_options.update(
-        pool_size=max(1, settings.db_pool_size),
-        max_overflow=max(0, settings.db_pool_max_overflow),
-        pool_timeout=max(1, settings.db_pool_timeout),
-        pool_recycle=max(60, settings.db_pool_recycle),
-    )
-engine = create_async_engine(settings.database_url, **engine_options)
-SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
+from .db import Base, engine, SessionLocal, get_db  # db.py'a tasindi (god-dosya bolme)
 bulk_cert_job_lock = asyncio.Lock()
 superadmin_bulk_email_tasks_lock = asyncio.Lock()
 superadmin_bulk_email_tasks: Dict[int, asyncio.Task] = {}
@@ -271,8 +262,7 @@ _event_total_sessions_cache: Dict[int, tuple[float, int]] = {}
 REGISTRATION_DEVICE_COOKIE = "heptacert_reg_device"
 
 
-class Base(DeclarativeBase):
-    pass
+# Base -> db.py (yukarida import edildi)
 
 
 # Role, CertStatus, TxType -> enums.py (yukarida import edildi)
@@ -3887,9 +3877,7 @@ def create_partial_token(*, user_id: int) -> str:
     return jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
 
 
-async def get_db() -> AsyncSession:
-    async with SessionLocal() as session:
-        yield session
+# get_db -> db.py (yukarida import edildi)
 
 
 
