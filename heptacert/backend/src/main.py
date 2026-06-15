@@ -4500,66 +4500,6 @@ async def trigger_automatic_badge_calculation(
 
 # Ã¢â€â‚¬Ã¢â€â‚¬ Certificate Tier Endpoints Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
-@app.post("/api/admin/events/{event_id}/certificate-tiers", response_model=CertificateTierRulesOut)
-async def create_or_update_tier_rules(
-    event_id: int,
-    tier_rules_in: CertificateTierRulesIn,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Create or update certificate tier rules for an event."""
-    # Check authorization
-    e_res = await db.execute(select(Event).where(Event.id == event_id))
-    event = e_res.scalar_one_or_none()
-    if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
-
-    if not await _can_manage_organization_event(db, current_user, event.admin_id):
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
-
-    # Check if rules exist
-    ctr_res = await db.execute(
-        select(CertificateTierRule).where(CertificateTierRule.event_id == event_id)
-    )
-    tier_rule = ctr_res.scalar_one_or_none()
-
-    if tier_rule:
-        tier_rule.tier_definitions = [t.model_dump() for t in tier_rules_in.tier_definitions]
-        tier_rule.updated_at = datetime.utcnow()
-    else:
-        tier_rule = CertificateTierRule(
-            event_id=event_id,
-            tier_definitions=[t.model_dump() for t in tier_rules_in.tier_definitions],
-            created_by=current_user.id,
-            updated_at=datetime.utcnow(),
-        )
-        db.add(tier_rule)
-
-    await db.commit()
-    await db.refresh(tier_rule)
-    return tier_rule
-
-
-@app.get("/api/admin/events/{event_id}/certificate-tiers", response_model=Optional[CertificateTierRulesOut])
-async def get_tier_rules(
-    event_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Get certificate tier rules for an event."""
-    e_res = await db.execute(select(Event).where(Event.id == event_id))
-    event = e_res.scalar_one_or_none()
-    if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
-
-    if not await _can_manage_organization_event(db, current_user, event.admin_id):
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
-
-    ctr_res = await db.execute(
-        select(CertificateTierRule).where(CertificateTierRule.event_id == event_id)
-    )
-    tier_rule = ctr_res.scalar_one_or_none()
-    return tier_rule
 
 
 @app.post("/api/admin/events/{event_id}/certificates/assign-tiers")
@@ -4660,95 +4600,6 @@ async def get_tier_summary(
 
 # Ã¢â€â‚¬Ã¢â€â‚¬ Survey Integration Endpoints Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
-@app.post("/api/admin/events/{event_id}/survey-config", response_model=EventSurveyOut)
-async def configure_event_survey(
-    event_id: int,
-    survey_in: EventSurveyIn,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Configure survey requirements for an event."""
-    e_res = await db.execute(select(Event).where(Event.id == event_id))
-    event = e_res.scalar_one_or_none()
-    if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamad")
-
-    if not await _can_manage_organization_event(db, current_user, event.admin_id):
-        raise HTTPException(status_code=403, detail="Yetkisiz eriim")
-
-    if survey_in.survey_type not in {"disabled", "builtin", "external", "both"}:
-        raise HTTPException(status_code=400, detail="Gecersiz anket turu")
-
-    survey_disabled = survey_in.survey_type == "disabled"
-    builtin_questions = [] if survey_disabled else [q.model_dump() for q in survey_in.builtin_questions]
-    if survey_in.survey_type in {"builtin", "both"} and not builtin_questions:
-        raise HTTPException(status_code=400, detail="Yerleik anket icin en az bir soru gerekli")
-
-    if survey_in.survey_type in {"external", "both"} and not survey_in.external_url:
-        raise HTTPException(status_code=400, detail="Harici anket icin URL gerekli")
-
-    webhook_key = survey_in.external_webhook_key
-    if survey_in.survey_type in {"external", "both"} and not webhook_key:
-        webhook_key = secrets.token_urlsafe(24)
-    elif survey_in.survey_type in {"disabled", "builtin"}:
-        webhook_key = None
-
-    es_res = await db.execute(select(EventSurvey).where(EventSurvey.event_id == event_id))
-    event_survey = es_res.scalar_one_or_none()
-
-    if event_survey:
-        event_survey.is_required = survey_in.is_required
-        event_survey.survey_type = survey_in.survey_type
-        event_survey.builtin_questions = builtin_questions
-        event_survey.external_provider = None if survey_disabled else survey_in.external_provider
-        event_survey.external_url = None if survey_disabled else survey_in.external_url
-        event_survey.external_webhook_key = webhook_key
-    else:
-        event_survey = EventSurvey(
-            event_id=event_id,
-            is_required=survey_in.is_required,
-            survey_type=survey_in.survey_type,
-            builtin_questions=builtin_questions,
-            external_provider=None if survey_disabled else survey_in.external_provider,
-            external_url=None if survey_disabled else survey_in.external_url,
-            external_webhook_key=webhook_key,
-        )
-        db.add(event_survey)
-
-    att_res = await db.execute(select(Attendee).where(Attendee.event_id == event_id))
-    attendees = att_res.scalars().all()
-    for attendee in attendees:
-        attendee.survey_required = survey_in.is_required if not survey_disabled else False
-        if survey_disabled:
-            attendee.can_download_cert = True
-        elif survey_in.is_required:
-            attendee.can_download_cert = attendee.survey_completed_at is not None
-        else:
-            attendee.can_download_cert = True
-
-    await db.commit()
-    await db.refresh(event_survey)
-    return event_survey
-
-
-@app.get("/api/admin/events/{event_id}/survey-config", response_model=Optional[EventSurveyOut])
-async def get_event_survey(
-    event_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Get survey configuration for an event."""
-    e_res = await db.execute(select(Event).where(Event.id == event_id))
-    event = e_res.scalar_one_or_none()
-    if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamad")
-
-    if not await _can_manage_organization_event(db, current_user, event.admin_id):
-        raise HTTPException(status_code=403, detail="Yetkisiz eriim")
-
-    es_res = await db.execute(select(EventSurvey).where(EventSurvey.event_id == event_id))
-    event_survey = es_res.scalar_one_or_none()
-    return event_survey
 
 
 @app.post("/api/surveys/{event_id}/submit", response_model=SurveyResponseOut)
@@ -4991,174 +4842,6 @@ async def get_survey_responses(
 
 # Ã¢â€â‚¬Ã¢â€â‚¬ Sponsor Management Endpoints Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
-@app.post("/api/admin/events/{event_id}/sponsors", response_model=SponsorSlotOut)
-async def create_sponsor_slot(
-    event_id: int,
-    sponsor_in: SponsorSlotIn,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Create a sponsor slot for an event."""
-    # Check authorization
-    e_res = await db.execute(select(Event).where(Event.id == event_id))
-    event = e_res.scalar_one_or_none()
-    if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
-
-    if not await _can_manage_organization_event(db, current_user, event.admin_id):
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
-
-    # Create sponsor slot
-    sponsor_slot = SponsorSlot(
-        event_id=event_id,
-        slot_position=sponsor_in.slot_position,
-        sponsor_name=sponsor_in.sponsor_name,
-        sponsor_logo_url=sponsor_in.sponsor_logo_url,
-        sponsor_website_url=sponsor_in.sponsor_website_url,
-        sponsor_color_hex=sponsor_in.sponsor_color_hex,
-        enabled=sponsor_in.enabled,
-        order_index=sponsor_in.order_index,
-    )
-    db.add(sponsor_slot)
-    await db.commit()
-    await db.refresh(sponsor_slot)
-    return sponsor_slot
-
-
-@app.get("/api/admin/events/{event_id}/sponsors")
-async def list_sponsors(
-    event_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """List all sponsor slots for an event."""
-    e_res = await db.execute(select(Event).where(Event.id == event_id))
-    event = e_res.scalar_one_or_none()
-    if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
-
-    if not await _can_manage_organization_event(db, current_user, event.admin_id):
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
-
-    ss_res = await db.execute(
-        select(SponsorSlot)
-        .where(SponsorSlot.event_id == event_id, SponsorSlot.enabled == True)
-        .order_by(SponsorSlot.order_index)
-    )
-    sponsors = ss_res.scalars().all()
-
-    return {
-        "total_sponsors": len(sponsors),
-        "sponsors": [SponsorSlotOut.model_validate(s) for s in sponsors],
-        "by_position": {},
-    }
-
-
-@app.put("/api/admin/events/{event_id}/sponsors/{sponsor_id}", response_model=SponsorSlotOut)
-async def update_sponsor_slot(
-    event_id: int,
-    sponsor_id: int,
-    sponsor_in: SponsorSlotIn,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Update a sponsor slot."""
-    # Check authorization
-    e_res = await db.execute(select(Event).where(Event.id == event_id))
-    event = e_res.scalar_one_or_none()
-    if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
-
-    if not await _can_manage_organization_event(db, current_user, event.admin_id):
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
-
-    # Get sponsor slot
-    ss_res = await db.execute(
-        select(SponsorSlot).where(
-            SponsorSlot.id == sponsor_id,
-            SponsorSlot.event_id == event_id,
-        )
-    )
-    sponsor_slot = ss_res.scalar_one_or_none()
-    if not sponsor_slot:
-        raise HTTPException(status_code=404, detail="Sponsor bulunamadÃ„Â±")
-
-    # Update fields
-    sponsor_slot.slot_position = sponsor_in.slot_position
-    sponsor_slot.sponsor_name = sponsor_in.sponsor_name
-    sponsor_slot.sponsor_logo_url = sponsor_in.sponsor_logo_url
-    sponsor_slot.sponsor_website_url = sponsor_in.sponsor_website_url
-    sponsor_slot.sponsor_color_hex = sponsor_in.sponsor_color_hex
-    sponsor_slot.enabled = sponsor_in.enabled
-    sponsor_slot.order_index = sponsor_in.order_index
-
-    await db.commit()
-    await db.refresh(sponsor_slot)
-    return sponsor_slot
-
-
-@app.delete("/api/admin/events/{event_id}/sponsors/{sponsor_id}")
-async def delete_sponsor_slot(
-    event_id: int,
-    sponsor_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Delete a sponsor slot."""
-    # Check authorization
-    e_res = await db.execute(select(Event).where(Event.id == event_id))
-    event = e_res.scalar_one_or_none()
-    if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
-
-    if not await _can_manage_organization_event(db, current_user, event.admin_id):
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
-
-    # Get sponsor slot
-    ss_res = await db.execute(
-        select(SponsorSlot).where(
-            SponsorSlot.id == sponsor_id,
-            SponsorSlot.event_id == event_id,
-        )
-    )
-    sponsor_slot = ss_res.scalar_one_or_none()
-    if not sponsor_slot:
-        raise HTTPException(status_code=404, detail="Sponsor bulunamadÃ„Â±")
-
-    await db.delete(sponsor_slot)
-    await db.commit()
-
-    return {
-        "status": "deleted",
-        "message": f"Sponsor '{sponsor_slot.sponsor_name}' kaldÃ„Â±rÃ„Â±ldÃ„Â±",
-    }
-
-
-@app.get("/api/public/events/{event_id}/sponsors")
-async def get_event_sponsors_public(
-    event_id: int,
-    db: AsyncSession = Depends(get_db),
-):
-    """Get enabled sponsors for an event (public endpoint)."""
-    ss_res = await db.execute(
-        select(SponsorSlot)
-        .where(SponsorSlot.event_id == event_id, SponsorSlot.enabled == True)
-        .order_by(SponsorSlot.order_index)
-    )
-    sponsors = ss_res.scalars().all()
-
-    # Group by position
-    by_position = {}
-    for sponsor in sponsors:
-        if sponsor.slot_position not in by_position:
-            by_position[sponsor.slot_position] = []
-        by_position[sponsor.slot_position].append(SponsorSlotOut.model_validate(sponsor))
-
-    return {
-        "sponsors": [SponsorSlotOut.model_validate(s) for s in sponsors],
-        "by_position": by_position,
-        "total": len(sponsors),
-    }
 
 
 
@@ -11402,64 +11085,6 @@ async def verify_magic_link(
 # Template History
 # Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
 
-@app.get(
-    "/api/admin/events/{event_id}/template-history",
-    response_model=List[TemplateSnapshotOut],
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
-)
-async def get_template_history(
-    event_id: int,
-    me: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    await _get_event_for_admin(event_id, me, db, "certificates:write")
-
-    res = await db.execute(
-        select(EventTemplateSnapshot)
-        .where(EventTemplateSnapshot.event_id == event_id)
-        .order_by(EventTemplateSnapshot.created_at.desc())
-        .limit(10)
-    )
-    return res.scalars().all()
-
-
-@app.post(
-    "/api/admin/events/{event_id}/template-history/{snap_id}/restore",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
-)
-async def restore_template_snapshot(
-    event_id: int,
-    snap_id: int,
-    me: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    ev = await _get_event_for_admin(event_id, me, db, "certificates:write")
-
-    res_snap = await db.execute(
-        select(EventTemplateSnapshot).where(
-            EventTemplateSnapshot.id == snap_id,
-            EventTemplateSnapshot.event_id == event_id,
-        )
-    )
-    snap = res_snap.scalar_one_or_none()
-    if not snap:
-        raise HTTPException(status_code=404, detail="Snapshot not found")
-
-    # Save current state as new snapshot before restoring
-    current_snap = EventTemplateSnapshot(
-        event_id=event_id,
-        template_image_url=ev.template_image_url,
-        config=ev.config,
-        created_by=me.id,
-    )
-    db.add(current_snap)
-
-    if snap.template_image_url:
-        ev.template_image_url = snap.template_image_url
-    if snap.config:
-        ev.config = snap.config
-    await db.commit()
-    return {"ok": True, "restored_snapshot_id": snap_id}
 
 
 # Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
@@ -15395,6 +15020,18 @@ app.include_router(_accreditation_api.router)
 
 from . import raffles_api as _raffles_api  # routers refactor 4d
 app.include_router(_raffles_api.router)
+
+from . import event_sponsors_api as _event_sponsors_api  # routers refactor 4d
+app.include_router(_event_sponsors_api.router)
+
+from . import certificate_tiers_api as _certificate_tiers_api  # routers refactor 4d
+app.include_router(_certificate_tiers_api.router)
+
+from . import survey_config_api as _survey_config_api  # routers refactor 4d
+app.include_router(_survey_config_api.router)
+
+from . import template_history_api as _template_history_api  # routers refactor 4d
+app.include_router(_template_history_api.router)
 
 # ── MCP hosted endpoint (/mcp) ─────────────────────────────────────────────────
 # Agents connect to https://yourapp.com/mcp with Authorization: Bearer hc_live_...
