@@ -317,7 +317,7 @@ class CreditCoinsIn(BaseModel):
 
 class EventCreateIn(BaseModel):
     name: str = Field(min_length=2, max_length=200)
-    template_image_url: str = Field(min_length=1, max_length=2000)
+    template_image_url: Optional[str] = Field(default=None, max_length=2000)
     config: Dict[str, Any] = Field(default_factory=dict)
     event_type: Optional[str] = Field(default=None, max_length=64)
     certificate_enabled: Optional[bool] = Field(default=None)
