@@ -2182,35 +2182,12 @@ async def require_event_owner_premium_for_teams(
 app = FastAPI(title="HeptaCert API", version="2.0.0", docs_url=None, redoc_url=None, openapi_url=None)
 
 # Prefer X-Forwarded-For only when the immediate peer is explicitly configured.
-def _client_ip_for_rate_limit(request: Request) -> str:
-    peer_host = request.client.host if request.client and request.client.host else None
-    xff = request.headers.get("X-Forwarded-For")
-    if xff and _is_trusted_proxy_peer(peer_host):
-        first_ip = xff.split(",", 1)[0].strip()
-        if first_ip:
-            return first_ip
-    if peer_host:
-        return peer_host
-    return "unknown"
+from .ratelimit import (  # ratelimit.py'a tasindi (routers-prep)
+    limiter, rate_limit_storage_uri, _rate_limit_key, _client_ip_for_rate_limit,
+    _is_trusted_proxy_peer, _heptacert_rate_limit_handler,
+)
 
 
-def _is_trusted_proxy_peer(peer_host: Optional[str]) -> bool:
-    if not peer_host:
-        return False
-    try:
-        ip = ipaddress.ip_address(peer_host)
-    except ValueError:
-        return False
-    for raw_network in (settings.trusted_proxy_networks or "").split(","):
-        network = raw_network.strip()
-        if not network:
-            continue
-        try:
-            if ip in ipaddress.ip_network(network, strict=False):
-                return True
-        except ValueError:
-            logger.warning("Ignoring invalid TRUSTED_PROXY_NETWORKS entry: %s", network)
-    return False
 
 
 def _get_registration_device_id(request: Request) -> tuple[str, bool]:
@@ -2220,55 +2197,10 @@ def _get_registration_device_id(request: Request) -> tuple[str, bool]:
     return secrets.token_urlsafe(24), True
 
 
-async def _heptacert_rate_limit_handler(request: Request, exc: RateLimitExceeded):
-    detail = str(exc.detail or "Too many requests")
-    try:
-        async with SessionLocal() as db:
-            await write_audit_log(
-                db,
-                user_id=None,
-                action="security.rate_limit",
-                resource_type="request",
-                resource_id=request.url.path,
-                ip_address=_client_ip_for_rate_limit(request),
-                user_agent=request.headers.get("User-Agent"),
-                extra={"detail": detail, "method": request.method},
-            )
-            await db.commit()
-    except Exception as audit_error:
-        logger.debug("Rate-limit audit log write failed: %s", audit_error)
-    # Preserve legacy `error` key while adding standard `detail` for frontend handlers.
-    return JSONResponse(
-        status_code=429,
-        content={
-            "detail": f"Rate limit exceeded: {detail}",
-            "error": f"Rate limit exceeded: {detail}",
-        },
-    )
 
 
-# Rate limiter — uses IP for anonymous, user_id for authenticated requests
-def _rate_limit_key(request: Request) -> str:
-    auth = request.headers.get("Authorization", "")
-    if auth.startswith("Bearer "):
-        token = auth[7:]
-        try:
-            import jose.jwt as _jwt
-            payload = _jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
-            uid = payload.get("sub")
-            if uid:
-                return f"user:{uid}"
-        except Exception:
-            pass
-    return f"ip:{_client_ip_for_rate_limit(request)}"
 
 
-rate_limit_storage_uri = settings.rate_limit_storage_uri or settings.redis_url or "memory://"
-limiter = Limiter(
-    key_func=_rate_limit_key,
-    default_limits=["200/minute"],
-    storage_uri=rate_limit_storage_uri,
-)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _heptacert_rate_limit_handler)
 logger.info("Rate limiter storage: %s", "redis" if rate_limit_storage_uri.startswith("redis") else "memory")
