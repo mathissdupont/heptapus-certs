@@ -1,5 +1,6 @@
 """Organization-level participant CRM endpoints."""
 
+import copy
 import csv
 import io
 from datetime import datetime, timezone
@@ -426,8 +427,13 @@ async def _attendees_for_identity(db: AsyncSession, org: Organization, emails: l
 
 
 def _crm_integrations_settings(org: Organization) -> dict[str, Any]:
+    # NOT: org.settings plain JSONB (MutableDict degil). Cagiranlar donen dict'i
+    # yerinde mutate edince (or. delete handler'inda data.pop("hubspot"))
+    # SQLAlchemy'nin committed snapshot'i da boziluyordu -> degisiklik algilanmiyor,
+    # UPDATE atilmiyordu (DELETE persist olmuyordu). Deep copy ile yuklenen state'i
+    # izole ediyoruz; cagiranlar guvenle mutate edebilir.
     settings_data = org.settings or {}
-    return settings_data.get("crm_integrations") or {}
+    return copy.deepcopy(settings_data.get("crm_integrations") or {})
 
 
 async def _save_crm_integrations_settings(db: AsyncSession, org: Organization, data: dict[str, Any]) -> None:

@@ -91,9 +91,8 @@ class TestCrmIntegrations:
             assert up.json()["configured"] is True
             assert (await ac.get("/api/admin/crm/integrations/hubspot", headers=h)).json()["configured"] is True
             assert (await ac.delete("/api/admin/crm/integrations/hubspot", headers=h)).status_code == 200
-            # NOT: DELETE 200 donuyor ama bir sonraki GET hala configured=True gosteriyor
-            # (org cache yok -> silme persist olmuyor olabilir). Olasi bug, ayrica
-            # incelenmeli; burada DELETE'in 200 dondugunu dogrulamakla yetiniyoruz.
+            # DELETE artik kalici siliyor (JSONB deep-copy fix'i)
+            assert (await ac.get("/api/admin/crm/integrations/hubspot", headers=h)).json()["configured"] is False
 
     @pytest.mark.asyncio
     async def test_salesforce_crud(self):
@@ -104,6 +103,7 @@ class TestCrmIntegrations:
             assert up.status_code == 200, up.text
             assert up.json()["configured"] is True
             assert (await ac.delete("/api/admin/crm/integrations/salesforce", headers=h)).status_code == 200
+            assert (await ac.get("/api/admin/crm/integrations/salesforce", headers=h)).json()["configured"] is False
 
     @pytest.mark.asyncio
     async def test_mailchimp_crud(self):
@@ -114,6 +114,7 @@ class TestCrmIntegrations:
             assert up.status_code == 200, up.text
             assert up.json()["configured"] is True
             assert (await ac.delete("/api/admin/crm/integrations/mailchimp", headers=h)).status_code == 200
+            assert (await ac.get("/api/admin/crm/integrations/mailchimp", headers=h)).json()["configured"] is False
 
 
 class TestCrmEnterpriseGate:
