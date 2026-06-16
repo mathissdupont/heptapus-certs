@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { apiFetch, clearToken, getRoleFromToken, getSelectedOrganizationId, setSelectedOrganizationId, type OrgModules } from "@/lib/api";
 import { LanguageToggle, useI18n } from "@/lib/i18n";
+import { orgRoleLabel } from "@/lib/orgRoles";
 import InAppTourGuide from "@/components/Admin/InAppTourGuide";
 import AIAssistant from "@/components/Admin/AIAssistant";
 import HeptaCertLogoMark from "@/components/Brand/HeptaCertLogoMark";
@@ -37,6 +38,7 @@ import {
   FileText,
   CheckCircle2,
   ArrowRight,
+  CalendarClock,
 } from "lucide-react";
 
 type NavItem = {
@@ -45,6 +47,12 @@ type NavItem = {
   label: { tr: string; en: string };
   icon: React.ElementType;
   exact?: boolean;
+  /** Sınırlı organizasyon rolleri (owner/manager dışı üyeler) yalnızca bu izne
+   *  sahip oldukları öğeleri görür. Tanımsızsa öğe yalnızca tam erişimli
+   *  bağlamlarda (owner/manager/solo/superadmin) görünür. */
+  permission?: string;
+  /** Sınırlı rollerde bile her zaman görünür (örn. Dashboard). */
+  alwaysVisible?: boolean;
 };
 
 type NavGroup = {
@@ -108,19 +116,20 @@ const ONBOARDING_MODULES = [
 ] as const;
 
 // Group indices (0-based):
-// 0: Genel          — always visible
-// 1: Etkinlikler    — module: events
-// 2: Akreditasyon   — module: accreditation
-// 3: CRM & Satış    — always visible
-// 4: İletişim       — always visible
-// 5: Analitik       — always visible
-// 6: Platform       — always visible
+// 0: Genel              — always visible
+// 1: Etkinlikler        — module: events
+// 2: Salon & Rezervasyon — permission-gated items (venues/reservations)
+// 3: Akreditasyon       — module: accreditation
+// 4: CRM & Satış        — always visible
+// 5: İletişim           — always visible
+// 6: Analitik           — always visible
+// 7: Platform           — always visible
 
 const NAV_GROUPS: NavGroup[] = [
   {
     label: { tr: "Genel", en: "General" },
     items: [
-      { href: "/admin/dashboard", label: { tr: "Dashboard", en: "Dashboard" }, icon: Gauge, exact: true },
+      { href: "/admin/dashboard", label: { tr: "Dashboard", en: "Dashboard" }, icon: Gauge, exact: true, alwaysVisible: true },
       { href: "/admin/jobs", label: { tr: "İşler", en: "Jobs" }, icon: Loader2, exact: true },
     ],
   },
@@ -128,7 +137,14 @@ const NAV_GROUPS: NavGroup[] = [
     label: { tr: "Etkinlikler", en: "Events" },
     module: "events",
     items: [
-      { href: "/admin/events", label: { tr: "Etkinlikler", en: "Events" }, icon: CalendarCheck2 },
+      { href: "/admin/events", label: { tr: "Etkinlikler", en: "Events" }, icon: CalendarCheck2, permission: "events:manage" },
+    ],
+  },
+  {
+    label: { tr: "Salon & Rezervasyon", en: "Venues & Reservations" },
+    items: [
+      { href: "/admin/venues", label: { tr: "Salonlar", en: "Venues" }, icon: Building2, permission: "venues:read" },
+      { href: "/admin/reservations", label: { tr: "Rezervasyonlar", en: "Reservations" }, icon: CalendarClock, permission: "reservations:read" },
     ],
   },
   // LMS sistemi devre disi birakildi — arsivlendi
@@ -195,13 +211,13 @@ const NAV_GROUPS: NavGroup[] = [
 ];
 
 // Primary mobile nav — always-visible items (module-gated items excluded here)
-// Indices: [0]=Genel, [1]=Etkinlikler, [3]=CRM, [4]=İletişim, [6]=Platform
+// Indices: [0]=Genel, [1]=Etkinlikler, [5]=İletişim, [4]=CRM, [7]=Platform
 const PRIMARY_MOBILE_ITEMS: NavItem[] = [
   NAV_GROUPS[0].items[0],  // Dashboard
   NAV_GROUPS[1].items[0],  // Etkinlikler
-  NAV_GROUPS[4].items[0],  // Email Merkezi
-  NAV_GROUPS[3].items[0],  // CRM
-  NAV_GROUPS[6].items[4],  // Settings
+  NAV_GROUPS[5].items[0],  // Email Merkezi
+  NAV_GROUPS[4].items[0],  // CRM
+  NAV_GROUPS[7].items[4],  // Settings
 ];
 
 const AUTH_PATH_PREFIXES = ["/admin/login", "/admin/magic-verify", "/admin/auth"];
@@ -242,12 +258,16 @@ function SidebarContent({
   collapsed,
   modules,
   enterpriseEnabled,
+  navPermissions,
   onClose,
 }: {
   pathname: string;
   collapsed: boolean;
   modules: OrgModules;
   enterpriseEnabled: boolean;
+  /** null = tam erişim (owner/manager/solo/superadmin); aksi halde aktif
+   *  kurumdaki üyelik izinleri — menü bunlara göre kısıtlanır. */
+  navPermissions: string[] | null;
   onClose?: () => void;
 }) {
   const router = useRouter();
@@ -260,7 +280,17 @@ function SidebarContent({
     onClose?.();
   }
 
-  const visibleGroups = NAV_GROUPS.filter((g) => (!g.module || modules[g.module]) && (!g.enterpriseOnly || enterpriseEnabled));
+  const itemAllowed = (item: NavItem): boolean => {
+    if (item.superadminOnly && role !== "superadmin") return false;
+    if (navPermissions === null) return true; // tam erişim → eskisi gibi
+    if (item.alwaysVisible) return true;
+    return Boolean(item.permission && navPermissions.includes(item.permission));
+  };
+
+  const visibleGroups = NAV_GROUPS
+    .filter((g) => (!g.module || modules[g.module]) && (!g.enterpriseOnly || enterpriseEnabled))
+    .map((g) => ({ ...g, items: g.items.filter(itemAllowed) }))
+    .filter((g) => g.items.length > 0);
 
   return (
     <div className="flex h-full flex-col">
@@ -285,7 +315,6 @@ function SidebarContent({
             {collapsed && <div className="mb-1.5 border-t border-sidebar-border" />}
             <div className="space-y-1">
               {group.items
-                .filter((item) => !item.superadminOnly || role === "superadmin")
                 .map((item) => {
                   const active = isActive(pathname, item);
                   const Icon = item.icon;
@@ -570,6 +599,17 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
   const { lang } = useI18n();
   const role = getRoleFromToken();
 
+  // Aktif kurumdaki üyelik rolüne göre menü izinleri.
+  // null = tam erişim (kendi kurumu, manager rolü, solo kullanıcı veya superadmin)
+  // → menü eskisi gibi tam görünür; regresyon yok. Sınırlı üyelik rolleri
+  // (venue_manager, viewer, event_manager...) yalnızca izinli menüleri görür.
+  const navPermissions = useMemo<string[] | null>(() => {
+    if (role === "superadmin") return null;
+    const activeContext = organizationContexts.find((ctx) => String(ctx.id) === activeOrganizationId);
+    if (!activeContext || activeContext.owned || activeContext.role === "manager") return null;
+    return activeContext.permissions || [];
+  }, [role, organizationContexts, activeOrganizationId]);
+
   useEffect(() => {
     if (isAuthPage(pathname)) return;
     if (role === "superadmin") {
@@ -598,10 +638,17 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
     //   base[1] = NAV_GROUPS[2].items[0];
     // }
     if (role === "superadmin") {
-      base[4] = NAV_GROUPS[6].items[5];
+      base[4] = NAV_GROUPS[7].items[5];
+    }
+    // Sınırlı üyelik rolünde: yetkisi olmayan hızlı-erişim öğelerini gizle
+    // (Dashboard her zaman kalır; ana menüyle tutarlı olsun diye).
+    if (navPermissions !== null) {
+      return base.filter(
+        (item) => item.alwaysVisible || (item.permission && navPermissions.includes(item.permission)),
+      );
     }
     return base;
-  }, [enterpriseEnabled, modules, role]);
+  }, [enterpriseEnabled, modules, role, navPermissions]);
 
   const topbarText = useMemo(
     () => ({
@@ -724,14 +771,14 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
           collapsed ? "lg:w-[64px]" : "lg:w-[240px]"
         }`}
       >
-        <SidebarContent pathname={pathname} collapsed={collapsed} modules={modules} enterpriseEnabled={enterpriseEnabled} />
+        <SidebarContent pathname={pathname} collapsed={collapsed} modules={modules} enterpriseEnabled={enterpriseEnabled} navPermissions={navPermissions} />
       </aside>
 
       {mobileOpen && (
         <div className="fixed inset-0 z-50 flex lg:hidden">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
           <aside className="relative z-10 w-[min(88vw,320px)] border-r border-sidebar-border bg-sidebar/95 backdrop-blur">
-            <SidebarContent pathname={pathname} collapsed={false} modules={modules} enterpriseEnabled={enterpriseEnabled} onClose={() => setMobileOpen(false)} />
+            <SidebarContent pathname={pathname} collapsed={false} modules={modules} enterpriseEnabled={enterpriseEnabled} navPermissions={navPermissions} onClose={() => setMobileOpen(false)} />
           </aside>
         </div>
       )}
@@ -794,7 +841,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
                 >
                   {organizationContexts.map((ctx) => (
                     <option key={ctx.id} value={ctx.id}>
-                      {ctx.org_name} {ctx.owned ? `(${topbarText.ownOrg})` : `(${ctx.role})`}
+                      {ctx.org_name} {ctx.owned ? `(${topbarText.ownOrg})` : `(${orgRoleLabel(ctx.role, lang)})`}
                     </option>
                   ))}
                 </select>

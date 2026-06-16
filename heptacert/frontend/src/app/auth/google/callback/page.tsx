@@ -3,7 +3,8 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { consumeOAuthBridgeToken, setPublicMemberToken, setToken } from "@/lib/api";
+import { apiFetch, consumeOAuthBridgeToken, setPublicMemberToken, setToken } from "@/lib/api";
+import { landingPathForContexts, type OrgRoleContext } from "@/lib/orgRoles";
 import { useI18n } from "@/lib/i18n";
 
 function GoogleCallbackContent() {
@@ -33,10 +34,23 @@ function GoogleCallbackContent() {
     const mode = searchParams.get("mode");
     const next = searchParams.get("next") || (mode === "admin" ? "/admin/events" : "/events");
     void consumeOAuthBridgeToken()
-      .then(({ access_token: token, mode: exchangedMode }) => {
+      .then(async ({ access_token: token, mode: exchangedMode }) => {
         if (cancelled) return;
         if (mode === "admin" && exchangedMode === "admin") {
           setToken(token);
+          // Varsayılan admin açılışında role'e duyarlı yönlendirme uygula;
+          // açık bir deep-link verilmişse ona dokunma.
+          let target = next;
+          if (next === "/admin/events") {
+            try {
+              const ctxRes = await apiFetch("/admin/organization/contexts", { method: "GET" });
+              target = landingPathForContexts(((await ctxRes.json()) as OrgRoleContext[]) || []);
+            } catch {
+              // bağlam alınamazsa varsayılan
+            }
+          }
+          router.replace(target.startsWith("/") && !target.startsWith("//") ? target : "/events");
+          return;
         } else if (mode !== "admin" && exchangedMode === "member") {
           setPublicMemberToken(token);
         } else {

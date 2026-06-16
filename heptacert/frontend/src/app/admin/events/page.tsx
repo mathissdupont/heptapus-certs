@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch, getMySubscription, getSelectedOrganizationId, setSelectedOrganizationId } from "@/lib/api";
+import { orgRoleLabel, canManageEvents } from "@/lib/orgRoles";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -126,6 +127,11 @@ export default function AdminEvents() {
       templateMissing: "Şablon eksik",
       organization: "Organizasyon",
       orgContext: "Etkinlikleri hangi kurum adına yönettiğini seç.",
+      ownOrg: "Kendi kurumum",
+      noEventAccess: "etkinlik yetkisi yok",
+      noEventPermTitle: "Bu kurumda etkinlik yönetme yetkin yok",
+      noEventPermBody: "Bu organizasyonda yalnızca yetkili olduğun alanlara erişebilirsin. Etkinlikleri yönetmek için kendi kurumuna geç.",
+      switchToOwn: "Kendi kurumuma geç",
     },
     en: {
       title: "Events",
@@ -167,6 +173,11 @@ export default function AdminEvents() {
       templateMissing: "Template missing",
       organization: "Organization",
       orgContext: "Choose which organization owns these events.",
+      ownOrg: "My organization",
+      noEventAccess: "no event access",
+      noEventPermTitle: "You don't have event access in this organization",
+      noEventPermBody: "In this organization you can only access the areas you're authorized for. Switch to your own organization to manage events.",
+      switchToOwn: "Switch to my organization",
     },
   }[lang];
 
@@ -187,7 +198,18 @@ export default function AdminEvents() {
         const contexts = (await contextsRes.json()) as OrganizationContext[];
         setOrganizationContexts(contexts || []);
         const stored = getSelectedOrganizationId();
-        const selected = (contexts || []).find((ctx) => String(ctx.id) === stored) || contexts?.[0];
+        // Bu sayfa yalnızca etkinlik yönetme yetkisi olan kurumlar için anlamlı.
+        // Saklanan kurum yetkiliyse onu kullan; değilse kullanıcının kendi
+        // kurumuna (veya etkinlik yetkili herhangi bir kuruma) otomatik düş —
+        // böylece salon-yöneticisi gibi roller "yetki yok" hatasına düşmez.
+        const all = contexts || [];
+        const eventCapable = all.filter(canManageEvents);
+        const selected =
+          eventCapable.find((ctx) => String(ctx.id) === stored) ||
+          eventCapable.find((ctx) => ctx.owned) ||
+          eventCapable[0] ||
+          all.find((ctx) => String(ctx.id) === stored) ||
+          all[0];
         if (selected) {
           setSelectedOrganizationIdState(String(selected.id));
           setSelectedOrganizationId(selected.id);
@@ -271,6 +293,22 @@ export default function AdminEvents() {
 
   const totalCertificates = Object.values(certStats).reduce((sum, stat) => sum + (stat?.total || 0), 0);
 
+  const isPermissionError = !!err && /permission denied|yetki/i.test(err);
+  const eventCapableTarget = useMemo(
+    () =>
+      organizationContexts.find((ctx) => canManageEvents(ctx) && ctx.owned) ||
+      organizationContexts.find((ctx) => canManageEvents(ctx)) ||
+      null,
+    [organizationContexts],
+  );
+
+  function switchToEventCapableOrg() {
+    if (!eventCapableTarget) return;
+    setSelectedOrganizationIdState(String(eventCapableTarget.id));
+    setSelectedOrganizationId(eventCapableTarget.id);
+    window.location.reload();
+  }
+
   const filteredEvents = useMemo(() => {
     const q = search.trim().toLowerCase();
     return events.filter((ev) => {
@@ -321,11 +359,15 @@ export default function AdminEvents() {
             }}
             className="input-field sm:max-w-xs"
           >
-            {organizationContexts.map((ctx) => (
-              <option key={ctx.id} value={ctx.id}>
-                {ctx.org_name} {ctx.owned ? "(kendi kurumum)" : `(${ctx.role})`}
-              </option>
-            ))}
+            {organizationContexts.map((ctx) => {
+              const manageable = canManageEvents(ctx);
+              const roleText = ctx.owned ? copy.ownOrg : orgRoleLabel(ctx.role, lang);
+              return (
+                <option key={ctx.id} value={ctx.id} disabled={!manageable}>
+                  {ctx.org_name} · {roleText}{manageable ? "" : ` — ${copy.noEventAccess}`}
+                </option>
+              );
+            })}
           </select>
         </div>
       )}
@@ -370,9 +412,24 @@ export default function AdminEvents() {
       <AnimatePresence>
         {err && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
-            <div className="error-banner">
-              <AlertCircle className="h-4 w-4 shrink-0" /> {err}
-            </div>
+            {isPermissionError ? (
+              <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <Shield className="h-5 w-5 shrink-0 text-amber-600" />
+                <div className="text-sm">
+                  <p className="font-medium text-amber-800">{copy.noEventPermTitle}</p>
+                  <p className="mt-0.5 text-amber-700">{copy.noEventPermBody}</p>
+                  {eventCapableTarget && (
+                    <button onClick={switchToEventCapableOrg} className="btn-secondary mt-2.5 text-xs">
+                      {copy.switchToOwn}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="error-banner">
+                <AlertCircle className="h-4 w-4 shrink-0" /> {err}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

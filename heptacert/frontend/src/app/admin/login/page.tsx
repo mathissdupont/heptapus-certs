@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { API_BASE, apiFetch, setToken, clearToken } from "@/lib/api";
+import { landingPathForContexts, type OrgRoleContext } from "@/lib/orgRoles";
 import { useI18n } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -158,8 +159,20 @@ export default function AdminLogin() {
     setToken(token);
     const meRes = await apiFetch("/me", { method: "GET" });
     const me = (await meRes.json()) as MeOut;
-    if (me.role === "superadmin") router.push("/admin/superadmin");
-    else router.push("/admin/events");
+    if (me.role === "superadmin") {
+      router.push("/admin/superadmin");
+      return;
+    }
+    // Role'e duyarlı açılış: etkinlik yetkisi olan → Etkinlikler; sadece
+    // salon/rezervasyon rolleri kendi ana sayfasına gider, "yetki yok"
+    // ekranına düşmez. Bağlam alınamazsa eski davranışa (Etkinlikler) düş.
+    try {
+      const ctxRes = await apiFetch("/admin/organization/contexts", { method: "GET" });
+      const contexts = (await ctxRes.json()) as OrgRoleContext[];
+      router.push(landingPathForContexts(contexts || []));
+    } catch {
+      router.push("/admin/events");
+    }
   }
 
   async function sendMagicLink(e: React.FormEvent) {

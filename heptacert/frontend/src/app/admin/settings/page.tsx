@@ -7,14 +7,10 @@ import {
   clearToken,
   deleteAdminAccount,
   downloadOrganizationConsentLogs,
-  getReservationGoogleCalendarStatus,
   getSelectedOrganizationId,
   setSelectedOrganizationId,
-  startReservationGoogleCalendarOAuth,
-  syncReservationGoogleCalendar,
   getOrgModules,
   updateOrgModules,
-  type GoogleCalendarReservationStatus,
   type OrgModules,
 } from "@/lib/api";
 import { useRouter } from "next/navigation";
@@ -23,9 +19,9 @@ import {
   Lock, Mail, CheckCircle2, Eye, EyeOff,
   ShieldCheck, Loader2, Check,
   History, TrendingUp, TrendingDown, Globe, Settings,
-  Building2, Sparkles, RefreshCcw, Trash2,
+  Sparkles, RefreshCcw, Trash2,
   BadgeCheck, Link2, UploadCloud, MonitorSmartphone,
-  UserCog, CalendarDays, Download, FileText,
+  UserCog, FileText,
   Blocks, CalendarCheck2, ChartNoAxesCombined,
 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
@@ -40,7 +36,7 @@ const TABS = [
   { id: "modules", label: "Modüller", description: "Aktif özellikler", icon: Blocks, permission: "organization:profile_write" },
   { id: "domain", label: "Özel Domain", description: "DNS ayarları", icon: Globe, permission: "organization:profile_write" },
   { id: "team", label: "Çalışanlar", description: "Kurum yetkileri", icon: UserCog, permission: "organization:team_manage" },
-  { id: "venues", label: "Salonlar", description: "Kapasite yönetimi", icon: Building2, permission: "venues:read" },
+  // Salon & rezervasyon yönetimi artık özel sayfalarda: /admin/venues + /admin/reservations
   { id: "compliance", label: "Uyumluluk", description: "Rıza logları", icon: FileText, permission: "organization:view" },
   { id: "branding", label: "Kurumsal", description: "Marka kimliği", icon: Sparkles, permission: "organization:profile_write" },
 ];
@@ -803,315 +799,6 @@ function OrganizationTeamTab() {
   );
 }
 
-type OrganizationVenue = {
-  id: number;
-  name: string;
-  capacity: number;
-  location: string | null;
-  notes: string | null;
-  is_active: boolean;
-};
-
-const EMPTY_VENUE = { name: "", capacity: 1, location: "", notes: "", is_active: true };
-
-function VenuesTab() {
-  const toast = useToast();
-  const [venues, setVenues] = useState<OrganizationVenue[]>([]);
-  const [form, setForm] = useState(EMPTY_VENUE);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  async function loadVenues() {
-    setLoading(true);
-    try {
-      const response = await apiFetch("/admin/organization/venues");
-      setVenues(await response.json());
-    } catch (error: any) {
-      toast.error(error?.message || "Salonlar yüklenemedi.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    void loadVenues();
-  }, []);
-
-  function resetForm() {
-    setForm(EMPTY_VENUE);
-    setEditingId(null);
-  }
-
-  async function submitVenue(event: React.FormEvent) {
-    event.preventDefault();
-    setSaving(true);
-    try {
-      const path = editingId ? `/admin/organization/venues/${editingId}` : "/admin/organization/venues";
-      await apiFetch(path, {
-        method: editingId ? "PATCH" : "POST",
-        body: JSON.stringify(form),
-      });
-      toast.success(editingId ? "Salon güncellendi." : "Salon eklendi.");
-      resetForm();
-      await loadVenues();
-    } catch (error: any) {
-      toast.error(error?.message || "Salon kaydedilemedi.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function startEdit(venue: OrganizationVenue) {
-    setEditingId(venue.id);
-    setForm({
-      name: venue.name,
-      capacity: venue.capacity,
-      location: venue.location || "",
-      notes: venue.notes || "",
-      is_active: venue.is_active,
-    });
-  }
-
-  async function removeVenue(venue: OrganizationVenue) {
-    if (!window.confirm(`${venue.name} salonunu silmek istediğinize emin misiniz?`)) return;
-    try {
-      await apiFetch(`/admin/organization/venues/${venue.id}`, { method: "DELETE" });
-      toast.success("Salon silindi.");
-      if (editingId === venue.id) resetForm();
-      await loadVenues();
-    } catch (error: any) {
-      toast.error(error?.message || "Salon silinemedi.");
-    }
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-      <form onSubmit={submitVenue} className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
-        <div className="mb-5 flex items-center gap-3">
-          <div className="rounded-2xl bg-indigo-50 p-3 text-indigo-600"><Building2 className="h-5 w-5" /></div>
-          <div>
-            <h2 className="font-semibold text-zinc-900">{editingId ? "Salonu düzenle" : "Yeni salon"}</h2>
-            <p className="text-sm text-zinc-500">Etkinlik alanı ve kapasite bilgisi</p>
-          </div>
-        </div>
-        <div className="space-y-4">
-          <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">Salon adı</label><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required minLength={2} maxLength={150} className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none focus:border-zinc-900 focus:bg-white" placeholder="Konferans Salonu A" /></div>
-          <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">Kapasite</label><input type="number" value={form.capacity} onChange={(e) => setForm({ ...form, capacity: Number(e.target.value) })} required min={1} max={1000000} className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none focus:border-zinc-900 focus:bg-white" /></div>
-          <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">Konum</label><input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} maxLength={300} className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none focus:border-zinc-900 focus:bg-white" placeholder="2. kat" /></div>
-          <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">Not</label><textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} maxLength={1000} rows={3} className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none focus:border-zinc-900 focus:bg-white" placeholder="Sahne, erişilebilirlik, teknik ekipman..." /></div>
-          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700"><input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} className="h-4 w-4 rounded border-zinc-300" /> Kullanıma açık</label>
-          <div className="flex gap-2 pt-2">
-            <button disabled={saving} className="flex-1 rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{saving ? "Kaydediliyor..." : editingId ? "Güncelle" : "Salon ekle"}</button>
-            {editingId && <button type="button" onClick={resetForm} className="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-700">Vazgeç</button>}
-          </div>
-        </div>
-      </form>
-
-      <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
-        <div className="mb-5 flex items-center justify-between">
-          <div><h2 className="text-lg font-semibold text-zinc-900">Kayıtlı salonlar</h2><p className="text-sm text-zinc-500">Kurumunuzun etkinlik alanları</p></div>
-          <button type="button" onClick={() => void loadVenues()} className="rounded-xl border border-zinc-200 p-2 text-zinc-500 hover:text-zinc-900"><RefreshCcw className="h-4 w-4" /></button>
-        </div>
-        {loading ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-zinc-400" /></div>
-        ) : venues.length === 0 ? (
-          <div className="rounded-2xl bg-zinc-50 p-8 text-center text-sm text-zinc-500">Henüz salon tanımlanmadı.</div>
-        ) : (
-          <div className="space-y-3">
-            {venues.map((venue) => (
-              <article key={venue.id} className="flex flex-col gap-3 rounded-2xl border border-zinc-100 p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold text-zinc-900">{venue.name}</h3><span className={`rounded-full px-2 py-0.5 text-xs font-medium ${venue.is_active ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>{venue.is_active ? "Aktif" : "Kapalı"}</span></div>
-                  <p className="mt-1 text-sm font-medium text-indigo-600">{venue.capacity.toLocaleString("tr-TR")} kişi kapasite</p>
-                  {venue.location && <p className="text-sm text-zinc-500">{venue.location}</p>}
-                </div>
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => startEdit(venue)} className="rounded-xl border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">Düzenle</button>
-                  <button type="button" onClick={() => void removeVenue(venue)} className="rounded-xl border border-rose-100 px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50">Sil</button>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-      </div>
-      <ReservationsPanel venues={venues} />
-    </div>
-  );
-}
-
-type VenueReservation = {
-  id: number;
-  venue_id: number;
-  title: string;
-  description: string | null;
-  start_at: string;
-  end_at: string;
-};
-
-function ReservationsPanel({ venues }: { venues: OrganizationVenue[] }) {
-  const toast = useToast();
-  const [reservations, setReservations] = useState<VenueReservation[]>([]);
-  const [calendarStatus, setCalendarStatus] = useState<GoogleCalendarReservationStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-  const [form, setForm] = useState({ venue_id: "", title: "", start_at: "", end_at: "", description: "" });
-
-  async function loadReservations() {
-    setLoading(true);
-    try {
-      const [reservationData, statusData] = await Promise.all([
-        (await apiFetch("/admin/organization/venue-reservations")).json(),
-        getReservationGoogleCalendarStatus().catch(() => null),
-      ]);
-      setReservations(reservationData);
-      setCalendarStatus(statusData);
-    } catch (error: any) {
-      toast.error(error?.message || "Rezervasyonlar yüklenemedi.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    void loadReservations();
-  }, []);
-
-  async function submitReservation(event: React.FormEvent) {
-    event.preventDefault();
-    if (!form.venue_id) return;
-    setSaving(true);
-    try {
-      await apiFetch("/admin/organization/venue-reservations", {
-        method: "POST",
-        body: JSON.stringify({
-          venue_id: Number(form.venue_id),
-          title: form.title,
-          start_at: new Date(form.start_at).toISOString(),
-          end_at: new Date(form.end_at).toISOString(),
-          description: form.description,
-        }),
-      });
-      toast.success("Rezervasyon takvime eklendi.");
-      setForm({ venue_id: "", title: "", start_at: "", end_at: "", description: "" });
-      await loadReservations();
-    } catch (error: any) {
-      toast.error(error?.message || "Rezervasyon kaydedilemedi. Seçilen saatler dolu olabilir.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function cancelReservation(reservation: VenueReservation) {
-    if (!window.confirm(`${reservation.title} rezervasyonunu iptal etmek istediğinize emin misiniz?`)) return;
-    try {
-      await apiFetch(`/admin/organization/venue-reservations/${reservation.id}`, { method: "DELETE" });
-      toast.success("Rezervasyon iptal edildi.");
-      await loadReservations();
-    } catch (error: any) {
-      toast.error(error?.message || "Rezervasyon iptal edilemedi.");
-    }
-  }
-
-  async function exportCalendar() {
-    try {
-      const response = await apiFetch("/admin/organization/venue-reservations/calendar.ics");
-      const url = URL.createObjectURL(await response.blob());
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "salon-rezervasyonlari.ics";
-      link.click();
-      URL.revokeObjectURL(url);
-      toast.success("Takvim dosyası hazır. Google Calendar'a içe aktarabilirsiniz.");
-    } catch (error: any) {
-      toast.error(error?.message || "Takvim dışa aktarılamadı.");
-    }
-  }
-
-  async function connectGoogleCalendar() {
-    try {
-      const { authorization_url } = await startReservationGoogleCalendarOAuth("/admin/settings?tab=venues");
-      window.location.href = authorization_url;
-    } catch (error: any) {
-      toast.error(error?.message || "Google Calendar bağlantısı başlatılamadı.");
-    }
-  }
-
-  async function syncGoogleCalendar() {
-    setSyncing(true);
-    try {
-      const result = await syncReservationGoogleCalendar();
-      toast.success(`Google Calendar senkronlandı. Çekilen: ${result.pulled}, yeni: ${result.pushed}, güncellenen: ${result.updated}.`);
-      await loadReservations();
-    } catch (error: any) {
-      toast.error(error?.message || "Google Calendar senkronu tamamlanamadı.");
-    } finally {
-      setSyncing(false);
-    }
-  }
-
-  function venueName(venueId: number) {
-    return venues.find((venue) => venue.id === venueId)?.name || "Salon";
-  }
-
-  return (
-    <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
-      <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-        <div className="flex items-center gap-3">
-          <div className="rounded-2xl bg-indigo-50 p-3 text-indigo-600"><CalendarDays className="h-5 w-5" /></div>
-          <div><h2 className="text-lg font-semibold text-zinc-900">Rezervasyon takvimi</h2><p className="text-sm text-zinc-500">Salon çakışmalarını engeller ve takvime aktarır</p></div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => void exportCalendar()} className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-3 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"><Download className="h-4 w-4" /> .ics indir</button>
-          {calendarStatus?.connected ? (
-            <button type="button" onClick={() => void syncGoogleCalendar()} disabled={syncing} className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">
-              {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-              Google çift yönlü sync
-            </button>
-          ) : (
-            <button type="button" onClick={() => void connectGoogleCalendar()} disabled={calendarStatus?.configured === false} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">
-              <Link2 className="h-4 w-4" />
-              Google Calendar bağla
-            </button>
-          )}
-        </div>
-      </div>
-      <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-        <form onSubmit={submitReservation} className="space-y-3 rounded-2xl bg-zinc-50 p-4">
-          <select required value={form.venue_id} onChange={(e) => setForm({ ...form, venue_id: e.target.value })} className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm">
-            <option value="">Salon seçin</option>
-            {venues.filter((venue) => venue.is_active).map((venue) => <option key={venue.id} value={venue.id}>{venue.name}</option>)}
-          </select>
-          <input required minLength={2} maxLength={200} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Rezervasyon başlığı" className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm" />
-          <div><label className="mb-1 block text-xs font-medium text-zinc-500">Başlangıç</label><input type="datetime-local" required value={form.start_at} onChange={(e) => setForm({ ...form, start_at: e.target.value })} className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm" /></div>
-          <div><label className="mb-1 block text-xs font-medium text-zinc-500">Bitiş</label><input type="datetime-local" required value={form.end_at} onChange={(e) => setForm({ ...form, end_at: e.target.value })} className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm" /></div>
-          <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} maxLength={2000} rows={2} placeholder="Açıklama (isteğe bağlı)" className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm" />
-          <button disabled={saving || venues.length === 0} className="w-full rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{saving ? "Ekleniyor..." : "Takvime ekle"}</button>
-        </form>
-        {loading ? <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-zinc-400" /></div> : reservations.length === 0 ? (
-          <div className="rounded-2xl bg-zinc-50 p-8 text-center text-sm text-zinc-500">Henüz rezervasyon bulunmuyor.</div>
-        ) : (
-          <div className="space-y-3">
-            {reservations.map((reservation) => (
-              <article key={reservation.id} className="flex flex-col justify-between gap-3 rounded-2xl border border-zinc-100 p-4 sm:flex-row sm:items-center">
-                <div>
-                  <p className="font-semibold text-zinc-900">{reservation.title}</p>
-                  <p className="mt-1 text-sm text-indigo-600">{venueName(reservation.venue_id)}</p>
-                  <p className="text-sm text-zinc-500">{fmtDate(reservation.start_at)} - {fmtDate(reservation.end_at)}</p>
-                </div>
-                <button type="button" onClick={() => void cancelReservation(reservation)} className="rounded-xl border border-rose-100 px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50">İptal et</button>
-              </article>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
 // ─── Branding Tab ────────────────────────────────────────────────────────────
 function BrandingTab() {
   const toast = useToast();
@@ -1786,7 +1473,6 @@ export default function AdminSettingsPage() {
             {activeTab === "modules" && <ModulesTab />}
             {activeTab === "domain" && <CustomDomainTab />}
             {activeTab === "team" && <OrganizationTeamTab />}
-            {activeTab === "venues" && <VenuesTab />}
             {activeTab === "compliance" && <ComplianceTab />}
             {activeTab === "branding" && <BrandingTab />}
           </motion.div>

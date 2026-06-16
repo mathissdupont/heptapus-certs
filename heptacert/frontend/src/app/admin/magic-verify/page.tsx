@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { apiFetch, setToken, clearToken } from "@/lib/api";
+import { landingPathForContexts, type OrgRoleContext } from "@/lib/orgRoles";
 import { useI18n } from "@/lib/i18n";
 import { motion } from "framer-motion";
 import { Loader2, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
@@ -45,7 +46,14 @@ function MagicVerifyInner() {
         if (!jwt) throw new Error(copy.tokenFailed);
         setToken(jwt);
         setStatus("success");
-        setTimeout(() => router.push("/admin/events"), 1200);
+        let landing = "/admin/events";
+        try {
+          const ctxRes = await apiFetch("/admin/organization/contexts", { method: "GET" });
+          landing = landingPathForContexts(((await ctxRes.json()) as OrgRoleContext[]) || []);
+        } catch {
+          // bağlam alınamazsa varsayılan
+        }
+        setTimeout(() => router.push(landing), 1200);
       } catch (e: any) {
         setStatus("error");
         setErrMsg(e?.message || copy.linkInvalid);

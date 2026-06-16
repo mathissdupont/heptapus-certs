@@ -94,7 +94,8 @@
       "Bash(cat next.config.*)",
       "Bash(cat package.json)",
       "Bash(cat pages/_meta.json)",
-      "Bash(xargs -n1 basename)"
+      "Bash(xargs -n1 basename)",
+      "Bash(grep -vE \"\\\\.next[/\\\\\\\\\\\\\\\\]types\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\samet\\OneDrive\\Masaüstü\\heptapus-certs\\heptacert\\frontend\\src\\app\\admin\\lms\\courses\\[id]\\quizzes",
