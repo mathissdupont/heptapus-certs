@@ -1,24 +1,26 @@
 # Hızlı Başlangıç
 
-5 dakikada HeptaCert API'si ile ilk isteğinizi yapın.
+5 dakikada HeptaCert API'si ile ilk isteğinizi yapın. Bu rehber bir API anahtarı oluşturmayı, kimlik doğrulamayı ve temel CRUD işlemlerini kapsar.
 
-## 1. API Anahtarı Oluşturun
+import { Steps, Callout, Tabs } from "nextra/components";
+
+<Steps>
+
+### API Anahtarı Oluşturun
 
 1. [HeptaCert Admin](https://heptacert.com/admin/settings/api) paneline giriş yapın
 2. **Ayarlar → API Anahtarları** sayfasına gidin
 3. **+ Yeni Anahtar** butonuna tıklayın
-4. Anahtara bir isim verin ve gerekli izinleri (scope) seçin
+4. Anahtara bir isim verin ve gerekli [scope'ları](/authentication#scopelar-i̇zinler) seçin
 5. Oluşturulan anahtarı kopyalayın — **tek seferlik gösterilir**
 
 Anahtar formatı: `hc_live_xxxxxxxxxxxxxxxxxxxxxxxx`
 
-import { Callout } from "nextra/components";
-
 <Callout type="warning">
-  API anahtarınızı güvenli saklayın. Git repository'lerine, client-side koda veya log dosyalarına eklemeyin.
+API anahtarınızı güvenli saklayın. Git repository'lerine, client-side koda veya log dosyalarına eklemeyin. Ortam değişkeni (`HEPTACERT_API_KEY`) kullanmanız önerilir.
 </Callout>
 
-## 2. İlk API Çağrısı
+### İlk İsteği Yapın
 
 Etkinlikleri listeleyin:
 
@@ -34,14 +36,17 @@ Başarılı yanıt:
   {
     "id": 42,
     "name": "Python Summit 2026",
-    "event_date": "2026-09-15",
+    "event_date": "2026-09-15T09:00:00",
     "certificate_enabled": true,
-    "registration_enabled": true
+    "registration_enabled": true,
+    "attendee_count": 150
   }
 ]
 ```
 
-## 3. Yeni Etkinlik Oluşturun
+`401` alıyorsanız anahtarınız hatalı/eksik; `403` alıyorsanız anahtarınızda `events:read` scope'u yok.
+
+### Etkinlik Oluşturun
 
 ```bash
 curl -X POST https://heptacert.com/api/admin/events \
@@ -57,32 +62,107 @@ curl -X POST https://heptacert.com/api/admin/events \
   }'
 ```
 
-## 4. Python ile Kullanım
+### Katılımcı Ekleyin
 
-```python
-import httpx
+Yukarıdaki yanıttan dönen `id`'yi kullanın:
 
-API_KEY = "hc_live_YOUR_KEY"
-BASE = "https://heptacert.com/api"
-
-headers = {"Authorization": f"Bearer {API_KEY}"}
-
-# Etkinlikleri listele
-events = httpx.get(f"{BASE}/admin/events", headers=headers).json()
-print(events)
-
-# Yeni katılımcı ekle
-event_id = events[0]["id"]
-httpx.post(
-    f"{BASE}/admin/events/{event_id}/attendees",
-    headers=headers,
-    json={"first_name": "Ahmet", "last_name": "Yılmaz", "email": "ahmet@example.com"}
-)
+```bash
+curl -X POST https://heptacert.com/api/admin/events/43/attendees \
+  -H "Authorization: Bearer hc_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "first_name": "Ahmet", "last_name": "Yılmaz", "email": "ahmet@example.com" }'
 ```
+
+</Steps>
+
+## Kod ile Kullanım
+
+<Tabs items={["Python", "Node.js", "cURL + jq"]}>
+  <Tabs.Tab>
+  ```python
+  import os
+  import httpx
+
+  API_KEY = os.environ["HEPTACERT_API_KEY"]
+  BASE = "https://heptacert.com/api"
+  headers = {"Authorization": f"Bearer {API_KEY}"}
+
+  with httpx.Client(base_url=BASE, headers=headers, timeout=15.0) as client:
+      # Etkinlikleri listele
+      events = client.get("/admin/events").json()
+      event_id = events[0]["id"]
+
+      # Katılımcı ekle
+      r = client.post(
+          f"/admin/events/{event_id}/attendees",
+          json={"first_name": "Ahmet", "last_name": "Yılmaz",
+                "email": "ahmet@example.com"},
+      )
+      if r.status_code == 409:
+          print("Bu e-posta zaten kayıtlı")
+      else:
+          r.raise_for_status()
+          print("Eklendi:", r.json())
+  ```
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+  ```javascript
+  const API_KEY = process.env.HEPTACERT_API_KEY;
+  const BASE = "https://heptacert.com/api";
+  const headers = {
+    Authorization: `Bearer ${API_KEY}`,
+    "Content-Type": "application/json",
+  };
+
+  // Etkinlikleri listele
+  const events = await fetch(`${BASE}/admin/events`, { headers }).then((r) => r.json());
+  const eventId = events[0].id;
+
+  // Katılımcı ekle
+  const res = await fetch(`${BASE}/admin/events/${eventId}/attendees`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      first_name: "Ahmet", last_name: "Yılmaz", email: "ahmet@example.com",
+    }),
+  });
+  if (res.status === 409) console.log("Zaten kayıtlı");
+  else console.log(await res.json());
+  ```
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+  ```bash
+  export HEPTACERT_API_KEY=hc_live_YOUR_KEY
+
+  # İlk etkinliğin adını al
+  curl -s https://heptacert.com/api/admin/events \
+    -H "Authorization: Bearer $HEPTACERT_API_KEY" \
+    | jq '.[0].name'
+
+  # Bir etkinliğin katılımcı sayısını al
+  curl -s https://heptacert.com/api/admin/events/42 \
+    -H "Authorization: Bearer $HEPTACERT_API_KEY" \
+    | jq '.attendee_count'
+  ```
+  </Tabs.Tab>
+</Tabs>
+
+## Tercih Ettiğiniz Yolu Seçin
+
+API'yi doğrudan çağırmak tek seçenek değil:
+
+import { Cards, Card } from "nextra/components";
+
+<Cards>
+  <Card title="CLI ile (hc) →" href="/cli" />
+  <Card title="AI Asistanı ile (MCP) →" href="/mcp-agent" />
+  <Card title="Olay bildirimleri (Webhooks) →" href="/webhooks" />
+</Cards>
 
 ## Sonraki Adımlar
 
-- [Kimlik Doğrulama ve Scope'lar →](/authentication)
-- [Tüm API Endpoint'leri →](/api-reference)
-- [MCP ile AI Agent Kurulumu →](/mcp-agent)
-- [CLI Kurulumu →](/cli)
+- [Temel Kavramlar](/concepts) — veri modelini anlayın
+- [Kimlik Doğrulama ve Scope'lar](/authentication)
+- [Tüm API Endpoint'leri](/api-reference)

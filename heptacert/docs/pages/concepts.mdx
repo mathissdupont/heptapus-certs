@@ -1,0 +1,169 @@
+# Temel Kavramlar
+
+Bu sayfa HeptaCert'in veri modelini ve API boyunca tekrar eden kavramları açıklar. Endpoint'lere geçmeden önce bu modeli anlamak, hangi kaynağın hangisine bağlı olduğunu kavramanızı kolaylaştırır.
+
+## Veri Modeli
+
+HeptaCert'in çekirdeği **etkinlik (event)** etrafında döner. Diğer tüm kaynaklar doğrudan veya dolaylı olarak bir etkinliğe bağlıdır.
+
+```
+Organizasyon
+└── Etkinlik (Event)
+    ├── Katılımcı (Attendee)
+    │   ├── Kayıt (Registration)
+    │   ├── Check-in (Attendance)
+    │   └── Sertifika (Certificate)
+    ├── Oturum (Session)            ← agenda / program
+    ├── Sertifika Şablonu + Kademeler (Tiers)
+    ├── Anket (Survey)
+    ├── Rozet (Badge)
+    ├── Otomasyon Kuralı (Automation Rule)
+    └── Sponsor / Çekiliş (Raffle)
+
+Organizasyon (etkinlikten bağımsız)
+├── CRM (Hesap → Kişi → Fırsat/Deal)
+├── Lead Formları
+├── API Anahtarları
+└── Webhook Endpoint'leri
+```
+
+## Çekirdek Kaynaklar
+
+### Etkinlik (Event)
+
+Bir konferans, atölye, eğitim veya web seminerini temsil eder. Sistemdeki en üst düzey kapsayıcıdır. Her etkinliğin bağımsız olarak açıp kapatabileceğiniz **yetenek bayrakları (feature flags)** vardır:
+
+| Bayrak | Açıklama |
+|--------|----------|
+| `certificate_enabled` | Sertifika yayımlama açık mı |
+| `registration_enabled` | Halka açık kayıt formu aktif mi |
+| `registration_closed` | Kayıt geçici olarak durduruldu mu |
+| `checkin_enabled` | Oturum bazlı check-in açık mı |
+
+`event_type` alanı `conference`, `workshop`, `webinar`, `training` gibi değerler alır ve yalnızca raporlama/filtreleme amaçlıdır — davranışı değiştirmez.
+
+`visibility` alanı (`public` / `private`) etkinliğin halka açık etkinlik dizininde görünüp görünmeyeceğini belirler.
+
+<details>
+<summary>Etkinlik nesnesinin tipik alanları</summary>
+
+```json
+{
+  "id": 42,
+  "name": "Python Summit 2026",
+  "event_type": "conference",
+  "event_date": "2026-09-15T09:00:00",
+  "event_location": "İstanbul",
+  "event_description": "...",
+  "visibility": "public",
+  "certificate_enabled": true,
+  "registration_enabled": true,
+  "registration_closed": false,
+  "checkin_enabled": true,
+  "attendee_count": 150,
+  "created_at": "2026-06-01T12:00:00"
+}
+```
+</details>
+
+### Katılımcı (Attendee)
+
+Bir etkinliğe bağlı bir kişidir. Katılımcılar üç yoldan oluşabilir ve `source` alanı kökeni belirtir:
+
+| Kaynak | Açıklama |
+|--------|----------|
+| `manual` | Admin panelinden veya API ile elle eklendi |
+| `registration` | Halka açık kayıt formundan kaydoldu |
+| `import` | CSV / Excel toplu içe aktarmayla geldi |
+
+Aynı e-posta bir etkinlikte yalnızca bir kez bulunabilir. Tekrar eklemeye çalışmak `409 Conflict` döner.
+
+<Callout type="info">
+Katılımcı **bir etkinliğe özeldir**. Aynı kişi iki farklı etkinliğe katıldıysa iki ayrı katılımcı kaydı vardır. Kişiyi etkinlikler arası izlemek için CRM katmanını ve `search_attendees_across_events` aracını kullanın.
+</Callout>
+
+import { Callout } from "nextra/components";
+
+### Sertifika (Certificate)
+
+Bir katılımcıya verilen, doğrulanabilir bir belgedir. Her sertifikanın iki kimliği vardır:
+
+- **`public_id`** — kısa, paylaşılabilir genel kimlik (örn. `abc123xyz`). Halka açık doğrulama linkinde kullanılır.
+- **`uuid`** — dahili benzersiz kimlik. Doğrulama URL'sinin yolunda kullanılır.
+
+Bir sertifika şu durumlarda olabilir:
+
+| Durum | Açıklama |
+|-------|----------|
+| `active` | Geçerli, doğrulanabilir |
+| `revoked` | İptal edildi — doğrulama sayfası "geçersiz" gösterir |
+| `expired` | Son kullanma tarihi geçti |
+
+Sertifikalar tek tek veya **toplu üretim (bulk generate)** ile bir Excel listesinden oluşturulabilir. Toplu üretim asenkron bir **iş (job)** olarak çalışır — bkz. [Toplu Üretim](/api-reference#toplu-sertifika-üretimi).
+
+### Sertifika Kademeleri (Tiers)
+
+Bir etkinlik, katılım düzeyine göre farklı sertifika kademeleri tanımlayabilir (örn. "Katılım", "Başarı", "Mükemmeliyet"). Kademeler genellikle check-in oranı veya anket tamamlama gibi koşullara bağlanır. `get_certificate_tier_summary` her kademede kaç sertifika olduğunu döner.
+
+### Oturum (Session)
+
+Bir etkinliğin program/agenda öğesidir — bir konuşma, panel veya atölye. Oturumların başlangıç/bitiş zamanı, konuşmacısı, konumu ve kapasitesi olur. Check-in **oturum düzeyinde** yapılır: bir katılımcı etkinliğe değil, belirli oturumlara check-in yapar. Bu, oturum bazlı katılım analitiğini mümkün kılar.
+
+### Anket (Survey) & Rozet (Badge)
+
+- **Anket** — etkinlik sonrası geri bildirim toplar. Yanıtlar otomasyon tetikleyicilerini besleyebilir (örn. anketi tamamlamayan katılımcıya hatırlatma).
+- **Rozet** — başarı göstergeleri. Katılımcılar koşulları sağladığında rozet kazanır; rozetler otomasyonları tetikleyebilir.
+
+## Otomasyon (Automation)
+
+Otomasyon kuralları **olay tabanlıdır**: bir tetikleyici (trigger) gerçekleştiğinde bir veya daha fazla eylem (action) çalışır.
+
+```json
+{
+  "name": "Sertifika Sonrası Teşekkür E-postası",
+  "trigger": "certificate_issued",
+  "actions": [
+    { "type": "send_email", "template_id": 5, "delay_hours": 0 }
+  ],
+  "enabled": true
+}
+```
+
+**Tetikleyiciler:** `attended_event`, `registered_no_show`, `certificate_issued`, `survey_not_completed`, `badge_earned`, `lms_course_completed`, `compliance_overdue`
+
+Otomasyonlar (dahili, zamanlanmış işlerle tetiklenir) ile webhook'lar (dış sistemlere anlık HTTP bildirimi) farklı şeylerdir — birini diğeri yerine kullanmayın:
+
+| | Otomasyon | Webhook |
+|---|-----------|---------|
+| Hedef | HeptaCert içi eylem (e-posta gönder vb.) | Sizin sunucunuz |
+| Tetiklenme | Olay + zamanlama kuralı | Olay anında |
+| Kullanım | "Şunu olunca şunu yap" | "Sistemimi haberdar et" |
+
+## CRM Katmanı
+
+CRM, etkinliklerden **bağımsız** bir katmandır ve kişileri zaman içinde, etkinlikler arası izler:
+
+- **Hesap (Account)** — bir şirket/kuruluş
+- **Kişi (Contact)** — bir birey (birden çok etkinliğe katılmış olabilir)
+- **Fırsat (Deal)** — bir satış/ilişki fırsatı, aktivite geçmişiyle
+
+Katılımcı verisi CRM'e **snapshot hook'ları** aracılığıyla akar: bir katılımcı kaydolduğunda veya sertifika aldığında CRM profili güncellenir. **Lead skoru (lead score)** kişinin etkileşim düzeyini sayısallaştırır ve değiştiğinde `crm.lead_score_changed` webhook'unu tetikleyebilir.
+
+## Kimlikler ve Erişim Yolları
+
+Aynı veriye birden çok yoldan erişebilirsiniz; hepsi aynı kaynaklara dokunur:
+
+| Yol | Kullanım |
+|-----|----------|
+| **REST API** | Sunucu-sunucu entegrasyon, scriptler |
+| **CLI (`hc`)** | Terminal, otomasyon, CI/CD |
+| **MCP** | AI asistanları (Claude, Cursor vb.) |
+| **Webhooks** | Olay anında dışa bildirim (tek yön: HeptaCert → siz) |
+
+Hepsi aynı **API anahtarı** ve aynı **scope** modelini paylaşır. Bir scope'u kısıtladığınızda, kısıtlama dört yolda da geçerli olur.
+
+## Sonraki Adımlar
+
+- [Kimlik Doğrulama ve Scope'lar →](/authentication)
+- [API Referansı →](/api-reference)
+- [Webhook Olayları →](/webhooks)

@@ -89,7 +89,12 @@
       "Bash(sed -n '/^from .main import \\(/,/^\\)/p' bulk_generate_api.py)",
       "Bash(sed -n '/^from .main import \\(/,/^\\)/p' ms_excel_api.py)",
       "Bash(python -m py_compile src/bulk_generate_api.py)",
-      "Bash(git commit -q -m 'docs: routers 4d progress + proven extractor recipe \\(main.py 14789, 7 domains + safety net\\) *)"
+      "Bash(git commit -q -m 'docs: routers 4d progress + proven extractor recipe \\(main.py 14789, 7 domains + safety net\\) *)",
+      "Bash(cat theme.config.*)",
+      "Bash(cat next.config.*)",
+      "Bash(cat package.json)",
+      "Bash(cat pages/_meta.json)",
+      "Bash(xargs -n1 basename)"
     ],
     "additionalDirectories": [
       "c:\\Users\\samet\\OneDrive\\Masaüstü\\heptapus-certs\\heptacert\\frontend\\src\\app\\admin\\lms\\courses\\[id]\\quizzes",

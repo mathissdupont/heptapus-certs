@@ -1,8 +1,12 @@
 # MCP & AI Agents
 
-HeptaCert, [Model Context Protocol (MCP)](https://modelcontextprotocol.io) üzerinden herhangi bir uyumlu AI istemcisine tam entegrasyon sunar. MCP açık bir standarttır — sadece Claude'a özgü değildir.
+HeptaCert, [Model Context Protocol (MCP)](https://modelcontextprotocol.io) üzerinden herhangi bir uyumlu AI istemcisine **44 araçlık** tam entegrasyon sunar. MCP açık bir standarttır — yalnızca Claude'a özgü değildir. Bir kez bağladığınızda, AI asistanınız etkinlik oluşturabilir, katılımcı ekleyebilir, sertifika yayımlayabilir ve analitik sorgulayabilir.
 
-import { Callout, Tabs } from "nextra/components";
+import { Callout, Tabs, Steps } from "nextra/components";
+
+<Callout>
+**MCP nedir?** AI asistanlarının dış sistemlere (araçlar, veri kaynakları) güvenli ve standart bir şekilde bağlanmasını sağlayan açık protokoldür. HeptaCert MCP sunucusu, REST API'nizi AI'ın anlayıp çağırabileceği "araçlar" (tools) olarak sunar — ve aynı API anahtarı + scope güvenliğini uygular.
+</Callout>
 
 ## Desteklenen İstemciler
 
@@ -16,10 +20,6 @@ import { Callout, Tabs } from "nextra/components";
 | [Zed](https://zed.dev) | Editor | ✅ Yerleşik |
 | Kendi Agent'ın | Python/JS SDK | ✅ [MCP SDK](https://github.com/modelcontextprotocol/python-sdk) |
 | ChatGPT | Web | ❌ MCP değil — [Actions kullan](#chatgpt--openai-actions) |
-
-<Callout>
-HeptaCert MCP sunucusu standart MCP protokolü üzerinden çalışır. Herhangi bir MCP uyumlu istemci — aynı araç seti, aynı kimlik doğrulama.
-</Callout>
 
 ## Kurulum
 
@@ -195,8 +195,16 @@ Agent: search_attendees_across_events çağrısı yapıyorum...
        - DevFest 2025 (sertifika var)
 ```
 
+```
+Kullanıcı: React Workshop'a katılan ama henüz sertifika almayan herkese sertifika ver.
+
+Agent: list_attendees + list_certificates karşılaştırıyorum...
+       12 katılımcı sertifikasız. issue_certificates çağırıyorum...
+       ✓ 12 sertifika yayımlandı.
+```
+
 <Callout type="warning">
-**Silme işlemleri iki adımlıdır.** Agent önce ne silineceğini önizler. Onayınız olmadan işlem gerçekleşmez.
+**Silme işlemleri iki adımlıdır.** `delete_event` gibi yıkıcı araçlar `confirm` parametresi olmadan yalnızca **ne silineceğini önizler**. Agent, onayınız olmadan kalıcı silme yapmaz.
 </Callout>
 
 ## Araçlar (44 Araç)
@@ -233,6 +241,22 @@ Agent: search_attendees_across_events çağrısı yapıyorum...
 
 ## Güvenlik
 
-- Her MCP isteği Bearer token ile doğrulanır
-- Scope'lar MCP katmanında uygulanır — scope eksikse araç çalışmaz
-- Tüm yazma işlemleri **Agent Logs** sayfasına kaydedilir (Admin → Ayarlar → Agent Logları)
+- Her MCP isteği Bearer token ile doğrulanır.
+- **Scope'lar MCP katmanında uygulanır.** Anahtarınızda gerekli scope yoksa araç çalışmadan reddedilir. Örneğin `certificates:write` olmadan `issue_certificates` başarısız olur. (bkz. [Scope'lar](/authentication#scopelar-i̇zinler))
+- Tüm yazma işlemleri **Agent Logs** sayfasına kaydedilir (Admin → Ayarlar → Agent Logları). `list_agent_logs` aracıyla veya `hc logs list` ile inceleyebilirsiniz.
+
+## Sorun Giderme
+
+| Belirti | Olası neden | Çözüm |
+|---------|-------------|-------|
+| Araçlar istemcide görünmüyor | Config hatalı veya istemci yeniden başlatılmadı | JSON'u doğrulayın, istemciyi tamamen kapatıp açın |
+| `401 Unauthorized` | Anahtar yanlış/iptal edilmiş | Yeni anahtar oluşturup header'ı güncelleyin |
+| Bir araç `403` veya "scope" hatası veriyor | Anahtarda gerekli scope yok | Anahtara ilgili scope'u ekleyin |
+| Bağlantı kurulamıyor | URL yanlış | `https://heptacert.com/mcp` (sonunda `/` yok) olduğundan emin olun |
+| Silme "çalışmıyor" | İlk çağrı yalnızca önizleme | Agent'tan onaylamasını isteyin (`confirm`) |
+
+## Sonraki Adımlar
+
+- [Scope'lar ve güvenlik →](/authentication)
+- [Aynı işlemler CLI ile →](/cli)
+- [REST API referansı →](/api-reference)

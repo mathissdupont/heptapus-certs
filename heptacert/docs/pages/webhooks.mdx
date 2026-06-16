@@ -1,29 +1,56 @@
 # Webhooks
 
-HeptaCert, belirli olaylar gerçekleştiğinde HTTP POST isteği göndererek sistemlerinizi gerçek zamanlı olarak tetikleyebilir.
+HeptaCert, belirli olaylar gerçekleştiğinde kayıtlı endpoint'inize **imzalı bir HTTP POST** isteği göndererek sistemlerinizi gerçek zamanlı olarak tetikler. Polling yapmak yerine olayların size gelmesini sağlar.
 
-## Webhook Oluşturma
+import { Callout, Tabs, Steps } from "nextra/components";
 
-Admin paneli → **Webhooks** sayfasından URL ve dinlenecek olayları seçin.
+## Nasıl Çalışır?
+
+<Steps>
+
+### Endpoint kaydedin
+
+Admin paneli → **Webhooks** sayfasından (veya API/CLI ile) bir URL ve dinlemek istediğiniz olayları seçin. HeptaCert size endpoint'e özel bir **secret** üretir.
+
+### Olay gerçekleşir
+
+Sertifika yayımlanması gibi bir olay tetiklendiğinde HeptaCert, o olaya abone tüm aktif endpoint'lere POST isteği gönderir.
+
+### İmzayı doğrulayın
+
+Gövdeyi (raw body) endpoint secret'ınızla HMAC-SHA256 ile imzalayıp `X-HeptaCert-Signature` başlığıyla karşılaştırın.
+
+### `2xx` dönün
+
+10 saniye içinde `2xx` yanıt verin. Aksi halde HeptaCert yeniden dener (aşağıya bakın).
+
+</Steps>
 
 ## Olaylar
 
+Şu an aşağıdaki olaylar yayımlanır. Bir endpoint, bu olayların herhangi bir alt kümesine veya `*` ile **tümüne** abone olabilir.
+
 | Olay | Tetiklenme |
 |------|-----------|
-| `attendee.registered` | Yeni katılımcı kaydolduğunda |
-| `attendee.checkin` | Katılımcı check-in yaptığında |
-| `certificate.issued` | Sertifika yayımlandığında |
-| `certificate.revoked` | Sertifika iptal edildiğinde |
-| `event.created` | Yeni etkinlik oluşturulduğunda |
-| `event.updated` | Etkinlik bilgileri güncellendiğinde |
-| `payment.completed` | Ödeme tamamlandığında |
+| `cert.issued` | Bir sertifika yayımlandığında |
+| `cert.revoked` | Bir sertifika iptal edildiğinde |
+| `cert.bulk_completed` | Toplu sertifika üretimi işi tamamlandığında |
+| `cert.expiring_soon` | Bir sertifikanın son kullanma tarihi yaklaştığında |
+| `crm.profile_updated` | Bir CRM kişi profili güncellendiğinde |
+| `crm.lead_score_changed` | Bir kişinin lead skoru değiştiğinde |
+
+<Callout type="info">
+Tüm olaylara abone olmak için `events` listesinde tek bir `"*"` değeri gönderin. Yeni olay tipleri eklendiğinde otomatik olarak almaya başlarsınız.
+</Callout>
 
 ## Payload Formatı
 
+Her istek şu zarf (envelope) yapısında JSON gönderir:
+
 ```json
 {
-  "event": "certificate.issued",
-  "timestamp": "2026-09-15T10:30:00Z",
+  "event": "cert.issued",
+  "timestamp": "2026-09-15T10:30:00.000000+00:00",
   "data": {
     "certificate_id": 9001,
     "public_id": "abc123xyz",
@@ -31,87 +58,180 @@ Admin paneli → **Webhooks** sayfasından URL ve dinlenecek olayları seçin.
     "attendee_email": "ahmet@example.com",
     "event_id": 42,
     "event_name": "Python Summit 2026",
-    "cert_url": "https://heptacert.com/c/abc123xyz",
-    "issued_at": "2026-09-15T10:30:00Z"
+    "verify_url": "https://heptacert.com/verify/abc123xyz"
   }
 }
 ```
 
-## İmza Doğrulama
+- **`event`** — olay tipi (yukarıdaki tablodan).
+- **`timestamp`** — ISO 8601, UTC. İmza güvenliği için bu değeri `X-HeptaCert-Timestamp` ile karşılaştırabilirsiniz.
+- **`data`** — olaya özel yük. Olay tipine göre alanlar değişir.
 
-Her webhook isteği `X-HeptaCert-Signature` başlığı içerir. Bu başlık, payload'ın HMAC-SHA256 imzasıdır.
+## İstek Başlıkları
 
-```python
-import hashlib
-import hmac
+Her teslimat şu başlıkları içerir:
 
-def verify_webhook(payload_bytes: bytes, signature: str, secret: str) -> bool:
-    expected = hmac.new(
-        secret.encode(),
-        payload_bytes,
-        hashlib.sha256
-    ).hexdigest()
-    return hmac.compare_digest(expected, signature)
-```
-
-import { Callout } from "nextra/components";
+| Başlık | Açıklama |
+|--------|----------|
+| `Content-Type` | Her zaman `application/json` |
+| `X-HeptaCert-Event` | Olay tipi (örn. `cert.issued`) |
+| `X-HeptaCert-Signature` | `sha256=<hex>` formatında HMAC imzası |
+| `X-HeptaCert-Timestamp` | Payload zaman damgası |
+| `X-HeptaCert-Attempt` | Kaçıncı deneme olduğu (`1`–`3`) |
 
 <Callout type="warning">
-  `hmac.compare_digest` kullanın — timing attack'lardan korur.
+**İmza formatı `sha256=` ön ekiyle gelir.** Karşılaştırma yaparken ya beklenen değerinize aynı ön eki ekleyin ya da gelen başlıktan `sha256=` kısmını çıkarın. Çıplak hex ile karşılaştırma **her zaman başarısız olur.**
 </Callout>
 
-## Express.js Örneği
+## İmza Doğrulama
 
-```javascript
-const express = require("express");
-const crypto = require("crypto");
+İmza, **ham istek gövdesinin** (parse edilmemiş byte'ların) endpoint secret'ınızla alınmış HMAC-SHA256 değeridir. Gövdeyi JSON'a çevirmeden **önce** ham haliyle doğrulayın — yeniden serialize etmek byte'ları değiştirip imzayı bozar.
 
-const app = express();
-app.use(express.raw({ type: "application/json" }));
+<Tabs items={["Python", "Node.js (Express)", "PHP"]}>
+  <Tabs.Tab>
+  ```python
+  import hashlib
+  import hmac
 
-app.post("/webhooks/heptacert", (req, res) => {
-  const sig = req.headers["x-heptacert-signature"];
-  const expected = crypto
-    .createHmac("sha256", process.env.WEBHOOK_SECRET)
-    .update(req.body)
-    .digest("hex");
+  def verify_webhook(raw_body: bytes, signature_header: str, secret: str) -> bool:
+      # signature_header: "sha256=abcdef..."
+      expected = "sha256=" + hmac.new(
+          secret.encode(), raw_body, hashlib.sha256
+      ).hexdigest()
+      return hmac.compare_digest(expected, signature_header or "")
+  ```
 
-  if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {
-    return res.status(401).send("Invalid signature");
+  FastAPI ile:
+  ```python
+  from fastapi import FastAPI, Request, HTTPException, Header
+
+  app = FastAPI()
+
+  @app.post("/webhooks/heptacert")
+  async def receive(request: Request, x_heptacert_signature: str = Header(None)):
+      raw = await request.body()
+      if not verify_webhook(raw, x_heptacert_signature, WEBHOOK_SECRET):
+          raise HTTPException(status_code=401, detail="Invalid signature")
+      payload = await request.json()
+      if payload["event"] == "cert.issued":
+          ...  # CRM'e bildir, Slack mesajı gönder, vb.
+      return {"ok": True}
+  ```
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+  ```javascript
+  const express = require("express");
+  const crypto = require("crypto");
+
+  const app = express();
+  // ÖNEMLİ: raw body gerekir — express.json() KULLANMAYIN
+  app.use(express.raw({ type: "application/json" }));
+
+  app.post("/webhooks/heptacert", (req, res) => {
+    const sig = req.headers["x-heptacert-signature"] || "";
+    const expected =
+      "sha256=" +
+      crypto.createHmac("sha256", process.env.WEBHOOK_SECRET)
+            .update(req.body)
+            .digest("hex");
+
+    const a = Buffer.from(sig);
+    const b = Buffer.from(expected);
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+      return res.status(401).send("Invalid signature");
+    }
+
+    const payload = JSON.parse(req.body);
+    if (payload.event === "cert.issued") {
+      // ...
+    }
+    res.sendStatus(200);
+  });
+  ```
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+  ```php
+  <?php
+  $raw = file_get_contents("php://input");
+  $sig = $_SERVER["HTTP_X_HEPTACERT_SIGNATURE"] ?? "";
+  $expected = "sha256=" . hash_hmac("sha256", $raw, getenv("WEBHOOK_SECRET"));
+
+  if (!hash_equals($expected, $sig)) {
+      http_response_code(401);
+      exit("Invalid signature");
   }
 
-  const payload = JSON.parse(req.body);
-  console.log("Webhook alındı:", payload.event);
-
-  if (payload.event === "certificate.issued") {
-    // CRM'e bildir, Slack'e mesaj gönder, vs.
+  $payload = json_decode($raw, true);
+  if ($payload["event"] === "cert.issued") {
+      // ...
   }
+  http_response_code(200);
+  ```
+  </Tabs.Tab>
+</Tabs>
 
-  res.sendStatus(200);
-});
-```
+<Callout type="warning">
+Sabit-zamanlı karşılaştırma kullanın (`hmac.compare_digest`, `crypto.timingSafeEqual`, `hash_equals`). Normal `==` karşılaştırması timing attack'lara açıktır.
+</Callout>
 
 ## Yeniden Deneme Politikası
 
-Endpoint `2xx` dışında bir yanıt döndürürse veya 10 saniye içinde yanıt vermezse HeptaCert şu aralıklarla yeniden dener:
+Endpoint'iniz `2xx` dışında yanıt verirse veya **10 saniye** içinde yanıt vermezse HeptaCert teslimatı yeniden dener:
 
-| Deneme | Bekleme |
-|--------|---------|
-| 1. | Hemen |
-| 2. | 5 dakika |
-| 3. | 30 dakika |
-| 4. | 2 saat |
-| 5. | 24 saat |
+| Deneme | Bekleme (öncesinde) |
+|--------|---------------------|
+| 1 | — (hemen) |
+| 2 | 2 saniye |
+| 3 | 4 saniye |
 
-5 başarısız denemeden sonra webhook devre dışı bırakılır ve bildirim e-postası gönderilir.
+Toplam **3 deneme** yapılır (exponential backoff). Üçü de başarısız olursa teslimat `failed` olarak kaydedilir. Her teslimat denemesi — başarılı veya başarısız — **teslimat kayıtlarına (webhook deliveries)** yazılır; admin panelinden geçmişi inceleyebilirsiniz.
 
-## Test Etme
+<Callout type="info">
+Yeniden denemeler kısa aralıklıdır (saniyeler), saat/gün değil. Endpoint'iniz uzun süre kapalı kalırsa o olaylar kaçırılır. Kritik veri için ek olarak periyodik bir senkronizasyon (örn. `GET /admin/events/{id}/certificates`) düşünün.
+</Callout>
 
-Webhook sayfasında **Test Gönder** butonunu kullanarak örnek bir payload gönderebilirsiniz.
+### İdempotanlık
 
-Ya da `ngrok` ile lokal geliştirme ortamını dışarıya açın:
+Yeniden denemeler nedeniyle aynı olayı **birden fazla kez** alabilirsiniz. İşleyicinizi idempotent yapın: `data` içindeki `certificate_id` gibi benzersiz kimlikleri kullanarak daha önce işlenmiş olayları atlayın.
+
+## Güvenlik: SSRF Koruması
+
+HeptaCert, webhook hedef URL'lerini doğrular ve **özel/iç ağ adreslerine** teslimat yapmaz. Şu hedefler reddedilir:
+
+- `localhost`, `127.0.0.1` ve loopback adresleri
+- Özel aralıklar (`10.0.0.0/8`, `192.168.0.0/16`, `172.16.0.0/12`)
+- Link-local, reserved ve multicast adresler
+
+Bu, webhook sisteminin iç servislere istek yapmak için kötüye kullanılmasını (SSRF) önler. Endpoint'iniz herkese açık (public) bir adreste olmalıdır.
+
+## Webhook'ları Yönetme
+
+Admin panelinin yanı sıra API ve CLI ile de yönetebilirsiniz:
+
+```bash
+# CLI
+hc webhooks list
+hc webhooks create https://myapp.com/hooks/heptacert \
+  --events "cert.issued,cert.revoked"
+hc webhooks delete 3
+```
+
+MCP araçlarıyla (AI asistanları): `list_webhooks`, `create_webhook`, `delete_webhook`.
+
+## Lokal Geliştirme
+
+Lokal endpoint'inizi internete açmak için bir tünel kullanın (HeptaCert özel adreslere teslimat yapmadığı için `localhost` doğrudan çalışmaz):
 
 ```bash
 ngrok http 3000
 # https://xxxx.ngrok.io → localhost:3000
 ```
+
+Üretilen public URL'yi webhook hedefi olarak kaydedin, ardından bir test olayı tetikleyin (örn. bir test sertifikası yayımlayın) ve isteğin geldiğini doğrulayın.
+
+## Sonraki Adımlar
+
+- [Otomasyon vs. Webhook farkı →](/concepts#otomasyon-automation)
+- [API ile webhook yönetimi →](/api-reference)

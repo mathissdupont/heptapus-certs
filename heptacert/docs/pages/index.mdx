@@ -1,23 +1,39 @@
 # HeptaCert Geliştirici Dokümantasyonu
 
-HeptaCert'in REST API'si, MCP (Model Context Protocol) agent entegrasyonu, CLI aracı ve webhook sistemi için resmi dokümantasyon.
+HeptaCert; etkinlik yönetimi, kayıt, check-in, **doğrulanabilir dijital sertifika** üretimi ve katılımcı CRM'ini tek platformda birleştirir. Bu dokümantasyon, platformu kendi sistemlerinize bağlamanız için gereken her şeyi içerir: REST API, MCP (AI agent) entegrasyonu, CLI aracı ve webhook sistemi.
 
-## Neler Yapabilirsiniz?
-
-- **REST API** ile etkinlik, katılımcı, sertifika ve oturum yönetimi
-- **MCP Agent** ile Claude veya başka AI asistanlarınıza HeptaCert yetkisi verin
-- **CLI (hc)** ile terminal üzerinden tam otomasyon
-- **Webhooks** ile sistemlerinizi gerçek zamanlı olarak tetikleyin
-
-## Hızlı Başlangıç
+## Dört Entegrasyon Yolu
 
 import { Cards, Card } from "nextra/components";
 
+HeptaCert'e dört farklı yoldan erişebilirsiniz. Hepsi aynı API anahtarını ve aynı [scope modelini](/authentication#scopelar-i̇zinler) paylaşır — hangi yolu seçerseniz seçin yetkiler aynı kalır.
+
+| Yol | En uygun olduğu durum |
+|-----|----------------------|
+| **REST API** | Sunucu-sunucu entegrasyon, web/mobil arka uç, scriptler |
+| **MCP Agent** | Claude, Cursor gibi AI asistanlarına HeptaCert yetkisi vermek |
+| **CLI (`hc`)** | Terminal otomasyonu, CI/CD, hızlı yönetim |
+| **Webhooks** | Olaylar gerçekleştiğinde sisteminizi anında haberdar etmek |
+
+## Neler Yapabilirsiniz?
+
+- **Etkinlik yönetimi** — etkinlik oluştur, güncelle, kaydı aç/kapat
+- **Katılımcı yönetimi** — tek tek veya toplu (CSV/Excel) ekle, ara, dışa aktar
+- **Sertifika üretimi** — tekil veya yüzlerce sertifikayı toplu, asenkron üret; iptal et; kademe yönet
+- **Check-in & devam** — oturum bazlı manuel/QR check-in, devam analitiği
+- **Otomasyon** — "sertifika yayımlanınca e-posta gönder" gibi olay-tabanlı kurallar
+- **CRM** — katılımcıları etkinlikler arası izle, lead skorla, mükerrerleri birleştir
+- **Webhooks** — sertifika/CRM olaylarını dış sistemlere imzalı POST ile ilet
+
+## Başlangıç
+
 <Cards>
   <Card title="Hızlı Başlangıç →" href="/quickstart" />
+  <Card title="Temel Kavramlar →" href="/concepts" />
   <Card title="API Anahtarı Al →" href="/authentication" />
   <Card title="API Referansı →" href="/api-reference" />
   <Card title="MCP Agent →" href="/mcp-agent" />
+  <Card title="CLI →" href="/cli" />
 </Cards>
 
 ## Base URL
@@ -26,8 +42,24 @@ import { Cards, Card } from "nextra/components";
 https://heptacert.com/api
 ```
 
-Tüm istekler HTTPS üzerinden yapılmalıdır. HTTP istekleri otomatik olarak reddedilir.
+Tüm istekler HTTPS üzerinden yapılmalıdır. HTTP istekleri otomatik olarak reddedilir. Makine-okunur OpenAPI spesifikasyonu `https://heptacert.com/api/openapi.json` adresindedir.
 
-## Versiyon
+## Kimlik Doğrulama (Özet)
 
-Mevcut API stabil ve versiyonlanmamıştır. Kırıcı değişiklikler öncesinde e-posta ile bildirim yapılır.
+Her istekte API anahtarınızı Bearer token olarak gönderin:
+
+```bash
+curl https://heptacert.com/api/admin/events \
+  -H "Authorization: Bearer hc_live_YOUR_KEY"
+```
+
+Ayrıntılar için [Kimlik Doğrulama](/authentication) sayfasına bakın.
+
+## Versiyonlama ve Stabilite
+
+Mevcut API stabildir ve versiyonlanmamıştır. Geriye dönük uyumluluğu korumaya öncelik veririz; kırıcı bir değişiklik gerekirse e-posta ile önceden bildirim yapılır. Yeni alanlar ve endpoint'ler herhangi bir zamanda **eklenebilir** — istemcileriniz tanımadığı alanları yok sayacak şekilde toleranslı (tolerant reader) yazılmalıdır.
+
+## Yardım
+
+- Teknik sorular ve hata bildirimleri için: [GitHub](https://github.com/heptapusgroup/heptacert)
+- Uygulama paneli: [heptacert.com](https://heptacert.com)

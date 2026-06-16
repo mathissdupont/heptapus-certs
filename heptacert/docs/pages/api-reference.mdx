@@ -2,14 +2,77 @@
 
 **Base URL:** `https://heptacert.com/api`
 
-Tüm istekler `Authorization: Bearer hc_live_...` başlığı gerektirir.
+Tüm istekler HTTPS üzerinden yapılmalı ve `Authorization: Bearer hc_live_...` başlığı içermelidir. İstek/yanıt gövdeleri JSON'dur (`Content-Type: application/json`).
 
 import { Callout } from "nextra/components";
+
+<Callout type="info">
+Tam, makine-okunur OpenAPI spesifikasyonu `https://heptacert.com/api/openapi.json` adresinde yayınlanır. Postman/Insomnia'ya içe aktarabilir veya ChatGPT Actions ile kullanabilirsiniz.
+</Callout>
+
+## Konvansiyonlar
+
+### Sayfalama (Pagination)
+
+Liste döndüren endpoint'ler `page` ve `limit` sorgu parametrelerini destekler:
+
+| Parametre | Tip | Varsayılan | Açıklama |
+|-----------|-----|-----------|----------|
+| `page` | int | `1` | 1'den başlayan sayfa numarası |
+| `limit` | int | `20` | Sayfa başına kayıt (üst sınır genellikle `200`) |
+| `search` | string | — | Destekleyen endpoint'lerde isim/e-posta filtresi |
+
+`limit` üst sınırı aşan değerler sınıra çekilir. Çok sayıda kayıt çekerken `limit`'i yükseltip sayfa sayısını azaltmak daha verimlidir.
+
+### Tarih/Saat
+
+Tüm zaman damgaları ISO 8601 formatındadır. Yazma işlemlerinde naive (saat dilimsiz) ISO değeri gönderebilirsiniz (`2026-09-15T09:00:00`); okuma yanıtlarında zaman damgaları UTC olarak döner.
+
+### İdempotanlık
+
+`POST` ile kaynak oluşturmada, çakışan benzersiz alanlar (örn. bir etkinlikte aynı e-posta) `409 Conflict` döner — tekrar denemek yeni kayıt oluşturmaz. Yeniden deneme mantığı yazarken bu davranışa güvenebilirsiniz.
+
+### Hata Modeli
+
+Hatalar uygun HTTP durum kodu ve JSON gövdesiyle döner:
+
+```json
+{ "detail": "Bu etkinliğe ait kayıt bulunamadı." }
+```
+
+| HTTP | Anlamı |
+|------|--------|
+| `400` | Geçersiz istek — eksik/hatalı alan |
+| `401` | Kimlik doğrulama başarısız — geçersiz/eksik anahtar |
+| `402` | Yetersiz bakiye (örn. toplu üretim için HeptaCoin) |
+| `403` | Yetkisiz — gerekli scope eksik |
+| `404` | Kayıt bulunamadı |
+| `409` | Çakışma — kayıt zaten var |
+| `413` | Yük çok büyük (örn. 5 MB üstü Excel) |
+| `422` | Doğrulama hatası — alan tipleri/kuralları |
+| `429` | Hız sınırı aşıldı |
+| `500` | Sunucu hatası |
+
+`422` doğrulama hataları, hatalı alanların listesini içerir:
+
+```json
+{
+  "detail": [
+    { "loc": ["body", "email"], "msg": "value is not a valid email", "type": "value_error.email" }
+  ]
+}
+```
+
+---
 
 ## Etkinlikler
 
 ### `GET /admin/events`
 Hesabınızdaki tüm etkinlikleri listeler.
+
+| Parametre | Tip | Açıklama |
+|-----------|-----|----------|
+| `search` | string | İsim filtresi |
 
 **Yanıt:**
 ```json
@@ -30,7 +93,7 @@ Hesabınızdaki tüm etkinlikleri listeler.
 ```
 
 ### `GET /admin/events/{id}`
-Tek etkinliğin tam detayını getirir.
+Tek etkinliğin tam detayını getirir. Bulunamazsa `404`.
 
 ### `POST /admin/events`
 Yeni etkinlik oluşturur.
@@ -51,11 +114,18 @@ Yeni etkinlik oluşturur.
 }
 ```
 
+`name` zorunludur. `template_image_url` zorunludur; gerçek şablonu editörden sonra ayarlayacaksanız geçici `"placeholder"` değeri verebilirsiniz.
+
 ### `PATCH /admin/events/{id}`
-Etkinlik bilgilerini günceller. Yalnızca gönderilen alanlar değişir.
+Etkinliği günceller. **Yalnızca gönderilen alanlar** değişir (partial update).
 
 ### `DELETE /admin/events/{id}`
-Etkinliği kalıcı olarak siler. **Geri alınamaz.**
+Etkinliği kalıcı olarak siler. **Geri alınamaz** — ilişkili katılımcılar, sertifikalar ve oturumlar da silinir.
+
+### `POST /admin/events/{id}/close-registration` · `.../open-registration`
+Kayıt formunu kapatır/açar (`registration_closed` bayrağını değiştirir).
+
+> **Gerekli scope:** okuma için `events:read`, yazma/silme için `events:write`.
 
 ---
 
@@ -64,12 +134,12 @@ Etkinliği kalıcı olarak siler. **Geri alınamaz.**
 ### `GET /admin/events/{id}/attendees`
 | Parametre | Tip | Açıklama |
 |-----------|-----|----------|
-| `page` | int | Sayfa numarası (varsayılan: 1) |
-| `limit` | int | Sayfa başına kayıt (varsayılan: 20, maks: 200) |
+| `page` | int | Sayfa numarası |
+| `limit` | int | Sayfa başına kayıt (maks. 200) |
 | `search` | string | İsim veya e-posta filtresi |
 
 ### `POST /admin/events/{id}/attendees`
-Tek katılımcı ekler.
+Tek katılımcı ekler. Aynı e-posta varsa `409`.
 ```json
 { "first_name": "Ahmet", "last_name": "Yılmaz", "email": "ahmet@example.com" }
 ```
@@ -80,6 +150,8 @@ Katılımcı bilgilerini günceller (`first_name`, `last_name`, `email`).
 ### `DELETE /admin/events/{event_id}/attendees/{attendee_id}`
 Katılımcıyı etkinlikten kaldırır.
 
+> **Gerekli scope:** `attendees:read` / `attendees:write`.
+
 ---
 
 ## Sertifikalar
@@ -87,8 +159,7 @@ Katılımcıyı etkinlikten kaldırır.
 ### `GET /admin/events/{id}/certificates`
 | Parametre | Tip | Açıklama |
 |-----------|-----|----------|
-| `page` | int | Sayfa numarası |
-| `limit` | int | Sayfa başına kayıt |
+| `page` / `limit` | int | Sayfalama |
 | `search` | string | İsim filtresi |
 | `status` | string | `active` \| `revoked` \| `expired` |
 
@@ -97,17 +168,49 @@ Sertifika yayımlama işlemi başlatır.
 ```json
 { "attendee_ids": [1, 2, 3] }
 ```
-`attendee_ids` boş bırakılırsa tüm uygun katılımcılar için yayımlanır.
+`attendee_ids` boş bırakılırsa **tüm uygun** katılımcılar için yayımlanır. Bu işlem `cert.issued` webhook'unu tetikler.
 
 ### `POST /admin/certificates/{cert_id}/revoke`
-Sertifikayı iptal eder. PDF linki erişilemez hale gelir.
+Sertifikayı iptal eder. Doğrulama sayfası "geçersiz" gösterir. `cert.revoked` webhook'unu tetikler.
+
+### `GET /admin/events/{id}/certificate-tiers/summary`
+Kademe bazında sertifika dağılımını ve yüzdelerini döner.
+
+> **Gerekli scope:** `certificates:read` / `certificates:write`.
 
 ---
 
-## Oturumlar
+## Toplu Sertifika Üretimi
+
+Bir Excel listesinden yüzlerce sertifikayı asenkron olarak üretir. İşlem bir **iş (job)** olarak çalışır; durumu sorgulayıp tamamlanınca ZIP indirebilirsiniz.
+
+### `POST /admin/events/{id}/bulk-generate`
+`multipart/form-data` ile bir `.xlsx` dosyası yükler. İlk uygun sütun (`name`, `isim`, `ad soyad`, `full_name`...) isim olarak kullanılır.
+
+- Maksimum dosya boyutu: **5 MB** (aşılırsa `413`)
+- Maksimum isim sayısı: **1000**
+- Yetersiz HeptaCoin bakiyesi → `402`
+
+Yanıt, oluşturulan iş nesnesini (`status: "pending"`) döner.
+
+### `GET /admin/events/{id}/bulk-generate-jobs`
+Bu etkinlik için son işleri listeler (en yeni 30).
+
+### `GET /admin/events/{id}/bulk-generate-jobs/{job_id}`
+Tek işin durumunu döner: `pending` → `processing` → `completed` / `failed` / `cancelled`.
+
+### `POST /admin/events/{id}/bulk-generate-jobs/{job_id}/cancel`
+Devam eden bir işi iptal eder. Tamamlanmış işler iptal edilemez (`400`).
+
+### `GET /admin/events/{id}/bulk-generate-jobs/{job_id}/download`
+Tamamlanmış işin ZIP'ini indirir. İş bitmemişse `409`. İş tamamlandığında `cert.bulk_completed` webhook'u tetiklenir.
+
+---
+
+## Oturumlar (Agenda)
 
 ### `GET /admin/events/{id}/sessions`
-Etkinliğin oturumlarını (agenda) listeler.
+Etkinliğin oturumlarını listeler.
 
 ### `POST /admin/events/{id}/sessions`
 ```json
@@ -128,19 +231,33 @@ Etkinliğin oturumlarını (agenda) listeler.
 
 ## Check-in
 
+Check-in **oturum düzeyinde** yapılır.
+
 ### `GET /admin/events/{id}/checkin-lookup`
 | Parametre | Tip | Açıklama |
 |-----------|-----|----------|
 | `query` | string | İsim veya e-posta araması |
 
 ### `POST /admin/events/{event_id}/sessions/{session_id}/checkin`
-Manuel check-in yapar.
+Belirli bir oturuma manuel check-in yapar.
 ```json
 { "email": "ahmet@example.com" }
 ```
 
 ### `GET /admin/events/{id}/attendance`
-Etkinlik devam istatistiklerini döner (toplam, check-in yapılan, oran, oturum bazlı).
+Devam istatistiklerini döner: toplam, check-in yapan, oran ve oturum bazlı dağılım.
+
+---
+
+## Anketler & Rozetler
+
+### `GET /admin/events/{id}/survey-responses`
+Etkinlik anketine verilen yanıtları döner.
+
+### `GET /admin/badge-templates`
+Tanımlı rozet şablonlarını listeler.
+
+Bu kaynaklar otomasyon tetikleyicilerini besler (`survey_not_completed`, `badge_earned`).
 
 ---
 
@@ -159,24 +276,78 @@ Etkinlik devam istatistiklerini döner (toplam, check-in yapılan, oran, oturum 
 }
 ```
 
+### `PATCH /admin/events/{event_id}/automations/{rule_id}`
+### `DELETE /admin/events/{event_id}/automations/{rule_id}`
+
 **Trigger tipleri:** `attended_event`, `registered_no_show`, `certificate_issued`, `survey_not_completed`, `badge_earned`, `lms_course_completed`, `compliance_overdue`
 
 ---
 
-## Hata Kodları
+## Analitik
 
-| HTTP | Açıklama |
-|------|----------|
-| `400` | Geçersiz istek — eksik veya hatalı alan |
-| `401` | Kimlik doğrulama başarısız — geçersiz anahtar |
-| `403` | Yetkisiz — gerekli scope eksik |
-| `404` | Kayıt bulunamadı |
-| `409` | Çakışma — kayıt zaten var (örn. aynı e-posta) |
-| `422` | Doğrulama hatası |
-| `429` | Hız sınırı aşıldı |
-| `500` | Sunucu hatası |
+### `GET /admin/events/{id}/analytics`
+Tek etkinlik için detaylı metrikler.
 
-Hata yanıtı formatı:
-```json
-{ "detail": "Bu etkinliğe ait kayıt bulunamadı." }
+### Organizasyon düzeyi raporlar
+| Endpoint | İçerik |
+|----------|--------|
+| `GET /admin/analytics/org/overview` | Genel bakış metrikleri |
+| `GET /admin/analytics/org/cert-timeline` | Sertifika yayımlama zaman çizelgesi |
+| `GET /admin/analytics/org/crm` | CRM özet metrikleri |
+| `GET /admin/analytics/org/training-compliance` | Eğitim uyum durumu |
+
+> **Gerekli scope:** `analytics:read`.
+
+---
+
+## CRM
+
+Etkinliklerden bağımsız kişi/şirket katmanı (bkz. [Temel Kavramlar](/concepts#crm-katmanı)).
+
+| Endpoint | İşlem |
+|----------|-------|
+| `GET /admin/crm/accounts` | Hesapları (şirketleri) listele |
+| `GET /admin/crm/accounts/{id}/contacts` | Hesabın kişilerini listele |
+| `GET /admin/crm/accounts/{id}/deals` | Hesabın fırsatlarını listele |
+| `POST /admin/crm/import-csv` | CSV ile toplu kişi içe aktar |
+| `POST /admin/crm/lead-scores/recalculate` | Lead skorlarını yeniden hesapla |
+| `GET /admin/crm/duplicates` | Olası mükerrer kayıtları bul |
+| `POST /admin/crm/merge` | Mükerrer kayıtları birleştir |
+
+> **Gerekli scope:** `crm:read` / `crm:write`.
+
+---
+
+## API Anahtarı Yönetimi
+
+| Endpoint | İşlem |
+|----------|-------|
+| `GET /admin/api-keys` | Anahtarları listele (yalnızca prefix görünür) |
+| `POST /admin/api-keys` | Yeni anahtar oluştur (tam değer bir kez döner) |
+| `GET /admin/api-keys/scopes` | Geçerli scope listesini al |
+| `PATCH /admin/api-keys/{id}` | İsim/scope/aktiflik güncelle |
+| `DELETE /admin/api-keys/{id}` | Anahtarı sil |
+
+---
+
+## Webhook Yönetimi
+
+| Endpoint | İşlem |
+|----------|-------|
+| `GET /admin/webhooks` | Endpoint'leri listele |
+| `POST /admin/webhooks` | Endpoint oluştur (secret üretilir) |
+| `DELETE /admin/webhooks/{id}` | Endpoint sil |
+
+Payload formatı, imza doğrulama ve yeniden deneme politikası için [Webhooks](/webhooks) sayfasına bakın.
+
+---
+
+## Halka Açık Sertifika Doğrulama
+
+Sertifika doğrulama herkese açıktır ve **kimlik doğrulama gerektirmez**:
+
 ```
+https://heptacert.com/verify/{cert_uuid}
+```
+
+Bu sayfa sertifikanın geçerli (`active`), iptal edilmiş (`revoked`) veya bulunamadığını gösterir. Üçüncü taraflar (işverenler, kurumlar) bir sertifikanın gerçekliğini bu link üzerinden doğrulayabilir. MCP üzerinden `get_certificate_by_public_id` aracıyla da programatik doğrulama yapılabilir.

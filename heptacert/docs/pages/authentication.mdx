@@ -1,5 +1,9 @@
 # Kimlik Doğrulama
 
+HeptaCert API'si, MCP sunucusu ve CLI'ın tamamı tek bir kimlik doğrulama modeli paylaşır: **API anahtarı + scope**.
+
+import { Callout } from "nextra/components";
+
 ## API Anahtarları
 
 HeptaCert API'si Bearer token kimlik doğrulaması kullanır. Her istekte HTTP başlığına anahtarınızı ekleyin:
@@ -12,68 +16,112 @@ Authorization: Bearer hc_live_YOUR_KEY
 
 | Prefix | Açıklama |
 |--------|----------|
-| `hc_live_` | Canlı anahtar — gerçek veriye erişir |
+| `hc_live_` | Canlı anahtar — gerçek hesap verinize erişir |
+
+Anahtar oluşturulduktan sonra yalnızca **anahtar ön eki (key prefix)** saklanır; tam anahtar yalnızca oluşturma anında bir kez gösterilir. HeptaCert anahtarın kendisini saklamaz — kaybederseniz iptal edip yenisini oluşturmanız gerekir.
 
 ### Anahtar Oluşturma
 
-Admin panelinde **Ayarlar → API Anahtarları** sayfasından oluşturulur. Oluşturma sırasında:
-- **İsim** — anahtarın kullanım amacı (örn. "CI/CD Pipeline")
-- **Scope'lar** — izin verilen işlem tipleri
-- **Son kullanma tarihi** — boş bırakılırsa sonsuz
+Admin panelinde **Ayarlar → API Anahtarları** sayfasından oluşturulur. Oluşturma sırasında belirlersiniz:
 
-import { Callout } from "nextra/components";
+- **İsim** — anahtarın kullanım amacı (örn. "CI/CD Pipeline", "Zapier Entegrasyonu")
+- **Scope'lar** — izin verilen işlem tipleri (aşağıya bakın)
+- **Son kullanma süresi** (`expires_days`) — 1–3650 gün; boş bırakılırsa süresiz
+- **Anahtara özel hız sınırı** (`rate_limit_per_min`) — opsiyonel, 10–10000 istek/dakika
 
-<Callout>
-  Anahtar yalnızca oluşturulurken bir kez tam olarak gösterilir. Kaydetmeyi unutmayın.
+<Callout type="warning">
+API anahtarınızı güvenli saklayın. Git repository'lerine, client-side (tarayıcı) koduna, mobil uygulamalara veya log dosyalarına **eklemeyin**. Anahtarları ortam değişkeni (`HEPTACERT_API_KEY`) veya bir secret yöneticisi üzerinden okuyun.
 </Callout>
 
 ## Scope'lar (İzinler)
 
-Scope'suz anahtar tüm kaynaklara erişir. Scope atanmış anahtarlar yalnızca ilgili işlemleri yapabilir.
+Scope'lar, bir anahtarın ne yapabileceğini sınırlar. **Scope atanmamış bir anahtar tam erişime sahiptir** (tüm kaynaklar). Bir veya daha fazla scope atadığınızda, anahtar yalnızca o scope'ların izin verdiği işlemleri yapabilir — kapsam dışı bir istek `403 Forbidden` döner.
 
-| Scope | Açıklama |
-|-------|----------|
+| Scope | İzin verilen işlem |
+|-------|--------------------|
 | `events:read` | Etkinlikleri listele ve görüntüle |
 | `events:write` | Etkinlik oluştur, güncelle, sil |
 | `attendees:read` | Katılımcıları listele |
 | `attendees:write` | Katılımcı ekle, güncelle, sil |
 | `certificates:read` | Sertifikaları listele |
 | `certificates:write` | Sertifika yayımla, iptal et |
+| `crm:read` | CRM verilerini oku |
+| `crm:write` | CRM verilerini yaz/güncelle |
 | `analytics:read` | Analitik ve raporlara eriş |
-| `sessions:read` | Oturumları listele |
-| `sessions:write` | Oturum oluştur, güncelle, sil |
-| `checkin:write` | Manuel check-in yap |
-| `automations:read` | Otomasyon kurallarını görüntüle |
-| `automations:write` | Otomasyon kuralı oluştur |
+| `forms:read` | Lead formlarını oku |
+| `forms:write` | Lead formlarına yaz |
+| `reports:read` | Raporları oku |
 
-### Minimum Scope Prensibi
+<Callout type="info">
+Geçerli scope listesini programatik olarak `GET /api/admin/api-keys/scopes` endpoint'inden alabilirsiniz. Tanınmayan scope değerleri anahtar oluşturma/güncelleme sırasında sessizce yok sayılır.
+</Callout>
 
-Entegrasyonunuz için yalnızca gereken scope'ları ekleyin. Örneğin yalnızca raporlama yapan bir araç `analytics:read` ile yeterlidir.
+### Minimum Yetki Prensibi
+
+Her entegrasyon için yalnızca **gereken** scope'ları verin:
+
+- Sadece raporlama yapan bir gösterge paneli → `analytics:read`, `reports:read`
+- Katılımcı senkronize eden bir CRM entegrasyonu → `attendees:read`, `crm:write`
+- Yalnızca sertifika yayımlayan bir CI işi → `certificates:write`
+
+Böylece bir anahtar sızsa bile etki alanı sınırlı kalır.
+
+### Scope'lar Tüm Yollarda Geçerli
+
+Scope kısıtlamaları yalnızca REST API'de değil, **MCP sunucusunda da** uygulanır. Örneğin `certificates:write` scope'u olmayan bir anahtarla bir AI asistanı `issue_certificates` aracını çağırırsa, araç çalışmadan reddedilir. Aynı kural CLI için de geçerlidir.
 
 ## Hız Sınırları (Rate Limiting)
 
-| Plan | İstek/Dakika | İstek/Saat |
-|------|-------------|------------|
-| Starter | 60 | 1 000 |
-| Pro | 300 | 10 000 |
-| Enterprise | 1 000 | 50 000 |
+API isteklerine hız sınırı uygulanır. Varsayılan genel sınır **dakikada 200 istektir**. Anahtar başına özel bir sınır tanımladıysanız (`rate_limit_per_min`), o anahtar için bu değer geçerli olur.
 
-Sınır aşılınca `429 Too Many Requests` döner. `Retry-After` başlığı kaç saniye beklenileceğini gösterir.
+Sınır, mümkün olduğunda **API anahtarı bazında**, anahtar yoksa **IP adresi bazında** uygulanır.
 
-```
-HTTP/1.1 429 Too Many Requests
-Retry-After: 12
-X-RateLimit-Limit: 60
-X-RateLimit-Remaining: 0
-X-RateLimit-Reset: 1718100012
+Sınır aşılınca `429 Too Many Requests` döner:
+
+```json
+{
+  "detail": "Rate limit exceeded: 200 per 1 minute",
+  "error": "Rate limit exceeded: 200 per 1 minute"
+}
 ```
 
-## Anahtar Rotasyonu
+<Callout type="info">
+Hız sınırı ihlalleri güvenlik denetim kaydına (audit log) yazılır. Sürekli `429` alıyorsanız isteklerinizi geri çekilme (backoff) ile yeniden deneyin ve gerekiyorsa anahtarınız için daha yüksek `rate_limit_per_min` talep edin.
+</Callout>
 
-Güvenlik ihlali şüphesi durumunda anahtarı hemen iptal edin:
+### İyi Backoff Pratiği
+
+`429` aldığınızda kısa bir gecikmeyle üstel geri çekilme uygulayın:
+
+```python
+import time
+import httpx
+
+def request_with_retry(client, *args, max_retries=5, **kwargs):
+    for attempt in range(max_retries):
+        resp = client.request(*args, **kwargs)
+        if resp.status_code != 429:
+            return resp
+        time.sleep(2 ** attempt)  # 1s, 2s, 4s, 8s, 16s
+    return resp
+```
+
+## Anahtar Rotasyonu ve İptal
+
+Güvenlik ihlali şüphesi veya rutin rotasyon için:
 
 1. Admin paneli → **Ayarlar → API Anahtarları**
-2. İlgili anahtarın yanındaki **İptal Et** butonuna tıklayın
-3. Yeni anahtar oluşturun ve ortam değişkenlerinizi güncelleyin
+2. Yeni bir anahtar oluşturun ve ortam değişkenlerinizi/secret'larınızı güncelleyin
+3. Geçişi doğruladıktan sonra eski anahtarı **devre dışı bırakın** (`is_active = false`) veya silin
 
-İptal edilen anahtarlar derhal geçersiz olur.
+İptal edilen/pasifleştirilen anahtarlar **derhal** geçersiz olur — bekleyen istekler dahil. Anahtar son kullanma tarihi belirlediyseniz, o tarihten sonra otomatik olarak geçersiz olur.
+
+<Callout type="warning">
+Bir anahtarı silmeden önce hangi entegrasyonların onu kullandığını bildiğinizden emin olun. Anahtarların `last_used_at` alanı, son kullanım zamanını gösterir ve atıl anahtarları tespit etmenize yardımcı olur.
+</Callout>
+
+## Sonraki Adımlar
+
+- [API Referansı →](/api-reference)
+- [MCP ile AI Agent Kurulumu →](/mcp-agent)
+- [CLI Kurulumu →](/cli)

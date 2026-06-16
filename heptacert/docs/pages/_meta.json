@@ -1,6 +1,7 @@
 {
   "index": "Giriş",
   "quickstart": "Hızlı Başlangıç",
+  "concepts": "Temel Kavramlar",
   "authentication": "Kimlik Doğrulama",
   "api-reference": "API Referansı",
   "mcp-agent": "MCP & AI Agents",

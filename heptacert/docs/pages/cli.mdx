@@ -1,6 +1,8 @@
 # CLI (hc)
 
-HeptaCert komut satırı aracı — otomasyon, scripting ve hızlı yönetim için.
+HeptaCert komut satırı aracı — otomasyon, scripting ve hızlı yönetim için. REST API'nin tamamını terminalden kullanılabilir kılar ve aynı [API anahtarı + scope](/authentication) modelini paylaşır.
+
+import { Callout } from "nextra/components";
 
 ## Kurulum
 
@@ -17,6 +19,7 @@ pip install -e .
 Kurulum sonrası `hc` komutu kullanılabilir olur:
 ```bash
 hc --version
+hc --help
 ```
 
 ## Kimlik Doğrulama
@@ -33,11 +36,15 @@ hc auth status    # Giriş durumunu göster
 hc auth logout    # Kayıtlı anahtarı sil
 ```
 
-Ortam değişkeni ile de kullanılabilir:
+Ortam değişkeni ile de kullanılabilir — CI/CD ve sunucu ortamları için önerilir:
 ```bash
 export HEPTACERT_API_KEY=hc_live_...
 hc events list
 ```
+
+<Callout type="info">
+Ortam değişkeni (`HEPTACERT_API_KEY`), kayıtlı config dosyasından önceliklidir. Böylece tek bir makinede farklı anahtarlarla farklı scriptler çalıştırabilirsiniz.
+</Callout>
 
 ## Komutlar
 
@@ -116,6 +123,16 @@ hc checkin manual 42 7 ahmet@example.com   # event oturum email
 hc checkin summary 42
 ```
 
+### Otomasyon Kuralları
+
+```bash
+hc automations list 42
+hc automations create 42 \
+  --name "Sertifika E-postası" \
+  --trigger certificate_issued \
+  --actions '[{"type":"send_email","template_id":5}]'
+```
+
 ### LMS
 
 ```bash
@@ -125,16 +142,6 @@ hc lms enrollments 5
 hc lms enroll 5 --email ali@example.com --first-name Ali --last-name Veli
 hc lms analytics
 hc lms analytics 5
-```
-
-### Otomasyon Kuralları
-
-```bash
-hc automations list 42
-hc automations create 42 \
-  --name "Sertifika E-postası" \
-  --trigger certificate_issued \
-  --actions '[{"type":"send_email","template_id":5}]'
 ```
 
 ### Agent Logları
@@ -151,45 +158,60 @@ hc logs list --limit 50 --output json
 ```bash
 hc webhooks list
 hc webhooks create https://myapp.com/hooks/heptacert \
-  --events "certificate.issued,attendee.registered" \
-  --secret mygizlisifre
+  --events "cert.issued,cert.revoked"
 hc webhooks delete 3
-hc webhooks test 3 --event certificate.issued
 ```
+
+Webhook olayları ve imza doğrulama için [Webhooks](/webhooks) sayfasına bakın.
 
 ### Konfigürasyon
 
 ```bash
-hc config show                             # Mevcut ayarları göster
+hc config show                                  # Mevcut ayarları göster
 hc config set --api-base https://heptacert.com  # API base URL güncelle
-hc config path                             # Config dosyasının yolunu göster
-```
-
-### Bağlantı Testi
-
-```bash
-hc ping                                    # API bağlantısını ve auth'u test et
-```
-
-Örnek çıktı:
-```
-✓ Connected to https://heptacert.com
-  API:     ok  v1.0.0
-  Account: admin@example.com
-  Scopes:  all (unscoped)
+hc config path                                  # Config dosyasının yolunu göster
 ```
 
 ## Çıktı Formatları
 
-Tüm komutlar `--output` / `-o` parametresini destekler:
+Tüm liste komutları `--output` / `-o` parametresini destekler:
 
 | Format | Açıklama |
 |--------|----------|
 | `table` | Renkli tablo (varsayılan) |
-| `json` | Ham JSON |
-| `csv` | Virgülle ayrılmış, başka araçlara pipe etmek için |
+| `json` | Ham JSON — programatik işleme için |
+| `csv` | Virgülle ayrılmış — başka araçlara pipe etmek için |
 
 ```bash
 hc attendees list 42 --output csv > katilimcilar.csv
 hc events list --output json | jq '.[].name'
 ```
+
+## Scripting ve Otomasyon
+
+CLI, script-dostudur. Başarılı komutlar `0`, hatalar sıfır-dışı çıkış kodu döndürür — bunu kabuk scriptlerinde kullanabilirsiniz:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+export HEPTACERT_API_KEY=hc_live_...
+
+# Yeni etkinlik oluştur ve ID'sini yakala
+EVENT_ID=$(hc events create "Otomatik Etkinlik" --type workshop --output json | jq '.id')
+
+# Katılımcıları import et
+hc attendees import "$EVENT_ID" katilimcilar.csv
+
+# Herkese sertifika ver
+hc certs issue "$EVENT_ID" --yes
+```
+
+<Callout type="info">
+CI/CD ortamlarında etkileşimli `hc auth login` yerine `HEPTACERT_API_KEY` ortam değişkenini kullanın. Anahtarı pipeline secret'ı olarak saklayın, asla repo'ya koymayın.
+</Callout>
+
+## Sonraki Adımlar
+
+- [Aynı işlemler AI asistanı ile (MCP) →](/mcp-agent)
+- [Scope'lar ve güvenlik →](/authentication)
+- [REST API referansı →](/api-reference)
