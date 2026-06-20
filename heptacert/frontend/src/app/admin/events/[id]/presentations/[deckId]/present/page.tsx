@@ -4,9 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Download, Expand, FileText, Loader2, Presentation, Smartphone } from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import HeptaCertLogoMark from "@/components/Brand/HeptaCertLogoMark";
+import { apiFetch, normalizeApiAssetUrl } from "@/lib/api";
 import { getPresentationSession, presentationConvertedFileUrl, presentationFileUrl, type PresentationDeck } from "@/lib/presentationsApi";
 import { useI18n } from "@/lib/i18n";
+
+type StageBranding = {
+  org_name?: string | null;
+  brand_logo?: string | null;
+};
 
 function isPdf(deck: PresentationDeck | null) {
   if (!deck) return false;
@@ -26,6 +32,8 @@ export default function EventPresentationStagePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [slideIndex, setSlideIndex] = useState(0);
+  const [branding, setBranding] = useState<StageBranding | null>(null);
+  const [controlsVisible, setControlsVisible] = useState(true);
 
   const copy = useMemo(() => ({
     loadFailed: isTr ? "Sunum açılamadı." : "Could not open presentation.",
@@ -56,7 +64,7 @@ export default function EventPresentationStagePage() {
   const fileUrl = deck ? presentationFileUrl(deck) : null;
   const convertedUrl = deck ? presentationConvertedFileUrl(deck) : null;
   const stageUrl = convertedUrl || (deck && isPdf(deck) ? fileUrl : null);
-  const stageUrlWithPage = stageUrl ? `${stageUrl}#toolbar=1&navpanes=0&view=FitH&page=${slideIndex + 1}` : null;
+  const stageUrlWithPage = stageUrl ? `${stageUrl}#page=${slideIndex + 1}&toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&view=FitH` : null;
 
   useEffect(() => {
     if (!isConverting(deck)) return;
@@ -68,6 +76,13 @@ export default function EventPresentationStagePage() {
     }, 5000);
     return () => window.clearTimeout(timer);
   }, [deck, deckId]);
+
+  useEffect(() => {
+    apiFetch("/admin/organization/settings")
+      .then((res) => res.json())
+      .then((data) => setBranding({ ...data, brand_logo: normalizeApiAssetUrl(data?.brand_logo) }))
+      .catch(() => setBranding(null));
+  }, []);
 
   useEffect(() => {
     if (!deckId) return;
@@ -88,19 +103,46 @@ export default function EventPresentationStagePage() {
     };
   }, [deckId]);
 
+  useEffect(() => {
+    let timer = window.setTimeout(() => setControlsVisible(false), 2600);
+    function revealControls() {
+      setControlsVisible(true);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setControlsVisible(false), 2600);
+    }
+    window.addEventListener("mousemove", revealControls);
+    window.addEventListener("keydown", revealControls);
+    window.addEventListener("touchstart", revealControls);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("mousemove", revealControls);
+      window.removeEventListener("keydown", revealControls);
+      window.removeEventListener("touchstart", revealControls);
+    };
+  }, []);
+
   function requestFullscreen() {
     const root = document.documentElement;
     if (root.requestFullscreen) void root.requestFullscreen();
   }
 
   return (
-    <main className="fixed inset-0 z-[220] overflow-hidden bg-[#020617] text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#33415566,transparent_32%),linear-gradient(180deg,#0f172a_0%,#020617_55%)]" />
+    <main className={`fixed inset-0 z-[220] overflow-hidden bg-[#020617] text-white ${controlsVisible ? "" : "cursor-none"}`}>
+      <div className="absolute inset-0 bg-black" />
 
-      <header className="absolute inset-x-0 top-0 z-20 flex items-center justify-between border-b border-white/10 bg-slate-950/70 px-5 py-3 backdrop-blur">
-        <div className="min-w-0">
-          <p className="text-11 font-black uppercase tracking-[0.22em] text-white/35">HeptaDeck</p>
-          <h1 className="truncate text-sm font-bold text-white">{deck?.title || "Presentation"}</h1>
+      <header className={`absolute left-4 right-4 top-4 z-30 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-surface-950/72 px-4 py-3 shadow-2xl backdrop-blur transition-all duration-500 ${controlsVisible ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-4 opacity-0"}`}>
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white p-1.5">
+            {branding?.brand_logo ? (
+              <img src={branding.brand_logo} alt={branding.org_name || "Logo"} className="max-h-full max-w-full object-contain" />
+            ) : (
+              <HeptaCertLogoMark className="h-full w-full" />
+            )}
+          </div>
+          <div className="min-w-0">
+            <p className="text-11 font-black uppercase tracking-[0.22em] text-white/35">{branding?.org_name || "HeptaDeck"}</p>
+            <h1 className="truncate text-sm font-bold text-white">{deck?.title || "Presentation"}</h1>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {fileUrl && (
@@ -120,7 +162,7 @@ export default function EventPresentationStagePage() {
         </div>
       </header>
 
-      <section className="relative z-10 flex h-screen items-center justify-center px-4 pb-5 pt-20">
+      <section className="relative z-10 flex h-screen items-center justify-center">
         {loading ? (
           <Loader2 className="h-8 w-8 animate-spin text-white/50" />
         ) : error ? (
@@ -135,7 +177,7 @@ export default function EventPresentationStagePage() {
             key={stageUrlWithPage}
             title={deck.title}
             src={stageUrlWithPage || stageUrl}
-            className="h-full w-full rounded-xl border border-white/10 bg-white shadow-2xl"
+            className="absolute inset-0 h-full w-full border-0 bg-white"
           />
         ) : isConverting(deck) ? (
           <div className="max-w-2xl rounded-[28px] border border-white/10 bg-white/8 p-8 text-center shadow-2xl backdrop-blur">
@@ -156,7 +198,7 @@ export default function EventPresentationStagePage() {
         )}
       </section>
 
-      <footer className="absolute bottom-4 left-0 right-0 z-20 text-center text-11 font-semibold uppercase tracking-[0.18em] text-white/25">
+      <footer className={`absolute bottom-4 left-1/2 z-30 -translate-x-1/2 rounded-full border border-white/10 bg-surface-950/60 px-4 py-2 text-center text-11 font-semibold uppercase tracking-[0.18em] text-white/35 shadow-2xl backdrop-blur transition-all duration-500 ${controlsVisible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"}`}>
         {copy.secured} · {slideIndex + 1}
       </footer>
     </main>
