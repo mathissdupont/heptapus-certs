@@ -14532,6 +14532,10 @@ async def get_job_status(db: AsyncSession = Depends(get_db)):
     seg_pending = (await db.execute(select(func.count(SegmentExportJob.id)).where(SegmentExportJob.status == "pending"))).scalar_one()
     seg_processing = (await db.execute(select(func.count(SegmentExportJob.id)).where(SegmentExportJob.status == "processing"))).scalar_one()
 
+    from .presentation_models import PresentationDeck
+    presentation_pending = (await db.execute(select(func.count(PresentationDeck.id)).where(PresentationDeck.conversion_status == "queued"))).scalar_one()
+    presentation_processing = (await db.execute(select(func.count(PresentationDeck.id)).where(PresentationDeck.conversion_status == "processing"))).scalar_one()
+
     from .document_export_jobs import DocumentExportJob
     doc_pending = (await db.execute(select(func.count(DocumentExportJob.id)).where(DocumentExportJob.status == "pending"))).scalar_one()
 
@@ -14548,6 +14552,7 @@ async def get_job_status(db: AsyncSession = Depends(get_db)):
         "timestamp": now.isoformat(),
         "bulk_email": {"pending": int(bulk_pending), "processing": int(bulk_processing), "failed_last_hour": int(bulk_failed_recent)},
         "segment_export": {"pending": int(seg_pending), "processing": int(seg_processing)},
+        "presentation_conversion": {"pending": int(presentation_pending), "processing": int(presentation_processing)},
         "document_export": {"pending": int(doc_pending)},
         "certificate_bulk": {"pending": int(bulk_cert_pending), "processing": int(bulk_cert_processing)},
         "training_notifications": {"failed_last_hour": int(notif_failed_recent)},
@@ -14569,6 +14574,7 @@ async def list_my_jobs(
     """Return recent + all active jobs across all types for the current user."""
     from .audience_segments_api import SegmentExportJob
     from .document_export_jobs import DocumentExportJob
+    from .presentation_models import PresentationDeck
 
     now = datetime.now(timezone.utc)
     since = now - timedelta(days=7)
@@ -14694,6 +14700,51 @@ async def list_my_jobs(
             "download_url": f"/api/admin/events/{job.event_id}/segments/export-jobs/{job.id}/download" if job.status == "completed" and job.file_path else None,
             "can_cancel": False,
             "can_download": job.status == "completed" and bool(job.file_path),
+        })
+
+    # Presentation conversion jobs
+    presentation_rows = (
+        await db.execute(
+            select(PresentationDeck, Event)
+            .join(Event, Event.id == PresentationDeck.event_id)
+            .where(
+                PresentationDeck.created_by == me.id,
+                PresentationDeck.file_path.is_not(None),
+                PresentationDeck.conversion_status != "not_required",
+                or_(
+                    PresentationDeck.conversion_status.in_(["queued", "processing"]),
+                    PresentationDeck.created_at >= since,
+                    PresentationDeck.updated_at >= since,
+                ),
+            )
+            .order_by(PresentationDeck.updated_at.desc(), PresentationDeck.id.desc())
+            .limit(limit)
+        )
+    ).all()
+    for deck, event in presentation_rows:
+        is_ready = deck.conversion_status == "ready"
+        is_failed = deck.conversion_status == "failed"
+        status = "completed" if is_ready else ("pending" if deck.conversion_status == "queued" else deck.conversion_status)
+        jobs.append({
+            "id": deck.id,
+            "type": "presentation_conversion",
+            "type_label": "Sunum Dönüşümü",
+            "event_id": deck.event_id,
+            "event_name": event.name if event else None,
+            "status": status,
+            "total": 1,
+            "done": 1 if is_ready or is_failed else 0,
+            "success": 1 if is_ready else 0,
+            "failed": 1 if is_failed else 0,
+            "progress_pct": 100 if is_ready or is_failed else (50 if deck.conversion_status == "processing" else 0),
+            "created_at": deck.created_at.isoformat() if deck.created_at else None,
+            "started_at": deck.updated_at.isoformat() if deck.conversion_status == "processing" and deck.updated_at else None,
+            "completed_at": deck.updated_at.isoformat() if is_ready or is_failed else None,
+            "error_message": deck.conversion_error,
+            "detail_url": f"/admin/events/{deck.event_id}/presentations/{deck.id}/present" if deck.event_id else f"/admin/presentations",
+            "download_url": f"/api/admin/presentations/{deck.id}/file?variant=converted" if is_ready and deck.converted_file_path else None,
+            "can_cancel": False,
+            "can_download": is_ready and bool(deck.converted_file_path),
         })
 
     jobs.sort(key=lambda j: j.get("created_at") or "", reverse=True)

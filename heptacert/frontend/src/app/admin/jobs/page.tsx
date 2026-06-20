@@ -10,6 +10,7 @@ import {
   FileBadge2,
   Loader2,
   Mail,
+  Presentation,
   RefreshCw,
   TableProperties,
   XCircle,
@@ -20,7 +21,7 @@ import { useI18n } from "@/lib/i18n";
 
 type Job = {
   id: number;
-  type: "bulk_email" | "bulk_certificate" | "segment_export";
+  type: "bulk_email" | "bulk_certificate" | "segment_export" | "presentation_conversion";
   type_label: string;
   event_id: number;
   event_name: string | null;
@@ -47,6 +48,7 @@ const TYPE_ICON: Record<string, React.ElementType> = {
   bulk_email: Mail,
   bulk_certificate: FileBadge2,
   segment_export: TableProperties,
+  presentation_conversion: Presentation,
 };
 
 const STATUS_CONFIG: Record<string, { label: string; labelEn: string; color: string; icon: React.ElementType }> = {
@@ -159,8 +161,8 @@ export default function AdminJobsPage() {
           </h1>
           <p className="mt-1 max-w-xl text-sm text-surface-500">
             {isTr
-              ? "Toplu e-posta, sertifika üretimi ve export işlemlerinin durumunu gerçek zamanlı takip edin."
-              : "Track bulk email, certificate generation, and export jobs in real time."}
+              ? "Toplu e-posta, sertifika, export ve sunum dönüşümü işlerini gerçek zamanlı takip edin."
+              : "Track bulk email, certificate generation, export, and presentation conversion jobs in real time."}
           </p>
         </div>
         <button
@@ -214,8 +216,8 @@ export default function AdminJobsPage() {
           </p>
           <p className="mt-1 text-sm text-surface-500">
             {isTr
-              ? "Toplu e-posta veya sertifika işlemi başlatıldığında burada görünür."
-              : "Bulk email or certificate jobs will appear here when started."}
+              ? "Toplu e-posta, sertifika, export veya sunum dönüşümü başlatıldığında burada görünür."
+              : "Bulk email, certificate, export, or presentation conversion jobs will appear here when started."}
           </p>
         </div>
       )}

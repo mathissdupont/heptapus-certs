@@ -638,7 +638,11 @@ async def get_presentation_file(
         abs_path,
         media_type=media_type,
         filename=file_filename or f"presentation-{deck['id']}.pdf",
-        headers={"Content-Disposition": f'inline; filename="{file_filename or f"presentation-{deck["id"]}.pdf"}"'},
+        headers={
+            "Content-Disposition": f'inline; filename="{file_filename or f"presentation-{deck["id"]}.pdf"}"',
+            "X-Frame-Options": "SAMEORIGIN",
+            "Content-Security-Policy": "frame-ancestors 'self'",
+        },
     )
 
 
