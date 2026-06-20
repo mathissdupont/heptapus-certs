@@ -23,6 +23,7 @@ from .ai_content_api import _claude
 from .main import CurrentUser, Organization, Role, get_current_user, get_db, require_role, settings, write_audit_log
 from .models import Event, User
 from .organization_access_api import get_organization_for_access, organization_id_from_request
+from .presentation_converter import is_powerpoint_path
 from .presentation_models import PresentationDeck
 from .presentation_renderer import render_deck_pptx
 
@@ -34,6 +35,7 @@ ALLOWED_UPLOAD_TYPES = {
     "application/vnd.openxmlformats-officedocument.presentationml.presentation": ".pptx",
     "application/vnd.ms-powerpoint": ".ppt",
 }
+UPLOAD_MEDIA_TYPES_BY_SUFFIX = {suffix: media_type for media_type, suffix in ALLOWED_UPLOAD_TYPES.items()}
 MAX_UPLOAD_BYTES = 80 * 1024 * 1024
 PRESENTATION_DECK_COLUMNS = [
     "id",
@@ -52,6 +54,11 @@ PRESENTATION_DECK_COLUMNS = [
     "file_filename",
     "file_content_type",
     "file_size",
+    "converted_file_path",
+    "converted_file_filename",
+    "conversion_status",
+    "conversion_error",
+    "conversion_attempts",
     "last_export_path",
     "last_export_filename",
     "created_at",
@@ -112,11 +119,16 @@ class DeckOut(BaseModel):
     file_filename: Optional[str] = None
     file_content_type: Optional[str] = None
     file_size: Optional[int] = None
+    converted_file_filename: Optional[str] = None
+    conversion_status: str = "not_required"
+    conversion_error: Optional[str] = None
+    conversion_attempts: int = 0
     last_export_filename: Optional[str]
     created_at: datetime
     updated_at: datetime
     export_url: Optional[str] = None
     file_url: Optional[str] = None
+    converted_file_url: Optional[str] = None
     presenter_url: Optional[str] = None
 
 
@@ -147,6 +159,7 @@ def _deck_out_from_row(row: Any) -> DeckOut:
     created_at = data.get("created_at") or datetime.now(timezone.utc)
     updated_at = data.get("updated_at") or created_at
     file_path = data.get("file_path")
+    converted_file_path = data.get("converted_file_path")
     last_export_path = data.get("last_export_path")
     event_id = data.get("event_id")
     presenter_token = data.get("presenter_token")
@@ -166,11 +179,16 @@ def _deck_out_from_row(row: Any) -> DeckOut:
         file_filename=data.get("file_filename"),
         file_content_type=data.get("file_content_type"),
         file_size=data.get("file_size"),
+        converted_file_filename=data.get("converted_file_filename"),
+        conversion_status=data.get("conversion_status") or "not_required",
+        conversion_error=data.get("conversion_error"),
+        conversion_attempts=data.get("conversion_attempts") or 0,
         last_export_filename=data.get("last_export_filename"),
         created_at=created_at,
         updated_at=updated_at,
         export_url=f"/api/admin/presentations/{deck_id}/export" if last_export_path else None,
         file_url=f"/api/admin/presentations/{deck_id}/file" if file_path else None,
+        converted_file_url=f"/api/admin/presentations/{deck_id}/file?variant=converted" if converted_file_path else None,
         presenter_url=(
             f"/admin/events/{event_id}/presentations/{deck_id}/present"
             if event_id and presenter_token
@@ -217,11 +235,16 @@ async def _deck_out(deck: PresentationDeck | Any, db: AsyncSession | None = None
         file_filename=deck.file_filename,
         file_content_type=deck.file_content_type,
         file_size=deck.file_size,
+        converted_file_filename=deck.converted_file_filename,
+        conversion_status=deck.conversion_status or "not_required",
+        conversion_error=deck.conversion_error,
+        conversion_attempts=deck.conversion_attempts or 0,
         last_export_filename=deck.last_export_filename,
         created_at=deck.created_at,
         updated_at=deck.updated_at,
         export_url=f"/api/admin/presentations/{deck.id}/export" if deck.last_export_path else None,
         file_url=f"/api/admin/presentations/{deck.id}/file" if deck.file_path else None,
+        converted_file_url=f"/api/admin/presentations/{deck.id}/file?variant=converted" if deck.converted_file_path else None,
         presenter_url=(
             f"/admin/events/{deck.event_id}/presentations/{deck.id}/present"
             if deck.event_id and deck.presenter_token
@@ -382,6 +405,12 @@ def _upload_media_type(deck: PresentationDeck) -> str:
     return "application/vnd.openxmlformats-officedocument.presentationml.presentation"
 
 
+def _file_download_name(deck: Any, fallback_prefix: str = "presentation") -> str:
+    if hasattr(deck, "get"):
+        return deck.get("file_filename") or f"{fallback_prefix}-{deck['id']}"
+    return deck.file_filename or f"{fallback_prefix}-{deck.id}"
+
+
 async def _store_upload_file(deck: PresentationDeck, file: UploadFile) -> None:
     suffix = _safe_upload_suffix(file.content_type or "", file.filename or "")
     raw = await file.read()
@@ -398,8 +427,18 @@ async def _store_upload_file(deck: PresentationDeck, file: UploadFile) -> None:
     if isinstance(deck, PresentationDeck):
         deck.file_path = rel_path
         deck.file_filename = file.filename or f"presentation{suffix}"
-        deck.file_content_type = file.content_type or _upload_media_type(deck)
+        deck.file_content_type = file.content_type if file.content_type in ALLOWED_UPLOAD_TYPES else UPLOAD_MEDIA_TYPES_BY_SUFFIX.get(suffix)
         deck.file_size = len(raw)
+        if is_powerpoint_path(deck.file_filename or deck.file_path):
+            deck.conversion_status = "queued"
+            deck.conversion_error = None
+            deck.converted_file_path = None
+            deck.converted_file_filename = None
+            deck.status = "processing"
+        else:
+            deck.conversion_status = "not_required"
+            deck.conversion_error = None
+            deck.status = "ready"
 
 
 @router.get("", response_model=list[DeckOut], dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
@@ -575,13 +614,20 @@ async def get_deck(
 async def get_presentation_file(
     deck_id: int,
     request: Request,
+    variant: str = Query(default="original", pattern="^(original|converted)$"),
     token: Optional[str] = Query(default=None),
     authorization: Optional[str] = Header(default=None),
     db: AsyncSession = Depends(get_db),
 ):
     deck = await _authorized_file_deck(db, deck_id, request, authorization, token)
-    file_path = deck.get("file_path") if hasattr(deck, "get") else deck.file_path
-    file_filename = deck.get("file_filename") if hasattr(deck, "get") else deck.file_filename
+    if variant == "converted":
+        file_path = deck.get("converted_file_path") if hasattr(deck, "get") else deck.converted_file_path
+        file_filename = deck.get("converted_file_filename") if hasattr(deck, "get") else deck.converted_file_filename
+        media_type = "application/pdf"
+    else:
+        file_path = deck.get("file_path") if hasattr(deck, "get") else deck.file_path
+        file_filename = _file_download_name(deck)
+        media_type = _upload_media_type(deck)
     if not file_path:
         raise HTTPException(status_code=404, detail="Presentation file not found")
     storage_root = Path(settings.local_storage_dir).resolve()
@@ -590,9 +636,9 @@ async def get_presentation_file(
         raise HTTPException(status_code=404, detail="Presentation file not found")
     return FileResponse(
         abs_path,
-        media_type=_upload_media_type(deck),
-        filename=file_filename or f"presentation-{deck['id']}",
-        headers={"Content-Disposition": f'inline; filename="{file_filename or f"presentation-{deck["id"]}"}"'},
+        media_type=media_type,
+        filename=file_filename or f"presentation-{deck['id']}.pdf",
+        headers={"Content-Disposition": f'inline; filename="{file_filename or f"presentation-{deck["id"]}.pdf"}"'},
     )
 
 

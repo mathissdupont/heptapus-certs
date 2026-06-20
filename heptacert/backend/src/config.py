@@ -47,6 +47,10 @@ class Settings(BaseSettings):
 
     storage_mode: str = Field(default="local", alias="STORAGE_MODE")
     local_storage_dir: str = Field(default="/data", alias="LOCAL_STORAGE_DIR")
+    presentation_converter_enabled: bool = Field(default=True, alias="PRESENTATION_CONVERTER_ENABLED")
+    presentation_converter_interval_seconds: float = Field(default=5.0, ge=1, le=300, alias="PRESENTATION_CONVERTER_INTERVAL_SECONDS")
+    presentation_converter_timeout_seconds: int = Field(default=120, ge=10, le=900, alias="PRESENTATION_CONVERTER_TIMEOUT_SECONDS")
+    soffice_bin: str = Field(default="soffice", alias="SOFFICE_BIN")
 
     # SMTP (optional — if not set, verification tokens are printed to logs)
     smtp_host: str = Field(default="", alias="SMTP_HOST")

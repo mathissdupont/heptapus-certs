@@ -81,6 +81,18 @@ def _sync_additive_schema(sync_conn: sa.Connection) -> None:
     if "lms_journey_enrollments" in table_names:
         _add_column_if_missing(sync_conn, inspector, "lms_journey_enrollments", '"cert_pdf_url" TEXT')
 
+    if "presentation_decks" in table_names:
+        _add_column_if_missing(sync_conn, inspector, "presentation_decks", '"event_id" INTEGER')
+        _add_column_if_missing(sync_conn, inspector, "presentation_decks", '"file_path" TEXT')
+        _add_column_if_missing(sync_conn, inspector, "presentation_decks", '"file_filename" VARCHAR(255)')
+        _add_column_if_missing(sync_conn, inspector, "presentation_decks", '"file_content_type" VARCHAR(160)')
+        _add_column_if_missing(sync_conn, inspector, "presentation_decks", '"file_size" INTEGER')
+        _add_column_if_missing(sync_conn, inspector, "presentation_decks", '"converted_file_path" TEXT')
+        _add_column_if_missing(sync_conn, inspector, "presentation_decks", '"converted_file_filename" VARCHAR(255)')
+        _add_column_if_missing(sync_conn, inspector, "presentation_decks", '"conversion_status" VARCHAR(24) NOT NULL DEFAULT \'not_required\'')
+        _add_column_if_missing(sync_conn, inspector, "presentation_decks", '"conversion_error" TEXT')
+        _add_column_if_missing(sync_conn, inspector, "presentation_decks", '"conversion_attempts" INTEGER NOT NULL DEFAULT 0')
+
 
 def _create_schema_if_empty(sync_conn: sa.Connection) -> None:
     inspector = sa.inspect(sync_conn)

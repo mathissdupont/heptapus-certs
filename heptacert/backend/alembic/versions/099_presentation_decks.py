@@ -38,6 +38,11 @@ def upgrade() -> None:
         sa.Column("file_filename", sa.String(255), nullable=True),
         sa.Column("file_content_type", sa.String(160), nullable=True),
         sa.Column("file_size", sa.Integer(), nullable=True),
+        sa.Column("converted_file_path", sa.Text(), nullable=True),
+        sa.Column("converted_file_filename", sa.String(255), nullable=True),
+        sa.Column("conversion_status", sa.String(24), nullable=False, server_default="not_required"),
+        sa.Column("conversion_error", sa.Text(), nullable=True),
+        sa.Column("conversion_attempts", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("last_export_path", sa.Text(), nullable=True),
         sa.Column("last_export_filename", sa.String(255), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
@@ -48,6 +53,7 @@ def upgrade() -> None:
     op.create_index("ix_presentation_decks_created_by", "presentation_decks", ["created_by"])
     op.create_index("ix_presentation_decks_presenter_token", "presentation_decks", ["presenter_token"], unique=True)
     op.create_index("ix_presentation_decks_status", "presentation_decks", ["status"])
+    op.create_index("ix_presentation_decks_conversion_status", "presentation_decks", ["conversion_status"])
     op.create_index("ix_presentation_decks_org_updated", "presentation_decks", ["organization_id", "updated_at"])
     op.create_index("ix_presentation_decks_event_updated", "presentation_decks", ["event_id", "updated_at"])
 
@@ -56,6 +62,7 @@ def downgrade() -> None:
     op.drop_index("ix_presentation_decks_event_updated", table_name="presentation_decks")
     op.drop_index("ix_presentation_decks_org_updated", table_name="presentation_decks")
     op.drop_index("ix_presentation_decks_status", table_name="presentation_decks")
+    op.drop_index("ix_presentation_decks_conversion_status", table_name="presentation_decks")
     op.drop_index("ix_presentation_decks_presenter_token", table_name="presentation_decks")
     op.drop_index("ix_presentation_decks_created_by", table_name="presentation_decks")
     op.drop_index("ix_presentation_decks_event_id", table_name="presentation_decks")

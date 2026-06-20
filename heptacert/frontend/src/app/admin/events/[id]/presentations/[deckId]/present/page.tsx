@@ -4,12 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { Download, Expand, FileText, Loader2, Presentation } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import { presentationFileUrl, type PresentationDeck } from "@/lib/presentationsApi";
+import { presentationConvertedFileUrl, presentationFileUrl, type PresentationDeck } from "@/lib/presentationsApi";
 import { useI18n } from "@/lib/i18n";
 
 function isPdf(deck: PresentationDeck | null) {
   if (!deck) return false;
   return deck.file_content_type === "application/pdf" || (deck.file_filename || "").toLowerCase().endsWith(".pdf");
+}
+
+function isConverting(deck: PresentationDeck | null) {
+  return deck?.conversion_status === "queued" || deck?.conversion_status === "processing";
 }
 
 export default function EventPresentationStagePage() {
@@ -28,8 +32,11 @@ export default function EventPresentationStagePage() {
     fullscreen: isTr ? "Tam ekran" : "Fullscreen",
     pptxTitle: isTr ? "PowerPoint dosyası hazır" : "PowerPoint file is ready",
     pptxBody: isTr
-      ? "Tarayıcı PowerPoint dosyalarını doğrudan slayt olarak render etmez. Dosyayı açarak cihazdaki PowerPoint/Keynote/Office viewer ile sunabilirsiniz."
-      : "Browsers do not render PowerPoint files as native slides. Open the file and present it with PowerPoint, Keynote, or an Office viewer on this device.",
+      ? "Dönüştürülmüş PDF henüz hazır değil. Orijinal dosyayı açabilir ya da worker'ın dönüşümü bitirmesini bekleyebilirsiniz."
+      : "The converted PDF is not ready yet. Open the original file or wait for the worker to finish conversion.",
+    convertingTitle: isTr ? "Sunum hazırlanıyor" : "Preparing presentation",
+    convertingBody: isTr ? "PowerPoint dosyası arka planda PDF'e dönüştürülüyor. Bu sayfa birazdan otomatik yenilenir." : "The PowerPoint file is being converted to PDF in the background. This page refreshes automatically.",
+    failedTitle: isTr ? "Dönüşüm başarısız" : "Conversion failed",
     secured: isTr ? "HeptaCert sahne modu" : "HeptaCert stage mode",
   }), [isTr]);
 
@@ -45,6 +52,19 @@ export default function EventPresentationStagePage() {
   }, [deckId]);
 
   const fileUrl = deck ? presentationFileUrl(deck) : null;
+  const convertedUrl = deck ? presentationConvertedFileUrl(deck) : null;
+  const stageUrl = convertedUrl || (deck && isPdf(deck) ? fileUrl : null);
+
+  useEffect(() => {
+    if (!isConverting(deck)) return;
+    const timer = window.setTimeout(() => {
+      apiFetch(`/admin/presentations/${deckId}`)
+        .then((res) => res.json())
+        .then((data) => setDeck(data))
+        .catch(() => undefined);
+    }, 5000);
+    return () => window.clearTimeout(timer);
+  }, [deck, deckId]);
 
   function requestFullscreen() {
     const root = document.documentElement;
@@ -84,17 +104,23 @@ export default function EventPresentationStagePage() {
             <FileText className="mx-auto mb-4 h-10 w-10 text-white/40" />
             <p className="font-bold">{copy.noFile}</p>
           </div>
-        ) : isPdf(deck) ? (
+        ) : stageUrl ? (
           <iframe
             title={deck.title}
-            src={`${fileUrl}#toolbar=1&navpanes=0&view=FitH`}
+            src={`${stageUrl}#toolbar=1&navpanes=0&view=FitH`}
             className="h-full w-full rounded-xl border border-white/10 bg-white shadow-2xl"
           />
+        ) : isConverting(deck) ? (
+          <div className="max-w-2xl rounded-[28px] border border-white/10 bg-white/8 p-8 text-center shadow-2xl backdrop-blur">
+            <Loader2 className="mx-auto mb-5 h-14 w-14 animate-spin text-white/60" />
+            <h2 className="text-3xl font-black">{copy.convertingTitle}</h2>
+            <p className="mt-4 text-sm leading-relaxed text-white/60">{copy.convertingBody}</p>
+          </div>
         ) : (
           <div className="max-w-2xl rounded-[28px] border border-white/10 bg-white/8 p-8 text-center shadow-2xl backdrop-blur">
             <Presentation className="mx-auto mb-5 h-14 w-14 text-white/60" />
-            <h2 className="text-3xl font-black">{copy.pptxTitle}</h2>
-            <p className="mt-4 text-sm leading-relaxed text-white/60">{copy.pptxBody}</p>
+            <h2 className="text-3xl font-black">{deck.conversion_status === "failed" ? copy.failedTitle : copy.pptxTitle}</h2>
+            <p className="mt-4 text-sm leading-relaxed text-white/60">{deck.conversion_error || copy.pptxBody}</p>
             <a href={fileUrl} target="_blank" rel="noreferrer" className="mt-7 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-black text-surface-950 transition hover:bg-white/90">
               <Download className="h-4 w-4" />
               {copy.download}

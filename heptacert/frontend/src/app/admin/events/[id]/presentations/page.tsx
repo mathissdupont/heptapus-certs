@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Download, FileText, Loader2, MonitorPlay, Presentation, RefreshCw, Trash2, Upload } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock3, Download, FileText, Loader2, MonitorPlay, Presentation, RefreshCw, Trash2, Upload } from "lucide-react";
 import { deletePresentation, listEventPresentations, presentationFileUrl, uploadEventPresentation, type PresentationDeck } from "@/lib/presentationsApi";
 import { useI18n } from "@/lib/i18n";
 
@@ -18,6 +18,20 @@ function fileKind(deck: PresentationDeck) {
   if (deck.file_content_type === "application/pdf" || name.endsWith(".pdf")) return "PDF";
   if (name.endsWith(".ppt")) return "PPT";
   return "PPTX";
+}
+
+function conversionMeta(deck: PresentationDeck, isTr: boolean) {
+  const status = deck.conversion_status || "not_required";
+  if (status === "queued" || status === "processing") {
+    return { className: "badge-neutral", icon: <Clock3 className="h-3 w-3" />, label: isTr ? "PDF'e dönüştürülüyor" : "Converting to PDF" };
+  }
+  if (status === "ready") {
+    return { className: "badge-active", icon: <CheckCircle2 className="h-3 w-3" />, label: isTr ? "Sahne PDF'i hazır" : "Stage PDF ready" };
+  }
+  if (status === "failed") {
+    return { className: "badge-revoked", icon: <AlertTriangle className="h-3 w-3" />, label: isTr ? "Dönüşüm başarısız" : "Conversion failed" };
+  }
+  return null;
 }
 
 export default function EventPresentationsPage() {
@@ -53,8 +67,8 @@ export default function EventPresentationsPage() {
     loadFailed: isTr ? "Sunumlar yüklenemedi." : "Could not load presentations.",
     uploadFailed: isTr ? "Sunum yüklenemedi." : "Could not upload presentation.",
     pptxNote: isTr
-      ? "Not: PDF dosyaları sahne içinde gömülü gösterilir. PowerPoint dosyaları güvenli dosya olarak açılır; gerçek slayt-render dönüşümü ayrı altyapı gerektirir."
-      : "Note: PDFs render inside the stage view. PowerPoint files open as secure files; native slide rendering requires a separate conversion layer.",
+      ? "PDF dosyaları sahne içinde doğrudan gösterilir. PowerPoint dosyaları worker tarafından PDF'e dönüştürülür ve hazır olunca sahne modunda açılır."
+      : "PDFs render directly in stage mode. PowerPoint files are converted to PDF by the worker and open in stage mode when ready.",
   }), [isTr]);
 
   async function load() {
@@ -72,6 +86,12 @@ export default function EventPresentationsPage() {
   useEffect(() => {
     if (eventId) void load();
   }, [eventId]);
+
+  useEffect(() => {
+    if (!items.some((item) => item.conversion_status === "queued" || item.conversion_status === "processing")) return;
+    const timer = window.setInterval(() => void load(), 5000);
+    return () => window.clearInterval(timer);
+  }, [items, eventId]);
 
   async function handleUpload() {
     if (!file) return;
@@ -156,15 +176,25 @@ export default function EventPresentationsPage() {
           ) : (
             items.map((deck) => {
               const fileUrl = presentationFileUrl(deck);
+              const conversion = conversionMeta(deck, isTr);
               return (
                 <div key={deck.id} className="card p-5">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="badge-neutral">{fileKind(deck)}</span>
+                        {conversion && (
+                          <span className={conversion.className}>
+                            {conversion.icon}
+                            {conversion.label}
+                          </span>
+                        )}
                         <h2 className="truncate text-sm font-bold text-surface-900">{deck.title}</h2>
                       </div>
                       {deck.description && <p className="body-xs mt-2">{deck.description}</p>}
+                      {deck.conversion_status === "failed" && deck.conversion_error && (
+                        <p className="mt-2 text-xs text-red-600">{deck.conversion_error}</p>
+                      )}
                       <p className="mt-2 text-xs text-surface-400">{deck.file_filename || "-"} · {formatBytes(deck.file_size)}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">

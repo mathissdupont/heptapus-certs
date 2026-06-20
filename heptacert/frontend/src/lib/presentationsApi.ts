@@ -25,11 +25,16 @@ export type PresentationDeck = {
   file_filename?: string | null;
   file_content_type?: string | null;
   file_size?: number | null;
+  converted_file_filename?: string | null;
+  conversion_status?: "not_required" | "queued" | "processing" | "ready" | "failed" | string;
+  conversion_error?: string | null;
+  conversion_attempts?: number;
   last_export_filename: string | null;
   created_at: string;
   updated_at: string;
   export_url: string | null;
   file_url?: string | null;
+  converted_file_url?: string | null;
   presenter_url: string | null;
 };
 
@@ -76,11 +81,19 @@ export async function uploadEventPresentation(
   return res.json();
 }
 
-export function presentationFileUrl(deck: PresentationDeck): string | null {
-  if (!deck.file_url) return null;
-  const url = apiUrl(deck.file_url.replace(/^\/api/, ""));
+function securePresentationUrl(path?: string | null): string | null {
+  if (!path) return null;
+  const url = apiUrl(path.replace(/^\/api/, ""));
   const token = getToken();
   return token ? `${url}${url.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}` : url;
+}
+
+export function presentationFileUrl(deck: PresentationDeck): string | null {
+  return securePresentationUrl(deck.file_url);
+}
+
+export function presentationConvertedFileUrl(deck: PresentationDeck): string | null {
+  return securePresentationUrl(deck.converted_file_url);
 }
 
 export async function generatePresentation(payload: GeneratePresentationPayload): Promise<PresentationDeck> {

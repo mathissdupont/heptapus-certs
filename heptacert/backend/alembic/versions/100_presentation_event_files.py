@@ -1,7 +1,7 @@
 """Add event presentation file fields.
 
 Revision ID: 100_presentation_event_files
-Revises: 099_presentation_decks
+Revises: 100_presentation_decks_event_id_fix
 Create Date: 2026-06-20
 """
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 revision = "100_presentation_event_files"
-down_revision = "099_presentation_decks"
+down_revision = "100_presentation_decks_event_id_fix"
 branch_labels = None
 depends_on = None
 

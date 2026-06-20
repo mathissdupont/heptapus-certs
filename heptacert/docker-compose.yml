@@ -173,6 +173,39 @@ services:
           - heptacert-backend-jobs
     restart: unless-stopped
 
+  presentation_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.presentation-worker
+    env_file:
+      - ./.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-heptacert}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@db:5432/${POSTGRES_DB:-heptacert}
+      ALEMBIC_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-heptacert}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@db:5432/${POSTGRES_DB:-heptacert}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8765}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3030}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3030}
+      STORAGE_MODE: local
+      LOCAL_STORAGE_DIR: /data
+      EMAIL_TOKEN_SECRET: ${EMAIL_TOKEN_SECRET:?EMAIL_TOKEN_SECRET must be set}
+      PRESENTATION_CONVERTER_ENABLED: ${PRESENTATION_CONVERTER_ENABLED:-true}
+      PRESENTATION_CONVERTER_INTERVAL_SECONDS: ${PRESENTATION_CONVERTER_INTERVAL_SECONDS:-5}
+      PRESENTATION_CONVERTER_TIMEOUT_SECONDS: ${PRESENTATION_CONVERTER_TIMEOUT_SECONDS:-120}
+      SOFFICE_BIN: ${SOFFICE_BIN:-soffice}
+      DB_POOL_SIZE: ${PRESENTATION_WORKER_DB_POOL_SIZE:-2}
+      DB_POOL_MAX_OVERFLOW: ${PRESENTATION_WORKER_DB_POOL_MAX_OVERFLOW:-2}
+      DB_POOL_TIMEOUT: ${DB_POOL_TIMEOUT:-15}
+      DB_POOL_RECYCLE: ${DB_POOL_RECYCLE:-1800}
+    volumes:
+      - ${HEPTACERT_STORAGE_DIR:-/mnt/HC_Volume_105029103/heptacert-data/storage}:/data
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
   frontend:
     build:
       context: ./frontend
