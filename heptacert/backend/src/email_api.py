@@ -10,7 +10,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.routing import APIRouter
 from apscheduler.triggers.cron import CronTrigger
 from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy import distinct, func, literal, or_, select, union_all
+from sqlalchemy import Integer, cast, distinct, func, literal, or_, select, union_all
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .email_rendering import build_email_template_vars, render_template_string
@@ -1587,8 +1587,8 @@ async def list_superadmin_email_activity(
         literal("Otomasyon E-postası").label("subject"),
         EventAutomationExecutionLog.status.label("status"),
         literal(1).label("total_targets"),
-        func.cast(EventAutomationExecutionLog.status == "completed", func.Integer).label("sent_count"),
-        func.cast(EventAutomationExecutionLog.status == "failed", func.Integer).label("failed_count"),
+        cast(EventAutomationExecutionLog.status == "completed", Integer).label("sent_count"),
+        cast(EventAutomationExecutionLog.status == "failed", Integer).label("failed_count"),
         EventAutomationExecutionLog.created_at.label("created_at"),
         EventAutomationExecutionLog.created_at.label("started_at"),
         EventAutomationExecutionLog.dispatched_at.label("completed_at"),
