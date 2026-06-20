@@ -21,7 +21,7 @@ export default {
 
   project: { link: "https://heptacert.com" },
 
-  docsRepositoryBase: "https://github.com/heptapusgroup/heptacert",
+  docsRepositoryBase: "https://github.com/mathissdupont/heptapus-certs",
 
   head: () => (
     <>
