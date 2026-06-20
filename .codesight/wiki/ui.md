@@ -1,0 +1,252 @@
+# UI
+
+> **Navigation aid.** Component inventory and prop signatures extracted via AST. Read the source files before adding props or modifying component logic.
+
+**238 components** (react)
+
+## Client Components
+
+- **AcceptInvitePage** — `heptacert\frontend\src\app\accept-invite\page.tsx`
+- **AcikRizaPage** — `heptacert\frontend\src\app\acik-riza\page.tsx`
+- **AccreditationPage** — `heptacert\frontend\src\app\admin\accreditation\page.tsx`
+- **OrgAnalyticsPage** — `heptacert\frontend\src\app\admin\analytics\page.tsx`
+- **ApiKeysPage** — `heptacert\frontend\src\app\admin\api-keys\page.tsx`
+- **AdminAssistantPage** — `heptacert\frontend\src\app\admin\assistant\page.tsx`
+- **TwoFAManagementPage** — `heptacert\frontend\src\app\admin\auth\2fa\page.tsx`
+- **CrmAccountsPage** — `heptacert\frontend\src\app\admin\crm\accounts\page.tsx`
+- **CrmAccountDetailPage** — `heptacert\frontend\src\app\admin\crm\accounts\[id]\page.tsx`
+- **AdminCrmLayout** — `heptacert\frontend\src\app\admin\crm\layout.tsx`
+- **AdminCrmPage** — `heptacert\frontend\src\app\admin\crm\page.tsx`
+- **CrmPipelinePage** — `heptacert\frontend\src\app\admin\crm\pipeline\page.tsx`
+- **CrmSequencesPage** — `heptacert\frontend\src\app\admin\crm\sequences\page.tsx`
+- **SequenceDetailPage** — `heptacert\frontend\src\app\admin\crm\sequences\[id]\page.tsx`
+- **DashboardPage** — `heptacert\frontend\src\app\admin\dashboard\page.tsx`
+- **EmailAnalyticsPage** — `heptacert\frontend\src\app\admin\email-analytics\page.tsx`
+- **EmailDashboard** — `heptacert\frontend\src\app\admin\email-dashboard\page.tsx`
+- **SMTPConfigurationPage** — `heptacert\frontend\src\app\admin\email-settings\smtp-config\page.tsx`
+- **NewEventPage** — `heptacert\frontend\src\app\admin\events\new\page.tsx`
+- **AdminEvents** — `heptacert\frontend\src\app\admin\events\page.tsx`
+- **AdvancedAnalyticsPage** — `heptacert\frontend\src\app\admin\events\[id]\advanced-analytics\page.tsx`
+- **AIToolsPage** — `heptacert\frontend\src\app\admin\events\[id]\ai-tools\page.tsx`
+- **DeliveryAnalyticsPage** — `heptacert\frontend\src\app\admin\events\[id]\analytics\[jobId]\page.tsx`
+- **AdminAttendeesPage** — `heptacert\frontend\src\app\admin\events\[id]\attendees\page.tsx`
+- **EventAutomationsPage** — `heptacert\frontend\src\app\admin\events\[id]\automations\page.tsx`
+- **BulkEmailsPage** — `heptacert\frontend\src\app\admin\events\[id]\bulk-emails\page.tsx`
+- **EmailJobDetailsPage** — `heptacert\frontend\src\app\admin\events\[id]\bulk-emails\[jobId]\page.tsx`
+- **CertificatesPage** — `heptacert\frontend\src\app\admin\events\[id]\certificates\page.tsx`
+- **AdminCheckinPage** — `heptacert\frontend\src\app\admin\events\[id]\checkin\page.tsx`
+- **EventCpdPage** — `heptacert\frontend\src\app\admin\events\[id]\cpd\page.tsx`
+- **EditorPage** — `heptacert\frontend\src\app\admin\events\[id]\editor\page.tsx`
+- **EmailTemplatesPage** — `heptacert\frontend\src\app\admin\events\[id]\email-templates\page.tsx`
+- **GamificationPage** — `heptacert\frontend\src\app\admin\events\[id]\gamification\page.tsx`
+- **EventMarketplacePage** — `heptacert\frontend\src\app\admin\events\[id]\marketplace\page.tsx`
+- **EventOperationsPage** — `heptacert\frontend\src\app\admin\events\[id]\ops\page.tsx`
+- **EventIndexPage** — `heptacert\frontend\src\app\admin\events\[id]\page.tsx`
+- **EmailTemplatePreviewPage** — `heptacert\frontend\src\app\admin\events\[id]\preview\page.tsx`
+- **QrPresentPage** — `heptacert\frontend\src\app\admin\events\[id]\qr-present\page.tsx`
+- **QuizBuilderPage** — `heptacert\frontend\src\app\admin\events\[id]\quiz\page.tsx`
+- **EventRafflesPage** — `heptacert\frontend\src\app\admin\events\[id]\raffles\page.tsx`
+- **RafflePresentationPage** — `heptacert\frontend\src\app\admin\events\[id]\raffles\[raffleId]\present\page.tsx`
+- **ScheduleEmailPage** — `heptacert\frontend\src\app\admin\events\[id]\schedule-email\page.tsx`
+- **EventSegmentsPage** — `heptacert\frontend\src\app\admin\events\[id]\segments\page.tsx`
+- **AdminSessionsPage** — `heptacert\frontend\src\app\admin\events\[id]\sessions\page.tsx`
+- **EventSettingsPage** — `heptacert\frontend\src\app\admin\events\[id]\settings\page.tsx`
+- **SurveysPage** — `heptacert\frontend\src\app\admin\events\[id]\surveys\page.tsx`
+- **EventTeamPage** — `heptacert\frontend\src\app\admin\events\[id]\team\page.tsx`
+- **EventTicketsPage** — `heptacert\frontend\src\app\admin\events\[id]\tickets\page.tsx`
+- **EventAdminLayoutShell** — props: eventId — `heptacert\frontend\src\app\admin\events\[id]\_event-admin-layout-shell.tsx`
+- **AdminIntegrationsPage** — `heptacert\frontend\src\app\admin\integrations\page.tsx`
+- **AdminJobsPage** — `heptacert\frontend\src\app\admin\jobs\page.tsx`
+- **AdminLeadFormsLayout** — `heptacert\frontend\src\app\admin\lead-forms\layout.tsx`
+- **LeadFormsPage** — `heptacert\frontend\src\app\admin\lead-forms\page.tsx`
+- **LeadFormBuilderPage** — `heptacert\frontend\src\app\admin\lead-forms\[id]\page.tsx`
+- **LearningPathBuilderPage** — `heptacert\frontend\src\app\admin\learning-paths\[id]\page.tsx`
+- **AdminLogin** — `heptacert\frontend\src\app\admin\login\page.tsx`
+- **MagicVerifyPage** — `heptacert\frontend\src\app\admin\magic-verify\page.tsx`
+- **AdminMarketplacePage** — `heptacert\frontend\src\app\admin\marketplace\page.tsx`
+- **OrgSocialProfileAdminPage** — `heptacert\frontend\src\app\admin\organization-social\page.tsx`
+- **TransactionsPage** — `heptacert\frontend\src\app\admin\payments\transactions\page.tsx`
+- **ScheduledReportsPage** — `heptacert\frontend\src\app\admin\reports\page.tsx`
+- **AdminReservations** — `heptacert\frontend\src\app\admin\reservations\page.tsx`
+- **ApiSettingsPage** — `heptacert\frontend\src\app\admin\settings\api\page.tsx`
+- **AdminSettingsPage** — `heptacert\frontend\src\app\admin\settings\page.tsx`
+- **SsoSettingsPage** — `heptacert\frontend\src\app\admin\settings\sso\page.tsx`
+- **TeamPage** — `heptacert\frontend\src\app\admin\settings\team\page.tsx`
+- **SuperAdminAdminsPage** — `heptacert\frontend\src\app\admin\superadmin\admins\page.tsx`
+- **AuditLogsPage** — `heptacert\frontend\src\app\admin\superadmin\audit-logs\page.tsx`
+- **SuperadminHealthPage** — `heptacert\frontend\src\app\admin\superadmin\health\page.tsx`
+- **SuperadminLayout** — `heptacert\frontend\src\app\admin\superadmin\layout.tsx`
+- **SuperadminMailLogsPage** — `heptacert\frontend\src\app\admin\superadmin\mail-logs\page.tsx`
+- **SuperadminMembersPage** — `heptacert\frontend\src\app\admin\superadmin\members\page.tsx`
+- **OAuthClientsPage** — `heptacert\frontend\src\app\admin\superadmin\oauth-clients\page.tsx`
+- **SuperadminOrgsPage** — `heptacert\frontend\src\app\admin\superadmin\orgs\page.tsx`
+- **SuperadminPaymentPage** — `heptacert\frontend\src\app\admin\superadmin\payment\page.tsx`
+- **SuperadminPricingPage** — `heptacert\frontend\src\app\admin\superadmin\pricing\page.tsx`
+- **SuperAdminStatsPage** — `heptacert\frontend\src\app\admin\superadmin\stats\page.tsx`
+- **SuperadminSubscriptionsPage** — `heptacert\frontend\src\app\admin\superadmin\subscriptions\page.tsx`
+- **SupportTicketsPage** — `heptacert\frontend\src\app\admin\superadmin\support-tickets\page.tsx`
+- **SuperadminSystemDigestPage** — `heptacert\frontend\src\app\admin\superadmin\system-digest\page.tsx`
+- **SuperadminWaitlistPage** — `heptacert\frontend\src\app\admin\superadmin\waitlist\page.tsx`
+- **AdminTeamInvitePage** — `heptacert\frontend\src\app\admin\team-invite\page.tsx`
+- **AdminTrainingPage** — `heptacert\frontend\src\app\admin\training\page.tsx`
+- **AdminVenues** — `heptacert\frontend\src\app\admin\venues\page.tsx`
+- **WebhookLogsPage** — `heptacert\frontend\src\app\admin\webhooks\logs\page.tsx`
+- **WebhooksPage** — `heptacert\frontend\src\app\admin\webhooks\page.tsx`
+- **AdminLayoutShell** — `heptacert\frontend\src\app\admin\_admin-layout-shell.tsx`
+- **AttendCheckinPage** — `heptacert\frontend\src\app\attend\[token]\page.tsx`
+- **GoogleCallbackPage** — `heptacert\frontend\src\app\auth\google\callback\page.tsx`
+- **SsoSuccessPage** — `heptacert\frontend\src\app\auth\sso\success\page.tsx`
+- **CheckoutCancelPage** — `heptacert\frontend\src\app\checkout\cancel\page.tsx`
+- **CheckoutPage** — `heptacert\frontend\src\app\checkout\page.tsx`
+- **CheckoutSuccessPage** — `heptacert\frontend\src\app\checkout\success\page.tsx`
+- **ConnectionsClient** — `heptacert\frontend\src\app\community\connections\_client.tsx`
+- **DevelopersClient** — `heptacert\frontend\src\app\developers\DevelopersClient.tsx`
+- **DiscoveryPage** — `heptacert\frontend\src\app\discover\page.tsx`
+- **PublicEventsPage** — `heptacert\frontend\src\app\events\page.tsx`
+- **PublicQuizPage** — `heptacert\frontend\src\app\events\[id]\quiz\page.tsx`
+- **EventRegisterPage** — `heptacert\frontend\src\app\events\[id]\register\page.tsx`
+- **EventParticipantStatusPage** — `heptacert\frontend\src\app\events\[id]\status\page.tsx`
+- **EventSurveyPage** — `heptacert\frontend\src\app\events\[id]\survey\_survey-clean.tsx`
+- **VerifyAttendeeEmailPage** — `heptacert\frontend\src\app\events\[id]\verify-email\page.tsx`
+- **PublicEventDetailClient** — `heptacert\frontend\src\app\events\[id]\_public-event-detail-client.tsx`
+- **ForgotPasswordPage** — `heptacert\frontend\src\app\forgot-password\page.tsx`
+- **GizlilikPage** — `heptacert\frontend\src\app\gizlilik\page.tsx`
+- **IadePage** — `heptacert\frontend\src\app\iade\page.tsx`
+- **IletisimPage** — `heptacert\frontend\src\app\iletisim\page.tsx`
+- **TermsPage** — `heptacert\frontend\src\app\kullanim-kosullari\page.tsx`
+- **KVKKPage** — `heptacert\frontend\src\app\kvkk\page.tsx`
+- **LearningPathsPage** — `heptacert\frontend\src\app\learning-paths\page.tsx`
+- **LearningPathProgressPage** — `heptacert\frontend\src\app\learning-paths\[id]\page.tsx`
+- **MemberLoginPage** — `heptacert\frontend\src\app\login\page.tsx`
+- **MarketplacePage** — `heptacert\frontend\src\app\marketplace\page.tsx`
+- **EventDetailClient** — props: event — `heptacert\frontend\src\app\marketplace\[event_id]\EventDetailClient.tsx`
+- **VerifyMemberEmailPage** — `heptacert\frontend\src\app\member\verify-email\page.tsx`
+- **PublicMemberProfilePage** — `heptacert\frontend\src\app\member\[public_id]\page.tsx`
+- **MembersRedirectPage** — `heptacert\frontend\src\app\members\[id]\page.tsx`
+- **MesafeliSatisPage** — `heptacert\frontend\src\app\mesafeli-satis\page.tsx`
+- **MyEventsPage** — `heptacert\frontend\src\app\my-events\page.tsx`
+- **NotFound** — `heptacert\frontend\src\app\not-found.tsx`
+- **OAuthConsentClient** — `heptacert\frontend\src\app\oauth\authorize\_client.tsx`
+- **PublicOrganizationsPage** — `heptacert\frontend\src\app\organizations\page.tsx`
+- **PublicOrganizationDetailPage** — `heptacert\frontend\src\app\organizations\[id]\page.tsx`
+- **PortalCalendarPage** — `heptacert\frontend\src\app\portal\calendar\page.tsx`
+- **PortalLayout** — `heptacert\frontend\src\app\portal\layout.tsx`
+- **PortalLoginPage** — `heptacert\frontend\src\app\portal\login\page.tsx`
+- **PortalDashboard** — `heptacert\frontend\src\app\portal\page.tsx`
+- **CreatePostPage** — `heptacert\frontend\src\app\post\create\page.tsx`
+- **PostDetailPage** — `heptacert\frontend\src\app\post\[postId]\page.tsx`
+- **PricingPage** — props: tier, lang, onClose — `heptacert\frontend\src\app\pricing\_pricing-client.tsx`
+- **ProfilePage** — `heptacert\frontend\src\app\profile\page.tsx`
+- **PublicFormPage** — `heptacert\frontend\src\app\public\forms\[slug]\page.tsx`
+- **RegisterPage** — `heptacert\frontend\src\app\register\_register-client.tsx`
+- **RegisterHub** — `heptacert\frontend\src\app\register\_register-hub.tsx`
+- **ResetPasswordPage** — `heptacert\frontend\src\app\reset-password\page.tsx`
+- **PublicTicketPage** — `heptacert\frontend\src\app\tickets\[token]\page.tsx`
+- **VerifyPage** — props: params — `heptacert\frontend\src\app\verify\[uuid]\_verify-detail-client.tsx`
+- **VerifyIndexPage** — `heptacert\frontend\src\app\verify\_verify-client.tsx`
+- **VerifyEmailPage** — `heptacert\frontend\src\app\verify-email\page.tsx`
+- **ClientShell** — `heptacert\frontend\src\app\_client-shell.tsx`
+- **LandingPage** — `heptacert\frontend\src\app\_home-client.tsx`
+- **AccessibleModal** — props: isOpen, onClose, title, maxWidth, footer — `heptacert\frontend\src\components\Accessible\AccessibleModal.tsx`
+- **FormField** — props: label, error, required, hint — `heptacert\frontend\src\components\Accessible\FormComponents.tsx`
+- **AddAttendeeModal** — props: open, onClose, onAdded, eventId — `heptacert\frontend\src\components\Admin\AddAttendeeModal.tsx`
+- **LoadingState** — props: title, description, icon, action, className — `heptacert\frontend\src\components\Admin\AdminState.tsx`
+- **AIAssistant** — props: pageMode — `heptacert\frontend\src\components\Admin\AIAssistant.tsx`
+- **BulkActionBar** — props: selectedCount, title, description, onClear, loading — `heptacert\frontend\src\components\Admin\BulkActionBar.tsx`
+- **CommandPalette** — `heptacert\frontend\src\components\Admin\CommandPalette.tsx`
+- **ConfirmModal** — props: open, title, description, confirmLabel, cancelLabel, processingLabel, danger, loading, onConfirm, onCancel — `heptacert\frontend\src\components\Admin\ConfirmModal.tsx`
+- **CreateEventDrawer** — props: open, onClose, onCreated, venues — `heptacert\frontend\src\components\Admin\CreateEventDrawer.tsx`
+- **DateField** — props: value, onChange, label, placeholder, locale, className — `heptacert\frontend\src\components\Admin\DateField.tsx`
+- **DateTimeField** — props: value, onChange, label, dateLabel, timeLabel, disabled, locale, className — `heptacert\frontend\src\components\Admin\DateTimeField.tsx`
+- **EmailTemplateSelect** — props: eventId, value, onChange, label, placeholder, emptyText, helperText, disabled — `heptacert\frontend\src\components\Admin\EmailTemplateSelect.tsx`
+- **EmptyState** — props: title, description, icon, action, className — `heptacert\frontend\src\components\Admin\EmptyState.tsx`
+- **EventActivityTimeline** — props: eventId — `heptacert\frontend\src\components\Admin\EventActivityTimeline.tsx`
+- **EventAdminNav** — props: eventId, active, eventName, className, variant, forceVisible — `heptacert\frontend\src\components\Admin\EventAdminNav.tsx`
+- **EventSetupChecklist** — props: event, overview, attendees, sessions, active_certificates — `heptacert\frontend\src\components\Admin\EventSetupChecklist.tsx`
+- **FilterActionBar** — props: search, onSearchChange, searchPlaceholder, clearLabel, filters, actions, onClear, hasActiveFilters, className — `heptacert\frontend\src\components\Admin\FilterActionBar.tsx`
+- **ImportAttendeeModal** — props: open, onClose, onImported, eventId — `heptacert\frontend\src\components\Admin\ImportAttendeeModal.tsx`
+- **InAppTourGuide** — `heptacert\frontend\src\components\Admin\InAppTourGuide.tsx`
+- **IssueCertificateModal** — props: open, onClose, onIssued, eventId, templateReady, sampleMonthlyCost, sampleYearlyCost — `heptacert\frontend\src\components\Admin\IssueCertificateModal.tsx`
+- **MobileActionBar** — props: className — `heptacert\frontend\src\components\Admin\MobileActionBar.tsx`
+- **PageHeader** — props: title, subtitle, icon, actions, breadcrumbs, iconBg — `heptacert\frontend\src\components\Admin\PageHeader.tsx`
+- **StatCard** — props: label, value, icon, iconBg, trend — `heptacert\frontend\src\components\Admin\StatCard.tsx`
+- **TimeField** — props: value, onChange, label, placeholder, className — `heptacert\frontend\src\components\Admin\TimeField.tsx`
+- **CookieConsent** — `heptacert\frontend\src\components\CookieConsent\CookieConsent.tsx`
+- **DataTable** — `heptacert\frontend\src\components\DataTable\DataTable.tsx`
+- **FollowButton** — props: memberId, isFollowing, onFollowChange, variant — `heptacert\frontend\src\components\FollowButton.tsx`
+- **LoadingSkeleton** — props: count, height, width, rounded, className — `heptacert\frontend\src\components\LoadingSkeleton\LoadingSkeleton.tsx`
+- **RichTextEditor** — props: value, onChange, placeholder — `heptacert\frontend\src\components\RichTextEditor.tsx`
+- **ThemeToggle** — `heptacert\frontend\src\components\ThemeToggle.tsx`
+- **ToastProvider** — `heptacert\frontend\src\components\Toast\ToastProvider.tsx`
+- **I18nProvider** — `heptacert\frontend\src\lib\i18n.tsx`
+- **PlanGateCard** — props: feature, requiredPlans, "growth", "enterprise"], serverMessage, compact — `heptacert\frontend\src\lib\useSubscription.tsx`
+- **LmsAnalyticsPage** — `heptacert\frontend\_archive_lms\app\admin\lms\analytics\page.tsx`
+- **LmsBadgesPage** — `heptacert\frontend\_archive_lms\app\admin\lms\badges\page.tsx`
+- **CourseAnnouncementsPage** — `heptacert\frontend\_archive_lms\app\admin\lms\courses\[id]\announcements\page.tsx`
+- **CourseAttendancePage** — `heptacert\frontend\_archive_lms\app\admin\lms\courses\[id]\attendance\page.tsx`
+- **GradebookPage** — `heptacert\frontend\_archive_lms\app\admin\lms\courses\[id]\gradebook\page.tsx`
+- **QuizBuilderPage** — `heptacert\frontend\_archive_lms\app\admin\lms\courses\[id]\quizzes\[qid]\page.tsx`
+- **RubricsPage** — `heptacert\frontend\_archive_lms\app\admin\lms\courses\[id]\rubrics\page.tsx`
+- **CourseStudentsPage** — `heptacert\frontend\_archive_lms\app\admin\lms\courses\[id]\students\page.tsx`
+- **CourseSyllabusPage** — `heptacert\frontend\_archive_lms\app\admin\lms\courses\[id]\syllabus\page.tsx`
+- **LmsIntegrationsPage** — `heptacert\frontend\_archive_lms\app\admin\lms\integrations\page.tsx`
+- **LmsJourneysPage** — `heptacert\frontend\_archive_lms\app\admin\lms\journeys\page.tsx`
+- **JourneyBuilderPage** — `heptacert\frontend\_archive_lms\app\admin\lms\journeys\[id]\page.tsx`
+- **AdminLmsLayout** — `heptacert\frontend\_archive_lms\app\admin\lms\layout.tsx`
+- **LmsOutcomesPage** — `heptacert\frontend\_archive_lms\app\admin\lms\outcomes\page.tsx`
+- **LmsCoursesPage** — `heptacert\frontend\_archive_lms\app\admin\lms\page.tsx`
+- **LmsStaffPage** — `heptacert\frontend\_archive_lms\app\admin\lms\staff\page.tsx`
+- **LmsWhiteLabelPage** — `heptacert\frontend\_archive_lms\app\admin\lms\white-label\page.tsx`
+- **LmsCourseDetailPage** — `heptacert\frontend\_archive_lms\app\admin\lms\[id]\page.tsx`
+- **CourseAnnouncementsPublicPage** — `heptacert\frontend\_archive_lms\app\courses\[id]\announcements\page.tsx`
+- **CourseCalendarPage** — `heptacert\frontend\_archive_lms\app\courses\[id]\calendar\page.tsx`
+- **CourseDiscussionsPage** — `heptacert\frontend\_archive_lms\app\courses\[id]\discussions\page.tsx`
+- **CourseGradesPage** — `heptacert\frontend\_archive_lms\app\courses\[id]\grades\page.tsx`
+- **ModuleViewerPage** — `heptacert\frontend\_archive_lms\app\courses\[id]\modules\[mid]\page.tsx`
+- **CourseDetailPage** — `heptacert\frontend\_archive_lms\app\courses\[id]\page.tsx`
+- **CourseSyllabusPublicPage** — `heptacert\frontend\_archive_lms\app\courses\[id]\syllabus\page.tsx`
+
+## Components
+
+- **Custom404** — `heptacert\docs\pages\404.jsx`
+- **EmailSettingsPage** — `heptacert\frontend\src\app\admin\email-settings\page.tsx`
+- **EventAnalyticsRedirect** — props: params — `heptacert\frontend\src\app\admin\events\[id]\analytics\page.tsx`
+- **EventLayout** — props: params — `heptacert\frontend\src\app\admin\events\[id]\layout.tsx`
+- **LmsBridgeRedirect** — `heptacert\frontend\src\app\admin\events\[id]\lms-bridge\page.tsx`
+- **AdminLayout** — `heptacert\frontend\src\app\admin\layout.tsx`
+- **LearningPathsRedirect** — `heptacert\frontend\src\app\admin\learning-paths\page.tsx`
+- **SuperadminPage** — `heptacert\frontend\src\app\admin\superadmin\page.tsx`
+- **ConnectionsPage** — `heptacert\frontend\src\app\community\connections\page.tsx`
+- **CommunityPricingPage** — `heptacert\frontend\src\app\community\pricing\page.tsx`
+- **SubscriptionSettingsPage** — `heptacert\frontend\src\app\community\settings\subscription\page.tsx`
+- **DevelopersPage** — `heptacert\frontend\src\app\developers\page.tsx`
+- **PublicEventDetailPage** — `heptacert\frontend\src\app\events\[id]\page.tsx`
+- **PLATFORM_HOSTS** — `heptacert\frontend\src\app\layout.tsx`
+- **LearningPathsLayout** — `heptacert\frontend\src\app\learning-paths\layout.tsx`
+- **MarketplaceCourses** — `heptacert\frontend\src\app\marketplace\courses\page.tsx`
+- **MarketplaceLayout** — `heptacert\frontend\src\app\marketplace\layout.tsx`
+- **MarketplaceEventPage** — props: params — `heptacert\frontend\src\app\marketplace\[event_id]\page.tsx`
+- **OAuthAuthorizePage** — `heptacert\frontend\src\app\oauth\authorize\page.tsx`
+- **HomePage** — `heptacert\frontend\src\app\page.tsx`
+- **PortalCoursesDisabled** — `heptacert\frontend\src\app\portal\courses\page.tsx`
+- **BusinessPricingPage** — `heptacert\frontend\src\app\pricing\business\page.tsx`
+- **MemberPricingPage** — `heptacert\frontend\src\app\pricing\member\page.tsx`
+- **PricingPage** — `heptacert\frontend\src\app\pricing\page.tsx`
+- **FormsLayout** — `heptacert\frontend\src\app\public\forms\[slug]\layout.tsx`
+- **RegisterPage** — `heptacert\frontend\src\app\register\page.tsx`
+- **VerifyPage** — `heptacert\frontend\src\app\verify\page.tsx`
+- **API_BASE** — props: params — `heptacert\frontend\src\app\verify\[uuid]\page.tsx`
+- **ThemeInitializer** — `heptacert\frontend\src\app\_theme-initializer.tsx`
+- **HeptaCertLogoMark** — props: className, imageClassName — `heptacert\frontend\src\components\Brand\HeptaCertLogoMark.tsx`
+- **CommentCard** — props: commentId, body, authorName, authorAvatar, timestamp, upvoteCount, downvoteCount, userVote, depth, onUpvote — `heptacert\frontend\src\components\CommunityFeed\CommentCard.tsx`
+- **CommentTree** — props: comments, maxDepth, onUpvote, onDownvote, onReply, isLoading — `heptacert\frontend\src\components\CommunityFeed\CommentTree.tsx`
+- **CreatePostForm** — props: onSubmit, placeholder, userAvatar, isSubmitting, maxLength — `heptacert\frontend\src\components\CommunityFeed\CreatePostForm.tsx`
+- **PostCard** — props: postId, authorName, authorAvatar, timestamp, body, commentCount, upvoteCount, downvoteCount, userVote, onUpvote — `heptacert\frontend\src\components\CommunityFeed\PostCard.tsx`
+- **ReplyForm** — props: parentAuthor, onSubmit, onCancel, placeholder, isSubmitting — `heptacert\frontend\src\components\CommunityFeed\ReplyForm.tsx`
+- **OrgSocialProfileForm** — props: initialData, onSubmit, isLoading, orgName — `heptacert\frontend\src\components\OrgSocialProfile\OrgSocialProfileForm.tsx`
+- **LtiRedirect** — `heptacert\frontend\_archive_lms\app\admin\lms\lti\page.tsx`
+- **CoursesRedirectPage** — `heptacert\frontend\_archive_lms\app\courses\page.tsx`
+- **CourseIdDisabledLayout** — `heptacert\frontend\_archive_lms\app\courses\[id]\layout.tsx`
+
+---
+_Back to [overview.md](./overview.md)_

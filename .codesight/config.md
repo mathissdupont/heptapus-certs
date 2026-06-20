@@ -1,0 +1,83 @@
+# Config
+
+## Environment Variables
+
+- `ACTIVE_PAYMENT_PROVIDER` (has default) — heptacert\.env.local
+- `ALEMBIC_DATABASE_URL` (has default) — heptacert\backend\.env.example
+- `ALLOW_QA_SEED` **required** — heptacert\backend\src\qa_seed_api.py
+- `APPLE_WALLET_CERT_PATH` **required** — heptacert\backend\.env.example
+- `APPLE_WALLET_KEY_PASSWORD` **required** — heptacert\backend\.env.example
+- `APPLE_WALLET_KEY_PATH` **required** — heptacert\backend\.env.example
+- `APPLE_WALLET_PASS_TYPE_ID` **required** — heptacert\backend\.env.example
+- `APPLE_WALLET_TEAM_ID` **required** — heptacert\backend\.env.example
+- `APPLE_WALLET_WWDR_CERT_PATH` **required** — heptacert\backend\.env.example
+- `BACKEND_PORT` (has default) — heptacert\.env.local
+- `BOOTSTRAP_SUPERADMIN_EMAIL` (has default) — heptacert\backend\.env.example
+- `BOOTSTRAP_SUPERADMIN_PASSWORD` (has default) — heptacert\backend\.env.example
+- `CLAMAV_ENABLED` (has default) — heptacert\.env.example
+- `CLAMAV_HOST` (has default) — heptacert\.env.example
+- `CLAMAV_PORT` (has default) — heptacert\.env.example
+- `CORS_ORIGINS` (has default) — heptacert\backend\.env.example
+- `DATABASE_URL` (has default) — heptacert\backend\.env.example
+- `DB_POOL_MAX_OVERFLOW` (has default) — heptacert\.env.local
+- `DB_POOL_RECYCLE` (has default) — heptacert\.env.local
+- `DB_POOL_SIZE` (has default) — heptacert\.env.local
+- `DB_POOL_TIMEOUT` (has default) — heptacert\.env.local
+- `EMAIL_TOKEN_SECRET` (has default) — heptacert\backend\.env.example
+- `ENABLE_SCHEDULER` (has default) — heptacert\.env.local
+- `FRONTEND_BASE_URL` (has default) — heptacert\backend\.env.example
+- `FRONTEND_PORT` (has default) — heptacert\.env.local
+- `GOOGLE_OAUTH_CLIENT_ID` **required** — heptacert\backend\.env.example
+- `GOOGLE_OAUTH_CLIENT_SECRET` **required** — heptacert\backend\.env.example
+- `HEPTACERT_API_BASE` **required** — heptacert\backend\src\mcp_server.py
+- `HEPTACERT_API_KEY` **required** — heptacert\backend\src\mcp_server.py
+- `HEPTACERT_BACKUP_DIR` (has default) — heptacert\.env.example
+- `HEPTACERT_STORAGE_DIR` (has default) — heptacert\.env.example
+- `HEPTACERT_UNIT_ONLY` **required** — heptacert\backend\tests\conftest.py
+- `INTERNAL_API_BASE` **required** — heptacert\frontend\src\app\layout.tsx
+- `IYZICO_API_KEY` **required** — heptacert\backend\.env.example
+- `IYZICO_BASE_URL` (has default) — heptacert\backend\.env.example
+- `IYZICO_SECRET_KEY` **required** — heptacert\backend\.env.example
+- `JWT_EXPIRES_MINUTES` (has default) — heptacert\.env.local
+- `JWT_SECRET` (has default) — heptacert\backend\.env.example
+- `LANG_CODE` **required** — heptacert\backend\src\badge_template_seeds.py
+- `LOCAL_STORAGE_DIR` (has default) — heptacert\backend\.env.example
+- `MS365_OAUTH_CLIENT_ID` **required** — heptacert\backend\.env.example
+- `MS365_OAUTH_CLIENT_SECRET` **required** — heptacert\backend\.env.example
+- `NEXT_PHASE` **required** — heptacert\frontend\src\lib\api.ts
+- `NEXT_PUBLIC_API_BASE` (has default) — heptacert\frontend\.env.example
+- `NEXT_PUBLIC_FRONTEND_BASE_URL` **required** — heptacert\frontend\src\app\layout.tsx
+- `NEXT_SERVER_API_BASE` **required** — heptacert\frontend\src\app\layout.tsx
+- `NODE_ENV` **required** — heptacert\frontend\src\app\_client-shell.tsx
+- `OPENAI_API_KEY` **required** — heptacert\backend\.env.example
+- `OPENAI_MODEL` (has default) — heptacert\backend\.env.example
+- `PAYMENT_ENABLED` (has default) — heptacert\.env.local
+- `PAYTR_MERCHANT_ID` **required** — heptacert\.env.local
+- `PAYTR_MERCHANT_KEY` **required** — heptacert\.env.local
+- `PAYTR_MERCHANT_SALT` **required** — heptacert\.env.local
+- `POSTGRES_DATA_DIR` (has default) — heptacert\.env.example
+- `POSTGRES_DB` (has default) — heptacert\.env.local
+- `POSTGRES_PASSWORD` (has default) — heptacert\.env.local
+- `POSTGRES_USER` (has default) — heptacert\.env.local
+- `PUBLIC_BASE_URL` (has default) — heptacert\backend\.env.example
+- `RATE_LIMIT_STORAGE_URI` (has default) — heptacert\backend\.env.example
+- `REDIS_URL` (has default) — heptacert\backend\.env.example
+- `SMTP_FROM` (has default) — heptacert\backend\.env.example
+- `SMTP_HOST` **required** — heptacert\backend\.env.example
+- `SMTP_PASSWORD` **required** — heptacert\backend\.env.example
+- `SMTP_PORT` (has default) — heptacert\backend\.env.example
+- `SMTP_USER` **required** — heptacert\backend\.env.example
+- `STORAGE_MODE` (has default) — heptacert\backend\.env.example
+- `STRIPE_PUBLISHABLE_KEY` **required** — heptacert\backend\.env.example
+- `STRIPE_SECRET_KEY` **required** — heptacert\backend\.env.example
+- `STRIPE_WEBHOOK_SECRET` **required** — heptacert\backend\.env.example
+- `TRUSTED_PROXY_NETWORKS` **required** — heptacert\backend\.env.example
+
+## Config Files
+
+- `heptacert\.env.example`
+- `heptacert\backend\.env.example`
+- `heptacert\docs\next.config.js`
+- `heptacert\frontend\.env.example`
+- `heptacert\frontend\next.config.mjs`
+- `heptacert\frontend\tailwind.config.ts`

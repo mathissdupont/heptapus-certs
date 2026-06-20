@@ -1,0 +1,577 @@
+# Libraries
+
+- `heptacert\backend\alembic\env.py` — function run_migrations_offline: () -> None, function run_migrations_online: () -> None
+- `heptacert\backend\alembic\versions\001_baseline.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\002_features.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\003_attendance.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\004_event_banner.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\005_hc_renewal.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\006_waitlist.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\007_transaction_description.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\008_email_system.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\009_email_system_complete.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\010_smtp_credentials.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\011_gamification_surveys_sponsors.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\012_add_domains_table.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\013_add_org_settings.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\014_add_organization_allowlist.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\015_add_raffle_reserve_winner_count.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\016_attendee_email_verification.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\017_bulk_email_recipient_type.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\018_att_reg_answers.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\019_reg_answers_guard.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\020_public_members.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\021_member_social.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\022_event_public_id.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\023_user_smtp_sender_fields.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\024_public_member_profile_fields.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\025_public_member_profile_enrichment.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\026_public_member_public_id.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\027_org_public_profile_follow.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\028_soc_feed.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\029_glob_feed.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\030_mem_subs.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\031_user_connections.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\032_add_connections.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\033_comment_votes.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\034_public_member_contact_email.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\035_support_tickets.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\036_superadmin_bulk_email_jobs.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\037_registration_option_capacities.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\038_event_feature_flags.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\039_event_tickets.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\040_event_engagement_feature_flags.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\041_google_sheets_integration.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\042_microsoft_excel_integration.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\043_system_digest_emails.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\044_email_scheduling_fields.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\045_event_team_members.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\046_event_team_perms.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\047_fix_attendance_table_name.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\048_certificate_auto_renew.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\049_drop_public_member_subscriptions.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\050_organization_venues.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\051_organization_access_reservations.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\052_training_assignments.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\053_product_config_tables.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\054_checkin_activity_logs.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\055_product_query_indexes.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\056_crm_enterprise_upgrade.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\057_crm_saved_views.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\058_crm_email_aliases.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\059_automation_execution_logs.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\060_saved_audience_segments.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\061_segment_export_jobs.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\062_departments_training_phase13.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\063_checkin_wallet_template_phase14_15.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\064_phase16_platform_packaging_qa.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\065_system_email_template_presets.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\066_fix_heptacoin_balance_column.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\067_document_export_jobs.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\068_soft_delete_users.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\069_crm_drip_sequences.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\070_performance_indexes.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\071_email_click_tracking.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\072_2fa_backup_codes.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\073_api_key_rate_limit.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\074_quiz_tables.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\075_learning_paths.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\076_crm_accounts.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\077_lead_capture_forms.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\078_scheduled_reports.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\079_marketplace_fields.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\080_accreditation.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\081_lms_tables.py` — function upgrade: (), function downgrade: ()
+- `heptacert\backend\alembic\versions\082_lms_staff_cert_pdf.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\083_lms_extended.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\084_course_enrollment_status.py` — function upgrade: (), function downgrade: ()
+- `heptacert\backend\alembic\versions\085_org_staff.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\086_course_marketplace.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\087_lti_tools.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\088_sso_config.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\089_lms_schema_repair.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\090_lms_academic_course_fields.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\091_lms_attendance.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\092_lms_quiz.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\093_lms_module_quiz_fk.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\094_event_quiz_cpd_toggles.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\095_agent_action_logs.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\096_oauth_server.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\097_ai_digest_jobs.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\098_event_ticket_types.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\src\accreditation_api.py`
+  - class OrgAccreditationIn
+  - class OrgAccreditationOut
+  - class EventCpdIn
+  - class EventCpdOut
+  - class CpdBodySummary
+  - class CpdRecentLog
+  - _...1 more_
+- `heptacert\backend\src\accreditation_models.py`
+  - class AccreditationBody
+  - class OrgAccreditation
+  - class EventCpdConfig
+  - class MemberCpdLog
+- `heptacert\backend\src\ai_content_api.py`
+  - class EmailGenerateIn
+  - class EmailGenerateOut
+  - class FormGenerateIn
+  - class FormField
+  - class FormGenerateOut
+- `heptacert\backend\src\ai_proactive_api.py`
+  - class AIDigestJob
+  - class AnomalyOut
+  - class DigestOut
+- `heptacert\backend\src\api_keys_ext_api.py`
+  - class ApiKeyUpdateIn
+  - class ApiKeyCreateFullIn
+  - class ApiKeyOutFull
+- `heptacert\backend\src\audience_segments_api.py`
+  - function get_segment_attendees: (db, event, segment, *, field_id, answer, location, composition, Any]]) -> list[Attendee]
+  - function get_segment_attendees_legacy: (db, event, segment, *, field_id, answer, location) -> list[Attendee]
+  - function count_segment_attendees: (db, event, segment, *, field_id, answer, location, composition, Any]]) -> int
+  - function count_standard_segments: (db, event) -> dict[str, int]
+  - function process_segment_export_jobs_once: (limit) -> dict[str, int]
+  - class AudienceSegmentOut
+  - _...10 more_
+- `heptacert\backend\src\auth_2fa_api.py`
+  - class TwoFAStatusOut
+  - class BackupCodesOut
+  - class TwoFASetupOut
+  - class TwoFACodeIn
+- `heptacert\backend\src\automation_api.py`
+  - function get_db_session: () -> _DbSessionContext
+  - function process_automation_dispatches_once: (limit_events) -> dict[str, int]
+  - function process_automation_dispatches_once_for_event: (event_id) -> dict[str, int]
+  - class AutomationActionIn
+  - class AutomationRuleIn
+  - class AutomationActionOut
+  - _...5 more_
+- `heptacert\backend\src\badge_template_seeds.py` — function get_builtin_badge_templates: (lang) -> list[dict[str, Any]]
+- `heptacert\backend\src\certificate_templates_api.py`
+  - class CertificateTemplatePresetIn
+  - class CertificateTemplatePresetOut
+  - class TemplateVersionOut
+  - class TemplateRegressionSnapshotOut
+- `heptacert\backend\src\certificate_template_seeds.py` — function seed_builtin_presets: (db, base_url) -> int
+- `heptacert\backend\src\checkin_ops_api.py`
+  - function publish_checkin_event: (event_id, payload) -> None
+  - function record_checkin_activity: (db, *, event_id, actor_user_id, method, source, success, message, ip_address, entry_point, duplicate, invalid_reason, session_id, attendee_id, ticket_id) -> None
+  - class CheckinLookupItem
+  - class CheckinMetricsOut
+  - class CheckinActivityOut
+  - class CheckinNonceOut
+  - _...2 more_
+- `heptacert\backend\src\community_notifications.py` — function send_public_event_announcement_to_followers: (event_id) -> None
+- `heptacert\backend\src\config.py` — class Settings
+- `heptacert\backend\src\connections_api.py`
+  - class PublicMemberConnection
+  - class PublicMemberConnectionRequest
+  - class PublicMemberBlocklist
+  - class ConnectionMemberOut
+  - class ConnectionOut
+  - class ConnectionRequestOut
+  - _...3 more_
+- `heptacert\backend\src\crm_accounts_api.py`
+  - class AccountIn
+  - class AccountOut
+  - class AccountContactIn
+  - class AccountContactOut
+  - class DealIn
+  - class DealOut
+  - _...2 more_
+- `heptacert\backend\src\crm_accounts_models.py`
+  - class CrmAccount
+  - class CrmAccountContact
+  - class CrmDeal
+  - class CrmDealActivity
+- `heptacert\backend\src\crm_sequences_api.py`
+  - function process_due_sequence_steps: (db_factory, *, organization_id) -> dict[str, int]
+  - class CrmEmailSequence
+  - class CrmSequenceStep
+  - class CrmSequenceEnrollment
+  - class SequenceStepIn
+  - class SequenceIn
+  - _...5 more_
+- `heptacert\backend\src\crm_snapshot_hooks.py`
+  - function refresh_crm_snapshot_for_event_email: (db, *, event_id, email) -> ParticipantCrmSnapshot | None
+  - function refresh_crm_snapshot_for_attendee: (db, attendee) -> ParticipantCrmSnapshot | None
+  - function auto_tag_certified_for_attendee_email: (db, *, org_id, email) -> bool
+  - function refresh_crm_snapshots_for_certificate_name: (db, *, event_id, student_name) -> int
+- `heptacert\backend\src\db.py` — function get_db: () -> AsyncSession, class Base
+- `heptacert\backend\src\document_export_jobs.py`
+  - function process_document_export_jobs_once: (limit) -> dict[str, int]
+  - class DocumentExportJob
+  - class DocumentExportJobIn
+  - class DocumentExportJobOut
+  - class next_db_session
+- `heptacert\backend\src\document_outputs.py`
+  - function render_official_document_html: (*, title, body_html, document_no, date_text, left_signer_name, left_signer_title, right_signer_name, right_signer_title, template_path) -> str
+  - function render_key_value_table: (rows, Any]]) -> str
+  - function render_records_table: (records, Any]], columns) -> str
+  - function render_log_document_body: (*, summary, Any] | None, records, Any]] | None, columns, intro) -> str
+  - function render_log_document_pdf_bytes: (*, title, summary, Any] | None, records, Any]] | None, columns, intro, document_no, left_signer_name, left_signer_title, right_signer_name, right_signer_title, template_path) -> bytes
+- `heptacert\backend\src\document_outputs_api.py` — class OfficialLogDocumentIn
+- `heptacert\backend\src\domains.py` — class DomainStatus, class Domain
+- `heptacert\backend\src\domains_api.py`
+  - class DomainCreateIn
+  - class DomainOut
+  - class OrganizationDomainOut
+  - class OrganizationDomainUpdateIn
+- `heptacert\backend\src\email_api.py`
+  - function test_smtp_connection: (payload)
+  - class SuperadminBulkEmailTestIn
+  - class SuperadminSystemDigestTestIn
+  - class SuperadminTestEmailOut
+- `heptacert\backend\src\email_rendering.py`
+  - function certificate_verify_url: (settings, cert_uuid) -> str
+  - function linkedin_share_url: (target_url, text) -> str
+  - function build_email_template_vars: (*, settings, event, attendee, certificate, cert_uuid, recipient_name, recipient_email, survey_link, unsubscribe_url) -> dict[str, Any]
+  - function render_template_string: (source, variables, Any]) -> str
+- `heptacert\backend\src\enums.py`
+  - class Role
+  - class CertStatus
+  - class TxType
+  - class OrderStatus
+  - class AttendeeSource
+- `heptacert\backend\src\event_crm_api.py`
+  - class ParticipantCrmIn
+  - class ParticipantCrmMeta
+  - class ParticipantCrmListItem
+  - class ParticipantCrmDetail
+  - class ParticipantCrmSnapshotOut
+  - class ParticipantCrmAuditLogOut
+  - _...28 more_
+- `heptacert\backend\src\event_extras_api.py`
+  - class RegFieldIn
+  - class RegFieldsReplaceIn
+  - class EventTicketType
+  - class TicketTypeIn
+  - class TicketTypePatchIn
+  - class TicketTypeOut
+- `heptacert\backend\src\event_features.py`
+  - function normalize_event_type: (raw_value) -> str
+  - function normalize_feature_bool: (raw_value, *, default) -> bool
+  - function feature_value: (event, field_name) -> bool
+  - function is_public_registration_enabled: (event) -> bool
+  - function is_certificate_enabled: (event) -> bool
+  - function is_checkin_enabled: (event) -> bool
+  - _...5 more_
+- `heptacert\backend\src\generator.py`
+  - function new_certificate_uuid: () -> str
+  - function render_certificate_pdf: (template_image_bytes, student_name, verify_url, config, *, public_id, qr_size_px, brand_logo_bytes, certificate_footer) -> bytes
+  - function render_certificate_png_watermarked: (template_image_bytes, student_name, verify_url, config, *, public_id, qr_size_px, brand_logo_bytes, certificate_footer) -> bytes
+  - class TemplateConfig
+- `heptacert\backend\src\i18n.py` — function lang_from_request: (request) -> str, function t: (key, lang, fallback) -> str
+- `heptacert\backend\src\lead_forms_api.py`
+  - class FormFieldDef
+  - class FormIn
+  - class FormOut
+  - class SubmissionOut
+  - class PublicSubmitIn
+- `heptacert\backend\src\lead_forms_models.py` — class LeadCaptureForm, class LeadCaptureSubmission
+- `heptacert\backend\src\learning_path_api.py`
+  - class LearningPathStepIn
+  - class LearningPathIn
+  - class LearningPathPatch
+- `heptacert\backend\src\learning_path_models.py`
+  - class LearningPath
+  - class LearningPathStep
+  - class LearningPathEnrollment
+  - class LearningPathStepCompletion
+- `heptacert\backend\src\lms_extended_models.py`
+  - class CourseGradeItem
+  - class CourseGradeSummary
+  - class CourseDiscussion
+  - class DiscussionReply
+  - class Rubric
+  - class RubricCriterion
+  - _...19 more_
+- `heptacert\backend\src\lms_models.py`
+  - class TrainingCourse
+  - class CourseModule
+  - class CourseEnrollment
+  - class ModuleProgress
+  - class CourseAssignment
+  - class AssignmentSubmission
+  - _...6 more_
+- `heptacert\backend\src\local_bootstrap.py` — function main: () -> None
+- `heptacert\backend\src\lti_api.py`
+  - class LtiTool
+  - class LtiToolIn
+  - class LtiToolPatch
+- `heptacert\backend\src\main.py`
+  - function sanitize_event_description_html: (value) -> Optional[str]
+  - function monthly_hosting_units: (asset_size_bytes) -> int
+  - function hosting_units: (term, asset_size_bytes) -> int
+  - function certificate_to_out: (cert, *, include_locked_pdf) -> CertificateOut
+  - function hash_password: (pw) -> str
+  - function verify_password: (pw, pw_hash) -> bool
+  - _...23 more_
+- `heptacert\backend\src\marketplace_api.py`
+  - function list_marketplace_categories: ()
+  - class MarketplaceEventOut
+  - class MarketplaceSettingsIn
+  - class CourseMarketplaceSettingsIn
+- `heptacert\backend\src\mcp_server.py`
+  - function list_events: (ctx, search, limit) -> str
+  - function get_event: (ctx, event_id) -> str
+  - function get_event_stats: (ctx, event_id) -> str
+  - function create_event: (ctx, name, event_date, event_description, event_location, event_type, certificate_enabled, registration_enabled, checkin_enabled, ticketing_enabled, visibility) -> str
+  - function update_event: (ctx, event_id, name, event_date, event_description, event_location, event_type, certificate_enabled, registration_enabled, checkin_enabled, ticketing_enabled, raffles_enabled, gamification_enabled, quiz_enabled, cpd_enabled, visibility, registration_closed, registration_quota, registration_quota_enabled) -> str
+  - function delete_event: (ctx, event_id, confirm) -> str
+  - _...38 more_
+- `heptacert\backend\src\member_certificates_api.py`
+  - function record_wallet_analytics: (db, *, event_type, public_member_id, certificate_id, request, source, metadata, Any]]) -> None
+  - function get_member_certificate_privacy: (db, member_public_id) -> CertificatePrivacyOut
+  - function update_member_certificate_privacy: (db, member_public_id, hide_certificates, visibility) -> CertificatePrivacyOut
+  - function can_view_member_certificate_wallet: (db, target, viewer) -> bool
+  - function list_public_member_certificates: (db, member_id) -> list[dict[str, Any]]
+  - class CertificatePrivacyIn
+  - _...3 more_
+- `heptacert\backend\src\models.py`
+  - class User
+  - class PublicMember
+  - class Event
+  - class EventTeamMember
+  - class Certificate
+  - class TrainingAssignment
+  - _...73 more_
+- `heptacert\backend\src\moderation.py` — function moderate_public_text: (value) -> str
+- `heptacert\backend\src\notification_integrations_api.py`
+  - function trigger_notification_integrations: (db, org_id, event_type, context, Any]) -> None
+  - function trigger_notification_integrations_for_user: (db, user_id, event_type, context, Any]) -> None
+  - class NotificationWebhookChannel
+  - class TwilioSmsConfig
+  - class WhatsAppBusinessConfig
+  - class NotificationIntegrationsIn
+  - _...10 more_
+- `heptacert\backend\src\oauth_api.py`
+  - class OAuthClient
+  - class OAuthCode
+  - class OAuthRefreshToken
+  - class ValidateOut
+  - class AuthorizeIn
+  - class AuthorizeOut
+  - _...4 more_
+- `heptacert\backend\src\organization_access_api.py`
+  - function effective_organization_permissions: (member) -> list[str]
+  - function member_allows: (member, permission) -> bool
+  - function organization_id_from_request: (request) -> Optional[int]
+  - function organization_owner_has_enterprise_plan: (db, organization) -> bool
+  - function ensure_organization_enterprise: (db, organization) -> None
+  - function user_can_manage_owner_organization: (db, me, owner_user_id, required_permission) -> bool
+  - _...7 more_
+- `heptacert\backend\src\org_modules_api.py` — class ModulesIn, class OnboardingIn
+- `heptacert\backend\src\org_staff_api.py`
+  - class OrgStaff
+  - class StaffInviteIn
+  - class StaffPatch
+  - class StaffAcceptIn
+- `heptacert\backend\src\payments.py`
+  - function get_provider: (settings) -> Optional[PaymentProvider]
+  - class PaymentRequest
+  - class PaymentResult
+  - class PaymentProvider
+  - class IyzicoProvider
+  - class PayTRProvider
+  - _...1 more_
+- `heptacert\backend\src\plan_policy.py`
+  - function normalize_plan: (plan_id) -> str
+  - function plan_allows: (plan_id, required_plans) -> bool
+  - function subscription_is_active_plan: (subscription, required_plans) -> bool
+  - function feature_policy_payload: () -> list[dict[str, object]]
+  - class FeaturePolicy
+- `heptacert\backend\src\product_observability.py` — function install_product_observability: (app, *, slow_ms) -> None
+- `heptacert\backend\src\product_telemetry.py` — function sanitize_metadata: (raw, Any]) -> dict[str, Any]
+- `heptacert\backend\src\product_telemetry_api.py` — class ProductTelemetryIn
+- `heptacert\backend\src\quiz_api.py`
+  - class QuizChoiceIn
+  - class QuizQuestionIn
+  - class QuizIn
+  - class QuizPatch
+  - class QuizAnswerIn
+  - class QuizSubmitIn
+  - _...1 more_
+- `heptacert\backend\src\quiz_models.py`
+  - class Quiz
+  - class QuizQuestion
+  - class QuizChoice
+  - class QuizAttempt
+  - class QuizAnswer
+- `heptacert\backend\src\report_scheduler_api.py`
+  - function list_report_types: ()
+  - class ScheduledReportIn
+  - class ScheduledReportOut
+- `heptacert\backend\src\report_scheduler_models.py` — class ScheduledReport
+- `heptacert\backend\src\schemas.py`
+  - class TokenOut
+  - class LoginIn
+  - class RegisterIn
+  - class PublicMemberRegisterIn
+  - class PublicMemberLoginIn
+  - class PublicMemberProfileUpdateIn
+  - _...160 more_
+- `heptacert\backend\src\services.py`
+  - function require_role: (*allowed)
+  - function editor_config_to_template_config: (raw) -> "TemplateConfig"
+  - function write_audit_log: (db, *, user_id, action, resource_type, resource_id, extra, Any]], ip_address, user_agent) -> None
+  - function build_public_participant_status: (db, *, event, attendee) -> PublicParticipantStatusOut
+  - function deliver_webhook_task: (user_id, event_type, payload, Any]) -> None
+  - function log_webhook_delivery: (webhook_id, event_type, payload, Any], http_status, error_message) -> None
+- `heptacert\backend\src\signing.py` — function sign_pdf: (pdf_bytes) -> bytes
+- `heptacert\backend\src\social_api.py`
+  - class CommunityPostCreateIn
+  - class CommunityCommentCreateIn
+  - class CommunityPostUpdateIn
+  - class CommunityPostEditHistoryOut
+- `heptacert\backend\src\sso_api.py`
+  - class OrgSsoConfig
+  - class SsoConfigIn
+  - class SsoConfigPatch
+- `heptacert\backend\src\training_api.py`
+  - function process_training_renewal_notifications_once: (db, organization_id) -> dict[str, int]
+  - class TrainingAssignmentIn
+  - class TrainingAssignmentPatch
+  - class TrainingAssignmentOut
+  - class TrainingReportOut
+  - class RenewalRecommendationOut
+  - _...10 more_
+- `heptacert\backend\src\utils.py`
+  - function compute_hosting_ends: (term) -> datetime
+  - function ensure_utc: (dt) -> Optional[datetime]
+  - function build_attendee_verify_url: (*, event_id, token) -> str
+  - function create_access_token: (*, user_id, role) -> str
+  - function create_public_member_access_token: (*, member_id) -> str
+  - function create_partial_token: (*, user_id) -> str
+  - _...6 more_
+- `heptacert\backend\src\venues_api.py`
+  - class OrganizationVenue
+  - class VenueIn
+  - class VenueOut
+- `heptacert\backend\src\venue_reservations_api.py`
+  - class VenueReservation
+  - class ReservationIn
+  - class ReservationOut
+- `heptacert\backend\src\watermark.py`
+  - function embed_watermark: (img, payload) -> Image.Image
+  - function extract_watermark: (image_bytes) -> str | None
+  - function to_watermarked_png_bytes: (img, payload) -> bytes
+- `heptacert\backend\src\webhooks.py`
+  - function generate_webhook_secret: () -> str
+  - function sign_payload: (secret, body) -> str
+  - function deliver_webhook: (db, user_id, event_type, payload, Any]) -> None
+  - class WebhookEvent
+- `heptacert\backend\_archive_lms\lms_api.py`
+  - class CourseModuleIn
+  - class CourseIn
+  - class CoursePatch
+  - class CourseModulePatch
+  - class EnrollmentImportStudent
+  - class EnrollmentImportIn
+  - _...10 more_
+- `heptacert\backend\_archive_lms\lms_extended_api.py`
+  - class GradeItemIn
+  - class GradeItemPatch
+  - class GradeSummaryIn
+  - class DiscussionIn
+  - class ReplyIn
+  - class RubricIn
+  - _...24 more_
+- `heptacert\cli\heptacert_cli\client.py` — class HeptaCertClient
+- `heptacert\cli\heptacert_cli\commands\auth.py` — function logout: (), function status: ()
+- `heptacert\cli\heptacert_cli\commands\config.py` — function show_config: (), function config_path: ()
+- `heptacert\cli\heptacert_cli\config.py`
+  - function get_api_key: () -> Optional[str]
+  - function get_api_base: () -> str
+  - function set_credentials: (api_key, api_base) -> None
+  - function clear_credentials: () -> None
+  - function require_api_key: () -> str
+- `heptacert\cli\heptacert_cli\main.py` — function ping: ()
+- `heptacert\cli\heptacert_cli\output.py`
+  - function print_json: (data) -> None
+  - function print_csv: (rows, columns) -> None
+  - function print_table: (rows, columns, title) -> None
+  - function ok: (msg) -> None
+  - function warn: (msg) -> None
+  - function error: (msg) -> None
+  - _...1 more_
+- `heptacert\frontend\src\hooks\useTheme.ts` — function useTheme: () => void
+- `heptacert\frontend\src\hooks\useToast.ts` — function useToast: () => void
+- `heptacert\frontend\src\lib\api-with-toast.ts` — function useApiWithToast: () => void
+- `heptacert\frontend\src\lib\api.ts`
+  - function getApiBase: () => string
+  - function getApiOrigin: () => string
+  - function apiUrl: (path) => string
+  - function normalizeApiAssetUrl: (value?) => string | null
+  - function getToken: () => string | null
+  - function setToken: (token) => void
+  - _...485 more_
+- `heptacert\frontend\src\lib\assistant\eventDraft.ts`
+  - function createInitialDraft: () => EventDraft
+  - function normalizeEventDate: (value) => string
+  - function parseTurkishMonthDate: (value) => string
+  - function extractDateRange: (text) => void
+  - function extractLocation: (text) => string
+  - function normalizeEventType: (value) => string
+  - _...23 more_
+- `heptacert\frontend\src\lib\assistant\faq.ts` — function findFaqAnswer: (question, lang) => string | null
+- `heptacert\frontend\src\lib\assistant\intent.ts`
+  - function shouldStartCreateEventWizard: (text) => boolean
+  - function detectIntent: (text, wizardActive) => IntentResult
+  - type Intent
+  - type IntentResult
+- `heptacert\frontend\src\lib\assistant\text.ts`
+  - function normalizePromptText: (value) => string
+  - function compactText: (value) => string
+  - function tokenize: (value) => string[]
+  - function levenshteinDistance: (a, b) => number
+  - function fuzzyIncludes: (text, target, maxDistance) => boolean
+  - function fuzzyAny: (text, keywords) => boolean
+  - _...3 more_
+- `heptacert\frontend\src\lib\assistant\wizard.ts`
+  - function isWizardActive: (step) => boolean
+  - function getWizardQuestion: (step, draft, lang) => string
+  - function buildReviewMessage: (draft, lang) => string
+- `heptacert\frontend\src\lib\assistant\__debug__\assistantHeuristics.debug.ts` — function runAssistantHeuristicDebug: () => void
+- `heptacert\frontend\src\lib\featureMetadata.ts`
+  - function getFeatureMetadata: (key) => void
+  - type FeatureKey
+  - const FEATURE_METADATA: Record<FeatureKey, { requiredPlans: string[]; title: { tr: string; en: string }; enterpriseOnlyForStaff?: boolean }>
+- `heptacert\frontend\src\lib\orgRoles.ts`
+  - function orgRoleLabel: (role, lang) => string
+  - function canManageEvents: (ctx) => boolean
+  - function landingPathForContexts: (contexts) => string
+  - type OrgLang
+  - type OrgRoleContext
+- `heptacert\frontend\src\lib\raffles.ts`
+  - function formatRaffleDate: (value?) => void
+  - function getRaffleStatusMeta: (status) => void
+  - function formatWinnerPlan: (winnerCount, reserveWinnerCount) => void
+  - function splitRaffleRounds: (raffle) => RaffleRound[]
+  - type RaffleRound
+- `heptacert\frontend\src\lib\richText.ts` — function stripRichTextToPlainText: (html) => string
+- `heptacert\frontend\src\lib\theme.ts`
+  - function getStoredTheme: () => Theme | null
+  - function setStoredTheme: (theme) => void
+  - function getSystemTheme: () => 'light' | 'dark'
+  - function getEffectiveTheme: (theme) => 'light' | 'dark'
+  - function applyTheme: (theme) => void
+  - function initializeTheme: () => Theme
+  - _...2 more_
+- `heptacert\frontend\src\lib\url.ts` — function normalizeExternalUrl: (raw) => string | null
+- `heptacert\frontend\src\lib\whiteLabel.ts`
+  - function isWhiteLabelBranding: (branding, host?) => void
+  - function fetchCurrentBranding: () => Promise<PublicBranding | null>
+  - type PublicBranding
+  - const PRIMARY_APP_HOSTS
+- `heptacert\frontend\src\middleware.ts` — function middleware: (request) => void
+- `heptacert\loadtest\k6-public-mixed.js` — function setup: () => void, const options
+- `test_all_endpoints.py`
+  - function log_test: (name, passed, message)
+  - function test_health: ()
+  - function test_badge_rules_endpoints: ()
+  - function test_participant_badges_endpoints: ()
+  - function test_certificate_tier_endpoints: ()
+  - function test_survey_endpoints: ()
+  - _...3 more_

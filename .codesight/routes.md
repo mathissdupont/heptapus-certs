@@ -1,0 +1,544 @@
+# Routes
+
+## CRUD Resources
+
+- **`/api/admin/accreditation`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Accreditation
+- **`/api/admin/events/{event_id}/cpd`** GET | PUT/:id | DELETE/:id → Cpd
+- **`/api/admin/events/{event_id}/automations`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Automation
+- **`/api/admin/crm/accounts`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Account
+- **`/api/admin/crm/accounts/{account_id}/contacts`** GET | POST | GET/:id | DELETE/:id → Contact
+- **`/api/admin/crm/deals/{deal_id}/activities`** GET | POST | GET/:id | DELETE/:id → Activitie
+- **`/api/admin/crm/sequences`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Sequence
+- **``** GET | POST | GET/:id
+- **`/api/domains`** GET | POST | GET/:id | DELETE/:id → Domain
+- **`/api/admin/events/{event_id}/email-templates`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Email-template
+- **`/api/admin/crm/views`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → View
+- **`/api/admin/crm/integrations/hubspot`** GET | PATCH/:id | DELETE/:id → Hubspot
+- **`/api/admin/crm/integrations/salesforce`** GET | PATCH/:id | DELETE/:id → Salesforce
+- **`/api/admin/crm/integrations/mailchimp`** GET | PATCH/:id | DELETE/:id → Mailchimp
+- **`/api/admin/events/{event_id}/registration-fields`** GET | POST | PUT/:id → Registration-field
+- **`/api/admin/events/{event_id}/ticket-types`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Ticket-type
+- **`/api/admin/events/{event_id}/sponsors`** GET | POST | GET/:id | PUT/:id | DELETE/:id → Sponsor
+- **`/api/admin/lead-forms`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Lead-form
+- **`/api/admin/learning-paths`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Learning-path
+- **`/api/admin/lms/lti-tools`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Lti-tool
+- **`/api/admin/webhooks`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Webhook
+- **`/api/superadmin/admins`** GET | POST | GET/:id | DELETE/:id → Admin
+- **`/api/public/me`** GET | PATCH/:id | DELETE/:id → Me
+- **`/api/admin/events`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Event
+- **`/api/admin/events/{event_id}/attendees`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Attendee
+- **`/api/admin/events/{event_id}/team`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Team
+- **`/api/admin/api-keys`** GET | POST | GET/:id | DELETE/:id → Api-key
+- **`/api/superadmin/support-tickets`** GET | GET/:id | PATCH/:id → Support-ticket
+- **`/api/admin/events/{event_id}/sessions`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Session
+- **`/api/superadmin/organizations`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Organization
+- **`/api/admin/integrations/notifications`** GET | GET/:id | PATCH/:id | DELETE/:id → Notification
+- **`/api/admin/superadmin/oauth-clients`** GET | POST | GET/:id | PATCH/:id → Oauth-client
+- **`/api/admin/organization/team`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Team
+- **`/api/admin/org/staff`** GET | GET/:id | PATCH/:id | DELETE/:id → Staff
+- **`/api/admin/events/{event_id}/quiz`** GET | POST | PATCH/:id | DELETE/:id → Quiz
+- **`/api/admin/events/{event_id}/raffles`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Raffle
+- **`/api/admin/reports`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Report
+- **`/api/admin/community/posts`** GET | POST | GET/:id | DELETE/:id → Post
+- **`/api/admin/sso`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Sso
+- **`/api/admin/training/departments`** GET | POST | GET/:id | PATCH/:id → Department
+- **`/api/admin/training/assignments`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Assignment
+- **`/api/admin/organization/venues`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Venue
+- **`/api/admin/organization/venue-reservations`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Venue-reservation
+- **`/api/admin/lms/staff`** GET | POST | GET/:id | DELETE/:id → Staff
+- **`/api/admin/lms/courses`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Course
+- **`/api/admin/lms/courses/{course_id}/modules`** POST | PATCH/:id | DELETE/:id → Module
+- **`/api/admin/lms/journeys`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Journey
+- **`/api/admin/lms/courses/{course_id}/grade-items`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Grade-item
+- **`/api/admin/lms/courses/{course_id}/discussions`** GET | POST | GET/:id → Discussion
+- **`/api/admin/lms/courses/{course_id}/rubrics`** GET | POST | GET/:id | DELETE/:id → Rubric
+- **`/api/admin/lms/outcomes`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Outcome
+- **`/api/admin/lms/courses/{course_id}/outcomes`** GET | POST | GET/:id | DELETE/:id → Outcome
+- **`/api/admin/lms/badges`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Badge
+- **`/api/admin/lms/courses/{course_id}/calendar`** GET | POST | GET/:id | DELETE/:id → Calendar
+- **`/api/admin/lms/courses/{course_id}/attendance-sessions`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Attendance-session
+- **`/api/admin/lms/bridges`** GET | POST | GET/:id | DELETE/:id → Bridge
+- **`/api/admin/lms/quizzes`** GET/:id | PATCH/:id | DELETE/:id → Quizze
+- **`/api/public/courses/{course_id}/discussions`** GET | POST | GET/:id → Discussion
+
+## Other Routes
+
+- `GET` `/api/admin/accreditation/bodies` params() → out: CpdSummaryOut [auth, db]
+- `GET` `/api/admin/members/{member_id}/cpd` params(member_id) → out: CpdSummaryOut [auth, db]
+- `GET` `/api/admin/accreditation/cpd-summary` params() → out: CpdSummaryOut [auth, db]
+- `POST` `/api/admin/ai/generate-email` → out: EmailGenerateOut [auth, db, ai]
+- `POST` `/api/admin/ai/generate-form` → out: EmailGenerateOut [auth, db, ai]
+- `GET` `/api/admin/ai/anomalies/{event_id}` params(event_id) → out: AnomalyOut [auth, db, ai]
+- `POST` `/api/admin/ai/digest/trigger` params() → out: AnomalyOut [auth, db, ai]
+- `GET` `/api/admin/ai/digest/latest` params() → out: AnomalyOut [auth, db, ai]
+- `POST` `/api/admin/superadmin/ai/digest/run-weekly` params() → out: AnomalyOut [auth, db, ai]
+- `GET` `/api/admin/events/{event_id}/analytics` params(event_id) [auth, db]
+- `GET` `/api/admin/events/{event_id}/analytics/engagement` params(event_id) [auth, db] ✓
+- `GET` `/api/admin/events/{event_id}/analytics/badges` params(event_id) [auth, db]
+- `GET` `/api/admin/events/{event_id}/analytics/tiers` params(event_id) [auth, db]
+- `GET` `/api/admin/events/{event_id}/analytics/timeline` params(event_id) [auth, db]
+- `GET` `/api/admin/events/{event_id}/analytics/export.csv` params(event_id) [auth, db]
+- `GET` `/api/admin/events/{event_id}/analytics/export.xlsx` params(event_id) [auth, db]
+- `GET` `/api/admin/api-keys/scopes` params() → in: CurrentUse, out: list [auth, db]
+- `GET` `/api/admin/api-keys/v2` params() → in: CurrentUse, out: list [auth, db]
+- `POST` `/api/admin/api-keys/v2` params() → out: list [auth, db]
+- `PATCH` `/api/admin/api-keys/{key_id}/scopes` params(key_id) → out: list [auth, db]
+- `GET` `/api/admin/events/{event_id}/segments` params(event_id) → out: list [auth, db, upload]
+- `GET` `/api/admin/events/{event_id}/segments/saved/list` params(event_id) → out: list [auth, db, upload]
+- `POST` `/api/admin/events/{event_id}/segments/saved` params(event_id) → out: list [auth, db, upload]
+- `DELETE` `/api/admin/events/{event_id}/segments/saved/{segment_id}` params(event_id, segment_id) → out: list [auth, db, upload]
+- `POST` `/api/admin/events/{event_id}/segments/export-jobs` params(event_id) → out: list [auth, db, upload]
+- `GET` `/api/admin/events/{event_id}/segments/export-jobs` params(event_id) → out: list [auth, db, upload]
+- `GET` `/api/admin/events/{event_id}/segments/export-jobs/{job_id}/download` params(event_id, job_id) → out: list [auth, db, upload]
+- `POST` `/api/admin/events/{event_id}/segments/{segment_key}/handoff/crm` params(event_id, segment_key) → out: list [auth, db, upload]
+- `POST` `/api/admin/events/{event_id}/segments/{segment_key}/handoff/automation` params(event_id, segment_key) → out: list [auth, db, upload]
+- `GET` `/api/admin/events/{event_id}/segments/{segment_key}` params(event_id, segment_key) → out: list [auth, db, upload]
+- `GET` `/api/admin/events/{event_id}/segments/{segment_key}/export` params(event_id, segment_key) → out: list [auth, db, upload]
+- `POST` `/api/admin/events/{event_id}/segments/{segment_key}/export-to-excel` params(event_id, segment_key) → out: list [auth, db, upload]
+- `GET` `/status` params() → in: CurrentUse, out: TwoFAStatusOut [auth, db]
+- `POST` `/setup` params() → out: TwoFAStatusOut [auth, db]
+- `POST` `/confirm` params() → out: TwoFAStatusOut [auth, db]
+- `POST` `/enable` params() → out: TwoFAStatusOut [auth, db]
+- `PATCH` `/disable` params() → out: TwoFAStatusOut [auth, db]
+- `POST` `/backup-codes` params() → out: TwoFAStatusOut [auth, db]
+- `GET` `/backup-codes/status` params() → in: CurrentUse, out: TwoFAStatusOut [auth, db]
+- `POST` `/backup-codes/regenerate` params() → out: TwoFAStatusOut [auth, db]
+- `POST` `/api/admin/events/{event_id}/automations/dispatch-now` params(event_id) → out: AutomationSummaryOut [auth, db, queue, payment]
+- `GET` `/api/admin/events/{event_id}/automations/{rule_id}/dry-run` params(event_id, rule_id) → out: AutomationSummaryOut [auth, db, queue, payment]
+- `GET` `/api/admin/events/{event_id}/automations/logs` params(event_id) → out: AutomationSummaryOut [auth, db, queue, payment]
+- `POST` `/api/admin/events/{event_id}/bulk-generate` params(event_id) → out: BulkCertificateJobOut [auth, db, upload]
+- `GET` `/api/admin/events/{event_id}/bulk-generate-jobs` params(event_id) → out: BulkCertificateJobOut [auth, db, upload]
+- `GET` `/api/admin/events/{event_id}/bulk-generate-jobs/{job_id}` params(event_id, job_id) → out: BulkCertificateJobOut [auth, db, upload]
+- `POST` `/api/admin/events/{event_id}/bulk-generate-jobs/{job_id}/cancel` params(event_id, job_id) → out: BulkCertificateJobOut [auth, db, upload]
+- `GET` `/api/admin/events/{event_id}/bulk-generate-jobs/{job_id}/download` params(event_id, job_id) → out: BulkCertificateJobOut [auth, db, upload]
+- `GET` `/api/admin/certificate-template-presets` params() → out: list [auth, db]
+- `POST` `/api/admin/events/{event_id}/certificate-template-presets` params(event_id) → out: list [auth, db]
+- `POST` `/api/admin/events/{event_id}/certificate-template-presets/{preset_id}/apply` params(event_id, preset_id) → out: list [auth, db]
+- `GET` `/api/admin/certificate-template-presets/{preset_id}/versions` params(preset_id) → out: list [auth, db]
+- `POST` `/api/admin/certificate-template-presets/{preset_id}/rollback/{version}` params(preset_id, version) → out: list [auth, db]
+- `GET` `/api/admin/certificate-template-presets/{preset_id}/snapshots` params(preset_id) → out: list [auth, db]
+- `GET` `/api/admin/certificate-template-presets/builtin` params() → out: list [auth, db]
+- `DELETE` `/api/admin/certificate-template-presets/{preset_id}` params(preset_id) → out: list [auth, db]
+- `POST` `/api/admin/events/{event_id}/certificate-tiers` params(event_id) → out: CertificateTierRulesOut [auth, db, upload]
+- `GET` `/api/admin/events/{event_id}/certificate-tiers` params(event_id) → out: CertificateTierRulesOut [auth, db, upload]
+- `POST` `/api/admin/events/{event_id}/checkin-nonce` params(event_id) → out: CheckinNonceOut [auth, db, cache, queue]
+- `POST` `/api/admin/events/{event_id}/kiosk-sessions` params(event_id) → out: CheckinNonceOut [auth, db, cache, queue]
+- `GET` `/api/admin/events/{event_id}/kiosk-sessions` params(event_id) → out: CheckinNonceOut [auth, db, cache, queue]
+- `POST` `/api/admin/events/{event_id}/kiosk-sessions/{kiosk_id}/revoke` params(event_id, kiosk_id) → out: CheckinNonceOut [auth, db, cache, queue]
+- `GET` `/api/admin/events/{event_id}/checkin-lookup` params(event_id) → out: CheckinNonceOut [auth, db, cache, queue]
+- `GET` `/api/admin/events/{event_id}/checkin-metrics` params(event_id) → out: CheckinNonceOut [auth, db, cache, queue] ✓
+- `GET` `/api/admin/events/{event_id}/checkin-activity` params(event_id) → out: CheckinNonceOut [auth, db, cache, queue]
+- `GET` `/api/admin/events/{event_id}/checkin/stream` params(event_id) → out: CheckinNonceOut [auth, db, cache, queue]
+- `GET` `/api/public/organizations` params() → out: list [auth, db] ✓
+- `GET` `/api/public/organizations/{org_public_id}` params(org_public_id) → out: list [auth, db]
+- `POST` `/api/public/organizations/{org_public_id}/follow` params(org_public_id) → out: list [auth, db]
+- `DELETE` `/api/public/organizations/{org_public_id}/follow` params(org_public_id) → out: list [auth, db]
+- `POST` `/api/public/members/{member_public_id}/follow` params(member_public_id) → out: list [auth, db]
+- `DELETE` `/api/public/members/{member_public_id}/follow` params(member_public_id) → out: list [auth, db]
+- `GET` `/api/public/members/{member_public_id}/followers` params(member_public_id) → in: CurrentPublicMembe, out: list [auth, db]
+- `GET` `/api/public/members/{member_public_id}/following` params(member_public_id) → in: CurrentPublicMembe, out: list [auth, db]
+- `GET` `/api/public/members/{member_public_id}/connection-stats` params(member_public_id) → in: CurrentPublicMembe, out: list [auth, db]
+- `POST` `/api/public/members/{member_public_id}/block` params(member_public_id) → out: list [auth, db]
+- `DELETE` `/api/public/members/{member_public_id}/block` params(member_public_id) → out: list [auth, db]
+- `GET` `/api/public/members/me/privacy` params() → in: CurrentPublicMembe, out: list [auth, db]
+- `PATCH` `/api/public/members/me/privacy` params() → in: ConnectionPrivacyIn, out: list [auth, db]
+- `GET` `/api/admin/crm/accounts/{account_id}/deals` params(account_id) → out: list [auth, db]
+- `GET` `/api/admin/crm/pipeline` params() → out: list [auth, db]
+- `POST` `/api/admin/crm/accounts/{account_id}/deals` params(account_id) → out: list [auth, db]
+- `PATCH` `/api/admin/crm/deals/{deal_id}` params(deal_id) → out: list [auth, db]
+- `DELETE` `/api/admin/crm/deals/{deal_id}` params(deal_id) → out: list [auth, db]
+- `POST` `/api/admin/crm/sequences/{sequence_id}/enroll` params(sequence_id) → out: list [auth, db]
+- `POST` `/api/admin/crm/sequences/{sequence_id}/unenroll` params(sequence_id) → out: list [auth, db]
+- `GET` `/api/admin/crm/sequences/{sequence_id}/enrollments` params(sequence_id) → out: list [auth, db]
+- `GET` `/{job_id}/download` params(job_id) → out: DocumentExportJobOut [auth, db, queue]
+- `POST` `/official-log` params() → in: OfficialLogDocumentIn [auth]
+- `POST` `/official-log/pdf` params() → in: OfficialLogDocumentIn [auth]
+- `POST` `/api/domains/{domain}/regenerate` params(domain) → out: DomainOut [auth, db]
+- `GET` `/api/admin/organization/domains` params() → out: DomainOut [auth, db]
+- `GET` `/api/admin/organization/domain` params() → out: DomainOut [auth, db] ✓
+- `PUT` `/api/admin/organization/domain` params() → out: DomainOut [auth, db] ✓
+- `GET` `/api/domains/{domain}/check` params(domain) → out: DomainOut [auth, db]
+- `GET` `/.internal/caddy/authorize` params() → out: DomainOut [auth, db] ✓
+- `POST` `/api/admin/events/{event_id}/email-templates/{template_id}/preview` params(event_id, template_id) → out: list [auth, db, cache, queue, payment]
+- `GET` `/api/system/email-templates` params() → in: AsyncSessio, out: list [auth, db, cache, queue, payment]
+- `GET` `/api/admin/email-config` params() → in: AsyncSessio, out: list [auth, db, cache, queue, payment] ✓
+- `PATCH` `/api/admin/email-config` params() → out: list [auth, db, cache, queue, payment] ✓
+- `GET` `/api/admin/email-config/saved-accounts` params() → in: AsyncSessio, out: list [auth, db, cache, queue, payment]
+- `POST` `/api/admin/email-config/test-connection` params() → out: list [auth, db, cache, queue, payment] ✓
+- `POST` `/api/admin/events/{event_id}/bulk-email` params(event_id) → out: list [auth, db, cache, queue, payment]
+- `GET` `/api/admin/events/{event_id}/bulk-email/{job_id}` params(event_id, job_id) → in: AsyncSessio, out: list [auth, db, cache, queue, payment]
+- `GET` `/api/admin/events/{event_id}/bulk-emails` params(event_id) → in: AsyncSessio, out: list [auth, db, cache, queue, payment]
+- `POST` `/api/admin/events/{event_id}/scheduled-email` params(event_id) → out: list [auth, db, cache, queue, payment]
+- `GET` `/api/admin/events/{event_id}/scheduled-emails` params(event_id) → in: AsyncSessio, out: list [auth, db, cache, queue, payment]
+- `POST` `/api/admin/events/{event_id}/bulk-emails-cancel/{job_id}` params(event_id, job_id) → out: list [auth, db, cache, queue, payment]
+- `POST` `/api/admin/bulk-email-jobs/{job_id}/log-delivery` params(job_id) → out: list [auth, db, cache, queue, payment]
+- `GET` `/api/admin/events/{event_id}/bulk-email-jobs/{job_id}/delivery-stats` params(event_id, job_id) → in: AsyncSessio, out: list [auth, db, cache, queue, payment]
+- `GET` `/api/admin/events/{event_id}/bulk-email-jobs/{job_id}/delivery-logs` params(event_id, job_id) → in: AsyncSessio, out: list [auth, db, cache, queue, payment]
+- `GET` `/api/superadmin/email-audience` params() → in: AsyncSessio, out: list [auth, db, cache, queue, payment]
+- `POST` `/api/superadmin/bulk-email` params() → out: list [auth, db, cache, queue, payment]
+- `POST` `/api/superadmin/bulk-email/test` params() → out: list [auth, db, cache, queue, payment]
+- `POST` `/api/superadmin/bulk-email/jobs` params() → out: list [auth, db, cache, queue, payment]
+- `GET` `/api/admin/email-analytics/summary` params() → in: AsyncSessio, out: list [auth, db, cache, queue, payment]
+- `GET` `/api/public/track/open/{log_id}` params(log_id) → in: AsyncSessio, out: list [auth, db, cache, queue, payment]
+- `GET` `/api/public/track/click/{log_id}` params(log_id) → in: AsyncSessio, out: list [auth, db, cache, queue, payment]
+- `GET` `/api/public/attendees/{attendee_id}/unsubscribe-verify` params(attendee_id) → in: AsyncSessio, out: list [auth, db, cache, queue, payment]
+- `GET` `/api/superadmin/system-digest/config` params() → in: AsyncSessio, out: list [auth, db, cache, queue, payment]
+- `PATCH` `/api/superadmin/system-digest/config` params() → out: list [auth, db, cache, queue, payment]
+- `POST` `/api/superadmin/system-digest/send-now` params() → out: list [auth, db, cache, queue, payment]
+- `POST` `/api/superadmin/system-digest/test` params() → out: list [auth, db, cache, queue, payment]
+- `GET` `/api/superadmin/system-digest/preview` params() → in: AsyncSessio, out: list [auth, db, cache, queue, payment]
+- `GET` `/api/superadmin/bulk-email/jobs` params() → in: AsyncSessio, out: list [auth, db, cache, queue, payment]
+- `GET` `/api/superadmin/email-activity` params() → in: AsyncSessio, out: list [auth, db, cache, queue, payment]
+- `POST` `/api/superadmin/bulk-email/jobs/{job_id}/cancel` params(job_id) → out: list [auth, db, cache, queue, payment]
+- `POST` `/api/superadmin/bulk-email/jobs/{job_id}/retry` params(job_id) → out: list [auth, db, cache, queue, payment]
+- `GET` `/api/public/attendees/{attendee_id}/unsubscribe` params(attendee_id) → in: AsyncSessio, out: list [auth, db, cache, queue, payment]
+- `POST` `/api/public/attendees/{attendee_id}/unsubscribe` params(attendee_id) → out: list [auth, db, cache, queue, payment]
+- `GET` `/api/public/members/{member_id}/unsubscribe-digest` params(member_id) → in: AsyncSessio, out: list [auth, db, cache, queue, payment]
+- `POST` `/api/public/members/{member_id}/unsubscribe-digest` params(member_id) → out: list [auth, db, cache, queue, payment]
+- `GET` `/api/admin/crm/summary` params() → out: ParticipantCrmSummary [auth, db, cache, payment, upload] ✓
+- `GET` `/api/admin/crm/participants` params() → out: ParticipantCrmSummary [auth, db, cache, payment, upload]
+- `GET` `/api/admin/crm/participant` params() → out: ParticipantCrmSummary [auth, db, cache, payment, upload]
+- `PATCH` `/api/admin/crm/participant` params() → out: ParticipantCrmSummary [auth, db, cache, payment, upload]
+- `POST` `/api/admin/crm/integrations/hubspot/test` params() → out: ParticipantCrmSummary [auth, db, cache, payment, upload]
+- `POST` `/api/admin/crm/integrations/hubspot/push` params() → out: ParticipantCrmSummary [auth, db, cache, payment, upload]
+- `POST` `/api/admin/crm/bulk-update` params() → out: ParticipantCrmSummary [auth, db, cache, payment, upload]
+- `POST` `/api/admin/crm/export-selected` params() → out: ParticipantCrmSummary [auth, db, cache, payment, upload]
+- `POST` `/api/admin/crm/bulk-email` params() → out: ParticipantCrmSummary [auth, db, cache, payment, upload]
+- `GET` `/api/admin/crm/duplicates` params() → out: ParticipantCrmSummary [auth, db, cache, payment, upload]
+- `POST` `/api/admin/crm/merge` params() → out: ParticipantCrmSummary [auth, db, cache, payment, upload]
+- `GET` `/api/admin/crm/participant/snapshot` params() → out: ParticipantCrmSummary [auth, db, cache, payment, upload]
+- `GET` `/api/admin/crm/audit` params() → out: ParticipantCrmSummary [auth, db, cache, payment, upload]
+- `POST` `/api/admin/crm/tag-no-shows` params() → out: ParticipantCrmSummary [auth, db, cache, payment, upload]
+- `POST` `/api/admin/crm/import-csv` params() → out: ParticipantCrmSummary [auth, db, cache, payment, upload]
+- `GET` `/api/admin/crm/filter-by-score` params() → out: ParticipantCrmSummary [auth, db, cache, payment, upload]
+- `POST` `/api/admin/crm/integrations/salesforce/push` params() → out: ParticipantCrmSummary [auth, db, cache, payment, upload]
+- `POST` `/api/admin/crm/integrations/mailchimp/push` params() → out: ParticipantCrmSummary [auth, db, cache, payment, upload]
+- `POST` `/api/admin/crm/lead-scores/recalculate` params() → out: ParticipantCrmSummary [auth, db, cache, payment, upload]
+- `POST` `/api/admin/crm/lead-scores/recalculate-selected` params() → out: ParticipantCrmSummary [auth, db, cache, payment, upload]
+- `GET` `/api/public/events/{event_id}/sponsors` params(event_id) → out: SponsorSlotOut [auth, db, upload]
+- `POST` `/foo` [auth]
+- `GET` `/api/admin/lead-forms/{form_id}/submissions` params(form_id) → out: list [auth, db]
+- `GET` `/api/public/forms/{slug}/meta` params(slug) → out: list [auth, db]
+- `POST` `/api/public/forms/{slug}/submit` params(slug) → out: list [auth, db]
+- `PUT` `/api/admin/learning-paths/{path_id}/steps` params(path_id) [auth, db]
+- `GET` `/api/admin/learning-paths/{path_id}/enrollments` params(path_id) → in: Optional [auth, db]
+- `GET` `/api/public/learning-paths` params() → in: Optional [auth, db]
+- `POST` `/api/public/learning-paths/{path_id}/enroll` params(path_id) [auth, db]
+- `GET` `/api/public/learning-paths/{path_id}/progress` params(path_id) → in: Optional [auth, db]
+- `POST` `/api/public/learning-paths/{path_id}/steps/{step_id}/complete` params(path_id, step_id) [auth, db]
+- `POST` `/api/public/courses/{course_id}/modules/{module_id}/lti-launch` params(course_id, module_id) [auth, db]
+- `GET` `/api/events/{event_id}/capacities` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `POST` `/api/admin/events/{event_id}/badge-rules` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `GET` `/api/admin/events/{event_id}/badge-rules` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `POST` `/api/admin/events/{event_id}/badges` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/events/{event_id}/badges` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/events/{event_id}/attendees/{attendee_id}/badges` params(event_id, attendee_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/events/{event_id}/survey-access` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `GET` `/api/events/{event_id}/participant-status` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/events/{event_id}/participant-status/me` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/admin/events/{event_id}/badges/calculate` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/admin/events/{event_id}/certificates/assign-tiers` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/events/{event_id}/certificates/tier-summary` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/surveys/{event_id}/submit` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `POST` `/api/surveys/external/webhook` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/events/{event_id}/surveys/responses` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/health` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `GET` `/api/openapi.json` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/openapi-actions.json` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/auth/login` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `POST` `/api/auth/2fa/validate` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/auth/register` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `GET` `/api/auth/verify-email` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/auth/resend-verification` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/auth/oauth/bridge/exchange` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/auth/google/start` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/auth/google/callback` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/google/sheets/status` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/google/sheets/start` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/google/sheets/callback` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/microsoft/excel/status` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/microsoft/excel/start` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/microsoft/excel/callback` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/public/auth/register` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `POST` `/api/public/auth/login` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `GET` `/api/public/auth/verify-email` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/public/auth/resend-verification` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/public/auth/forgot-password` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `POST` `/api/public/auth/reset-password` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `POST` `/api/auth/forgot-password` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `POST` `/api/auth/reset-password` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `GET` `/api/system/cert-templates` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/admin/events/{event_id}/apply-cert-template` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `POST` `/api/admin/webhooks/{webhook_id}/test` params(webhook_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/superadmin/transactions` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `PATCH` `/api/superadmin/admins/{admin_id}/role` params(admin_id) → in: PublicMemberProfileUpdateIn, out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/transactions` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/superadmin/coins/credit` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/waitlist` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/superadmin/waitlist` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/pricing/config` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `GET` `/api/superadmin/pricing` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `PATCH` `/api/superadmin/pricing` → in: PublicMemberProfileUpdateIn, out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/stats` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `GET` `/api/superadmin/stats` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `PATCH` `/api/superadmin/stats` → in: PublicMemberProfileUpdateIn, out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/billing/status` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `POST` `/api/billing/create-payment` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/billing/webhook/{provider_name}` params(provider_name) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/billing/orders` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/billing/subscription` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/superadmin/payment-config` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `PATCH` `/api/superadmin/payment-config` → in: PublicMemberProfileUpdateIn, out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/me` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `GET` `/api/me/export` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/public/me/export` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/public/me/email-preferences` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/public/me/email-prefereonces` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `PATCH` `/api/public/me/email-preferences` → in: PublicMemberProfileUpdateIn, out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `PATCH` `/api/public/me/email-prefereonces` → in: PublicMemberProfileUpdateIn, out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/public/me/avatar` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `GET` `/api/public/members/{member_public_id}` params(member_public_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `PATCH` `/api/public/me/password` → in: PublicMemberProfileUpdateIn, out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `GET` `/api/public/my-events` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `PATCH` `/api/me/password` → in: PublicMemberProfileUpdateIn, out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `PATCH` `/api/me/email` → in: PublicMemberProfileUpdateIn, out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `DELETE` `/api/me` → in: DeleteAccountIn, out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `POST` `/api/admin/ai/event-assistant` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/mcp/me` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/admin/mcp/agent-log` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/mcp/agent-logs` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/admin/certificates/{cert_id}/revoke` params(cert_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/events/{event_id}/health` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/events/{event_id}/access` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/event-team/invitations/accept` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/events/{event_id}/team/activity` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/events/{event_id}/sheets` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/admin/events/{event_id}/sheets/connect` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/admin/events/{event_id}/sheets/sync` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `DELETE` `/api/admin/events/{event_id}/sheets` params(event_id) → in: DeleteAccountIn, out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/admin/events/{event_id}/template-upload` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/admin/events/{event_id}/banner-upload` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `PUT` `/api/admin/events/{event_id}/config` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `GET` `/api/verify/{uuid}` params(uuid) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/verify-watermark` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/files/{path:path}` params(path) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/branding` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `GET` `/api/admin/organization/settings` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `PATCH` `/api/admin/organization/settings` → in: PublicMemberProfileUpdateIn, out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `POST` `/api/admin/organization/logo` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/public/branding` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/events/{event_id}/certificates` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/events/{event_id}/certificates/cost-estimate` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/admin/events/{event_id}/certificates` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `PATCH` `/api/admin/certificates/{cert_id}` params(cert_id) → in: PublicMemberProfileUpdateIn, out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `DELETE` `/api/admin/certificates/{cert_id}` params(cert_id) → in: DeleteAccountIn, out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/admin/events/{event_id}/certificates/bulk-action` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/events/{event_id}/certificates/export` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/dashboard/stats` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/superadmin/system-health` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/superadmin/subscriptions` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `POST` `/api/superadmin/subscriptions/grant` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `DELETE` `/api/superadmin/subscriptions/{sub_id}` params(sub_id) → in: DeleteAccountIn, out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/auth/magic-link` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/auth/magic-link/verify` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/public/events` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `GET` `/api/public/events/{event_id}` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/public/events/{event_id}/comments` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/public/events/{event_id}/comments` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/public/events/{event_id}/comments/{comment_id}/report` params(event_id, comment_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/events/{event_id}/info` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `POST` `/api/legal/document-events` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `POST` `/api/events/{event_id}/registration-document` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/events/{event_id}/register` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `GET` `/api/events/{event_id}/verify-email` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `POST` `/api/events/{event_id}/resend-verification` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/attend/{checkin_token}` params(checkin_token) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/attend/{checkin_token}` params(checkin_token) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/admin/support-tickets` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `PATCH` `/api/admin/events/{event_id}/sessions/{session_id}/toggle` params(event_id, session_id) → in: PublicMemberProfileUpdateIn, out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/events/{event_id}/sessions/{session_id}/qr` params(event_id, session_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/events/{event_id}/attendaonce/export` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/events/{event_id}/registration-documents/file` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/events/{event_id}/registration-documents/export` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/events/{event_id}/attendees/{attendee_id}/survey-link` params(event_id, attendee_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/events/{event_id}/comments` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `PATCH` `/api/admin/events/{event_id}/comments/{comment_id}` params(event_id, comment_id) → in: PublicMemberProfileUpdateIn, out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/events/{event_id}/attendees/filter-for-email` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/admin/events/{event_id}/attendees/import` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/admin/events/{event_id}/sessions/{session_id}/checkin` params(event_id, session_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/events/{event_id}/operations` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `DELETE` `/api/admin/events/{event_id}/attendance-records/{record_id}` params(event_id, record_id) → in: DeleteAccountIn, out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/events/{event_id}/attendance` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `GET` `/api/admin/events/{event_id}/attendaonce` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/events/{event_id}/attendance/export` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/admin/events/{event_id}/bulk-certify` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/admin/events/{event_id}/bulk-certify-queue` params(event_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/transactions/list` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/superadmin/audit-logs` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/superadmin/audit-logs/export` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/organization/legal-consents/export` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/superadmin/security-events` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/organization/venue-reservations/google-calendar/status` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/organization/venue-reservations/google-calendar/start` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/admin/organization/venue-reservations/google-calendar/sync` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `POST` `/api/superadmin/organizations/{org_id}/domain/approve` params(org_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `POST` `/api/superadmin/organizations/{org_id}/domain/revoke` params(org_id) → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai] ✓
+- `GET` `/api/feature-policies` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/superadmin/job-status` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/jobs` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/admin/badge-templates` → out: BadgeRulesOut [auth, db, cache, queue, email, payment, upload, ai]
+- `GET` `/api/public/marketplace` params() → in: Optional, out: list [auth, db]
+- `GET` `/api/public/marketplace/categories` params() → in: Optional, out: list [auth, db]
+- `GET` `/api/public/marketplace/{event_id}` params(event_id) → in: Optional, out: list [auth, db]
+- `PATCH` `/api/admin/events/{event_id}/marketplace` params(event_id) → out: list [auth, db]
+- `GET` `/api/public/marketplace/courses` params() → in: Optional, out: list [auth, db]
+- `GET` `/api/public/marketplace/courses/{course_id}` params(course_id) → in: Optional, out: list [auth, db]
+- `PATCH` `/api/admin/lms/courses/{course_id}/marketplace` params(course_id) → out: list [auth, db]
+- `POST` `/api/public/members/me/wallet-analytics` params() → out: WalletAnalyticsOut [auth, db, cache]
+- `GET` `/api/public/members/me/wallet-analytics` params() → in: CurrentPublicMembe, out: WalletAnalyticsOut [auth, db, cache]
+- `GET` `/api/public/members/me/certificate-privacy/audit` params() → in: CurrentPublicMembe, out: WalletAnalyticsOut [auth, db, cache]
+- `POST` `/api/public/certificates/{certificate_uuid}/share-cache` params(certificate_uuid) → out: WalletAnalyticsOut [auth, db, cache]
+- `GET` `/api/public/members/me/certificate-privacy` params() → in: CurrentPublicMembe, out: WalletAnalyticsOut [auth, db, cache]
+- `PATCH` `/api/public/members/me/certificate-privacy` params() → in: CertificatePrivacyIn, out: WalletAnalyticsOut [auth, db, cache]
+- `GET` `/api/admin/events/{event_id}/microsoft-excel` params(event_id) → out: EventMicrosoftExcelStatusOut [auth, db, upload]
+- `POST` `/api/admin/events/{event_id}/microsoft-excel/connect` params(event_id) → out: EventMicrosoftExcelStatusOut [auth, db, upload]
+- `POST` `/api/admin/events/{event_id}/microsoft-excel/sync` params(event_id) → out: EventMicrosoftExcelStatusOut [auth, db, upload]
+- `DELETE` `/api/admin/events/{event_id}/microsoft-excel` params(event_id) → out: EventMicrosoftExcelStatusOut [auth, db, upload]
+- `GET` `/api/admin/integrations/catalog` params() → out: IntegrationCatalogOut [auth, db, payment]
+- `GET` `/api/admin/integrations/enterprise-config` params() → out: IntegrationCatalogOut [auth, db, payment]
+- `PATCH` `/api/admin/integrations/enterprise-config` params() → out: IntegrationCatalogOut [auth, db, payment]
+- `POST` `/api/admin/integrations/provider-config/{provider_key}/test` params(provider_key) → out: IntegrationCatalogOut [auth, db, payment]
+- `POST` `/api/admin/integrations/notifications/test` params() → out: IntegrationCatalogOut [auth, db, payment]
+- `GET` `/api/admin/integrations/webinar/zoom/webinars` params() → out: IntegrationCatalogOut [auth, db, payment]
+- `POST` `/api/admin/integrations/webinar/zoom/webinars/{webinar_id}/import` params(webinar_id) → out: IntegrationCatalogOut [auth, db, payment]
+- `GET` `/api/oauth/validate` params() → in: st, out: ValidateOut [auth, db]
+- `POST` `/api/oauth/authorize` params() → in: AuthorizeIn, out: ValidateOut [auth, db]
+- `POST` `/api/oauth/token` params() → in: AuthorizeIn, out: ValidateOut [auth, db]
+- `DELETE` `/api/admin/superadmin/oauth-clients/{client_id}/tokens` params(client_id) → out: ValidateOut [auth, db]
+- `GET` `/api/oauth/userinfo` params() → in: st, out: ValidateOut [auth, db]
+- `GET` `/api/admin/me/oauth-connections` params() → in: st, out: ValidateOut [auth, db]
+- `DELETE` `/api/oauth/disconnect/{client_id}` params(client_id) → out: ValidateOut [auth, db]
+- `GET` `/api/auth/oidc/start` params() → in: in [auth, db]
+- `GET` `/api/auth/oidc/callback` params() → in: in [auth, db]
+- `GET` `/api/admin/organization/contexts` params() → out: list [auth, db] ✓
+- `GET` `/api/admin/analytics/org/overview` params() [auth, db]
+- `GET` `/api/admin/analytics/org/training-compliance` params() [auth, db]
+- `GET` `/api/admin/analytics/org/learning-paths` params() [auth, db]
+- `GET` `/api/admin/analytics/org/crm` params() [auth, db]
+- `GET` `/api/admin/analytics/org/cert-timeline` params() [auth, db] ✓
+- `GET` `/admin/organization/modules` params() [auth, db]
+- `PATCH` `/admin/organization/modules` params() [auth, db]
+- `POST` `/admin/organization/onboarding` params() [auth, db]
+- `POST` `/api/admin/org/staff/invite` params() → in: StaffAcceptIn [auth, db]
+- `POST` `/api/org/staff/accept` params() → in: StaffAcceptIn [auth, db]
+- `GET` `/api/superadmin/platform-health` params() [auth, db, payment]
+- `POST` `/api/admin/product-telemetry` params() → in: ProductTelemetryIn [auth, db]
+- `GET` `/api/superadmin/product-telemetry/summary` params() [auth, db]
+- `POST` `/api/superadmin/qa-seed` params() [auth, db]
+- `GET` `/api/admin/events/{event_id}/quiz/results` params(event_id) [auth, db]
+- `POST` `/api/admin/events/{event_id}/quiz/attempts/{attempt_id}/issue-cert` params(event_id, attempt_id) [auth, db]
+- `GET` `/api/public/events/{event_id}/quiz` params(event_id) [auth, db]
+- `POST` `/api/public/events/{event_id}/quiz/start` params(event_id) [auth, db]
+- `POST` `/api/public/events/{event_id}/quiz/submit` params(event_id) [auth, db]
+- `GET` `/api/public/events/{event_id}/quiz/my-result` params(event_id) [auth, db]
+- `GET` `/api/admin/events/{event_id}/raffles/audit` params(event_id) → out: List [auth, db]
+- `POST` `/api/admin/events/{event_id}/raffles/{raffle_id}/draw` params(event_id, raffle_id) → out: List [auth, db]
+- `POST` `/api/admin/events/{event_id}/raffles/{raffle_id}/redraw` params(event_id, raffle_id) → out: List [auth, db]
+- `GET` `/api/admin/events/{event_id}/raffles/{raffle_id}/export` params(event_id, raffle_id) → out: List [auth, db]
+- `POST` `/api/admin/events/{event_id}/raffles/{raffle_id}/reset` params(event_id, raffle_id) → out: List [auth, db]
+- `GET` `/api/admin/reports/types` params() → out: list [auth, db]
+- `GET` `/api/public/feed` params() → in: in, out: list [auth, db] ✓
+- `POST` `/api/public/feed` params() → in: CommunityPostCreateIn, out: list [auth, db] ✓
+- `GET` `/api/public/organizations/{org_public_id}/feed` params(org_public_id) → in: in, out: list [auth, db]
+- `POST` `/api/public/organizations/{org_public_id}/feed` params(org_public_id) → in: CommunityPostCreateIn, out: list [auth, db]
+- `POST` `/api/public/posts/{post_public_id}/like` params(post_public_id) → in: CommunityPostCreateIn, out: list [auth, db]
+- `DELETE` `/api/public/posts/{post_public_id}/like` params(post_public_id) → out: list [auth, db]
+- `PATCH` `/api/public/posts/{post_public_id}` params(post_public_id) → out: list [auth, db]
+- `DELETE` `/api/public/posts/{post_public_id}` params(post_public_id) → out: list [auth, db]
+- `GET` `/api/public/posts/{post_public_id}/history` params(post_public_id) → in: in, out: list [auth, db]
+- `GET` `/api/public/posts/{post_public_id}/comments` params(post_public_id) → in: in, out: list [auth, db]
+- `POST` `/api/public/posts/{post_public_id}/comments` params(post_public_id) → in: CommunityPostCreateIn, out: list [auth, db]
+- `GET` `/api/auth/sso/{provider}/authorize` params(provider) [auth, db]
+- `GET` `/api/auth/sso/{provider}/callback` params(provider) [auth, db]
+- `POST` `/api/admin/events/{event_id}/survey-config` params(event_id) → out: EventSurveyOut [auth, db, payment, upload] ✓
+- `GET` `/api/admin/events/{event_id}/survey-config` params(event_id) → out: EventSurveyOut [auth, db, payment, upload] ✓
+- `GET` `/api/admin/events/{event_id}/template-history` params(event_id) → out: List [auth, db, upload]
+- `POST` `/api/admin/events/{event_id}/template-history/{snap_id}/restore` params(event_id, snap_id) → out: List [auth, db, upload]
+- `GET` `/api/tickets/{token}` params(token) → out: PublicTicketOut [auth, db, cache]
+- `GET` `/api/tickets/{token}/qr` params(token) → out: PublicTicketOut [auth, db, cache]
+- `GET` `/api/tickets/{token}/png` params(token) → out: PublicTicketOut [auth, db, cache]
+- `GET` `/api/tickets/{token}/pdf` params(token) → out: PublicTicketOut [auth, db, cache]
+- `GET` `/api/tickets/{token}/apple-wallet` params(token) → out: PublicTicketOut [auth, db, cache]
+- `GET` `/api/admin/events/{event_id}/tickets` params(event_id) → out: PublicTicketOut [auth, db, cache]
+- `POST` `/api/admin/events/{event_id}/tickets/check-in` params(event_id) → out: PublicTicketOut [auth, db, cache] ✓
+- `PATCH` `/api/admin/events/{event_id}/tickets/{ticket_id}/status` params(event_id, ticket_id) → out: PublicTicketOut [auth, db, cache] ✓
+- `GET` `/api/admin/training/templates` params() → out: list [auth, db]
+- `POST` `/api/admin/training/templates` params() → out: list [auth, db]
+- `POST` `/api/admin/training/bulk-assign` params() → out: list [auth, db]
+- `GET` `/api/admin/training/recurring-rules` params() → out: list [auth, db]
+- `POST` `/api/admin/training/recurring-rules` params() → out: list [auth, db]
+- `POST` `/api/admin/training/recurring-rules/run` params() → out: list [auth, db]
+- `GET` `/api/admin/training/report` params() → out: list [auth, db]
+- `GET` `/api/admin/training/report/export` params() → out: list [auth, db]
+- `GET` `/api/admin/training/renewal-recommendations` params() → out: list [auth, db]
+- `POST` `/api/admin/training/send-renewal-notifications` params() → out: list [auth, db]
+- `GET` `/api/admin/training/notification-logs` params() → out: list [auth, db]
+- `GET` `/api/admin/organization/venue-reservations/calendar.ics` params() → out: list [auth, db] ✓
+- `GET` `/api/public/courses` params() → in: Optional [auth, db]
+- `GET` `/api/public/courses/{course_id}` params(course_id) → in: Optional [auth, db]
+- `POST` `/api/public/courses/{course_id}/enroll` params(course_id) [auth, db]
+- `POST` `/api/public/courses/{course_id}/modules/{module_id}/complete` params(course_id, module_id) [auth, db]
+- `GET` `/api/admin/lms/courses/{course_id}/enrollments` params(course_id) → in: Optional [auth, db]
+- `POST` `/api/admin/lms/courses/{course_id}/enrollments/import` params(course_id) [auth, db]
+- `POST` `/api/admin/lms/courses/{course_id}/enrollments/invite` params(course_id) [auth, db]
+- `GET` `/api/admin/lms/courses/{course_id}/announcements` params(course_id) → in: Optional [auth, db]
+- `POST` `/api/admin/lms/courses/{course_id}/announcements` params(course_id) [auth, db]
+- `GET` `/api/admin/lms/courses/{course_id}/assignments/{module_id}/submissions` params(course_id, module_id) → in: Optional [auth, db]
+- `PATCH` `/api/admin/lms/submissions/{submission_id}/grade` params(submission_id) [auth, db]
+- `GET` `/api/public/lms/journeys` params() → in: Optional [auth, db]
+- `POST` `/api/public/lms/journeys/{journey_id}/enroll` params(journey_id) [auth, db]
+- `POST` `/api/public/courses/{course_id}/modules/{module_id}/submit` params(course_id, module_id) [auth, db]
+- `GET` `/api/public/orgs/{org_id}/lms-branding` params(org_id) → in: Optional [auth, db]
+- `GET` `/api/public/quizzes/{quiz_id}` params(quiz_id) → in: Optional [auth, db]
+- `GET` `/api/public/quizzes/{quiz_id}/my-attempts` params(quiz_id) → in: Optional [auth, db]
+- `POST` `/api/public/quizzes/{quiz_id}/start` params(quiz_id) [auth, db]
+- `POST` `/api/public/quiz-attempts/{attempt_id}/submit` params(attempt_id) [auth, db]
+- `GET` `/api/public/quiz-attempts/{attempt_id}/result` params(attempt_id) → in: Optional [auth, db]
+- `GET` `/api/public/courses/{course_id}/announcements` params(course_id) → in: Optional [auth, db]
+- `GET` `/api/public/courses/{course_id}/syllabus` params(course_id) → in: Optional [auth, db]
+- `GET` `/api/public/my-courses` params() → in: Optional [auth, db]
+- `GET` `/api/admin/lms/courses/{course_id}/gradebook` params(course_id) [auth, db]
+- `POST` `/api/admin/lms/courses/{course_id}/gradebook/{enrollment_id}/summary` params(course_id, enrollment_id) [auth, db]
+- `POST` `/api/admin/lms/courses/{course_id}/discussions/{discussion_id}/replies` params(course_id, discussion_id) [auth, db]
+- `PATCH` `/api/admin/lms/courses/{course_id}/discussions/{discussion_id}/lock` params(course_id, discussion_id) [auth, db]
+- `POST` `/api/admin/lms/courses/{course_id}/rubrics/{rubric_id}/criteria` params(course_id, rubric_id) [auth, db]
+- `POST` `/api/admin/lms/submissions/{submission_id}/rubric-scores` params(submission_id) [auth, db]
+- `DELETE` `/api/admin/lms/courses/{course_id}/rubrics/{rubric_id}/criteria/{criterion_id}` params(course_id, rubric_id, criterion_id) [auth, db]
+- `GET` `/api/admin/lms/courses/{course_id}/groups` params(course_id) [auth, db]
+- `POST` `/api/admin/lms/courses/{course_id}/groups` params(course_id) [auth, db]
+- `POST` `/api/admin/lms/courses/{course_id}/groups/{group_id}/members` params(course_id, group_id) [auth, db]
+- `DELETE` `/api/admin/lms/courses/{course_id}/groups/{group_id}/members/{member_id}` params(course_id, group_id, member_id) [auth, db]
+- `POST` `/api/admin/lms/badges/{badge_id}/award` params(badge_id) [auth, db]
+- `GET` `/api/admin/lms/badges/{badge_id}/awards` params(badge_id) [auth, db]
+- `GET` `/api/admin/lms/courses/{course_id}/syllabus` params(course_id) [auth, db]
+- `PUT` `/api/admin/lms/courses/{course_id}/syllabus` params(course_id) [auth, db]
+- `GET` `/api/admin/lms/courses/{course_id}/attendance-sessions/{session_id}/records` params(course_id, session_id) [auth, db]
+- `PUT` `/api/admin/lms/courses/{course_id}/attendance-sessions/{session_id}/records` params(course_id, session_id) [auth, db]
+- `PATCH` `/api/admin/lms/bridges/{bridge_id}/toggle` params(bridge_id) [auth, db]
+- `PATCH` `/api/admin/lms/announcements/{announcement_id}` params(announcement_id) [auth, db]
+- `DELETE` `/api/admin/lms/announcements/{announcement_id}` params(announcement_id) [auth, db]
+- `GET` `/api/admin/lms/courses/{course_id}/quizzes` params(course_id) [auth, db]
+- `POST` `/api/admin/lms/courses/{course_id}/quizzes` params(course_id) [auth, db]
+- `POST` `/api/admin/lms/quizzes/{quiz_id}/questions` params(quiz_id) [auth, db]
+- `PATCH` `/api/admin/lms/questions/{question_id}` params(question_id) [auth, db]
+- `DELETE` `/api/admin/lms/questions/{question_id}` params(question_id) [auth, db]
+- `PUT` `/api/admin/lms/questions/{question_id}/choices` params(question_id) [auth, db]
+- `GET` `/api/admin/lms/quizzes/{quiz_id}/attempts` params(quiz_id) [auth, db]
+- `GET` `/api/admin/lms/analytics` params() [auth, db]
+- `GET` `/api/admin/lms/courses/{course_id}/analytics` params(course_id) [auth, db]
+- `GET` `/api/admin/lms/courses/{course_id}/analytics/funnel` params(course_id) [auth, db]
+- `GET` `/api/admin/lms/analytics/compliance` params() [auth, db]
+- `GET` `/api/admin/lms/analytics/outcomes` params() [auth, db]
+- `POST` `/api/public/courses/{course_id}/discussions/{discussion_id}/replies` params(course_id, discussion_id) [auth, db]
+- `GET` `/api/public/courses/{course_id}/calendar` params(course_id) [auth, db]
+- `GET` `/api/public/courses/{course_id}/my-grades` params(course_id) [auth, db]
