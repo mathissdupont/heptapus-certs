@@ -55,6 +55,17 @@ export type GeneratePresentationPayload = {
   extra_notes?: string;
 };
 
+export type PresentationSessionState = {
+  slide_index: number;
+  updated_at: string;
+};
+
+export type PresentationSpeakerNote = {
+  slide_index: number;
+  note: string;
+  updated_at?: string | null;
+};
+
 export async function listPresentations(): Promise<PresentationDeck[]> {
   const res = await apiFetch("/admin/presentations");
   return res.json();
@@ -108,6 +119,32 @@ export async function updatePresentation(id: number, payload: Partial<Presentati
   const res = await apiFetch(`/admin/presentations/${id}`, {
     method: "PATCH",
     body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function getPresentationSession(id: number): Promise<PresentationSessionState> {
+  const res = await apiFetch(`/admin/presentations/${id}/session`);
+  return res.json();
+}
+
+export async function updatePresentationSession(id: number, slideIndex: number): Promise<PresentationSessionState> {
+  const res = await apiFetch(`/admin/presentations/${id}/session`, {
+    method: "PATCH",
+    body: JSON.stringify({ slide_index: slideIndex }),
+  });
+  return res.json();
+}
+
+export async function getPresentationSpeakerNote(id: number, slideIndex: number): Promise<PresentationSpeakerNote> {
+  const res = await apiFetch(`/admin/presentations/${id}/notes/${slideIndex}`);
+  return res.json();
+}
+
+export async function updatePresentationSpeakerNote(id: number, slideIndex: number, note: string): Promise<PresentationSpeakerNote> {
+  const res = await apiFetch(`/admin/presentations/${id}/notes/${slideIndex}`, {
+    method: "PUT",
+    body: JSON.stringify({ note }),
   });
   return res.json();
 }

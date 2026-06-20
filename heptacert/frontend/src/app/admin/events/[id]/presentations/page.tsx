@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { AlertTriangle, CheckCircle2, Clock3, Download, FileText, Loader2, MonitorPlay, Presentation, RefreshCw, Trash2, Upload } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock3, Download, FileText, Loader2, MonitorPlay, Presentation, RefreshCw, Smartphone, Trash2, Upload } from "lucide-react";
 import { deletePresentation, listEventPresentations, presentationFileUrl, uploadEventPresentation, type PresentationDeck } from "@/lib/presentationsApi";
 import { useI18n } from "@/lib/i18n";
 
@@ -201,6 +201,10 @@ export default function EventPresentationsPage() {
                       <Link href={`/admin/events/${eventId}/presentations/${deck.id}/present`} target="_blank" className="btn-primary">
                         <MonitorPlay className="h-4 w-4" />
                         {copy.stage}
+                      </Link>
+                      <Link href={`/admin/events/${eventId}/presentations/${deck.id}/remote`} target="_blank" className="btn-secondary">
+                        <Smartphone className="h-4 w-4" />
+                        {isTr ? "Telefon" : "Remote"}
                       </Link>
                       {fileUrl && (
                         <a href={fileUrl} target="_blank" rel="noreferrer" className="btn-secondary">

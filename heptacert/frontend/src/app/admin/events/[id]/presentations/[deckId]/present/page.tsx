@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Download, Expand, FileText, Loader2, Presentation } from "lucide-react";
+import { Download, Expand, FileText, Loader2, Presentation, Smartphone } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import { presentationConvertedFileUrl, presentationFileUrl, type PresentationDeck } from "@/lib/presentationsApi";
+import { getPresentationSession, presentationConvertedFileUrl, presentationFileUrl, type PresentationDeck } from "@/lib/presentationsApi";
 import { useI18n } from "@/lib/i18n";
 
 function isPdf(deck: PresentationDeck | null) {
@@ -24,6 +25,7 @@ export default function EventPresentationStagePage() {
   const [deck, setDeck] = useState<PresentationDeck | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [slideIndex, setSlideIndex] = useState(0);
 
   const copy = useMemo(() => ({
     loadFailed: isTr ? "Sunum açılamadı." : "Could not open presentation.",
@@ -54,6 +56,7 @@ export default function EventPresentationStagePage() {
   const fileUrl = deck ? presentationFileUrl(deck) : null;
   const convertedUrl = deck ? presentationConvertedFileUrl(deck) : null;
   const stageUrl = convertedUrl || (deck && isPdf(deck) ? fileUrl : null);
+  const stageUrlWithPage = stageUrl ? `${stageUrl}#toolbar=1&navpanes=0&view=FitH&page=${slideIndex + 1}` : null;
 
   useEffect(() => {
     if (!isConverting(deck)) return;
@@ -65,6 +68,25 @@ export default function EventPresentationStagePage() {
     }, 5000);
     return () => window.clearTimeout(timer);
   }, [deck, deckId]);
+
+  useEffect(() => {
+    if (!deckId) return;
+    let cancelled = false;
+    async function syncSession() {
+      try {
+        const state = await getPresentationSession(deckId);
+        if (!cancelled) setSlideIndex(Math.max(0, state.slide_index || 0));
+      } catch {
+        // Keep the stage visible even if the remote state cannot be read momentarily.
+      }
+    }
+    void syncSession();
+    const timer = window.setInterval(() => void syncSession(), 1200);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [deckId]);
 
   function requestFullscreen() {
     const root = document.documentElement;
@@ -87,6 +109,10 @@ export default function EventPresentationStagePage() {
               {copy.download}
             </a>
           )}
+          <Link href={`/admin/events/${params.id}/presentations/${deckId}/remote`} target="_blank" className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/15">
+            <Smartphone className="h-4 w-4" />
+            {isTr ? "Telefon" : "Remote"}
+          </Link>
           <button type="button" onClick={requestFullscreen} className="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-bold text-surface-950 transition hover:bg-white/90">
             <Expand className="h-4 w-4" />
             {copy.fullscreen}
@@ -106,8 +132,9 @@ export default function EventPresentationStagePage() {
           </div>
         ) : stageUrl ? (
           <iframe
+            key={stageUrlWithPage}
             title={deck.title}
-            src={`${stageUrl}#toolbar=1&navpanes=0&view=FitH`}
+            src={stageUrlWithPage || stageUrl}
             className="h-full w-full rounded-xl border border-white/10 bg-white shadow-2xl"
           />
         ) : isConverting(deck) ? (
@@ -130,7 +157,7 @@ export default function EventPresentationStagePage() {
       </section>
 
       <footer className="absolute bottom-4 left-0 right-0 z-20 text-center text-11 font-semibold uppercase tracking-[0.18em] text-white/25">
-        {copy.secured}
+        {copy.secured} · {slideIndex + 1}
       </footer>
     </main>
   );

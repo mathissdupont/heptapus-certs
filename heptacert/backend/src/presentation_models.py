@@ -7,7 +7,7 @@ independent module.
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .db import Base
@@ -46,4 +46,21 @@ class PresentationDeck(Base):
     __table_args__ = (
         Index("ix_presentation_decks_org_updated", "organization_id", "updated_at"),
         Index("ix_presentation_decks_event_updated", "event_id", "updated_at"),
+    )
+
+
+class PresentationSpeakerNote(Base):
+    __tablename__ = "presentation_speaker_notes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    deck_id: Mapped[int] = mapped_column(Integer, ForeignKey("presentation_decks.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    slide_index: Mapped[int] = mapped_column(Integer)
+    note: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("deck_id", "user_id", "slide_index", name="uq_presentation_note_deck_user_slide"),
+        Index("ix_presentation_notes_deck_user", "deck_id", "user_id"),
     )

@@ -20,11 +20,12 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .ai_content_api import _claude
+from .cache import cache
 from .main import CurrentUser, Organization, Role, get_current_user, get_db, require_role, settings, write_audit_log
 from .models import Event, User
 from .organization_access_api import get_organization_for_access, organization_id_from_request
 from .presentation_converter import is_powerpoint_path
-from .presentation_models import PresentationDeck
+from .presentation_models import PresentationDeck, PresentationSpeakerNote
 from .presentation_renderer import render_deck_pptx
 from .upload_security import scan_upload_with_clamav
 
@@ -138,6 +139,25 @@ class PublicDeckOut(BaseModel):
     language: str
     theme: dict[str, Any]
     slides: list[dict[str, Any]]
+
+
+class PresentationSessionState(BaseModel):
+    slide_index: int = Field(default=0, ge=0, le=500)
+    updated_at: datetime
+
+
+class PresentationSessionPatch(BaseModel):
+    slide_index: int = Field(ge=0, le=500)
+
+
+class SpeakerNoteOut(BaseModel):
+    slide_index: int
+    note: str
+    updated_at: Optional[datetime] = None
+
+
+class SpeakerNoteIn(BaseModel):
+    note: str = Field(default="", max_length=10000)
 
 
 async def _presentation_deck_existing_columns(db: AsyncSession) -> set[str]:
@@ -416,6 +436,20 @@ def _file_download_name(deck: Any, fallback_prefix: str = "presentation") -> str
     return deck.file_filename or f"{fallback_prefix}-{deck.id}"
 
 
+def _presentation_session_key(deck_id: int) -> str:
+    return f"presentation:session:{deck_id}"
+
+
+async def _get_presentation_session_state(deck_id: int) -> PresentationSessionState:
+    cached = await cache.get(_presentation_session_key(deck_id))
+    if isinstance(cached, dict):
+        return PresentationSessionState(
+            slide_index=int(cached.get("slide_index") or 0),
+            updated_at=cached.get("updated_at") or datetime.now(timezone.utc),
+        )
+    return PresentationSessionState(slide_index=0, updated_at=datetime.now(timezone.utc))
+
+
 async def _store_upload_file(deck: PresentationDeck, file: UploadFile) -> None:
     suffix = _safe_upload_suffix(file.content_type or "", file.filename or "")
     raw = await file.read()
@@ -615,6 +649,87 @@ async def get_deck(
 ) -> DeckOut:
     row = await _authorized_deck(db, me, deck_id, request, "presentations:read")
     return _deck_out_from_row(row)
+
+
+@router.get("/{deck_id}/session", response_model=PresentationSessionState, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def get_presentation_session(
+    deck_id: int,
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> PresentationSessionState:
+    await _authorized_deck(db, me, deck_id, request, "presentations:read")
+    return await _get_presentation_session_state(deck_id)
+
+
+@router.patch("/{deck_id}/session", response_model=PresentationSessionState, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def update_presentation_session(
+    deck_id: int,
+    payload: PresentationSessionPatch,
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> PresentationSessionState:
+    await _authorized_deck(db, me, deck_id, request, "presentations:write")
+    state = PresentationSessionState(slide_index=payload.slide_index, updated_at=datetime.now(timezone.utc))
+    await cache.set(_presentation_session_key(deck_id), state.model_dump(), ttl=6 * 60 * 60)
+    return state
+
+
+@router.get("/{deck_id}/notes/{slide_index}", response_model=SpeakerNoteOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def get_speaker_note(
+    deck_id: int,
+    slide_index: int,
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SpeakerNoteOut:
+    await _authorized_deck(db, me, deck_id, request, "presentations:read")
+    result = await db.execute(
+        select(PresentationSpeakerNote).where(
+            PresentationSpeakerNote.deck_id == deck_id,
+            PresentationSpeakerNote.user_id == me.id,
+            PresentationSpeakerNote.slide_index == slide_index,
+        )
+    )
+    note = result.scalar_one_or_none()
+    return SpeakerNoteOut(
+        slide_index=slide_index,
+        note=note.note if note else "",
+        updated_at=note.updated_at if note else None,
+    )
+
+
+@router.put("/{deck_id}/notes/{slide_index}", response_model=SpeakerNoteOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def update_speaker_note(
+    deck_id: int,
+    slide_index: int,
+    payload: SpeakerNoteIn,
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SpeakerNoteOut:
+    if slide_index < 0 or slide_index > 500:
+        raise HTTPException(status_code=400, detail="Invalid slide index")
+    await _authorized_deck(db, me, deck_id, request, "presentations:write")
+    result = await db.execute(
+        select(PresentationSpeakerNote).where(
+            PresentationSpeakerNote.deck_id == deck_id,
+            PresentationSpeakerNote.user_id == me.id,
+            PresentationSpeakerNote.slide_index == slide_index,
+        )
+    )
+    note = result.scalar_one_or_none()
+    now = datetime.now(timezone.utc)
+    if note is None:
+        note = PresentationSpeakerNote(deck_id=deck_id, user_id=me.id, slide_index=slide_index, note=payload.note)
+        db.add(note)
+    else:
+        note.note = payload.note
+        note.updated_at = now
+    await db.commit()
+    await db.refresh(note)
+    return SpeakerNoteOut(slide_index=slide_index, note=note.note, updated_at=note.updated_at)
 
 
 @router.get("/{deck_id}/file")
