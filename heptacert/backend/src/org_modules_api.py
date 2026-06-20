@@ -25,15 +25,16 @@ DEFAULT_MODULES: dict[str, bool] = {
     "events": True,
     "lms": True,
     "accreditation": True,
+    "presentations": True,
 }
 
 # Which modules are on by default for each org type
 ORG_TYPE_DEFAULTS: dict[str, dict[str, bool]] = {
-    "event_organizer": {"events": True, "lms": False, "accreditation": False},
-    "training_institute": {"events": True, "lms": True, "accreditation": True},
-    "university": {"events": True, "lms": True, "accreditation": True},
-    "corporate_training": {"events": False, "lms": True, "accreditation": False},
-    "professional_association": {"events": True, "lms": True, "accreditation": True},
+    "event_organizer": {"events": True, "lms": False, "accreditation": False, "presentations": True},
+    "training_institute": {"events": True, "lms": True, "accreditation": True, "presentations": True},
+    "university": {"events": True, "lms": True, "accreditation": True, "presentations": True},
+    "corporate_training": {"events": False, "lms": True, "accreditation": False, "presentations": True},
+    "professional_association": {"events": True, "lms": True, "accreditation": True, "presentations": True},
 }
 
 
@@ -49,6 +50,7 @@ class ModulesIn(BaseModel):
     events: bool = True
     lms: bool = True
     accreditation: bool = True
+    presentations: bool = True
 
 
 class OnboardingIn(BaseModel):

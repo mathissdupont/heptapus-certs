@@ -4780,6 +4780,7 @@ export interface OrgModules {
   events: boolean;
   lms: boolean;
   accreditation: boolean;
+  presentations: boolean;
 }
 
 export async function getOrgModules(): Promise<{ modules: OrgModules; org_type: string | null }> {

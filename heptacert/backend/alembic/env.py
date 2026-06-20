@@ -19,6 +19,7 @@ try:
     import src.lead_forms_models  # noqa: F401 — registers LeadCaptureForm tables on Base.metadata
     import src.report_scheduler_models  # noqa: F401 — registers ScheduledReport table on Base.metadata
     import src.accreditation_models  # noqa: F401 — registers Accreditation tables on Base.metadata
+    import src.presentation_models  # noqa: F401 — registers PresentationDeck table on Base.metadata
     target_metadata = Base.metadata
 except Exception:
     # Fallback: create a bare metadata so alembic can still run migrations

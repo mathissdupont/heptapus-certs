@@ -14502,6 +14502,10 @@ app.include_router(_ai_content_api.router)
 from . import ai_proactive_api as _ai_proactive_api
 app.include_router(_ai_proactive_api.router)
 
+from . import presentation_api as _presentation_api
+app.include_router(_presentation_api.router)
+app.include_router(_presentation_api.public_router)
+
 from . import event_extras_api as _event_extras_api
 app.include_router(_event_extras_api.router)
 

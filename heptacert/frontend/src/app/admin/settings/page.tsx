@@ -1150,6 +1150,15 @@ const MODULE_META = [
     descEn: "CPD hour tracking and reporting for accreditation bodies like MYK, SMMM, TMMOB.",
     color: "emerald",
   },
+  {
+    key: "presentations" as keyof OrgModules,
+    icon: FileText,
+    labelTr: "Sunumlar",
+    labelEn: "Presentations",
+    descTr: "AI destekli genel sunumlar hazırlayın ve PowerPoint olarak dışa aktarın.",
+    descEn: "Create AI-assisted decks and export them as PowerPoint files.",
+    color: "violet",
+  },
 ];
 
 const COLOR_MAP: Record<string, { ring: string; bg: string; text: string; dot: string; badge: string }> = {
@@ -1178,7 +1187,7 @@ const COLOR_MAP: Record<string, { ring: string; bg: string; text: string; dot: s
 
 function ModulesTab() {
   const toast = useToast();
-  const [modules, setModules] = useState<OrgModules>({ events: true, lms: false, accreditation: true });
+  const [modules, setModules] = useState<OrgModules>({ events: true, lms: false, accreditation: true, presentations: true });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 

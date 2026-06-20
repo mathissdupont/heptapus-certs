@@ -37,11 +37,13 @@ ORGANIZATION_PERMISSION_LABELS = {
     "reservations:read": "Rezervasyon takvimini goruntuleyebilir",
     "reservations:write": "Salon rezervasyonlarini yonetebilir",
     "events:manage": "Kurum etkinliklerini yonetebilir",
+    "presentations:read": "Sunumlari goruntuleyebilir",
+    "presentations:write": "Sunum olusturabilir ve duzenleyebilir",
 }
 ORGANIZATION_ROLE_PERMISSIONS = {
     "manager": set(ORGANIZATION_PERMISSION_LABELS.keys()),
     "venue_manager": {"organization:view", "venues:read", "venues:write", "reservations:read", "reservations:write"},
-    "event_manager": {"organization:view", "events:manage"},
+    "event_manager": {"organization:view", "events:manage", "presentations:read", "presentations:write"},
     "profile_manager": {"organization:view", "organization:profile_write"},
     "viewer": {"organization:view", "venues:read", "reservations:read"},
 }

@@ -1,0 +1,430 @@
+"""Presentation deck API.
+
+Users can create AI-assisted or manual slide decks, edit slide JSON, and export
+PowerPoint files without coupling the feature to the legacy LMS code.
+"""
+
+from __future__ import annotations
+
+import json
+import secrets
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import FileResponse
+from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from .ai_content_api import _claude
+from .main import CurrentUser, Organization, Role, get_current_user, get_db, require_role, settings, write_audit_log
+from .organization_access_api import get_organization_for_access, organization_id_from_request
+from .presentation_models import PresentationDeck
+from .presentation_renderer import render_deck_pptx
+
+router = APIRouter(prefix="/api/admin/presentations", tags=["presentations"])
+public_router = APIRouter(prefix="/api/public/presentations", tags=["public-presentations"])
+
+
+class SlideIn(BaseModel):
+    title: str = Field(default="", max_length=180)
+    layout: str = Field(default="bullets", max_length=32)
+    subtitle: Optional[str] = Field(default=None, max_length=260)
+    body: Optional[str] = Field(default=None, max_length=1800)
+    bullets: list[str] = Field(default_factory=list, max_length=12)
+    notes: Optional[str] = Field(default=None, max_length=2000)
+    background: Optional[str] = Field(default=None, max_length=24)
+
+
+class DeckCreateIn(BaseModel):
+    title: str = Field(..., min_length=1, max_length=220)
+    description: Optional[str] = Field(default=None, max_length=1000)
+    language: str = Field(default="tr", max_length=8)
+    theme: dict[str, Any] = Field(default_factory=dict)
+    slides: list[SlideIn] = Field(default_factory=list, max_length=40)
+
+
+class DeckUpdateIn(BaseModel):
+    title: Optional[str] = Field(default=None, min_length=1, max_length=220)
+    description: Optional[str] = Field(default=None, max_length=1000)
+    language: Optional[str] = Field(default=None, max_length=8)
+    theme: Optional[dict[str, Any]] = None
+    slides: Optional[list[SlideIn]] = Field(default=None, max_length=60)
+    status: Optional[str] = Field(default=None, max_length=24)
+
+
+class DeckGenerateIn(BaseModel):
+    topic: str = Field(..., min_length=3, max_length=240)
+    audience: str = Field(default="profesyonel", max_length=160)
+    slide_count: int = Field(default=6, ge=3, le=15)
+    language: str = Field(default="tr", max_length=8)
+    style: str = Field(default="modern ve sade", max_length=160)
+    extra_notes: Optional[str] = Field(default=None, max_length=1200)
+
+
+class DeckOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    organization_id: int
+    created_by: Optional[int]
+    title: str
+    description: Optional[str]
+    language: str
+    theme: dict[str, Any]
+    slides: list[dict[str, Any]]
+    source: str
+    status: str
+    last_export_filename: Optional[str]
+    created_at: datetime
+    updated_at: datetime
+    export_url: Optional[str] = None
+    presenter_url: Optional[str] = None
+
+
+class PublicDeckOut(BaseModel):
+    title: str
+    description: Optional[str]
+    language: str
+    theme: dict[str, Any]
+    slides: list[dict[str, Any]]
+
+
+def _deck_out(deck: PresentationDeck) -> DeckOut:
+    return DeckOut(
+        id=deck.id,
+        organization_id=deck.organization_id,
+        created_by=deck.created_by,
+        title=deck.title,
+        description=deck.description,
+        language=deck.language,
+        theme=deck.theme or {},
+        slides=deck.slides or [],
+        source=deck.source,
+        status=deck.status,
+        last_export_filename=deck.last_export_filename,
+        created_at=deck.created_at,
+        updated_at=deck.updated_at,
+        export_url=f"/api/admin/presentations/{deck.id}/export" if deck.last_export_path else None,
+        presenter_url=f"/present/{deck.presenter_token}" if deck.presenter_token else None,
+    )
+
+
+def _fallback_slides(payload: DeckGenerateIn) -> list[dict[str, Any]]:
+    tr = payload.language == "tr"
+    slides: list[dict[str, Any]] = [
+        {
+            "title": payload.topic,
+            "layout": "title",
+            "subtitle": f"{payload.audience} için {payload.style} sunum" if tr else f"A {payload.style} presentation for {payload.audience}",
+            "notes": "Açılışta dinleyiciyi konuya hazırlayın ve sunumun amacını net söyleyin." if tr else "Open by orienting the audience and stating the goal clearly.",
+        }
+    ]
+    sections = (
+        [
+            ("Bağlam", ["Konu neden önemli?", "Hedef kitle için ana problem", "Beklenen çıktı"]),
+            ("Ana Fikirler", ["Temel kavramlar", "Kritik karar noktaları", "Öne çıkan fırsatlar"]),
+            ("Uygulama", ["Adım adım yaklaşım", "Gerekli kaynaklar", "Başarı ölçütleri"]),
+            ("Riskler", ["Operasyonel riskler", "İletişim riskleri", "Önleyici aksiyonlar"]),
+            ("Sonraki Adımlar", ["Öncelikleri netleştir", "Sorumluları ata", "Takip toplantısı planla"]),
+        ]
+        if tr
+        else [
+            ("Context", ["Why this topic matters", "The main audience problem", "Expected outcome"]),
+            ("Key Ideas", ["Core concepts", "Critical decision points", "Notable opportunities"]),
+            ("Execution", ["Step-by-step approach", "Required resources", "Success metrics"]),
+            ("Risks", ["Operational risks", "Communication risks", "Preventive actions"]),
+            ("Next Steps", ["Clarify priorities", "Assign owners", "Plan the follow-up"]),
+        ]
+    )
+    for title, bullets in sections[: max(1, payload.slide_count - 1)]:
+        slides.append({
+            "title": title,
+            "layout": "bullets",
+            "bullets": bullets,
+            "notes": "Bu slaytta maddeleri kısa örneklerle bağlayın." if tr else "Connect these points with brief examples.",
+        })
+    return slides
+
+def _clean_ai_json(raw: str) -> str:
+    clean = raw.strip()
+    if clean.startswith("```"):
+        clean = clean.split("```", 2)[1]
+        if clean.startswith("json"):
+            clean = clean[4:]
+        clean = clean.rsplit("```", 1)[0].strip()
+    return clean
+
+
+async def _generate_slides(payload: DeckGenerateIn) -> tuple[list[dict[str, Any]], str]:
+    language = "Turkish" if payload.language == "tr" else "English"
+    system = (
+        "You design concise business presentations for HeptaCert. "
+        "Return only a JSON object with title, description, theme, and slides. "
+        "slides must be an array of objects: title, layout ('title' or 'bullets'), subtitle, bullets, notes. "
+        "No markdown, no extra prose."
+    )
+    user = (
+        f"Topic: {payload.topic}\nAudience: {payload.audience}\nLanguage: {language}\n"
+        f"Style: {payload.style}\nSlide count: {payload.slide_count}\n"
+        f"Extra notes: {payload.extra_notes or '-'}"
+    )
+    raw = await _claude(system, user, max_tokens=2200)
+    if not raw:
+        return _fallback_slides(payload), "fallback"
+    try:
+        parsed = json.loads(_clean_ai_json(raw))
+        slides = parsed.get("slides")
+        if not isinstance(slides, list) or not slides:
+            raise ValueError("missing slides")
+        normalized = []
+        for item in slides[: payload.slide_count]:
+            if not isinstance(item, dict):
+                continue
+            bullets = item.get("bullets") if isinstance(item.get("bullets"), list) else []
+            normalized.append({
+                "title": str(item.get("title") or "Slide"),
+                "layout": str(item.get("layout") or "bullets"),
+                "subtitle": item.get("subtitle") or None,
+                "bullets": [str(b) for b in bullets[:12]],
+                "notes": item.get("notes") or None,
+            })
+        return normalized or _fallback_slides(payload), "claude"
+    except (ValueError, TypeError, json.JSONDecodeError):
+        return _fallback_slides(payload), "fallback"
+
+
+async def _authorized_deck(db: AsyncSession, me: CurrentUser, deck_id: int, request: Request, permission: str) -> PresentationDeck:
+    deck = await db.get(PresentationDeck, deck_id)
+    if not deck:
+        raise HTTPException(status_code=404, detail="Presentation not found")
+    await get_organization_for_access(db, me, permission, deck.organization_id or organization_id_from_request(request))
+    return deck
+
+
+@router.get("", response_model=list[DeckOut], dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def list_decks(
+    request: Request,
+    limit: int = Query(default=30, ge=1, le=100),
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[DeckOut]:
+    org = await get_organization_for_access(db, me, "presentations:read", organization_id_from_request(request))
+    rows = (
+        await db.execute(
+            select(PresentationDeck)
+            .where(PresentationDeck.organization_id == org.id)
+            .order_by(PresentationDeck.updated_at.desc(), PresentationDeck.id.desc())
+            .limit(limit)
+        )
+    ).scalars().all()
+    return [_deck_out(row) for row in rows]
+
+
+@router.post("", response_model=DeckOut, status_code=201, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def create_deck(
+    payload: DeckCreateIn,
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> DeckOut:
+    org = await get_organization_for_access(db, me, "presentations:write", organization_id_from_request(request))
+    deck = PresentationDeck(
+        organization_id=org.id,
+        created_by=me.id,
+        title=payload.title.strip(),
+        description=payload.description,
+        language=payload.language or "tr",
+        theme=payload.theme or _default_theme(org),
+        slides=[slide.model_dump(exclude_none=True) for slide in payload.slides] or _fallback_slides(
+            DeckGenerateIn(topic=payload.title, language=payload.language or "tr")
+        ),
+        presenter_token=_new_presenter_token(),
+        source="manual",
+    )
+    db.add(deck)
+    await db.flush()
+    await write_audit_log(db, user_id=me.id, action="presentation.create", resource_type="presentation_deck", resource_id=str(deck.id))
+    await db.commit()
+    await db.refresh(deck)
+    return _deck_out(deck)
+
+
+@router.post("/generate", response_model=DeckOut, status_code=201, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def generate_deck(
+    payload: DeckGenerateIn,
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> DeckOut:
+    org = await get_organization_for_access(db, me, "presentations:write", organization_id_from_request(request))
+    slides, provider = await _generate_slides(payload)
+    deck = PresentationDeck(
+        organization_id=org.id,
+        created_by=me.id,
+        title=payload.topic.strip(),
+        description=payload.extra_notes,
+        language=payload.language or "tr",
+        theme=_default_theme(org),
+        slides=slides,
+        presenter_token=_new_presenter_token(),
+        source=f"ai:{provider}",
+    )
+    db.add(deck)
+    await db.flush()
+    await write_audit_log(
+        db,
+        user_id=me.id,
+        action="presentation.generate",
+        resource_type="presentation_deck",
+        resource_id=str(deck.id),
+        extra={"provider": provider, "slide_count": len(slides)},
+    )
+    await db.commit()
+    await db.refresh(deck)
+    return _deck_out(deck)
+
+
+@router.get("/{deck_id}", response_model=DeckOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def get_deck(
+    deck_id: int,
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> DeckOut:
+    return _deck_out(await _authorized_deck(db, me, deck_id, request, "presentations:read"))
+
+
+@router.patch("/{deck_id}", response_model=DeckOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def update_deck(
+    deck_id: int,
+    payload: DeckUpdateIn,
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> DeckOut:
+    deck = await _authorized_deck(db, me, deck_id, request, "presentations:write")
+    if payload.title is not None:
+        deck.title = payload.title.strip()
+    if payload.description is not None:
+        deck.description = payload.description
+    if payload.language is not None:
+        deck.language = payload.language
+    if payload.theme is not None:
+        deck.theme = payload.theme
+    if payload.slides is not None:
+        deck.slides = [slide.model_dump(exclude_none=True) for slide in payload.slides]
+    if payload.status is not None:
+        deck.status = payload.status
+    await write_audit_log(db, user_id=me.id, action="presentation.update", resource_type="presentation_deck", resource_id=str(deck.id))
+    await db.commit()
+    await db.refresh(deck)
+    return _deck_out(deck)
+
+
+@router.delete("/{deck_id}", status_code=204, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def delete_deck(
+    deck_id: int,
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    deck = await _authorized_deck(db, me, deck_id, request, "presentations:write")
+    await write_audit_log(db, user_id=me.id, action="presentation.delete", resource_type="presentation_deck", resource_id=str(deck.id))
+    await db.delete(deck)
+    await db.commit()
+
+
+@router.post("/{deck_id}/export", response_model=DeckOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def export_deck(
+    deck_id: int,
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> DeckOut:
+    deck = await _authorized_deck(db, me, deck_id, request, "presentations:read")
+    output = render_deck_pptx(deck)
+    rel_path = f"presentations/org_{deck.organization_id}/deck_{deck.id}.pptx"
+    abs_path = Path(settings.local_storage_dir) / rel_path
+    abs_path.parent.mkdir(parents=True, exist_ok=True)
+    abs_path.write_bytes(output)
+    deck.last_export_path = rel_path
+    deck.last_export_filename = f"{_safe_filename(deck.title)}.pptx"
+    await write_audit_log(db, user_id=me.id, action="presentation.export", resource_type="presentation_deck", resource_id=str(deck.id))
+    await db.commit()
+    await db.refresh(deck)
+    return _deck_out(deck)
+
+
+@router.get("/{deck_id}/export", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def download_deck_export(
+    deck_id: int,
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    deck = await _authorized_deck(db, me, deck_id, request, "presentations:read")
+    if not deck.last_export_path:
+        raise HTTPException(status_code=409, detail="Presentation has not been exported yet")
+    storage_root = Path(settings.local_storage_dir).resolve()
+    abs_path = (storage_root / deck.last_export_path).resolve()
+    if not abs_path.is_relative_to(storage_root) or not abs_path.exists():
+        raise HTTPException(status_code=404, detail="Export file not found")
+    return FileResponse(
+        abs_path,
+        media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        filename=deck.last_export_filename or f"presentation-{deck.id}.pptx",
+    )
+
+
+@router.post("/{deck_id}/presenter-token", response_model=DeckOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def regenerate_presenter_token(
+    deck_id: int,
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> DeckOut:
+    deck = await _authorized_deck(db, me, deck_id, request, "presentations:write")
+    deck.presenter_token = _new_presenter_token()
+    await write_audit_log(db, user_id=me.id, action="presentation.presenter_token.regenerate", resource_type="presentation_deck", resource_id=str(deck.id))
+    await db.commit()
+    await db.refresh(deck)
+    return _deck_out(deck)
+
+
+@public_router.get("/{token}", response_model=PublicDeckOut)
+async def get_public_presentation(
+    token: str,
+    db: AsyncSession = Depends(get_db),
+) -> PublicDeckOut:
+    deck = (
+        await db.execute(select(PresentationDeck).where(PresentationDeck.presenter_token == token))
+    ).scalar_one_or_none()
+    if not deck:
+        raise HTTPException(status_code=404, detail="Presentation not found")
+    return PublicDeckOut(
+        title=deck.title,
+        description=deck.description,
+        language=deck.language,
+        theme=deck.theme or {},
+        slides=deck.slides or [],
+    )
+
+
+def _default_theme(org: Organization) -> dict[str, str]:
+    return {
+        "primary": getattr(org, "brand_color", None) or "#2563eb",
+        "background": "#f8fafc",
+        "foreground": "#0f172a",
+    }
+
+
+def _safe_filename(value: str) -> str:
+    cleaned = "".join(ch if ch.isalnum() or ch in ("-", "_", " ") else "-" for ch in value).strip()
+    return (cleaned or "presentation")[:120]
+
+
+def _new_presenter_token() -> str:
+    return secrets.token_urlsafe(24)
