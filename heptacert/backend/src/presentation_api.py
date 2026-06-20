@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
@@ -16,7 +16,7 @@ import jwt
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .ai_content_api import _claude
@@ -35,6 +35,28 @@ ALLOWED_UPLOAD_TYPES = {
     "application/vnd.ms-powerpoint": ".ppt",
 }
 MAX_UPLOAD_BYTES = 80 * 1024 * 1024
+PRESENTATION_DECK_COLUMNS = [
+    "id",
+    "organization_id",
+    "event_id",
+    "created_by",
+    "title",
+    "description",
+    "language",
+    "theme",
+    "slides",
+    "presenter_token",
+    "source",
+    "status",
+    "file_path",
+    "file_filename",
+    "file_content_type",
+    "file_size",
+    "last_export_path",
+    "last_export_filename",
+    "created_at",
+    "updated_at",
+]
 
 
 class SlideIn(BaseModel):
@@ -106,7 +128,80 @@ class PublicDeckOut(BaseModel):
     slides: list[dict[str, Any]]
 
 
-def _deck_out(deck: PresentationDeck) -> DeckOut:
+async def _presentation_deck_existing_columns(db: AsyncSession) -> set[str]:
+    result = await db.execute(
+        text(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = current_schema()
+              AND table_name = 'presentation_decks'
+            """
+        )
+    )
+    return {str(row[0]) for row in result.all()}
+
+
+def _deck_out_from_row(row: Any) -> DeckOut:
+    data = row._mapping if hasattr(row, "_mapping") else row
+    created_at = data.get("created_at") or datetime.now(timezone.utc)
+    updated_at = data.get("updated_at") or created_at
+    file_path = data.get("file_path")
+    last_export_path = data.get("last_export_path")
+    event_id = data.get("event_id")
+    presenter_token = data.get("presenter_token")
+    deck_id = data["id"]
+    return DeckOut(
+        id=deck_id,
+        organization_id=data["organization_id"],
+        event_id=event_id,
+        created_by=data.get("created_by"),
+        title=data["title"],
+        description=data.get("description"),
+        language=data["language"],
+        theme=data.get("theme") or {},
+        slides=data.get("slides") or [],
+        source=data["source"],
+        status=data["status"],
+        file_filename=data.get("file_filename"),
+        file_content_type=data.get("file_content_type"),
+        file_size=data.get("file_size"),
+        last_export_filename=data.get("last_export_filename"),
+        created_at=created_at,
+        updated_at=updated_at,
+        export_url=f"/api/admin/presentations/{deck_id}/export" if last_export_path else None,
+        file_url=f"/api/admin/presentations/{deck_id}/file" if file_path else None,
+        presenter_url=(
+            f"/admin/events/{event_id}/presentations/{deck_id}/present"
+            if event_id and presenter_token
+            else (f"/present/{presenter_token}" if presenter_token else None)
+        ),
+    )
+
+
+async def _load_deck_row(
+    db: AsyncSession,
+    *filters: Any,
+) -> Any:
+    columns = await _presentation_deck_existing_columns(db)
+    selected_columns = [getattr(PresentationDeck, column_name) for column_name in PRESENTATION_DECK_COLUMNS if column_name in columns]
+    if not selected_columns:
+        raise HTTPException(status_code=500, detail="Presentation decks table is not available")
+    stmt = select(*selected_columns)
+    for filter_ in filters:
+        stmt = stmt.where(filter_)
+    return (await db.execute(stmt)).mappings().one_or_none()
+
+
+async def _deck_out(deck: PresentationDeck | Any, db: AsyncSession | None = None) -> DeckOut:
+    if db is not None and not isinstance(deck, PresentationDeck):
+        return _deck_out_from_row(deck)
+    if db is not None and isinstance(deck, PresentationDeck):
+        row = await _load_deck_row(db, PresentationDeck.id == deck.id)
+        if row is None:
+            raise HTTPException(status_code=404, detail="Presentation not found")
+        return _deck_out_from_row(row)
+    return _deck_out_from_row(deck)
     return DeckOut(
         id=deck.id,
         organization_id=deck.organization_id,
@@ -220,10 +315,10 @@ async def _generate_slides(payload: DeckGenerateIn) -> tuple[list[dict[str, Any]
 
 
 async def _authorized_deck(db: AsyncSession, me: CurrentUser, deck_id: int, request: Request, permission: str) -> PresentationDeck:
-    deck = await db.get(PresentationDeck, deck_id)
+    deck = await _load_deck_row(db, PresentationDeck.id == deck_id)
     if not deck:
         raise HTTPException(status_code=404, detail="Presentation not found")
-    await get_organization_for_access(db, me, permission, deck.organization_id or organization_id_from_request(request))
+    await get_organization_for_access(db, me, permission, deck["organization_id"] or organization_id_from_request(request))
     return deck
 
 
@@ -255,7 +350,7 @@ async def _authorized_file_deck(
     request: Request,
     authorization: Optional[str],
     token: Optional[str],
-) -> PresentationDeck:
+) -> Any:
     if authorization and authorization.lower().startswith("bearer "):
         me = await get_current_user(db=db, Authorization=authorization)
     elif token:
@@ -276,11 +371,13 @@ def _safe_upload_suffix(content_type: str, filename: str) -> str:
 
 
 def _upload_media_type(deck: PresentationDeck) -> str:
-    if deck.file_content_type:
-        return deck.file_content_type
-    if (deck.file_filename or "").lower().endswith(".pdf"):
+    file_content_type = deck.get("file_content_type") if hasattr(deck, "get") else deck.file_content_type
+    file_filename = deck.get("file_filename") if hasattr(deck, "get") else deck.file_filename
+    if file_content_type:
+        return file_content_type
+    if (file_filename or "").lower().endswith(".pdf"):
         return "application/pdf"
-    if (deck.file_filename or "").lower().endswith(".ppt"):
+    if (file_filename or "").lower().endswith(".ppt"):
         return "application/vnd.ms-powerpoint"
     return "application/vnd.openxmlformats-officedocument.presentationml.presentation"
 
@@ -292,14 +389,17 @@ async def _store_upload_file(deck: PresentationDeck, file: UploadFile) -> None:
         raise HTTPException(status_code=400, detail="File is empty")
     if len(raw) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="Presentation file is too large")
-    rel_path = f"presentations/events/event_{deck.event_id}/deck_{deck.id}{suffix}"
+    event_id = deck.get("event_id") if hasattr(deck, "get") else deck.event_id
+    deck_id = deck.get("id") if hasattr(deck, "get") else deck.id
+    rel_path = f"presentations/events/event_{event_id}/deck_{deck_id}{suffix}"
     abs_path = Path(settings.local_storage_dir) / rel_path
     abs_path.parent.mkdir(parents=True, exist_ok=True)
     abs_path.write_bytes(raw)
-    deck.file_path = rel_path
-    deck.file_filename = file.filename or f"presentation{suffix}"
-    deck.file_content_type = file.content_type or _upload_media_type(deck)
-    deck.file_size = len(raw)
+    if isinstance(deck, PresentationDeck):
+        deck.file_path = rel_path
+        deck.file_filename = file.filename or f"presentation{suffix}"
+        deck.file_content_type = file.content_type or _upload_media_type(deck)
+        deck.file_size = len(raw)
 
 
 @router.get("", response_model=list[DeckOut], dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
@@ -311,14 +411,22 @@ async def list_decks(
 ) -> list[DeckOut]:
     org = await get_organization_for_access(db, me, "presentations:read", organization_id_from_request(request))
     rows = (
+        await _load_deck_row(
+            db,
+            PresentationDeck.organization_id == org.id,
+        )
+    )
+    if rows is None:
+        return []
+    all_rows = (
         await db.execute(
-            select(PresentationDeck)
+            select(*[getattr(PresentationDeck, col) for col in PRESENTATION_DECK_COLUMNS if col in await _presentation_deck_existing_columns(db)])
             .where(PresentationDeck.organization_id == org.id)
             .order_by(PresentationDeck.updated_at.desc(), PresentationDeck.id.desc())
             .limit(limit)
         )
-    ).scalars().all()
-    return [_deck_out(row) for row in rows]
+    ).mappings().all()
+    return [_deck_out_from_row(row) for row in all_rows]
 
 
 @router.get("/events/{event_id}", response_model=list[DeckOut], dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
@@ -329,14 +437,16 @@ async def list_event_presentations(
     db: AsyncSession = Depends(get_db),
 ) -> list[DeckOut]:
     event, org = await _authorized_event_org(db, me, event_id, request, "presentations:read")
+    existing_columns = await _presentation_deck_existing_columns(db)
+    selected_columns = [getattr(PresentationDeck, column_name) for column_name in PRESENTATION_DECK_COLUMNS if column_name in existing_columns]
     rows = (
         await db.execute(
-            select(PresentationDeck)
+            select(*selected_columns)
             .where(PresentationDeck.organization_id == org.id, PresentationDeck.event_id == event.id)
             .order_by(PresentationDeck.updated_at.desc(), PresentationDeck.id.desc())
         )
-    ).scalars().all()
-    return [_deck_out(row) for row in rows]
+    ).mappings().all()
+    return [_deck_out_from_row(row) for row in rows]
 
 
 @router.post("/events/{event_id}/upload", response_model=DeckOut, status_code=201, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
@@ -376,8 +486,10 @@ async def upload_event_presentation(
         extra={"event_id": event.id, "filename": deck.file_filename, "content_type": deck.file_content_type},
     )
     await db.commit()
-    await db.refresh(deck)
-    return _deck_out(deck)
+    row = await _load_deck_row(db, PresentationDeck.id == deck.id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Presentation not found")
+    return _deck_out_from_row(row)
 
 
 @router.post("", response_model=DeckOut, status_code=201, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
@@ -405,8 +517,10 @@ async def create_deck(
     await db.flush()
     await write_audit_log(db, user_id=me.id, action="presentation.create", resource_type="presentation_deck", resource_id=str(deck.id))
     await db.commit()
-    await db.refresh(deck)
-    return _deck_out(deck)
+    row = await _load_deck_row(db, PresentationDeck.id == deck.id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Presentation not found")
+    return _deck_out_from_row(row)
 
 
 @router.post("/generate", response_model=DeckOut, status_code=201, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
@@ -440,8 +554,10 @@ async def generate_deck(
         extra={"provider": provider, "slide_count": len(slides)},
     )
     await db.commit()
-    await db.refresh(deck)
-    return _deck_out(deck)
+    row = await _load_deck_row(db, PresentationDeck.id == deck.id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Presentation not found")
+    return _deck_out_from_row(row)
 
 
 @router.get("/{deck_id}", response_model=DeckOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
@@ -451,7 +567,8 @@ async def get_deck(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> DeckOut:
-    return _deck_out(await _authorized_deck(db, me, deck_id, request, "presentations:read"))
+    row = await _authorized_deck(db, me, deck_id, request, "presentations:read")
+    return _deck_out_from_row(row)
 
 
 @router.get("/{deck_id}/file")
@@ -463,17 +580,19 @@ async def get_presentation_file(
     db: AsyncSession = Depends(get_db),
 ):
     deck = await _authorized_file_deck(db, deck_id, request, authorization, token)
-    if not deck.file_path:
+    file_path = deck.get("file_path") if hasattr(deck, "get") else deck.file_path
+    file_filename = deck.get("file_filename") if hasattr(deck, "get") else deck.file_filename
+    if not file_path:
         raise HTTPException(status_code=404, detail="Presentation file not found")
     storage_root = Path(settings.local_storage_dir).resolve()
-    abs_path = (storage_root / deck.file_path).resolve()
+    abs_path = (storage_root / file_path).resolve()
     if not abs_path.is_relative_to(storage_root) or not abs_path.exists():
         raise HTTPException(status_code=404, detail="Presentation file not found")
     return FileResponse(
         abs_path,
         media_type=_upload_media_type(deck),
-        filename=deck.file_filename or f"presentation-{deck.id}",
-        headers={"Content-Disposition": f'inline; filename="{deck.file_filename or f"presentation-{deck.id}"}"'},
+        filename=file_filename or f"presentation-{deck['id']}",
+        headers={"Content-Disposition": f'inline; filename="{file_filename or f"presentation-{deck["id"]}"}"'},
     )
 
 
@@ -486,22 +605,31 @@ async def update_deck(
     db: AsyncSession = Depends(get_db),
 ) -> DeckOut:
     deck = await _authorized_deck(db, me, deck_id, request, "presentations:write")
+    updates: dict[str, Any] = {}
     if payload.title is not None:
-        deck.title = payload.title.strip()
+        updates["title"] = payload.title.strip()
     if payload.description is not None:
-        deck.description = payload.description
+        updates["description"] = payload.description
     if payload.language is not None:
-        deck.language = payload.language
+        updates["language"] = payload.language
     if payload.theme is not None:
-        deck.theme = payload.theme
+        updates["theme"] = payload.theme
     if payload.slides is not None:
-        deck.slides = [slide.model_dump(exclude_none=True) for slide in payload.slides]
+        updates["slides"] = [slide.model_dump(exclude_none=True) for slide in payload.slides]
     if payload.status is not None:
-        deck.status = payload.status
-    await write_audit_log(db, user_id=me.id, action="presentation.update", resource_type="presentation_deck", resource_id=str(deck.id))
+        updates["status"] = payload.status
+    if updates:
+        await db.execute(
+            PresentationDeck.__table__.update()
+            .where(PresentationDeck.id == deck["id"])
+            .values(**updates)
+        )
+    await write_audit_log(db, user_id=me.id, action="presentation.update", resource_type="presentation_deck", resource_id=str(deck["id"]))
     await db.commit()
-    await db.refresh(deck)
-    return _deck_out(deck)
+    row = await _load_deck_row(db, PresentationDeck.id == deck["id"])
+    if row is None:
+        raise HTTPException(status_code=404, detail="Presentation not found")
+    return _deck_out_from_row(row)
 
 
 @router.delete("/{deck_id}", status_code=204, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
@@ -512,8 +640,8 @@ async def delete_deck(
     db: AsyncSession = Depends(get_db),
 ) -> None:
     deck = await _authorized_deck(db, me, deck_id, request, "presentations:write")
-    await write_audit_log(db, user_id=me.id, action="presentation.delete", resource_type="presentation_deck", resource_id=str(deck.id))
-    await db.delete(deck)
+    await write_audit_log(db, user_id=me.id, action="presentation.delete", resource_type="presentation_deck", resource_id=str(deck["id"]))
+    await db.execute(PresentationDeck.__table__.delete().where(PresentationDeck.id == deck["id"]))
     await db.commit()
 
 
@@ -525,17 +653,22 @@ async def export_deck(
     db: AsyncSession = Depends(get_db),
 ) -> DeckOut:
     deck = await _authorized_deck(db, me, deck_id, request, "presentations:read")
-    output = render_deck_pptx(deck)
-    rel_path = f"presentations/org_{deck.organization_id}/deck_{deck.id}.pptx"
+    output = render_deck_pptx(PresentationDeck(**deck))
+    rel_path = f"presentations/org_{deck['organization_id']}/deck_{deck['id']}.pptx"
     abs_path = Path(settings.local_storage_dir) / rel_path
     abs_path.parent.mkdir(parents=True, exist_ok=True)
     abs_path.write_bytes(output)
-    deck.last_export_path = rel_path
-    deck.last_export_filename = f"{_safe_filename(deck.title)}.pptx"
-    await write_audit_log(db, user_id=me.id, action="presentation.export", resource_type="presentation_deck", resource_id=str(deck.id))
+    await db.execute(
+        PresentationDeck.__table__.update()
+        .where(PresentationDeck.id == deck["id"])
+        .values(last_export_path=rel_path, last_export_filename=f"{_safe_filename(deck['title'])}.pptx")
+    )
+    await write_audit_log(db, user_id=me.id, action="presentation.export", resource_type="presentation_deck", resource_id=str(deck["id"]))
     await db.commit()
-    await db.refresh(deck)
-    return _deck_out(deck)
+    row = await _load_deck_row(db, PresentationDeck.id == deck["id"])
+    if row is None:
+        raise HTTPException(status_code=404, detail="Presentation not found")
+    return _deck_out_from_row(row)
 
 
 @router.get("/{deck_id}/export", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
@@ -567,11 +700,18 @@ async def regenerate_presenter_token(
     db: AsyncSession = Depends(get_db),
 ) -> DeckOut:
     deck = await _authorized_deck(db, me, deck_id, request, "presentations:write")
-    deck.presenter_token = _new_presenter_token()
-    await write_audit_log(db, user_id=me.id, action="presentation.presenter_token.regenerate", resource_type="presentation_deck", resource_id=str(deck.id))
+    new_token = _new_presenter_token()
+    await db.execute(
+        PresentationDeck.__table__.update()
+        .where(PresentationDeck.id == deck["id"])
+        .values(presenter_token=new_token)
+    )
+    await write_audit_log(db, user_id=me.id, action="presentation.presenter_token.regenerate", resource_type="presentation_deck", resource_id=str(deck["id"]))
     await db.commit()
-    await db.refresh(deck)
-    return _deck_out(deck)
+    row = await _load_deck_row(db, PresentationDeck.id == deck["id"])
+    if row is None:
+        raise HTTPException(status_code=404, detail="Presentation not found")
+    return _deck_out_from_row(row)
 
 
 @public_router.get("/{token}", response_model=PublicDeckOut)
@@ -579,17 +719,15 @@ async def get_public_presentation(
     token: str,
     db: AsyncSession = Depends(get_db),
 ) -> PublicDeckOut:
-    deck = (
-        await db.execute(select(PresentationDeck).where(PresentationDeck.presenter_token == token))
-    ).scalar_one_or_none()
+    deck = await _load_deck_row(db, PresentationDeck.presenter_token == token)
     if not deck:
         raise HTTPException(status_code=404, detail="Presentation not found")
     return PublicDeckOut(
-        title=deck.title,
-        description=deck.description,
-        language=deck.language,
-        theme=deck.theme or {},
-        slides=deck.slides or [],
+        title=deck["title"],
+        description=deck.get("description"),
+        language=deck["language"],
+        theme=deck.get("theme") or {},
+        slides=deck.get("slides") or [],
     )
 
 
