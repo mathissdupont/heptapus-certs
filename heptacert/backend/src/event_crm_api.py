@@ -43,6 +43,7 @@ from .main import (
     settings,
 )
 from .organization_access_api import OrganizationMember, ensure_organization_enterprise, get_organization_for_access, organization_id_from_request
+from .upload_security import scan_upload_with_clamav
 
 router = APIRouter()
 
@@ -1653,6 +1654,7 @@ async def import_crm_from_csv(
     raw = await file.read()
     if len(raw) > 5 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="CSV dosyası 5 MB'ı geçemez.")
+    await scan_upload_with_clamav(raw)
     try:
         text = raw.decode("utf-8-sig")
     except UnicodeDecodeError:

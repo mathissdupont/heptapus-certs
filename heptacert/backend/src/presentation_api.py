@@ -26,6 +26,7 @@ from .organization_access_api import get_organization_for_access, organization_i
 from .presentation_converter import is_powerpoint_path
 from .presentation_models import PresentationDeck
 from .presentation_renderer import render_deck_pptx
+from .upload_security import scan_upload_with_clamav
 
 router = APIRouter(prefix="/api/admin/presentations", tags=["presentations"])
 public_router = APIRouter(prefix="/api/public/presentations", tags=["public-presentations"])
@@ -36,7 +37,6 @@ ALLOWED_UPLOAD_TYPES = {
     "application/vnd.ms-powerpoint": ".ppt",
 }
 UPLOAD_MEDIA_TYPES_BY_SUFFIX = {suffix: media_type for media_type, suffix in ALLOWED_UPLOAD_TYPES.items()}
-MAX_UPLOAD_BYTES = 80 * 1024 * 1024
 PRESENTATION_DECK_COLUMNS = [
     "id",
     "organization_id",
@@ -141,6 +141,11 @@ class PublicDeckOut(BaseModel):
 
 
 async def _presentation_deck_existing_columns(db: AsyncSession) -> set[str]:
+    dialect_name = db.get_bind().dialect.name
+    if dialect_name == "sqlite":
+        result = await db.execute(text("PRAGMA table_info(presentation_decks)"))
+        return {str(row._mapping["name"]) for row in result.all()}
+
     result = await db.execute(
         text(
             """
@@ -416,8 +421,10 @@ async def _store_upload_file(deck: PresentationDeck, file: UploadFile) -> None:
     raw = await file.read()
     if not raw:
         raise HTTPException(status_code=400, detail="File is empty")
-    if len(raw) > MAX_UPLOAD_BYTES:
-        raise HTTPException(status_code=413, detail="Presentation file is too large")
+    max_upload_bytes = settings.presentation_max_upload_mb * 1024 * 1024
+    if len(raw) > max_upload_bytes:
+        raise HTTPException(status_code=413, detail=f"Presentation file is too large. Maximum size is {settings.presentation_max_upload_mb} MB.")
+    await scan_upload_with_clamav(raw)
     event_id = deck.get("event_id") if hasattr(deck, "get") else deck.event_id
     deck_id = deck.get("id") if hasattr(deck, "get") else deck.id
     rel_path = f"presentations/events/event_{event_id}/deck_{deck_id}{suffix}"

@@ -43,6 +43,7 @@ from .main import (
     require_role,
     settings,
 )
+from .upload_security import scan_upload_with_clamav
 
 router = APIRouter()
 
@@ -76,6 +77,7 @@ async def bulk_generate(
             status_code=413,
             detail=f"Excel dosyasÃ„Â± ÃƒÂ§ok bÃƒÂ¼yÃƒÂ¼k. Maksimum {MAX_EXCEL_SIZE // (1024*1024)} MB.",
         )
+    await scan_upload_with_clamav(raw)
     try:
         df = pd.read_excel(io.BytesIO(raw))
     except Exception:

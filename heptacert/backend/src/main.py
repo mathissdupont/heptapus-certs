@@ -3307,6 +3307,7 @@ async def _read_safe_raster_upload(file: UploadFile, max_size: int = 10 * 1024 *
         raise bad_request("Image file is empty")
     if len(data) > max_size:
         raise HTTPException(status_code=413, detail="Image exceeds size limit")
+    await _scan_upload_with_clamav(data)
     if PILImage is None:
         raise HTTPException(status_code=503, detail="Image validation is unavailable")
     try:
@@ -9549,6 +9550,8 @@ async def verify_watermark(
         raise HTTPException(status_code=413, detail="Dosya 30 MB sinirini asiyor.")
         raise HTTPException(status_code=413, detail="Dosya 30 MB sÃ„Â±nÃ„Â±rÃ„Â±nÃ„Â± aÃ…Å¸Ã„Â±yor")
 
+    await _scan_upload_with_clamav(img_bytes)
+
     # Extract watermark
     try:
         from .watermark import extract_watermark
@@ -13011,6 +13014,11 @@ async def import_attendees(
 ):
     await _get_event_for_admin(event_id, me, db, "attendees:write")
     content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="File is empty")
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Attendee import file exceeds 10 MB limit")
+    await _scan_upload_with_clamav(content)
     try:
         if file.filename and file.filename.endswith(".csv"):
             df = pd.read_csv(io.BytesIO(content))
