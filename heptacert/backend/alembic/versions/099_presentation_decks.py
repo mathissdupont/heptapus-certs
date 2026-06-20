@@ -24,6 +24,7 @@ def upgrade() -> None:
         "presentation_decks",
         sa.Column("id", sa.Integer(), autoincrement=True, primary_key=True),
         sa.Column("organization_id", sa.Integer(), sa.ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("event_id", sa.Integer(), sa.ForeignKey("events.id", ondelete="CASCADE"), nullable=True),
         sa.Column("created_by", sa.Integer(), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
         sa.Column("title", sa.String(220), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
@@ -33,22 +34,30 @@ def upgrade() -> None:
         sa.Column("presenter_token", sa.String(96), nullable=True),
         sa.Column("source", sa.String(32), nullable=False, server_default="manual"),
         sa.Column("status", sa.String(24), nullable=False, server_default="draft"),
+        sa.Column("file_path", sa.Text(), nullable=True),
+        sa.Column("file_filename", sa.String(255), nullable=True),
+        sa.Column("file_content_type", sa.String(160), nullable=True),
+        sa.Column("file_size", sa.Integer(), nullable=True),
         sa.Column("last_export_path", sa.Text(), nullable=True),
         sa.Column("last_export_filename", sa.String(255), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
     )
     op.create_index("ix_presentation_decks_organization_id", "presentation_decks", ["organization_id"])
+    op.create_index("ix_presentation_decks_event_id", "presentation_decks", ["event_id"])
     op.create_index("ix_presentation_decks_created_by", "presentation_decks", ["created_by"])
     op.create_index("ix_presentation_decks_presenter_token", "presentation_decks", ["presenter_token"], unique=True)
     op.create_index("ix_presentation_decks_status", "presentation_decks", ["status"])
     op.create_index("ix_presentation_decks_org_updated", "presentation_decks", ["organization_id", "updated_at"])
+    op.create_index("ix_presentation_decks_event_updated", "presentation_decks", ["event_id", "updated_at"])
 
 
 def downgrade() -> None:
+    op.drop_index("ix_presentation_decks_event_updated", table_name="presentation_decks")
     op.drop_index("ix_presentation_decks_org_updated", table_name="presentation_decks")
     op.drop_index("ix_presentation_decks_status", table_name="presentation_decks")
     op.drop_index("ix_presentation_decks_presenter_token", table_name="presentation_decks")
     op.drop_index("ix_presentation_decks_created_by", table_name="presentation_decks")
+    op.drop_index("ix_presentation_decks_event_id", table_name="presentation_decks")
     op.drop_index("ix_presentation_decks_organization_id", table_name="presentation_decks")
     op.drop_table("presentation_decks")

@@ -88,7 +88,7 @@ export default function PublicPresentationPage() {
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="truncate text-sm font-bold">{deck.title}</p>
-            <p className="text-xs text-white/50">Slide {index + 1} / {slides.length}</p>
+            <p className="text-xs text-white/50">{copy.slideMode} {index + 1} / {slides.length}</p>
           </div>
           <div className="flex items-center gap-2">
             <button type="button" onClick={() => setMode("slides")} className={`rounded-lg px-3 py-2 text-xs font-bold ${mode === "slides" ? "bg-white text-surface-950" : "bg-white/10 text-white"}`}>
@@ -108,7 +108,7 @@ export default function PublicPresentationPage() {
 
       <section className="mx-auto flex min-h-screen max-w-7xl items-center px-4 pb-24 pt-24">
         {mode === "slides" ? (
-          <div className="w-full rounded-xl border border-white/10 bg-white p-8 text-surface-950 shadow-2xl md:p-14" style={{ aspectRatio: "16 / 9" }}>
+          <div className="w-full rounded-xl border border-white/10 bg-white p-8 text-surface-950 shadow-modal md:p-14" style={{ aspectRatio: "16 / 9" }}>
             <p className="text-xs font-black uppercase tracking-[0.2em]" style={{ color: primary }}>HeptaDeck</p>
             <h1 className="mt-8 max-w-5xl text-4xl font-black leading-tight md:text-6xl">{slide.title}</h1>
             {slide.layout === "title" ? (
@@ -125,7 +125,7 @@ export default function PublicPresentationPage() {
             )}
           </div>
         ) : (
-          <div className="w-full rounded-xl border border-amber-200/30 bg-amber-50 p-6 text-surface-950 shadow-2xl md:p-10">
+          <div className="w-full rounded-xl border border-amber-200/30 bg-amber-50 p-6 text-surface-950 shadow-modal md:p-10">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-700">{copy.speakerNotes}</p>
             <h1 className="mt-3 text-2xl font-black md:text-4xl">{slide.title}</h1>
             <div className="mt-6 whitespace-pre-wrap text-2xl font-medium leading-relaxed text-surface-800 md:text-4xl">

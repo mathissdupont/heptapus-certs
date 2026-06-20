@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiUrl, getToken } from "@/lib/api";
 
 export type PresentationSlide = {
   title: string;
@@ -13,7 +13,8 @@ export type PresentationSlide = {
 export type PresentationDeck = {
   id: number;
   organization_id: number;
-  created_by: number;
+  event_id?: number | null;
+  created_by: number | null;
   title: string;
   description: string | null;
   language: string;
@@ -21,10 +22,14 @@ export type PresentationDeck = {
   slides: PresentationSlide[];
   source: string;
   status: string;
+  file_filename?: string | null;
+  file_content_type?: string | null;
+  file_size?: number | null;
   last_export_filename: string | null;
   created_at: string;
   updated_at: string;
   export_url: string | null;
+  file_url?: string | null;
   presenter_url: string | null;
 };
 
@@ -48,6 +53,34 @@ export type GeneratePresentationPayload = {
 export async function listPresentations(): Promise<PresentationDeck[]> {
   const res = await apiFetch("/admin/presentations");
   return res.json();
+}
+
+export async function listEventPresentations(eventId: number): Promise<PresentationDeck[]> {
+  const res = await apiFetch(`/admin/presentations/events/${eventId}`);
+  return res.json();
+}
+
+export async function uploadEventPresentation(
+  eventId: number,
+  payload: { title: string; description?: string; language: string; file: File }
+): Promise<PresentationDeck> {
+  const form = new FormData();
+  form.append("title", payload.title);
+  form.append("language", payload.language);
+  if (payload.description) form.append("description", payload.description);
+  form.append("file", payload.file);
+  const res = await apiFetch(`/admin/presentations/events/${eventId}/upload`, {
+    method: "POST",
+    body: form,
+  });
+  return res.json();
+}
+
+export function presentationFileUrl(deck: PresentationDeck): string | null {
+  if (!deck.file_url) return null;
+  const url = apiUrl(deck.file_url.replace(/^\/api/, ""));
+  const token = getToken();
+  return token ? `${url}${url.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}` : url;
 }
 
 export async function generatePresentation(payload: GeneratePresentationPayload): Promise<PresentationDeck> {

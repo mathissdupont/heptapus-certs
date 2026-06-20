@@ -12,7 +12,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+import jwt
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
@@ -20,12 +21,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .ai_content_api import _claude
 from .main import CurrentUser, Organization, Role, get_current_user, get_db, require_role, settings, write_audit_log
+from .models import Event, User
 from .organization_access_api import get_organization_for_access, organization_id_from_request
 from .presentation_models import PresentationDeck
 from .presentation_renderer import render_deck_pptx
 
 router = APIRouter(prefix="/api/admin/presentations", tags=["presentations"])
 public_router = APIRouter(prefix="/api/public/presentations", tags=["public-presentations"])
+
+ALLOWED_UPLOAD_TYPES = {
+    "application/pdf": ".pdf",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation": ".pptx",
+    "application/vnd.ms-powerpoint": ".ppt",
+}
+MAX_UPLOAD_BYTES = 80 * 1024 * 1024
 
 
 class SlideIn(BaseModel):
@@ -69,6 +78,7 @@ class DeckOut(BaseModel):
 
     id: int
     organization_id: int
+    event_id: Optional[int] = None
     created_by: Optional[int]
     title: str
     description: Optional[str]
@@ -77,10 +87,14 @@ class DeckOut(BaseModel):
     slides: list[dict[str, Any]]
     source: str
     status: str
+    file_filename: Optional[str] = None
+    file_content_type: Optional[str] = None
+    file_size: Optional[int] = None
     last_export_filename: Optional[str]
     created_at: datetime
     updated_at: datetime
     export_url: Optional[str] = None
+    file_url: Optional[str] = None
     presenter_url: Optional[str] = None
 
 
@@ -96,6 +110,7 @@ def _deck_out(deck: PresentationDeck) -> DeckOut:
     return DeckOut(
         id=deck.id,
         organization_id=deck.organization_id,
+        event_id=deck.event_id,
         created_by=deck.created_by,
         title=deck.title,
         description=deck.description,
@@ -104,11 +119,19 @@ def _deck_out(deck: PresentationDeck) -> DeckOut:
         slides=deck.slides or [],
         source=deck.source,
         status=deck.status,
+        file_filename=deck.file_filename,
+        file_content_type=deck.file_content_type,
+        file_size=deck.file_size,
         last_export_filename=deck.last_export_filename,
         created_at=deck.created_at,
         updated_at=deck.updated_at,
         export_url=f"/api/admin/presentations/{deck.id}/export" if deck.last_export_path else None,
-        presenter_url=f"/present/{deck.presenter_token}" if deck.presenter_token else None,
+        file_url=f"/api/admin/presentations/{deck.id}/file" if deck.file_path else None,
+        presenter_url=(
+            f"/admin/events/{deck.event_id}/presentations/{deck.id}/present"
+            if deck.event_id and deck.presenter_token
+            else (f"/present/{deck.presenter_token}" if deck.presenter_token else None)
+        ),
     )
 
 
@@ -204,6 +227,81 @@ async def _authorized_deck(db: AsyncSession, me: CurrentUser, deck_id: int, requ
     return deck
 
 
+async def _authorized_event_org(db: AsyncSession, me: CurrentUser, event_id: int, request: Request, permission: str) -> tuple[Event, Organization]:
+    event = await db.get(Event, event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    org = await get_organization_for_access(db, me, permission, organization_id_from_request(request))
+    if getattr(org, "user_id", None) != event.admin_id and me.role != Role.superadmin:
+        raise HTTPException(status_code=404, detail="Event not found")
+    return event, org
+
+
+async def _current_user_from_query_token(db: AsyncSession, token: str) -> CurrentUser:
+    try:
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+        user_id = int(payload.get("sub") or 0)
+    except Exception as exc:
+        raise HTTPException(status_code=401, detail="Invalid token") from exc
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    return CurrentUser(id=user.id, role=user.role, email=user.email)
+
+
+async def _authorized_file_deck(
+    db: AsyncSession,
+    deck_id: int,
+    request: Request,
+    authorization: Optional[str],
+    token: Optional[str],
+) -> PresentationDeck:
+    if authorization and authorization.lower().startswith("bearer "):
+        me = await get_current_user(db=db, Authorization=authorization)
+    elif token:
+        me = await _current_user_from_query_token(db, token)
+    else:
+        raise HTTPException(status_code=401, detail="Missing token")
+    return await _authorized_deck(db, me, deck_id, request, "presentations:read")
+
+
+def _safe_upload_suffix(content_type: str, filename: str) -> str:
+    if content_type in ALLOWED_UPLOAD_TYPES:
+        return ALLOWED_UPLOAD_TYPES[content_type]
+    lower = filename.lower()
+    for suffix in (".pdf", ".pptx", ".ppt"):
+        if lower.endswith(suffix):
+            return suffix
+    raise HTTPException(status_code=400, detail="Only PDF and PowerPoint files are supported")
+
+
+def _upload_media_type(deck: PresentationDeck) -> str:
+    if deck.file_content_type:
+        return deck.file_content_type
+    if (deck.file_filename or "").lower().endswith(".pdf"):
+        return "application/pdf"
+    if (deck.file_filename or "").lower().endswith(".ppt"):
+        return "application/vnd.ms-powerpoint"
+    return "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+
+
+async def _store_upload_file(deck: PresentationDeck, file: UploadFile) -> None:
+    suffix = _safe_upload_suffix(file.content_type or "", file.filename or "")
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail="File is empty")
+    if len(raw) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="Presentation file is too large")
+    rel_path = f"presentations/events/event_{deck.event_id}/deck_{deck.id}{suffix}"
+    abs_path = Path(settings.local_storage_dir) / rel_path
+    abs_path.parent.mkdir(parents=True, exist_ok=True)
+    abs_path.write_bytes(raw)
+    deck.file_path = rel_path
+    deck.file_filename = file.filename or f"presentation{suffix}"
+    deck.file_content_type = file.content_type or _upload_media_type(deck)
+    deck.file_size = len(raw)
+
+
 @router.get("", response_model=list[DeckOut], dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
 async def list_decks(
     request: Request,
@@ -221,6 +319,65 @@ async def list_decks(
         )
     ).scalars().all()
     return [_deck_out(row) for row in rows]
+
+
+@router.get("/events/{event_id}", response_model=list[DeckOut], dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def list_event_presentations(
+    event_id: int,
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[DeckOut]:
+    event, org = await _authorized_event_org(db, me, event_id, request, "presentations:read")
+    rows = (
+        await db.execute(
+            select(PresentationDeck)
+            .where(PresentationDeck.organization_id == org.id, PresentationDeck.event_id == event.id)
+            .order_by(PresentationDeck.updated_at.desc(), PresentationDeck.id.desc())
+        )
+    ).scalars().all()
+    return [_deck_out(row) for row in rows]
+
+
+@router.post("/events/{event_id}/upload", response_model=DeckOut, status_code=201, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def upload_event_presentation(
+    event_id: int,
+    request: Request,
+    title: str = Form(..., min_length=1, max_length=220),
+    description: Optional[str] = Form(default=None, max_length=1000),
+    language: str = Form(default="tr", max_length=8),
+    file: UploadFile = File(...),
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> DeckOut:
+    event, org = await _authorized_event_org(db, me, event_id, request, "presentations:write")
+    deck = PresentationDeck(
+        organization_id=org.id,
+        event_id=event.id,
+        created_by=me.id,
+        title=title.strip(),
+        description=description,
+        language=language or "tr",
+        theme=_default_theme(org),
+        slides=[],
+        presenter_token=_new_presenter_token(),
+        source="upload",
+        status="ready",
+    )
+    db.add(deck)
+    await db.flush()
+    await _store_upload_file(deck, file)
+    await write_audit_log(
+        db,
+        user_id=me.id,
+        action="presentation.upload",
+        resource_type="presentation_deck",
+        resource_id=str(deck.id),
+        extra={"event_id": event.id, "filename": deck.file_filename, "content_type": deck.file_content_type},
+    )
+    await db.commit()
+    await db.refresh(deck)
+    return _deck_out(deck)
 
 
 @router.post("", response_model=DeckOut, status_code=201, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
@@ -295,6 +452,29 @@ async def get_deck(
     db: AsyncSession = Depends(get_db),
 ) -> DeckOut:
     return _deck_out(await _authorized_deck(db, me, deck_id, request, "presentations:read"))
+
+
+@router.get("/{deck_id}/file")
+async def get_presentation_file(
+    deck_id: int,
+    request: Request,
+    token: Optional[str] = Query(default=None),
+    authorization: Optional[str] = Header(default=None),
+    db: AsyncSession = Depends(get_db),
+):
+    deck = await _authorized_file_deck(db, deck_id, request, authorization, token)
+    if not deck.file_path:
+        raise HTTPException(status_code=404, detail="Presentation file not found")
+    storage_root = Path(settings.local_storage_dir).resolve()
+    abs_path = (storage_root / deck.file_path).resolve()
+    if not abs_path.is_relative_to(storage_root) or not abs_path.exists():
+        raise HTTPException(status_code=404, detail="Presentation file not found")
+    return FileResponse(
+        abs_path,
+        media_type=_upload_media_type(deck),
+        filename=deck.file_filename or f"presentation-{deck.id}",
+        headers={"Content-Disposition": f'inline; filename="{deck.file_filename or f"presentation-{deck.id}"}"'},
+    )
 
 
 @router.patch("/{deck_id}", response_model=DeckOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])

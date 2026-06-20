@@ -32,128 +32,131 @@ const EMPTY_FORM: FormState = {
   notes: "",
 };
 
+function formatDate(iso: string | null, lang: string) {
+  if (!iso) return "-";
+  return new Date(iso).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function formatDateTime(iso: string, lang: string) {
+  if (!iso) return "-";
+  return new Date(iso).toLocaleString(lang === "tr" ? "tr-TR" : "en-US", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function ValidityBadge({ isValid, validUntil, lang }: { isValid: boolean; validUntil: string | null; lang: string }) {
   const labels =
     lang === "tr"
-      ? { indefinite: "Süresiz", valid: "Geçerli", expired: "Süresi Doldu" }
+      ? { indefinite: "Süresiz", valid: "Geçerli", expired: "Süresi doldu" }
       : { indefinite: "Indefinite", valid: "Valid", expired: "Expired" };
 
-  if (!validUntil) return <span className="text-xs text-gray-400">{labels.indefinite}</span>;
-  return (
-    <span
-      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-        isValid ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
-      }`}
-    >
-      {isValid ? labels.valid : labels.expired}
-    </span>
-  );
-}
-
-function formatDate(iso: string | null) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
-}
-
-function formatDateTime(iso: string) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString("tr-TR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  if (!validUntil) return <span className="badge-neutral">{labels.indefinite}</span>;
+  return <span className={isValid ? "badge-active" : "badge-expired"}>{isValid ? labels.valid : labels.expired}</span>;
 }
 
 export default function AccreditationPage() {
   const { lang } = useI18n();
+  const isTr = lang === "tr";
   const [activeTab, setActiveTab] = useState<Tab>("accreditations");
 
-  const copy =
-    lang === "tr"
-      ? {
-          tabAccreditations: "Akreditasyonlar",
-          tabCpd: "CPD Özeti",
-          pageTitle: "Akreditasyon",
-          newRecord: "+ Yeni Kayıt",
-          closeError: "kapat",
-          formTitleEdit: "Kaydı Düzenle",
-          formTitleCreate: "Yeni Akreditasyon Kaydı",
-          labelOrg: "Kuruluş",
-          selectPlaceholder: "Seçiniz…",
-          labelAccredNumber: "Akreditasyon Numarası",
-          labelValidFrom: "Geçerlilik Başlangıcı",
-          labelValidUntil: "Geçerlilik Bitişi",
-          labelNotes: "Notlar",
-          cancel: "İptal",
-          save: "Kaydet",
-          saving: "Kaydediliyor…",
-          deleteTitle: "Kaydı Sil",
-          deleteConfirm: "Bu akreditasyon kaydını silmek istediğinizden emin misiniz?",
-          delete: "Sil",
-          emptyState: "Henüz akreditasyon kaydı yok.",
-          emptyStateAction: "İlk kaydı oluştur",
-          recordNo: "Kayıt No:",
-          start: "Başlangıç:",
-          end: "Bitiş:",
-          edit: "Düzenle",
-          loading: "Yükleniyor…",
-          errorLoad: "Yüklenemedi",
-          errorSave: "Kaydedilemedi",
-          errorDelete: "Silinemedi",
-          cpdTitle: "CPD Özeti",
-          cpdSubtitle: "Sertifika verilen üyelerin biriktirdiği CPD saatleri.",
-          cpdBodyCard_hours: "toplam saat",
-          cpdBodyCard_members: "üye",
-          cpdBodyCard_logs: "kayıt",
-          cpdRecentTitle: "Son CPD Kayıtları",
-          cpdNoData: "Henüz CPD kaydı yok. Bir etkinliğe CPD konfigürasyonu ekleyin ve sertifika verin.",
-          cpdMember: "Üye",
-          cpdEvent: "Etkinlik",
-          cpdBody: "Kurum",
-          cpdHours: "Saat",
-          cpdDate: "Tarih",
-        }
-      : {
-          tabAccreditations: "Accreditations",
-          tabCpd: "CPD Summary",
-          pageTitle: "Accreditation",
-          newRecord: "+ New Record",
-          closeError: "close",
-          formTitleEdit: "Edit Record",
-          formTitleCreate: "New Accreditation Record",
-          labelOrg: "Organization",
-          selectPlaceholder: "Select…",
-          labelAccredNumber: "Accreditation Number",
-          labelValidFrom: "Valid From",
-          labelValidUntil: "Valid Until",
-          labelNotes: "Notes",
-          cancel: "Cancel",
-          save: "Save",
-          saving: "Saving…",
-          deleteTitle: "Delete Record",
-          deleteConfirm: "Are you sure you want to delete this accreditation record?",
-          delete: "Delete",
-          emptyState: "No accreditation records yet.",
-          emptyStateAction: "Create the first record",
-          recordNo: "Record No:",
-          start: "Start:",
-          end: "End:",
-          edit: "Edit",
-          loading: "Loading…",
-          errorLoad: "Could not load",
-          errorSave: "Could not save",
-          errorDelete: "Could not delete",
-          cpdTitle: "CPD Summary",
-          cpdSubtitle: "CPD hours accumulated by members who received certificates.",
-          cpdBodyCard_hours: "total hours",
-          cpdBodyCard_members: "members",
-          cpdBodyCard_logs: "entries",
-          cpdRecentTitle: "Recent CPD Entries",
-          cpdNoData: "No CPD entries yet. Add a CPD configuration to an event and issue certificates.",
-          cpdMember: "Member",
-          cpdEvent: "Event",
-          cpdBody: "Body",
-          cpdHours: "Hours",
-          cpdDate: "Date",
-        };
+  const copy = isTr
+    ? {
+        tabAccreditations: "Akreditasyonlar",
+        tabCpd: "CPD Özeti",
+        pageTitle: "Akreditasyon",
+        pageSubtitle: "Kurum akreditasyonlarını ve CPD kayıtlarını tek panelden yönetin.",
+        newRecord: "Yeni kayıt",
+        closeError: "kapat",
+        formTitleEdit: "Kaydı düzenle",
+        formTitleCreate: "Yeni akreditasyon kaydı",
+        labelOrg: "Kuruluş",
+        selectPlaceholder: "Seçiniz...",
+        labelAccredNumber: "Akreditasyon numarası",
+        labelValidFrom: "Geçerlilik başlangıcı",
+        labelValidUntil: "Geçerlilik bitişi",
+        labelNotes: "Notlar",
+        cancel: "İptal",
+        save: "Kaydet",
+        saving: "Kaydediliyor...",
+        deleteTitle: "Kaydı sil",
+        deleteConfirm: "Bu akreditasyon kaydını silmek istediğinizden emin misiniz?",
+        delete: "Sil",
+        emptyState: "Henüz akreditasyon kaydı yok.",
+        emptyStateAction: "İlk kaydı oluştur",
+        recordNo: "Kayıt no:",
+        start: "Başlangıç:",
+        end: "Bitiş:",
+        edit: "Düzenle",
+        loading: "Yükleniyor...",
+        errorLoad: "Yüklenemedi",
+        errorSave: "Kaydedilemedi",
+        errorDelete: "Silinemedi",
+        cpdTitle: "CPD Özeti",
+        cpdSubtitle: "Sertifika verilen üyelerin biriktirdiği CPD saatleri.",
+        cpdBodyCard_hours: "toplam saat",
+        cpdBodyCard_members: "üye",
+        cpdBodyCard_logs: "kayıt",
+        cpdRecentTitle: "Son CPD kayıtları",
+        cpdNoData: "Henüz CPD kaydı yok. Bir etkinliğe CPD konfigürasyonu ekleyin ve sertifika verin.",
+        cpdMember: "Üye",
+        cpdEvent: "Etkinlik",
+        cpdBody: "Kurum",
+        cpdHours: "Saat",
+        cpdDate: "Tarih",
+      }
+    : {
+        tabAccreditations: "Accreditations",
+        tabCpd: "CPD Summary",
+        pageTitle: "Accreditation",
+        pageSubtitle: "Manage organization accreditations and CPD records from one place.",
+        newRecord: "New record",
+        closeError: "close",
+        formTitleEdit: "Edit record",
+        formTitleCreate: "New accreditation record",
+        labelOrg: "Organization",
+        selectPlaceholder: "Select...",
+        labelAccredNumber: "Accreditation number",
+        labelValidFrom: "Valid from",
+        labelValidUntil: "Valid until",
+        labelNotes: "Notes",
+        cancel: "Cancel",
+        save: "Save",
+        saving: "Saving...",
+        deleteTitle: "Delete record",
+        deleteConfirm: "Are you sure you want to delete this accreditation record?",
+        delete: "Delete",
+        emptyState: "No accreditation records yet.",
+        emptyStateAction: "Create the first record",
+        recordNo: "Record no:",
+        start: "Start:",
+        end: "End:",
+        edit: "Edit",
+        loading: "Loading...",
+        errorLoad: "Could not load",
+        errorSave: "Could not save",
+        errorDelete: "Could not delete",
+        cpdTitle: "CPD Summary",
+        cpdSubtitle: "CPD hours accumulated by members who received certificates.",
+        cpdBodyCard_hours: "total hours",
+        cpdBodyCard_members: "members",
+        cpdBodyCard_logs: "entries",
+        cpdRecentTitle: "Recent CPD entries",
+        cpdNoData: "No CPD entries yet. Add a CPD configuration to an event and issue certificates.",
+        cpdMember: "Member",
+        cpdEvent: "Event",
+        cpdBody: "Body",
+        cpdHours: "Hours",
+        cpdDate: "Date",
+      };
 
-  // Accreditations tab state
   const [accreditations, setAccreditations] = useState<OrgAccreditationOut[]>([]);
   const [bodies, setBodies] = useState<AccreditationBodyOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -163,8 +166,6 @@ export default function AccreditationPage() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-
-  // CPD tab state
   const [cpdSummary, setCpdSummary] = useState<CpdSummaryOut | null>(null);
   const [cpdLoading, setCpdLoading] = useState(false);
   const [cpdError, setCpdError] = useState<string | null>(null);
@@ -186,8 +187,7 @@ export default function AccreditationPage() {
     setCpdLoading(true);
     setCpdError(null);
     try {
-      const data = await getOrgCpdSummary();
-      setCpdSummary(data);
+      setCpdSummary(await getOrgCpdSummary());
     } catch (e: unknown) {
       setCpdError(e instanceof Error ? e.message : copy.errorLoad);
     } finally {
@@ -195,12 +195,12 @@ export default function AccreditationPage() {
     }
   }
 
-  useEffect(() => { loadAccreditations(); }, []);
+  useEffect(() => {
+    void loadAccreditations();
+  }, []);
 
   useEffect(() => {
-    if (activeTab === "cpd" && !cpdSummary && !cpdLoading) {
-      loadCpd();
-    }
+    if (activeTab === "cpd" && !cpdSummary && !cpdLoading) void loadCpd();
   }, [activeTab]);
 
   function openCreate() {
@@ -232,11 +232,8 @@ export default function AccreditationPage() {
         valid_until: form.valid_until ? new Date(form.valid_until).toISOString() : null,
         notes: form.notes || null,
       };
-      if (editingId !== null) {
-        await updateOrgAccreditation(editingId, payload);
-      } else {
-        await createOrgAccreditation(payload);
-      }
+      if (editingId !== null) await updateOrgAccreditation(editingId, payload);
+      else await createOrgAccreditation(payload);
       setShowForm(false);
       await loadAccreditations();
     } catch (e: unknown) {
@@ -257,242 +254,178 @@ export default function AccreditationPage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">{copy.pageTitle}</h1>
+    <div className="page-content mx-auto max-w-5xl px-4 py-8">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">{copy.pageTitle}</h1>
+          <p className="page-subtitle">{copy.pageSubtitle}</p>
+        </div>
         {activeTab === "accreditations" && (
-          <button
-            onClick={openCreate}
-            className="px-4 py-2 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 font-medium"
-          >
+          <button type="button" onClick={openCreate} className="btn-primary">
             {copy.newRecord}
           </button>
         )}
       </div>
 
-      {/* Tab bar */}
-      <div className="flex gap-1 border-b border-gray-100 mb-6">
+      <div className="tab-group w-fit">
         {(["accreditations", "cpd"] as Tab[]).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
-              activeTab === tab
-                ? "border-indigo-600 text-indigo-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-            }`}
-          >
+          <button key={tab} type="button" onClick={() => setActiveTab(tab)} className={activeTab === tab ? "tab-btn-active" : "tab-btn"}>
             {tab === "accreditations" ? copy.tabAccreditations : copy.tabCpd}
           </button>
         ))}
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">
-          {error}
-          <button onClick={() => setError(null)} className="ml-2 underline">{copy.closeError}</button>
+        <div className="error-banner">
+          <span>{error}</span>
+          <button type="button" onClick={() => setError(null)} className="font-semibold underline">
+            {copy.closeError}
+          </button>
         </div>
       )}
 
-      {/* ── Accreditations Tab ── */}
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="card w-full max-w-lg p-6 shadow-modal">
+            <h2 className="card-title text-base">{editingId !== null ? copy.formTitleEdit : copy.formTitleCreate}</h2>
+            <div className="mt-4 space-y-4">
+              <label className="block">
+                <span className="label">{copy.labelOrg}</span>
+                <select value={form.body_id} onChange={(e) => setForm({ ...form, body_id: e.target.value })} className="input">
+                  <option value="">{copy.selectPlaceholder}</option>
+                  {bodies.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.short_code} - {b.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="label">{copy.labelAccredNumber}</span>
+                <input className="input" type="text" value={form.accreditation_number} onChange={(e) => setForm({ ...form, accreditation_number: e.target.value })} placeholder="ORN-2024-001" />
+              </label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className="label">{copy.labelValidFrom}</span>
+                  <input className="input" type="date" value={form.valid_from} onChange={(e) => setForm({ ...form, valid_from: e.target.value })} />
+                </label>
+                <label className="block">
+                  <span className="label">{copy.labelValidUntil}</span>
+                  <input className="input" type="date" value={form.valid_until} onChange={(e) => setForm({ ...form, valid_until: e.target.value })} />
+                </label>
+              </div>
+              <label className="block">
+                <span className="label">{copy.labelNotes}</span>
+                <textarea className="input min-h-20" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+              </label>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">{copy.cancel}</button>
+              <button type="button" onClick={handleSave} disabled={saving || !form.body_id} className="btn-primary">{saving ? copy.saving : copy.save}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="card w-full max-w-sm p-6 shadow-modal">
+            <h3 className="card-title text-base">{copy.deleteTitle}</h3>
+            <p className="body-sm mt-3">{copy.deleteConfirm}</p>
+            <div className="mt-6 flex justify-end gap-2">
+              <button type="button" onClick={() => setDeleteId(null)} className="btn-secondary">{copy.cancel}</button>
+              <button type="button" onClick={() => void handleDelete(deleteId)} className="btn-danger">{copy.delete}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {activeTab === "accreditations" && (
-        <>
-          {/* Form modal */}
-          {showForm && (
-            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-              <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
-                <h2 className="text-lg font-semibold mb-4">
-                  {editingId !== null ? copy.formTitleEdit : copy.formTitleCreate}
-                </h2>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{copy.labelOrg}</label>
-                    <select
-                      value={form.body_id}
-                      onChange={(e) => setForm({ ...form, body_id: e.target.value })}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    >
-                      <option value="">{copy.selectPlaceholder}</option>
-                      {bodies.map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.short_code} — {b.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{copy.labelAccredNumber}</label>
-                    <input
-                      type="text"
-                      value={form.accreditation_number}
-                      onChange={(e) => setForm({ ...form, accreditation_number: e.target.value })}
-                      placeholder="ÖRN-2024-001"
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">{copy.labelValidFrom}</label>
-                      <input
-                        type="date"
-                        value={form.valid_from}
-                        onChange={(e) => setForm({ ...form, valid_from: e.target.value })}
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">{copy.labelValidUntil}</label>
-                      <input
-                        type="date"
-                        value={form.valid_until}
-                        onChange={(e) => setForm({ ...form, valid_until: e.target.value })}
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{copy.labelNotes}</label>
-                    <textarea
-                      value={form.notes}
-                      onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                      rows={2}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2 mt-6">
-                  <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm border rounded hover:bg-gray-50">
-                    {copy.cancel}
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={saving || !form.body_id}
-                    className="px-4 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
-                  >
-                    {saving ? copy.saving : copy.save}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Delete confirm */}
-          {deleteId !== null && (
-            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-              <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
-                <h3 className="text-base font-semibold mb-3">{copy.deleteTitle}</h3>
-                <p className="text-sm text-gray-600 mb-5">{copy.deleteConfirm}</p>
-                <div className="flex justify-end gap-2">
-                  <button onClick={() => setDeleteId(null)} className="px-3 py-1.5 text-sm border rounded hover:bg-gray-50">
-                    {copy.cancel}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(deleteId)}
-                    className="px-3 py-1.5 text-sm bg-red-600 text-white rounded hover:bg-red-700"
-                  >
-                    {copy.delete}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
+        <section className="section">
           {loading ? (
-            <div className="p-8 text-gray-400">{copy.loading}</div>
+            <div className="card p-8 text-sm text-surface-400">{copy.loading}</div>
           ) : accreditations.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
-              <p className="text-4xl mb-3">🏅</p>
-              <p className="text-gray-500 text-sm">{copy.emptyState}</p>
-              <button onClick={openCreate} className="mt-3 text-indigo-600 text-sm underline">
-                {copy.emptyStateAction}
-              </button>
+            <div className="card empty-state">
+              <div className="empty-state-icon">CPD</div>
+              <p className="empty-state-title">{copy.emptyState}</p>
+              <button type="button" onClick={openCreate} className="btn-secondary">{copy.emptyStateAction}</button>
             </div>
           ) : (
             <div className="grid gap-4">
               {accreditations.map((a) => (
-                <div key={a.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <div key={a.id} className="card p-5">
                   <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-mono text-sm font-bold text-indigo-700">{a.body_code}</span>
-                        <span className="font-medium text-gray-900">{a.body_name}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-sm font-bold text-brand-700">{a.body_code}</span>
+                        <span className="font-semibold text-surface-900">{a.body_name}</span>
                         <ValidityBadge isValid={a.is_valid} validUntil={a.valid_until} lang={lang} />
                       </div>
-                      {a.accreditation_number && (
-                        <p className="text-sm text-gray-600">{copy.recordNo} {a.accreditation_number}</p>
-                      )}
-                      <div className="flex gap-4 text-xs text-gray-400 mt-1">
-                        <span>{copy.start} {formatDate(a.valid_from)}</span>
-                        <span>{copy.end} {formatDate(a.valid_until)}</span>
+                      {a.accreditation_number && <p className="body-sm mt-2">{copy.recordNo} {a.accreditation_number}</p>}
+                      <div className="mt-1 flex flex-wrap gap-4 text-xs text-surface-400">
+                        <span>{copy.start} {formatDate(a.valid_from, lang)}</span>
+                        <span>{copy.end} {formatDate(a.valid_until, lang)}</span>
                       </div>
-                      {a.notes && <p className="text-xs text-gray-500 mt-2 italic">{a.notes}</p>}
+                      {a.notes && <p className="mt-2 text-xs italic text-surface-500">{a.notes}</p>}
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => openEdit(a)} className="text-blue-600 hover:underline text-xs">
-                        {copy.edit}
-                      </button>
-                      <button onClick={() => setDeleteId(a.id)} className="text-red-500 hover:underline text-xs">
-                        {copy.delete}
-                      </button>
+                      <button type="button" onClick={() => openEdit(a)} className="btn-ghost text-xs">{copy.edit}</button>
+                      <button type="button" onClick={() => setDeleteId(a.id)} className="btn-ghost text-xs text-red-600 hover:bg-red-50">{copy.delete}</button>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </>
+        </section>
       )}
 
-      {/* ── CPD Tab ── */}
       {activeTab === "cpd" && (
-        <div>
-          {cpdLoading && <div className="p-8 text-gray-400">{copy.loading}</div>}
-          {cpdError && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">
-              {cpdError}
-            </div>
-          )}
+        <section className="section">
+          <div>
+            <h2 className="card-title">{copy.cpdTitle}</h2>
+            <p className="card-meta">{copy.cpdSubtitle}</p>
+          </div>
+          {cpdLoading && <div className="card p-8 text-sm text-surface-400">{copy.loading}</div>}
+          {cpdError && <div className="error-banner">{cpdError}</div>}
           {!cpdLoading && cpdSummary && (
             <>
               {cpdSummary.total_logs === 0 ? (
-                <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
-                  <p className="text-4xl mb-3">📋</p>
-                  <p className="text-gray-500 text-sm max-w-sm mx-auto">{copy.cpdNoData}</p>
+                <div className="card empty-state">
+                  <div className="empty-state-icon">CPD</div>
+                  <p className="empty-state-body">{copy.cpdNoData}</p>
                 </div>
               ) : (
                 <>
-                  {/* Summary stats */}
-                  <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="grid gap-4 sm:grid-cols-3">
                     {[
                       { value: cpdSummary.total_hours, label: copy.cpdBodyCard_hours },
                       { value: cpdSummary.total_members, label: copy.cpdBodyCard_members },
                       { value: cpdSummary.total_logs, label: copy.cpdBodyCard_logs },
                     ].map(({ value, label }) => (
-                      <div key={label} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                        <p className="text-2xl font-bold text-gray-900">{value}</p>
-                        <p className="text-xs font-medium text-gray-500 mt-1">{label}</p>
+                      <div key={label} className="card p-5">
+                        <p className="text-2xl font-bold text-surface-900">{value}</p>
+                        <p className="card-meta">{label}</p>
                       </div>
                     ))}
                   </div>
 
-                  {/* By body cards */}
                   {cpdSummary.by_body.length > 0 && (
-                    <div className="grid gap-3 mb-6">
+                    <div className="grid gap-3">
                       {cpdSummary.by_body.map((b) => (
-                        <div key={b.body_id} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm flex items-center justify-between">
+                        <div key={b.body_id} className="card flex items-center justify-between gap-4 p-5">
                           <div className="flex items-center gap-2.5">
-                            <span className="inline-flex items-center justify-center rounded-xl bg-indigo-50 px-2.5 py-1 font-mono text-xs font-bold text-indigo-600">{b.body_code}</span>
-                            <span className="font-medium text-gray-900">{b.body_name}</span>
+                            <span className="badge-neutral font-mono">{b.body_code}</span>
+                            <span className="font-semibold text-surface-900">{b.body_name}</span>
                           </div>
                           <div className="flex gap-6">
                             <div className="text-right">
-                              <p className="text-sm font-bold text-gray-900">{b.total_hours}</p>
-                              <p className="text-xs text-gray-400">{copy.cpdBodyCard_hours}</p>
+                              <p className="text-sm font-bold text-surface-900">{b.total_hours}</p>
+                              <p className="text-xs text-surface-400">{copy.cpdBodyCard_hours}</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-sm font-bold text-gray-900">{b.member_count}</p>
-                              <p className="text-xs text-gray-400">{copy.cpdBodyCard_members}</p>
+                              <p className="text-sm font-bold text-surface-900">{b.member_count}</p>
+                              <p className="text-xs text-surface-400">{copy.cpdBodyCard_members}</p>
                             </div>
                           </div>
                         </div>
@@ -500,33 +433,30 @@ export default function AccreditationPage() {
                     </div>
                   )}
 
-                  {/* Recent logs table */}
                   {cpdSummary.recent_logs.length > 0 && (
-                    <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-                      <div className="px-5 py-3.5 border-b border-gray-100">
-                        <h3 className="text-sm font-semibold text-gray-900">{copy.cpdRecentTitle}</h3>
+                    <div className="table-shell">
+                      <div className="border-b border-surface-200 px-5 py-3.5">
+                        <h3 className="card-title">{copy.cpdRecentTitle}</h3>
                       </div>
                       <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                        <table className="w-full">
                           <thead>
-                            <tr className="border-b border-gray-100 bg-gray-50">
-                              <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">{copy.cpdMember}</th>
-                              <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">{copy.cpdEvent}</th>
-                              <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">{copy.cpdBody}</th>
-                              <th className="text-right px-5 py-2.5 text-xs font-medium text-gray-500">{copy.cpdHours}</th>
-                              <th className="text-right px-5 py-2.5 text-xs font-medium text-gray-500">{copy.cpdDate}</th>
+                            <tr>
+                              <th className="table-th">{copy.cpdMember}</th>
+                              <th className="table-th">{copy.cpdEvent}</th>
+                              <th className="table-th">{copy.cpdBody}</th>
+                              <th className="table-th text-right">{copy.cpdHours}</th>
+                              <th className="table-th text-right">{copy.cpdDate}</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-gray-100">
+                          <tbody>
                             {cpdSummary.recent_logs.map((log) => (
-                              <tr key={log.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-5 py-3 font-medium text-gray-900">{log.member_name ?? "—"}</td>
-                                <td className="px-5 py-3 text-gray-500 max-w-[200px] truncate">{log.event_name}</td>
-                                <td className="px-5 py-3">
-                                  <span className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 font-mono text-xs font-semibold text-indigo-600">{log.body_code}</span>
-                                </td>
-                                <td className="px-5 py-3 text-right font-semibold text-gray-900">{log.cpd_hours}</td>
-                                <td className="px-5 py-3 text-right text-xs text-gray-400">{formatDateTime(log.earned_at)}</td>
+                              <tr key={log.id} className="table-tr-hover">
+                                <td className="table-td font-semibold">{log.member_name ?? "-"}</td>
+                                <td className="table-td max-w-[220px] truncate">{log.event_name}</td>
+                                <td className="table-td"><span className="badge-neutral font-mono">{log.body_code}</span></td>
+                                <td className="table-td text-right font-semibold">{log.cpd_hours}</td>
+                                <td className="table-td text-right text-xs">{formatDateTime(log.earned_at, lang)}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -538,7 +468,7 @@ export default function AccreditationPage() {
               )}
             </>
           )}
-        </div>
+        </section>
       )}
     </div>
   );

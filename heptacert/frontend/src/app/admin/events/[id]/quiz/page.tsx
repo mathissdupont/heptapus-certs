@@ -3,14 +3,19 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import {
-  Plus, Trash2, Save, Loader2, CheckCircle2, AlertCircle,
-  GripVertical, FileQuestion, BarChart3, ChevronDown, ChevronUp,
+  Plus,
+  Trash2,
+  Save,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  GripVertical,
+  FileQuestion,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+import { useI18n } from "@/lib/i18n";
 
 type ChoiceForm = { id?: number; choice_text: string; is_correct: boolean; order: number };
 type QuestionForm = {
@@ -44,33 +49,151 @@ type AttemptRow = {
 };
 type ResultsSummary = { total: number; passed: number; pass_rate: number };
 
-const emptyQuestion = (order: number): QuestionForm => ({
-  question_text: "",
-  question_type: "mcq",
-  order,
-  points: 1,
-  choices: [
-    { choice_text: "", is_correct: false, order: 0 },
-    { choice_text: "", is_correct: false, order: 1 },
-  ],
-  collapsed: false,
-});
+function getCopy(isTr: boolean) {
+  return isTr
+    ? {
+        defaultTitle: "Sınav",
+        loadFailed: "Sınav yüklenemedi.",
+        saved: "Sınav kaydedildi.",
+        saveFailed: "Kayıt başarısız.",
+        deleteConfirm: "Sınavı ve tüm sonuçları silmek istediğinizden emin misiniz?",
+        deleted: "Sınav silindi.",
+        deleteFailed: "Silme başarısız.",
+        certCreating: "Sertifika oluşturuluyor.",
+        certFailed: "Sertifika verilemedi.",
+        trueText: "Doğru",
+        falseText: "Yanlış",
+        title: "Sınav yönetimi",
+        subtitle: "Sertifika için sınav oluşturun ve sonuçları takip edin.",
+        save: "Kaydet",
+        saving: "Kaydediliyor...",
+        builder: "Sınav oluştur",
+        results: "Sonuçlar",
+        settings: "Sınav ayarları",
+        quizTitle: "Başlık",
+        passingScore: "Geçme puanı (%)",
+        maxAttempts: "Maks. deneme",
+        timeLimit: "Süre limiti (dk, boş = sınırsız)",
+        unlimited: "Sınırsız",
+        description: "Açıklama",
+        requiredForCert: "Sertifika için sınav zorunlu",
+        active: "Sınav aktif",
+        questionPlaceholder: "Soru giriniz...",
+        mcq: "Çoktan seçmeli",
+        trueFalse: "Doğru / Yanlış",
+        trueFalseShort: "D/Y",
+        openText: "Açık uçlu",
+        pointsShort: "p",
+        questionText: "Soru metni",
+        type: "Tip",
+        points: "Puan",
+        choices: "Seçenekler",
+        choicePlaceholder: (n: number) => `Seçenek ${n}`,
+        addChoice: "Seçenek ekle",
+        openTextHint: "Açık uçlu sorular manuel değerlendirme gerektirir.",
+        addQuestion: "Soru ekle",
+        noAttempts: "Henüz sınav girişimi bulunmuyor.",
+        totalAttempts: "Toplam deneme",
+        passed: "Geçen",
+        passRate: "Geçme oranı",
+        attendee: "Katılımcı",
+        score: "Puan",
+        status: "Durum",
+        attempt: "Deneme",
+        certificate: "Sertifika",
+        date: "Tarih",
+        failed: "Kaldı",
+        attemptSuffix: "deneme",
+        certIssued: "Verildi",
+        issueCert: "Sertifika ver",
+        inProgress: "Devam ediyor",
+      }
+    : {
+        defaultTitle: "Quiz",
+        loadFailed: "Could not load quiz.",
+        saved: "Quiz saved.",
+        saveFailed: "Save failed.",
+        deleteConfirm: "Are you sure you want to delete the quiz and all results?",
+        deleted: "Quiz deleted.",
+        deleteFailed: "Delete failed.",
+        certCreating: "Certificate is being created.",
+        certFailed: "Could not issue certificate.",
+        trueText: "True",
+        falseText: "False",
+        title: "Quiz management",
+        subtitle: "Create a certificate quiz and track results.",
+        save: "Save",
+        saving: "Saving...",
+        builder: "Build quiz",
+        results: "Results",
+        settings: "Quiz settings",
+        quizTitle: "Title",
+        passingScore: "Passing score (%)",
+        maxAttempts: "Max attempts",
+        timeLimit: "Time limit (min, blank = unlimited)",
+        unlimited: "Unlimited",
+        description: "Description",
+        requiredForCert: "Quiz is required for certificate",
+        active: "Quiz is active",
+        questionPlaceholder: "Enter a question...",
+        mcq: "Multiple choice",
+        trueFalse: "True / False",
+        trueFalseShort: "T/F",
+        openText: "Open text",
+        pointsShort: "pts",
+        questionText: "Question text",
+        type: "Type",
+        points: "Points",
+        choices: "Choices",
+        choicePlaceholder: (n: number) => `Choice ${n}`,
+        addChoice: "Add choice",
+        openTextHint: "Open-ended questions require manual review.",
+        addQuestion: "Add question",
+        noAttempts: "No quiz attempts yet.",
+        totalAttempts: "Total attempts",
+        passed: "Passed",
+        passRate: "Pass rate",
+        attendee: "Attendee",
+        score: "Score",
+        status: "Status",
+        attempt: "Attempt",
+        certificate: "Certificate",
+        date: "Date",
+        failed: "Failed",
+        attemptSuffix: "attempt",
+        certIssued: "Issued",
+        issueCert: "Issue certificate",
+        inProgress: "In progress",
+      };
+}
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
+function emptyQuestion(order: number): QuestionForm {
+  return {
+    question_text: "",
+    question_type: "mcq",
+    order,
+    points: 1,
+    choices: [
+      { choice_text: "", is_correct: false, order: 0 },
+      { choice_text: "", is_correct: false, order: 1 },
+    ],
+    collapsed: false,
+  };
+}
 
 export default function QuizBuilderPage() {
   const params = useParams();
   const eventId = params.id as string;
+  const { lang } = useI18n();
+  const isTr = lang === "tr";
+  const copy = getCopy(isTr);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasQuiz, setHasQuiz] = useState(false);
   const [tab, setTab] = useState<"builder" | "results">("builder");
-
   const [form, setForm] = useState<QuizForm>({
-    title: "Sınav",
+    title: copy.defaultTitle,
     description: "",
     passing_score: 70,
     max_attempts: 3,
@@ -79,7 +202,6 @@ export default function QuizBuilderPage() {
     is_active: true,
     questions: [],
   });
-
   const [results, setResults] = useState<{ attempts: AttemptRow[]; summary: ResultsSummary } | null>(null);
   const [issuingCert, setIssuingCert] = useState<number | null>(null);
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
@@ -89,12 +211,11 @@ export default function QuizBuilderPage() {
     setTimeout(() => setToast(null), 4000);
   }
 
-  // ── Load existing quiz ────────────────────────────────────────────────────
   useEffect(() => {
     async function load() {
       try {
-        const _qr = await apiFetch(`/admin/events/${eventId}/quiz`);
-        const data = await _qr.json();
+        const response = await apiFetch(`/admin/events/${eventId}/quiz`);
+        const data = await response.json();
         setHasQuiz(true);
         setForm({
           title: data.title,
@@ -115,7 +236,7 @@ export default function QuizBuilderPage() {
           })),
         });
       } catch (e: any) {
-        if (e?.status !== 404) showToast("error", "Sınav yüklenemedi.");
+        if (e?.status !== 404) showToast("error", copy.loadFailed);
         setHasQuiz(false);
       } finally {
         setLoading(false);
@@ -124,7 +245,6 @@ export default function QuizBuilderPage() {
     void load();
   }, [eventId]);
 
-  // ── Load results ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (tab !== "results") return;
     apiFetch(`/admin/events/${eventId}/quiz/results`)
@@ -133,12 +253,11 @@ export default function QuizBuilderPage() {
       .catch(() => {});
   }, [tab, eventId]);
 
-  // ── Save quiz ─────────────────────────────────────────────────────────────
   async function handleSave() {
     setSaving(true);
     try {
       const body = {
-        title: form.title.trim() || "Sınav",
+        title: form.title.trim() || copy.defaultTitle,
         description: form.description || null,
         passing_score: form.passing_score >= 1 ? form.passing_score : 70,
         max_attempts: form.max_attempts >= 1 ? form.max_attempts : 3,
@@ -163,45 +282,40 @@ export default function QuizBuilderPage() {
       };
       await apiFetch(`/admin/events/${eventId}/quiz`, { method: "POST", body: JSON.stringify(body) });
       setHasQuiz(true);
-      showToast("success", "Sınav kaydedildi.");
+      showToast("success", copy.saved);
     } catch (err: any) {
-      showToast("error", err?.message ? `Kayıt başarısız: ${err.message}` : "Kayıt başarısız.");
+      showToast("error", err?.message ? `${copy.saveFailed}: ${err.message}` : copy.saveFailed);
     } finally {
       setSaving(false);
     }
   }
 
-  // ── Delete quiz ───────────────────────────────────────────────────────────
   async function handleDelete() {
-    if (!confirm("Sınavı ve tüm sonuçları silmek istediğinizden emin misiniz?")) return;
+    if (!confirm(copy.deleteConfirm)) return;
     try {
       await apiFetch(`/admin/events/${eventId}/quiz`, { method: "DELETE" });
       setHasQuiz(false);
       setForm({ ...form, questions: [] });
-      showToast("success", "Sınav silindi.");
+      showToast("success", copy.deleted);
     } catch {
-      showToast("error", "Silme başarısız.");
+      showToast("error", copy.deleteFailed);
     }
   }
 
-  // ── Issue cert for attempt ────────────────────────────────────────────────
   async function handleIssueCert(attemptId: number) {
     setIssuingCert(attemptId);
     try {
       await apiFetch(`/admin/events/${eventId}/quiz/attempts/${attemptId}/issue-cert`, { method: "POST" });
-      showToast("success", "Sertifika oluşturuluyor.");
-      // Refresh results
-      const _rr = await apiFetch(`/admin/events/${eventId}/quiz/results`);
-      const d = await _rr.json();
-      setResults(d);
+      showToast("success", copy.certCreating);
+      const response = await apiFetch(`/admin/events/${eventId}/quiz/results`);
+      setResults(await response.json());
     } catch {
-      showToast("error", "Sertifika verilemedi.");
+      showToast("error", copy.certFailed);
     } finally {
       setIssuingCert(null);
     }
   }
 
-  // ── Question helpers ──────────────────────────────────────────────────────
   function addQuestion() {
     setForm((f) => ({ ...f, questions: [...f.questions, emptyQuestion(f.questions.length)] }));
   }
@@ -212,386 +326,285 @@ export default function QuizBuilderPage() {
 
   function updateQuestion(idx: number, patch: Partial<QuestionForm>) {
     setForm((f) => {
-      const qs = [...f.questions];
-      qs[idx] = { ...qs[idx], ...patch };
+      const questions = [...f.questions];
+      questions[idx] = { ...questions[idx], ...patch };
       if (patch.question_type === "true_false") {
-        qs[idx].choices = [
-          { choice_text: "Doğru", is_correct: true, order: 0 },
-          { choice_text: "Yanlış", is_correct: false, order: 1 },
+        questions[idx].choices = [
+          { choice_text: copy.trueText, is_correct: true, order: 0 },
+          { choice_text: copy.falseText, is_correct: false, order: 1 },
         ];
       }
-      return { ...f, questions: qs };
+      return { ...f, questions };
     });
   }
 
   function addChoice(qIdx: number) {
     setForm((f) => {
-      const qs = [...f.questions];
-      qs[qIdx].choices = [
-        ...qs[qIdx].choices,
-        { choice_text: "", is_correct: false, order: qs[qIdx].choices.length },
+      const questions = [...f.questions];
+      questions[qIdx].choices = [
+        ...questions[qIdx].choices,
+        { choice_text: "", is_correct: false, order: questions[qIdx].choices.length },
       ];
-      return { ...f, questions: qs };
+      return { ...f, questions };
     });
   }
 
   function updateChoice(qIdx: number, cIdx: number, patch: Partial<ChoiceForm>) {
     setForm((f) => {
-      const qs = [...f.questions];
-      const choices = [...qs[qIdx].choices];
+      const questions = [...f.questions];
+      const choices = [...questions[qIdx].choices];
       choices[cIdx] = { ...choices[cIdx], ...patch };
-      qs[qIdx] = { ...qs[qIdx], choices };
-      return { ...f, questions: qs };
+      questions[qIdx] = { ...questions[qIdx], choices };
+      return { ...f, questions };
     });
   }
 
   function removeChoice(qIdx: number, cIdx: number) {
     setForm((f) => {
-      const qs = [...f.questions];
-      qs[qIdx].choices = qs[qIdx].choices.filter((_, i) => i !== cIdx);
-      return { ...f, questions: qs };
+      const questions = [...f.questions];
+      questions[qIdx].choices = questions[qIdx].choices.filter((_, i) => i !== cIdx);
+      return { ...f, questions };
     });
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+        <Loader2 className="h-6 w-6 animate-spin text-surface-400" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Toast */}
+    <div className="page-content">
       {toast && (
-        <div
-          className={`fixed top-4 right-4 z-50 flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium shadow-lg text-white ${
-            toast.type === "success" ? "bg-green-600" : "bg-red-600"
-          }`}
-        >
+        <div className={`fixed right-4 top-4 z-50 flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-white shadow-lg ${toast.type === "success" ? "bg-emerald-600" : "bg-red-600"}`}>
           {toast.type === "success" ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
           {toast.msg}
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="page-header">
         <div className="flex items-center gap-3">
-          <FileQuestion className="h-6 w-6 text-indigo-600" />
+          <div className="rounded-xl bg-brand-50 p-2 text-brand-700">
+            <FileQuestion className="h-5 w-5" />
+          </div>
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">Sınav Yönetimi</h1>
-            <p className="text-sm text-gray-500">Sertifika için sınav oluştur ve sonuçları takip et</p>
+            <h1 className="page-title">{copy.title}</h1>
+            <p className="page-subtitle">{copy.subtitle}</p>
           </div>
         </div>
         <div className="flex gap-2">
           {hasQuiz && (
-            <button
-              onClick={handleDelete}
-              className="rounded-lg border border-red-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-            >
+            <button type="button" onClick={handleDelete} className="btn-danger px-3" title={copy.deleteConfirm}>
               <Trash2 className="h-4 w-4" />
             </button>
           )}
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-          >
+          <button type="button" onClick={handleSave} disabled={saving} className="btn-primary">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Kaydet
+            {saving ? copy.saving : copy.save}
           </button>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 rounded-xl bg-gray-100 p-1 w-fit">
-        {(["builder", "results"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-              tab === t ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            {t === "builder" ? "Sınav Oluştur" : "Sonuçlar"}
+      <div className="tab-group w-fit">
+        {(["builder", "results"] as const).map((item) => (
+          <button key={item} type="button" onClick={() => setTab(item)} className={tab === item ? "tab-btn-active" : "tab-btn"}>
+            {item === "builder" ? copy.builder : copy.results}
           </button>
         ))}
       </div>
 
-      {/* ── Builder Tab ── */}
       {tab === "builder" && (
         <div className="space-y-6">
-          {/* Settings card */}
-          <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
-            <h2 className="font-medium text-gray-800">Sınav Ayarları</h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Başlık</label>
-                <input
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  value={form.title}
-                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Geçme Puanı (%)</label>
-                <input
-                  type="number" min={1} max={100}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  value={form.passing_score}
-                  onChange={(e) => setForm((f) => ({ ...f, passing_score: Number(e.target.value) }))}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Maks. Deneme</label>
-                <input
-                  type="number" min={1} max={10}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  value={form.max_attempts}
-                  onChange={(e) => setForm((f) => ({ ...f, max_attempts: Number(e.target.value) }))}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Süre Limiti (dk, boş = sınırsız)</label>
-                <input
-                  type="number" min={1}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  value={form.time_limit_minutes}
-                  onChange={(e) => setForm((f) => ({ ...f, time_limit_minutes: e.target.value }))}
-                  placeholder="Sınırsız"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Açıklama</label>
-              <textarea
-                rows={2}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-              />
-            </div>
-            <div className="flex flex-wrap gap-6">
-              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="rounded"
-                  checked={form.required_for_cert}
-                  onChange={(e) => setForm((f) => ({ ...f, required_for_cert: e.target.checked }))}
-                />
-                Sertifika için sınav zorunlu
+          <div className="card space-y-4 p-6">
+            <h2 className="card-title">{copy.settings}</h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="label">{copy.quizTitle}</span>
+                <input className="input" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
               </label>
-              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="rounded"
-                  checked={form.is_active}
-                  onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))}
-                />
-                Sınav aktif
+              <label className="block">
+                <span className="label">{copy.passingScore}</span>
+                <input type="number" min={1} max={100} className="input" value={form.passing_score} onChange={(e) => setForm((f) => ({ ...f, passing_score: Number(e.target.value) }))} />
+              </label>
+              <label className="block">
+                <span className="label">{copy.maxAttempts}</span>
+                <input type="number" min={1} max={10} className="input" value={form.max_attempts} onChange={(e) => setForm((f) => ({ ...f, max_attempts: Number(e.target.value) }))} />
+              </label>
+              <label className="block">
+                <span className="label">{copy.timeLimit}</span>
+                <input type="number" min={1} className="input" value={form.time_limit_minutes} onChange={(e) => setForm((f) => ({ ...f, time_limit_minutes: e.target.value }))} placeholder={copy.unlimited} />
+              </label>
+            </div>
+            <label className="block">
+              <span className="label">{copy.description}</span>
+              <textarea rows={2} className="input" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
+            </label>
+            <div className="flex flex-wrap gap-6">
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-surface-700">
+                <input type="checkbox" className="rounded" checked={form.required_for_cert} onChange={(e) => setForm((f) => ({ ...f, required_for_cert: e.target.checked }))} />
+                {copy.requiredForCert}
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-surface-700">
+                <input type="checkbox" className="rounded" checked={form.is_active} onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))} />
+                {copy.active}
               </label>
             </div>
           </div>
 
-          {/* Questions */}
           <div className="space-y-3">
-            {form.questions.map((q, qi) => (
-              <div key={qi} className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-                {/* Question header */}
-                <div
-                  className="flex items-center gap-3 px-5 py-4 cursor-pointer hover:bg-gray-50"
-                  onClick={() => updateQuestion(qi, { collapsed: !q.collapsed })}
-                >
-                  <GripVertical className="h-4 w-4 text-gray-300 flex-shrink-0" />
-                  <span className="text-xs font-medium text-gray-400 w-5">{qi + 1}.</span>
-                  <span className="flex-1 text-sm font-medium text-gray-800 truncate">
-                    {q.question_text || "Soru giriniz..."}
-                  </span>
-                  <span className="text-xs text-gray-400 bg-gray-100 rounded px-2 py-0.5">
-                    {q.question_type === "mcq" ? "Çoktan Seçmeli" : q.question_type === "true_false" ? "D/Y" : "Açık Uçlu"}
-                  </span>
-                  <span className="text-xs text-indigo-600 font-medium">{q.points}p</span>
-                  {q.collapsed ? <ChevronDown className="h-4 w-4 text-gray-400" /> : <ChevronUp className="h-4 w-4 text-gray-400" />}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); removeQuestion(qi); }}
-                    className="text-red-400 hover:text-red-600"
-                  >
+            {form.questions.map((question, questionIndex) => (
+              <div key={questionIndex} className="card overflow-hidden">
+                <div className="flex cursor-pointer items-center gap-3 px-5 py-4 hover:bg-surface-50" onClick={() => updateQuestion(questionIndex, { collapsed: !question.collapsed })}>
+                  <GripVertical className="h-4 w-4 shrink-0 text-surface-300" />
+                  <span className="w-5 text-xs font-medium text-surface-400">{questionIndex + 1}.</span>
+                  <span className="flex-1 truncate text-sm font-semibold text-surface-800">{question.question_text || copy.questionPlaceholder}</span>
+                  <span className="badge-neutral">{question.question_type === "mcq" ? copy.mcq : question.question_type === "true_false" ? copy.trueFalseShort : copy.openText}</span>
+                  <span className="text-xs font-semibold text-brand-700">{question.points}{copy.pointsShort}</span>
+                  {question.collapsed ? <ChevronDown className="h-4 w-4 text-surface-400" /> : <ChevronUp className="h-4 w-4 text-surface-400" />}
+                  <button type="button" onClick={(e) => { e.stopPropagation(); removeQuestion(questionIndex); }} className="text-red-400 hover:text-red-600">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
 
-                {!q.collapsed && (
-                  <div className="px-5 pb-5 space-y-4 border-t border-gray-50">
-                    {/* Question fields */}
-                    <div className="pt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                      <div className="sm:col-span-2">
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Soru Metni</label>
-                        <textarea
-                          rows={2}
-                          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          value={q.question_text}
-                          onChange={(e) => updateQuestion(qi, { question_text: e.target.value })}
-                        />
-                      </div>
+                {!question.collapsed && (
+                  <div className="space-y-4 border-t border-surface-100 px-5 pb-5">
+                    <div className="grid gap-3 pt-4 sm:grid-cols-3">
+                      <label className="block sm:col-span-2">
+                        <span className="label">{copy.questionText}</span>
+                        <textarea rows={2} className="input" value={question.question_text} onChange={(e) => updateQuestion(questionIndex, { question_text: e.target.value })} />
+                      </label>
                       <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Tip</label>
-                          <select
-                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none"
-                            value={q.question_type}
-                            onChange={(e) => updateQuestion(qi, { question_type: e.target.value as any })}
-                          >
-                            <option value="mcq">Çoktan Seçmeli</option>
-                            <option value="true_false">Doğru / Yanlış</option>
-                            <option value="open_text">Açık Uçlu</option>
+                        <label className="block">
+                          <span className="label">{copy.type}</span>
+                          <select className="input" value={question.question_type} onChange={(e) => updateQuestion(questionIndex, { question_type: e.target.value as QuestionForm["question_type"] })}>
+                            <option value="mcq">{copy.mcq}</option>
+                            <option value="true_false">{copy.trueFalse}</option>
+                            <option value="open_text">{copy.openText}</option>
                           </select>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Puan</label>
-                          <input
-                            type="number" min={1} max={10}
-                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none"
-                            value={q.points}
-                            onChange={(e) => updateQuestion(qi, { points: Number(e.target.value) })}
-                          />
-                        </div>
+                        </label>
+                        <label className="block">
+                          <span className="label">{copy.points}</span>
+                          <input type="number" min={1} max={10} className="input" value={question.points} onChange={(e) => updateQuestion(questionIndex, { points: Number(e.target.value) })} />
+                        </label>
                       </div>
                     </div>
 
-                    {/* Choices */}
-                    {q.question_type !== "open_text" && (
+                    {question.question_type !== "open_text" && (
                       <div className="space-y-2">
-                        <p className="text-xs font-medium text-gray-600">Seçenekler</p>
-                        {q.choices.map((c, ci) => (
-                          <div key={ci} className="flex items-center gap-2">
+                        <p className="label">{copy.choices}</p>
+                        {question.choices.map((choice, choiceIndex) => (
+                          <div key={choiceIndex} className="flex items-center gap-2">
                             <input
-                              type={q.question_type === "mcq" ? "checkbox" : "radio"}
-                              name={`correct-${qi}`}
-                              checked={c.is_correct}
+                              type={question.question_type === "mcq" ? "checkbox" : "radio"}
+                              name={`correct-${questionIndex}`}
+                              checked={choice.is_correct}
                               onChange={() => {
-                                const choices = q.choices.map((ch, i) => ({
-                                  ...ch,
-                                  is_correct: q.question_type === "true_false" ? i === ci : i === ci ? !ch.is_correct : ch.is_correct,
+                                const choices = question.choices.map((item, index) => ({
+                                  ...item,
+                                  is_correct: question.question_type === "true_false" ? index === choiceIndex : index === choiceIndex ? !item.is_correct : item.is_correct,
                                 }));
-                                updateQuestion(qi, { choices });
+                                updateQuestion(questionIndex, { choices });
                               }}
-                              className="flex-shrink-0"
-                              disabled={q.question_type === "true_false"}
+                              className="shrink-0"
+                              disabled={question.question_type === "true_false"}
                             />
                             <input
-                              className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                              placeholder={`Seçenek ${ci + 1}`}
-                              value={c.choice_text}
-                              readOnly={q.question_type === "true_false"}
-                              onChange={(e) => updateChoice(qi, ci, { choice_text: e.target.value })}
+                              className="input flex-1 py-1.5"
+                              placeholder={copy.choicePlaceholder(choiceIndex + 1)}
+                              value={choice.choice_text}
+                              readOnly={question.question_type === "true_false"}
+                              onChange={(e) => updateChoice(questionIndex, choiceIndex, { choice_text: e.target.value })}
                             />
-                            {q.question_type === "mcq" && q.choices.length > 2 && (
-                              <button onClick={() => removeChoice(qi, ci)} className="text-gray-300 hover:text-red-500">
+                            {question.question_type === "mcq" && question.choices.length > 2 && (
+                              <button type="button" onClick={() => removeChoice(questionIndex, choiceIndex)} className="text-surface-300 hover:text-red-500">
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             )}
                           </div>
                         ))}
-                        {q.question_type === "mcq" && q.choices.length < 6 && (
-                          <button
-                            onClick={() => addChoice(qi)}
-                            className="text-xs text-indigo-600 hover:underline flex items-center gap-1"
-                          >
-                            <Plus className="h-3 w-3" /> Seçenek ekle
+                        {question.question_type === "mcq" && question.choices.length < 6 && (
+                          <button type="button" onClick={() => addChoice(questionIndex)} className="btn-ghost text-xs">
+                            <Plus className="h-3 w-3" /> {copy.addChoice}
                           </button>
                         )}
                       </div>
                     )}
-                    {q.question_type === "open_text" && (
-                      <p className="text-xs text-gray-400 italic">Açık uçlu sorular manuel değerlendirme gerektirir.</p>
-                    )}
+                    {question.question_type === "open_text" && <p className="helper-text italic">{copy.openTextHint}</p>}
                   </div>
                 )}
               </div>
             ))}
 
-            <button
-              onClick={addQuestion}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 py-4 text-sm text-gray-400 hover:border-indigo-300 hover:text-indigo-600 transition"
-            >
-              <Plus className="h-4 w-4" /> Soru Ekle
+            <button type="button" onClick={addQuestion} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-surface-200 py-4 text-sm font-medium text-surface-500 transition hover:border-surface-300 hover:bg-white hover:text-surface-900">
+              <Plus className="h-4 w-4" /> {copy.addQuestion}
             </button>
           </div>
         </div>
       )}
 
-      {/* ── Results Tab ── */}
       {tab === "results" && (
         <div className="space-y-4">
           {!results ? (
-            <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-gray-400" /></div>
+            <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-surface-400" /></div>
           ) : !results.summary ? (
-            <div className="text-center py-16 text-sm text-gray-500">Henüz sınav girişimi bulunmuyor.</div>
+            <div className="empty-state"><p className="empty-state-title">{copy.noAttempts}</p></div>
           ) : (
             <>
-              {/* Summary */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid gap-4 sm:grid-cols-3">
                 {[
-                  { label: "Toplam Deneme", value: results.summary.total },
-                  { label: "Geçen", value: results.summary.passed },
-                  { label: "Geçme Oranı", value: `%${results.summary.pass_rate}` },
-                ].map((s) => (
-                  <div key={s.label} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm text-center">
-                    <div className="text-2xl font-bold text-gray-900">{s.value}</div>
-                    <div className="text-xs text-gray-500 mt-1">{s.label}</div>
+                  { label: copy.totalAttempts, value: results.summary.total },
+                  { label: copy.passed, value: results.summary.passed },
+                  { label: copy.passRate, value: `%${results.summary.pass_rate}` },
+                ].map((item) => (
+                  <div key={item.label} className="card p-5 text-center">
+                    <div className="text-2xl font-bold text-surface-900">{item.value}</div>
+                    <div className="card-meta">{item.label}</div>
                   </div>
                 ))}
               </div>
 
-              {/* Attempts table */}
-              <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-xs text-gray-500">
+              <div className="table-shell">
+                <table className="w-full">
+                  <thead>
                     <tr>
-                      <th className="px-4 py-3 text-left">Katılımcı</th>
-                      <th className="px-4 py-3 text-left">Puan</th>
-                      <th className="px-4 py-3 text-left">Durum</th>
-                      <th className="px-4 py-3 text-left">Deneme</th>
-                      <th className="px-4 py-3 text-left">Sertifika</th>
-                      <th className="px-4 py-3 text-left">Tarih</th>
+                      <th className="table-th">{copy.attendee}</th>
+                      <th className="table-th">{copy.score}</th>
+                      <th className="table-th">{copy.status}</th>
+                      <th className="table-th">{copy.attempt}</th>
+                      <th className="table-th">{copy.certificate}</th>
+                      <th className="table-th">{copy.date}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50">
+                  <tbody>
                     {results.attempts.length === 0 && (
-                      <tr><td colSpan={6} className="text-center py-10 text-gray-400">Henüz deneme yok.</td></tr>
+                      <tr><td colSpan={6} className="table-td py-10 text-center text-surface-400">{copy.noAttempts}</td></tr>
                     )}
-                    {results.attempts.map((a) => (
-                      <tr key={a.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3">
-                          <div className="font-medium text-gray-800">{a.attendee_name}</div>
-                          {a.attendee_email && <div className="text-xs text-gray-400">{a.attendee_email}</div>}
+                    {results.attempts.map((attempt) => (
+                      <tr key={attempt.id} className="table-tr-hover">
+                        <td className="table-td">
+                          <div className="font-semibold text-surface-800">{attempt.attendee_name}</div>
+                          {attempt.attendee_email && <div className="text-xs text-surface-400">{attempt.attendee_email}</div>}
                         </td>
-                        <td className="px-4 py-3 font-mono text-gray-700">%{a.score}</td>
-                        <td className="px-4 py-3">
-                          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${a.passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}>
-                            {a.passed ? "Geçti" : "Kaldı"}
-                          </span>
+                        <td className="table-td font-mono">%{attempt.score}</td>
+                        <td className="table-td">
+                          <span className={attempt.passed ? "badge-active" : "badge-expired"}>{attempt.passed ? copy.passed : copy.failed}</span>
                         </td>
-                        <td className="px-4 py-3 text-gray-500">{a.attempt_number}. deneme</td>
-                        <td className="px-4 py-3">
-                          {a.cert_issued ? (
-                            <span className="text-xs text-green-600 font-medium">Verildi</span>
-                          ) : a.passed ? (
-                            <button
-                              disabled={issuingCert === a.id}
-                              onClick={() => handleIssueCert(a.id)}
-                              className="text-xs text-indigo-600 hover:underline disabled:opacity-50"
-                            >
-                              {issuingCert === a.id ? "Oluşturuluyor..." : "Sertifika Ver"}
+                        <td className="table-td">{attempt.attempt_number}. {copy.attemptSuffix}</td>
+                        <td className="table-td">
+                          {attempt.cert_issued ? (
+                            <span className="text-xs font-semibold text-emerald-600">{copy.certIssued}</span>
+                          ) : attempt.passed ? (
+                            <button type="button" disabled={issuingCert === attempt.id} onClick={() => void handleIssueCert(attempt.id)} className="btn-ghost text-xs text-brand-700">
+                              {issuingCert === attempt.id ? copy.certCreating : copy.issueCert}
                             </button>
                           ) : (
-                            <span className="text-xs text-gray-400">—</span>
+                            <span className="text-xs text-surface-400">-</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-xs text-gray-400">
-                          {a.completed_at ? new Date(a.completed_at).toLocaleDateString("tr-TR") : "Devam ediyor"}
+                        <td className="table-td text-xs">
+                          {attempt.completed_at ? new Date(attempt.completed_at).toLocaleDateString(isTr ? "tr-TR" : "en-US") : copy.inProgress}
                         </td>
                       </tr>
                     ))}
