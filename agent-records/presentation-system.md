@@ -29,6 +29,7 @@ HeptaCert presentation work is event-based. Users can upload PDF, PPTX, or PPT f
 - Security controls added per deck: audience access, download permission, watermark overlay, audience token regeneration, and presenter-control token regeneration.
 - Public file serving now respects deck download policy. Inline viewing remains possible for the viewer, while attachment/download behavior is only enabled when the deck allows it.
 - Token-based presenter page added for phone control without requiring the presenter to navigate through the admin UI.
+- Backend regression tests added for presentation security controls, audience access gating, expired audience links, scoped presenter-control session updates, and audience download policy.
 
 ## License Notes
 
@@ -45,6 +46,13 @@ HeptaCert presentation work is event-based. Users can upload PDF, PPTX, or PPT f
 - Avoid generating thumbnails or previews server-side unless explicitly needed.
 - Keep live remote control state small and cache-backed.
 - Add analytics asynchronously, not inside the slide-change request path.
+
+## Test Notes
+
+- New test file: `heptacert/backend/tests/test_presentation_security.py`.
+- Tests are intended to run in GitHub Actions with the existing backend CI dependency install.
+- Local pytest was not completed because the local Python environments were missing backend dependencies; avoid running full dependency installs on the developer workstation for this step.
+- Codesight is configured in `.github/workflows/codesight.yml` and should regenerate `.codesight` as a CI artifact on push.
 
 ## Priority Roadmap
 
