@@ -32,6 +32,7 @@ HeptaCert presentation work is event-based. Users can upload PDF, PPTX, or PPT f
 - Backend regression tests added for presentation security controls, audience access gating, expired audience links, scoped presenter-control session updates, and audience download policy.
 - Pointer/session bugfix: slide index and laser pointer state now use separate cache keys so pointer-only updates cannot overwrite the current page. Remote pointer gestures are throttled and isolated from browser touch gestures.
 - WebSocket live control transport added as a lightweight path for presenter phone -> stage updates. Pointer frames are broadcast over an in-process room instead of REST PATCH, while slide changes still persist to cache. HTTP session endpoints remain as fallback when WebSocket is unavailable.
+- Production compose uses one backend web worker by default (`BACKEND_WEB_WORKERS:-1`) so in-process WebSocket rooms work reliably. Caddy `reverse_proxy` handles WebSocket upgrade automatically for `/api/*`; add Redis Pub/Sub before scaling web workers above one.
 
 ## License Notes
 
