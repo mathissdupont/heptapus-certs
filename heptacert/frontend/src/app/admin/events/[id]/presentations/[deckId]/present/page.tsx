@@ -324,7 +324,7 @@ export default function EventPresentationStagePage() {
             )}
             {pointer.active && (
               <div
-                className="pointer-events-none absolute z-20 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-red-500 shadow-[0_0_0_10px_rgba(239,68,68,0.18),0_8px_24px_rgba(15,23,42,0.28)] transition-[left,top] duration-150 ease-out"
+                className="pointer-events-none absolute z-20 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-red-500 shadow-[0_0_0_10px_rgba(239,68,68,0.18),0_8px_24px_rgba(15,23,42,0.28)]"
                 style={{ left: `${pointer.x * 100}%`, top: `${pointer.y * 100}%` }}
               />
             )}

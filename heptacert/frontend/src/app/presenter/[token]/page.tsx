@@ -26,11 +26,14 @@ export default function PresenterTokenPage() {
   const [slideIndex, setSlideIndex] = useState(0);
   const [pageCount, setPageCount] = useState(0);
   const [pointerActive, setPointerActive] = useState(false);
+  const [pointerPadPoint, setPointerPadPoint] = useState({ x: 0.5, y: 0.5 });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pointerThrottleRef = useRef(0);
   const pointerActiveRef = useRef(false);
+  const pointerFrameRef = useRef<number | null>(null);
+  const pointerPendingRef = useRef<{ x: number; y: number } | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const [wsConnected, setWsConnected] = useState(false);
   const fileUrl = deck ? publicFileUrl(deck.file_url) : null;
@@ -130,7 +133,7 @@ export default function PresenterTokenPage() {
 
   function sendPointer(active: boolean, x?: number, y?: number) {
     const now = Date.now();
-    if (active && now - pointerThrottleRef.current < 120) return;
+    if (active && now - pointerThrottleRef.current < 33) return;
     pointerThrottleRef.current = now;
     if (!sendRealtime({ pointer_active: active, pointer_x: active ? x : null, pointer_y: active ? y : null })) {
       updatePublicControlSession(token, {
@@ -147,6 +150,7 @@ export default function PresenterTokenPage() {
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
     const coords = coordinatesFromPointer(event);
+    setPointerPadPoint(coords);
     pointerActiveRef.current = true;
     setPointerActive(true);
     sendPointer(true, coords.x, coords.y);
@@ -155,12 +159,28 @@ export default function PresenterTokenPage() {
   function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
     if (!event.isPrimary || !pointerActiveRef.current) return;
     const coords = coordinatesFromPointer(event);
-    sendPointer(true, coords.x, coords.y);
+    setPointerPadPoint(coords);
+    pointerPendingRef.current = coords;
+    if (pointerFrameRef.current !== null) return;
+    pointerFrameRef.current = window.requestAnimationFrame(() => {
+      pointerFrameRef.current = null;
+      const pending = pointerPendingRef.current;
+      pointerPendingRef.current = null;
+      if (pending && pointerActiveRef.current) {
+        sendPointer(true, pending.x, pending.y);
+      }
+    });
   }
 
   function stopPointer() {
     pointerActiveRef.current = false;
+    if (pointerFrameRef.current !== null) {
+      window.cancelAnimationFrame(pointerFrameRef.current);
+      pointerFrameRef.current = null;
+    }
+    pointerPendingRef.current = null;
     setPointerActive(false);
+    setPointerPadPoint({ x: 0.5, y: 0.5 });
     pointerThrottleRef.current = 0;
     if (!sendRealtime({ pointer_active: false, pointer_x: null, pointer_y: null })) {
       updatePublicControlSession(token, { pointer_active: false, pointer_x: null, pointer_y: null }).catch(() => undefined);
@@ -177,7 +197,7 @@ export default function PresenterTokenPage() {
 
   return (
     <main className="min-h-screen bg-surface-50 px-4 py-5 text-surface-950">
-      <section className="mx-auto flex max-w-md flex-col gap-4">
+      <section className="mx-auto flex max-w-md flex-col gap-4 landscape:grid landscape:max-w-5xl landscape:grid-cols-[minmax(260px,360px)_1fr] landscape:items-start">
         <header className="rounded-2xl border border-surface-200 bg-white p-4 shadow-sm">
           <p className="text-11 font-black uppercase tracking-[0.2em] text-surface-400">HeptaDeck</p>
           <h1 className="mt-1 text-xl font-black text-surface-950">Presenter Control</h1>
@@ -226,7 +246,7 @@ export default function PresenterTokenPage() {
           </button>
         </section>
 
-        <section className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm">
+        <section className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm landscape:row-span-2">
           <div className="mb-3 flex items-center gap-2">
             <LocateFixed className="h-4 w-4 text-brand-700" />
             <p className="text-sm font-black text-surface-950">Laser pointer</p>
@@ -241,12 +261,15 @@ export default function PresenterTokenPage() {
             onPointerMove={handlePointerMove}
             onPointerUp={stopPointer}
             onPointerCancel={stopPointer}
-            className={`relative flex h-36 touch-none select-none items-center justify-center overflow-hidden rounded-2xl border text-sm font-bold transition ${
+            className={`relative flex h-[46vh] min-h-48 touch-none select-none items-center justify-center overflow-hidden rounded-2xl border text-sm font-bold transition landscape:h-[66vh] ${
               pointerActive ? "border-red-200 bg-red-50 text-red-700" : "border-dashed border-surface-200 bg-surface-50 text-surface-400"
             }`}
           >
-            <div className={`h-8 w-8 rounded-full border-2 border-white shadow-lg ${pointerActive ? "bg-red-500" : "bg-surface-300"}`} />
-            <span className="absolute bottom-3 left-4 right-4 text-center text-xs font-semibold">Press and drag to point on stage.</span>
+            <div
+              className={`absolute h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-lg ${pointerActive ? "bg-red-500" : "bg-surface-300"}`}
+              style={{ left: `${pointerPadPoint.x * 100}%`, top: `${pointerPadPoint.y * 100}%` }}
+            />
+            <span className={`absolute bottom-3 left-4 right-4 text-center text-xs font-semibold transition-opacity ${pointerActive ? "opacity-0" : "opacity-100"}`}>Press and drag to point on stage.</span>
           </div>
         </section>
       </section>
