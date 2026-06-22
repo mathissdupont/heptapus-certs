@@ -545,17 +545,91 @@ def _presentation_session_key(deck_id: int) -> str:
     return f"presentation:session:{deck_id}"
 
 
+def _presentation_session_slide_key(deck_id: int) -> str:
+    return f"presentation:session:{deck_id}:slide"
+
+
+def _presentation_session_pointer_key(deck_id: int) -> str:
+    return f"presentation:session:{deck_id}:pointer"
+
+
+def _parse_session_updated_at(value: Any) -> datetime:
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value)
+        except ValueError:
+            return datetime.now(timezone.utc)
+    return datetime.now(timezone.utc)
+
+
 async def _get_presentation_session_state(deck_id: int) -> PresentationSessionState:
-    cached = await cache.get(_presentation_session_key(deck_id))
-    if isinstance(cached, dict):
-        return PresentationSessionState(
-            slide_index=int(cached.get("slide_index") or 0),
-            pointer_active=bool(cached.get("pointer_active") or False),
-            pointer_x=cached.get("pointer_x"),
-            pointer_y=cached.get("pointer_y"),
-            updated_at=cached.get("updated_at") or datetime.now(timezone.utc),
-        )
-    return PresentationSessionState(slide_index=0, updated_at=datetime.now(timezone.utc))
+    legacy = await cache.get(_presentation_session_key(deck_id))
+    slide_cached = await cache.get(_presentation_session_slide_key(deck_id))
+    pointer_cached = await cache.get(_presentation_session_pointer_key(deck_id))
+
+    slide_index = 0
+    updated_at = datetime.now(timezone.utc)
+    if isinstance(legacy, dict):
+        slide_index = int(legacy.get("slide_index") or 0)
+        updated_at = _parse_session_updated_at(legacy.get("updated_at"))
+    if isinstance(slide_cached, dict):
+        slide_index = int(slide_cached.get("slide_index") or 0)
+        updated_at = _parse_session_updated_at(slide_cached.get("updated_at"))
+
+    pointer_active = False
+    pointer_x = None
+    pointer_y = None
+    if isinstance(legacy, dict):
+        pointer_active = bool(legacy.get("pointer_active") or False)
+        pointer_x = legacy.get("pointer_x")
+        pointer_y = legacy.get("pointer_y")
+    if isinstance(pointer_cached, dict):
+        pointer_active = bool(pointer_cached.get("pointer_active") or False)
+        pointer_x = pointer_cached.get("pointer_x")
+        pointer_y = pointer_cached.get("pointer_y")
+        pointer_updated_at = _parse_session_updated_at(pointer_cached.get("updated_at"))
+        if pointer_updated_at > updated_at:
+            updated_at = pointer_updated_at
+
+    return PresentationSessionState(
+        slide_index=slide_index,
+        pointer_active=pointer_active,
+        pointer_x=pointer_x,
+        pointer_y=pointer_y,
+        updated_at=updated_at,
+    )
+
+
+async def _store_presentation_slide_state(deck_id: int, slide_index: int) -> PresentationSessionState:
+    await cache.set(
+        _presentation_session_slide_key(deck_id),
+        {"slide_index": slide_index, "updated_at": datetime.now(timezone.utc).isoformat()},
+        ttl=6 * 60 * 60,
+    )
+    await cache.delete(_presentation_session_key(deck_id))
+    return await _get_presentation_session_state(deck_id)
+
+
+async def _store_presentation_pointer_state(deck_id: int, active: bool, x: Optional[float], y: Optional[float]) -> PresentationSessionState:
+    if active and (x is None or y is None):
+        raise HTTPException(status_code=400, detail="Pointer coordinates are required")
+    if not active:
+        x = None
+        y = None
+    await cache.set(
+        _presentation_session_pointer_key(deck_id),
+        {
+            "pointer_active": active,
+            "pointer_x": x,
+            "pointer_y": y,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        },
+        ttl=30,
+    )
+    await cache.delete(_presentation_session_key(deck_id))
+    return await _get_presentation_session_state(deck_id)
 
 
 async def _store_upload_file(deck: PresentationDeck, file: UploadFile) -> None:
@@ -845,23 +919,14 @@ async def update_presentation_session(
 ) -> PresentationSessionState:
     await _authorized_deck(db, me, deck_id, request, "presentations:write")
     current = await _get_presentation_session_state(deck_id)
-    slide_index = payload.slide_index if payload.slide_index is not None else current.slide_index
-    pointer_active = payload.pointer_active if payload.pointer_active is not None else current.pointer_active
-    pointer_x = payload.pointer_x if payload.pointer_x is not None else current.pointer_x
-    pointer_y = payload.pointer_y if payload.pointer_y is not None else current.pointer_y
-    if pointer_active and (pointer_x is None or pointer_y is None):
-        raise HTTPException(status_code=400, detail="Pointer coordinates are required")
-    if not pointer_active:
-        pointer_x = None
-        pointer_y = None
-    state = PresentationSessionState(
-        slide_index=slide_index,
-        pointer_active=pointer_active,
-        pointer_x=pointer_x,
-        pointer_y=pointer_y,
-        updated_at=datetime.now(timezone.utc),
-    )
-    await cache.set(_presentation_session_key(deck_id), state.model_dump(), ttl=6 * 60 * 60)
+    if payload.slide_index is not None:
+        current = await _store_presentation_slide_state(deck_id, payload.slide_index)
+    if payload.pointer_active is not None or payload.pointer_x is not None or payload.pointer_y is not None:
+        pointer_active = payload.pointer_active if payload.pointer_active is not None else current.pointer_active
+        pointer_x = payload.pointer_x if payload.pointer_x is not None else current.pointer_x
+        pointer_y = payload.pointer_y if payload.pointer_y is not None else current.pointer_y
+        current = await _store_presentation_pointer_state(deck_id, pointer_active, pointer_x, pointer_y)
+    state = current
     return state
 
 
@@ -1166,23 +1231,14 @@ async def update_control_presentation_session(
 ) -> PresentationSessionState:
     deck = await _public_control_deck(db, token)
     current = await _get_presentation_session_state(deck["id"])
-    slide_index = payload.slide_index if payload.slide_index is not None else current.slide_index
-    pointer_active = payload.pointer_active if payload.pointer_active is not None else current.pointer_active
-    pointer_x = payload.pointer_x if payload.pointer_x is not None else current.pointer_x
-    pointer_y = payload.pointer_y if payload.pointer_y is not None else current.pointer_y
-    if pointer_active and (pointer_x is None or pointer_y is None):
-        raise HTTPException(status_code=400, detail="Pointer coordinates are required")
-    if not pointer_active:
-        pointer_x = None
-        pointer_y = None
-    state = PresentationSessionState(
-        slide_index=slide_index,
-        pointer_active=pointer_active,
-        pointer_x=pointer_x,
-        pointer_y=pointer_y,
-        updated_at=datetime.now(timezone.utc),
-    )
-    await cache.set(_presentation_session_key(deck["id"]), state.model_dump(), ttl=6 * 60 * 60)
+    if payload.slide_index is not None:
+        current = await _store_presentation_slide_state(deck["id"], payload.slide_index)
+    if payload.pointer_active is not None or payload.pointer_x is not None or payload.pointer_y is not None:
+        pointer_active = payload.pointer_active if payload.pointer_active is not None else current.pointer_active
+        pointer_x = payload.pointer_x if payload.pointer_x is not None else current.pointer_x
+        pointer_y = payload.pointer_y if payload.pointer_y is not None else current.pointer_y
+        current = await _store_presentation_pointer_state(deck["id"], pointer_active, pointer_x, pointer_y)
+    state = current
     return state
 
 

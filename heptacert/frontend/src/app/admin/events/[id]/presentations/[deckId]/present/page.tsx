@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Database, Download, Expand, FileText, Loader2, Presentation, QrCode, Smartphone } from "lucide-react";
@@ -10,6 +10,8 @@ import { apiFetch, normalizeApiAssetUrl } from "@/lib/api";
 import {
   downloadPresentationFile,
   getPresentationSession,
+  presentationControlTokenFromUrl,
+  presentationControlWsUrl,
   presentationAuthHeaders,
   presentationConvertedFileUrl,
   presentationFileUrl,
@@ -47,6 +49,8 @@ export default function EventPresentationStagePage() {
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
   const [preloadSignal, setPreloadSignal] = useState(0);
   const [preloadStatus, setPreloadStatus] = useState<"idle" | "loading" | "ready">("idle");
+  const [wsConnected, setWsConnected] = useState(false);
+  const sessionSnapshotRef = useRef({ slideIndex: 0, pointerActive: false, pointerX: 0.5, pointerY: 0.5 });
   const pdfRequestHeaders = useMemo(() => presentationAuthHeaders(), []);
 
   const copy = useMemo(() => ({
@@ -104,31 +108,80 @@ export default function EventPresentationStagePage() {
     return () => window.clearTimeout(timer);
   }, [deck, deckId]);
 
+  const applySessionState = useCallback((state: any) => {
+    const nextSlideIndex = Math.max(0, Number(state.slide_index || 0));
+    const nextPointer = {
+      active: Boolean(state.pointer_active),
+      x: typeof state.pointer_x === "number" ? state.pointer_x : 0.5,
+      y: typeof state.pointer_y === "number" ? state.pointer_y : 0.5,
+    };
+    const previous = sessionSnapshotRef.current;
+    if (previous.slideIndex !== nextSlideIndex) {
+      setSlideIndex(nextSlideIndex);
+    }
+    if (
+      previous.pointerActive !== nextPointer.active ||
+      Math.abs(previous.pointerX - nextPointer.x) > 0.001 ||
+      Math.abs(previous.pointerY - nextPointer.y) > 0.001
+    ) {
+      setPointer(nextPointer);
+    }
+    sessionSnapshotRef.current = {
+      slideIndex: nextSlideIndex,
+      pointerActive: nextPointer.active,
+      pointerX: nextPointer.x,
+      pointerY: nextPointer.y,
+    };
+  }, []);
+
   useEffect(() => {
-    if (!deckId) return;
+    const token = presentationControlTokenFromUrl(deck?.presenter_control_url);
+    if (!token) return;
+    let closedByEffect = false;
+    const ws = new WebSocket(presentationControlWsUrl(token));
+    ws.onopen = () => {
+      if (!closedByEffect) setWsConnected(true);
+    };
+    ws.onmessage = (event) => {
+      try {
+        applySessionState(JSON.parse(event.data));
+      } catch {
+        // Ignore malformed realtime frames and keep the HTTP fallback available.
+      }
+    };
+    ws.onclose = () => {
+      if (!closedByEffect) setWsConnected(false);
+    };
+    ws.onerror = () => {
+      if (!closedByEffect) setWsConnected(false);
+    };
+    return () => {
+      closedByEffect = true;
+      setWsConnected(false);
+      ws.close();
+    };
+  }, [applySessionState, deck?.presenter_control_url]);
+
+  useEffect(() => {
+    if (!deckId || wsConnected) return;
     let cancelled = false;
     async function syncSession() {
       try {
         const state = await getPresentationSession(deckId);
         if (!cancelled) {
-          setSlideIndex(Math.max(0, state.slide_index || 0));
-          setPointer({
-            active: Boolean(state.pointer_active),
-            x: typeof state.pointer_x === "number" ? state.pointer_x : 0.5,
-            y: typeof state.pointer_y === "number" ? state.pointer_y : 0.5,
-          });
+          applySessionState(state);
         }
       } catch {
         // The stage should keep rendering even if remote state is temporarily unavailable.
       }
     }
     void syncSession();
-    const timer = window.setInterval(() => void syncSession(), 250);
+    const timer = window.setInterval(() => void syncSession(), 180);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [deckId]);
+  }, [applySessionState, deckId, wsConnected]);
 
   useEffect(() => {
     if (!qrOpen || qrImageUrl) return;
@@ -271,7 +324,7 @@ export default function EventPresentationStagePage() {
             )}
             {pointer.active && (
               <div
-                className="pointer-events-none absolute z-20 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-red-500 shadow-[0_0_0_10px_rgba(239,68,68,0.18),0_8px_24px_rgba(15,23,42,0.28)]"
+                className="pointer-events-none absolute z-20 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-red-500 shadow-[0_0_0_10px_rgba(239,68,68,0.18),0_8px_24px_rgba(15,23,42,0.28)] transition-[left,top] duration-150 ease-out"
                 style={{ left: `${pointer.x * 100}%`, top: `${pointer.y * 100}%` }}
               />
             )}

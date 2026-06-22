@@ -183,8 +183,11 @@ class TestPresentationSecurityControls:
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
             control_resp = await ac.patch(
                 f"/api/public/presentations/control/{control_token}/session",
+                json={"slide_index": 3},
+            )
+            pointer_resp = await ac.patch(
+                f"/api/public/presentations/control/{control_token}/session",
                 json={
-                    "slide_index": 3,
                     "pointer_active": True,
                     "pointer_x": 0.4,
                     "pointer_y": 0.6,
@@ -197,11 +200,12 @@ class TestPresentationSecurityControls:
             audience_state = await ac.get(f"/api/public/presentations/audience/{audience_token}/session")
 
         assert control_resp.status_code == 200
-        control_payload = control_resp.json()
-        assert control_payload["slide_index"] == 3
-        assert control_payload["pointer_active"] is True
-        assert control_payload["pointer_x"] == 0.4
-        assert control_payload["pointer_y"] == 0.6
+        assert pointer_resp.status_code == 200
+        pointer_payload = pointer_resp.json()
+        assert pointer_payload["slide_index"] == 3
+        assert pointer_payload["pointer_active"] is True
+        assert pointer_payload["pointer_x"] == 0.4
+        assert pointer_payload["pointer_y"] == 0.6
         assert audience_patch.status_code == 405
         assert audience_state.status_code == 200
         assert audience_state.json()["slide_index"] == 3

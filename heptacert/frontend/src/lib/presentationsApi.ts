@@ -1,4 +1,4 @@
-import { apiFetch, apiUrl, getToken, publicApiFetch } from "@/lib/api";
+import { apiFetch, apiUrl, getApiOrigin, getToken, publicApiFetch } from "@/lib/api";
 
 export type PresentationSlide = {
   title: string;
@@ -89,6 +89,18 @@ export type PresentationSecuritySettings = {
   audience_url?: string | null;
   presenter_control_url?: string | null;
 };
+
+export function presentationControlTokenFromUrl(value?: string | null): string | null {
+  if (!value) return null;
+  const match = value.match(/\/presenter\/([^/?#]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+export function presentationControlWsUrl(token: string): string {
+  const origin = getApiOrigin();
+  const wsOrigin = origin.replace(/^http:/, "ws:").replace(/^https:/, "wss:");
+  return `${wsOrigin}/api/public/presentations/control/${encodeURIComponent(token)}/ws`;
+}
 
 export async function listPresentations(): Promise<PresentationDeck[]> {
   const res = await apiFetch("/admin/presentations");

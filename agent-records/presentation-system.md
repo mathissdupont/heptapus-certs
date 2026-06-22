@@ -30,6 +30,8 @@ HeptaCert presentation work is event-based. Users can upload PDF, PPTX, or PPT f
 - Public file serving now respects deck download policy. Inline viewing remains possible for the viewer, while attachment/download behavior is only enabled when the deck allows it.
 - Token-based presenter page added for phone control without requiring the presenter to navigate through the admin UI.
 - Backend regression tests added for presentation security controls, audience access gating, expired audience links, scoped presenter-control session updates, and audience download policy.
+- Pointer/session bugfix: slide index and laser pointer state now use separate cache keys so pointer-only updates cannot overwrite the current page. Remote pointer gestures are throttled and isolated from browser touch gestures.
+- WebSocket live control transport added as a lightweight path for presenter phone -> stage updates. Pointer frames are broadcast over an in-process room instead of REST PATCH, while slide changes still persist to cache. HTTP session endpoints remain as fallback when WebSocket is unavailable.
 
 ## License Notes
 
@@ -45,6 +47,7 @@ HeptaCert presentation work is event-based. Users can upload PDF, PPTX, or PPT f
 - Let PDF.js load and render pages in the presenter browser.
 - Avoid generating thumbnails or previews server-side unless explicitly needed.
 - Keep live remote control state small and cache-backed.
+- Prefer WebSocket broadcast for high-frequency pointer movement. Persist only low-frequency slide changes; keep HTTP polling/PATCH as fallback for weak proxy or network setups.
 - Add analytics asynchronously, not inside the slide-change request path.
 
 ## Test Notes

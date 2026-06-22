@@ -10,6 +10,8 @@ import {
   getPresentationSession,
   getPresentationSpeakerNote,
   presentationAuthHeaders,
+  presentationControlTokenFromUrl,
+  presentationControlWsUrl,
   presentationConvertedFileUrl,
   presentationFileUrl,
   updatePresentationSession,
@@ -52,6 +54,9 @@ export default function EventPresentationRemotePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pointerThrottleRef = useRef(0);
+  const pointerActiveRef = useRef(false);
+  const wsRef = useRef<WebSocket | null>(null);
+  const [wsConnected, setWsConnected] = useState(false);
   const pdfRequestHeaders = useMemo(() => presentationAuthHeaders(), []);
 
   const copy = useMemo(() => ({
@@ -116,6 +121,51 @@ export default function EventPresentationRemotePage() {
     }
     if (deckId) void load();
   }, [copy.loadFailed, deckId]);
+
+  useEffect(() => {
+    const token = presentationControlTokenFromUrl(deck?.presenter_control_url);
+    if (!token) return;
+    let closedByEffect = false;
+    const ws = new WebSocket(presentationControlWsUrl(token));
+    wsRef.current = ws;
+    ws.onopen = () => {
+      if (!closedByEffect) setWsConnected(true);
+    };
+    ws.onmessage = (event) => {
+      try {
+        const state = JSON.parse(event.data);
+        if (typeof state.slide_index === "number") {
+          setSlideIndex(Math.max(0, state.slide_index));
+        }
+      } catch {
+        // Keep HTTP fallback untouched.
+      }
+    };
+    ws.onclose = () => {
+      if (!closedByEffect) setWsConnected(false);
+      if (wsRef.current === ws) wsRef.current = null;
+    };
+    ws.onerror = () => {
+      if (!closedByEffect) setWsConnected(false);
+    };
+    return () => {
+      closedByEffect = true;
+      setWsConnected(false);
+      if (wsRef.current === ws) wsRef.current = null;
+      ws.close();
+    };
+  }, [deck?.presenter_control_url]);
+
+  function sendRealtime(payload: Record<string, unknown>) {
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+    try {
+      ws.send(JSON.stringify(payload));
+      return true;
+    } catch {
+      return false;
+    }
+  }
 
   useEffect(() => {
     const saved = window.localStorage.getItem(`heptacert:presentation:${deckId}:timer`);
@@ -194,7 +244,9 @@ export default function EventPresentationRemotePage() {
     setSlideIndex(bounded);
     setSaving(true);
     try {
-      await updatePresentationSession(deckId, bounded);
+      if (!sendRealtime({ slide_index: bounded })) {
+        await updatePresentationSession(deckId, bounded);
+      }
       setError(null);
     } catch (ex: any) {
       setError(ex?.message || copy.syncFailed);
@@ -226,6 +278,8 @@ export default function EventPresentationRemotePage() {
   }
 
   function coordinatesFromPointer(event: PointerEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
     const rect = event.currentTarget.getBoundingClientRect();
     return {
       x: Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width)),
@@ -235,27 +289,37 @@ export default function EventPresentationRemotePage() {
 
   function sendPointer(active: boolean, x?: number, y?: number) {
     const now = Date.now();
-    if (active && now - pointerThrottleRef.current < 70) return;
+    if (active && now - pointerThrottleRef.current < 120) return;
     pointerThrottleRef.current = now;
-    updatePresentationPointer(deckId, { active, x, y }).catch(() => undefined);
+    if (!sendRealtime({ pointer_active: active, pointer_x: active ? x : null, pointer_y: active ? y : null })) {
+      updatePresentationPointer(deckId, { active, x, y }).catch(() => undefined);
+    }
   }
 
   function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (!event.isPrimary) return;
+    event.preventDefault();
+    event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
     const coords = coordinatesFromPointer(event);
+    pointerActiveRef.current = true;
     setPointerActive(true);
     sendPointer(true, coords.x, coords.y);
   }
 
   function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
-    if (!pointerActive) return;
+    if (!event.isPrimary || !pointerActiveRef.current) return;
     const coords = coordinatesFromPointer(event);
     sendPointer(true, coords.x, coords.y);
   }
 
   function stopPointer() {
+    pointerActiveRef.current = false;
     setPointerActive(false);
-    updatePresentationPointer(deckId, { active: false }).catch(() => undefined);
+    pointerThrottleRef.current = 0;
+    if (!sendRealtime({ pointer_active: false, pointer_x: null, pointer_y: null })) {
+      updatePresentationPointer(deckId, { active: false }).catch(() => undefined);
+    }
   }
 
   if (loading) {
@@ -398,6 +462,9 @@ export default function EventPresentationRemotePage() {
           <div className="mb-3 flex items-center gap-2">
             <LocateFixed className="h-4 w-4 text-brand-700" />
             <p className="text-sm font-black text-surface-950">{copy.laser}</p>
+            <span className={`ml-auto rounded-full px-2 py-1 text-11 font-black ${wsConnected ? "bg-emerald-50 text-emerald-700" : "bg-surface-100 text-surface-400"}`}>
+              {wsConnected ? "Live" : "Fallback"}
+            </span>
           </div>
           <div
             role="application"
@@ -406,9 +473,6 @@ export default function EventPresentationRemotePage() {
             onPointerMove={handlePointerMove}
             onPointerUp={stopPointer}
             onPointerCancel={stopPointer}
-            onPointerLeave={() => {
-              if (pointerActive) stopPointer();
-            }}
             className={`relative flex h-36 touch-none select-none items-center justify-center overflow-hidden rounded-2xl border text-sm font-bold transition ${
               pointerActive
                 ? "border-red-200 bg-red-50 text-red-700"
