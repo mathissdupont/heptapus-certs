@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HeptaCert Pitch Deck</title>
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #5b6475;
+      --line: #dce3ef;
+      --panel: #f7fbff;
+      --violet: #1b087f;
+      --aqua: #58d6df;
+      --navy: #0b1020;
+      --white: #ffffff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: #e9eff8;
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .deck {
+      width: 1600px;
+      margin: 0 auto;
+    }
+
+    .slide {
+      position: relative;
+      width: 1600px;
+      height: 900px;
+      overflow: hidden;
+      background: var(--white);
+      padding: 76px 92px;
+      page-break-after: always;
+      border-bottom: 1px solid #cfd8e6;
+    }
+
+    .slide.dark {
+      color: var(--white);
+      background:
+        radial-gradient(circle at 78% 22%, rgba(88, 214, 223, .26), transparent 28%),
+        linear-gradient(135deg, #090b19 0%, #111044 58%, #16066f 100%);
+    }
+
+    .slide.soft {
+      background:
+        radial-gradient(circle at 82% 18%, rgba(88, 214, 223, .24), transparent 24%),
+        linear-gradient(180deg, #ffffff 0%, #f5f9ff 100%);
+    }
+
+    .brand {
+      position: absolute;
+      top: 44px;
+      left: 72px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      color: var(--violet);
+      text-transform: uppercase;
+    }
+
+    .dark .brand { color: var(--white); }
+
+    .brand img {
+      width: 42px;
+      height: 42px;
+      object-fit: contain;
+    }
+
+    .kicker {
+      margin: 0 0 18px;
+      color: var(--aqua);
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow {
+      margin: 0 0 20px;
+      color: var(--violet);
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .dark .eyebrow { color: var(--aqua); }
+
+    h1, h2, h3, p { margin-top: 0; }
+
+    h1 {
+      max-width: 980px;
+      margin-bottom: 26px;
+      font-size: 76px;
+      line-height: .98;
+      letter-spacing: -1px;
+    }
+
+    h2 {
+      max-width: 980px;
+      margin-bottom: 30px;
+      font-size: 58px;
+      line-height: 1.02;
+      letter-spacing: -1px;
+    }
+
+    h3 {
+      margin-bottom: 12px;
+      font-size: 28px;
+      line-height: 1.12;
+    }
+
+    .lead {
+      max-width: 780px;
+      color: var(--muted);
+      font-size: 29px;
+      line-height: 1.32;
+    }
+
+    .dark .lead,
+    .dark .muted { color: #d7def1; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 42px;
+      align-items: center;
+      height: 650px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 22px;
+    }
+
+    .card {
+      min-height: 164px;
+      padding: 28px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, .88);
+      box-shadow: 0 18px 50px rgba(27, 8, 127, .08);
+    }
+
+    .dark .card {
+      border-color: rgba(255, 255, 255, .16);
+      background: rgba(255, 255, 255, .08);
+      box-shadow: none;
+    }
+
+    .card p, li {
+      color: var(--muted);
+      font-size: 23px;
+      line-height: 1.32;
+    }
+
+    .dark .card p,
+    .dark li { color: #d7def1; }
+
+    .metric {
+      min-height: 215px;
+      padding: 34px 28px;
+      border: 1px solid rgba(27, 8, 127, .14);
+      border-radius: 22px;
+      background: #ffffff;
+      box-shadow: 0 22px 62px rgba(27, 8, 127, .1);
+    }
+
+    .metric strong {
+      display: block;
+      margin-bottom: 12px;
+      color: var(--violet);
+      font-size: 62px;
+      line-height: 1;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 23px;
+      line-height: 1.25;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 26px;
+    }
+
+    li { margin-bottom: 14px; }
+
+    .hero-logo {
+      position: absolute;
+      right: 106px;
+      top: 168px;
+      width: 420px;
+      height: 420px;
+      object-fit: contain;
+      filter: drop-shadow(0 34px 80px rgba(88, 214, 223, .18));
+    }
+
+    .hero-panel {
+      position: absolute;
+      right: 88px;
+      bottom: 86px;
+      width: 520px;
+      padding: 28px;
+      border: 1px solid rgba(255, 255, 255, .16);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, .08);
+    }
+
+    .hero-panel .row {
+      display: flex;
+      justify-content: space-between;
+      padding: 14px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, .12);
+      font-size: 21px;
+    }
+
+    .hero-panel .row:last-child { border-bottom: 0; }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin-right: 10px;
+      margin-bottom: 12px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(88, 214, 223, .14);
+      color: var(--violet);
+      font-size: 19px;
+      font-weight: 750;
+    }
+
+    .dark .tag {
+      color: #ffffff;
+      background: rgba(88, 214, 223, .18);
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 18px;
+      margin-top: 60px;
+    }
+
+    .step {
+      position: relative;
+      min-height: 250px;
+      padding: 26px 20px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #ffffff;
+    }
+
+    .step b {
+      display: inline-grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      margin-bottom: 22px;
+      border-radius: 50%;
+      background: var(--violet);
+      color: #fff;
+      font-size: 18px;
+    }
+
+    .step p {
+      color: var(--muted);
+      font-size: 21px;
+      line-height: 1.26;
+    }
+
+    .platform-map {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      margin-top: 34px;
+    }
+
+    .module {
+      padding: 23px;
+      min-height: 122px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--panel);
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--violet);
+    }
+
+    .module span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 1.25;
+    }
+
+    table {
+      width: 100%;
+      margin-top: 36px;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: #fff;
+      box-shadow: 0 18px 50px rgba(27, 8, 127, .08);
+    }
+
+    th, td {
+      padding: 24px 26px;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      font-size: 22px;
+      line-height: 1.28;
+    }
+
+    th {
+      color: var(--violet);
+      font-size: 24px;
+      background: #f5f9ff;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+    th:last-child, td:last-child { border-right: 0; }
+
+    .foot {
+      position: absolute;
+      left: 92px;
+      right: 92px;
+      bottom: 42px;
+      display: flex;
+      justify-content: space-between;
+      color: #7a8497;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .dark .foot { color: rgba(255, 255, 255, .62); }
+
+    .accent-line {
+      width: 96px;
+      height: 7px;
+      margin: 0 0 28px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--violet), var(--aqua));
+    }
+  </style>
+</head>
+<body>
+  <main class="deck">
+    <section class="slide dark">
+      <div class="brand"><img src="logo.png" alt="HeptaCert logo">HeptaCert</div>
+      <div style="padding-top: 160px;">
+        <p class="kicker">Startup Investor Pitch</p>
+        <h1>The Trust Layer for Events and Digital Credentials</h1>
+        <p class="lead">HeptaCert helps organizations run events, issue verifiable certificates, automate follow-up, and build trusted professional communities.</p>
+      </div>
+      <img class="hero-logo" src="logo.png" alt="">
+      <div class="hero-panel">
+        <div class="row"><span>Credential status</span><strong>Verified</strong></div>
+        <div class="row"><span>Verification methods</span><strong>QR + UUID + Watermark</strong></div>
+        <div class="row"><span>Platform motion</span><strong>Event to community</strong></div>
+      </div>
+      <div class="foot"><span>Competition / Jury Deck</span><span>2026</span></div>
+    </section>
+
+    <section class="slide soft">
+      <div class="brand"><img src="logo.png" alt="">HeptaCert</div>
+      <div class="grid-2">
+        <div>
+          <p class="eyebrow">Problem</p>
+          <h2>Events and credential programs are fragmented.</h2>
+          <p class="lead">Organizers still rely on disconnected tools for registration, check-in, certificates, CRM, email, reporting, and compliance.</p>
+        </div>
+        <div class="grid-2" style="height:auto; gap:22px;">
+          <div class="card"><h3>Disconnected ops</h3><p>Registrations, attendance, certificates, and follow-up live in different systems.</p></div>
+          <div class="card"><h3>Weak trust</h3><p>Certificates are easy to copy and often only verified through a simple link or QR.</p></div>
+          <div class="card"><h3>Lost engagement</h3><p>Communities lose momentum once the event ends.</p></div>
+          <div class="card"><h3>Enterprise gaps</h3><p>Teams need auditability, access control, localization, and compliance workflows.</p></div>
+        </div>
+      </div>
+      <div class="foot"><span>HeptaCert Pitch Deck</span><span>02</span></div>
+    </section>
+
+    <section class="slide">
+      <div class="brand"><img src="logo.png" alt="">HeptaCert</div>
+      <p class="eyebrow">Opportunity</p>
+      <h2>The market is moving from one-off events to lifelong credential relationships.</h2>
+      <div class="grid-4" style="margin-top:54px;">
+        <div class="card"><h3>Verifiable learning</h3><p>Organizations need proof of participation and learning outcomes.</p></div>
+        <div class="card"><h3>Owned communities</h3><p>Teams want first-party participant relationships after the event.</p></div>
+        <div class="card"><h3>Compliance pressure</h3><p>Training renewal, evidence, and audit trails are becoming standard.</p></div>
+        <div class="card"><h3>Identity shift</h3><p>Certificates are becoming part of professional reputation and mobility.</p></div>
+      </div>
+      <div class="foot"><span>HeptaCert Pitch Deck</span><span>03</span></div>
+    </section>
+
+    <section class="slide dark">
+      <div class="brand"><img src="logo.png" alt="">HeptaCert</div>
+      <p class="eyebrow">Solution</p>
+      <h2>One platform for event operations, secure credentials, automation, and community.</h2>
+      <div class="platform-map">
+        <div class="module">Events<span>Registration, sessions, tickets, check-in</span></div>
+        <div class="module">Certificates<span>Bulk issuing, templates, verification</span></div>
+        <div class="module">Wallet<span>Member profiles, sharing, CV exports</span></div>
+        <div class="module">Automation<span>Email, reminders, webhooks</span></div>
+        <div class="module">CRM<span>Participant history, lifecycle, notes</span></div>
+        <div class="module">Segmentation<span>Audience groups, exports, handoff</span></div>
+        <div class="module">Training<span>Assignments, renewals, compliance</span></div>
+        <div class="module">Community<span>Feed, social graph, discovery</span></div>
+      </div>
+      <div class="foot"><span>HeptaCert Pitch Deck</span><span>04</span></div>
+    </section>
+
+    <section class="slide soft">
+      <div class="brand"><img src="logo.png" alt="">HeptaCert</div>
+      <p class="eyebrow">Product Workflow</p>
+      <h2>From event to verified credential to ongoing relationship.</h2>
+      <div class="flow">
+        <div class="step"><b>1</b><h3>Create</h3><p>Build event, sessions, registration, ticket, and certificate rules.</p></div>
+        <div class="step"><b>2</b><h3>Attend</h3><p>Participants register, verify email, and check in through staff or kiosk.</p></div>
+        <div class="step"><b>3</b><h3>Issue</h3><p>Generate certificates individually or in bulk after eligibility.</p></div>
+        <div class="step"><b>4</b><h3>Verify</h3><p>Check certificates through QR, UUID, or uploaded certificate image.</p></div>
+        <div class="step"><b>5</b><h3>Share</h3><p>Members store certificates in wallets and share to LinkedIn or CV.</p></div>
+        <div class="step"><b>6</b><h3>Grow</h3><p>Admins segment, automate follow-up, manage CRM, and track renewal.</p></div>
+      </div>
+      <div class="foot"><span>HeptaCert Pitch Deck</span><span>05</span></div>
+    </section>
+
+    <section class="slide dark">
+      <div class="brand"><img src="logo.png" alt="">HeptaCert</div>
+      <div class="grid-2">
+        <div>
+          <p class="eyebrow">Trust Layer</p>
+          <h2>Certificate security is layered, not single-point.</h2>
+          <p class="lead">HeptaCert combines identity, cryptography, watermarking, lifecycle control, and public verification.</p>
+        </div>
+        <div>
+          <div class="tag">UUIDv4 identity</div>
+          <div class="tag">QR verification</div>
+          <div class="tag">RSA-2048 signed PDFs</div>
+          <div class="tag">SHA-256 digest</div>
+          <div class="tag">Invisible PNG watermark</div>
+          <div class="tag">Active / revoked / expired</div>
+          <div class="tag">Role and plan access gates</div>
+          <div class="tag">Rate limiting and validation</div>
+        </div>
+      </div>
+      <div class="foot"><span>HeptaCert Pitch Deck</span><span>06</span></div>
+    </section>
+
+    <section class="slide">
+      <div class="brand"><img src="logo.png" alt="">HeptaCert</div>
+      <p class="eyebrow">Product Depth</p>
+      <h2>A full product platform, not a single-purpose certificate tool.</h2>
+      <div class="grid-3" style="margin-top: 46px;">
+        <div class="metric"><strong>690</strong><span>API routes across event, credential, admin, CRM, LMS, billing, and public surfaces.</span></div>
+        <div class="metric"><strong>155</strong><span>Database models supporting a broad operational and compliance data layer.</span></div>
+        <div class="metric"><strong>238</strong><span>Frontend components for admin, member, public, and platform workflows.</span></div>
+      </div>
+      <p class="lead" style="margin-top:46px; max-width:1100px;">Built with FastAPI, Next.js, SQLAlchemy, PostgreSQL, Redis, Docker workflows, authentication, rate limiting, and modular operational services.</p>
+      <div class="foot"><span>HeptaCert Pitch Deck</span><span>07</span></div>
+    </section>
+
+    <section class="slide soft">
+      <div class="brand"><img src="logo.png" alt="">HeptaCert</div>
+      <p class="eyebrow">Traction</p>
+      <h2>Real pilots are already running in live events.</h2>
+      <div class="grid-4" style="margin-top:54px;">
+        <div class="metric"><strong>8</strong><span>Institutions currently working with HeptaCert.</span></div>
+        <div class="metric"><strong>1,400</strong><span>Participants hosted across real event pilots.</span></div>
+        <div class="metric"><strong>796</strong><span>Certificates issued through the platform.</span></div>
+        <div class="metric"><strong>4</strong><span>Additional institutional pilot conversations ongoing.</span></div>
+      </div>
+      <p class="lead" style="margin-top:44px;">Revenue has not started yet; the current focus is validating product value, enterprise workflows, and repeatable pilot conversion.</p>
+      <div class="foot"><span>HeptaCert Pitch Deck</span><span>08</span></div>
+    </section>
+
+    <section class="slide">
+      <div class="brand"><img src="logo.png" alt="">HeptaCert</div>
+      <p class="eyebrow">Differentiation</p>
+      <h2>HeptaCert connects credential trust with event operations and community growth.</h2>
+      <table>
+        <thead>
+          <tr><th>Generic Event Tools</th><th>Generic Certificate Tools</th><th>HeptaCert</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Registration and attendance focus</td><td>PDF generation focus</td><td>Full event-to-credential lifecycle</td></tr>
+          <tr><td>Limited certificate verification</td><td>Usually QR-only verification</td><td>QR, UUID, signed PDF, invisible watermark</td></tr>
+          <tr><td>Weak post-event workflows</td><td>No CRM or community layer</td><td>Segmentation, CRM, automation, wallet</td></tr>
+          <tr><td>Limited compliance support</td><td>Limited renewal tracking</td><td>Training, renewal, compliance exports</td></tr>
+        </tbody>
+      </table>
+      <div class="foot"><span>HeptaCert Pitch Deck</span><span>09</span></div>
+    </section>
+
+    <section class="slide dark">
+      <div class="brand"><img src="logo.png" alt="">HeptaCert</div>
+      <p class="eyebrow">Business Model</p>
+      <h2>SaaS packaging with expansion revenue.</h2>
+      <div class="grid-3" style="margin-top:48px;">
+        <div class="card"><h3>Starter</h3><p>Basic event and certificate workflows for teams entering the platform.</p></div>
+        <div class="card"><h3>Growth</h3><p>Automation, segmentation, analytics, bulk email, and advanced certificate templates.</p></div>
+        <div class="card"><h3>Enterprise</h3><p>White-label domains, API, webhooks, access control, CRM, compliance, and advanced exports.</p></div>
+      </div>
+      <p class="lead" style="margin-top:44px;">Add-ons: venue reservations, compliance reports, high-volume credential archive, premium verification pages, and managed onboarding.</p>
+      <div class="foot"><span>HeptaCert Pitch Deck</span><span>10</span></div>
+    </section>
+
+    <section class="slide soft">
+      <div class="brand"><img src="logo.png" alt="">HeptaCert</div>
+      <p class="eyebrow">Go-To-Market</p>
+      <h2>Start with secure certificate issuance. Expand into operating workflows.</h2>
+      <div class="grid-2" style="height:500px; margin-top:20px;">
+        <div class="card" style="min-height:420px;">
+          <h3>Wedge</h3>
+          <ul>
+            <li>Live event and training pilots.</li>
+            <li>Certificate generation and public verification.</li>
+            <li>Immediate value for organizers and participants.</li>
+          </ul>
+        </div>
+        <div class="card" style="min-height:420px;">
+          <h3>Expansion</h3>
+          <ul>
+            <li>Wallet, sharing, and public trust pages.</li>
+            <li>CRM, segmentation, automation, and analytics.</li>
+            <li>White-label, compliance, API, and enterprise workflows.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="foot"><span>HeptaCert Pitch Deck</span><span>11</span></div>
+    </section>
+
+    <section class="slide dark">
+      <div class="brand"><img src="logo.png" alt="">HeptaCert</div>
+      <div style="padding-top:140px; max-width:1030px;">
+        <p class="eyebrow">Closing / Ask</p>
+        <h2>Turning certificates from static PDFs into trusted, verifiable, actionable professional records.</h2>
+        <p class="lead">We are looking for pilot partners, strategic support, and investment to scale product hardening, sales, onboarding, infrastructure, and enterprise trust workflows.</p>
+      </div>
+      <img class="hero-logo" style="top: 234px; right: 120px; width: 330px; height: 330px;" src="logo.png" alt="">
+      <div class="foot"><span>HeptaCert Pitch Deck</span><span>12</span></div>
+    </section>
+  </main>
+</body>
+</html>

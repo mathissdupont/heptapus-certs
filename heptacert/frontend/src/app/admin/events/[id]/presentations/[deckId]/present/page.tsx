@@ -33,21 +33,21 @@ export default function EventPresentationStagePage() {
   const [error, setError] = useState<string | null>(null);
   const [slideIndex, setSlideIndex] = useState(0);
   const [branding, setBranding] = useState<StageBranding | null>(null);
-  const [controlsVisible, setControlsVisible] = useState(true);
 
   const copy = useMemo(() => ({
-    loadFailed: isTr ? "Sunum açılamadı." : "Could not open presentation.",
-    noFile: isTr ? "Bu sunuma bağlı dosya bulunamadı." : "No file is attached to this presentation.",
-    download: isTr ? "Dosyayı aç / indir" : "Open / download file",
+    loadFailed: isTr ? "Sunum acilamadi." : "Could not open presentation.",
+    noFile: isTr ? "Bu sunuma bagli dosya bulunamadi." : "No file is attached to this presentation.",
+    download: isTr ? "Dosyayi ac / indir" : "Open / download file",
     fullscreen: isTr ? "Tam ekran" : "Fullscreen",
-    pptxTitle: isTr ? "PowerPoint dosyası hazır" : "PowerPoint file is ready",
+    pptxTitle: isTr ? "PowerPoint dosyasi hazir" : "PowerPoint file is ready",
     pptxBody: isTr
-      ? "Dönüştürülmüş PDF henüz hazır değil. Orijinal dosyayı açabilir ya da worker'ın dönüşümü bitirmesini bekleyebilirsiniz."
+      ? "Donusturulmus PDF henuz hazir degil. Orijinal dosyayi acabilir ya da worker'in donusumu bitirmesini bekleyebilirsiniz."
       : "The converted PDF is not ready yet. Open the original file or wait for the worker to finish conversion.",
-    convertingTitle: isTr ? "Sunum hazırlanıyor" : "Preparing presentation",
-    convertingBody: isTr ? "PowerPoint dosyası arka planda PDF'e dönüştürülüyor. Bu sayfa birazdan otomatik yenilenir." : "The PowerPoint file is being converted to PDF in the background. This page refreshes automatically.",
-    failedTitle: isTr ? "Dönüşüm başarısız" : "Conversion failed",
-    secured: isTr ? "HeptaCert sahne modu" : "HeptaCert stage mode",
+    convertingTitle: isTr ? "Sunum hazirlaniyor" : "Preparing presentation",
+    convertingBody: isTr
+      ? "PowerPoint dosyasi arka planda PDF'e donusturuluyor. Bu sayfa birazdan otomatik yenilenir."
+      : "The PowerPoint file is being converted to PDF in the background. This page refreshes automatically.",
+    failedTitle: isTr ? "Donusum basarisiz" : "Conversion failed",
   }), [isTr]);
 
   useEffect(() => {
@@ -59,12 +59,14 @@ export default function EventPresentationStagePage() {
       })
       .catch((ex: any) => setError(ex?.message || copy.loadFailed))
       .finally(() => setLoading(false));
-  }, [deckId]);
+  }, [copy.loadFailed, deckId]);
 
-  const fileUrl = deck ? presentationFileUrl(deck) : null;
-  const convertedUrl = deck ? presentationConvertedFileUrl(deck) : null;
-  const stageUrl = convertedUrl || (deck && isPdf(deck) ? fileUrl : null);
-  const stageUrlWithPage = stageUrl ? `${stageUrl}#page=${slideIndex + 1}&toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&view=FitH` : null;
+  useEffect(() => {
+    apiFetch("/admin/organization/settings")
+      .then((res) => res.json())
+      .then((data) => setBranding({ ...data, brand_logo: normalizeApiAssetUrl(data?.brand_logo) }))
+      .catch(() => setBranding(null));
+  }, []);
 
   useEffect(() => {
     if (!isConverting(deck)) return;
@@ -78,13 +80,6 @@ export default function EventPresentationStagePage() {
   }, [deck, deckId]);
 
   useEffect(() => {
-    apiFetch("/admin/organization/settings")
-      .then((res) => res.json())
-      .then((data) => setBranding({ ...data, brand_logo: normalizeApiAssetUrl(data?.brand_logo) }))
-      .catch(() => setBranding(null));
-  }, []);
-
-  useEffect(() => {
     if (!deckId) return;
     let cancelled = false;
     async function syncSession() {
@@ -92,7 +87,7 @@ export default function EventPresentationStagePage() {
         const state = await getPresentationSession(deckId);
         if (!cancelled) setSlideIndex(Math.max(0, state.slide_index || 0));
       } catch {
-        // Keep the stage visible even if the remote state cannot be read momentarily.
+        // The stage should keep rendering even if remote state is temporarily unavailable.
       }
     }
     void syncSession();
@@ -103,23 +98,10 @@ export default function EventPresentationStagePage() {
     };
   }, [deckId]);
 
-  useEffect(() => {
-    let timer = window.setTimeout(() => setControlsVisible(false), 2600);
-    function revealControls() {
-      setControlsVisible(true);
-      window.clearTimeout(timer);
-      timer = window.setTimeout(() => setControlsVisible(false), 2600);
-    }
-    window.addEventListener("mousemove", revealControls);
-    window.addEventListener("keydown", revealControls);
-    window.addEventListener("touchstart", revealControls);
-    return () => {
-      window.clearTimeout(timer);
-      window.removeEventListener("mousemove", revealControls);
-      window.removeEventListener("keydown", revealControls);
-      window.removeEventListener("touchstart", revealControls);
-    };
-  }, []);
+  const fileUrl = deck ? presentationFileUrl(deck) : null;
+  const convertedUrl = deck ? presentationConvertedFileUrl(deck) : null;
+  const stageUrl = convertedUrl || (deck && isPdf(deck) ? fileUrl : null);
+  const stageUrlWithPage = stageUrl ? `${stageUrl}#page=${slideIndex + 1}&toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&view=FitH` : null;
 
   function requestFullscreen() {
     const root = document.documentElement;
@@ -127,12 +109,10 @@ export default function EventPresentationStagePage() {
   }
 
   return (
-    <main className={`fixed inset-0 z-[220] overflow-hidden bg-[#020617] text-white ${controlsVisible ? "" : "cursor-none"}`}>
-      <div className="absolute inset-0 bg-black" />
-
-      <header className={`absolute left-4 right-4 top-4 z-30 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-surface-950/72 px-4 py-3 shadow-2xl backdrop-blur transition-all duration-500 ${controlsVisible ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-4 opacity-0"}`}>
+    <main className="fixed inset-0 z-[220] overflow-hidden bg-surface-100 text-surface-950">
+      <header className="absolute left-3 right-3 top-3 z-30 flex items-center justify-between gap-3 rounded-2xl border border-surface-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white p-1.5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-surface-200 bg-surface-50 p-1.5">
             {branding?.brand_logo ? (
               <img src={branding.brand_logo} alt={branding.org_name || "Logo"} className="max-h-full max-w-full object-contain" />
             ) : (
@@ -140,36 +120,39 @@ export default function EventPresentationStagePage() {
             )}
           </div>
           <div className="min-w-0">
-            <p className="text-11 font-black uppercase tracking-[0.22em] text-white/35">{branding?.org_name || "HeptaDeck"}</p>
-            <h1 className="truncate text-sm font-bold text-white">{deck?.title || "Presentation"}</h1>
+            <p className="text-11 font-black uppercase tracking-[0.22em] text-surface-400">{branding?.org_name || "HeptaDeck"}</p>
+            <h1 className="truncate text-sm font-bold text-surface-950">{deck?.title || "Presentation"}</h1>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {fileUrl && (
-            <a href={fileUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/15">
+            <a href={fileUrl} target="_blank" rel="noreferrer" className="hidden items-center gap-2 rounded-lg bg-surface-100 px-3 py-2 text-xs font-bold text-surface-800 transition hover:bg-surface-200 sm:inline-flex">
               <Download className="h-4 w-4" />
               {copy.download}
             </a>
           )}
-          <Link href={`/admin/events/${params.id}/presentations/${deckId}/remote`} target="_blank" className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/15">
+          <Link href={`/admin/events/${params.id}/presentations/${deckId}/remote`} target="_blank" className="inline-flex items-center gap-2 rounded-lg bg-surface-100 px-3 py-2 text-xs font-bold text-surface-800 transition hover:bg-surface-200">
             <Smartphone className="h-4 w-4" />
             {isTr ? "Telefon" : "Remote"}
           </Link>
-          <button type="button" onClick={requestFullscreen} className="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-bold text-surface-950 transition hover:bg-white/90">
+          <span className="hidden rounded-lg bg-surface-100 px-3 py-2 text-xs font-black text-surface-500 sm:inline-flex">
+            {slideIndex + 1}
+          </span>
+          <button type="button" onClick={requestFullscreen} className="inline-flex items-center gap-2 rounded-lg bg-surface-950 px-3 py-2 text-xs font-bold text-white transition hover:bg-surface-800">
             <Expand className="h-4 w-4" />
-            {copy.fullscreen}
+            <span className="hidden sm:inline">{copy.fullscreen}</span>
           </button>
         </div>
       </header>
 
-      <section className="relative z-10 flex h-screen items-center justify-center">
+      <section className="relative z-10 flex h-screen items-center justify-center px-3 pb-3 pt-[78px]">
         {loading ? (
-          <Loader2 className="h-8 w-8 animate-spin text-white/50" />
+          <Loader2 className="h-8 w-8 animate-spin text-surface-400" />
         ) : error ? (
-          <div className="rounded-2xl border border-red-400/20 bg-red-400/10 p-6 text-center text-red-100">{error}</div>
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center font-semibold text-red-700">{error}</div>
         ) : !deck || !fileUrl ? (
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center">
-            <FileText className="mx-auto mb-4 h-10 w-10 text-white/40" />
+          <div className="rounded-2xl border border-surface-200 bg-white p-8 text-center shadow-sm">
+            <FileText className="mx-auto mb-4 h-10 w-10 text-surface-300" />
             <p className="font-bold">{copy.noFile}</p>
           </div>
         ) : stageUrl ? (
@@ -177,30 +160,26 @@ export default function EventPresentationStagePage() {
             key={stageUrlWithPage}
             title={deck.title}
             src={stageUrlWithPage || stageUrl}
-            className="absolute inset-0 h-full w-full border-0 bg-white"
+            className="h-full w-full rounded-xl border border-surface-200 bg-white shadow-sm"
           />
         ) : isConverting(deck) ? (
-          <div className="max-w-2xl rounded-[28px] border border-white/10 bg-white/8 p-8 text-center shadow-2xl backdrop-blur">
-            <Loader2 className="mx-auto mb-5 h-14 w-14 animate-spin text-white/60" />
+          <div className="max-w-2xl rounded-2xl border border-surface-200 bg-white p-8 text-center shadow-sm">
+            <Loader2 className="mx-auto mb-5 h-14 w-14 animate-spin text-surface-400" />
             <h2 className="text-3xl font-black">{copy.convertingTitle}</h2>
-            <p className="mt-4 text-sm leading-relaxed text-white/60">{copy.convertingBody}</p>
+            <p className="mt-4 text-sm leading-relaxed text-surface-500">{copy.convertingBody}</p>
           </div>
         ) : (
-          <div className="max-w-2xl rounded-[28px] border border-white/10 bg-white/8 p-8 text-center shadow-2xl backdrop-blur">
-            <Presentation className="mx-auto mb-5 h-14 w-14 text-white/60" />
+          <div className="max-w-2xl rounded-2xl border border-surface-200 bg-white p-8 text-center shadow-sm">
+            <Presentation className="mx-auto mb-5 h-14 w-14 text-surface-400" />
             <h2 className="text-3xl font-black">{deck.conversion_status === "failed" ? copy.failedTitle : copy.pptxTitle}</h2>
-            <p className="mt-4 text-sm leading-relaxed text-white/60">{deck.conversion_error || copy.pptxBody}</p>
-            <a href={fileUrl} target="_blank" rel="noreferrer" className="mt-7 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-black text-surface-950 transition hover:bg-white/90">
+            <p className="mt-4 text-sm leading-relaxed text-surface-500">{deck.conversion_error || copy.pptxBody}</p>
+            <a href={fileUrl} target="_blank" rel="noreferrer" className="mt-7 inline-flex items-center gap-2 rounded-xl bg-surface-950 px-5 py-3 text-sm font-black text-white transition hover:bg-surface-800">
               <Download className="h-4 w-4" />
               {copy.download}
             </a>
           </div>
         )}
       </section>
-
-      <footer className={`absolute bottom-4 left-1/2 z-30 -translate-x-1/2 rounded-full border border-white/10 bg-surface-950/60 px-4 py-2 text-center text-11 font-semibold uppercase tracking-[0.18em] text-white/35 shadow-2xl backdrop-blur transition-all duration-500 ${controlsVisible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"}`}>
-        {copy.secured} · {slideIndex + 1}
-      </footer>
     </main>
   );
 }

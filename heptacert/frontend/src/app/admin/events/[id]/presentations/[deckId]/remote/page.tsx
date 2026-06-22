@@ -43,6 +43,7 @@ export default function EventPresentationRemotePage() {
   }), [isTr]);
 
   const maxSlides = Math.max(deck?.slides?.length || 0, 500);
+
   useEffect(() => {
     async function load() {
       try {
@@ -60,7 +61,7 @@ export default function EventPresentationRemotePage() {
       }
     }
     if (deckId) void load();
-  }, [deckId, copy.loadFailed]);
+  }, [copy.loadFailed, deckId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -105,56 +106,58 @@ export default function EventPresentationRemotePage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-surface-950 text-white">
-        <Loader2 className="h-6 w-6 animate-spin" />
-        <span className="ml-3 text-sm font-semibold text-white/70">{copy.loading}</span>
+      <main className="flex min-h-screen items-center justify-center bg-surface-50 text-surface-900">
+        <Loader2 className="h-6 w-6 animate-spin text-surface-400" />
+        <span className="ml-3 text-sm font-semibold text-surface-500">{copy.loading}</span>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-surface-950 px-4 py-5 text-white">
+    <main className="min-h-screen bg-surface-50 px-4 py-5 text-surface-950">
       <section className="mx-auto flex max-w-md flex-col gap-4">
-        <header className="rounded-2xl border border-white/10 bg-white/8 p-4 shadow-2xl backdrop-blur">
-          <p className="text-11 font-black uppercase tracking-[0.2em] text-white/35">HeptaDeck</p>
-          <h1 className="mt-1 text-xl font-black">{copy.title}</h1>
-          <p className="mt-2 line-clamp-2 text-sm font-semibold text-white/70">{deck?.title || "Presentation"}</p>
+        <header className="rounded-2xl border border-surface-200 bg-white p-4 shadow-sm">
+          <p className="text-11 font-black uppercase tracking-[0.2em] text-surface-400">HeptaDeck</p>
+          <h1 className="mt-1 text-xl font-black text-surface-950">{copy.title}</h1>
+          <p className="mt-2 line-clamp-2 text-sm font-semibold text-surface-500">{deck?.title || "Presentation"}</p>
           <a
             href={`/admin/events/${params.id}/presentations/${deckId}/present`}
             target="_blank"
             rel="noreferrer"
-            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-black text-surface-950"
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-surface-950 px-4 py-3 text-sm font-black text-white transition hover:bg-surface-800"
           >
             <MonitorPlay className="h-4 w-4" />
             {copy.stage}
           </a>
         </header>
 
-        {error && <div className="rounded-xl border border-red-400/20 bg-red-400/10 p-3 text-sm font-semibold text-red-100">{error}</div>}
+        {error && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</div>}
 
-        <section className="rounded-2xl border border-white/10 bg-white p-5 text-surface-950 shadow-2xl">
+        <section className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-surface-400">{copy.slide}</p>
             {saving && <Loader2 className="h-4 w-4 animate-spin text-surface-400" />}
           </div>
-          <div className="mt-3 flex items-end justify-between gap-3">
+          <div className="mt-4 flex items-end justify-between gap-3">
             <button
               type="button"
+              aria-label={copy.previous}
               onClick={() => void go(slideIndex - 1)}
               disabled={slideIndex <= 0 || saving}
-              className="flex h-20 flex-1 items-center justify-center rounded-2xl bg-surface-100 text-surface-800 disabled:opacity-40"
+              className="flex h-20 flex-1 items-center justify-center rounded-2xl bg-surface-100 text-surface-800 transition hover:bg-surface-200 disabled:opacity-40"
             >
               <ChevronLeft className="h-8 w-8" />
             </button>
             <div className="min-w-24 text-center">
-              <p className="text-5xl font-black">{slideIndex + 1}</p>
+              <p className="text-5xl font-black tracking-tight text-surface-950">{slideIndex + 1}</p>
               {deck?.slides?.length ? <p className="text-xs font-bold text-surface-400">/ {deck.slides.length}</p> : null}
             </div>
             <button
               type="button"
+              aria-label={copy.next}
               onClick={() => void go(slideIndex + 1)}
               disabled={saving || (Boolean(deck?.slides?.length) && slideIndex >= (deck?.slides.length || 1) - 1)}
-              className="flex h-20 flex-1 items-center justify-center rounded-2xl bg-surface-950 text-white disabled:opacity-40"
+              className="flex h-20 flex-1 items-center justify-center rounded-2xl bg-surface-950 text-white transition hover:bg-surface-800 disabled:opacity-40"
             >
               <ChevronRight className="h-8 w-8" />
             </button>
@@ -163,20 +166,20 @@ export default function EventPresentationRemotePage() {
             type="button"
             onClick={() => void go(0)}
             disabled={saving || slideIndex === 0}
-            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-surface-200 px-4 py-3 text-sm font-black text-surface-700 disabled:opacity-40"
+            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-3 text-sm font-black text-surface-700 transition hover:bg-surface-50 disabled:opacity-40"
           >
             <RotateCcw className="h-4 w-4" />
             {copy.reset}
           </button>
         </section>
 
-        <section className="rounded-2xl border border-amber-200/30 bg-amber-50 p-5 text-surface-950 shadow-2xl">
+        <section className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm">
           <div className="flex items-center gap-2">
-            <NotebookPen className="h-4 w-4 text-amber-700" />
-            <p className="text-sm font-black text-amber-800">{copy.personalNotes}</p>
-            {notesSaving && <Loader2 className="ml-auto h-4 w-4 animate-spin text-amber-700" />}
+            <NotebookPen className="h-4 w-4 text-brand-700" />
+            <p className="text-sm font-black text-surface-950">{copy.personalNotes}</p>
+            {notesSaving && <Loader2 className="ml-auto h-4 w-4 animate-spin text-surface-400" />}
           </div>
-          <p className="mt-1 text-xs font-semibold text-amber-700/70">{copy.notesHint}</p>
+          <p className="mt-1 text-xs font-semibold text-surface-400">{copy.notesHint}</p>
           <textarea
             value={notes}
             onChange={(event) => {
@@ -184,7 +187,7 @@ export default function EventPresentationRemotePage() {
               setNotesDirty(true);
             }}
             placeholder={copy.placeholder}
-            className="mt-4 min-h-44 w-full resize-none rounded-xl border border-amber-200 bg-white p-4 text-base font-medium leading-relaxed outline-none focus:ring-2 focus:ring-amber-300"
+            className="mt-4 min-h-44 w-full resize-none rounded-xl border border-surface-200 bg-surface-50 p-4 text-base font-medium leading-relaxed text-surface-900 outline-none transition focus:border-brand-300 focus:bg-white focus:ring-2 focus:ring-brand-100"
           />
         </section>
       </section>
