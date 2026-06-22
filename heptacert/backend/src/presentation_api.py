@@ -9,12 +9,12 @@ from __future__ import annotations
 import json
 import secrets
 from datetime import datetime, timezone
+from io import BytesIO
 from pathlib import Path
 from typing import Any, Optional
 
-import jwt
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, Request, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -49,6 +49,12 @@ PRESENTATION_DECK_COLUMNS = [
     "theme",
     "slides",
     "presenter_token",
+    "control_token",
+    "audience_token",
+    "audience_enabled",
+    "allow_download",
+    "watermark_enabled",
+    "audience_expires_at",
     "source",
     "status",
     "file_path",
@@ -124,6 +130,10 @@ class DeckOut(BaseModel):
     conversion_status: str = "not_required"
     conversion_error: Optional[str] = None
     conversion_attempts: int = 0
+    audience_enabled: bool = False
+    allow_download: bool = False
+    watermark_enabled: bool = False
+    audience_expires_at: Optional[datetime] = None
     last_export_filename: Optional[str]
     created_at: datetime
     updated_at: datetime
@@ -131,23 +141,55 @@ class DeckOut(BaseModel):
     file_url: Optional[str] = None
     converted_file_url: Optional[str] = None
     presenter_url: Optional[str] = None
+    presenter_control_url: Optional[str] = None
+    audience_url: Optional[str] = None
 
 
 class PublicDeckOut(BaseModel):
+    id: int
     title: str
     description: Optional[str]
     language: str
     theme: dict[str, Any]
     slides: list[dict[str, Any]]
+    file_url: Optional[str] = None
+    converted_file_url: Optional[str] = None
+    allow_download: bool = False
+    watermark_enabled: bool = False
+    audience_enabled: bool = False
+
+
+class PresentationSecuritySettingsIn(BaseModel):
+    audience_enabled: Optional[bool] = None
+    allow_download: Optional[bool] = None
+    watermark_enabled: Optional[bool] = None
+    audience_expires_at: Optional[datetime] = None
+    regenerate_audience_token: bool = False
+    regenerate_control_token: bool = False
+
+
+class PresentationSecuritySettingsOut(BaseModel):
+    audience_enabled: bool
+    allow_download: bool
+    watermark_enabled: bool
+    audience_expires_at: Optional[datetime] = None
+    audience_url: Optional[str] = None
+    presenter_control_url: Optional[str] = None
 
 
 class PresentationSessionState(BaseModel):
     slide_index: int = Field(default=0, ge=0, le=500)
+    pointer_active: bool = False
+    pointer_x: Optional[float] = Field(default=None, ge=0, le=1)
+    pointer_y: Optional[float] = Field(default=None, ge=0, le=1)
     updated_at: datetime
 
 
 class PresentationSessionPatch(BaseModel):
-    slide_index: int = Field(ge=0, le=500)
+    slide_index: Optional[int] = Field(default=None, ge=0, le=500)
+    pointer_active: Optional[bool] = None
+    pointer_x: Optional[float] = Field(default=None, ge=0, le=1)
+    pointer_y: Optional[float] = Field(default=None, ge=0, le=1)
 
 
 class SpeakerNoteOut(BaseModel):
@@ -208,6 +250,10 @@ def _deck_out_from_row(row: Any) -> DeckOut:
         conversion_status=data.get("conversion_status") or "not_required",
         conversion_error=data.get("conversion_error"),
         conversion_attempts=data.get("conversion_attempts") or 0,
+        audience_enabled=bool(data.get("audience_enabled") or False),
+        allow_download=bool(data.get("allow_download") or False),
+        watermark_enabled=bool(data.get("watermark_enabled") or False),
+        audience_expires_at=data.get("audience_expires_at"),
         last_export_filename=data.get("last_export_filename"),
         created_at=created_at,
         updated_at=updated_at,
@@ -219,6 +265,8 @@ def _deck_out_from_row(row: Any) -> DeckOut:
             if event_id and presenter_token
             else (f"/present/{presenter_token}" if presenter_token else None)
         ),
+        presenter_control_url=f"/presenter/{data.get('control_token')}" if data.get("control_token") else None,
+        audience_url=f"/audience/{data.get('audience_token')}" if data.get("audience_token") else None,
     )
 
 
@@ -380,32 +428,89 @@ async def _authorized_event_org(db: AsyncSession, me: CurrentUser, event_id: int
     return event, org
 
 
-async def _current_user_from_query_token(db: AsyncSession, token: str) -> CurrentUser:
-    try:
-        payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
-        user_id = int(payload.get("sub") or 0)
-    except Exception as exc:
-        raise HTTPException(status_code=401, detail="Invalid token") from exc
-    user = await db.get(User, user_id)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    return CurrentUser(id=user.id, role=user.role, email=user.email)
-
-
 async def _authorized_file_deck(
     db: AsyncSession,
     deck_id: int,
     request: Request,
     authorization: Optional[str],
-    token: Optional[str],
 ) -> Any:
     if authorization and authorization.lower().startswith("bearer "):
         me = await get_current_user(db=db, Authorization=authorization)
-    elif token:
-        me = await _current_user_from_query_token(db, token)
     else:
         raise HTTPException(status_code=401, detail="Missing token")
     return await _authorized_deck(db, me, deck_id, request, "presentations:read")
+
+
+def _security_out(deck: Any) -> PresentationSecuritySettingsOut:
+    audience_token = deck.get("audience_token") if hasattr(deck, "get") else deck.audience_token
+    control_token = deck.get("control_token") if hasattr(deck, "get") else deck.control_token
+    return PresentationSecuritySettingsOut(
+        audience_enabled=bool((deck.get("audience_enabled") if hasattr(deck, "get") else deck.audience_enabled) or False),
+        allow_download=bool((deck.get("allow_download") if hasattr(deck, "get") else deck.allow_download) or False),
+        watermark_enabled=bool((deck.get("watermark_enabled") if hasattr(deck, "get") else deck.watermark_enabled) or False),
+        audience_expires_at=deck.get("audience_expires_at") if hasattr(deck, "get") else deck.audience_expires_at,
+        audience_url=f"/audience/{audience_token}" if audience_token else None,
+        presenter_control_url=f"/presenter/{control_token}" if control_token else None,
+    )
+
+
+async def _public_audience_deck(db: AsyncSession, token: str) -> Any:
+    deck = await _load_deck_row(db, PresentationDeck.audience_token == token)
+    if not deck or not deck.get("audience_enabled"):
+        raise HTTPException(status_code=404, detail="Presentation not found")
+    expires_at = deck.get("audience_expires_at")
+    if expires_at is not None:
+        now = datetime.now(timezone.utc)
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if expires_at <= now:
+            raise HTTPException(status_code=410, detail="Presentation access has expired")
+    return deck
+
+
+async def _public_control_deck(db: AsyncSession, token: str) -> Any:
+    deck = await _load_deck_row(db, PresentationDeck.control_token == token)
+    if not deck:
+        raise HTTPException(status_code=404, detail="Presentation not found")
+    return deck
+
+
+def _public_deck_out(deck: Any, token: str, mode: str) -> PublicDeckOut:
+    deck_id = deck["id"]
+    file_path = deck.get("file_path")
+    converted_file_path = deck.get("converted_file_path")
+    return PublicDeckOut(
+        id=deck_id,
+        title=deck["title"],
+        description=deck.get("description"),
+        language=deck["language"],
+        theme=deck.get("theme") or {},
+        slides=deck.get("slides") or [],
+        file_url=f"/api/public/presentations/{mode}/{token}/file" if file_path else None,
+        converted_file_url=f"/api/public/presentations/{mode}/{token}/file?variant=converted" if converted_file_path else None,
+        allow_download=bool(deck.get("allow_download") or False),
+        watermark_enabled=bool(deck.get("watermark_enabled") or False),
+        audience_enabled=bool(deck.get("audience_enabled") or False),
+    )
+
+
+def _presentation_file_response(deck: Any, file_path: str, file_filename: Optional[str], media_type: str, allow_download: bool) -> FileResponse:
+    storage_root = Path(settings.local_storage_dir).resolve()
+    abs_path = (storage_root / file_path).resolve()
+    if not abs_path.is_relative_to(storage_root) or not abs_path.exists():
+        raise HTTPException(status_code=404, detail="Presentation file not found")
+    disposition = "attachment" if allow_download else "inline"
+    return FileResponse(
+        abs_path,
+        media_type=media_type,
+        filename=file_filename or f"presentation-{deck['id']}.pdf",
+        headers={
+            "Content-Disposition": f'{disposition}; filename="{file_filename or f"presentation-{deck["id"]}.pdf"}"',
+            "X-Frame-Options": "SAMEORIGIN",
+            "Content-Security-Policy": "frame-ancestors 'self'",
+            "Cache-Control": "private, no-store",
+        },
+    )
 
 
 def _safe_upload_suffix(content_type: str, filename: str) -> str:
@@ -445,6 +550,9 @@ async def _get_presentation_session_state(deck_id: int) -> PresentationSessionSt
     if isinstance(cached, dict):
         return PresentationSessionState(
             slide_index=int(cached.get("slide_index") or 0),
+            pointer_active=bool(cached.get("pointer_active") or False),
+            pointer_x=cached.get("pointer_x"),
+            pointer_y=cached.get("pointer_y"),
             updated_at=cached.get("updated_at") or datetime.now(timezone.utc),
         )
     return PresentationSessionState(slide_index=0, updated_at=datetime.now(timezone.utc))
@@ -551,6 +659,8 @@ async def upload_event_presentation(
         theme=_default_theme(org),
         slides=[],
         presenter_token=_new_presenter_token(),
+        control_token=_new_presenter_token(),
+        audience_token=_new_presenter_token(),
         source="upload",
         status="ready",
     )
@@ -591,6 +701,8 @@ async def create_deck(
             DeckGenerateIn(topic=payload.title, language=payload.language or "tr")
         ),
         presenter_token=_new_presenter_token(),
+        control_token=_new_presenter_token(),
+        audience_token=_new_presenter_token(),
         source="manual",
     )
     db.add(deck)
@@ -621,6 +733,8 @@ async def generate_deck(
         theme=_default_theme(org),
         slides=slides,
         presenter_token=_new_presenter_token(),
+        control_token=_new_presenter_token(),
+        audience_token=_new_presenter_token(),
         source=f"ai:{provider}",
     )
     db.add(deck)
@@ -651,6 +765,65 @@ async def get_deck(
     return _deck_out_from_row(row)
 
 
+@router.get("/{deck_id}/security", response_model=PresentationSecuritySettingsOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def get_presentation_security(
+    deck_id: int,
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> PresentationSecuritySettingsOut:
+    deck = await _authorized_deck(db, me, deck_id, request, "presentations:read")
+    updates: dict[str, Any] = {}
+    if not deck.get("control_token"):
+        updates["control_token"] = _new_presenter_token()
+    if not deck.get("audience_token"):
+        updates["audience_token"] = _new_presenter_token()
+    if updates:
+        await db.execute(PresentationDeck.__table__.update().where(PresentationDeck.id == deck["id"]).values(**updates))
+        await db.commit()
+        deck = await _authorized_deck(db, me, deck_id, request, "presentations:read")
+    return _security_out(deck)
+
+
+@router.patch("/{deck_id}/security", response_model=PresentationSecuritySettingsOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def update_presentation_security(
+    deck_id: int,
+    payload: PresentationSecuritySettingsIn,
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> PresentationSecuritySettingsOut:
+    deck = await _authorized_deck(db, me, deck_id, request, "presentations:write")
+    updates: dict[str, Any] = {}
+    if payload.audience_enabled is not None:
+        updates["audience_enabled"] = payload.audience_enabled
+    if payload.allow_download is not None:
+        updates["allow_download"] = payload.allow_download
+    if payload.watermark_enabled is not None:
+        updates["watermark_enabled"] = payload.watermark_enabled
+    if payload.audience_expires_at is not None:
+        updates["audience_expires_at"] = payload.audience_expires_at
+    if payload.regenerate_audience_token or not deck.get("audience_token"):
+        updates["audience_token"] = _new_presenter_token()
+    if payload.regenerate_control_token or not deck.get("control_token"):
+        updates["control_token"] = _new_presenter_token()
+    if updates:
+        await db.execute(PresentationDeck.__table__.update().where(PresentationDeck.id == deck["id"]).values(**updates))
+        await write_audit_log(
+            db,
+            user_id=me.id,
+            action="presentation.security.update",
+            resource_type="presentation_deck",
+            resource_id=str(deck["id"]),
+            extra={key: value for key, value in updates.items() if "token" not in key},
+        )
+        await db.commit()
+    row = await _load_deck_row(db, PresentationDeck.id == deck["id"])
+    if row is None:
+        raise HTTPException(status_code=404, detail="Presentation not found")
+    return _security_out(row)
+
+
 @router.get("/{deck_id}/session", response_model=PresentationSessionState, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
 async def get_presentation_session(
     deck_id: int,
@@ -671,7 +844,23 @@ async def update_presentation_session(
     db: AsyncSession = Depends(get_db),
 ) -> PresentationSessionState:
     await _authorized_deck(db, me, deck_id, request, "presentations:write")
-    state = PresentationSessionState(slide_index=payload.slide_index, updated_at=datetime.now(timezone.utc))
+    current = await _get_presentation_session_state(deck_id)
+    slide_index = payload.slide_index if payload.slide_index is not None else current.slide_index
+    pointer_active = payload.pointer_active if payload.pointer_active is not None else current.pointer_active
+    pointer_x = payload.pointer_x if payload.pointer_x is not None else current.pointer_x
+    pointer_y = payload.pointer_y if payload.pointer_y is not None else current.pointer_y
+    if pointer_active and (pointer_x is None or pointer_y is None):
+        raise HTTPException(status_code=400, detail="Pointer coordinates are required")
+    if not pointer_active:
+        pointer_x = None
+        pointer_y = None
+    state = PresentationSessionState(
+        slide_index=slide_index,
+        pointer_active=pointer_active,
+        pointer_x=pointer_x,
+        pointer_y=pointer_y,
+        updated_at=datetime.now(timezone.utc),
+    )
     await cache.set(_presentation_session_key(deck_id), state.model_dump(), ttl=6 * 60 * 60)
     return state
 
@@ -737,11 +926,10 @@ async def get_presentation_file(
     deck_id: int,
     request: Request,
     variant: str = Query(default="original", pattern="^(original|converted)$"),
-    token: Optional[str] = Query(default=None),
     authorization: Optional[str] = Header(default=None),
     db: AsyncSession = Depends(get_db),
 ):
-    deck = await _authorized_file_deck(db, deck_id, request, authorization, token)
+    deck = await _authorized_file_deck(db, deck_id, request, authorization)
     if variant == "converted":
         file_path = deck.get("converted_file_path") if hasattr(deck, "get") else deck.converted_file_path
         file_filename = deck.get("converted_file_filename") if hasattr(deck, "get") else deck.converted_file_filename
@@ -752,20 +940,48 @@ async def get_presentation_file(
         media_type = _upload_media_type(deck)
     if not file_path:
         raise HTTPException(status_code=404, detail="Presentation file not found")
-    storage_root = Path(settings.local_storage_dir).resolve()
-    abs_path = (storage_root / file_path).resolve()
-    if not abs_path.is_relative_to(storage_root) or not abs_path.exists():
-        raise HTTPException(status_code=404, detail="Presentation file not found")
-    return FileResponse(
-        abs_path,
-        media_type=media_type,
-        filename=file_filename or f"presentation-{deck['id']}.pdf",
-        headers={
-            "Content-Disposition": f'inline; filename="{file_filename or f"presentation-{deck["id"]}.pdf"}"',
-            "X-Frame-Options": "SAMEORIGIN",
-            "Content-Security-Policy": "frame-ancestors 'self'",
-        },
+    return _presentation_file_response(deck, file_path, file_filename, media_type, allow_download=False)
+
+
+@router.get("/{deck_id}/remote-qr", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def get_presentation_remote_qr(
+    deck_id: int,
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    deck = await _authorized_deck(db, me, deck_id, request, "presentations:read")
+    event_id = deck.get("event_id")
+    if not event_id:
+        raise HTTPException(status_code=409, detail="Presentation is not linked to an event")
+    try:
+        import qrcode
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="QR code library is not available") from exc
+
+    origin = str(request.base_url).rstrip("/")
+    control_token = deck.get("control_token")
+    if not control_token:
+        control_token = _new_presenter_token()
+        await db.execute(
+            PresentationDeck.__table__.update()
+            .where(PresentationDeck.id == deck["id"])
+            .values(control_token=control_token)
+        )
+        await db.commit()
+    remote_url = f"{origin}/presenter/{control_token}" if control_token else f"{origin}/admin/events/{event_id}/presentations/{deck_id}/remote"
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=8,
+        border=2,
     )
+    qr.add_data(remote_url)
+    qr.make(fit=True)
+    image = qr.make_image(fill_color="#111827", back_color="white")
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    return Response(content=buffer.getvalue(), media_type="image/png")
 
 
 @router.patch("/{deck_id}", response_model=DeckOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
@@ -886,6 +1102,110 @@ async def regenerate_presenter_token(
     return _deck_out_from_row(row)
 
 
+@public_router.get("/audience/{token}", response_model=PublicDeckOut)
+async def get_audience_presentation(
+    token: str,
+    db: AsyncSession = Depends(get_db),
+) -> PublicDeckOut:
+    deck = await _public_audience_deck(db, token)
+    return _public_deck_out(deck, token, "audience")
+
+
+@public_router.get("/audience/{token}/session", response_model=PresentationSessionState)
+async def get_audience_presentation_session(
+    token: str,
+    db: AsyncSession = Depends(get_db),
+) -> PresentationSessionState:
+    deck = await _public_audience_deck(db, token)
+    return await _get_presentation_session_state(deck["id"])
+
+
+@public_router.get("/audience/{token}/file")
+async def get_audience_presentation_file(
+    token: str,
+    variant: str = Query(default="original", pattern="^(original|converted)$"),
+    db: AsyncSession = Depends(get_db),
+):
+    deck = await _public_audience_deck(db, token)
+    if variant == "converted":
+        file_path = deck.get("converted_file_path")
+        file_filename = deck.get("converted_file_filename")
+        media_type = "application/pdf"
+    else:
+        file_path = deck.get("file_path")
+        file_filename = _file_download_name(deck)
+        media_type = _upload_media_type(deck)
+    if not file_path:
+        raise HTTPException(status_code=404, detail="Presentation file not found")
+    return _presentation_file_response(deck, file_path, file_filename, media_type, allow_download=bool(deck.get("allow_download") or False))
+
+
+@public_router.get("/control/{token}", response_model=PublicDeckOut)
+async def get_control_presentation(
+    token: str,
+    db: AsyncSession = Depends(get_db),
+) -> PublicDeckOut:
+    deck = await _public_control_deck(db, token)
+    return _public_deck_out(deck, token, "control")
+
+
+@public_router.get("/control/{token}/session", response_model=PresentationSessionState)
+async def get_control_presentation_session(
+    token: str,
+    db: AsyncSession = Depends(get_db),
+) -> PresentationSessionState:
+    deck = await _public_control_deck(db, token)
+    return await _get_presentation_session_state(deck["id"])
+
+
+@public_router.patch("/control/{token}/session", response_model=PresentationSessionState)
+async def update_control_presentation_session(
+    token: str,
+    payload: PresentationSessionPatch,
+    db: AsyncSession = Depends(get_db),
+) -> PresentationSessionState:
+    deck = await _public_control_deck(db, token)
+    current = await _get_presentation_session_state(deck["id"])
+    slide_index = payload.slide_index if payload.slide_index is not None else current.slide_index
+    pointer_active = payload.pointer_active if payload.pointer_active is not None else current.pointer_active
+    pointer_x = payload.pointer_x if payload.pointer_x is not None else current.pointer_x
+    pointer_y = payload.pointer_y if payload.pointer_y is not None else current.pointer_y
+    if pointer_active and (pointer_x is None or pointer_y is None):
+        raise HTTPException(status_code=400, detail="Pointer coordinates are required")
+    if not pointer_active:
+        pointer_x = None
+        pointer_y = None
+    state = PresentationSessionState(
+        slide_index=slide_index,
+        pointer_active=pointer_active,
+        pointer_x=pointer_x,
+        pointer_y=pointer_y,
+        updated_at=datetime.now(timezone.utc),
+    )
+    await cache.set(_presentation_session_key(deck["id"]), state.model_dump(), ttl=6 * 60 * 60)
+    return state
+
+
+@public_router.get("/control/{token}/file")
+async def get_control_presentation_file(
+    token: str,
+    variant: str = Query(default="original", pattern="^(original|converted)$"),
+    db: AsyncSession = Depends(get_db),
+):
+    deck = await _public_control_deck(db, token)
+    if variant == "converted":
+        file_path = deck.get("converted_file_path")
+        file_filename = deck.get("converted_file_filename")
+        media_type = "application/pdf"
+    else:
+        file_path = deck.get("file_path")
+        file_filename = _file_download_name(deck)
+        media_type = _upload_media_type(deck)
+    if not file_path:
+        raise HTTPException(status_code=404, detail="Presentation file not found")
+    return _presentation_file_response(deck, file_path, file_filename, media_type, allow_download=False)
+
+
 @public_router.get("/{token}", response_model=PublicDeckOut)
 async def get_public_presentation(
     token: str,
@@ -895,6 +1215,7 @@ async def get_public_presentation(
     if not deck:
         raise HTTPException(status_code=404, detail="Presentation not found")
     return PublicDeckOut(
+        id=deck["id"],
         title=deck["title"],
         description=deck.get("description"),
         language=deck["language"],

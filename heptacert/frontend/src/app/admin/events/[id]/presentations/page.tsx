@@ -3,8 +3,18 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { AlertTriangle, CheckCircle2, Clock3, Download, FileText, Loader2, MonitorPlay, Presentation, RefreshCw, Smartphone, Trash2, Upload } from "lucide-react";
-import { deletePresentation, listEventPresentations, presentationFileUrl, uploadEventPresentation, type PresentationDeck } from "@/lib/presentationsApi";
+import { AlertTriangle, CheckCircle2, Clock3, Copy, Download, Eye, FileText, Loader2, MonitorPlay, Presentation, RefreshCw, Shield, Smartphone, Trash2, Upload } from "lucide-react";
+import {
+  deletePresentation,
+  downloadPresentationFile,
+  getPresentationSecurity,
+  listEventPresentations,
+  presentationFileUrl,
+  updatePresentationSecurity,
+  uploadEventPresentation,
+  type PresentationDeck,
+  type PresentationSecuritySettings,
+} from "@/lib/presentationsApi";
 import { useI18n } from "@/lib/i18n";
 
 function formatBytes(value?: number | null) {
@@ -45,6 +55,8 @@ export default function EventPresentationsPage() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
+  const [securityByDeck, setSecurityByDeck] = useState<Record<number, PresentationSecuritySettings>>({});
+  const [securityLoading, setSecurityLoading] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const copy = useMemo(() => ({
@@ -121,6 +133,67 @@ export default function EventPresentationsPage() {
     setItems((current) => current.filter((item) => item.id !== deck.id));
   }
 
+  async function handleDownload(deck: PresentationDeck) {
+    try {
+      await downloadPresentationFile(deck);
+      setError(null);
+    } catch (ex: any) {
+      setError(ex?.message || copy.loadFailed);
+    }
+  }
+
+  function absoluteUrl(path?: string | null) {
+    if (!path || typeof window === "undefined") return "";
+    return `${window.location.origin}${path.startsWith("/") ? path : `/${path}`}`;
+  }
+
+  async function copyLink(path?: string | null) {
+    const url = absoluteUrl(path);
+    if (!url) return;
+    await navigator.clipboard.writeText(url);
+    setError(isTr ? "Link kopyalandi." : "Link copied.");
+  }
+
+  async function ensureSecurity(deck: PresentationDeck) {
+    if (securityByDeck[deck.id]) return securityByDeck[deck.id];
+    setSecurityLoading(deck.id);
+    try {
+      const settings = await getPresentationSecurity(deck.id);
+      setSecurityByDeck((current) => ({ ...current, [deck.id]: settings }));
+      return settings;
+    } finally {
+      setSecurityLoading(null);
+    }
+  }
+
+  async function patchSecurity(deck: PresentationDeck, payload: Parameters<typeof updatePresentationSecurity>[1]) {
+    setSecurityLoading(deck.id);
+    try {
+      const settings = await updatePresentationSecurity(deck.id, payload);
+      setSecurityByDeck((current) => ({ ...current, [deck.id]: settings }));
+      setItems((current) =>
+        current.map((item) =>
+          item.id === deck.id
+            ? {
+                ...item,
+                audience_enabled: settings.audience_enabled,
+                allow_download: settings.allow_download,
+                watermark_enabled: settings.watermark_enabled,
+                audience_expires_at: settings.audience_expires_at,
+                audience_url: settings.audience_url,
+                presenter_control_url: settings.presenter_control_url,
+              }
+            : item
+        )
+      );
+      setError(null);
+    } catch (ex: any) {
+      setError(ex?.message || copy.loadFailed);
+    } finally {
+      setSecurityLoading(null);
+    }
+  }
+
   return (
     <div className="page-content">
       <div className="page-header">
@@ -177,6 +250,14 @@ export default function EventPresentationsPage() {
             items.map((deck) => {
               const fileUrl = presentationFileUrl(deck);
               const conversion = conversionMeta(deck, isTr);
+              const security = securityByDeck[deck.id] || {
+                audience_enabled: Boolean(deck.audience_enabled),
+                allow_download: Boolean(deck.allow_download),
+                watermark_enabled: Boolean(deck.watermark_enabled),
+                audience_expires_at: deck.audience_expires_at,
+                audience_url: deck.audience_url,
+                presenter_control_url: deck.presenter_control_url,
+              };
               return (
                 <div key={deck.id} className="card p-5">
                   <div className="flex flex-wrap items-start justify-between gap-4">
@@ -207,14 +288,75 @@ export default function EventPresentationsPage() {
                         {isTr ? "Telefon" : "Remote"}
                       </Link>
                       {fileUrl && (
-                        <a href={fileUrl} target="_blank" rel="noreferrer" className="btn-secondary">
+                        <button type="button" onClick={() => void handleDownload(deck)} className="btn-secondary">
                           <Download className="h-4 w-4" />
                           {copy.download}
-                        </a>
+                        </button>
                       )}
                       <button type="button" onClick={() => void handleDelete(deck)} className="btn-secondary text-red-600 hover:bg-red-50">
                         <Trash2 className="h-4 w-4" />
                         {copy.remove}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-4 rounded-xl border border-surface-100 bg-surface-50 p-3">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-brand-700" />
+                        <p className="text-sm font-black text-surface-900">{isTr ? "Guvenlik" : "Security"}</p>
+                      </div>
+                      {securityLoading === deck.id && <Loader2 className="h-4 w-4 animate-spin text-surface-400" />}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void patchSecurity(deck, { audience_enabled: !security.audience_enabled })}
+                        className={security.audience_enabled ? "btn-primary" : "btn-secondary"}
+                      >
+                        <Eye className="h-4 w-4" />
+                        Audience: {security.audience_enabled ? "ON" : "OFF"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void patchSecurity(deck, { allow_download: !security.allow_download })}
+                        className={security.allow_download ? "btn-primary" : "btn-secondary"}
+                      >
+                        <Download className="h-4 w-4" />
+                        {isTr ? "Indirme" : "Downloads"}: {security.allow_download ? "ON" : "OFF"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void patchSecurity(deck, { watermark_enabled: !security.watermark_enabled })}
+                        className={security.watermark_enabled ? "btn-primary" : "btn-secondary"}
+                      >
+                        <Shield className="h-4 w-4" />
+                        Watermark: {security.watermark_enabled ? "ON" : "OFF"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const settings = await ensureSecurity(deck);
+                          await copyLink(settings.audience_url);
+                        }}
+                        className="btn-secondary"
+                      >
+                        <Copy className="h-4 w-4" />
+                        Audience link
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const settings = await ensureSecurity(deck);
+                          await copyLink(settings.presenter_control_url);
+                        }}
+                        className="btn-secondary"
+                      >
+                        <Copy className="h-4 w-4" />
+                        Presenter link
+                      </button>
+                      <button type="button" onClick={() => void patchSecurity(deck, { regenerate_control_token: true })} className="btn-secondary">
+                        <RefreshCw className="h-4 w-4" />
+                        {isTr ? "Presenter link yenile" : "Refresh presenter link"}
                       </button>
                     </div>
                   </div>

@@ -7,7 +7,7 @@ independent module.
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .db import Base
@@ -27,6 +27,12 @@ class PresentationDeck(Base):
     theme: Mapped[dict] = mapped_column(JSONB, default=dict)
     slides: Mapped[list] = mapped_column(JSONB, default=list)
     presenter_token: Mapped[Optional[str]] = mapped_column(String(96), unique=True, nullable=True, index=True)
+    control_token: Mapped[Optional[str]] = mapped_column(String(96), unique=True, nullable=True, index=True)
+    audience_token: Mapped[Optional[str]] = mapped_column(String(96), unique=True, nullable=True, index=True)
+    audience_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", index=True)
+    allow_download: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    watermark_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    audience_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     source: Mapped[str] = mapped_column(String(32), default="manual")
     status: Mapped[str] = mapped_column(String(24), default="draft", index=True)
     file_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
