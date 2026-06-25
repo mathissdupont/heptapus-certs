@@ -9,7 +9,7 @@
 - **`/api/admin/crm/accounts/{account_id}/contacts`** GET | POST | GET/:id | DELETE/:id → Contact
 - **`/api/admin/crm/deals/{deal_id}/activities`** GET | POST | GET/:id | DELETE/:id → Activitie
 - **`/api/admin/crm/sequences`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Sequence
-- **``** GET | POST | GET/:id
+- **``** GET | POST | GET/:id | PATCH/:id | DELETE/:id
 - **`/api/domains`** GET | POST | GET/:id | DELETE/:id → Domain
 - **`/api/admin/events/{event_id}/email-templates`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Email-template
 - **`/api/admin/crm/views`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → View
@@ -432,6 +432,27 @@
 - `POST` `/api/admin/org/staff/invite` params() → in: StaffAcceptIn [auth, db]
 - `POST` `/api/org/staff/accept` params() → in: StaffAcceptIn [auth, db]
 - `GET` `/api/superadmin/platform-health` params() [auth, db, payment]
+- `GET` `/events/{event_id}` params(event_id) → out: list [auth, db, cache, queue, upload, ai]
+- `POST` `/events/{event_id}/upload` params(event_id) → out: list [auth, db, cache, queue, upload, ai]
+- `POST` `/generate` params() → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/{deck_id}/security` params(deck_id) → out: list [auth, db, cache, queue, upload, ai]
+- `PATCH` `/{deck_id}/security` params(deck_id) → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/{deck_id}/session` params(deck_id) → out: list [auth, db, cache, queue, upload, ai]
+- `PATCH` `/{deck_id}/session` params(deck_id) → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/{deck_id}/notes/{slide_index}` params(deck_id, slide_index) → out: list [auth, db, cache, queue, upload, ai]
+- `PUT` `/{deck_id}/notes/{slide_index}` params(deck_id, slide_index) → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/{deck_id}/file` params(deck_id) → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/{deck_id}/remote-qr` params(deck_id) → out: list [auth, db, cache, queue, upload, ai]
+- `POST` `/{deck_id}/export` params(deck_id) → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/{deck_id}/export` params(deck_id) → out: list [auth, db, cache, queue, upload, ai]
+- `POST` `/{deck_id}/presenter-token` params(deck_id) → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/audience/{token}` params(token) → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/audience/{token}/session` params(token) → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/audience/{token}/file` params(token) → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/control/{token}` params(token) → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/control/{token}/session` params(token) → out: list [auth, db, cache, queue, upload, ai]
+- `PATCH` `/control/{token}/session` params(token) → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/control/{token}/file` params(token) → out: list [auth, db, cache, queue, upload, ai]
 - `POST` `/api/admin/product-telemetry` params() → in: ProductTelemetryIn [auth, db]
 - `GET` `/api/superadmin/product-telemetry/summary` params() [auth, db]
 - `POST` `/api/superadmin/qa-seed` params() [auth, db]

@@ -607,6 +607,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
   }, [collapsed]);
 
   const [organizationContexts, setOrganizationContexts] = useState<OrganizationContext[]>([]);
+  const [contextsLoaded, setContextsLoaded] = useState(false);
   const [activeOrganizationId, setActiveOrganizationId] = useState("");
   const [activeJobCount, setActiveJobCount] = useState(0);
   const [enterpriseEnabled, setEnterpriseEnabled] = useState(false);
@@ -701,12 +702,19 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         setOrganizationContexts([]);
+      })
+      .finally(() => {
+        setContextsLoaded(true);
       });
   }, [pathname]);
 
   // Load module settings once after contexts are available; run onboarding if pending
   useEffect(() => {
     if (isAuthPage(pathname)) return;
+    // Kurum context'leri gercekten yuklenene kadar onboarding karari verme.
+    // Aksi halde baslangic state'inde (organizationContexts === []) "org yok"
+    // sanilip onboarding modali bir an acilip kapaniyor (milisaniyelik flicker).
+    if (!contextsLoaded) return;
 
     // Check if a pending org_type was stored during registration
     let pendingOrgType: string | null = null;
@@ -730,7 +738,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
         // keep defaults — non-critical
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeOrganizationId, role, organizationContexts]);
+  }, [activeOrganizationId, role, organizationContexts, contextsLoaded]);
 
   async function completeOrganizationOnboarding(payload: { org_type: string; org_name: string; modules: OrgModules }) {
     setOnboardingSubmitting(true);

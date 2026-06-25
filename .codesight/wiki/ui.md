@@ -2,7 +2,7 @@
 
 > **Navigation aid.** Component inventory and prop signatures extracted via AST. Read the source files before adding props or modifying component logic.
 
-**238 components** (react)
+**247 components** (react)
 
 ## Client Components
 
@@ -42,6 +42,9 @@
 - **EventMarketplacePage** — `heptacert\frontend\src\app\admin\events\[id]\marketplace\page.tsx`
 - **EventOperationsPage** — `heptacert\frontend\src\app\admin\events\[id]\ops\page.tsx`
 - **EventIndexPage** — `heptacert\frontend\src\app\admin\events\[id]\page.tsx`
+- **EventPresentationsPage** — `heptacert\frontend\src\app\admin\events\[id]\presentations\page.tsx`
+- **EventPresentationStagePage** — `heptacert\frontend\src\app\admin\events\[id]\presentations\[deckId]\present\page.tsx`
+- **EventPresentationRemotePage** — `heptacert\frontend\src\app\admin\events\[id]\presentations\[deckId]\remote\page.tsx`
 - **EmailTemplatePreviewPage** — `heptacert\frontend\src\app\admin\events\[id]\preview\page.tsx`
 - **QrPresentPage** — `heptacert\frontend\src\app\admin\events\[id]\qr-present\page.tsx`
 - **QuizBuilderPage** — `heptacert\frontend\src\app\admin\events\[id]\quiz\page.tsx`
@@ -66,6 +69,7 @@
 - **AdminMarketplacePage** — `heptacert\frontend\src\app\admin\marketplace\page.tsx`
 - **OrgSocialProfileAdminPage** — `heptacert\frontend\src\app\admin\organization-social\page.tsx`
 - **TransactionsPage** — `heptacert\frontend\src\app\admin\payments\transactions\page.tsx`
+- **AdminPresentationsPage** — `heptacert\frontend\src\app\admin\presentations\page.tsx`
 - **ScheduledReportsPage** — `heptacert\frontend\src\app\admin\reports\page.tsx`
 - **AdminReservations** — `heptacert\frontend\src\app\admin\reservations\page.tsx`
 - **ApiSettingsPage** — `heptacert\frontend\src\app\admin\settings\api\page.tsx`
@@ -94,6 +98,7 @@
 - **WebhooksPage** — `heptacert\frontend\src\app\admin\webhooks\page.tsx`
 - **AdminLayoutShell** — `heptacert\frontend\src\app\admin\_admin-layout-shell.tsx`
 - **AttendCheckinPage** — `heptacert\frontend\src\app\attend\[token]\page.tsx`
+- **AudiencePresentationPage** — `heptacert\frontend\src\app\audience\[token]\page.tsx`
 - **GoogleCallbackPage** — `heptacert\frontend\src\app\auth\google\callback\page.tsx`
 - **SsoSuccessPage** — `heptacert\frontend\src\app\auth\sso\success\page.tsx`
 - **CheckoutCancelPage** — `heptacert\frontend\src\app\checkout\cancel\page.tsx`
@@ -135,6 +140,8 @@
 - **PortalDashboard** — `heptacert\frontend\src\app\portal\page.tsx`
 - **CreatePostPage** — `heptacert\frontend\src\app\post\create\page.tsx`
 - **PostDetailPage** — `heptacert\frontend\src\app\post\[postId]\page.tsx`
+- **PublicPresentationPage** — `heptacert\frontend\src\app\present\[token]\page.tsx`
+- **PresenterTokenPage** — `heptacert\frontend\src\app\presenter\[token]\page.tsx`
 - **PricingPage** — props: tier, lang, onClose — `heptacert\frontend\src\app\pricing\_pricing-client.tsx`
 - **ProfilePage** — `heptacert\frontend\src\app\profile\page.tsx`
 - **PublicFormPage** — `heptacert\frontend\src\app\public\forms\[slug]\page.tsx`
@@ -169,6 +176,8 @@
 - **IssueCertificateModal** — props: open, onClose, onIssued, eventId, templateReady, sampleMonthlyCost, sampleYearlyCost — `heptacert\frontend\src\components\Admin\IssueCertificateModal.tsx`
 - **MobileActionBar** — props: className — `heptacert\frontend\src\components\Admin\MobileActionBar.tsx`
 - **PageHeader** — props: title, subtitle, icon, actions, breadcrumbs, iconBg — `heptacert\frontend\src\components\Admin\PageHeader.tsx`
+- **PdfPresenterPreview** — props: fileUrl, pageIndex, requestHeaders, currentLabel, nextLabel, loadingLabel, unavailableLabel, onPageCountChange — `heptacert\frontend\src\components\Admin\Presentations\PdfPresenterPreview.tsx`
+- **PdfStageViewer** — props: fileUrl, pageIndex, title, loadingLabel, errorLabel, retryLabel, pageLabel, requestHeaders, preloadAllSignal, onPageCountChange — `heptacert\frontend\src\components\Admin\Presentations\PdfStageViewer.tsx`
 - **StatCard** — props: label, value, icon, iconBg, trend — `heptacert\frontend\src\components\Admin\StatCard.tsx`
 - **TimeField** — props: value, onChange, label, placeholder, className — `heptacert\frontend\src\components\Admin\TimeField.tsx`
 - **CookieConsent** — `heptacert\frontend\src\components\CookieConsent\CookieConsent.tsx`

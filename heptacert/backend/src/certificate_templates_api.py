@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Any, Optional
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -95,12 +95,25 @@ def _preset_key(scope: str, scope_id: int) -> str:
     return f"certificate_template_presets:{scope}:{scope_id}"
 
 
-async def _owner_scope(db: AsyncSession, me: CurrentUser) -> tuple[str, int]:
-    org_res = await db.execute(select(Organization.id).where(Organization.user_id == me.id))
-    org_id = org_res.scalar_one_or_none()
-    if org_id:
-        return "org", int(org_id)
-    return "user", me.id
+async def _owner_scope(
+    db: AsyncSession,
+    me: CurrentUser,
+    request: Optional[Request] = None,
+    required_permission: str = "organization:view",
+) -> tuple[str, int]:
+    """Preset kapsamini AKTIF org context'ine (X-Organization-Id) gore cozer.
+
+    Kullanici baska bir kurumun uyesiyse preset'ler o kurumun kapsaminda olmali
+    (kendi bos org'unda degil). Eskiden yalnizca cagiranin SAHIP oldugu org'a
+    cozuluyordu; bu yuzden bir uye, uyesi oldugu kurumda preset goremiyor/
+    yonetemiyordu. Kurum sahibi her zaman tam erisir (get_organization_for_access
+    sahip kullaniciyi izin kontrolunden muaf tutar).
+    """
+    from .organization_access_api import get_organization_for_access, organization_id_from_request
+
+    org_id_hint = organization_id_from_request(request) if request is not None else None
+    org = await get_organization_for_access(db, me, required_permission, org_id_hint)
+    return "org", int(org.id)
 
 
 async def _load_presets(db: AsyncSession, scope: str, scope_id: int) -> list[CertificateTemplatePreset]:
@@ -132,10 +145,11 @@ def _serialize_preset(item: CertificateTemplatePreset) -> CertificateTemplatePre
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
 )
 async def list_certificate_template_presets(
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    scope, scope_id = await _owner_scope(db, me)
+    scope, scope_id = await _owner_scope(db, me, request)
     presets = await _load_presets(db, scope, scope_id)
     return [_serialize_preset(item) for item in presets]
 
@@ -149,6 +163,7 @@ async def list_certificate_template_presets(
 async def save_event_certificate_template_preset(
     event_id: int,
     payload: CertificateTemplatePresetIn,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -156,7 +171,8 @@ async def save_event_certificate_template_preset(
     _validate_template_config(dict(event.config or {}))
     if payload.enterprise_locked and not await _has_enterprise(db, me.id):
         raise HTTPException(status_code=403, detail="Enterprise plan is required for locked organization presets")
-    scope, scope_id = await _owner_scope(db, me)
+    # Yetki zaten _get_event_for_admin ile dogrulandi; burada yalnizca aktif org kapsamini cozuyoruz.
+    scope, scope_id = await _owner_scope(db, me, request)
     preset = CertificateTemplatePreset(
         id=uuid4().hex,
         scope_type=scope,
@@ -197,11 +213,12 @@ async def save_event_certificate_template_preset(
 async def apply_certificate_template_preset(
     event_id: int,
     preset_id: str,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     event = await _get_event_for_admin(event_id, me, db, "certificates:write")
-    scope, scope_id = await _owner_scope(db, me)
+    scope, scope_id = await _owner_scope(db, me, request)
     preset_res = await db.execute(
         select(CertificateTemplatePreset).where(
             CertificateTemplatePreset.id == preset_id,
@@ -231,10 +248,11 @@ async def apply_certificate_template_preset(
 )
 async def list_certificate_template_preset_versions(
     preset_id: str,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    scope, scope_id = await _owner_scope(db, me)
+    scope, scope_id = await _owner_scope(db, me, request)
     preset = (await db.execute(select(CertificateTemplatePreset).where(CertificateTemplatePreset.id == preset_id, CertificateTemplatePreset.scope_type == scope, CertificateTemplatePreset.scope_id == scope_id))).scalar_one_or_none()
     if not preset:
         raise HTTPException(status_code=404, detail="Certificate template preset not found")
@@ -250,10 +268,11 @@ async def list_certificate_template_preset_versions(
 async def rollback_certificate_template_preset(
     preset_id: str,
     version: int,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    scope, scope_id = await _owner_scope(db, me)
+    scope, scope_id = await _owner_scope(db, me, request, "events:manage")
     preset = (await db.execute(select(CertificateTemplatePreset).where(CertificateTemplatePreset.id == preset_id, CertificateTemplatePreset.scope_type == scope, CertificateTemplatePreset.scope_id == scope_id))).scalar_one_or_none()
     if not preset:
         raise HTTPException(status_code=404, detail="Certificate template preset not found")
@@ -278,10 +297,11 @@ async def rollback_certificate_template_preset(
 )
 async def list_certificate_template_snapshots(
     preset_id: str,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    scope, scope_id = await _owner_scope(db, me)
+    scope, scope_id = await _owner_scope(db, me, request)
     preset = (await db.execute(select(CertificateTemplatePreset).where(CertificateTemplatePreset.id == preset_id, CertificateTemplatePreset.scope_type == scope, CertificateTemplatePreset.scope_id == scope_id))).scalar_one_or_none()
     if not preset:
         raise HTTPException(status_code=404, detail="Certificate template preset not found")
@@ -315,10 +335,11 @@ async def list_builtin_certificate_template_presets(
 )
 async def delete_certificate_template_preset(
     preset_id: str,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    scope, scope_id = await _owner_scope(db, me)
+    scope, scope_id = await _owner_scope(db, me, request, "events:manage")
     preset_res = await db.execute(
         select(CertificateTemplatePreset).where(
             CertificateTemplatePreset.id == preset_id,

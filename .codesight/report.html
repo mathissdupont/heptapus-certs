@@ -77,20 +77,20 @@ table th{color:var(--muted);font-size:.8rem;font-weight:600;text-transform:upper
 </div>
 
 <div class="token-hero">
-  <div class="token-saved">~516,768 tokens saved</div>
+  <div class="token-saved">~535,775 tokens saved</div>
   <div class="token-detail">
-    Output: 51,592 tokens — Exploration cost without codesight: ~568,360 tokens — 563 files scanned
+    Output: 53,775 tokens — Exploration cost without codesight: ~589,550 tokens — 589 files scanned
   </div>
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-value">690</div><div class="stat-label">Routes</div></div>
-  <div class="stat"><div class="stat-value">155</div><div class="stat-label">Models</div></div>
-  <div class="stat"><div class="stat-value">238</div><div class="stat-label">Components</div></div>
-  <div class="stat"><div class="stat-value">199</div><div class="stat-label">Libraries</div></div>
-  <div class="stat"><div class="stat-value">70</div><div class="stat-label">Env Vars</div></div>
+  <div class="stat"><div class="stat-value">715</div><div class="stat-label">Routes</div></div>
+  <div class="stat"><div class="stat-value">157</div><div class="stat-label">Models</div></div>
+  <div class="stat"><div class="stat-value">247</div><div class="stat-label">Components</div></div>
+  <div class="stat"><div class="stat-value">213</div><div class="stat-label">Libraries</div></div>
+  <div class="stat"><div class="stat-value">75</div><div class="stat-label">Env Vars</div></div>
   <div class="stat"><div class="stat-value">7</div><div class="stat-label">Middleware</div></div>
-  <div class="stat"><div class="stat-value">205</div><div class="stat-label">Import Links</div></div>
+  <div class="stat"><div class="stat-value">226</div><div class="stat-label">Import Links</div></div>
 </div>
 
 
@@ -3548,6 +3548,181 @@ table th{color:var(--muted);font-size:.8rem;font-weight:600;text-transform:upper
   <td></td>
   <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-payment">payment</span></td>
   <td class="card-meta">heptacert\backend\src\platform_health_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-GET">GET</span></td>
+  <td class="route-path">/events/{event_id} <span class="route-contract">params: event_id</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-POST">POST</span></td>
+  <td class="route-path">/events/{event_id}/upload <span class="route-contract">params: event_id</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-POST">POST</span></td>
+  <td class="route-path">/generate <span class="route-contract">params: </span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-GET">GET</span></td>
+  <td class="route-path">/{deck_id} <span class="route-contract">params: deck_id</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-GET">GET</span></td>
+  <td class="route-path">/{deck_id}/security <span class="route-contract">params: deck_id</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-PATCH">PATCH</span></td>
+  <td class="route-path">/{deck_id}/security <span class="route-contract">params: deck_id</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-GET">GET</span></td>
+  <td class="route-path">/{deck_id}/session <span class="route-contract">params: deck_id</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-PATCH">PATCH</span></td>
+  <td class="route-path">/{deck_id}/session <span class="route-contract">params: deck_id</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-GET">GET</span></td>
+  <td class="route-path">/{deck_id}/notes/{slide_index} <span class="route-contract">params: deck_id, slide_index</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-PUT">PUT</span></td>
+  <td class="route-path">/{deck_id}/notes/{slide_index} <span class="route-contract">params: deck_id, slide_index</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-GET">GET</span></td>
+  <td class="route-path">/{deck_id}/file <span class="route-contract">params: deck_id</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-GET">GET</span></td>
+  <td class="route-path">/{deck_id}/remote-qr <span class="route-contract">params: deck_id</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-PATCH">PATCH</span></td>
+  <td class="route-path">/{deck_id} <span class="route-contract">params: deck_id</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-DELETE">DELETE</span></td>
+  <td class="route-path">/{deck_id} <span class="route-contract">params: deck_id</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-POST">POST</span></td>
+  <td class="route-path">/{deck_id}/export <span class="route-contract">params: deck_id</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-GET">GET</span></td>
+  <td class="route-path">/{deck_id}/export <span class="route-contract">params: deck_id</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-POST">POST</span></td>
+  <td class="route-path">/{deck_id}/presenter-token <span class="route-contract">params: deck_id</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-GET">GET</span></td>
+  <td class="route-path">/audience/{token} <span class="route-contract">params: token</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-GET">GET</span></td>
+  <td class="route-path">/audience/{token}/session <span class="route-contract">params: token</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-GET">GET</span></td>
+  <td class="route-path">/audience/{token}/file <span class="route-contract">params: token</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-GET">GET</span></td>
+  <td class="route-path">/control/{token} <span class="route-contract">params: token</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-GET">GET</span></td>
+  <td class="route-path">/control/{token}/session <span class="route-contract">params: token</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-PATCH">PATCH</span></td>
+  <td class="route-path">/control/{token}/session <span class="route-contract">params: token</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-GET">GET</span></td>
+  <td class="route-path">/control/{token}/file <span class="route-contract">params: token</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
+</tr>
+<tr>
+  <td><span class="method method-GET">GET</span></td>
+  <td class="route-path">/{token} <span class="route-contract">params: token</span></td>
+  <td><span class="route-contract">out: list</span></td>
+  <td><span class="tag tag-auth">auth</span><span class="tag tag-db">db</span><span class="tag tag-cache">cache</span><span class="tag tag-queue">queue</span><span class="tag tag-upload">upload</span><span class="tag tag-ai">ai</span></td>
+  <td class="card-meta">heptacert\backend\src\presentation_api.py</td>
 </tr>
 <tr>
   <td><span class="method method-POST">POST</span></td>
@@ -12125,6 +12300,204 @@ table th{color:var(--muted);font-size:.8rem;font-weight:600;text-transform:upper
   
 </div>
 <div class="card">
+  <div class="card-title">PresentationDeck <span class="card-meta">sqlalchemy</span></div>
+  <div class="field">
+    <span class="field-name">id</span>
+    <span class="field-type">Integer</span>
+    <span class="field-flags"><span class="flag flag-pk">pk</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">organization_id</span>
+    <span class="field-type">Integer</span>
+    <span class="field-flags"><span class="flag flag-fk">fk</span><span class="flag flag-index">index</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">event_id</span>
+    <span class="field-type">Integer</span>
+    <span class="field-flags"><span class="flag flag-fk">fk</span><span class="flag flag-nullable">nullable</span><span class="flag flag-index">index</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">created_by</span>
+    <span class="field-type">Integer</span>
+    <span class="field-flags"><span class="flag flag-fk">fk</span><span class="flag flag-nullable">nullable</span><span class="flag flag-index">index</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">title</span>
+    <span class="field-type">String</span>
+    <span class="field-flags"></span>
+  </div>
+<div class="field">
+    <span class="field-name">description</span>
+    <span class="field-type">Text</span>
+    <span class="field-flags"><span class="flag flag-nullable">nullable</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">language</span>
+    <span class="field-type">String</span>
+    <span class="field-flags"><span class="flag flag-default">default</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">theme</span>
+    <span class="field-type">JSONB</span>
+    <span class="field-flags"><span class="flag flag-default">default</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">slides</span>
+    <span class="field-type">JSONB</span>
+    <span class="field-flags"><span class="flag flag-default">default</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">presenter_token</span>
+    <span class="field-type">String</span>
+    <span class="field-flags"><span class="flag flag-unique">unique</span><span class="flag flag-nullable">nullable</span><span class="flag flag-index">index</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">control_token</span>
+    <span class="field-type">String</span>
+    <span class="field-flags"><span class="flag flag-unique">unique</span><span class="flag flag-nullable">nullable</span><span class="flag flag-index">index</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">audience_token</span>
+    <span class="field-type">String</span>
+    <span class="field-flags"><span class="flag flag-unique">unique</span><span class="flag flag-nullable">nullable</span><span class="flag flag-index">index</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">audience_enabled</span>
+    <span class="field-type">Boolean</span>
+    <span class="field-flags"><span class="flag flag-default">default</span><span class="flag flag-index">index</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">allow_download</span>
+    <span class="field-type">Boolean</span>
+    <span class="field-flags"><span class="flag flag-default">default</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">watermark_enabled</span>
+    <span class="field-type">Boolean</span>
+    <span class="field-flags"><span class="flag flag-default">default</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">audience_expires_at</span>
+    <span class="field-type">DateTime</span>
+    <span class="field-flags"><span class="flag flag-nullable">nullable</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">source</span>
+    <span class="field-type">String</span>
+    <span class="field-flags"><span class="flag flag-default">default</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">status</span>
+    <span class="field-type">String</span>
+    <span class="field-flags"><span class="flag flag-default">default</span><span class="flag flag-index">index</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">file_path</span>
+    <span class="field-type">Text</span>
+    <span class="field-flags"><span class="flag flag-nullable">nullable</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">file_filename</span>
+    <span class="field-type">String</span>
+    <span class="field-flags"><span class="flag flag-nullable">nullable</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">file_content_type</span>
+    <span class="field-type">String</span>
+    <span class="field-flags"><span class="flag flag-nullable">nullable</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">file_size</span>
+    <span class="field-type">Integer</span>
+    <span class="field-flags"><span class="flag flag-nullable">nullable</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">converted_file_path</span>
+    <span class="field-type">Text</span>
+    <span class="field-flags"><span class="flag flag-nullable">nullable</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">converted_file_filename</span>
+    <span class="field-type">String</span>
+    <span class="field-flags"><span class="flag flag-nullable">nullable</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">conversion_status</span>
+    <span class="field-type">String</span>
+    <span class="field-flags"><span class="flag flag-default">default</span><span class="flag flag-index">index</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">conversion_error</span>
+    <span class="field-type">Text</span>
+    <span class="field-flags"><span class="flag flag-nullable">nullable</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">conversion_attempts</span>
+    <span class="field-type">Integer</span>
+    <span class="field-flags"><span class="flag flag-default">default</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">last_export_path</span>
+    <span class="field-type">Text</span>
+    <span class="field-flags"><span class="flag flag-nullable">nullable</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">last_export_filename</span>
+    <span class="field-type">String</span>
+    <span class="field-flags"><span class="flag flag-nullable">nullable</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">created_at</span>
+    <span class="field-type">DateTime</span>
+    <span class="field-flags"></span>
+  </div>
+<div class="field">
+    <span class="field-name">updated_at</span>
+    <span class="field-type">DateTime</span>
+    <span class="field-flags"></span>
+  </div>
+  
+</div>
+<div class="card">
+  <div class="card-title">PresentationSpeakerNote <span class="card-meta">sqlalchemy</span></div>
+  <div class="field">
+    <span class="field-name">id</span>
+    <span class="field-type">Integer</span>
+    <span class="field-flags"><span class="flag flag-pk">pk</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">deck_id</span>
+    <span class="field-type">Integer</span>
+    <span class="field-flags"><span class="flag flag-fk">fk</span><span class="flag flag-index">index</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">user_id</span>
+    <span class="field-type">Integer</span>
+    <span class="field-flags"><span class="flag flag-fk">fk</span><span class="flag flag-index">index</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">slide_index</span>
+    <span class="field-type">Integer</span>
+    <span class="field-flags"></span>
+  </div>
+<div class="field">
+    <span class="field-name">note</span>
+    <span class="field-type">Text</span>
+    <span class="field-flags"><span class="flag flag-default">default</span></span>
+  </div>
+<div class="field">
+    <span class="field-name">created_at</span>
+    <span class="field-type">DateTime</span>
+    <span class="field-flags"></span>
+  </div>
+<div class="field">
+    <span class="field-name">updated_at</span>
+    <span class="field-type">DateTime</span>
+    <span class="field-flags"></span>
+  </div>
+  
+</div>
+<div class="card">
   <div class="card-title">Quiz <span class="card-meta">sqlalchemy</span></div>
   <div class="field">
     <span class="field-name">id</span>
@@ -12798,6 +13171,21 @@ table th{color:var(--muted);font-size:.8rem;font-weight:600;text-transform:upper
   <div class="card-meta">heptacert\frontend\src\app\admin\events\[id]\page.tsx</div>
 </div>
 <div class="card">
+  <div class="card-title">EventPresentationsPage <span class="badge-client">client</span></div>
+  
+  <div class="card-meta">heptacert\frontend\src\app\admin\events\[id]\presentations\page.tsx</div>
+</div>
+<div class="card">
+  <div class="card-title">EventPresentationStagePage <span class="badge-client">client</span></div>
+  
+  <div class="card-meta">heptacert\frontend\src\app\admin\events\[id]\presentations\[deckId]\present\page.tsx</div>
+</div>
+<div class="card">
+  <div class="card-title">EventPresentationRemotePage <span class="badge-client">client</span></div>
+  
+  <div class="card-meta">heptacert\frontend\src\app\admin\events\[id]\presentations\[deckId]\remote\page.tsx</div>
+</div>
+<div class="card">
   <div class="card-title">EmailTemplatePreviewPage <span class="badge-client">client</span></div>
   
   <div class="card-meta">heptacert\frontend\src\app\admin\events\[id]\preview\page.tsx</div>
@@ -12926,6 +13314,11 @@ table th{color:var(--muted);font-size:.8rem;font-weight:600;text-transform:upper
   <div class="card-title">TransactionsPage <span class="badge-client">client</span></div>
   
   <div class="card-meta">heptacert\frontend\src\app\admin\payments\transactions\page.tsx</div>
+</div>
+<div class="card">
+  <div class="card-title">AdminPresentationsPage <span class="badge-client">client</span></div>
+  
+  <div class="card-meta">heptacert\frontend\src\app\admin\presentations\page.tsx</div>
 </div>
 <div class="card">
   <div class="card-title">ScheduledReportsPage <span class="badge-client">client</span></div>
@@ -13071,6 +13464,11 @@ table th{color:var(--muted);font-size:.8rem;font-weight:600;text-transform:upper
   <div class="card-title">AttendCheckinPage <span class="badge-client">client</span></div>
   
   <div class="card-meta">heptacert\frontend\src\app\attend\[token]\page.tsx</div>
+</div>
+<div class="card">
+  <div class="card-title">AudiencePresentationPage <span class="badge-client">client</span></div>
+  
+  <div class="card-meta">heptacert\frontend\src\app\audience\[token]\page.tsx</div>
 </div>
 <div class="card">
   <div class="card-title">GoogleCallbackPage <span class="badge-client">client</span></div>
@@ -13343,6 +13741,16 @@ table th{color:var(--muted);font-size:.8rem;font-weight:600;text-transform:upper
   <div class="card-meta">heptacert\frontend\src\app\post\[postId]\page.tsx</div>
 </div>
 <div class="card">
+  <div class="card-title">PublicPresentationPage <span class="badge-client">client</span></div>
+  
+  <div class="card-meta">heptacert\frontend\src\app\present\[token]\page.tsx</div>
+</div>
+<div class="card">
+  <div class="card-title">PresenterTokenPage <span class="badge-client">client</span></div>
+  
+  <div class="card-meta">heptacert\frontend\src\app\presenter\[token]\page.tsx</div>
+</div>
+<div class="card">
   <div class="card-title">BusinessPricingPage </div>
   
   <div class="card-meta">heptacert\frontend\src\app\pricing\business\page.tsx</div>
@@ -13551,6 +13959,16 @@ table th{color:var(--muted);font-size:.8rem;font-weight:600;text-transform:upper
   <div class="card-title">PageHeader <span class="badge-client">client</span></div>
   <div class="component-props">props: title, subtitle, icon, actions, breadcrumbs, iconBg</div>
   <div class="card-meta">heptacert\frontend\src\components\Admin\PageHeader.tsx</div>
+</div>
+<div class="card">
+  <div class="card-title">PdfPresenterPreview <span class="badge-client">client</span></div>
+  <div class="component-props">props: fileUrl, pageIndex, requestHeaders, currentLabel, nextLabel, loadingLabel, unavailableLabel, onPageCountChange</div>
+  <div class="card-meta">heptacert\frontend\src\components\Admin\Presentations\PdfPresenterPreview.tsx</div>
+</div>
+<div class="card">
+  <div class="card-title">PdfStageViewer <span class="badge-client">client</span></div>
+  <div class="component-props">props: fileUrl, pageIndex, title, loadingLabel, errorLabel, retryLabel, pageLabel, requestHeaders, preloadAllSignal, onPageCountChange</div>
+  <div class="card-meta">heptacert\frontend\src\components\Admin\Presentations\PdfStageViewer.tsx</div>
 </div>
 <div class="card">
   <div class="card-title">StatCard <span class="badge-client">client</span></div>
@@ -13791,13 +14209,13 @@ table th{color:var(--muted);font-size:.8rem;font-weight:600;text-transform:upper
 <div class="grid">
 <div class="card">
   <div class="card-title" style="font-size:.9rem">/main.py</div>
-  <div class="card-meta">imported by 64 files</div>
+  <div class="card-meta">imported by 66 files</div>
   <div class="hot-bar" style="width:100%"></div>
 </div>
 <div class="card">
   <div class="card-title" style="font-size:.9rem">/organization_access_api.py</div>
-  <div class="card-meta">imported by 14 files</div>
-  <div class="hot-bar" style="width:22%"></div>
+  <div class="card-meta">imported by 15 files</div>
+  <div class="hot-bar" style="width:23%"></div>
 </div>
 <div class="card">
   <div class="card-title" style="font-size:.9rem">//output.py</div>
@@ -13805,19 +14223,24 @@ table th{color:var(--muted);font-size:.8rem;font-weight:600;text-transform:upper
   <div class="hot-bar" style="width:17%"></div>
 </div>
 <div class="card">
+  <div class="card-title" style="font-size:.9rem">/config.py</div>
+  <div class="card-meta">imported by 10 files</div>
+  <div class="hot-bar" style="width:15%"></div>
+</div>
+<div class="card">
   <div class="card-title" style="font-size:.9rem">//client.py</div>
   <div class="card-meta">imported by 10 files</div>
-  <div class="hot-bar" style="width:16%"></div>
+  <div class="hot-bar" style="width:15%"></div>
 </div>
 <div class="card">
   <div class="card-title" style="font-size:.9rem">/db_types.py</div>
-  <div class="card-meta">imported by 7 files</div>
-  <div class="hot-bar" style="width:11%"></div>
+  <div class="card-meta">imported by 8 files</div>
+  <div class="hot-bar" style="width:12%"></div>
 </div>
 <div class="card">
-  <div class="card-title" style="font-size:.9rem">/config.py</div>
-  <div class="card-meta">imported by 7 files</div>
-  <div class="hot-bar" style="width:11%"></div>
+  <div class="card-title" style="font-size:.9rem">/db.py</div>
+  <div class="card-meta">imported by 6 files</div>
+  <div class="hot-bar" style="width:9%"></div>
 </div>
 <div class="card">
   <div class="card-title" style="font-size:.9rem">/enums.py</div>
@@ -13830,22 +14253,17 @@ table th{color:var(--muted);font-size:.8rem;font-weight:600;text-transform:upper
   <div class="hot-bar" style="width:6%"></div>
 </div>
 <div class="card">
-  <div class="card-title" style="font-size:.9rem">/db.py</div>
-  <div class="card-meta">imported by 4 files</div>
-  <div class="hot-bar" style="width:6%"></div>
+  <div class="card-title" style="font-size:.9rem">/upload_security.py</div>
+  <div class="card-meta">imported by 3 files</div>
+  <div class="hot-bar" style="width:5%"></div>
+</div>
+<div class="card">
+  <div class="card-title" style="font-size:.9rem">/models.py</div>
+  <div class="card-meta">imported by 3 files</div>
+  <div class="hot-bar" style="width:5%"></div>
 </div>
 <div class="card">
   <div class="card-title" style="font-size:.9rem">/event_team.py</div>
-  <div class="card-meta">imported by 3 files</div>
-  <div class="hot-bar" style="width:5%"></div>
-</div>
-<div class="card">
-  <div class="card-title" style="font-size:.9rem">/lms_models.py</div>
-  <div class="card-meta">imported by 3 files</div>
-  <div class="hot-bar" style="width:5%"></div>
-</div>
-<div class="card">
-  <div class="card-title" style="font-size:.9rem">heptacert\frontend\src\lib\assistant\text.ts</div>
   <div class="card-meta">imported by 3 files</div>
   <div class="hot-bar" style="width:5%"></div>
 </div>
@@ -14143,6 +14561,26 @@ table th{color:var(--muted);font-size:.8rem;font-weight:600;text-transform:upper
   <td class="card-meta">heptacert\.env.local</td>
 </tr>
 <tr>
+  <td><code>PRESENTATION_CONVERTER_ENABLED</code></td>
+  <td><span class="env-default">has default</span></td>
+  <td class="card-meta">heptacert\backend\.env.example</td>
+</tr>
+<tr>
+  <td><code>PRESENTATION_CONVERTER_INTERVAL_SECONDS</code></td>
+  <td><span class="env-default">has default</span></td>
+  <td class="card-meta">heptacert\backend\.env.example</td>
+</tr>
+<tr>
+  <td><code>PRESENTATION_CONVERTER_TIMEOUT_SECONDS</code></td>
+  <td><span class="env-default">has default</span></td>
+  <td class="card-meta">heptacert\backend\.env.example</td>
+</tr>
+<tr>
+  <td><code>PRESENTATION_MAX_UPLOAD_MB</code></td>
+  <td><span class="env-default">has default</span></td>
+  <td class="card-meta">heptacert\backend\.env.example</td>
+</tr>
+<tr>
   <td><code>PUBLIC_BASE_URL</code></td>
   <td><span class="env-default">has default</span></td>
   <td class="card-meta">heptacert\backend\.env.example</td>
@@ -14180,6 +14618,11 @@ table th{color:var(--muted);font-size:.8rem;font-weight:600;text-transform:upper
 <tr>
   <td><code>SMTP_USER</code></td>
   <td><span class="env-required">required</span></td>
+  <td class="card-meta">heptacert\backend\.env.example</td>
+</tr>
+<tr>
+  <td><code>SOFFICE_BIN</code></td>
+  <td><span class="env-default">has default</span></td>
   <td class="card-meta">heptacert\backend\.env.example</td>
 </tr>
 <tr>

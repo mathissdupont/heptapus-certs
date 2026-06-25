@@ -99,6 +99,12 @@
 - `heptacert\backend\alembic\versions\096_oauth_server.py` — function upgrade: () -> None, function downgrade: () -> None
 - `heptacert\backend\alembic\versions\097_ai_digest_jobs.py` — function upgrade: () -> None, function downgrade: () -> None
 - `heptacert\backend\alembic\versions\098_event_ticket_types.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\099_presentation_decks.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\100_presentation_decks_event_id_fix.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\100_presentation_event_files.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\101_presentation_conversion_fields.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\102_presentation_speaker_notes.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\103_presentation_security_controls.py` — function upgrade: () -> None, function downgrade: () -> None
 - `heptacert\backend\src\accreditation_api.py`
   - class OrgAccreditationIn
   - class OrgAccreditationOut
@@ -382,6 +388,22 @@
   - function subscription_is_active_plan: (subscription, required_plans) -> bool
   - function feature_policy_payload: () -> list[dict[str, object]]
   - class FeaturePolicy
+- `heptacert\backend\src\presentation_api.py`
+  - class SlideIn
+  - class DeckCreateIn
+  - class DeckUpdateIn
+  - class DeckGenerateIn
+  - class DeckOut
+  - class PublicDeckOut
+  - _...6 more_
+- `heptacert\backend\src\presentation_conversion_worker.py` — function main: () -> None, function run_worker: () -> None
+- `heptacert\backend\src\presentation_converter.py`
+  - function is_powerpoint_path: (value) -> bool
+  - function convert_powerpoint_to_pdf: (source_rel_path, output_rel_path) -> str
+  - class PresentationConversionError
+- `heptacert\backend\src\presentation_models.py` — class PresentationDeck, class PresentationSpeakerNote
+- `heptacert\backend\src\presentation_renderer.py` — function render_deck_pptx: (deck) -> bytes
+- `heptacert\backend\src\presentation_ws.py` — class PresentationConnectionManager
 - `heptacert\backend\src\product_observability.py` — function install_product_observability: (app, *, slow_ms) -> None
 - `heptacert\backend\src\product_telemetry.py` — function sanitize_metadata: (raw, Any]) -> dict[str, Any]
 - `heptacert\backend\src\product_telemetry_api.py` — class ProductTelemetryIn
@@ -437,6 +459,7 @@
   - class TrainingReportOut
   - class RenewalRecommendationOut
   - _...10 more_
+- `heptacert\backend\src\upload_security.py` — function scan_upload_with_clamav: (raw) -> None
 - `heptacert\backend\src\utils.py`
   - function compute_hosting_ends: (term) -> datetime
   - function ensure_utc: (dt) -> Optional[datetime]
@@ -544,6 +567,14 @@
   - function landingPathForContexts: (contexts) => string
   - type OrgLang
   - type OrgRoleContext
+- `heptacert\frontend\src\lib\presentationsApi.ts`
+  - function presentationControlTokenFromUrl: (value?) => string | null
+  - function presentationControlWsUrl: (token) => string
+  - function listPresentations: () => Promise<PresentationDeck[]>
+  - function listEventPresentations: (eventId) => Promise<PresentationDeck[]>
+  - function uploadEventPresentation: (eventId, payload) => Promise<PresentationDeck>
+  - function presentationFileUrl: (deck) => string | null
+  - _...27 more_
 - `heptacert\frontend\src\lib\raffles.ts`
   - function formatRaffleDate: (value?) => void
   - function getRaffleStatusMeta: (status) => void

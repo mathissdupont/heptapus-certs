@@ -215,3 +215,74 @@ class TestPublicMemberAuth:
             async with SessionLocal() as db:
                 m = (await db.execute(select(PublicMember).where(func.lower(PublicMember.email) == email))).scalar_one_or_none()
             assert m is not None
+
+
+# ── Uyelik kimligi baglama (email -> user_id) ─────────────────────────────────────
+class TestMembershipLinking:
+    """E-posta ile davet edilmis OrganizationMember kayitlari, kullanici dogrulayinca
+    (verify) veya giris yapinca (login) user_id ile baglanmali. Aksi halde kimlik
+    yalnizca e-posta eslesmesine kalir (kirilgan, kopuk audit, orphan riski)."""
+
+    async def _make_owner_org_and_invite(self, member_email: str, status: str = "active"):
+        from src.main import _get_or_create_admin_organization
+        from src.organization_access_api import OrganizationMember
+
+        async with SessionLocal() as db:
+            owner = User(
+                email=f"link-owner-{member_email}", password_hash=hash_password("ValidPass123"), role=Role.admin
+            )
+            db.add(owner)
+            await db.commit()
+            await db.refresh(owner)
+            org = await _get_or_create_admin_organization(db, owner.id)
+            await db.flush()
+            member = OrganizationMember(
+                organization_id=org.id, user_id=None, email=member_email, role="venue_manager", status=status
+            )
+            db.add(member)
+            await db.commit()
+            await db.refresh(member)
+            assert member.user_id is None
+            return member.id
+
+    @pytest.mark.asyncio
+    async def test_verify_email_links_invited_membership(self):
+        from src.organization_access_api import OrganizationMember
+
+        email = "invited-verify@test.com"
+        member_id = await self._make_owner_org_and_invite(email)
+
+        async with _client() as ac:
+            assert (await ac.post("/api/auth/register", json={
+                "email": email, "password": "ValidPass123", "terms_accepted": True})).status_code == 201
+            user = await _get_user(email)
+            assert (await ac.get(f"/api/auth/verify-email?token={user.verification_token}")).status_code == 200
+
+        async with SessionLocal() as db:
+            linked = (await db.execute(
+                select(OrganizationMember).where(OrganizationMember.id == member_id))).scalar_one()
+        assert linked.user_id == user.id
+
+    @pytest.mark.asyncio
+    async def test_login_links_membership_invited_after_registration(self):
+        from src.organization_access_api import OrganizationMember
+
+        email = "invited-login@test.com"
+        # Once kullanici kayit + dogrula (uyelik henuz yok)
+        async with _client() as ac:
+            assert (await ac.post("/api/auth/register", json={
+                "email": email, "password": "ValidPass123", "terms_accepted": True})).status_code == 201
+            user = await _get_user(email)
+            assert (await ac.get(f"/api/auth/verify-email?token={user.verification_token}")).status_code == 200
+
+        # Kayit/dogrulama sonrasi davet edilir (user_id NULL)
+        member_id = await self._make_owner_org_and_invite(email)
+
+        async with _client() as ac:
+            login = await ac.post("/api/auth/login", json={"email": email, "password": "ValidPass123"})
+            assert login.status_code == 200
+
+        async with SessionLocal() as db:
+            linked = (await db.execute(
+                select(OrganizationMember).where(OrganizationMember.id == member_id))).scalar_one()
+        assert linked.user_id == user.id

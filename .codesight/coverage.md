@@ -1,7 +1,7 @@
 # Test Coverage
 
 > **14%** of routes and models are covered by tests
-> 25 test files found
+> 26 test files found
 
 ## Covered Routes
 
@@ -129,3 +129,4 @@
 - EventTicket
 - EventComment
 - OrganizationMember
+- PresentationDeck

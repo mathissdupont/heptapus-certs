@@ -1,6 +1,6 @@
 # heptapus-certs — Wiki
 
-_Generated 2026-06-20 — re-run `npx codesight --wiki` if the codebase has changed._
+_Generated 2026-06-23 — re-run `npx codesight --wiki` if the codebase has changed._
 
 Structural map compiled from source code via AST. No LLM — deterministic, 200ms.
 
@@ -42,6 +42,7 @@ Structural map compiled from source code via AST. No LLM — deterministic, 200m
 - [Openapi.json](./openapi.json.md)
 - [Org_staff_api](./org_staff_api.md)
 - [Platform_health_api](./platform_health_api.md)
+- [Presentation_api](./presentation_api.md)
 - [Product_telemetry_api](./product_telemetry_api.md)
 - [Public](./public.md)
 - [Qa_seed_api](./qa_seed_api.md)
@@ -60,10 +61,10 @@ Structural map compiled from source code via AST. No LLM — deterministic, 200m
 
 ## Quick Stats
 
-- Routes: **690**
-- Models: **155**
-- Components: **238**
-- Env vars: **33** required, **37** with defaults
+- Routes: **715**
+- Models: **157**
+- Components: **247**
+- Env vars: **33** required, **42** with defaults
 
 ## How to Use
 
@@ -90,4 +91,4 @@ These exist in your codebase but are **not** reflected in wiki articles:
 When in doubt, search the source. The wiki is a starting point, not a complete inventory.
 
 ---
-_Last compiled: 2026-06-20 · 50 articles · [codesight](https://github.com/Houseofmvps/codesight)_
+_Last compiled: 2026-06-23 · 51 articles · [codesight](https://github.com/Houseofmvps/codesight)_

@@ -4,6 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint, func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -329,12 +330,15 @@ async def get_accessible_organization_contexts(db: AsyncSession, me: CurrentUser
             ),
         )
 
+    # Sahip olunan kurum her zaman erişilebilir context olarak sunulur — kullanici
+    # baska bir kurumun calisani olsa bile kendi kurumunu kurup yonetebilmeli.
+    # (Onceden bos isimli sahip-org, uyelik context'i varsa gizleniyordu; bu da
+    # "kendi organizasyonumu kuramiyorum" sorununa yol aciyordu.)
     owned_result = await db.execute(select(Organization).where(Organization.user_id == me.id))
     owned = owned_result.scalar_one_or_none()
-    if owned is None and not contexts:
+    if owned is None:
         owned = await _get_or_create_admin_organization(db, me.id)
-    include_owned_context = owned is not None and (not contexts or bool((owned.org_name or "").strip()))
-    if include_owned_context:
+    if owned is not None:
         contexts.setdefault(
             owned.id,
             OrganizationContextOut(
@@ -419,7 +423,22 @@ async def create_organization_member(
     user_result = await db.execute(select(User).where(func.lower(func.trim(User.email)) == normalized_email))
     linked_user = user_result.scalar_one_or_none()
     if linked_user and linked_user.role not in (Role.admin, Role.superadmin):
+        # Davet edilen kisi admin paneline erisebilmek icin admin'e yukseltilir.
+        # Sessiz yetki degisikligi olmasin diye audit'e yazilir.
+        previous_role = linked_user.role
         linked_user.role = Role.admin
+        await write_audit_log(
+            db,
+            user_id=me.id,
+            action="user.role.promoted_to_admin",
+            resource_type="user",
+            resource_id=str(linked_user.id),
+            extra={
+                "organization_id": organization.id,
+                "previous_role": str(getattr(previous_role, "value", previous_role)),
+                "reason": "organization_member_invite",
+            },
+        )
     member = OrganizationMember(
         organization_id=organization.id,
         user_id=linked_user.id if linked_user else None,
@@ -430,7 +449,13 @@ async def create_organization_member(
         invited_by=me.id,
     )
     db.add(member)
-    await db.flush()
+    try:
+        # Eszamanli ayni davet (on-kontrol ile flush arasi race) UniqueConstraint'e
+        # takilirsa 500 yerine kullanici dostu 409 don.
+        await db.flush()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="This employee is already in the organization")
     await write_audit_log(
         db,
         user_id=me.id,

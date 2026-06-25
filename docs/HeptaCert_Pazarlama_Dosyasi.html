@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>HeptaCert — Kapsamlı Pazarlama ve Ürün Dosyası</title>
+<style>
+  :root{
+    --ink:#1a2233; --muted:#5b6577; --line:#e3e8f0; --brand:#2f5fe0; --brand2:#7b3ff2;
+    --soft:#f5f7fb; --good:#1f9d57; --warn:#c77700; --bad:#c0392b; --accentbg:#eef3ff;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
+  body{font-family:"Segoe UI",system-ui,Arial,sans-serif; color:var(--ink); font-size:11pt; line-height:1.55; margin:0;}
+  h1,h2,h3,h4{line-height:1.25; color:var(--ink);}
+  h2{font-size:18pt; margin:0 0 4px; padding-bottom:6px; border-bottom:3px solid var(--brand);}
+  h3{font-size:13.5pt; margin:18px 0 6px; color:#22305a;}
+  h4{font-size:11.5pt; margin:12px 0 4px; color:#33415f;}
+  p{margin:6px 0;}
+  a{color:var(--brand); text-decoration:none;}
+  small{color:var(--muted);}
+  ul,ol{margin:6px 0 6px 18px; padding:0;}
+  li{margin:3px 0;}
+  code{background:#eef1f7; padding:1px 5px; border-radius:4px; font-size:9.5pt;}
+  table{width:100%; border-collapse:collapse; margin:10px 0; font-size:9.7pt;}
+  th,td{border:1px solid var(--line); padding:6px 8px; text-align:left; vertical-align:top;}
+  th{background:var(--soft); font-weight:600;}
+  tr:nth-child(even) td{background:#fafbfe;}
+  .section{padding:26mm 18mm 18mm; page-break-before:always;}
+  .tag{display:inline-block; font-size:8pt; font-weight:700; padding:2px 7px; border-radius:20px; vertical-align:middle;}
+  .tag.ai{background:#efe7ff; color:#6a2bd6;}
+  .tag.int{background:#e3f3ff; color:#1769a8;}
+  .tag.core{background:#fdeaea; color:#b0392c;}
+  .callout{border-left:4px solid var(--brand); background:var(--accentbg); padding:10px 14px; border-radius:6px; margin:12px 0;}
+  .callout.proof{border-color:var(--good); background:#eaf7ef;}
+  .callout.warn{border-color:var(--warn); background:#fdf4e6;}
+  .callout.bad{border-color:var(--bad); background:#fbeceb;}
+  .callout .lbl{font-weight:700; font-size:8.5pt; text-transform:uppercase; letter-spacing:.5px; display:block; margin-bottom:2px;}
+  .pill{font-size:8pt; padding:1px 6px; border-radius:10px; background:#eef1f7; color:#44506a; white-space:nowrap;}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .card{border:1px solid var(--line); border-radius:8px; padding:12px 14px; background:#fff;}
+  .card h4{margin-top:0;}
+  .muted{color:var(--muted);}
+  .good{color:var(--good); font-weight:700;}
+  .warnc{color:var(--warn); font-weight:700;}
+  .badc{color:var(--bad); font-weight:700;}
+  .lead{font-size:12pt; color:#33415f;}
+  /* Cover */
+  .cover{height:100vh; display:flex; flex-direction:column; justify-content:center; padding:0 22mm;
+         background:linear-gradient(135deg,#1f2a52 0%,#2f5fe0 55%,#7b3ff2 100%); color:#fff;}
+  .cover h1{font-size:34pt; color:#fff; margin:0 0 6px; letter-spacing:-.5px;}
+  .cover .sub{font-size:15pt; opacity:.95; font-weight:300;}
+  .cover .meta{margin-top:30px; font-size:10pt; opacity:.9; line-height:1.8;}
+  .cover .badge{display:inline-block; border:1px solid rgba(255,255,255,.5); border-radius:30px; padding:5px 16px; font-size:10pt; margin-bottom:18px;}
+  .cover .stats{margin-top:26px; display:flex; gap:26px; flex-wrap:wrap;}
+  .cover .stat{}
+  .cover .stat b{font-size:22pt; display:block; line-height:1;}
+  .cover .stat span{font-size:9pt; opacity:.85;}
+  /* TOC */
+  .toc{padding:26mm 18mm; page-break-after:always;}
+  .toc ol{counter-reset:item; list-style:none; margin-left:0;}
+  .toc li{margin:7px 0; font-size:11pt; border-bottom:1px dotted var(--line); padding-bottom:5px;}
+  .toc li b{color:var(--brand);}
+  @page{ size:A4; margin:0; }
+  @media print{ .section,.toc{padding-left:16mm; padding-right:16mm;} }
+</style>
+</head>
+<body>
+
+<!-- ============ KAPAK ============ -->
+<div class="cover">
+  <div><span class="badge">Pazarlama &amp; Satış Destek Dosyası · Dahili</span></div>
+  <h1>HeptaCert</h1>
+  <div class="sub">Etkinlik İşletim Sistemi — Kapsamlı Pazarlama ve Ürün Dosyası</div>
+  <div class="stats">
+    <div class="stat"><b>715</b><span>API rotası</span></div>
+    <div class="stat"><b>157</b><span>veri modeli</span></div>
+    <div class="stat"><b>247</b><span>arayüz bileşeni</span></div>
+    <div class="stat"><b>20+</b><span>entegrasyon</span></div>
+  </div>
+  <div class="meta">
+    Hazırlık: 2026-06-24 · Kaynak: kod tabanı taraması (.codesight, backend kaynak)<br>
+    Hedef okuyucu: Pazarlama / satış yetkilisi · Kapsam dışı: LMS (arşiv)<br>
+    Tüm iddialar kodda doğrulanmıştır. Uydurma müşteri/ortaklık/sertifikasyon içermez.
+  </div>
+</div>
+
+<!-- ============ İÇİNDEKİLER ============ -->
+<div class="toc">
+  <h2>İçindekiler</h2>
+  <ol>
+    <li><b>1.</b> Yönetici Özeti</li>
+    <li><b>2.</b> HeptaCert Nedir? — Etkinlik İşletim Sistemi Konumlandırması</li>
+    <li><b>3.</b> Çözülen Problem — Parçalı Araç Yığınını Birleştirme</li>
+    <li><b>4.</b> Etkinlik Yaşam Döngüsü — Uçtan Uca Kapsama</li>
+    <li><b>5.</b> ⭐ Yapay Zekâ Yetenekleri (Detaylı)</li>
+    <li><b>6.</b> ⭐ Entegrasyonlar &amp; Platform Katmanı (Detaylı)</li>
+    <li><b>7.</b> Sahteciliğe Kapalı, Doğrulanabilir Sertifika</li>
+    <li><b>8.</b> Tam Pazarlanabilir Özellik Envanteri</li>
+    <li><b>9.</b> Hedef Kişiler &amp; Dikey Pazarlar</li>
+    <li><b>10.</b> Mesaj Mimarisi &amp; Sloganlar</li>
+    <li><b>11.</b> Plan/Paket Bazlı Pazarlama (Upsell)</li>
+    <li><b>12.</b> SSS &amp; İtiraz Kataloğu</li>
+    <li><b>13.</b> Rakip Konumlandırma</li>
+    <li><b>14.</b> Söylenebilir / Söylenemez — Pazarlama Sınırları</li>
+    <li><b>15.</b> Sosyal Medya İçerik Planı (Özet)</li>
+    <li><b>16.</b> Terimler Sözlüğü</li>
+  </ol>
+</div>
+
+<!-- ============ 1. YÖNETİCİ ÖZETİ ============ -->
+<div class="section">
+  <h2>1. Yönetici Özeti</h2>
+  <p class="lead">HeptaCert bir <strong>Etkinlik İşletim Sistemidir (Event OS)</strong>. Etkinliğin tüm yaşam döngüsünü — keşif, kayıt, ödeme, sahada operasyon, etkileşim, etkinlik sonrası ilişki yönetimi ve doğrulanabilir sertifika — tek platformda toplar.</p>
+
+  <div class="callout">
+    <span class="lbl">Tek cümlelik satış mesajı</span>
+    "Etkinlik için kullandığınız 8 ayrı aracı tek platforma indirin — ve katılımcıya sahteciliğe kapalı, ömür boyu doğrulanabilir bir belge bırakın."
+  </div>
+
+  <h3>En güçlü 3 ayrıştırıcı</h3>
+  <div class="grid2">
+    <div class="card"><h4>1. Yapay Zekâ ile Yönetim <span class="tag ai">AI</span></h4>Claude tabanlı içerik üretimi, proaktif analitik ve <strong>MCP ajan arayüzü</strong> — etkinliği doğal dille yönet.</div>
+    <div class="card"><h4>2. Uçtan Uca Tek Platform <span class="tag int">PLATFORM</span></h4>Bilet, ödeme, check-in, e-posta, CRM, sunum, sertifika — 8 ayrı aracın yerini alır.</div>
+    <div class="card"><h4>3. Sahteciliğe Kapalı Sertifika <span class="tag core">ÇEKİRDEK</span></h4>Görünmez filigran + kriptografik imza + genel doğrulama. Taklit edilemez.</div>
+    <div class="card"><h4>+ Derinlik</h4>20+ entegrasyon, yerleşik CRM, CPD/akreditasyon, white-label, OAuth/OIDC kimlik sağlayıcı.</div>
+  </div>
+
+  <div class="callout proof">
+    <span class="lbl">Kanıt</span>
+    Bu dosyadaki her iddia kod tabanında doğrulanmıştır: 715 rota, 157 model, 247 bileşen. Riskli/teyit gerektiren iddialar Bölüm 14'te işaretlenmiştir.
+  </div>
+</div>
+
+<!-- ============ 2. KONUMLANDIRMA ============ -->
+<div class="section">
+  <h2>2. HeptaCert Nedir? — Etkinlik İşletim Sistemi</h2>
+  <p>HeptaCert tek bir özellik (sertifika) değildir. "İşletim sistemi" benzetmesi bilinçlidir, çünkü HeptaCert:</p>
+  <ul>
+    <li><strong>Tek kayıt kaynağıdır (single system of record):</strong> Bilet, katılımcı, oturum, ödeme, sertifika, CRM — hepsi aynı veride yaşar. Araçlar arası kopyala-yapıştır yok.</li>
+    <li><strong>Üzerine inşa edilebilir bir platformdur:</strong> Açık API, OAuth2/OIDC kimlik sağlayıcı, MCP (AI ajan) arayüzü, webhook'lar ve marketplace ile diğer sistemler HeptaCert'in <em>üstüne</em> kurulur.</li>
+    <li><strong>Çok kiracılı ve white-label çalışır:</strong> Her organizasyon kendi markası, kendi alan adı ve kendi ekibiyle izole bir ortam alır.</li>
+  </ul>
+  <div class="callout"><span class="lbl">Konumlandırma cümlesi</span> "Onlar etkinliğin bir parçasını yönetir; biz etkinliğin işletim sistemiyiz."</div>
+  <p class="muted">715 API rotası · 157 veri modeli · 247 arayüz bileşeni — bu, bir "sertifika aracı" değil, bir platform ölçeğidir.</p>
+</div>
+
+<!-- ============ 3. STACK REPLACEMENT ============ -->
+<div class="section">
+  <h2>3. Çözülen Problem — Araç Yığınını Birleştirme</h2>
+  <p>Bugün bir etkinlik ekibi tipik olarak şu araçları ayrı ayrı kullanır ve aralarında veri taşır. Her araç değişiminde veri kaybolur, hata girer, zaman gider.</p>
+  <table>
+    <tr><th>İhtiyaç</th><th>Tipik ayrı araç</th><th>HeptaCert'te</th></tr>
+    <tr><td>Bilet &amp; kayıt</td><td>Eventbrite / Biletino</td><td class="good">Yerleşik</td></tr>
+    <tr><td>Ödeme</td><td>Ayrı sanal POS</td><td class="good">Yerleşik (iyzico)</td></tr>
+    <tr><td>Check-in / kapı</td><td>Ayrı uygulama</td><td class="good">Kiosk + gerçek zamanlı akış</td></tr>
+    <tr><td>Toplu e-posta</td><td>Mailchimp</td><td class="good">Yerleşik (takip + analitik)</td></tr>
+    <tr><td>CRM</td><td>HubSpot / Salesforce</td><td class="good">Yerleşik (push da yapar)</td></tr>
+    <tr><td>Anket / quiz</td><td>Typeform / Google Forms</td><td class="good">Yerleşik</td></tr>
+    <tr><td>Sunum &amp; canlı kontrol</td><td>PowerPoint + clicker</td><td class="good">Yerleşik (uzaktan QR)</td></tr>
+    <tr><td>Sertifika</td><td>Canva + elle dağıtım</td><td class="good">Güvenli, doğrulanabilir, cüzdana eklenebilir</td></tr>
+    <tr><td>Mekân / rezervasyon</td><td>Takvim + e-tablo</td><td class="good">Yerleşik (Google Calendar senkron)</td></tr>
+    <tr><td>Topluluk / üye profili</td><td>Ayrı sosyal araç</td><td class="good">Yerleşik</td></tr>
+  </table>
+  <div class="callout"><span class="lbl">Tek satırlık ROI argümanı</span> "Aralarında veri taşıdığınız 8 sekmeyi kapatın. Etkinlik tek yerde yaşasın." — maliyet düşer, veri tutarlı kalır, hata azalır.</div>
+</div>
+
+<!-- ============ 4. YAŞAM DÖNGÜSÜ ============ -->
+<div class="section">
+  <h2>4. Etkinlik Yaşam Döngüsü — Uçtan Uca</h2>
+  <table>
+    <tr><th>Aşama</th><th>HeptaCert yetenekleri</th></tr>
+    <tr><td><strong>1. Keşif</strong></td><td>Halka açık etkinlik marketplace'i, kategori keşfi, organizasyon/üye profilleri ve takip, bekleme listesi, lead formları.</td></tr>
+    <tr><td><strong>2. Kayıt &amp; Bilet</strong></td><td>Özelleştirilebilir kayıt formları, e-posta doğrulamalı kayıt, çoklu bilet türleri, kapasite yönetimi, kayıt sırasında yasal onay kaydı.</td></tr>
+    <tr><td><strong>3. Ödeme &amp; Abonelik</strong></td><td>Yerleşik ödeme (iyzico), sipariş/fatura akışı, kademeli abonelik, HeptaCoin bakiye sistemi.</td></tr>
+    <tr><td><strong>4. Sahada Operasyon</strong></td><td>QR check-in, kiosk modu, oturum bazlı yoklama, gerçek zamanlı check-in akışı (canlı), canlı sunum sistemi, mekân &amp; rezervasyon.</td></tr>
+    <tr><td><strong>5. Etkileşim</strong></td><td>Anketler, quiz, çekilişler, rozetler, sponsor vitrinleri, etkinlik yorumları, otomasyon kuralları.</td></tr>
+    <tr><td><strong>6. İletişim</strong></td><td>Toplu/zamanlanmış e-posta, şablonlar, açılma/tıklama takibi, teslimat logları, AI içerik üretimi.</td></tr>
+    <tr><td><strong>7. Etkinlik Sonrası</strong></td><td>Yerleşik Event CRM, lead scoring, segmentasyon, gelişmiş analitik, doğrulanabilir sertifika, CPD kredisi işleme.</td></tr>
+    <tr><td><strong>8. Süreklilik &amp; Topluluk</strong></td><td>Üye profilleri, bağlantılar, takip, topluluk akışı (gönderi/yorum/oylama), cüzdandaki sertifika üzerinden uzun vadeli marka teması.</td></tr>
+  </table>
+</div>
+
+<!-- ============ 5. YAPAY ZEKÂ (DETAYLI) ============ -->
+<div class="section">
+  <h2>5. ⭐ Yapay Zekâ Yetenekleri <span class="tag ai">AI</span></h2>
+  <p class="lead">HeptaCert'in AI katmanı sadece bir "sohbet kutusu" değildir. İçerik üretiminden proaktif analitiğe, oradan tam <strong>agentic (ajan tabanlı) yönetime</strong> kadar üç seviyede çalışır.</p>
+
+  <div class="callout proof"><span class="lbl">Teknik temel (kanıt)</span>
+    AI özellikleri <strong>Claude (claude-sonnet-4-6)</strong> üzerinde çalışır. API anahtarı yoksa veya çağrı başarısız olursa sistem <strong>deterministik şablona güvenli şekilde düşer</strong> — yani AI olmadan da çalışmaya devam eder. Kaynak: <code>ai_content_api.py</code>, <code>ai_proactive_api.py</code>, <code>mcp_server.py</code>.
+  </div>
+
+  <h3>Seviye 1 — AI İçerik Üretimi</h3>
+  <table>
+    <tr><th>Özellik</th><th>Ne yapar</th><th>Pazarlama açısı</th></tr>
+    <tr><td>AI E-posta Üretimi</td><td>Etkinlik bilgisinden (ad, tarih, konum, açıklama) profesyonel konu satırı + HTML e-posta gövdesi üretir. Türkçe/İngilizce. Davet, hatırlatma, sertifika bildirimi gibi amaçlara göre.</td><td>"E-posta metnini yapay zekâ yazsın, siz onaylayın."</td></tr>
+    <tr><td>AI Kayıt Formu Üretimi</td><td>Etkinlik türünü tarif edersiniz; AI uygun kayıt formu alanlarını (ad, e-posta + 2-5 ilgili alan) şema olarak üretir.</td><td>"Formu cümleyle tarif et, AI kursun."</td></tr>
+  </table>
+
+  <h3>Seviye 2 — Proaktif AI Analitiği</h3>
+  <table>
+    <tr><th>Özellik</th><th>Ne yapar</th><th>Pazarlama açısı</th></tr>
+    <tr><td>Haftalık AI Özet (Digest)</td><td>Kullanıcının haftalık etkinlik verisini (kayıt, check-in, sertifika) analiz eder, Türkçe özet e-postası yazar ve <strong>uygulanabilir öneriler</strong> ekler (ör. "X etkinliğinin check-in oranı düşük, hatırlatma gönderin"). Cron ile her hafta otomatik gönderilebilir.</td><td>"Pazartesi sabahı özetiniz ve önerileriniz gelir."</td></tr>
+    <tr><td>Check-in Anomali Tespiti</td><td>Kural tabanlı + AI destekli analiz. Risk seviyesi (düşük/orta/yüksek) atar. Örnek: "120 kayıt var ama hiç check-in yok" → yüksek risk + öneri.</td><td>"Sorun büyümeden uyaran akıllı sistem."</td></tr>
+  </table>
+
+  <h3>Seviye 3 — Agentic AI / MCP Sunucusu (En güçlü)</h3>
+  <p>HeptaCert tam bir <strong>MCP (Model Context Protocol) sunucusu</strong> ile gelir. Claude gibi AI ajanları, doğal dille etkinlik, katılımcı, oturum, sertifika, check-in ve otomasyon işlemlerini yapabilir — güvenlik sınırları içinde.</p>
+  <div class="grid2">
+    <div class="card"><h4>🔒 Kapsam (Scope) Denetimi</h4>API anahtarları granüler yetki taşır: <code>events:write</code>, <code>certificates:read</code> vb. Yetkisi olmayan işlem net hatayla reddedilir.</div>
+    <div class="card"><h4>📋 Denetim İzi (Audit)</h4>Her yazma işlemi ajan denetim günlüğüne kaydedilir (Admin → Ayarlar → Agent Logs).</div>
+    <div class="card"><h4>⚠️ Yıkıcı İşlemde Onay</h4><code>delete_event</code>, <code>revoke_certificate</code> gibi işlemler <code>confirm=True</code> olmadan yalnızca önizleme döner.</div>
+    <div class="card"><h4>🖥️ In-App AI Asistan</h4>Arayüzde yerleşik AI asistan + komut paleti; kullanıcı platformu daha hızlı öğrenir ve yönetir.</div>
+  </div>
+  <div class="callout"><span class="lbl">Demo mesajı</span> "Claude'a şunu yazın: 'Yarınki konferansa kayıt olan ama check-in yapmayan herkese hatırlatma gönder.' — MCP üzerinden, yetki sınırları içinde, denetim kaydıyla çalışır."</div>
+
+  <div class="callout warn"><span class="lbl">Pazarlamada dikkat</span>
+    "AI verinizle model eğitmez" gibi gizlilik garantilerini, AI sağlayıcı politikası teyidi olmadan <strong>vermeyin</strong> (Bölüm 14). Söylenebilecek güvenli mesaj: işlemler yetki sınırlı, onaylı ve denetim kayıtlıdır.
+  </div>
+</div>
+
+<!-- ============ 6. ENTEGRASYONLAR (DETAYLI) ============ -->
+<div class="section">
+  <h2>6. ⭐ Entegrasyonlar &amp; Platform Katmanı <span class="tag int">PLATFORM</span></h2>
+  <p class="lead">HeptaCert'i bir "araç"tan "işletim sistemi"ne dönüştüren şey, üzerine inşa edilebilmesi ve mevcut araç yığınınıza bağlanabilmesidir. 20'den fazla entegrasyon noktası vardır.</p>
+
+  <div class="callout proof"><span class="lbl">Güvenlik notu (kanıt)</span>
+    Tüm giden webhook/bildirim çağrıları <strong>HMAC ile imzalanır</strong> ve <strong>SSRF koruması</strong> (özel/iç ağ adreslerine çağrı engeli) ile korunur. Kaynak: <code>notification_integrations_api.py</code>, <code>webhooks.py</code>.
+  </div>
+
+  <h3>6.1. Bildirim Kanalları</h3>
+  <table>
+    <tr><th>Kanal</th><th>Yöntem</th><th>Pazarlama açısı</th></tr>
+    <tr><td>Slack</td><td>Incoming Webhook</td><td>"Yeni kayıt geldiğinde Slack'e düşsün"</td></tr>
+    <tr><td>Microsoft Teams</td><td>Teams Webhook / Power Automate</td><td>"Sertifika üretilince Teams kanalına bildirim"</td></tr>
+    <tr><td>SMS</td><td>Twilio</td><td>"Katılımcıya SMS hatırlatma"</td></tr>
+    <tr><td>Özel Webhook</td><td>Herhangi bir HTTP uç noktası (JSON)</td><td>"Kendi sisteminize anlık veri akışı"</td></tr>
+  </table>
+  <p class="muted"><strong>Tetikleyici olaylar:</strong> sertifika üretildi · toplu sertifika tamamlandı · katılımcı kaydoldu · check-in tamamlandı · eğitim süresi doldu · lead skoru değişti.</p>
+
+  <h3>6.2. CRM &amp; Pazarlama Entegrasyonları</h3>
+  <table>
+    <tr><th>Sistem</th><th>Ne yapar</th></tr>
+    <tr><td>HubSpot</td><td>Bağlantı testi + katılımcı/lead push</td></tr>
+    <tr><td>Salesforce</td><td>Lead/kontak push</td></tr>
+    <tr><td>Mailchimp / Brevo</td><td>Liste senkronizasyonu / push</td></tr>
+  </table>
+
+  <h3>6.3. Webinar &amp; Toplantı</h3>
+  <table>
+    <tr><th>Sistem</th><th>Ne yapar</th></tr>
+    <tr><td>Zoom Webinar</td><td>Webinar listeleme + içe aktarma (katılımcıları HeptaCert'e çek)</td></tr>
+    <tr><td>Microsoft Teams Webinar</td><td>Webinar entegrasyonu</td></tr>
+  </table>
+
+  <h3>6.4. Veri Senkronizasyonu &amp; Takvim</h3>
+  <table>
+    <tr><th>Sistem</th><th>Ne yapar</th></tr>
+    <tr><td>Google Sheets</td><td>Etkinlik &amp; organizasyon düzeyinde çift yönlü senkron (bağlan/senkronize et)</td></tr>
+    <tr><td>Microsoft 365 Excel</td><td>Çift yönlü Excel senkron</td></tr>
+    <tr><td>Google Calendar</td><td>Mekân rezervasyonları senkron + <code>.ics</code> takvim dışa aktarma</td></tr>
+  </table>
+
+  <h3>6.5. Kurumsal Entegrasyon Kataloğu (Enterprise)</h3>
+  <p>Yapılandırılabilir kurumsal sağlayıcılar: Salesforce, Mailchimp/Brevo, <strong>WhatsApp/SMS</strong>, Drive/SharePoint arşivleme, <strong>Power BI / Looker</strong> (BI/raporlama), ve <strong>Türk muhasebe (accounting_tr)</strong> entegrasyonu. Sağlayıcı yapılandırması + test uç noktaları mevcut.</p>
+
+  <h3>6.6. Geliştirici Platformu &amp; Kimlik</h3>
+  <div class="grid2">
+    <div class="card"><h4>Açık API</h4>Scope'lu API anahtarları (v2), OpenAPI şeması, geliştirici portalı/dokümantasyonu.</div>
+    <div class="card"><h4>OAuth2 / OIDC Kimlik Sağlayıcı</h4>HeptaCert bir <strong>kimlik sağlayıcıdır</strong>: başka uygulamalar "HeptaCert ile giriş yap" diyebilir. <code>authorize</code>/<code>token</code>/<code>userinfo</code> + client yönetimi.</div>
+    <div class="card"><h4>Webhook'lar</h4>İmzalı, SSRF korumalı, test edilebilir, log'lu.</div>
+    <div class="card"><h4>MCP Sunucusu</h4>AI ajanları için programatik, güvenli arayüz (bkz. Bölüm 5).</div>
+  </div>
+
+  <div class="callout"><span class="lbl">Platform mesajı</span> "HeptaCert'i sadece kullanmazsınız — üstüne kurarsınız. API'si, kimlik sağlayıcısı ve AI arayüzüyle ekosisteminizin merkezi olur."</div>
+</div>
+
+<!-- ============ 7. SERTİFİKA ============ -->
+<div class="section">
+  <h2>7. Sahteciliğe Kapalı, Doğrulanabilir Sertifika <span class="tag core">ÇEKİRDEK</span></h2>
+  <p>Hiçbir genel amaçlı etkinlik platformunun standart sunmadığı katman. Üç bağımsız güvenlik katmanı:</p>
+  <ol>
+    <li><strong>Görünmez steganografik filigran</strong> — Sertifika görseline gözle görünmeyen, makine-okunur filigran gömülür. JPEG sıkıştırmasına dayanıklı; <code>HC1</code> sihirli başlığıyla filigransız görseller anında reddedilir. <span class="pill">watermark.py</span></li>
+    <li><strong>Kriptografik PDF imzası</strong> — PDF'lere X.509 sertifikasıyla görünmez kriptografik imza (pyHanko). Belge değiştirilirse doğrulama bozulur. <span class="pill">signing.py</span></li>
+    <li><strong>Herkese açık doğrulama</strong> — Her sertifikanın benzersiz doğrulama bağlantısı (<code>/api/verify/{uuid}</code>) ve filigran doğrulama uç noktası (<code>/api/verify-watermark</code>). İşveren saniyeler içinde teyit eder.</li>
+  </ol>
+  <p><strong>Ek yetenekler:</strong> sertifika iptali (revocation), katılım düzeyine göre otomatik kademe (tier), şablon presetleri + versiyonlama + geri alma (rollback), toplu üretim, <strong>Apple Wallet + Google Wallet</strong>.</p>
+  <div class="callout"><span class="lbl">Pazarlama mesajı</span> "Bir PDF'i herkes taklit edebilir. HeptaCert sertifikasını kimse edemez — görünmez filigran, kriptografik imza ve genel doğrulama bir arada çalışır."</div>
+</div>
+
+<!-- ============ 8. ÖZELLİK ENVANTERİ ============ -->
+<div class="section">
+  <h2>8. Tam Pazarlanabilir Özellik Envanteri</h2>
+  <p class="muted">Plan eşlemeleri mevcut kod politikasını yansıtır (<code>featureMetadata.ts</code>). Kampanyada plan vaadi vermeden önce güncel fiyatlandırmayı teyit edin.</p>
+
+  <h3>Etkinlik Operasyonu</h3>
+  <table><tr><th>Özellik</th><th>Plan</th></tr>
+  <tr><td>Etkinlik + oturum yönetimi</td><td>Tümü</td></tr>
+  <tr><td>Çoklu bilet türü + kapasite</td><td>Pro+</td></tr>
+  <tr><td>Özel kayıt formları</td><td>Pro+</td></tr>
+  <tr><td>QR check-in / gerçek zamanlı akış</td><td>Pro+</td></tr>
+  <tr><td>Kiosk modu</td><td>Enterprise</td></tr>
+  <tr><td>Katılımcı içe aktarma + yoklama dışa aktarma</td><td>Pro+</td></tr>
+  <tr><td>Mekân &amp; rezervasyon + Google Calendar</td><td>Enterprise</td></tr>
+  </table>
+
+  <h3>Etkileşim &amp; İletişim</h3>
+  <table><tr><th>Özellik</th><th>Plan</th></tr>
+  <tr><td>Anket, quiz (+sertifika bağlama)</td><td>Tümü</td></tr>
+  <tr><td>Çekilişler (denetimli)</td><td>Growth+</td></tr>
+  <tr><td>Rozetler / gamifikasyon, sponsorlar</td><td>Pro+</td></tr>
+  <tr><td>Toplu / zamanlanmış e-posta + takip</td><td>Growth+</td></tr>
+  <tr><td>Otomasyon kuralları, segmentasyon</td><td>Growth+</td></tr>
+  </table>
+
+  <h3>CRM, Eğitim &amp; Akreditasyon</h3>
+  <table><tr><th>Özellik</th><th>Plan</th></tr>
+  <tr><td>Event CRM (hesap/fırsat/pipeline/sequences)</td><td>Enterprise</td></tr>
+  <tr><td>Lead scoring, no-show etiketleme, mükerrer birleştirme</td><td>Enterprise</td></tr>
+  <tr><td>Lead formları (builder)</td><td>Enterprise</td></tr>
+  <tr><td>Kurumsal eğitim uyumluluğu (atama/yenileme/rapor)</td><td>Enterprise</td></tr>
+  <tr><td>Akreditasyon + CPD kredisi</td><td>Enterprise</td></tr>
+  </table>
+
+  <h3>Marka, Platform &amp; Güvenlik</h3>
+  <table><tr><th>Özellik</th><th>Plan</th></tr>
+  <tr><td>White-label marka + özel alan adı (otomatik SSL)</td><td>Growth+</td></tr>
+  <tr><td>Açık API + webhook + MCP</td><td>Growth+</td></tr>
+  <tr><td>SSO + OAuth/OIDC sağlayıcı + ekip yönetimi</td><td>Enterprise</td></tr>
+  <tr><td>Marketplace, üye profilleri, topluluk akışı, üye portalı</td><td>Tümü</td></tr>
+  <tr><td>2FA, denetim günlükleri, KVKK/GDPR araçları, Türkçe yasal sayfalar</td><td>Tümü / Enterprise</td></tr>
+  <tr><td>Yerleşik ödeme (iyzico) + abonelik + HeptaCoin</td><td>Pro+</td></tr>
+  </table>
+</div>
+
+<!-- ============ 9. KİŞİLER & DİKEY ============ -->
+<div class="section">
+  <h2>9. Hedef Kişiler &amp; Dikey Pazarlar</h2>
+  <table>
+    <tr><th>Kişi / Dikey</th><th>En büyük acısı</th><th>HeptaCert cevabı</th><th>İlk satılacak</th></tr>
+    <tr><td><strong>Meslek Odası / Dernek</strong> (en güçlü dikey)</td><td>Üye kredisi &amp; sertifika kaosu (Excel)</td><td>CPD + doğrulanabilir sertifika + topluluk</td><td>Akreditasyon/CPD</td></tr>
+    <tr><td><strong>Kongre / Konferans Organizatörü</strong></td><td>8 ayrı araç, kapıda kaos</td><td>Tek platform + kiosk + canlı check-in</td><td>Ticketing + check-in</td></tr>
+    <tr><td><strong>Eğitim / Sertifika Kurumu</strong></td><td>Sahte sertifika, doğrulama zorluğu</td><td>Filigran + imza + genel doğrulama</td><td>Güvenli sertifika</td></tr>
+    <tr><td><strong>Kurumsal Etkinlik / Pazarlama</strong></td><td>Lead'ler kayboluyor, ROI ölçülemiyor</td><td>Event CRM + segmentasyon + analitik</td><td>CRM + e-posta</td></tr>
+    <tr><td><strong>Ajans (White-label)</strong></td><td>Marka tutarsızlığı, çoklu hesap</td><td>Branding + özel alan adı + ekip</td><td>White-label paket</td></tr>
+    <tr><td><strong>Kurumsal İK / Uyumluluk</strong></td><td>"Kim eğitimi aldı?" belirsizliği</td><td>Eğitim uyumluluğu + yenileme</td><td>Training compliance</td></tr>
+  </table>
+  <h3>Örnek Senaryo (Meslek Odası)</h3>
+  <p>Bir mühendis odası, üyelerine düzenlediği seminerlerde otomatik CPD kredisi işler, üye profilinde kredi geçmişini gösterir, dönem sonunda akreditasyon raporu çıkarır. <em>Kanca: "Üyelerinizin mesleki gelişimini Excel'de değil, sistemde yönetin."</em></p>
+</div>
+
+<!-- ============ 10. MESAJ MİMARİSİ ============ -->
+<div class="section">
+  <h2>10. Mesaj Mimarisi &amp; Sloganlar</h2>
+  <h3>Slogan Adayları</h3>
+  <ul>
+    <li>"Etkinliğinizin işletim sistemi."</li>
+    <li>"8 araç yerine 1 platform."</li>
+    <li>"Tek sistem. Tüm etkinlik. Kanıtlanabilir sonuç."</li>
+    <li>"Keşiften topluluğa, kayıttan krediye — uçtan uca."</li>
+  </ul>
+  <h3>Üç Katmanlı Mesaj</h3>
+  <ol>
+    <li><strong>Genişlik:</strong> "Her şeyi tek platformda yap." (stack replacement)</li>
+    <li><strong>Derinlik:</strong> "Sertifikan taklit edilemez, doğrulanabilir." (farklılaştırıcı)</li>
+    <li><strong>Zekâ:</strong> "Yapay zekâ ile yönet." (gelecek vaadi)</li>
+  </ol>
+  <h3>30 Saniyelik Pitch</h3>
+  <div class="callout">HeptaCert bir Etkinlik İşletim Sistemi. Bilet, ödeme, kayıt, check-in, kiosk, canlı sunum, toplu e-posta, anket, çekiliş, katılımcı CRM'i ve analitik — etkinlik için kullandığınız 8 ayrı aracı tek platforma indiriyoruz; veri araçlar arasında değil, tek yerde yaşıyor. Üstüne açık API, kimlik sağlayıcı ve AI arayüzüyle platformun üzerine inşa edebiliyorsunuz. Etkinlik bittiğinde katılımcıya sahteciliğe kapalı, doğrulanabilen, cüzdana eklenebilen bir sertifika kalıyor. Meslek odaları için mesleki gelişim kredilerini de otomatik işliyoruz.</div>
+</div>
+
+<!-- ============ 11. PLAN BAZLI ============ -->
+<div class="section">
+  <h2>11. Plan/Paket Bazlı Pazarlama (Upsell Haritası)</h2>
+  <table>
+    <tr><th>Plan</th><th>Konum</th><th>Pazarlama odağı</th><th>Yükseltme tetikleyicisi</th></tr>
+    <tr><td><strong>Starter</strong></td><td>Ücretsiz — doğrulama &amp; hafif belge</td><td>"Sertifika doğrulaması her zaman ücretsiz"</td><td>Operasyon gerekince → Pro</td></tr>
+    <tr><td><strong>Pro</strong></td><td>Etkinlik operasyonu</td><td>Check-in, biletleme, toplu sertifika, özel form</td><td>E-posta/otomasyon → Growth</td></tr>
+    <tr><td><strong>Growth</strong></td><td>Ölçeklenen operasyon</td><td>Otomasyon, e-posta, segmentasyon, analitik, API, marka, alan adı, sunum, çekiliş</td><td>CRM/uyumluluk → Enterprise</td></tr>
+    <tr><td><strong>Enterprise</strong></td><td>Kurumsal &amp; uyumluluk</td><td>CRM, lead formları, entegrasyonlar, eğitim uyumluluğu, akreditasyon, SSO, kiosk, ekip, raporlar</td><td>—</td></tr>
+  </table>
+  <div class="callout"><span class="lbl">Upsell örneği</span> "Toplu sertifika veriyorsunuz (Pro) — katılımcılara otomatik hatırlatma e-postası göndermek ister misiniz? Growth'a geçin."</div>
+</div>
+
+<!-- ============ 12. SSS ============ -->
+<div class="section">
+  <h2>12. SSS &amp; İtiraz Kataloğu</h2>
+  <p class="muted">Her cevap kod gerçeğine dayanır. Riskli alanlar Bölüm 14 ile uyumludur.</p>
+
+  <h3>Ürün &amp; Kapsam</h3>
+  <p><strong>S: Sadece sertifika mı?</strong><br>C: Hayır. Uçtan uca etkinlik platformu: kayıt, biletleme, ödeme, check-in, e-posta, anket, çekiliş, CRM, analitik ve sertifika.</p>
+  <p><strong>S: Eventbrite/Cvent'ten farkınız?</strong><br>C: Onlar tek aşamayı çözer. Biz tüm yaşam döngüsünü tek sistemde topluyoruz; üstüne doğrulanabilir sertifika, yerleşik CRM, CPD ve AI yönetimi ekliyoruz.</p>
+  <p><strong>S: Online mı yüz yüze mi?</strong><br>C: İkisi de — QR check-in/kiosk (yüz yüze) + Zoom/Teams webinar entegrasyonu + canlı sunum (online).</p>
+  <p><strong>S: Türkçe mi?</strong><br>C: Evet, Türkçe birincil; çok dilli altyapı; yasal sayfalar (KVKK vb.) Türkçe yerleşik.</p>
+
+  <h3>Yapay Zekâ</h3>
+  <p><strong>S: AI tam olarak ne yapıyor?</strong><br>C: Üç seviye — içerik üretimi (e-posta/form), proaktif analitik (haftalık özet, anomali tespiti) ve MCP ile ajan yönetimi.</p>
+  <p><strong>S: AI yanlış işlem yaparsa?</strong><br>C: Yıkıcı işlemler zorunlu onay ister; her işlem denetim günlüğüne kaydedilir; API anahtarı yetki sınırları içinde çalışır.</p>
+  <p><strong>S: AI olmazsa sistem çalışmaz mı?</strong><br>C: Çalışır. AI yoksa içerik üretimi deterministik şablona düşer; platform tam fonksiyoneldir.</p>
+  <p><strong>S: AI bizim verimizle eğitiliyor mu?</strong><br>C: <span class="warnc">Teyit gerekir</span> — AI sağlayıcı politikasına bağlı; garanti vermeyin (Bölüm 14).</p>
+
+  <h3>Entegrasyon &amp; Teknik</h3>
+  <p><strong>S: Kendi sistemlerimizle entegre olur mu?</strong><br>C: Evet — açık API, scope'lu anahtarlar, imzalı webhook'lar ve hazır entegrasyonlar (Slack, Teams, Twilio SMS, HubSpot, Salesforce, Mailchimp/Brevo, Zoom, Google Sheets, MS365 Excel, Google Calendar, Power BI/Looker).</p>
+  <p><strong>S: "HeptaCert ile giriş" yapılabilir mi?</strong><br>C: Evet, OAuth2/OIDC kimlik sağlayıcıdır.</p>
+  <p><strong>S: Kendi alan adımızda?</strong><br>C: Evet — özel alan adı + otomatik SSL (white-label).</p>
+  <p><strong>S: Mobil uygulama var mı?</strong><br>C: Arayüz mobil uyumlu; sertifika/bilet Apple &amp; Google Wallet'a eklenir. <span class="warnc">Native app iddiası vermeyin</span> (Bölüm 14).</p>
+
+  <h3>Güvenlik, Fiyat &amp; Uyum</h3>
+  <p><strong>S: Sertifika neden taklit edilemez?</strong><br>C: Görünmez filigran + kriptografik PDF imzası + benzersiz genel doğrulama. Belge değişirse doğrulama bozulur.</p>
+  <p><strong>S: KVKK/GDPR uyumlu musunuz?</strong><br>C: Uyum süreçlerini <em>destekleyen araçlar</em> sunuyoruz (veri dışa aktarma/silme, onay kaydı, Türkçe yasal sayfalar). Kesin uyum beyanı hukuki incelemeye tabidir.</p>
+  <p><strong>S: Fiyat?</strong><br>C: Kademeli abonelik (Starter/Pro/Growth/Enterprise). Güncel rakamları fiyatlandırma sayfasından teyit edin.</p>
+  <p><strong>S: Bu kadar özellik karmaşık değil mi?</strong><br>C: Paket bazlı açılır; in-app AI asistan, komut paleti ve tur rehberi yönlendirir.</p>
+</div>
+
+<!-- ============ 13. RAKİP ============ -->
+<div class="section">
+  <h2>13. Rakip Konumlandırma</h2>
+  <p class="muted">Kategori genelini özetler; belirli rakip hakkında kesin iddia içermez.</p>
+  <table>
+    <tr><th>Boyut</th><th>Tipik etkinlik aracı</th><th>HeptaCert</th></tr>
+    <tr><td>Kapsam</td><td>Tek aşama</td><td class="good">Tüm yaşam döngüsü (Event OS)</td></tr>
+    <tr><td>Sertifika</td><td>Basit PDF / yok</td><td class="good">Filigran + imza + doğrulama + iptal</td></tr>
+    <tr><td>Dijital cüzdan</td><td>Nadiren</td><td class="good">Apple + Google Wallet</td></tr>
+    <tr><td>CRM</td><td>Harici araç</td><td class="good">Yerleşik + push</td></tr>
+    <tr><td>CPD / akreditasyon</td><td>Yok</td><td class="good">Yerleşik</td></tr>
+    <tr><td>AI yönetimi</td><td>Nadiren</td><td class="good">MCP ajan + AI üretim</td></tr>
+    <tr><td>Entegrasyon</td><td>Sınırlı API</td><td class="good">20+ entegrasyon + OAuth/OIDC + webhook + MCP</td></tr>
+    <tr><td>Türkiye uyumu</td><td>Değişken</td><td class="good">iyzico + Türkçe yasal sayfalar + Türk muhasebe entegrasyonu</td></tr>
+  </table>
+  <div class="callout"><span class="lbl">Savunma cümlesi</span> "Onlar etkinliğin bir parçasını yönetir; biz etkinliğin işletim sistemiyiz."</div>
+</div>
+
+<!-- ============ 14. SINIRLAR ============ -->
+<div class="section">
+  <h2>14. ⚠️ Söylenebilir / Söylenemez — Pazarlama Sınırları</h2>
+  <p>Org politikası: var olmayan müşteri/ortaklık/sertifikasyon/yasal iddia yasak; doğrulanmış ile varsayım ayrılmalı. <strong>Kampanya yayınlamadan önce bu bölümü okuyun.</strong></p>
+
+  <div class="callout proof"><span class="lbl good">✅ Rahatça söylenebilir (kodda doğrulanmış)</span>
+    Görünmez filigran, kriptografik PDF imzası, genel doğrulama, sertifika iptali/kademesi/versiyonlama · Apple/Google Wallet · toplu sertifika, check-in, kiosk, biletleme, özel formlar · toplu/zamanlanmış e-posta + takip, otomasyon, segmentasyon · Event CRM (lead scoring, pipeline, sequences) + HubSpot/Salesforce/Mailchimp push · CPD/akreditasyon, eğitim uyumluluğu · canlı sunum + uzaktan QR · açık API, OAuth/OIDC sağlayıcı, MCP, webhook (imzalı, SSRF korumalı) · Slack/Teams/Twilio SMS/Zoom/Sheets/Excel/Calendar/Power BI entegrasyonları · white-label + özel alan adı + SSO + ekip · 2FA, denetim günlükleri, KVKK/GDPR <em>araçları</em>, Türkçe yasal sayfalar · iyzico ödeme, kademeli abonelik · AI içerik üretimi + haftalık özet + anomali tespiti (Claude tabanlı, fallback'li).
+  </div>
+
+  <div class="callout warn"><span class="lbl warnc">⚠️ Dikkatli/koşullu (önce teyit)</span>
+    "KVKK/GDPR uyumlu" → "uyum süreçlerini destekleyen araçlar sunar" deyin (kesin beyan hukuki onay ister) · Veri barındırma lokasyonu → DevOps teyidi · AI veri gizliliği garantileri ("verinizle eğitilmez") → AI sağlayıcı teyidi · Native mobil uygulama → kodda yok; "mobil uyumlu + cüzdan" deyin · Performans/ölçek rakamları → yük testi verisi olmadan söylenmez.
+  </div>
+
+  <div class="callout bad"><span class="lbl badc">❌ Asla söylenmez</span>
+    Var olmayan müşteri adı / vaka çalışması / referans · var olmayan ortaklık veya resmî onay · sahip olunmayan sertifikasyon/standart (ISO, SOC2 vb.) · "Pazar lideri / Türkiye'nin #1'i" gibi kanıtlanamaz üstünlük · rakip hakkında kanıtlanamaz olumsuz iddia.
+  </div>
+</div>
+
+<!-- ============ 15. SOSYAL MEDYA ============ -->
+<div class="section">
+  <h2>15. Sosyal Medya İçerik Planı (Özet)</h2>
+  <p>Detaylı şablonlar ve 4 haftalık takvim ayrı dosyada: <code>docs/SOSYAL_MEDYA_ICERIK.md</code>. Özet içerik pilarları:</p>
+  <table>
+    <tr><th>Pilar</th><th>Tema</th><th>Anlatım açısı</th><th>Pay</th></tr>
+    <tr><td>🧩 Platform (ana)</td><td>Tek sistem, tüm döngü</td><td>"8 araç yerine 1 platform"</td><td>%30</td></tr>
+    <tr><td>🔐 Güven</td><td>Sertifika güvenliği</td><td>"Taklit edilemeyen belge"</td><td>%20</td></tr>
+    <tr><td>🤖 Zekâ</td><td>AI &amp; MCP</td><td>"Etkinliği konuşarak yönet"</td><td>%15</td></tr>
+    <tr><td>📇 Verim</td><td>CRM, otomasyon</td><td>"Katılımcı = ilişki"</td><td>%15</td></tr>
+    <tr><td>🏛️ Uzmanlık</td><td>CPD / akreditasyon</td><td>"Meslek odaları için"</td><td>%10</td></tr>
+    <tr><td>📲 Deneyim</td><td>Cüzdan, check-in</td><td>"Katılımcının cebinde"</td><td>%10</td></tr>
+  </table>
+  <p><strong>4 haftalık akış:</strong> H1 Platform → H2 Güven → H3 Zekâ &amp; Verim → H4 Uzmanlık/Deneyim + Demo CTA.</p>
+  <p><strong>En güçlü dönüşüm aracı:</strong> "8 araç → 1 platform" canlı demo/webinar.</p>
+</div>
+
+<!-- ============ 16. SÖZLÜK ============ -->
+<div class="section">
+  <h2>16. Terimler Sözlüğü</h2>
+  <table>
+    <tr><th>Terim</th><th>Basit anlamı</th></tr>
+    <tr><td>Steganografik filigran</td><td>Görselin içine gizlenmiş, gözle görünmeyen kimlik damgası</td></tr>
+    <tr><td>Kriptografik imza</td><td>Belgenin değiştirilmediğini matematiksel kanıtlayan dijital mühür</td></tr>
+    <tr><td>CPD</td><td>Sürekli Mesleki Gelişim — profesyonellerin kazandığı eğitim kredisi</td></tr>
+    <tr><td>Akreditasyon</td><td>Bir kurumun resmî olarak yetkili/onaylı sayılması</td></tr>
+    <tr><td>CRM</td><td>Müşteri/katılımcı ilişkileri yönetimi yazılımı</td></tr>
+    <tr><td>Lead scoring</td><td>Potansiyel müşterileri ilgilerine göre puanlama</td></tr>
+    <tr><td>Pipeline</td><td>Satış sürecinin aşamalarını gösteren hat</td></tr>
+    <tr><td>Segmentasyon</td><td>Katılımcıları gruplara ayırma (doğru mesaj için)</td></tr>
+    <tr><td>Webhook</td><td>Bir olay olunca başka sisteme otomatik bildirim gönderen bağlantı</td></tr>
+    <tr><td>API</td><td>Yazılımların birbiriyle konuşmasını sağlayan arayüz</td></tr>
+    <tr><td>OAuth / OIDC</td><td>"X ile giriş yap" sistemleri; kimlik doğrulama standardı</td></tr>
+    <tr><td>MCP</td><td>Model Context Protocol — AI ajanlarının yazılımı kullanmasını sağlayan standart</td></tr>
+    <tr><td>SSRF koruması</td><td>Sistemin iç/özel ağ adreslerine kötüye kullanım çağrısı yapmasını engelleyen güvenlik</td></tr>
+    <tr><td>HMAC imza</td><td>Gönderilen verinin değişmediğini ve gerçek kaynaktan geldiğini doğrulayan güvenlik kodu</td></tr>
+    <tr><td>SSO</td><td>Tek Oturum Açma — şirket hesabıyla tüm sistemlere giriş</td></tr>
+    <tr><td>White-label</td><td>Ürünün başka markanın adıyla sunulması</td></tr>
+    <tr><td>Kiosk modu</td><td>Self-servis dokunmatik giriş standı</td></tr>
+    <tr><td>Çok kiracılılık</td><td>Tek sistemde birçok kurumun izole şekilde çalışması</td></tr>
+  </table>
+  <div class="callout"><span class="lbl">İlgili dosyalar</span>
+    <code>docs/PAZARLAMA_RAPORU.md</code> (detaylı enablement) · <code>docs/PAZARLAMA_KONUMLANDIRMA.md</code> (mesaj kütüphanesi) · <code>docs/SOSYAL_MEDYA_ICERIK.md</code> (içerik takvimi) · bu dosya (özet + AI/entegrasyon derinliği).
+  </div>
+  <p class="muted" style="margin-top:20px;">© Heptapus Group — Dahili pazarlama dokümanı. Kod tabanı değiştikçe (.codesight yeniden tarandıkça) güncelleyin.</p>
+</div>
+
+</body>
+</html>

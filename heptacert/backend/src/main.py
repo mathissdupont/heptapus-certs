@@ -4983,10 +4983,49 @@ async def openapi_actions_schema():
 
 
 
+async def _link_memberships_to_user(db: AsyncSession, user: "User") -> bool:
+    """E-posta ile davet edilmis uyelik kayitlarini bu kullanici hesabina baglar.
+
+    Davet aninda kullanicinin henuz hesabi olmayabilir; bu durumda OrganizationMember /
+    EventTeamMember.user_id NULL kalir ve erisim yalnizca e-posta eslesmesiyle calisir
+    (kirilgan kimlik, kopuk audit izi, hesap silinip yeniden acilinca orphan kayit).
+    Bu yardimci, eslesien tum kayitlarin user_id'sini gunceller.
+
+    Donus: kullanicinin en az bir AKTIF uyeligi var mi (admin paneli erisimi karari icin).
+    """
+    from .organization_access_api import OrganizationMember
+
+    normalized_email = (user.email or "").strip().lower()
+    if not normalized_email:
+        return False
+
+    has_active_membership = False
+    for model in (OrganizationMember, EventTeamMember):
+        rows = (
+            await db.execute(
+                select(model).where(
+                    or_(
+                        model.user_id == user.id,
+                        func.lower(func.trim(model.email)) == normalized_email,
+                    ),
+                )
+            )
+        ).scalars().all()
+        for row in rows:
+            if getattr(row, "status", None) == "active":
+                has_active_membership = True
+            if row.user_id != user.id:
+                row.user_id = user.id
+    return has_active_membership
+
+
 @app.post("/api/auth/login")
 @limiter.limit("5/minute")
 async def login(request: Request, data: LoginIn, db: AsyncSession = Depends(get_db)):
-    res = await db.execute(select(User).where(User.email == str(data.email)))
+    normalized_login_email = str(data.email).strip().lower()
+    res = await db.execute(
+        select(User).where(func.lower(User.email) == normalized_login_email).limit(1)
+    )
     user = res.scalar_one_or_none()
     if not user or not verify_password(data.password, user.password_hash):
         await write_audit_log(
@@ -5019,35 +5058,29 @@ async def login(request: Request, data: LoginIn, db: AsyncSession = Depends(get_
 
     owns_admin_workspace = user.role in (Role.admin, Role.superadmin)
 
-    # Organization employees need admin-panel access even if they registered as a public member first.
-    if user.role not in (Role.admin, Role.superadmin):
-        try:
-            from .organization_access_api import OrganizationMember
-
-            normalized_email = (user.email or "").strip().lower()
-            org_member_res = await db.execute(
-                select(OrganizationMember.id).where(
-                    OrganizationMember.status == "active",
-                    or_(
-                        OrganizationMember.user_id == user.id,
-                        func.lower(func.trim(OrganizationMember.email)) == normalized_email,
-                    ),
-                ).limit(1)
+    # E-posta ile davet edilmis uyelikleri bu hesaba bagla (kimlik kararliligi + audit).
+    # Admin/superadmin kullanicilar da baska bir kurumun uyesi olabilir; bu yuzden
+    # baglama HERKES icin calisir. Yalnizca admin OLMAYAN ama aktif uyeligi olan
+    # kullanicilar, admin panelini kullanabilmek icin admin'e yukseltilir.
+    try:
+        has_active_membership = await _link_memberships_to_user(db, user)
+        if not owns_admin_workspace and has_active_membership:
+            previous_role = user.role
+            user.role = Role.admin
+            await write_audit_log(
+                db,
+                user_id=user.id,
+                action="user.role.promoted_to_admin",
+                resource_type="user",
+                resource_id=str(user.id),
+                extra={
+                    "previous_role": str(getattr(previous_role, "value", previous_role)),
+                    "reason": "organization_membership_login",
+                },
             )
-            event_member_res = await db.execute(
-                select(EventTeamMember.id).where(
-                    EventTeamMember.status == "active",
-                    or_(
-                        EventTeamMember.user_id == user.id,
-                        func.lower(func.trim(EventTeamMember.email)) == normalized_email,
-                    ),
-                ).limit(1)
-            )
-            if org_member_res.scalar_one_or_none() is not None or event_member_res.scalar_one_or_none() is not None:
-                user.role = Role.admin
-                await db.flush()
-        except Exception:
-            logger.exception("Failed to synchronize organization employee role for user %s", user.id)
+        await db.flush()
+    except Exception:
+        logger.exception("Failed to synchronize organization membership for user %s", user.id)
 
     if owns_admin_workspace:
         await _get_or_create_admin_organization(db, user.id)
@@ -5268,6 +5301,11 @@ async def verify_email_endpoint(token: str = Query(...), db: AsyncSession = Depe
 
     user.is_verified = True
     user.verification_token = None
+    # Davet edilmis uyelikleri dogrulama aninda hesaba bagla (user_id NULL kalmasin).
+    try:
+        await _link_memberships_to_user(db, user)
+    except Exception:
+        logger.exception("Failed to link memberships on verify for user %s", user.id)
     if user.role in (Role.admin, Role.superadmin):
         await _get_or_create_admin_organization(db, user.id)
     await db.commit()
@@ -14479,11 +14517,16 @@ app.include_router(_product_telemetry_api.router)
 from . import qa_seed_api as _qa_seed_api
 app.include_router(_qa_seed_api.router)
 
-from .plan_policy import feature_policy_payload as _feature_policy_payload
+from .plan_policy import feature_policy_payload as _feature_policy_payload, plan_catalog_payload as _plan_catalog_payload
 
 @app.get("/api/feature-policies")
 async def feature_policies():
     return _feature_policy_payload()
+
+
+@app.get("/api/plan-catalog")
+async def plan_catalog():
+    return _plan_catalog_payload()
 
 from .product_observability import install_product_observability as _install_product_observability
 _install_product_observability(app)

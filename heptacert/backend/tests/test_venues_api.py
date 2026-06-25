@@ -79,8 +79,8 @@ async def test_venue_manager_can_reserve_but_cannot_manage_organization_team():
         contexts = await client.get("/api/admin/organization/contexts", headers=employee_headers)
         assert contexts.status_code == 200
         context_items = contexts.json()
-        # Calisan baska bir org'a uye; kendi org'u yoksa yalnizca uyelik context'i
-        # doner (kendi org'u sadece hic context yoksa lazy olusur). En az 1 (uye) yeter.
+        # Calisan baska bir org'a uye; ayrica kendi (bos) org'u da her zaman context
+        # olarak doner (kendi kurumunu kurabilsin diye). Uyelik context'i de mevcut.
         assert len(context_items) >= 1
         owner_context = next(item for item in context_items if not item["owned"])
         employee_headers = {**employee_headers, "X-Organization-Id": str(owner_context["id"])}

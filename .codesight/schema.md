@@ -1680,6 +1680,48 @@
 - invited_at: DateTime
 - joined_at: DateTime (nullable)
 
+### PresentationDeck
+- id: Integer (pk)
+- organization_id: Integer (fk, index)
+- event_id: Integer (fk, nullable, index)
+- created_by: Integer (fk, nullable, index)
+- title: String
+- description: Text (nullable)
+- language: String (default)
+- theme: JSONB (default)
+- slides: JSONB (default)
+- presenter_token: String (unique, nullable, index)
+- control_token: String (unique, nullable, index)
+- audience_token: String (unique, nullable, index)
+- audience_enabled: Boolean (default, index)
+- allow_download: Boolean (default)
+- watermark_enabled: Boolean (default)
+- audience_expires_at: DateTime (nullable)
+- source: String (default)
+- status: String (default, index)
+- file_path: Text (nullable)
+- file_filename: String (nullable)
+- file_content_type: String (nullable)
+- file_size: Integer (nullable)
+- converted_file_path: Text (nullable)
+- converted_file_filename: String (nullable)
+- conversion_status: String (default, index)
+- conversion_error: Text (nullable)
+- conversion_attempts: Integer (default)
+- last_export_path: Text (nullable)
+- last_export_filename: String (nullable)
+- created_at: DateTime
+- updated_at: DateTime
+
+### PresentationSpeakerNote
+- id: Integer (pk)
+- deck_id: Integer (fk, index)
+- user_id: Integer (fk, index)
+- slide_index: Integer
+- note: Text (default)
+- created_at: DateTime
+- updated_at: DateTime
+
 ### Quiz
 - id: Integer (pk)
 - event_id: Integer (fk, unique, index)

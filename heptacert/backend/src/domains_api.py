@@ -28,41 +28,28 @@ logger = logging.getLogger("heptacert.domains")
 router = APIRouter()
 
 
-async def _generate_org_public_id(db: AsyncSession) -> str:
-    for _ in range(20):
-        candidate = f"org_{secrets.token_hex(8)}"
-        res = await db.execute(select(Organization.id).where(Organization.public_id == candidate))
-        if res.scalar_one_or_none() is None:
-            return candidate
-    raise RuntimeError("Unable to generate organization public id")
-
-
-async def _get_or_create_org(db: AsyncSession, user_id: int) -> Organization:
-    org_res = await db.execute(select(Organization).where(Organization.user_id == user_id))
-    org = org_res.scalar_one_or_none()
-    if org:
-        return org
-
-    org = Organization(
-        user_id=user_id,
-        public_id=await _generate_org_public_id(db),
-        org_name="",
-        brand_color="#6366f1",
-    )
-    try:
-        org.settings = {}
-    except Exception:
-        pass
-    db.add(org)
-    await db.flush()
-    return org
-
-
 async def _get_owned_domain_or_404(db: AsyncSession, domain: str, owner_id: int) -> Domain:
     dom = await Domain.get_by_domain(db, domain)
     if not dom or dom.owner != str(owner_id):
         raise HTTPException(status_code=404, detail="Domain not found")
     return dom
+
+
+async def _resolve_org(
+    request: Request,
+    me: CurrentUser,
+    db: AsyncSession,
+    permission: str = "organization:profile_write",
+) -> Organization:
+    """Aktif org context'ini (X-Organization-Id) ve izni dikkate alarak kurumu cozer.
+
+    Domain'ler kurum sahibinin user id'siyle (str(org.user_id)) sahiplenilir; boylece
+    bir uye, profile_write izniyle uyesi oldugu kurumun (kendi bos org'unun degil)
+    domain'lerini yonetebilir. Kurum sahibi izin kontrolunden muaftir.
+    """
+    from .organization_access_api import get_organization_for_access, organization_id_from_request
+
+    return await get_organization_for_access(db, me, permission, organization_id_from_request(request))
 
 
 class DomainCreateIn(BaseModel):
@@ -116,16 +103,17 @@ def _domain_out(dom: Domain) -> DomainOut:
 
 
 @router.post("/api/domains", response_model=DomainOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
-async def create_domain(payload: DomainCreateIn, me: CurrentUser = Depends(get_current_user)):
+async def create_domain(payload: DomainCreateIn, request: Request, me: CurrentUser = Depends(get_current_user)):
     async with SessionLocal() as db:
+        org = await _resolve_org(request, me, db)
+        owner_key = str(org.user_id)
         normalized_domain = payload.domain.strip().lower()
         exists = await Domain.get_by_domain(db, normalized_domain)
         if exists:
             raise HTTPException(status_code=409, detail="Domain already exists")
 
-        dom = await Domain.create(db, normalized_domain, owner=str(me.id))
+        dom = await Domain.create(db, normalized_domain, owner=owner_key)
 
-        org = await _get_or_create_org(db, me.id)
         org.custom_domain = normalized_domain
 
         await db.commit()
@@ -135,26 +123,28 @@ async def create_domain(payload: DomainCreateIn, me: CurrentUser = Depends(get_c
 
 
 @router.get("/api/domains/{domain}", response_model=DomainOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
-async def get_domain(domain: str, me: CurrentUser = Depends(get_current_user)):
+async def get_domain(domain: str, request: Request, me: CurrentUser = Depends(get_current_user)):
     async with SessionLocal() as db:
-        dom = await _get_owned_domain_or_404(db, domain.strip().lower(), me.id)
+        org = await _resolve_org(request, me, db, "organization:view")
+        dom = await _get_owned_domain_or_404(db, domain.strip().lower(), org.user_id)
         return _domain_out(dom)
 
 
 @router.post("/api/domains/{domain}/regenerate", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
-async def regenerate_domain_token(domain: str, me: CurrentUser = Depends(get_current_user)):
+async def regenerate_domain_token(domain: str, request: Request, me: CurrentUser = Depends(get_current_user)):
     async with SessionLocal() as db:
-        dom = await _get_owned_domain_or_404(db, domain.strip().lower(), me.id)
+        org = await _resolve_org(request, me, db)
+        dom = await _get_owned_domain_or_404(db, domain.strip().lower(), org.user_id)
         new = await Domain.regenerate_token(db, dom.domain)
         await db.commit()
         return {"token": new}
 
 
 @router.delete("/api/domains/{domain}", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
-async def delete_domain(domain: str, me: CurrentUser = Depends(get_current_user)):
+async def delete_domain(domain: str, request: Request, me: CurrentUser = Depends(get_current_user)):
     async with SessionLocal() as db:
-        dom = await _get_owned_domain_or_404(db, domain.strip().lower(), me.id)
-        org = await _get_or_create_org(db, me.id)
+        org = await _resolve_org(request, me, db)
+        dom = await _get_owned_domain_or_404(db, domain.strip().lower(), org.user_id)
         if org.custom_domain == dom.domain:
             org.custom_domain = None
         ok = await Domain.delete_by_domain(db, dom.domain)
@@ -165,9 +155,10 @@ async def delete_domain(domain: str, me: CurrentUser = Depends(get_current_user)
 
 
 @router.get("/api/admin/organization/domains", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
-async def list_my_domains(me: CurrentUser = Depends(get_current_user)):
+async def list_my_domains(request: Request, me: CurrentUser = Depends(get_current_user)):
     async with SessionLocal() as db:
-        q = select(Domain).where(Domain.owner == str(me.id)).order_by(Domain.created_at.desc())
+        org = await _resolve_org(request, me, db, "organization:view")
+        q = select(Domain).where(Domain.owner == str(org.user_id)).order_by(Domain.created_at.desc())
         res = await db.execute(q)
         items = res.scalars().all()
         out = []
@@ -181,10 +172,9 @@ async def list_my_domains(me: CurrentUser = Depends(get_current_user)):
     response_model=OrganizationDomainOut,
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
 )
-async def get_organization_domain(me: CurrentUser = Depends(get_current_user)):
+async def get_organization_domain(request: Request, me: CurrentUser = Depends(get_current_user)):
     async with SessionLocal() as db:
-        org = await _get_or_create_org(db, me.id)
-        await db.commit()
+        org = await _resolve_org(request, me, db, "organization:view")
         return OrganizationDomainOut(custom_domain=org.custom_domain)
 
 
@@ -193,12 +183,12 @@ async def get_organization_domain(me: CurrentUser = Depends(get_current_user)):
     response_model=OrganizationDomainOut,
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
 )
-async def update_organization_domain(payload: OrganizationDomainUpdateIn, me: CurrentUser = Depends(get_current_user)):
+async def update_organization_domain(payload: OrganizationDomainUpdateIn, request: Request, me: CurrentUser = Depends(get_current_user)):
     async with SessionLocal() as db:
-        org = await _get_or_create_org(db, me.id)
+        org = await _resolve_org(request, me, db)
         next_domain = payload.custom_domain.strip().lower().rstrip(".") if payload.custom_domain else None
         if next_domain:
-            domain = await _get_owned_domain_or_404(db, next_domain, me.id)
+            domain = await _get_owned_domain_or_404(db, next_domain, org.user_id)
             org.custom_domain = domain.domain
         else:
             org.custom_domain = None
@@ -207,9 +197,10 @@ async def update_organization_domain(payload: OrganizationDomainUpdateIn, me: Cu
 
 
 @router.get("/api/domains/{domain}/check")
-async def check_domain(domain: str, me: CurrentUser = Depends(get_current_user)):
+async def check_domain(domain: str, request: Request, me: CurrentUser = Depends(get_current_user)):
     async with SessionLocal() as db:
-        d = await _get_owned_domain_or_404(db, domain.strip().lower(), me.id)
+        org = await _resolve_org(request, me, db)
+        d = await _get_owned_domain_or_404(db, domain.strip().lower(), org.user_id)
 
         txt_name = f"_heptacert-verify.{domain}"
 
@@ -223,13 +214,7 @@ async def check_domain(domain: str, me: CurrentUser = Depends(get_current_user))
             if d.token in tokens:
                 d.status = "active"
                 db.add(d)
-
-                org_res = await db.execute(
-                    select(Organization).where(Organization.user_id == me.id)
-                )
-                org = org_res.scalar_one_or_none()
-                if org:
-                    org.custom_domain = d.domain
+                org.custom_domain = d.domain
 
                 await db.commit()
                 return {"status": "active"}

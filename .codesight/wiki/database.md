@@ -2,7 +2,7 @@
 
 > **Navigation aid.** Schema shapes and field types extracted via AST. Read the actual schema source files before writing migrations or query logic.
 
-**sqlalchemy** — 155 models
+**sqlalchemy** — 157 models
 
 ### AccreditationBody
 
@@ -2122,6 +2122,54 @@ pk: `id` (Integer) · fk: org_id, user_id
 - `invited_at`: DateTime
 - `joined_at`: DateTime _(nullable)_
 
+### PresentationDeck
+
+pk: `id` (Integer) · fk: organization_id, event_id, created_by
+
+- `id`: Integer _(pk)_
+- `organization_id`: Integer _(fk, index)_
+- `event_id`: Integer _(fk, nullable, index)_
+- `created_by`: Integer _(fk, nullable, index)_
+- `title`: String
+- `description`: Text _(nullable)_
+- `language`: String _(default)_
+- `theme`: JSONB _(default)_
+- `slides`: JSONB _(default)_
+- `presenter_token`: String _(unique, nullable, index)_
+- `control_token`: String _(unique, nullable, index)_
+- `audience_token`: String _(unique, nullable, index)_
+- `audience_enabled`: Boolean _(default, index)_
+- `allow_download`: Boolean _(default)_
+- `watermark_enabled`: Boolean _(default)_
+- `audience_expires_at`: DateTime _(nullable)_
+- `source`: String _(default)_
+- `status`: String _(default, index)_
+- `file_path`: Text _(nullable)_
+- `file_filename`: String _(nullable)_
+- `file_content_type`: String _(nullable)_
+- `file_size`: Integer _(nullable)_
+- `converted_file_path`: Text _(nullable)_
+- `converted_file_filename`: String _(nullable)_
+- `conversion_status`: String _(default, index)_
+- `conversion_error`: Text _(nullable)_
+- `conversion_attempts`: Integer _(default)_
+- `last_export_path`: Text _(nullable)_
+- `last_export_filename`: String _(nullable)_
+- `created_at`: DateTime
+- `updated_at`: DateTime
+
+### PresentationSpeakerNote
+
+pk: `id` (Integer) · fk: deck_id, user_id
+
+- `id`: Integer _(pk)_
+- `deck_id`: Integer _(fk, index)_
+- `user_id`: Integer _(fk, index)_
+- `slide_index`: Integer
+- `note`: Text _(default)_
+- `created_at`: DateTime
+- `updated_at`: DateTime
+
 ### Quiz
 
 pk: `id` (Integer) · fk: event_id
@@ -2261,8 +2309,9 @@ pk: `id` (Integer) · fk: organization_id, venue_id, created_by, updated_by
 
 Read and edit these files when adding columns, creating migrations, or changing relations:
 
-- `/db_types.py` — imported by **7** files
-- `/db.py` — imported by **4** files
+- `/db_types.py` — imported by **8** files
+- `/db.py` — imported by **6** files
+- `/models.py` — imported by **3** files
 
 ---
 _Back to [overview.md](./overview.md)_

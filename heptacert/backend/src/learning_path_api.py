@@ -4,7 +4,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -68,12 +68,21 @@ class LearningPathPatch(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-async def _get_org_for_admin(me: CurrentUser, db: AsyncSession) -> Organization:
-    res = await db.execute(select(Organization).where(Organization.user_id == me.id))
-    org = res.scalar_one_or_none()
-    if not org and me.role != Role.superadmin:
-        raise HTTPException(status_code=404, detail="Organizasyon bulunamadı.")
-    return org
+async def _get_org_for_admin(
+    request: Request,
+    me: CurrentUser,
+    db: AsyncSession,
+    permission: str = "organization:view",
+) -> Organization:
+    """Aktif org context'ini (X-Organization-Id) ve izni dikkate alarak kurumu cozer.
+
+    Eskiden yalnizca cagiranin SAHIP oldugu org'a cozuluyordu; bu yuzden bir uye,
+    uyesi oldugu kurumun ogrenme yollarini goremiyor/yonetemiyordu. Kurum sahibi
+    izin kontrolunden muaftir.
+    """
+    from .organization_access_api import get_organization_for_access, organization_id_from_request
+
+    return await get_organization_for_access(db, me, permission, organization_id_from_request(request))
 
 
 async def _get_path(path_id: int, db: AsyncSession) -> LearningPath:
@@ -155,10 +164,11 @@ async def _recalculate_progress(
 )
 async def create_learning_path(
     payload: LearningPathIn,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org_for_admin(me, db)
+    org = await _get_org_for_admin(request, me, db, "events:manage")
 
     path = LearningPath(
         org_id=org.id,
@@ -191,10 +201,11 @@ async def create_learning_path(
     dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
 )
 async def list_learning_paths_admin(
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org_for_admin(me, db)
+    org = await _get_org_for_admin(request, me, db)
     res = await db.execute(
         select(LearningPath)
         .where(LearningPath.org_id == org.id)
@@ -211,10 +222,11 @@ async def list_learning_paths_admin(
 )
 async def get_learning_path_admin(
     path_id: int,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org_for_admin(me, db)
+    org = await _get_org_for_admin(request, me, db)
     path = await _get_path(path_id, db)
     if path.org_id != org.id and me.role != Role.superadmin:
         raise HTTPException(status_code=403, detail="Erişim yetkiniz yok.")
@@ -238,10 +250,11 @@ async def get_learning_path_admin(
 async def patch_learning_path(
     path_id: int,
     payload: LearningPathPatch,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org_for_admin(me, db)
+    org = await _get_org_for_admin(request, me, db, "events:manage")
     path = await _get_path(path_id, db)
     if path.org_id != org.id and me.role != Role.superadmin:
         raise HTTPException(status_code=403, detail="Erişim yetkiniz yok.")
@@ -260,11 +273,12 @@ async def patch_learning_path(
 async def replace_learning_path_steps(
     path_id: int,
     steps: list[LearningPathStepIn],
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Replace all steps of a learning path (full reorder/update)."""
-    org = await _get_org_for_admin(me, db)
+    org = await _get_org_for_admin(request, me, db, "events:manage")
     path = await _get_path(path_id, db)
     if path.org_id != org.id and me.role != Role.superadmin:
         raise HTTPException(status_code=403, detail="Erişim yetkiniz yok.")
@@ -296,10 +310,11 @@ async def replace_learning_path_steps(
 )
 async def delete_learning_path(
     path_id: int,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org_for_admin(me, db)
+    org = await _get_org_for_admin(request, me, db, "events:manage")
     path = await _get_path(path_id, db)
     if path.org_id != org.id and me.role != Role.superadmin:
         raise HTTPException(status_code=403, detail="Erişim yetkiniz yok.")
@@ -314,10 +329,11 @@ async def delete_learning_path(
 )
 async def get_path_enrollments(
     path_id: int,
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    org = await _get_org_for_admin(me, db)
+    org = await _get_org_for_admin(request, me, db)
     path = await _get_path(path_id, db)
     if path.org_id != org.id and me.role != Role.superadmin:
         raise HTTPException(status_code=403, detail="Erişim yetkiniz yok.")

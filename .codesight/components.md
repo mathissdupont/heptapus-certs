@@ -41,6 +41,9 @@
 - **EventMarketplacePage** [client] — `heptacert\frontend\src\app\admin\events\[id]\marketplace\page.tsx`
 - **EventOperationsPage** [client] — `heptacert\frontend\src\app\admin\events\[id]\ops\page.tsx`
 - **EventIndexPage** [client] — `heptacert\frontend\src\app\admin\events\[id]\page.tsx`
+- **EventPresentationsPage** [client] — `heptacert\frontend\src\app\admin\events\[id]\presentations\page.tsx`
+- **EventPresentationStagePage** [client] — `heptacert\frontend\src\app\admin\events\[id]\presentations\[deckId]\present\page.tsx`
+- **EventPresentationRemotePage** [client] — `heptacert\frontend\src\app\admin\events\[id]\presentations\[deckId]\remote\page.tsx`
 - **EmailTemplatePreviewPage** [client] — `heptacert\frontend\src\app\admin\events\[id]\preview\page.tsx`
 - **QrPresentPage** [client] — `heptacert\frontend\src\app\admin\events\[id]\qr-present\page.tsx`
 - **QuizBuilderPage** [client] — `heptacert\frontend\src\app\admin\events\[id]\quiz\page.tsx`
@@ -67,6 +70,7 @@
 - **AdminMarketplacePage** [client] — `heptacert\frontend\src\app\admin\marketplace\page.tsx`
 - **OrgSocialProfileAdminPage** [client] — `heptacert\frontend\src\app\admin\organization-social\page.tsx`
 - **TransactionsPage** [client] — `heptacert\frontend\src\app\admin\payments\transactions\page.tsx`
+- **AdminPresentationsPage** [client] — `heptacert\frontend\src\app\admin\presentations\page.tsx`
 - **ScheduledReportsPage** [client] — `heptacert\frontend\src\app\admin\reports\page.tsx`
 - **AdminReservations** [client] — `heptacert\frontend\src\app\admin\reservations\page.tsx`
 - **ApiSettingsPage** [client] — `heptacert\frontend\src\app\admin\settings\api\page.tsx`
@@ -96,6 +100,7 @@
 - **WebhooksPage** [client] — `heptacert\frontend\src\app\admin\webhooks\page.tsx`
 - **AdminLayoutShell** [client] — `heptacert\frontend\src\app\admin\_admin-layout-shell.tsx`
 - **AttendCheckinPage** [client] — `heptacert\frontend\src\app\attend\[token]\page.tsx`
+- **AudiencePresentationPage** [client] — `heptacert\frontend\src\app\audience\[token]\page.tsx`
 - **GoogleCallbackPage** [client] — `heptacert\frontend\src\app\auth\google\callback\page.tsx`
 - **SsoSuccessPage** [client] — `heptacert\frontend\src\app\auth\sso\success\page.tsx`
 - **CheckoutCancelPage** [client] — `heptacert\frontend\src\app\checkout\cancel\page.tsx`
@@ -150,6 +155,8 @@
 - **PortalDashboard** [client] — `heptacert\frontend\src\app\portal\page.tsx`
 - **CreatePostPage** [client] — `heptacert\frontend\src\app\post\create\page.tsx`
 - **PostDetailPage** [client] — `heptacert\frontend\src\app\post\[postId]\page.tsx`
+- **PublicPresentationPage** [client] — `heptacert\frontend\src\app\present\[token]\page.tsx`
+- **PresenterTokenPage** [client] — `heptacert\frontend\src\app\presenter\[token]\page.tsx`
 - **BusinessPricingPage** — `heptacert\frontend\src\app\pricing\business\page.tsx`
 - **MemberPricingPage** — `heptacert\frontend\src\app\pricing\member\page.tsx`
 - **PricingPage** — `heptacert\frontend\src\app\pricing\page.tsx`
@@ -192,6 +199,8 @@
 - **IssueCertificateModal** [client] — props: open, onClose, onIssued, eventId, templateReady, sampleMonthlyCost, sampleYearlyCost — `heptacert\frontend\src\components\Admin\IssueCertificateModal.tsx`
 - **MobileActionBar** [client] — props: className — `heptacert\frontend\src\components\Admin\MobileActionBar.tsx`
 - **PageHeader** [client] — props: title, subtitle, icon, actions, breadcrumbs, iconBg — `heptacert\frontend\src\components\Admin\PageHeader.tsx`
+- **PdfPresenterPreview** [client] — props: fileUrl, pageIndex, requestHeaders, currentLabel, nextLabel, loadingLabel, unavailableLabel, onPageCountChange — `heptacert\frontend\src\components\Admin\Presentations\PdfPresenterPreview.tsx`
+- **PdfStageViewer** [client] — props: fileUrl, pageIndex, title, loadingLabel, errorLabel, retryLabel, pageLabel, requestHeaders, preloadAllSignal, onPageCountChange — `heptacert\frontend\src\components\Admin\Presentations\PdfStageViewer.tsx`
 - **StatCard** [client] — props: label, value, icon, iconBg, trend — `heptacert\frontend\src\components\Admin\StatCard.tsx`
 - **TimeField** [client] — props: value, onChange, label, placeholder, className — `heptacert\frontend\src\components\Admin\TimeField.tsx`
 - **HeptaCertLogoMark** — props: className, imageClassName — `heptacert\frontend\src\components\Brand\HeptaCertLogoMark.tsx`

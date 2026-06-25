@@ -59,6 +59,10 @@
 - `POSTGRES_DB` (has default) — heptacert\.env.local
 - `POSTGRES_PASSWORD` (has default) — heptacert\.env.local
 - `POSTGRES_USER` (has default) — heptacert\.env.local
+- `PRESENTATION_CONVERTER_ENABLED` (has default) — heptacert\backend\.env.example
+- `PRESENTATION_CONVERTER_INTERVAL_SECONDS` (has default) — heptacert\backend\.env.example
+- `PRESENTATION_CONVERTER_TIMEOUT_SECONDS` (has default) — heptacert\backend\.env.example
+- `PRESENTATION_MAX_UPLOAD_MB` (has default) — heptacert\backend\.env.example
 - `PUBLIC_BASE_URL` (has default) — heptacert\backend\.env.example
 - `RATE_LIMIT_STORAGE_URI` (has default) — heptacert\backend\.env.example
 - `REDIS_URL` (has default) — heptacert\backend\.env.example
@@ -67,6 +71,7 @@
 - `SMTP_PASSWORD` **required** — heptacert\backend\.env.example
 - `SMTP_PORT` (has default) — heptacert\backend\.env.example
 - `SMTP_USER` **required** — heptacert\backend\.env.example
+- `SOFFICE_BIN` (has default) — heptacert\backend\.env.example
 - `STORAGE_MODE` (has default) — heptacert\backend\.env.example
 - `STRIPE_PUBLISHABLE_KEY` **required** — heptacert\backend\.env.example
 - `STRIPE_SECRET_KEY` **required** — heptacert\backend\.env.example

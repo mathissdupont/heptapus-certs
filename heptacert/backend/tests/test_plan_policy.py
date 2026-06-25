@@ -9,10 +9,13 @@ from types import SimpleNamespace
 import pytest
 
 from src.plan_policy import (
+    FEATURE_POLICIES,
+    PLAN_CATALOG,
     PLAN_ORDER,
     feature_policy_payload,
     normalize_plan,
     plan_allows,
+    plan_catalog_payload,
     subscription_is_active_plan,
 )
 
@@ -160,6 +163,10 @@ class TestSubscriptionIsActivePlan:
         sub = _make_sub("enterprise", expires_at=None)
         assert subscription_is_active_plan(sub, ["enterprise"]) is True
 
+    def test_inactive_subscription_fails_even_when_plan_matches(self):
+        sub = SimpleNamespace(plan_id="enterprise", expires_at=None, is_active=False)
+        assert subscription_is_active_plan(sub, ["enterprise"]) is False
+
     def test_naive_datetime_handled(self):
         # Naive datetime (no timezone) should be treated as UTC
         sub = _make_sub("pro", expires_at=datetime.utcnow() + timedelta(days=1))
@@ -194,6 +201,21 @@ class TestFeaturePolicyPayload:
         training = next(i for i in feature_policy_payload() if i["key"] == "training")
         assert "enterprise" in training["required_plans"]
 
+    def test_lms_is_enterprise_only(self):
+        lms = next(i for i in feature_policy_payload() if i["key"] == "lms")
+        assert lms["required_plans"] == ["enterprise"]
+        assert lms["enterprise_only_for_staff"] is True
+
     def test_checkin_requires_at_least_pro(self):
         checkin = next(i for i in feature_policy_payload() if i["key"] == "checkin")
         assert "pro" in checkin["required_plans"] or plan_allows("pro", checkin["required_plans"])
+
+    def test_all_feature_keys_are_in_enterprise_catalog(self):
+        assert set(PLAN_CATALOG["enterprise"].included_features) == set(FEATURE_POLICIES)
+
+    def test_plan_catalog_payload_separates_included_and_excluded_features(self):
+        catalog = {item["id"]: item for item in plan_catalog_payload()}
+        assert "checkin" in catalog["pro"]["included_features"]
+        assert "automation" in catalog["pro"]["excluded_features"]
+        assert "crm" in catalog["growth"]["excluded_features"]
+        assert catalog["enterprise"]["excluded_features"] == []

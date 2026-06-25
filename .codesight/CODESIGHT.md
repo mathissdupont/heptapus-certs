@@ -3,9 +3,9 @@
 > **Stack:** fastapi, next-pages, next-app | sqlalchemy | react | typescript
 > **Microservices:** backend, heptacert-docs, heptacert-frontend
 
-> 690 routes | 155 models | 238 components | 199 lib files | 70 env vars | 7 middleware | 14% test coverage
-> **Token savings:** this file is ~51,600 tokens. Without it, AI exploration would cost ~568,400 tokens. **Saves ~516,800 tokens per conversation.**
-> **Last scanned:** 2026-06-20 09:44 — re-run after significant changes
+> 715 routes | 157 models | 247 components | 213 lib files | 75 env vars | 7 middleware | 1 events | 14% test coverage
+> **Token savings:** this file is ~53,800 tokens. Without it, AI exploration would cost ~589,600 tokens. **Saves ~535,800 tokens per conversation.**
+> **Last scanned:** 2026-06-23 09:48 — re-run after significant changes
 
 ---
 
@@ -20,7 +20,7 @@
 - **`/api/admin/crm/accounts/{account_id}/contacts`** GET | POST | GET/:id | DELETE/:id → Contact
 - **`/api/admin/crm/deals/{deal_id}/activities`** GET | POST | GET/:id | DELETE/:id → Activitie
 - **`/api/admin/crm/sequences`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Sequence
-- **``** GET | POST | GET/:id
+- **``** GET | POST | GET/:id | PATCH/:id | DELETE/:id
 - **`/api/domains`** GET | POST | GET/:id | DELETE/:id → Domain
 - **`/api/admin/events/{event_id}/email-templates`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Email-template
 - **`/api/admin/crm/views`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → View
@@ -443,6 +443,27 @@
 - `POST` `/api/admin/org/staff/invite` params() → in: StaffAcceptIn [auth, db]
 - `POST` `/api/org/staff/accept` params() → in: StaffAcceptIn [auth, db]
 - `GET` `/api/superadmin/platform-health` params() [auth, db, payment]
+- `GET` `/events/{event_id}` params(event_id) → out: list [auth, db, cache, queue, upload, ai]
+- `POST` `/events/{event_id}/upload` params(event_id) → out: list [auth, db, cache, queue, upload, ai]
+- `POST` `/generate` params() → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/{deck_id}/security` params(deck_id) → out: list [auth, db, cache, queue, upload, ai]
+- `PATCH` `/{deck_id}/security` params(deck_id) → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/{deck_id}/session` params(deck_id) → out: list [auth, db, cache, queue, upload, ai]
+- `PATCH` `/{deck_id}/session` params(deck_id) → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/{deck_id}/notes/{slide_index}` params(deck_id, slide_index) → out: list [auth, db, cache, queue, upload, ai]
+- `PUT` `/{deck_id}/notes/{slide_index}` params(deck_id, slide_index) → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/{deck_id}/file` params(deck_id) → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/{deck_id}/remote-qr` params(deck_id) → out: list [auth, db, cache, queue, upload, ai]
+- `POST` `/{deck_id}/export` params(deck_id) → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/{deck_id}/export` params(deck_id) → out: list [auth, db, cache, queue, upload, ai]
+- `POST` `/{deck_id}/presenter-token` params(deck_id) → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/audience/{token}` params(token) → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/audience/{token}/session` params(token) → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/audience/{token}/file` params(token) → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/control/{token}` params(token) → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/control/{token}/session` params(token) → out: list [auth, db, cache, queue, upload, ai]
+- `PATCH` `/control/{token}/session` params(token) → out: list [auth, db, cache, queue, upload, ai]
+- `GET` `/control/{token}/file` params(token) → out: list [auth, db, cache, queue, upload, ai]
 - `POST` `/api/admin/product-telemetry` params() → in: ProductTelemetryIn [auth, db]
 - `GET` `/api/superadmin/product-telemetry/summary` params() [auth, db]
 - `POST` `/api/superadmin/qa-seed` params() [auth, db]
@@ -2238,6 +2259,48 @@
 - invited_at: DateTime
 - joined_at: DateTime (nullable)
 
+### PresentationDeck
+- id: Integer (pk)
+- organization_id: Integer (fk, index)
+- event_id: Integer (fk, nullable, index)
+- created_by: Integer (fk, nullable, index)
+- title: String
+- description: Text (nullable)
+- language: String (default)
+- theme: JSONB (default)
+- slides: JSONB (default)
+- presenter_token: String (unique, nullable, index)
+- control_token: String (unique, nullable, index)
+- audience_token: String (unique, nullable, index)
+- audience_enabled: Boolean (default, index)
+- allow_download: Boolean (default)
+- watermark_enabled: Boolean (default)
+- audience_expires_at: DateTime (nullable)
+- source: String (default)
+- status: String (default, index)
+- file_path: Text (nullable)
+- file_filename: String (nullable)
+- file_content_type: String (nullable)
+- file_size: Integer (nullable)
+- converted_file_path: Text (nullable)
+- converted_file_filename: String (nullable)
+- conversion_status: String (default, index)
+- conversion_error: Text (nullable)
+- conversion_attempts: Integer (default)
+- last_export_path: Text (nullable)
+- last_export_filename: String (nullable)
+- created_at: DateTime
+- updated_at: DateTime
+
+### PresentationSpeakerNote
+- id: Integer (pk)
+- deck_id: Integer (fk, index)
+- user_id: Integer (fk, index)
+- slide_index: Integer
+- note: Text (default)
+- created_at: DateTime
+- updated_at: DateTime
+
 ### Quiz
 - id: Integer (pk)
 - event_id: Integer (fk, unique, index)
@@ -2391,6 +2454,9 @@
 - **EventMarketplacePage** [client] — `heptacert\frontend\src\app\admin\events\[id]\marketplace\page.tsx`
 - **EventOperationsPage** [client] — `heptacert\frontend\src\app\admin\events\[id]\ops\page.tsx`
 - **EventIndexPage** [client] — `heptacert\frontend\src\app\admin\events\[id]\page.tsx`
+- **EventPresentationsPage** [client] — `heptacert\frontend\src\app\admin\events\[id]\presentations\page.tsx`
+- **EventPresentationStagePage** [client] — `heptacert\frontend\src\app\admin\events\[id]\presentations\[deckId]\present\page.tsx`
+- **EventPresentationRemotePage** [client] — `heptacert\frontend\src\app\admin\events\[id]\presentations\[deckId]\remote\page.tsx`
 - **EmailTemplatePreviewPage** [client] — `heptacert\frontend\src\app\admin\events\[id]\preview\page.tsx`
 - **QrPresentPage** [client] — `heptacert\frontend\src\app\admin\events\[id]\qr-present\page.tsx`
 - **QuizBuilderPage** [client] — `heptacert\frontend\src\app\admin\events\[id]\quiz\page.tsx`
@@ -2417,6 +2483,7 @@
 - **AdminMarketplacePage** [client] — `heptacert\frontend\src\app\admin\marketplace\page.tsx`
 - **OrgSocialProfileAdminPage** [client] — `heptacert\frontend\src\app\admin\organization-social\page.tsx`
 - **TransactionsPage** [client] — `heptacert\frontend\src\app\admin\payments\transactions\page.tsx`
+- **AdminPresentationsPage** [client] — `heptacert\frontend\src\app\admin\presentations\page.tsx`
 - **ScheduledReportsPage** [client] — `heptacert\frontend\src\app\admin\reports\page.tsx`
 - **AdminReservations** [client] — `heptacert\frontend\src\app\admin\reservations\page.tsx`
 - **ApiSettingsPage** [client] — `heptacert\frontend\src\app\admin\settings\api\page.tsx`
@@ -2446,6 +2513,7 @@
 - **WebhooksPage** [client] — `heptacert\frontend\src\app\admin\webhooks\page.tsx`
 - **AdminLayoutShell** [client] — `heptacert\frontend\src\app\admin\_admin-layout-shell.tsx`
 - **AttendCheckinPage** [client] — `heptacert\frontend\src\app\attend\[token]\page.tsx`
+- **AudiencePresentationPage** [client] — `heptacert\frontend\src\app\audience\[token]\page.tsx`
 - **GoogleCallbackPage** [client] — `heptacert\frontend\src\app\auth\google\callback\page.tsx`
 - **SsoSuccessPage** [client] — `heptacert\frontend\src\app\auth\sso\success\page.tsx`
 - **CheckoutCancelPage** [client] — `heptacert\frontend\src\app\checkout\cancel\page.tsx`
@@ -2500,6 +2568,8 @@
 - **PortalDashboard** [client] — `heptacert\frontend\src\app\portal\page.tsx`
 - **CreatePostPage** [client] — `heptacert\frontend\src\app\post\create\page.tsx`
 - **PostDetailPage** [client] — `heptacert\frontend\src\app\post\[postId]\page.tsx`
+- **PublicPresentationPage** [client] — `heptacert\frontend\src\app\present\[token]\page.tsx`
+- **PresenterTokenPage** [client] — `heptacert\frontend\src\app\presenter\[token]\page.tsx`
 - **BusinessPricingPage** — `heptacert\frontend\src\app\pricing\business\page.tsx`
 - **MemberPricingPage** — `heptacert\frontend\src\app\pricing\member\page.tsx`
 - **PricingPage** — `heptacert\frontend\src\app\pricing\page.tsx`
@@ -2542,6 +2612,8 @@
 - **IssueCertificateModal** [client] — props: open, onClose, onIssued, eventId, templateReady, sampleMonthlyCost, sampleYearlyCost — `heptacert\frontend\src\components\Admin\IssueCertificateModal.tsx`
 - **MobileActionBar** [client] — props: className — `heptacert\frontend\src\components\Admin\MobileActionBar.tsx`
 - **PageHeader** [client] — props: title, subtitle, icon, actions, breadcrumbs, iconBg — `heptacert\frontend\src\components\Admin\PageHeader.tsx`
+- **PdfPresenterPreview** [client] — props: fileUrl, pageIndex, requestHeaders, currentLabel, nextLabel, loadingLabel, unavailableLabel, onPageCountChange — `heptacert\frontend\src\components\Admin\Presentations\PdfPresenterPreview.tsx`
+- **PdfStageViewer** [client] — props: fileUrl, pageIndex, title, loadingLabel, errorLabel, retryLabel, pageLabel, requestHeaders, preloadAllSignal, onPageCountChange — `heptacert\frontend\src\components\Admin\Presentations\PdfStageViewer.tsx`
 - **StatCard** [client] — props: label, value, icon, iconBg, trend — `heptacert\frontend\src\components\Admin\StatCard.tsx`
 - **TimeField** [client] — props: value, onChange, label, placeholder, className — `heptacert\frontend\src\components\Admin\TimeField.tsx`
 - **HeptaCertLogoMark** — props: className, imageClassName — `heptacert\frontend\src\components\Brand\HeptaCertLogoMark.tsx`
@@ -2692,6 +2764,12 @@
 - `heptacert\backend\alembic\versions\096_oauth_server.py` — function upgrade: () -> None, function downgrade: () -> None
 - `heptacert\backend\alembic\versions\097_ai_digest_jobs.py` — function upgrade: () -> None, function downgrade: () -> None
 - `heptacert\backend\alembic\versions\098_event_ticket_types.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\099_presentation_decks.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\100_presentation_decks_event_id_fix.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\100_presentation_event_files.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\101_presentation_conversion_fields.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\102_presentation_speaker_notes.py` — function upgrade: () -> None, function downgrade: () -> None
+- `heptacert\backend\alembic\versions\103_presentation_security_controls.py` — function upgrade: () -> None, function downgrade: () -> None
 - `heptacert\backend\src\accreditation_api.py`
   - class OrgAccreditationIn
   - class OrgAccreditationOut
@@ -2975,6 +3053,22 @@
   - function subscription_is_active_plan: (subscription, required_plans) -> bool
   - function feature_policy_payload: () -> list[dict[str, object]]
   - class FeaturePolicy
+- `heptacert\backend\src\presentation_api.py`
+  - class SlideIn
+  - class DeckCreateIn
+  - class DeckUpdateIn
+  - class DeckGenerateIn
+  - class DeckOut
+  - class PublicDeckOut
+  - _...6 more_
+- `heptacert\backend\src\presentation_conversion_worker.py` — function main: () -> None, function run_worker: () -> None
+- `heptacert\backend\src\presentation_converter.py`
+  - function is_powerpoint_path: (value) -> bool
+  - function convert_powerpoint_to_pdf: (source_rel_path, output_rel_path) -> str
+  - class PresentationConversionError
+- `heptacert\backend\src\presentation_models.py` — class PresentationDeck, class PresentationSpeakerNote
+- `heptacert\backend\src\presentation_renderer.py` — function render_deck_pptx: (deck) -> bytes
+- `heptacert\backend\src\presentation_ws.py` — class PresentationConnectionManager
 - `heptacert\backend\src\product_observability.py` — function install_product_observability: (app, *, slow_ms) -> None
 - `heptacert\backend\src\product_telemetry.py` — function sanitize_metadata: (raw, Any]) -> dict[str, Any]
 - `heptacert\backend\src\product_telemetry_api.py` — class ProductTelemetryIn
@@ -3030,6 +3124,7 @@
   - class TrainingReportOut
   - class RenewalRecommendationOut
   - _...10 more_
+- `heptacert\backend\src\upload_security.py` — function scan_upload_with_clamav: (raw) -> None
 - `heptacert\backend\src\utils.py`
   - function compute_hosting_ends: (term) -> datetime
   - function ensure_utc: (dt) -> Optional[datetime]
@@ -3137,6 +3232,14 @@
   - function landingPathForContexts: (contexts) => string
   - type OrgLang
   - type OrgRoleContext
+- `heptacert\frontend\src\lib\presentationsApi.ts`
+  - function presentationControlTokenFromUrl: (value?) => string | null
+  - function presentationControlWsUrl: (token) => string
+  - function listPresentations: () => Promise<PresentationDeck[]>
+  - function listEventPresentations: (eventId) => Promise<PresentationDeck[]>
+  - function uploadEventPresentation: (eventId, payload) => Promise<PresentationDeck>
+  - function presentationFileUrl: (deck) => string | null
+  - _...27 more_
 - `heptacert\frontend\src\lib\raffles.ts`
   - function formatRaffleDate: (value?) => void
   - function getRaffleStatusMeta: (status) => void
@@ -3232,6 +3335,10 @@
 - `POSTGRES_DB` (has default) — heptacert\.env.local
 - `POSTGRES_PASSWORD` (has default) — heptacert\.env.local
 - `POSTGRES_USER` (has default) — heptacert\.env.local
+- `PRESENTATION_CONVERTER_ENABLED` (has default) — heptacert\backend\.env.example
+- `PRESENTATION_CONVERTER_INTERVAL_SECONDS` (has default) — heptacert\backend\.env.example
+- `PRESENTATION_CONVERTER_TIMEOUT_SECONDS` (has default) — heptacert\backend\.env.example
+- `PRESENTATION_MAX_UPLOAD_MB` (has default) — heptacert\backend\.env.example
 - `PUBLIC_BASE_URL` (has default) — heptacert\backend\.env.example
 - `RATE_LIMIT_STORAGE_URI` (has default) — heptacert\backend\.env.example
 - `REDIS_URL` (has default) — heptacert\backend\.env.example
@@ -3240,6 +3347,7 @@
 - `SMTP_PASSWORD` **required** — heptacert\backend\.env.example
 - `SMTP_PORT` (has default) — heptacert\backend\.env.example
 - `SMTP_USER` **required** — heptacert\backend\.env.example
+- `SOFFICE_BIN` (has default) — heptacert\backend\.env.example
 - `STORAGE_MODE` (has default) — heptacert\backend\.env.example
 - `STRIPE_PUBLISHABLE_KEY` **required** — heptacert\backend\.env.example
 - `STRIPE_SECRET_KEY` **required** — heptacert\backend\.env.example
@@ -3278,15 +3386,17 @@
 
 ## Most Imported Files (change these carefully)
 
-- `/main.py` — imported by **64** files
-- `/organization_access_api.py` — imported by **14** files
+- `/main.py` — imported by **66** files
+- `/organization_access_api.py` — imported by **15** files
 - `//output.py` — imported by **11** files
+- `/config.py` — imported by **10** files
 - `//client.py` — imported by **10** files
-- `/db_types.py` — imported by **7** files
-- `/config.py` — imported by **7** files
+- `/db_types.py` — imported by **8** files
+- `/db.py` — imported by **6** files
 - `/enums.py` — imported by **5** files
 - `/generator.py` — imported by **4** files
-- `/db.py` — imported by **4** files
+- `/upload_security.py` — imported by **3** files
+- `/models.py` — imported by **3** files
 - `/event_team.py` — imported by **3** files
 - `/lms_models.py` — imported by **3** files
 - `heptacert\frontend\src\lib\assistant\text.ts` — imported by **3** files
@@ -3296,28 +3406,32 @@
 - `/learning_path_models.py` — imported by **2** files
 - `/quiz_models.py` — imported by **2** files
 - `/moderation.py` — imported by **2** files
-- `/event_features.py` — imported by **2** files
-- `/services.py` — imported by **2** files
 
 ## Import Map (who imports what)
 
-- `/main.py` ← `heptacert\backend\src\accreditation_api.py`, `heptacert\backend\src\accreditation_models.py`, `heptacert\backend\src\ai_content_api.py`, `heptacert\backend\src\ai_proactive_api.py`, `heptacert\backend\src\analytics_api.py` +59 more
-- `/organization_access_api.py` ← `heptacert\backend\src\accreditation_api.py`, `heptacert\backend\src\checkin_ops_api.py`, `heptacert\backend\src\crm_accounts_api.py`, `heptacert\backend\src\crm_sequences_api.py`, `heptacert\backend\src\event_crm_api.py` +9 more
+- `/main.py` ← `heptacert\backend\src\accreditation_api.py`, `heptacert\backend\src\accreditation_models.py`, `heptacert\backend\src\ai_content_api.py`, `heptacert\backend\src\ai_proactive_api.py`, `heptacert\backend\src\analytics_api.py` +61 more
+- `/organization_access_api.py` ← `heptacert\backend\src\accreditation_api.py`, `heptacert\backend\src\checkin_ops_api.py`, `heptacert\backend\src\crm_accounts_api.py`, `heptacert\backend\src\crm_sequences_api.py`, `heptacert\backend\src\event_crm_api.py` +10 more
 - `//output.py` ← `heptacert\cli\heptacert_cli\commands\attendees.py`, `heptacert\cli\heptacert_cli\commands\auth.py`, `heptacert\cli\heptacert_cli\commands\automations.py`, `heptacert\cli\heptacert_cli\commands\certs.py`, `heptacert\cli\heptacert_cli\commands\checkin.py` +6 more
+- `/config.py` ← `heptacert\backend\src\db.py`, `heptacert\backend\src\main.py`, `heptacert\backend\src\presentation_conversion_worker.py`, `heptacert\backend\src\presentation_converter.py`, `heptacert\backend\src\ratelimit.py` +5 more
 - `//client.py` ← `heptacert\cli\heptacert_cli\commands\attendees.py`, `heptacert\cli\heptacert_cli\commands\auth.py`, `heptacert\cli\heptacert_cli\commands\automations.py`, `heptacert\cli\heptacert_cli\commands\certs.py`, `heptacert\cli\heptacert_cli\commands\checkin.py` +5 more
-- `/db_types.py` ← `heptacert\backend\src\accreditation_models.py`, `heptacert\backend\src\crm_accounts_models.py`, `heptacert\backend\src\lead_forms_models.py`, `heptacert\backend\src\models.py`, `heptacert\backend\src\oauth_api.py` +2 more
-- `/config.py` ← `heptacert\backend\src\db.py`, `heptacert\backend\src\main.py`, `heptacert\backend\src\ratelimit.py`, `heptacert\backend\src\services.py`, `heptacert\backend\src\utils.py` +2 more
+- `/db_types.py` ← `heptacert\backend\src\accreditation_models.py`, `heptacert\backend\src\crm_accounts_models.py`, `heptacert\backend\src\lead_forms_models.py`, `heptacert\backend\src\models.py`, `heptacert\backend\src\oauth_api.py` +3 more
+- `/db.py` ← `heptacert\backend\src\main.py`, `heptacert\backend\src\models.py`, `heptacert\backend\src\presentation_conversion_worker.py`, `heptacert\backend\src\presentation_models.py`, `heptacert\backend\src\ratelimit.py` +1 more
 - `/enums.py` ← `heptacert\backend\src\main.py`, `heptacert\backend\src\models.py`, `heptacert\backend\src\schemas.py`, `heptacert\backend\src\services.py`, `heptacert\backend\src\utils.py`
 - `/generator.py` ← `heptacert\backend\src\main.py`, `heptacert\backend\src\quiz_api.py`, `heptacert\backend\src\services.py`, `heptacert\backend\_archive_lms\lms_api.py`
-- `/db.py` ← `heptacert\backend\src\main.py`, `heptacert\backend\src\models.py`, `heptacert\backend\src\ratelimit.py`, `heptacert\backend\src\services.py`
-- `/event_team.py` ← `heptacert\backend\src\main.py`, `heptacert\backend\src\schemas.py`, `heptacert\backend\src\services.py`
+- `/upload_security.py` ← `heptacert\backend\src\bulk_generate_api.py`, `heptacert\backend\src\event_crm_api.py`, `heptacert\backend\src\presentation_api.py`
+
+---
+
+# Events & Queues
+
+- `presentation:ws:*` [channel] — `heptacert/backend/src/presentation_ws.py`
 
 ---
 
 # Test Coverage
 
 > **14%** of routes and models are covered by tests
-> 25 test files found
+> 26 test files found
 
 ## Covered Routes
 
@@ -3445,6 +3559,7 @@
 - EventTicket
 - EventComment
 - OrganizationMember
+- PresentationDeck
 
 ---
 

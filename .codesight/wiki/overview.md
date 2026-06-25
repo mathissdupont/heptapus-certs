@@ -8,7 +8,7 @@
 
 ## Scale
 
-690 API routes · 155 database models · 238 UI components · 199 library files · 7 middleware layers · 70 environment variables
+715 API routes · 157 database models · 247 UI components · 213 library files · 7 middleware layers · 75 environment variables
 
 ## Subsystems
 
@@ -44,6 +44,7 @@
 - **[Openapi.json](./openapi.json.md)** — 1 routes — touches: auth, db, cache, queue, email
 - **[Org_staff_api](./org_staff_api.md)** — 1 routes — touches: auth, db
 - **[Platform_health_api](./platform_health_api.md)** — 1 routes — touches: auth, db, payment
+- **[Presentation_api](./presentation_api.md)** — 25 routes — touches: auth, db, cache, queue, upload
 - **[Product_telemetry_api](./product_telemetry_api.md)** — 1 routes — touches: auth, db
 - **[Public](./public.md)** — 17 routes — touches: auth, db, cache, queue, email
 - **[Qa_seed_api](./qa_seed_api.md)** — 1 routes — touches: auth, db
@@ -58,22 +59,22 @@
 - **[Waitlist](./waitlist.md)** — 1 routes — touches: auth, db, cache, queue, email
 - **[Infra](./infra.md)** — 1 routes — touches: auth, db
 
-**Database:** sqlalchemy, 155 models — see [database.md](./database.md)
+**Database:** sqlalchemy, 157 models — see [database.md](./database.md)
 
-**UI:** 238 components (react) — see [ui.md](./ui.md)
+**UI:** 247 components (react) — see [ui.md](./ui.md)
 
-**Libraries:** 199 files — see [libraries.md](./libraries.md)
+**Libraries:** 213 files — see [libraries.md](./libraries.md)
 
 ## High-Impact Files
 
 Changes to these files have the widest blast radius across the codebase:
 
-- `/main.py` — imported by **64** files
-- `/organization_access_api.py` — imported by **14** files
+- `/main.py` — imported by **66** files
+- `/organization_access_api.py` — imported by **15** files
 - `//output.py` — imported by **11** files
+- `/config.py` — imported by **10** files
 - `//client.py` — imported by **10** files
-- `/db_types.py` — imported by **7** files
-- `/config.py` — imported by **7** files
+- `/db_types.py` — imported by **8** files
 
 ## Required Environment Variables
 
@@ -92,4 +93,4 @@ Changes to these files have the widest blast radius across the codebase:
 - _...21 more_
 
 ---
-_Back to [index.md](./index.md) · Generated 2026-06-20_
+_Back to [index.md](./index.md) · Generated 2026-06-23_

@@ -19,6 +19,14 @@ const PLAN_LABELS: Record<string, string> = {
   enterprise: "Enterprise",
 };
 
+const PLAN_ORDER: Record<string, number> = {
+  starter: 0,
+  free: 0,
+  pro: 1,
+  growth: 2,
+  enterprise: 3,
+};
+
 const PLAN_GATE_MATCHERS = [
   "plan",
   "abonelik",
@@ -37,6 +45,19 @@ export function planLabel(plan: string) {
 
 export function planListLabel(plans: string[]) {
   return plans.map(planLabel).join(" / ");
+}
+
+function normalizePlan(plan?: string | null) {
+  return String(plan || "starter").trim().toLowerCase() || "starter";
+}
+
+export function planAllows(planId: string | null | undefined, requiredPlans: string[] = []) {
+  if (!requiredPlans.length) return true;
+  const plan = normalizePlan(planId);
+  const required = requiredPlans.map(normalizePlan);
+  if (required.includes(plan)) return true;
+  const minimumRank = Math.min(...required.map((item) => PLAN_ORDER[item] ?? 99));
+  return (PLAN_ORDER[plan] ?? -1) >= minimumRank;
 }
 
 export function isPlanGateError(message?: string | null) {
@@ -136,7 +157,7 @@ export function useSubscription() {
     if (!subscription) return false;
     if (subscription.role === "superadmin") return true;
     if (!subscription.active || !subscription.plan_id) return false;
-    return allowed.includes(subscription.plan_id);
+    return planAllows(subscription.plan_id, allowed);
   }
 
   return { loading, subscription, error, hasPlan } as const;
