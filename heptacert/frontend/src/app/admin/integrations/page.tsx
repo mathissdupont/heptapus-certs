@@ -55,6 +55,8 @@ import {
 } from "@/lib/api";
 import { apiFetch } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import PageHeader from "@/components/Admin/PageHeader";
+import { StatCard } from "@/components/Admin/StatCard";
 
 type MyOAuthConnection = {
   client_id:    string;
@@ -65,7 +67,7 @@ type MyOAuthConnection = {
 };
 
 type IntegrationStatus = "loading" | "connected" | "disconnected" | "not_configured" | "error";
-type NotificationChannelKey = "slack" | "teams" | "custom";
+type NotificationChannelKey = "slack" | "teams" | "discord" | "google_chat" | "custom";
 
 const channelCopy: Record<NotificationChannelKey, { name: string; placeholder: string; help: string }> = {
   slack: {
@@ -77,6 +79,16 @@ const channelCopy: Record<NotificationChannelKey, { name: string; placeholder: s
     name: "Microsoft Teams",
     placeholder: "https://...logic.azure.com/...",
     help: "Teams Workflows webhook URL for posting operational cards.",
+  },
+  discord: {
+    name: "Discord",
+    placeholder: "https://discord.com/api/webhooks/...",
+    help: "Discord channel → Integrations → Webhooks → Copy Webhook URL.",
+  },
+  google_chat: {
+    name: "Google Chat",
+    placeholder: "https://chat.googleapis.com/v1/spaces/.../messages?key=...",
+    help: "Google Chat space → Apps & integrations → Webhooks → Copy URL.",
   },
   custom: {
     name: "Zapier / Make / Custom",
@@ -465,6 +477,7 @@ export default function AdminIntegrationsPage() {
   }, [catalog]);
 
   const connectedCount = catalog.filter(item => item.connected || item.status === "connected").length;
+  const notifChannelsCount = (["slack", "teams", "discord", "google_chat", "custom"] as NotificationChannelKey[]).filter(key => notifications?.[key]).length;
   const supportedEvents = notifications?.supported_events?.filter(event => event !== "attendee.register") || ["attendee.registered", "cert.issued", "cert.bulk_completed", "checkin.completed", "crm.lead_score_changed"];
 
   const startOAuth = async (kind: "sheets" | "excel" | "calendar") => {
@@ -574,21 +587,21 @@ export default function AdminIntegrationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-600">{isTr ? "Kurumsal baglantilar" : "Enterprise connections"}</p>
-          <h1 className="mt-1.5 text-2xl font-black text-surface-900">{isTr ? "Entegrasyonlar" : "Integrations"}</h1>
-          <p className="mt-1 max-w-2xl text-sm text-surface-500">
-            {isTr
-              ? "Sheets, Excel, Calendar, Slack, Teams, Zapier, Make, CRM, SSO ve diger kurumsal baglantilari buradan yonetin."
-              : "Manage Sheets, Excel, Calendar, Slack, Teams, Zapier, Make, CRM, SSO, and other enterprise connections."}
-          </p>
-        </div>
-        <button type="button" onClick={() => void load()} disabled={loading} className="btn-secondary">
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          {isTr ? "Yenile" : "Refresh"}
-        </button>
-      </div>
+      <PageHeader
+        icon={<Plug />}
+        title={isTr ? "Entegrasyonlar" : "Integrations"}
+        subtitle={
+          isTr
+            ? "Sheets, Excel, Calendar, Slack, Teams, Zapier, Make, CRM, SSO ve diğer kurumsal bağlantıları buradan yönetin."
+            : "Manage Sheets, Excel, Calendar, Slack, Teams, Zapier, Make, CRM, SSO, and other enterprise connections."
+        }
+        actions={
+          <button type="button" onClick={() => void load()} disabled={loading} className="btn-secondary">
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            {isTr ? "Yenile" : "Refresh"}
+          </button>
+        }
+      />
 
       {error && (
         <div className="error-banner flex items-center gap-2">
@@ -597,37 +610,49 @@ export default function AdminIntegrationsPage() {
         </div>
       )}
 
-      <div className="card flex items-center gap-4 p-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
-          <Plug className="h-5 w-5" />
-        </div>
-        <div>
-          <p className="text-sm font-bold text-surface-900">
-            {connectedCount} / {catalog.length || 18} {isTr ? "baglanti aktif" : "connections active"}
-          </p>
-          <p className="text-xs text-surface-500">
-            {isTr ? "Aktif bağlantıları yönetin, yeni entegrasyon ekleyin veya mevcut bağlantıları test edin." : "Manage active connections, add new integrations, or test existing ones."}
-          </p>
-        </div>
+      <div className="grid grid-cols-2 gap-3.5 xl:grid-cols-4">
+        <StatCard
+          label={isTr ? "Aktif bağlantı" : "Active connections"}
+          value={loading ? "—" : connectedCount}
+          icon={<Wifi />}
+          iconBg="bg-emerald-50 text-emerald-600 border border-emerald-100"
+          delay={0}
+        />
+        <StatCard
+          label={isTr ? "Toplam connector" : "Total connectors"}
+          value={loading ? "—" : catalog.length}
+          icon={<Plug />}
+          delay={0.05}
+        />
+        <StatCard
+          label={isTr ? "Kategori" : "Categories"}
+          value={loading ? "—" : Object.keys(groupedCatalog).length}
+          icon={<Database />}
+          delay={0.1}
+        />
+        <StatCard
+          label={isTr ? "Bildirim kanalı" : "Notification channels"}
+          value={loading ? "—" : notifChannelsCount}
+          icon={<Bell />}
+          delay={0.15}
+        />
       </div>
 
-      <div className="card border-amber-200 bg-amber-50 p-4">
-        <div className="flex gap-3">
-          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
-          <div>
-            <p className="text-sm font-bold text-amber-900">{isTr ? "Credential guvenligi" : "Credential security"}</p>
-            <p className="mt-1 text-xs leading-relaxed text-amber-800">
-              {isTr
-                ? "Secret, token ve API key alanları kaydedildikten sonra maskelenir. Alan boş veya ******** bırakılırsa mevcut değer korunur; yeni değer yazarsanız güncellenir."
-                : "Secret, token, and API key fields are masked after saving. Leaving a field empty or as ******** keeps the current value; entering a new value replaces it."}
-            </p>
-          </div>
+      <div className="warning-banner">
+        <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" />
+        <div>
+          <p className="font-semibold">{isTr ? "Kimlik bilgisi güvenliği" : "Credential security"}</p>
+          <p className="mt-1 text-xs leading-relaxed">
+            {isTr
+              ? "Secret, token ve API key alanları kaydedildikten sonra maskelenir. Alan boş veya ******** bırakılırsa mevcut değer korunur; yeni değer yazarsanız güncellenir."
+              : "Secret, token, and API key fields are masked after saving. Leaving a field empty or as ******** keeps the current value; entering a new value replaces it."}
+          </p>
         </div>
       </div>
 
       {myConnections.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-surface-400">
+          <h2 className="section-label">
             {isTr ? "Bağlı AI Asistanlar" : "Connected AI Assistants"}
           </h2>
           <div className="grid gap-3 lg:grid-cols-2">
@@ -669,7 +694,7 @@ export default function AdminIntegrationsPage() {
       )}
 
       <section className="space-y-3">
-        <h2 className="text-xs font-bold uppercase tracking-widest text-surface-400">{isTr ? "Canli baglantilar" : "Live connectors"}</h2>
+        <h2 className="section-label">{isTr ? "Canli baglantilar" : "Live connectors"}</h2>
         <div className="grid gap-4 lg:grid-cols-3">
           <OauthCard
             icon={FileSpreadsheet}
@@ -726,7 +751,7 @@ export default function AdminIntegrationsPage() {
             {isTr ? "Slack, Teams, Zapier, Make veya ozel webhook URL'lerine olay gonderin." : "Send events to Slack, Teams, Zapier, Make, or custom webhook URLs."}
           </p>
           <div className="mt-4 grid gap-2">
-            {(["slack", "teams", "custom"] as NotificationChannelKey[]).map(key => (
+            {(["slack", "teams", "discord", "google_chat", "custom"] as NotificationChannelKey[]).map(key => (
               <button
                 key={key}
                 type="button"
@@ -809,7 +834,7 @@ export default function AdminIntegrationsPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xs font-bold uppercase tracking-widest text-surface-400">{isTr ? "Enterprise kurulum" : "Enterprise setup"}</h2>
+        <h2 className="section-label">{isTr ? "Enterprise kurulum" : "Enterprise setup"}</h2>
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="card p-4">
             <div className="flex items-start justify-between gap-3">
@@ -879,7 +904,7 @@ export default function AdminIntegrationsPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xs font-bold uppercase tracking-widest text-surface-400">{isTr ? "Tum diger connectorlar" : "All remaining connectors"}</h2>
+        <h2 className="section-label">{isTr ? "Tum diger connectorlar" : "All remaining connectors"}</h2>
         <div className="grid gap-4 lg:grid-cols-2">
           {providerKeys.map(key => {
             const cfg = providerForms[key];
@@ -934,10 +959,10 @@ export default function AdminIntegrationsPage() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xs font-bold uppercase tracking-widest text-surface-400">{isTr ? "Kurumsal entegrasyon katalogu" : "Enterprise integration catalog"}</h2>
+        <h2 className="section-label">{isTr ? "Kurumsal entegrasyon katalogu" : "Enterprise integration catalog"}</h2>
         {Object.entries(groupedCatalog).map(([category, items]) => (
           <div key={category} className="space-y-3">
-            <h3 className="text-sm font-black text-surface-900">{category}</h3>
+            <h3 className="card-title">{category}</h3>
             <div className="grid gap-3 lg:grid-cols-2">
               {items.map(item => <CatalogCard key={item.key} item={item} lang={lang} />)}
             </div>

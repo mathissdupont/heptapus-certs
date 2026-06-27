@@ -9,6 +9,7 @@ import {
 } from "@/lib/api";
 import Link from "next/link";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
+import PageHeader from "@/components/Admin/PageHeader";
 import DateField from "@/components/Admin/DateField";
 import TimeField from "@/components/Admin/TimeField";
 import { PlanGateCard, isPlanGateError } from "@/lib/useSubscription";
@@ -45,13 +46,16 @@ function RegisterLinkBanner({ eventId }: { eventId: string }) {
         <p className="text-xs font-semibold text-surface-700 mb-0.5">{bannerCopy.label}</p>
         <p className="text-xs text-surface-500 truncate font-mono">{url}</p>
       </div>
-      <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-sky-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-surface-600 transition hover:text-sky-800 sm:w-auto">
+      <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-surface-600 transition-colors hover:text-surface-900 sm:w-auto">
         <ExternalLink className="w-3.5 h-3.5" /> {bannerCopy.open}
       </a>
       <button
         onClick={copy}
-        className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition-colors sm:w-auto"
-        style={copied ? { background: "#d1fae5", borderColor: "#6ee7b7", color: "#065f46" } : { background: "#0ea5e9", borderColor: "#0ea5e9", color: "#fff" }}
+        className={`inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors sm:w-auto ${
+          copied
+            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+            : "border-surface-900 bg-surface-900 text-white hover:bg-surface-800"
+        }`}
       >
         {copied ? <><ClipboardCheck className="w-3.5 h-3.5" /> {bannerCopy.copied}</> : <><Link2 className="w-3.5 h-3.5" /> {bannerCopy.copy}</>}
       </button>
@@ -270,7 +274,7 @@ export default function AdminSessionsPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6 pb-10">
       <div className="space-y-6">
-        <EventAdminNav eventId={eventId} eventName={eventName} active="sessions" className="mb-6 flex flex-col gap-2" />
+        <EventAdminNav eventId={eventId} eventName={eventName} active="sessions" className="mb-2" />
 
         {/* Plan gate */}
         {planOk === false && (
@@ -282,29 +286,20 @@ export default function AdminSessionsPage() {
 
         {planOk !== false && (
           <>
-        <div className="surface-panel p-5 sm:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-surface-500">{copy.checkinInfra}</p>
-            <h1 className="mt-2 text-2xl font-black text-surface-950">{copy.sessionManagement}</h1>
-            <p className="mt-1 text-sm text-surface-500">{eventName}</p>
-          </div>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-            <Link
-              href={`/admin/events/${eventId}/attendees`}
-              className="btn-secondary justify-center text-sm"
-            >
-              {copy.attendees}
-            </Link>
-            <button
-              onClick={openCreate}
-              className="btn-primary justify-center text-sm"
-            >
-              <Plus className="w-4 h-4" /> {copy.addSession}
-            </button>
-          </div>
-        </div>
-        </div>
+        <PageHeader
+          title={copy.sessionManagement}
+          subtitle={eventName}
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <Link href={`/admin/events/${eventId}/attendees`} className="btn-secondary text-xs">
+                {copy.attendees}
+              </Link>
+              <button onClick={openCreate} className="btn-primary text-xs">
+                <Plus className="h-3.5 w-3.5" /> {copy.addSession}
+              </button>
+            </div>
+          }
+        />
 
         {/* Registration link banner */}
       <RegisterLinkBanner eventId={eventPublicId || String(eventId)} />
@@ -412,10 +407,10 @@ export default function AdminSessionsPage() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-surface-700">{s.name}</span>
+                      <span className="font-semibold text-surface-900">{s.name}</span>
                       {s.is_active && (
-                        <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">
-                          <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse inline-block" />
+                        <span className="badge-active">
+                          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse inline-block" />
                           {copy.checkinOpen}
                         </span>
                       )}
@@ -459,7 +454,7 @@ export default function AdminSessionsPage() {
                       onClick={() => handleToggle(s)}
                       disabled={toggling === s.id}
                       title={s.is_active ? copy.checkinClose : copy.checkinOpenAction}
-                      className={`p-2 rounded-lg transition ${s.is_active ? "text-green-600 hover:bg-green-50" : "text-surface-400 hover:bg-surface-50"}`}
+                      className={`p-2 rounded-lg transition ${s.is_active ? "text-emerald-600 hover:bg-emerald-50" : "text-surface-400 hover:bg-surface-50"}`}
                     >
                       {toggling === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : s.is_active ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
                     </button>

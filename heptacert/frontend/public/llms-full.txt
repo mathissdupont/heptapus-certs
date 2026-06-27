@@ -1,0 +1,162 @@
+# HeptaCert — Full Reference for AI Systems
+
+HeptaCert is an end-to-end event management platform (an "event operating system")
+covering the full event lifecycle: registration, QR check-in and attendance,
+automated and verifiable digital certificates, email campaigns, CRM, learning
+paths, accreditation/CPD, analytics, a public training marketplace, a REST API,
+and an MCP server for AI agents. Built by Heptapus Group for Turkish and global
+organizations. Primary language Turkish; full English interface.
+
+This file is the extended companion to /llms.txt. It adds the plan/feature matrix,
+integration catalog, API surface, and AI-agent (MCP) details.
+
+## Canonical URLs
+
+- Home: https://heptacert.com/
+- Discover hub: https://heptacert.com/discover
+- Public events: https://heptacert.com/events
+- Organizations: https://heptacert.com/organizations
+- Training marketplace: https://heptacert.com/marketplace
+- Certificate verification: https://heptacert.com/verify
+- Developer portal & API docs: https://heptacert.com/developers
+- Business pricing: https://heptacert.com/pricing/business
+- Contact: https://heptacert.com/iletisim
+- AI agent endpoint (MCP, Streamable HTTP): https://heptacert.com/mcp
+
+## Plans & Feature Matrix
+
+HeptaCert has four plans. The free Starter tier has no cost; Professional, Growth,
+and Enterprise are paid. Pricing is in Turkish Lira (TRY) and may change — always
+check /pricing/business for current numbers. Higher tiers include everything in the
+tiers below them.
+
+- **Starter (Free)** — certificate verification, basic template editor, public
+  profiles, community access. Includes a one-time HeptaCoin welcome credit.
+- **Professional** — paid event operations: QR check-in, ticketing, bulk
+  certificates, custom registration forms, ready-made certificate templates, and
+  branding/watermark removal. Monthly HeptaCoin quota.
+- **Growth** — everything in Professional plus marketing and scale: email
+  automation, audience segmentation, advanced analytics, webhooks, custom domains,
+  full API access, presentations, raffles, and lead-capture forms. Larger quota.
+- **Enterprise** — everything in Growth plus organization-grade capabilities:
+  team/collaborator management, event CRM, enterprise integrations, LMS, training
+  compliance, accreditation, scheduled reports, SSO, kiosk mode, and platform
+  health. Unlimited HeptaCoin quota; custom pricing.
+
+"HeptaCoin" is the internal usage credit consumed by certificate issuance and
+hosting. Paid plans receive a recurring monthly quota; Enterprise is unlimited.
+
+## Core Modules (detail)
+
+### Event & Registration
+Multi-step event wizard; custom registration forms with conditional fields,
+document uploads, and approval workflows; participant management with bulk
+import/export; ticket types and capacity; public event pages and a discovery hub.
+
+### QR Check-in & Attendance
+Session-level QR attendance; live operations screen for gate staff; offline-capable
+mobile check-in; attendance matrix export; minimum-sessions rule for certificate
+eligibility.
+
+### Digital Certificates (automated)
+Branded generation from custom templates; automatic issuance triggers (attendance
+confirmed, quiz passed, learning path completed); public verification page + QR (no
+login); CPD/credit-hour stamping; bulk generation and email delivery; Apple Wallet
+passes.
+
+### Email & Automation
+Bulk campaigns with branded templates; open/click/delivery tracking; trigger-based
+drip sequences (registered, attended, certificate issued, tag added) with
+delay + action steps (send email, add tag, call webhook).
+
+### CRM
+Contact profiles with full event/certificate history; corporate accounts; deal
+pipeline (Lead → Qualified → Proposal → Won/Lost); activity timeline; segments and
+tags; embeddable lead-capture forms (iframe).
+
+### Quiz & Assessment
+Multiple-choice, true/false, open-ended; configurable passing score and attempt
+limits; timed assessments; automatic scoring; certificate trigger on pass.
+
+### Learning Paths
+Ordered sequences of events/courses with prerequisites; enrollment and completion
+tracking; required vs optional steps; per-step minimum score overrides.
+
+### Accreditation & CPD
+Supported bodies include MYK, TMMOB, SMMM, TÜRMOB, YÖKAK, EMO, TOBB. Org-level
+accreditation records with validity tracking; event-level CPD hours; member CPD
+transcripts (total and by-body, exportable).
+
+### Marketplace
+Organizations publish training programs for public discovery; category/price/free
+filters; Course structured data for rich results.
+
+### Analytics & Reporting
+Organization overview (certificates, events, members, engagement); training
+compliance heatmap; CRM funnel; learning-path completion funnels; scheduled PDF
+reports (daily/weekly/monthly).
+
+## Integration Catalog
+
+- **Messaging/Notifications:** Slack (Incoming Webhooks), Microsoft Teams (Adaptive
+  Cards), WhatsApp Business (Meta Cloud API / 360dialog), Twilio SMS.
+- **Data sync:** Google Sheets, Microsoft Excel (OneDrive/SharePoint).
+- **Calendar:** Google Calendar (two-way venue reservation sync).
+- **CRM/Marketing:** HubSpot, Salesforce, Mailchimp/Brevo.
+- **Automation:** Zapier, Make, and custom HTTPS webhooks (HMAC-SHA256 signed).
+- **Identity:** OIDC SSO (Entra ID, Okta, Google Workspace).
+- **Webinar:** Zoom, Microsoft Teams webinar attendance import.
+- **Document storage:** Google Drive / SharePoint archive.
+- **Analytics/BI:** Power BI, Looker Studio.
+- **LMS:** Moodle, Canvas.
+- **Accounting (Turkey):** Logo, Paraşüt, Mikro.
+- **Payments:** iyzico, PayTR, Stripe (one active at a time).
+
+New connectors are managed from Admin → Integrations. Secrets are encrypted at rest
+and masked after saving.
+
+## Developer API
+
+- REST over HTTPS, Bearer token auth (keys start with `hc_live_`).
+- Granular scopes: events, certificates, attendees, CRM, analytics, forms, reports
+  (each read/write).
+- Rate limits by plan: ~60 rpm Starter, ~300 rpm Growth, ~1000 rpm Enterprise.
+- Interactive docs and key management at /developers.
+
+## MCP Server (AI Agent Access)
+
+HeptaCert exposes a Model Context Protocol (MCP) server so AI agents can operate the
+platform directly.
+
+- Endpoint: https://heptacert.com/mcp (Streamable HTTP transport).
+- Auth: per-request `Authorization: Bearer hc_live_...` header (API key from the
+  admin dashboard). Scopes from the key are enforced per tool.
+- Tooling: ~44 tools across events, attendees, sessions, certificates, check-in,
+  automation rules, webhooks, analytics, and LMS — read and write.
+- Safety: destructive tools (delete event, remove attendee, revoke certificate,
+  delete session) require an explicit confirm step; every write is recorded in the
+  agent audit log.
+- Local/stdio mode is also supported (e.g. Claude Desktop) using the
+  HEPTACERT_API_KEY environment variable.
+
+## Audience
+
+Event organizers and event companies; corporate training and HR/L&D teams;
+professional associations and chambers; universities, student clubs, academic
+organizers; certification/accreditation bodies; developers embedding registration
+or certificate issuance.
+
+## Key Technical Facts
+
+- Multilingual (Turkish primary, English).
+- Custom domain + white-label portals.
+- KVKK (Turkish data protection) compliant; 2FA with backup codes; role-based
+  access control (admin, manager, viewer).
+- Offline-capable QR check-in.
+- PostgreSQL with Alembic migrations; Redis-backed async job queue; Docker-ready.
+
+## Contact
+
+- Platform contact: https://heptacert.com/iletisim
+- Developer support: contact@heptapusgroup.com
+- Publisher: Heptapus Group — https://heptapusgroup.com

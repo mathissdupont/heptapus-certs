@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -17,7 +17,6 @@ from .main import (
     Subscription,
     User,
     _get_or_create_admin_organization,
-    ensure_utc,
     get_current_user,
     get_db,
     require_role,
@@ -201,10 +200,9 @@ async def organization_owner_has_enterprise_plan(db: AsyncSession, organization:
         .limit(1)
     )
     sub = result.scalar_one_or_none()
-    if not sub or sub.plan_id != "enterprise":
-        return False
-    expires_at = ensure_utc(sub.expires_at)
-    return not (expires_at and expires_at < datetime.now(timezone.utc))
+    # Central policy helper: is_active + Enterprise plan rank + non-expired.
+    from .plan_policy import subscription_is_active_plan
+    return subscription_is_active_plan(sub, {"enterprise"})
 
 
 async def ensure_organization_enterprise(db: AsyncSession, organization: Organization) -> None:

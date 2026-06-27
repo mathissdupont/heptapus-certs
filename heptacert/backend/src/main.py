@@ -878,136 +878,11 @@ from .event_team import (  # event_team.py'a tasindi (god-dosya bolme)
 
 
 
-DEFAULT_PRICING: List[dict] = [
-    {
-        "id": "starter",
-        "name_tr": "BaÃ…Å¸langÃ„Â±ÃƒÂ§",
-        "name_en": "Starter",
-        "price_monthly": 0,
-        "price_annual": 0,
-        "hc_quota": 50,
-        "features_tr": [
-            "50 HC hoÅŸ geldin bonusu (tek seferlik)",
-            "QR kod doÃ„Å¸rulama",
-            "Sertifika arÃ…Å¸ivi (1 yÃ„Â±l)",
-            "Temel ÅŸablon editÃ¶rÃ¼",
-            "HeptaCert watermark",
-        ],
-        "features_en": [
-            "50 HC welcome bonus (one-time)",
-            "QR code verification",
-            "Certificate archive (1 year)",
-            "Basic template editor",
-            "HeptaCert watermark",
-        ],
-        "is_free": True,
-        "is_enterprise": False,
-    },
-    {
-        "id": "pro",
-        "name_tr": "Profesyonel",
-        "name_en": "Professional",
-        "price_monthly": 499,
-        "price_annual": 399,
-        "hc_quota": 500,
-        "features_tr": [
-            "AylÃ„Â±k 500 HC",
-            "SÃ„Â±nÃ„Â±rsÃ„Â±z etkinlik",
-            "Excel toplu basÃ„Â±m",
-            "Sertifika arÃ…Å¸ivi (3 yÃ„Â±l)",
-            "Etkinlik kayÃ„Â±t ve check-in sistemi",
-            "QR ile yoklama takibi",
-            "Ã–oncelikli destek",
-        ],
-        "features_en": [
-            "500 HC per month",
-            "Unlimited events",
-            "Excel bulk generation",
-            "Certificate archive (3 years)",
-            "Event registration & check-in system",
-            "QR attendaonce tracking",
-            "Priority support",
-        ],
-        "is_free": False,
-        "is_enterprise": False,
-    },
-    {
-        "id": "growth",
-        "name_tr": "BÃ¼yÃ¼me",
-        "name_en": "Growth",
-        "price_monthly": 1299,
-        "price_annual": 1099,
-        "hc_quota": 2000,
-        "features_tr": [
-            "AylÃ„Â±k 2.000 HC",
-            "SÃ„Â±nÃ„Â±rsÃ„Â±z etkinlik",
-            "Excel toplu basÃ„Â±m",
-            "Sertifika arÃ…Å¸ivi (3 yÃ„Â±l)",
-            "Etkinlik kayÃ„Â±t ve check-in sistemi",
-            "QR ile yoklama takibi",
-            "API eriÅŸimi (tam)",
-            "Ãƒâ€“zel alan adÃ„Â± doÃ„Å¸rulama",
-            "Marka watermark kaldÃ„Â±rma",
-            "Otomatik email sistemi (bulk mail + ÅŸablonlar)",
-            "5-7 hazÃ„Â±r sertifika Ã…Å¸ablonu",
-            "Custom event aÃƒÂ§Ã„Â±klamasÃ„Â± ve banneri",
-            "Webhook API desteÃ„Å¸i",
-            "Advaonced analytics dashboard",
-            "Custom form alanlarÃ„Â±",
-            "KatÃ„Â±lÃ„Â±mcÃ„Â± self-service sertifika indirme",
-        ],
-        "features_en": [
-            "2,000 HC per month",
-            "Unlimited events",
-            "Excel bulk generation",
-            "Certificate archive (3 years)",
-            "Event registration & check-in system",
-            "QR attendaonce tracking",
-            "Full API access",
-            "Custom domain verification",
-            "Remove branding watermark",
-            "Automated email system (bulk mail + templates)",
-            "5-7 pre-built certificate templates",
-            "Custom event description & banner",
-            "Webhook API support",
-            "Advaonced analytics dashboard",
-            "Custom form fields",
-            "Attendee self-service certificate download",
-        ],
-        "is_free": False,
-        "is_enterprise": False,
-    },
-    {
-        "id": "enterprise",
-        "name_tr": "Kurumsal",
-        "name_en": "Enterprise",
-        "price_monthly": None,
-        "price_annual": None,
-        "hc_quota": None,
-        "features_tr": [
-            "SÃ„Â±nÃ„Â±rsÃ„Â±z HC kotasÃ„Â±",
-            "Ãƒâ€“zel SLA anlaÃ…Å¸masÃ„Â±",
-            "API entegrasyonu",
-            "Ãƒâ€“zel alan adÃ„Â± desteÃ„Å¸i",
-            "Etkinlik kayÃ„Â±t ve check-in sistemi",
-            "QR ile yoklama takibi",
-            "Toplu sertifika Ã¼retimi",
-            "7/24 kurumsal destek",
-        ],
-        "features_en": [
-            "Unlimited HC quota",
-            "Custom SLA agreement",
-            "API integration",
-            "Custom domain support",
-            "Event registration & check-in system",
-            "QR attendaonce tracking",
-            "Bulk certificate generation",
-            "24/7 enterprise support",
-        ],
-        "is_free": False,
-        "is_enterprise": True,
-    },
-]
+from .plan_policy import pricing_catalog_payload as _pricing_catalog_payload
+
+# Single source of truth lives in plan_policy.PLAN_CATALOG. This is derived,
+# not hand-maintained, so pricing/quota/feature text never drift apart.
+DEFAULT_PRICING: List[dict] = _pricing_catalog_payload()
 
 
 
@@ -2111,6 +1986,7 @@ async def require_email_system_access(
     """Email system features (bulk mail, templates, etc) require Growth or Enterprise plan. Superadmins bypass."""
     if me.role == Role.superadmin:
         return me
+    from .plan_policy import feature_required_plans
     res = await db.execute(
         select(Subscription)
         .where(Subscription.user_id == me.id, Subscription.is_active == True)
@@ -2118,17 +1994,12 @@ async def require_email_system_access(
         .limit(1)
     )
     sub = res.scalar_one_or_none()
-    if not sub or sub.plan_id not in ("growth", "enterprise"):
+    # Single source: "email" feature policy decides which plans qualify; the
+    # helper handles is_active + plan rank + expiry consistently.
+    if not _subscription_is_active_plan(sub, set(feature_required_plans("email"))):
         raise HTTPException(
             status_code=403,
             detail="Oto-mail sistemi Growth ve Enterprise planlarında kullanılabilir.",
-        )
-    now = datetime.now(timezone.utc)
-    expires_at = ensure_utc(sub.expires_at)
-    if expires_at and expires_at < now:
-        raise HTTPException(
-            status_code=403,
-            detail="Aboneliğiniz sona ermiş. Lutfen planınızı yenileyin.",
         )
     return me
 
@@ -2728,9 +2599,13 @@ async def startup():
                     )
                     .limit(200)
                 )
+                unlimited_cache: dict[int, bool] = {}
                 for cert, ev, admin in res.all():
                     cost = hosting_units(getattr(cert, "hosting_term", None) or "yearly", int(cert.asset_size_bytes or 0))
-                    if admin.heptacoin_balaonce < cost:
+                    if admin.id not in unlimited_cache:
+                        unlimited_cache[admin.id] = await _user_has_unlimited_hc(db_auto, admin.id)
+                    unlimited = unlimited_cache[admin.id]
+                    if not unlimited and admin.heptacoin_balaonce < cost:
                         cert.status = CertStatus.expired
                         logger.warning(
                             "Certificate auto-renew skipped for cert %s: insufficient HC balance on user %s",
@@ -2739,15 +2614,16 @@ async def startup():
                         )
                         continue
 
-                    admin.heptacoin_balaonce -= cost
+                    if not unlimited:
+                        admin.heptacoin_balaonce -= cost
+                        db_auto.add(Transaction(
+                            user_id=admin.id,
+                            amount=cost,
+                            type=TxType.spend,
+                            description=f"Certificate hosting auto-renew: {cert.public_id or cert.uuid}",
+                        ))
                     cert.hosting_ends_at = compute_hosting_ends(getattr(cert, "hosting_term", None) or "yearly")
                     cert.status = CertStatus.active
-                    db_auto.add(Transaction(
-                        user_id=admin.id,
-                        amount=cost,
-                        type=TxType.spend,
-                        description=f"Certificate hosting auto-renew: {cert.public_id or cert.uuid}",
-                    ))
                     logger.info("Certificate auto-renewed: cert=%s event=%s cost=%s", cert.id, ev.id, cost)
                 await db_auto.commit()
 
@@ -3283,9 +3159,30 @@ async def startup():
 
 
 def _get_hc_quota(plan_id: str) -> Optional[int]:
-    """Return the monthly HC quota for a plan from DEFAULT_PRICING."""
-    tier = next((t for t in DEFAULT_PRICING if t.get("id") == plan_id), None)
-    return tier.get("hc_quota") if tier else None
+    """Return the monthly HC quota for a plan (single source: plan_policy)."""
+    from .plan_policy import plan_hc_quota
+    return plan_hc_quota(plan_id)
+
+
+async def _user_has_unlimited_hc(db: AsyncSession, user_id: int) -> bool:
+    """True when the user's active plan grants unlimited HeptaCoin (Enterprise).
+
+    Enterprise has hc_quota=None, so it never receives HC credits; without this
+    exemption Enterprise users would be blocked by the balance checks that gate
+    certificate issuing/hosting. Centralizes the "unlimited" decision so every
+    spend path treats Enterprise consistently.
+    """
+    from .plan_policy import plan_is_unlimited_hc, subscription_is_active_plan
+    res = await db.execute(
+        select(Subscription)
+        .where(Subscription.user_id == user_id, Subscription.is_active == True)
+        .order_by(Subscription.expires_at.desc())
+        .limit(1)
+    )
+    sub = res.scalar_one_or_none()
+    if sub is None:
+        return False
+    return subscription_is_active_plan(sub, {"enterprise"}) and plan_is_unlimited_hc(sub.plan_id)
 
 
 
@@ -3813,6 +3710,8 @@ async def _process_one_bulk_certificate_job(job_id: int) -> None:
             await db_job.commit()
             return
 
+        job_unlimited = await _user_has_unlimited_hc(db_job, job.created_by)
+
         template_path = local_path_from_url(ev.template_image_url)
         if not template_path.exists():
             job.status = "failed"
@@ -3842,7 +3741,7 @@ async def _process_one_bulk_certificate_job(job_id: int) -> None:
         for idx in range(start_idx, end_idx):
             student_name = names[idx]
 
-            if user.heptacoin_balaonce < ISSUE_UNITS_PER_CERT:
+            if not job_unlimited and user.heptacoin_balaonce < ISSUE_UNITS_PER_CERT:
                 job.status = "failed"
                 job.error_message = f"Insufficient HeptaCoin at index={idx}"
                 job.current_index = idx
@@ -3908,7 +3807,7 @@ async def _process_one_bulk_certificate_job(job_id: int) -> None:
                 hosting_spend = hosting_units(hosting_term, asset_size_bytes)
                 spend_units = ISSUE_UNITS_PER_CERT + hosting_spend
 
-                if user.heptacoin_balaonce < spend_units:
+                if not job_unlimited and user.heptacoin_balaonce < spend_units:
                     job.status = "failed"
                     job.error_message = f"Insufficient HeptaCoin at index={idx}"
                     job.current_index = idx
@@ -3938,11 +3837,13 @@ async def _process_one_bulk_certificate_job(job_id: int) -> None:
                 except Exception:
                     pass
 
-                user.heptacoin_balaonce -= spend_units
-                db_job.add(Transaction(user_id=user.id, amount=spend_units, type=TxType.spend))
+                if not job_unlimited:
+                    user.heptacoin_balaonce -= spend_units
+                    db_job.add(Transaction(user_id=user.id, amount=spend_units, type=TxType.spend))
 
                 job.created_count += 1
-                job.spent_heptacoin += spend_units
+                if not job_unlimited:
+                    job.spent_heptacoin += spend_units
                 generated_files.append({
                     "rel_pdf_path": rel_pdf_path,
                     "file_name": _safe_cert_filename(student_name, public_id),
@@ -7339,6 +7240,19 @@ async def payment_webhook(
     if status == "paid" and order.status != OrderStatus.paid:
         order.status = OrderStatus.paid
         order.paid_at = datetime.now(timezone.utc)
+        # On a plan change (upgrade/downgrade) deactivate any active subscription
+        # for a DIFFERENT plan first, so the user never ends up with two active
+        # subscriptions (mirrors the superadmin grant flow). Same-plan renewals
+        # are handled by extending the existing record below.
+        await db.execute(
+            update(Subscription)
+            .where(
+                Subscription.user_id == order.user_id,
+                Subscription.is_active == True,
+                Subscription.plan_id != order.plan_id,
+            )
+            .values(is_active=False)
+        )
         # Create or extend subscription
         sub_res = await db.execute(
             select(Subscription).where(Subscription.user_id == order.user_id, Subscription.plan_id == order.plan_id, Subscription.is_active == True)
@@ -10131,9 +10045,8 @@ async def issue_certificate(
             .order_by(Subscription.expires_at.desc()).limit(1)
         )
         _sub_h_row = _sub_h.scalar_one_or_none()
-        _now_h = datetime.now(timezone.utc)
-        if not _sub_h_row or _sub_h_row.plan_id not in ("growth", "enterprise") or \
-                (_sub_h_row.expires_at and _sub_h_row.expires_at < _now_h):
+        # Hologram removal is a Growth+ capability (distinct from Pro branding).
+        if not _subscription_is_active_plan(_sub_h_row, {"growth", "enterprise"}):
             cfg.show_hologram = True
 
     res_u = await db.execute(select(User).where(User.id == billing_user_id))
@@ -10208,7 +10121,8 @@ async def issue_certificate(
     hosting_spend = hosting_units(term, asset_size_bytes)
     spend_units = ISSUE_UNITS_PER_CERT + hosting_spend
 
-    if user.heptacoin_balaonce < spend_units:
+    issue_unlimited = await _user_has_unlimited_hc(db, billing_user_id)
+    if not issue_unlimited and user.heptacoin_balaonce < spend_units:
         raise HTTPException(
             status_code=402,
             detail=f"Insufficient HeptaCoin. NeededUnits={spend_units}, balanceUnits={user.heptacoin_balaonce}",
@@ -10230,8 +10144,9 @@ async def issue_certificate(
     )
     db.add(cert)
 
-    user.heptacoin_balaonce -= spend_units
-    db.add(Transaction(user_id=user.id, amount=spend_units, type=TxType.spend))
+    if not issue_unlimited:
+        user.heptacoin_balaonce -= spend_units
+        db.add(Transaction(user_id=user.id, amount=spend_units, type=TxType.spend))
 
     await write_audit_log(
         db,
@@ -13635,11 +13550,8 @@ async def bulk_certify_attendees(
             .order_by(Subscription.expires_at.desc()).limit(1)
         )
         _sub_hb_row = _sub_hb.scalar_one_or_none()
-        _now_hb = datetime.now(timezone.utc)
-        _allow_no_hologram = bool(
-            _sub_hb_row and _sub_hb_row.plan_id in ("growth", "enterprise") and
-            (not _sub_hb_row.expires_at or _sub_hb_row.expires_at > _now_hb)
-        )
+        # Hologram removal is a Growth+ capability (distinct from Pro branding).
+        _allow_no_hologram = _subscription_is_active_plan(_sub_hb_row, {"growth", "enterprise"})
 
     # Fetch attendaonce counts
     rec_res = await db.execute(
@@ -13664,8 +13576,9 @@ async def bulk_certify_attendees(
     # Balance check
     user_res = await db.execute(select(User).where(User.id == billing_user_id))
     user = user_res.scalar_one()
+    bulk_unlimited = await _user_has_unlimited_hc(db, billing_user_id)
     # Rough estimate: check at least 10 HC per cert available
-    if user.heptacoin_balaonce < 10:
+    if not bulk_unlimited and user.heptacoin_balaonce < 10:
         raise HTTPException(status_code=402, detail="Yetersiz HeptaCoin")
 
     # Load org branding
@@ -13700,7 +13613,7 @@ async def bulk_certify_attendees(
         # Re-check balance each iteration
         fresh_user = await db.execute(select(User).where(User.id == billing_user_id))
         user = fresh_user.scalar_one()
-        if user.heptacoin_balaonce < 10:
+        if not bulk_unlimited and user.heptacoin_balaonce < 10:
             break  # stop if out of coins
 
         cert_uuid = new_certificate_uuid()
@@ -13794,10 +13707,11 @@ async def bulk_certify_attendees(
             asset_size_bytes=asset_size,
         )
         db.add(cert)
-        user.heptacoin_balaonce -= cost
-        db.add(Transaction(user_id=me.id, amount=cost, type=TxType.spend))
+        if not bulk_unlimited:
+            user.heptacoin_balaonce -= cost
+            db.add(Transaction(user_id=me.id, amount=cost, type=TxType.spend))
+            total_spent += cost
         created += 1
-        total_spent += cost
         await db.flush()
         from .crm_snapshot_hooks import refresh_crm_snapshot_for_attendee
         await refresh_crm_snapshot_for_attendee(db, attendee)
@@ -13867,7 +13781,7 @@ async def bulk_certify_attendees_queue(
     ISSUE_UNITS_PER_CERT = 10
     HOSTING_ESTIMATE_UNITS = 20
     estimated_total = len(names) * (ISSUE_UNITS_PER_CERT + HOSTING_ESTIMATE_UNITS)
-    if user.heptacoin_balaonce < estimated_total:
+    if not await _user_has_unlimited_hc(db, ev.admin_id) and user.heptacoin_balaonce < estimated_total:
         raise HTTPException(
             status_code=402,
             detail=f"Yetersiz HeptaCoin. Tahmini Gereksinim={estimated_total}, Bakiye={user.heptacoin_balaonce}",
@@ -14898,7 +14812,34 @@ app.include_router(_bulk_generate_api.router)
 # Each request is authenticated per-user via the MCP server's Context-based auth.
 from . import mcp_server as _mcp_server_module  # noqa: E402
 
-app.mount("/mcp", _mcp_server_module.mcp.streamable_http_app())
+# Build the Streamable HTTP sub-app once and mount it. The sub-app serves at "/"
+# (see mcp_server.streamable_http_path) so the public endpoint is exactly "/mcp".
+_mcp_streamable_app = _mcp_server_module.mcp.streamable_http_app()
+app.mount("/mcp", _mcp_streamable_app)
+
+
+# FastAPI's app.mount() does NOT run a mounted sub-app's lifespan, so the MCP
+# StreamableHTTP session manager would never start (every request would fail with
+# "Task group is not initialized"). Start/stop it alongside the main app instead.
+@app.on_event("startup")
+async def _start_mcp_session_manager():
+    try:
+        cm = _mcp_server_module.mcp.session_manager.run()
+        app.state._mcp_session_cm = cm
+        await cm.__aenter__()
+        logger.info("MCP session manager started (/mcp endpoint live)")
+    except Exception:
+        logger.exception("Failed to start MCP session manager; /mcp will be unavailable")
+
+
+@app.on_event("shutdown")
+async def _stop_mcp_session_manager():
+    cm = getattr(app.state, "_mcp_session_cm", None)
+    if cm is not None:
+        try:
+            await cm.__aexit__(None, None, None)
+        except Exception:
+            logger.exception("Error while stopping MCP session manager")
 
 
 

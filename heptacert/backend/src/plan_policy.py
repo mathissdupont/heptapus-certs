@@ -41,6 +41,14 @@ class PlanDefinition:
     position: str
     included_features: tuple[str, ...]
     excluded_features: tuple[str, ...] = ()
+    # Commercial definition (single source of truth for pricing UI + billing).
+    price_monthly: Optional[int] = None  # TRY; None = custom/contact sales
+    price_annual: Optional[int] = None   # TRY (effective monthly when billed annually)
+    hc_quota: Optional[int] = None       # monthly HeptaCoin quota; None = unlimited
+    is_free: bool = False
+    is_enterprise: bool = False
+    marketing_tr: tuple[str, ...] = ()   # customer-facing feature bullets (TR)
+    marketing_en: tuple[str, ...] = ()   # customer-facing feature bullets (EN)
 
 
 FEATURE_POLICIES: dict[str, FeaturePolicy] = {
@@ -54,14 +62,14 @@ FEATURE_POLICIES: dict[str, FeaturePolicy] = {
     "advanced_analytics": FeaturePolicy("advanced_analytics", ("growth", "enterprise"), "Gelismis analitik", "Advanced analytics"),
     "webhooks": FeaturePolicy("webhooks", ("growth", "enterprise"), "Webhook API", "Webhook API"),
     "domains": FeaturePolicy("domains", ("growth", "enterprise"), "Ozel alan adi", "Custom domains"),
-    "branding": FeaturePolicy("branding", ("growth", "enterprise"), "Marka yonetimi", "Branding"),
+    "branding": FeaturePolicy("branding", ("pro", "growth", "enterprise"), "Marka yonetimi", "Branding"),
     "api": FeaturePolicy("api", ("growth", "enterprise"), "API erisimi", "API access"),
-    "certificate_templates": FeaturePolicy("certificate_templates", ("growth", "enterprise"), "Sertifika sablonlari", "Certificate templates"),
+    "certificate_templates": FeaturePolicy("certificate_templates", ("pro", "growth", "enterprise"), "Sertifika sablonlari", "Certificate templates"),
     "presentations": FeaturePolicy("presentations", ("growth", "enterprise"), "Sunumlar", "Presentations"),
     "raffles": FeaturePolicy("raffles", ("growth", "enterprise"), "Cekilisler", "Raffles"),
     "accreditation": FeaturePolicy("accreditation", ("enterprise",), "Akreditasyon", "Accreditation", True),
     "crm": FeaturePolicy("crm", ("enterprise",), "Event CRM", "Event CRM", True),
-    "lead_forms": FeaturePolicy("lead_forms", ("enterprise",), "Lead formlari", "Lead forms", True),
+    "lead_forms": FeaturePolicy("lead_forms", ("growth", "enterprise"), "Lead formlari", "Lead forms"),
     "integrations": FeaturePolicy("integrations", ("enterprise",), "Kurumsal entegrasyonlar", "Enterprise integrations", True),
     "lms": FeaturePolicy("lms", ("enterprise",), "LMS", "LMS", True),
     "training": FeaturePolicy("training", ("enterprise",), "Kurum ici egitim", "Training compliance", True),
@@ -83,36 +91,148 @@ def _features_blocked_for(plan_id: str) -> tuple[str, ...]:
 
 PLAN_CATALOG: dict[str, PlanDefinition] = {
     "starter": PlanDefinition(
-        "starter",
-        "Baslangic",
-        "Starter",
-        "Free verification and light certificate issuing.",
-        ("certificate_verification", "basic_editor", "public_profiles", "community_read"),
-        tuple(FEATURE_POLICIES.keys()),
+        id="starter",
+        title_tr="Başlangıç",
+        title_en="Starter",
+        position="Free verification and light certificate issuing.",
+        included_features=("certificate_verification", "basic_editor", "public_profiles", "community_read"),
+        excluded_features=tuple(FEATURE_POLICIES.keys()),
+        price_monthly=0,
+        price_annual=0,
+        hc_quota=50,
+        is_free=True,
+        is_enterprise=False,
+        marketing_tr=(
+            "50 HC hoş geldin bonusu (tek seferlik)",
+            "QR kod doğrulama",
+            "Sertifika arşivi (1 yıl)",
+            "Temel şablon editörü",
+            "HeptaCert filigranı",
+        ),
+        marketing_en=(
+            "50 HC welcome bonus (one-time)",
+            "QR code verification",
+            "Certificate archive (1 year)",
+            "Basic template editor",
+            "HeptaCert watermark",
+        ),
     ),
     "pro": PlanDefinition(
-        "pro",
-        "Profesyonel",
-        "Professional",
-        "Paid event operations: registration, check-in, tickets, and bulk issuing.",
-        _features_allowed_by("pro"),
-        _features_blocked_for("pro"),
+        id="pro",
+        title_tr="Profesyonel",
+        title_en="Professional",
+        position="Paid event operations: registration, check-in, tickets, and bulk issuing.",
+        included_features=_features_allowed_by("pro"),
+        excluded_features=_features_blocked_for("pro"),
+        price_monthly=499,
+        price_annual=399,
+        hc_quota=500,
+        is_free=False,
+        is_enterprise=False,
+        marketing_tr=(
+            "Aylık 500 HC",
+            "Sınırsız etkinlik",
+            "Excel ile toplu basım",
+            "Sertifika arşivi (3 yıl)",
+            "Etkinlik kayıt ve check-in sistemi",
+            "QR ile yoklama takibi",
+            "Hazır sertifika şablonları",
+            "Marka filigranını kaldırma",
+            "Öncelikli destek",
+        ),
+        marketing_en=(
+            "500 HC per month",
+            "Unlimited events",
+            "Excel bulk generation",
+            "Certificate archive (3 years)",
+            "Event registration & check-in system",
+            "QR attendance tracking",
+            "Ready-made certificate templates",
+            "Remove branding watermark",
+            "Priority support",
+        ),
     ),
     "growth": PlanDefinition(
-        "growth",
-        "Buyume",
-        "Growth",
-        "Growth operations with email, automation, analytics, API, branding, and audience workflows.",
-        _features_allowed_by("growth"),
-        _features_blocked_for("growth"),
+        id="growth",
+        title_tr="Büyüme",
+        title_en="Growth",
+        position="Growth operations with email, automation, analytics, API, branding, and audience workflows.",
+        included_features=_features_allowed_by("growth"),
+        excluded_features=_features_blocked_for("growth"),
+        price_monthly=1299,
+        price_annual=1099,
+        hc_quota=2000,
+        is_free=False,
+        is_enterprise=False,
+        marketing_tr=(
+            "Aylık 2.000 HC",
+            "Sınırsız etkinlik",
+            "Excel ile toplu basım",
+            "Sertifika arşivi (3 yıl)",
+            "Etkinlik kayıt ve check-in sistemi",
+            "QR ile yoklama takibi",
+            "Tam API erişimi",
+            "Özel alan adı doğrulama",
+            "Marka filigranını kaldırma",
+            "Otomatik e-posta sistemi (toplu mail + şablonlar)",
+            "Özel etkinlik açıklaması ve banner'ı",
+            "Webhook API desteği",
+            "Gelişmiş analitik paneli",
+            "Lead toplama formları",
+            "Özel form alanları",
+            "Katılımcı self-servis sertifika indirme",
+        ),
+        marketing_en=(
+            "2,000 HC per month",
+            "Unlimited events",
+            "Excel bulk generation",
+            "Certificate archive (3 years)",
+            "Event registration & check-in system",
+            "QR attendance tracking",
+            "Full API access",
+            "Custom domain verification",
+            "Remove branding watermark",
+            "Automated email system (bulk mail + templates)",
+            "Custom event description & banner",
+            "Webhook API support",
+            "Advanced analytics dashboard",
+            "Lead capture forms",
+            "Custom form fields",
+            "Attendee self-service certificate download",
+        ),
     ),
     "enterprise": PlanDefinition(
-        "enterprise",
-        "Kurumsal",
-        "Enterprise",
-        "Organization-grade collaboration, CRM, LMS, compliance, SSO, and managed operations.",
-        tuple(FEATURE_POLICIES.keys()),
-        (),
+        id="enterprise",
+        title_tr="Kurumsal",
+        title_en="Enterprise",
+        position="Organization-grade collaboration, CRM, LMS, compliance, SSO, and managed operations.",
+        included_features=tuple(FEATURE_POLICIES.keys()),
+        excluded_features=(),
+        price_monthly=None,
+        price_annual=None,
+        hc_quota=None,
+        is_free=False,
+        is_enterprise=True,
+        marketing_tr=(
+            "Sınırsız HC kotası",
+            "Özel SLA anlaşması",
+            "API entegrasyonu",
+            "Özel alan adı desteği",
+            "Etkinlik kayıt ve check-in sistemi",
+            "QR ile yoklama takibi",
+            "Toplu sertifika üretimi",
+            "7/24 kurumsal destek",
+        ),
+        marketing_en=(
+            "Unlimited HC quota",
+            "Custom SLA agreement",
+            "API integration",
+            "Custom domain support",
+            "Event registration & check-in system",
+            "QR attendance tracking",
+            "Bulk certificate generation",
+            "24/7 enterprise support",
+        ),
     ),
 }
 
@@ -179,3 +299,39 @@ def plan_catalog_payload() -> list[dict[str, object]]:
         }
         for plan in PLAN_CATALOG.values()
     ]
+
+
+def pricing_catalog_payload() -> list[dict[str, object]]:
+    """Commercial pricing tiers derived from PLAN_CATALOG (single source of truth).
+
+    Matches the ``PricingTier`` schema consumed by the pricing UI and billing
+    endpoints, so ``DEFAULT_PRICING`` can be generated from here instead of
+    being duplicated as a hand-maintained literal.
+    """
+    return [
+        {
+            "id": plan.id,
+            "name_tr": plan.title_tr,
+            "name_en": plan.title_en,
+            "price_monthly": plan.price_monthly,
+            "price_annual": plan.price_annual,
+            "hc_quota": plan.hc_quota,
+            "features_tr": list(plan.marketing_tr),
+            "features_en": list(plan.marketing_en),
+            "is_free": plan.is_free,
+            "is_enterprise": plan.is_enterprise,
+        }
+        for plan in PLAN_CATALOG.values()
+    ]
+
+
+def plan_hc_quota(plan_id: Optional[str]) -> Optional[int]:
+    """Monthly HeptaCoin quota for a plan; None means unlimited (Enterprise)."""
+    plan = PLAN_CATALOG.get(normalize_plan(plan_id))
+    return plan.hc_quota if plan else None
+
+
+def plan_is_unlimited_hc(plan_id: Optional[str]) -> bool:
+    """True when the plan grants unlimited HeptaCoin (no quota deduction)."""
+    plan = PLAN_CATALOG.get(normalize_plan(plan_id))
+    return bool(plan and plan.is_enterprise and plan.hc_quota is None)

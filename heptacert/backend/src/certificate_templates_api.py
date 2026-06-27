@@ -81,14 +81,21 @@ def _validate_template_config(config: dict[str, Any]) -> None:
 
 
 async def _has_enterprise(db: AsyncSession, user_id: int) -> bool:
+    """Enterprise-locked presets need an ACTIVE, non-expired Enterprise plan.
+
+    Uses the central policy helper so is_active + plan rank + expiry are checked
+    consistently with the rest of the subscription gates.
+    """
+    from .plan_policy import subscription_is_active_plan
     sub = (
         await db.execute(
             select(Subscription)
             .where(Subscription.user_id == user_id, Subscription.is_active.is_(True))
             .order_by(Subscription.expires_at.desc())
+            .limit(1)
         )
     ).scalar_one_or_none()
-    return bool(sub and sub.plan_id == "enterprise")
+    return subscription_is_active_plan(sub, {"enterprise"})
 
 
 def _preset_key(scope: str, scope_id: int) -> str:

@@ -3594,6 +3594,8 @@ export interface TwilioSmsConfig {
 export interface NotificationIntegrationsConfig {
   slack?: NotificationWebhookChannel | null;
   teams?: NotificationWebhookChannel | null;
+  discord?: NotificationWebhookChannel | null;
+  google_chat?: NotificationWebhookChannel | null;
   custom?: NotificationWebhookChannel | null;
   sms?: TwilioSmsConfig | null;
   supported_events: string[];
@@ -3659,7 +3661,7 @@ export async function getNotificationIntegrations(): Promise<NotificationIntegra
 }
 
 export async function updateNotificationIntegrations(
-  payload: Partial<Pick<NotificationIntegrationsConfig, "slack" | "teams" | "custom" | "sms">>,
+  payload: Partial<Pick<NotificationIntegrationsConfig, "slack" | "teams" | "discord" | "google_chat" | "custom" | "sms">>,
 ): Promise<NotificationIntegrationsConfig> {
   const res = await apiFetch("/admin/integrations/notifications", {
     method: "PATCH",
@@ -3668,7 +3670,7 @@ export async function updateNotificationIntegrations(
   return res.json();
 }
 
-export async function removeNotificationChannel(channel: "slack" | "teams" | "custom" | "sms"): Promise<{ ok: boolean; removed: string }> {
+export async function removeNotificationChannel(channel: "slack" | "teams" | "discord" | "google_chat" | "custom" | "sms"): Promise<{ ok: boolean; removed: string }> {
   const res = await apiFetch(`/admin/integrations/notifications/${channel}`, { method: "DELETE" });
   return res.json();
 }

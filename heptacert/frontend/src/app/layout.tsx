@@ -198,7 +198,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         url: "https://heptapusgroup.com",
       },
       offers: {
-        "@type": "Offer",
+        "@type": "AggregateOffer",
+        priceCurrency: "TRY",
+        lowPrice: "0",
+        offerCount: 4,
         category: "SaaS",
         url: `${baseUrl}/pricing/business`,
       },
@@ -208,8 +211,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       "@type": "Organization",
       name: "Heptapus Group",
       url: "https://heptapusgroup.com",
-      sameAs: ["https://heptacert.com"],
+      logo: `${baseUrl}/logo.png`,
+      description: DEFAULT_TR_DESCRIPTION,
+      sameAs: ["https://heptacert.com", "https://heptapusgroup.com"],
       foundingLocation: { "@type": "Place", addressCountry: "TR" },
+      contactPoint: {
+        "@type": "ContactPoint",
+        email: "contact@heptapusgroup.com",
+        contactType: "customer support",
+        availableLanguage: ["tr", "en"],
+      },
       product: {
         "@type": "SoftwareApplication",
         name: brandName,
@@ -228,6 +239,60 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         target: { "@type": "EntryPoint", urlTemplate: `${baseUrl}/discover?q={search_term_string}` },
         "query-input": "required name=search_term_string",
       },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: [
+        {
+          "@type": "Question",
+          name: "HeptaCert nedir?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "HeptaCert, etkinliklerin tüm yaşam döngüsünü tek platformda yöneten uçtan uca bir etkinlik işletim sistemidir: kayıt formları, QR check-in, yoklama takibi, otomatik dijital sertifika üretimi ve doğrulama, e-posta kampanyaları, CRM, öğrenme yolları ve analitik.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "HeptaCert sadece bir sertifika aracı mı?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Hayır. Sertifika, HeptaCert'in modüllerinden yalnızca biridir. Platform; katılımcı kaydından etkinlik sonrası takibe kadar tüm akışı yönetir. Sertifikalar manuel değil, yapılandırılabilir tetikleyicilerle (katılım, quiz sonucu, öğrenme yolu tamamlama) otomatik üretilir.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "Sertifika doğrulaması nasıl çalışır?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Her sertifikanın benzersiz bir genel URL'si ve QR kodu vardır. Herkes giriş yapmadan /verify sayfasından veya QR kodu okutarak sertifikanın gerçekliğini doğrulayabilir.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "HeptaCert hangi entegrasyonları destekler?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Slack, Microsoft Teams, WhatsApp Business, Google Sheets, Microsoft Excel, Google Calendar, HubSpot, Salesforce, Mailchimp/Brevo, Zapier, Make, OIDC SSO, Zoom/Teams webinar, HMAC imzalı webhook'lar ve REST API. Ayrıca AI ajanları için /mcp adresinde bir MCP (Model Context Protocol) sunucusu sunar.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "HeptaCert ücretsiz mi?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "HeptaCert ücretsiz bir Başlangıç planı sunar; Profesyonel, Büyüme ve Kurumsal (Enterprise) ücretli planlar daha fazla kota ve özellik içerir. Güncel fiyatlandırma /pricing/business adresindedir.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "HeptaCert'in API'si veya AI ajan erişimi var mı?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Evet. Bearer token kimlik doğrulamalı ve ayrıntılı kapsam (scope) kontrollü bir REST API vardır (dokümantasyon /developers). Ek olarak AI ajanları, etkinlik/sertifika/katılımcı işlemlerini /mcp MCP sunucusu üzerinden gerçekleştirebilir.",
+          },
+        },
+      ],
     },
   ];
 

@@ -136,6 +136,8 @@ class WhatsAppBusinessConfig(BaseModel):
 class NotificationIntegrationsIn(BaseModel):
     slack: Optional[NotificationWebhookChannel] = None
     teams: Optional[NotificationWebhookChannel] = None
+    discord: Optional[NotificationWebhookChannel] = None
+    google_chat: Optional[NotificationWebhookChannel] = None
     custom: Optional[NotificationWebhookChannel] = None
     sms: Optional[TwilioSmsConfig] = None
     whatsapp: Optional[WhatsAppBusinessConfig] = None
@@ -373,6 +375,22 @@ def _teams_payload(event_type: str, context: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _plain_message(event_type: str, context: dict[str, Any]) -> str:
+    icon = "📜" if "cert" in event_type else "✅" if "checkin" in event_type else "🔔"
+    details = "\n".join(f"• {k}: {v}" for k, v in context.items() if v)
+    return f"{icon} {event_type}\n{details}".strip()
+
+
+def _discord_payload(event_type: str, context: dict[str, Any]) -> dict[str, Any]:
+    # Discord Incoming Webhook expects "content" (max 2000 chars).
+    return {"content": _plain_message(event_type, context)[:2000]}
+
+
+def _google_chat_payload(event_type: str, context: dict[str, Any]) -> dict[str, Any]:
+    # Google Chat Incoming Webhook expects "text".
+    return {"text": _plain_message(event_type, context)[:4000]}
+
+
 def _sign_payload(secret: Optional[str], body: bytes) -> dict[str, str]:
     if not secret:
         return {}
@@ -460,6 +478,8 @@ async def trigger_notification_integrations(
 
     await _fire("slack", lambda: _slack_payload(event_type, context))
     await _fire("teams", lambda: _teams_payload(event_type, context))
+    await _fire("discord", lambda: _discord_payload(event_type, context))
+    await _fire("google_chat", lambda: _google_chat_payload(event_type, context))
     await _fire("custom", lambda: {"event": event_type, "timestamp": datetime.now(timezone.utc).isoformat(), **context})
 
     sms_raw = data.get("sms")
@@ -620,6 +640,8 @@ async def get_integration_catalog(
         ),
         item("slack", "Slack", "Notifications", "Post registrations, check-ins, certificate and CRM alerts into Slack channels.", "webhook", 40, configured=True, connected=bool(notifications.get("slack")), docs_url="https://api.slack.com/incoming-webhooks", app_required=True, app_provider="Slack app", setup_url="https://api.slack.com/apps", required_scopes=["incoming-webhook"], callback_urls=[slack_callback], credential_fields=["Webhook URL"]),
         item("microsoft_teams", "Microsoft Teams", "Notifications", "Post operational cards into Teams channels through Workflows webhooks.", "webhook", 50, configured=True, connected=bool(notifications.get("teams")), docs_url="https://support.microsoft.com/teams/apps-service/create-incoming-webhooks-with-workflows-for-microsoft-teams"),
+        item("discord", "Discord", "Notifications", "Post registration, check-in, and certificate alerts into a Discord channel via an Incoming Webhook.", "webhook", 52, configured=True, connected=bool(notifications.get("discord")), docs_url="https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks", credential_fields=["Webhook URL"]),
+        item("google_chat", "Google Chat", "Notifications", "Post operational alerts into a Google Chat space using an Incoming Webhook.", "webhook", 54, configured=True, connected=bool(notifications.get("google_chat")), docs_url="https://developers.google.com/workspace/chat/quickstart/webhooks", credential_fields=["Webhook URL"]),
         item("zapier", "Zapier", "Automation", "Trigger Zapier workflows for registrations, certificates, check-ins, CRM changes, and training alerts.", "webhook", 60, configured=True, connected=bool(notifications.get("custom")), docs_url="https://help.zapier.com/hc/en-us/articles/8496083355661-How-to-Get-Started-with-Webhooks-by-Zapier"),
         item("make", "Make", "Automation", "Trigger Make scenarios through custom webhooks using the same HeptaCert event payload.", "webhook", 70, configured=True, connected=bool(notifications.get("custom")), docs_url="https://help.make.com/webhooks"),
         item("hubspot", "HubSpot", "CRM", "Push attendees and segments into HubSpot contacts and lists.", "private_app_token", 80, configured=True, connected=bool((crm_integrations.get("hubspot") or {}).get("private_app_token")), docs_url="https://developers.hubspot.com/docs/api-reference/latest/crm/objects/contacts/guide", settings_href="/admin/crm", app_required=True, app_provider="HubSpot private app", setup_url="https://developers.hubspot.com/docs/guides/apps/private-apps/overview", required_scopes=["crm.objects.contacts.read", "crm.objects.contacts.write"], credential_fields=["Private app access token"]),
@@ -762,6 +784,8 @@ async def get_notification_integrations(
     return NotificationIntegrationsOut(
         slack=_masked_notification_channel(data.get("slack")),
         teams=_masked_notification_channel(data.get("teams")),
+        discord=_masked_notification_channel(data.get("discord")),
+        google_chat=_masked_notification_channel(data.get("google_chat")),
         custom=_masked_notification_channel(data.get("custom")),
         sms=_masked_sms_config(data.get("sms")),
         whatsapp=_masked_whatsapp_config(data.get("whatsapp")),
@@ -787,6 +811,10 @@ async def update_notification_integrations(
         update["slack"] = _merge_secret_fields(existing.get("slack") or {}, payload.slack.model_dump(), {"secret"})
     if payload.teams is not None:
         update["teams"] = _merge_secret_fields(existing.get("teams") or {}, payload.teams.model_dump(), {"secret"})
+    if payload.discord is not None:
+        update["discord"] = _merge_secret_fields(existing.get("discord") or {}, payload.discord.model_dump(), {"secret"})
+    if payload.google_chat is not None:
+        update["google_chat"] = _merge_secret_fields(existing.get("google_chat") or {}, payload.google_chat.model_dump(), {"secret"})
     if payload.custom is not None:
         update["custom"] = _merge_secret_fields(existing.get("custom") or {}, payload.custom.model_dump(), {"secret"})
     if payload.sms is not None:
@@ -809,7 +837,7 @@ async def remove_notification_channel(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    if channel not in ("slack", "teams", "custom", "sms", "whatsapp"):
+    if channel not in ("slack", "teams", "discord", "google_chat", "custom", "sms", "whatsapp"):
         raise HTTPException(status_code=400, detail="Unknown channel")
     org = await _get_org(db, me, request)
     data = _integrations_from_org(org)
@@ -828,10 +856,16 @@ async def test_notification_channel(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Send a test message to the specified webhook URL."""
+    """Send a test message to the specified webhook URL.
+
+    The endpoint only receives a URL (not the channel type), so the payload carries
+    both ``text`` (Slack / Google Chat) and ``content`` (Discord) plus Slack blocks.
+    Each provider reads the key it understands and ignores the rest.
+    """
     await _get_org(db, me, request)
     test_context = {"event_name": "Test Event", "detail": "HeptaCert entegrasyon testi — bağlantı başarılı!"}
-    test_payload = _slack_payload("test.ping", test_context)
+    msg = _plain_message("test.ping", test_context)
+    test_payload = {**_slack_payload("test.ping", test_context), "content": msg[:2000]}
     ok = await _send_webhook(payload, test_payload)
     if not ok:
         raise HTTPException(status_code=502, detail="Test mesajı gönderilemedi. URL ve erişilebilirliği kontrol edin.")

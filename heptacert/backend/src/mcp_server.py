@@ -73,6 +73,7 @@ from typing import Any, Optional
 
 import httpx
 from mcp.server.fastmcp import FastMCP, Context
+from mcp.server.transport_security import TransportSecuritySettings
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 
@@ -81,6 +82,18 @@ API_KEY_ENV = os.getenv("HEPTACERT_API_KEY", "")
 
 mcp = FastMCP(
     "HeptaCert",
+    # Serve the Streamable HTTP transport at the app root so that mounting this
+    # sub-app at "/mcp" in main.py yields the endpoint at exactly "/mcp"
+    # (the default "/mcp" path would otherwise resolve to "/mcp/mcp").
+    streamable_http_path="/",
+    # Stateless: the backend runs with multiple uvicorn workers; session state
+    # must not be pinned to a single worker. Each request is self-contained and
+    # authenticated via its own Bearer token.
+    stateless_http=True,
+    # Auth is per-request Bearer token (hc_live_...) and the server sits behind
+    # the main API + reverse proxy, so the browser-oriented DNS-rebinding guard
+    # (which otherwise 421s every Host) is not the relevant threat model here.
+    transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
     instructions=(
         "You are connected to HeptaCert, a professional event management and certificate "
         "issuance platform. You can create and manage events, attendees, sessions, "
