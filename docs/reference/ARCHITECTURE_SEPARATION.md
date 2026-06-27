@@ -356,11 +356,11 @@ PublicMember (Event Attendee)
 
 ## Related Files
 
-- [heptacert/backend/src/main.py](../heptacert/backend/src/main.py) - Events system, shared entities
-- [heptacert/backend/src/social_api.py](../heptacert/backend/src/social_api.py) - Social system
-- [heptacert/backend/src/community_api.py](../heptacert/backend/src/community_api.py) - Public listing
-- [heptacert/backend/tests/test_api.py](../heptacert/backend/tests/test_api.py) - Event tests
-- Database schema: [heptacert/backend/alembic/versions/](../heptacert/backend/alembic/versions/)
+- [heptacert/backend/src/main.py](../../heptacert/backend/src/main.py) - Events system, shared entities
+- [heptacert/backend/src/social_api.py](../../heptacert/backend/src/social_api.py) - Social system
+- [heptacert/backend/src/community_api.py](../../heptacert/backend/src/community_api.py) - Public listing
+- [heptacert/backend/tests/test_api.py](../../heptacert/backend/tests/test_api.py) - Event tests
+- Database schema: [heptacert/backend/alembic/versions/](../../heptacert/backend/alembic/versions/)
 
 ---
 
