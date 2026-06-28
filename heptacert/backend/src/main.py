@@ -11241,6 +11241,18 @@ async def list_public_events(
         visibility_clause = None
 
     host_org = await _organization_for_request_host(request, db)
+
+    # Short-TTL cache for this read-heavy public listing. The data changes rarely and
+    # a few seconds of staleness is acceptable; on a cache hit we skip the events
+    # query + session-count aggregation entirely, which is the main capacity win under
+    # concurrency. Per-worker in-process cache (see cache.py).
+    from .cache import cache
+    _pe_search = (search or "").strip().lower()
+    _pe_cache_key = f"public_events:{host_org.id if host_org else 0}:{scope}:{limit}:{offset}:{_pe_search}"
+    _pe_cached = await cache.get(_pe_cache_key)
+    if _pe_cached is not None:
+        return _pe_cached
+
     stmt = select(Event, Organization).outerjoin(Organization, Organization.user_id == Event.admin_id)
     if host_org:
         stmt = stmt.where(Event.admin_id == host_org.user_id)
@@ -11277,6 +11289,7 @@ async def list_public_events(
         event_rows = [(event, org) for event, org in event_rows if _get_event_visibility(event) == "public"]
 
     if not event_rows:
+        await cache.set(_pe_cache_key, [], ttl=45)
         return []
 
     visible_events = [event for event, _org in event_rows]
@@ -11291,7 +11304,7 @@ async def list_public_events(
     )
     session_counts = {int(row.event_id): int(row.cnt or 0) for row in session_counts_res.all()}
 
-    return [
+    result = [
         PublicEventListItemOut(
             id=event.id,
             public_id=_get_public_event_identifier(event),
@@ -11319,6 +11332,8 @@ async def list_public_events(
         )
         for event in visible_events
     ]
+    await cache.set(_pe_cache_key, result, ttl=45)
+    return result
 
 
 @app.get("/api/public/events/{event_id}", response_model=PublicEventDetailOut)

@@ -86,8 +86,12 @@ services:
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
       ENABLE_SCHEDULER: ${ENABLE_SCHEDULER:-false}
-      DB_POOL_SIZE: ${DB_POOL_SIZE:-20}
-      DB_POOL_MAX_OVERFLOW: ${DB_POOL_MAX_OVERFLOW:-20}
+      # Connection budget: workers x (pool_size + max_overflow) must stay under
+      # Postgres max_connections (default 100). 4 web workers x (10+5)=60 + jobs 15
+      # + presentation 4 = ~79, leaving headroom. Raise these only if you also raise
+      # Postgres max_connections (or add a PgBouncer pooler).
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+      DB_POOL_MAX_OVERFLOW: ${DB_POOL_MAX_OVERFLOW:-5}
       DB_POOL_TIMEOUT: ${DB_POOL_TIMEOUT:-15}
       DB_POOL_RECYCLE: ${DB_POOL_RECYCLE:-1800}
       #Google entegrations
@@ -160,8 +164,12 @@ services:
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
       ENABLE_SCHEDULER: ${ENABLE_SCHEDULER_JOBS:-true}
-      DB_POOL_SIZE: ${DB_POOL_SIZE:-20}
-      DB_POOL_MAX_OVERFLOW: ${DB_POOL_MAX_OVERFLOW:-20}
+      # Connection budget: workers x (pool_size + max_overflow) must stay under
+      # Postgres max_connections (default 100). 4 web workers x (10+5)=60 + jobs 15
+      # + presentation 4 = ~79, leaving headroom. Raise these only if you also raise
+      # Postgres max_connections (or add a PgBouncer pooler).
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+      DB_POOL_MAX_OVERFLOW: ${DB_POOL_MAX_OVERFLOW:-5}
       DB_POOL_TIMEOUT: ${DB_POOL_TIMEOUT:-15}
       DB_POOL_RECYCLE: ${DB_POOL_RECYCLE:-1800}
     volumes:
