@@ -11222,6 +11222,21 @@ async def list_public_events(
     search: Optional[str] = Query(default=None, min_length=1, max_length=120),
     db: AsyncSession = Depends(get_db),
 ):
+    # Cache-first: this read-heavy public listing changes rarely. Caching the
+    # pre-serialized JSON lets a hit skip the host-org query, the events query, the
+    # session-count aggregation AND response_model re-serialization — a cache hit
+    # returns raw bytes. Keyed by request host so white-label domains stay isolated.
+    # Per-worker in-process cache (see cache.py); a few seconds of staleness is fine.
+    from fastapi.responses import Response as _Resp
+    from .cache import cache
+    import json as _json
+    _pe_host = (request.headers.get("host") or "").split(":")[0].strip().lower()
+    _pe_search = (search or "").strip().lower()
+    _pe_cache_key = f"public_events:{_pe_host}:{scope}:{limit}:{offset}:{_pe_search}"
+    _pe_cached = await cache.get(_pe_cache_key)
+    if _pe_cached is not None:
+        return _Resp(content=_pe_cached, media_type="application/json")
+
     bind = db.get_bind()
     dialect_name = bind.dialect.name if bind is not None else ""
 
@@ -11241,17 +11256,6 @@ async def list_public_events(
         visibility_clause = None
 
     host_org = await _organization_for_request_host(request, db)
-
-    # Short-TTL cache for this read-heavy public listing. The data changes rarely and
-    # a few seconds of staleness is acceptable; on a cache hit we skip the events
-    # query + session-count aggregation entirely, which is the main capacity win under
-    # concurrency. Per-worker in-process cache (see cache.py).
-    from .cache import cache
-    _pe_search = (search or "").strip().lower()
-    _pe_cache_key = f"public_events:{host_org.id if host_org else 0}:{scope}:{limit}:{offset}:{_pe_search}"
-    _pe_cached = await cache.get(_pe_cache_key)
-    if _pe_cached is not None:
-        return _pe_cached
 
     stmt = select(Event, Organization).outerjoin(Organization, Organization.user_id == Event.admin_id)
     if host_org:
@@ -11289,8 +11293,8 @@ async def list_public_events(
         event_rows = [(event, org) for event, org in event_rows if _get_event_visibility(event) == "public"]
 
     if not event_rows:
-        await cache.set(_pe_cache_key, [], ttl=45)
-        return []
+        await cache.set(_pe_cache_key, "[]", ttl=45)
+        return _Resp(content="[]", media_type="application/json")
 
     visible_events = [event for event, _org in event_rows]
     orgs_by_user_id: Dict[int, Organization] = {
@@ -11332,8 +11336,11 @@ async def list_public_events(
         )
         for event in visible_events
     ]
-    await cache.set(_pe_cache_key, result, ttl=45)
-    return result
+    # Serialize once, cache the bytes, and return them directly (skips response_model
+    # re-validation/re-serialization on this and every subsequent cache hit).
+    payload_json = _json.dumps([item.model_dump(mode="json") for item in result], ensure_ascii=False)
+    await cache.set(_pe_cache_key, payload_json, ttl=45)
+    return _Resp(content=payload_json, media_type="application/json")
 
 
 @app.get("/api/public/events/{event_id}", response_model=PublicEventDetailOut)
