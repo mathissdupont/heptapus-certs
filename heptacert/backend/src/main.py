@@ -951,6 +951,11 @@ def verify_password(pw: str, pw_hash: str) -> bool:
     return pwd_context.verify(pw, pw_hash)
 
 
+# Pre-computed bcrypt hash used to equalize login timing when no user is found, so an
+# attacker can't tell registered emails from unknown ones by response-time differences.
+_DUMMY_PASSWORD_HASH = pwd_context.hash("heptacert-timing-equalizer")
+
+
 # Ã¢â€â‚¬Ã¢â€â‚¬ Email token helpers Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 _email_signer: Optional[URLSafeTimedSerializer] = None
 
@@ -3700,7 +3705,10 @@ async def _process_one_bulk_certificate_job(job_id: int) -> None:
             await db_job.commit()
             return
 
-        res_user = await db_job.execute(select(User).where(User.id == job.created_by))
+        # Lock the owner's row for the duration of this chunk so per-cert balance
+        # checks + debits are serialized against concurrent issuance (no double-spend).
+        # Lock order is user -> event (see event lock in the loop) to avoid deadlock.
+        res_user = await db_job.execute(select(User).where(User.id == job.created_by).with_for_update())
         user = res_user.scalar_one_or_none()
         if not user:
             job.status = "failed"
@@ -4928,7 +4936,14 @@ async def login(request: Request, data: LoginIn, db: AsyncSession = Depends(get_
         select(User).where(func.lower(User.email) == normalized_login_email).limit(1)
     )
     user = res.scalar_one_or_none()
-    if not user or not verify_password(data.password, user.password_hash):
+    if user:
+        password_ok = verify_password(data.password, user.password_hash)
+    else:
+        # No such user: still run a bcrypt verify against a dummy hash so the response
+        # time matches the "wrong password" path and emails can't be enumerated.
+        verify_password(data.password, _DUMMY_PASSWORD_HASH)
+        password_ok = False
+    if not user or not password_ok:
         await write_audit_log(
             db,
             user_id=user.id if user else None,
@@ -5090,8 +5105,25 @@ async def validate_login_2fa(request: Request, data: TotpValidateIn, db: AsyncSe
     if not totp_secret:
         raise HTTPException(status_code=400, detail="Bu hesapta 2FA etkin degil")
 
+    # Account-based lockout (in addition to the per-IP rate limit) so 2FA codes can't
+    # be brute-forced across many IPs. Best-effort: if the cache is down, fall back to
+    # the IP rate limit rather than blocking logins.
+    from .cache import cache
+    _MAX_2FA_FAILS = 5
+    _2FA_LOCK_TTL = 900  # 15 minutes
+    lock_key = f"2fa_lock:{user.id}"
+    fail_key = f"2fa_fail:{user.id}"
+    try:
+        if await cache.get(lock_key):
+            raise HTTPException(status_code=429, detail="Çok fazla hatalı 2FA denemesi. Lütfen 15 dakika sonra tekrar deneyin.")
+    except HTTPException:
+        raise
+    except Exception:
+        pass
+
     code = (data.code or "").strip()
-    if not pyotp.TOTP(totp_secret.secret).verify(code, valid_window=1):
+    verified = pyotp.TOTP(totp_secret.secret).verify(code, valid_window=1)
+    if not verified:
         # Try backup code fallback
         import hashlib as _hashlib
         code_hash = _hashlib.sha256(code.upper().replace("-", "").encode()).hexdigest()
@@ -5104,6 +5136,24 @@ async def validate_login_2fa(request: Request, data: TotpValidateIn, db: AsyncSe
         )
         backup = backup_res.scalar_one_or_none()
         if not backup:
+            # Record the failed attempt and lock the account after too many failures.
+            try:
+                fails = int(await cache.get(fail_key) or 0) + 1
+                await cache.set(fail_key, fails, ttl=_2FA_LOCK_TTL)
+                if fails >= _MAX_2FA_FAILS:
+                    await cache.set(lock_key, 1, ttl=_2FA_LOCK_TTL)
+            except Exception:
+                pass
+            await write_audit_log(
+                db,
+                user_id=user.id,
+                action="security.2fa_failed",
+                resource_type="auth",
+                resource_id=str(user.id),
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+            )
+            await db.commit()
             raise HTTPException(status_code=401, detail="Geçersiz doğrulama kodu")
         backup.used_at = datetime.now(timezone.utc)
         await write_audit_log(
@@ -5116,6 +5166,13 @@ async def validate_login_2fa(request: Request, data: TotpValidateIn, db: AsyncSe
             user_agent=request.headers.get("user-agent"),
         )
         await db.commit()
+
+    # Successful 2FA: clear any accumulated failure / lockout state.
+    try:
+        await cache.delete(fail_key)
+        await cache.delete(lock_key)
+    except Exception:
+        pass
 
     return {
         "access_token": create_access_token(user_id=user.id, role=user.role),
@@ -5187,8 +5244,8 @@ async def verify_email_endpoint(token: str = Query(...), db: AsyncSession = Depe
     if payload.get("action") != "verify":
         raise bad_request("Gecersiz token turu.")
 
-    email = payload.get("email")
-    res = await db.execute(select(User).where(User.email == email))
+    email = str(payload.get("email") or "").strip().lower()
+    res = await db.execute(select(User).where(func.lower(User.email) == email))
     user = res.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
@@ -5867,11 +5924,14 @@ async def public_member_reset_password(request: Request, data: ResetPasswordIn, 
 @app.post("/api/auth/forgot-password")
 @limiter.limit("3/minute")
 async def forgot_password(request: Request, data: ForgotPasswordIn, db: AsyncSession = Depends(get_db)):
-    res = await db.execute(select(User).where(User.email == str(data.email)))
+    # Emails are stored normalized (see register); match case-insensitively and embed
+    # the normalized address in the token so the reset lookup matches reliably.
+    email_norm = str(data.email).strip().lower()
+    res = await db.execute(select(User).where(func.lower(User.email) == email_norm))
     user = res.scalar_one_or_none()
     # Always return 200 to avoid email enumeration
     if user and user.is_verified:
-        token = make_email_token({"email": str(data.email), "action": "reset"})
+        token = make_email_token({"email": email_norm, "action": "reset"})
         user.password_reset_token = token
         await db.commit()
 
@@ -5901,8 +5961,8 @@ async def reset_password(request: Request, data: ResetPasswordIn, db: AsyncSessi
     if payload.get("action") != "reset":
         raise bad_request("Gecersiz token turu.")
 
-    email = payload.get("email")
-    res = await db.execute(select(User).where(User.email == email))
+    email = str(payload.get("email") or "").strip().lower()
+    res = await db.execute(select(User).where(func.lower(User.email) == email))
     user = res.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
@@ -6854,12 +6914,15 @@ async def list_transactions(
 
 @app.post("/api/superadmin/admins", dependencies=[Depends(require_role(Role.superadmin))])
 async def create_admin(payload: CreateAdminIn, db: AsyncSession = Depends(get_db)):
-    res = await db.execute(select(User).where(User.email == str(payload.email)))
+    # Normalize + case-insensitive duplicate check so two accounts can't differ only
+    # by letter case (emails are stored lowercased everywhere else).
+    email_norm = str(payload.email).strip().lower()
+    res = await db.execute(select(User).where(func.lower(User.email) == email_norm))
     if res.scalar_one_or_none():
         raise bad_request("Email already exists")
 
     admin = User(
-        email=str(payload.email),
+        email=email_norm,
         password_hash=hash_password(payload.password),
         role=Role.admin,
         heptacoin_balaonce=0,
@@ -7237,6 +7300,17 @@ async def payment_webhook(
     status = notification.get("status", "failed")
     order.provider_ref = provider_ref or order.provider_ref
 
+    # Defense-in-depth: never honor a "paid" notification whose amount we could not
+    # verify against the order. Every supported provider returns an amount on success
+    # (Stripe amount_total, iyzico price, PayTR total) — a missing amount on a paid,
+    # non-free order is an anomaly, so reject rather than provision without it.
+    if status == "paid" and verified_amount is None and order.amount_cents > 0:
+        logger.warning(
+            "Payment webhook for order %s (provider=%s) reports paid but amount could not be verified; rejecting.",
+            order.id, provider.name,
+        )
+        raise HTTPException(status_code=400, detail="Payment amount could not be verified.")
+
     if status == "paid" and order.status != OrderStatus.paid:
         order.status = OrderStatus.paid
         order.paid_at = datetime.now(timezone.utc)
@@ -7288,8 +7362,35 @@ async def payment_webhook(
                 ))
     elif status == "failed" and order.status == OrderStatus.pending:
         order.status = OrderStatus.failed
-    elif status == "refunded":
+    elif status == "refunded" and order.status != OrderStatus.refunded:
+        # Reverse provisioning on refund (guarded so a replayed refund webhook is
+        # idempotent): deactivate the subscription this order paid for and claw back
+        # the HC credited for it (floored at 0 so the balance never goes negative).
         order.status = OrderStatus.refunded
+        await db.execute(
+            update(Subscription)
+            .where(
+                Subscription.user_id == order.user_id,
+                Subscription.plan_id == order.plan_id,
+                Subscription.is_active == True,
+            )
+            .values(is_active=False)
+        )
+        hc_quota_ref = _get_hc_quota(order.plan_id)
+        if hc_quota_ref:
+            usr_ref = (
+                await db.execute(
+                    select(User).where(User.id == order.user_id).with_for_update()
+                )
+            ).scalar_one_or_none()
+            if usr_ref:
+                clawback = min(hc_quota_ref, max(0, usr_ref.heptacoin_balaonce))
+                if clawback:
+                    usr_ref.heptacoin_balaonce -= clawback
+                    db.add(Transaction(
+                        user_id=usr_ref.id, amount=clawback, type=TxType.spend,
+                        description=f"Plan iadesi geri alımı: {order.plan_id}",
+                    ))
 
     await db.commit()
     return {"ok": True}
@@ -7813,10 +7914,13 @@ async def change_email(
     user = res.scalar_one()
     if not verify_password(data.current_password, user.password_hash):
         raise bad_request("Mevcut Ã…Å¸ifre yanlÃ„Â±Ã…Å¸.")
-    exists = await db.execute(select(User).where(User.email == str(data.new_email)))
+    new_email_norm = str(data.new_email).strip().lower()
+    exists = await db.execute(
+        select(User).where(func.lower(User.email) == new_email_norm, User.id != me.id)
+    )
     if exists.scalar_one_or_none():
         raise bad_request("Bu e-posta adresi zaten kullanÃ„Â±mda.")
-    user.email = str(data.new_email)
+    user.email = new_email_norm
     await db.commit()
     return {"detail": "E-posta baÃ…Å¸arÃ„Â±yla gÃƒÂ¼oncellendi."}
 
@@ -10049,7 +10153,10 @@ async def issue_certificate(
         if not _subscription_is_active_plan(_sub_h_row, {"growth", "enterprise"}):
             cfg.show_hologram = True
 
-    res_u = await db.execute(select(User).where(User.id == billing_user_id))
+    # Lock the billing user's row so the balance check + debit below are atomic
+    # against concurrent issuance (prevents HeptaCoin double-spend / negative balance).
+    # Lock order is always user -> event (see event lock below) to avoid deadlock.
+    res_u = await db.execute(select(User).where(User.id == billing_user_id).with_for_update())
     user = res_u.scalar_one()
 
     template_path = local_path_from_url(ev.template_image_url)
@@ -10726,11 +10833,12 @@ async def request_magic_link(
     data: MagicLinkIn,
     db: AsyncSession = Depends(get_db),
 ):
-    res = await db.execute(select(User).where(User.email == str(data.email)))
+    email_norm = str(data.email).strip().lower()
+    res = await db.execute(select(User).where(func.lower(User.email) == email_norm))
     user = res.scalar_one_or_none()
     # Always 200 to avoid enumeration
     if user and user.is_verified:
-        token = make_email_token({"email": str(data.email), "action": "magic_link"})
+        token = make_email_token({"email": email_norm, "action": "magic_link"})
         user.magic_link_token = token
         await db.commit()
 
@@ -10764,8 +10872,8 @@ async def verify_magic_link(
     if payload.get("action") != "magic_link":
         raise bad_request("Gecersiz token turu.")
 
-    email = payload.get("email")
-    res = await db.execute(select(User).where(User.email == email))
+    email = str(payload.get("email") or "").strip().lower()
+    res = await db.execute(select(User).where(func.lower(User.email) == email))
     user = res.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
@@ -11753,6 +11861,22 @@ async def public_event_register(
             )
         return response
 
+    # Atomic quota enforcement: lock the event row so the count + insert below are
+    # serialized against concurrent registrations. The early check above is only a
+    # fast pre-filter and races under load (read-then-insert is not atomic). Holding
+    # the lock until the commit at the end of this request guarantees an accurate count.
+    if quota_enabled and registration_quota is not None:
+        await db.execute(select(Event.id).where(Event.id == event_db_id).with_for_update())
+        live_count_res = await db.execute(
+            select(func.count()).where(Attendee.event_id == event_db_id)
+        )
+        if int(live_count_res.scalar_one() or 0) >= registration_quota:
+            next_config = dict(ev.config or {})
+            next_config["registration_closed"] = True
+            ev.config = next_config
+            await db.commit()
+            raise HTTPException(status_code=403, detail="Registration quota reached for this event.")
+
     attendee = Attendee(
         event_id=event_db_id,
         name=payload.name,
@@ -11895,6 +12019,10 @@ async def verify_attendee_email(event_id: str, token: str = Query(...), db: Asyn
 
     attendee_id = int(payload.get("attendee_id") or 0)
     email = str(payload.get("email") or "").lower()
+    # Lock the event row first (event -> attendee order) so the verified-count quota
+    # check below is serialized against concurrent verifications and cannot exceed the
+    # quota. Acquiring the event lock before the attendee lock avoids deadlock.
+    await db.execute(select(Event.id).where(Event.id == event.id).with_for_update())
     res = await db.execute(
         select(Attendee)
         .where(Attendee.id == attendee_id, Attendee.event_id == event.id)
@@ -12505,20 +12633,27 @@ async def list_attendees(
     res = await db.execute(q)
     attendees = res.scalars().all()
 
-    # Get session counts per attendee
+    # Batch session counts + certificate lookups for this page to avoid a per-attendee
+    # N+1 (previously up to 2*limit extra queries per page load).
+    attendee_ids = [a.id for a in attendees]
+    count_rows = await db.execute(
+        select(AttendaonceRecord.attendee_id, func.count())
+        .where(AttendaonceRecord.attendee_id.in_(attendee_ids))
+        .group_by(AttendaonceRecord.attendee_id)
+    )
+    session_count_map = {aid: int(c) for aid, c in count_rows.all()}
+    cert_name_rows = await db.execute(
+        select(Certificate.student_name).where(
+            Certificate.event_id == event_id,
+            Certificate.deleted_at.is_(None),
+        )
+    )
+    cert_names = {row[0] for row in cert_name_rows.all()}
+
     results = []
     for a in attendees:
-        cnt_res = await db.execute(select(func.count()).where(AttendaonceRecord.attendee_id == a.id))
-        cnt = int(cnt_res.scalar_one() or 0)
-        # Check if has certificate
-        cert_res = await db.execute(
-            select(Certificate).where(
-                Certificate.event_id == event_id,
-                Certificate.student_name == a.name,
-                Certificate.deleted_at.is_(None),
-            )
-        )
-        has_cert = cert_res.scalar_one_or_none() is not None
+        cnt = session_count_map.get(a.id, 0)
+        has_cert = a.name in cert_names
         results.append(AttendeeOut(
             id=a.id,
             event_id=a.event_id,
@@ -12560,28 +12695,32 @@ async def export_attendaonce(
         .order_by(Attendee.registered_at.desc())
     )
     attendees = res.scalars().all()
-    
+
+    # Batch session counts and certificate lookups to avoid a per-attendee N+1
+    # (this export is unbounded — one extra query per attendee would be very slow).
+    attendee_ids = [a.id for a in attendees]
+    count_rows = await db.execute(
+        select(AttendaonceRecord.attendee_id, func.count())
+        .where(AttendaonceRecord.attendee_id.in_(attendee_ids))
+        .group_by(AttendaonceRecord.attendee_id)
+    )
+    session_count_map = {aid: int(cnt) for aid, cnt in count_rows.all()}
+    cert_name_rows = await db.execute(
+        select(Certificate.student_name).where(
+            Certificate.event_id == event_id,
+            Certificate.deleted_at.is_(None),
+        )
+    )
+    cert_names = {row[0] for row in cert_name_rows.all()}
+
     # Build data for export
     data = []
     all_answer_keys = set()  # Track all registration answer keys
-    
+
     for a in attendees:
-        # Get session count
-        cnt_res = await db.execute(
-            select(func.count()).where(AttendaonceRecord.attendee_id == a.id)
-        )
-        sessions_attended = int(cnt_res.scalar_one() or 0)
-        
-        # Check if has certificate
-        cert_res = await db.execute(
-            select(Certificate).where(
-                Certificate.event_id == event_id,
-                Certificate.student_name == a.name,
-                Certificate.deleted_at.is_(None),
-            )
-        )
-        has_certificate = cert_res.scalar_one_or_none() is not None
-        
+        sessions_attended = session_count_map.get(a.id, 0)
+        has_certificate = a.name in cert_names
+
         row_data = {
             "İsim": a.name,
             "Email": a.email,
@@ -13573,8 +13712,12 @@ async def bulk_certify_attendees(
             spent_heptacoin=0
         )
 
-    # Balance check
-    user_res = await db.execute(select(User).where(User.id == billing_user_id))
+    # Balance check. Lock the billing user's row for the whole transaction so the
+    # per-attendee balance checks + debits below are serialized against concurrent
+    # issuance (prevents HeptaCoin double-spend / negative balance). The event
+    # counter is incremented via an atomic UPDATE (no event row lock), so locking
+    # only the user row introduces no lock-ordering deadlock.
+    user_res = await db.execute(select(User).where(User.id == billing_user_id).with_for_update())
     user = user_res.scalar_one()
     bulk_unlimited = await _user_has_unlimited_hc(db, billing_user_id)
     # Rough estimate: check at least 10 HC per cert available

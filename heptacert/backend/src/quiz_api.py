@@ -208,8 +208,10 @@ async def _issue_cert_background(event_id: int, student_name: str, attempt_id: i
                 logger.warning("quiz cert: template read error: %s", exc)
                 return
 
-            # Load admin user for billing
-            user_res = await db.execute(select(User).where(User.id == ev.admin_id))
+            # Load admin user for billing. Lock the row (user -> event order, matching
+            # the event lock below) so the balance check + debit are atomic against
+            # concurrent issuance and the balance cannot go negative / double-spend.
+            user_res = await db.execute(select(User).where(User.id == ev.admin_id).with_for_update())
             user = user_res.scalar_one_or_none()
             if not user:
                 return

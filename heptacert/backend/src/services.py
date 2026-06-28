@@ -459,7 +459,96 @@ async def log_webhook_delivery(
         db.add(log_entry)
         await db.commit()
 
-async def get_current_user(db: AsyncSession = Depends(get_db), Authorization: Optional[str] = FastAPIHeader(default=None)) -> CurrentUser:
+# ── API scope enforcement ───────────────────────────────────────────────────
+# API keys (hc_*) and OAuth access tokens may carry a restricted scope list.
+# Historically these scopes were stored but NEVER enforced on the REST API, so a
+# key scoped to e.g. "events:read" had full admin access. The helpers below
+# derive the scope a request requires and reject credentials that don't hold it.
+# An empty/None scope list means "full access" (interactive sessions, unrestricted
+# keys) and is intentionally left untouched for backwards compatibility.
+
+# Meta/identity endpoints a scope-restricted credential may always reach even
+# though they map to no resource scope. Everything else that can't be classified
+# is denied (least privilege) — including billing, auth and other sensitive paths.
+_SCOPE_SAFE_GET_PREFIXES = (
+    "/api/health",
+    "/api/openapi",
+    "/api/branding",
+    "/public/branding",
+    "/api/feature-policies",
+    "/api/pricing/config",
+    "/api/oauth/userinfo",
+    "/api/me",
+    "/api/admin/mcp/me",
+)
+
+
+def _required_scope_for_request(method: str, path: str) -> Optional[str]:
+    """Map an HTTP request to the scope it requires, or None if unclassified.
+
+    Scope names match _DEFINED_SCOPES (API keys) and oauth VALID_SCOPES.
+    """
+    action = "read" if method.upper() in ("GET", "HEAD", "OPTIONS") else "write"
+    p = path.lower()
+    # Read-only resources first (no :write variant defined).
+    if "/analytics" in p or "/dashboard/stats" in p or p.endswith("/stats"):
+        return "analytics:read"
+    if "/reports" in p or "/report" in p:
+        return "reports:read"
+    # Certificates nest under /events/.../certificates — check before events.
+    if "certificate" in p or "/bulk-certify" in p or "/bulk-generate" in p or "/tier" in p:
+        return f"certificates:{action}"
+    if "/checkin" in p or "/kiosk" in p or "/attend" in p:
+        # No checkin:read scope exists; reads fall back to attendees:read.
+        return "checkin:write" if action == "write" else "attendees:read"
+    if "/attendees" in p or "/attendance" in p or "/attendaonce" in p or "/registration" in p:
+        return f"attendees:{action}"
+    if "/sessions" in p:
+        return f"sessions:{action}"
+    if "/automations" in p:
+        return f"automations:{action}"
+    if "/crm" in p:
+        return f"crm:{action}"
+    if "/lead-forms" in p or "/forms" in p:
+        return f"forms:{action}"
+    if "/events" in p or "/event" in p:
+        return f"events:{action}"
+    return None
+
+
+def _scopes_satisfy(held: List[str], required: str) -> bool:
+    if required in held:
+        return True
+    # A :write scope implies the matching :read scope.
+    if required.endswith(":read"):
+        resource = required.split(":", 1)[0]
+        if f"{resource}:write" in held:
+            return True
+    return False
+
+
+def _enforce_api_scope(request: Optional[Request], held_scopes: Optional[List[str]]) -> None:
+    """Reject the request if the scoped credential lacks the required scope.
+
+    No-op when held_scopes is None/empty (full access) or when no Request is
+    available (e.g. background/internal calls).
+    """
+    if not held_scopes or request is None:
+        return
+    path = request.url.path
+    method = request.method
+    required = _required_scope_for_request(method, path)
+    if required is not None:
+        if not _scopes_satisfy(held_scopes, required):
+            raise HTTPException(status_code=403, detail=f"API anahtarı gerekli yetkiye sahip değil: {required}")
+        return
+    # Unclassified path: allow only safe meta/identity GETs, deny everything else.
+    if method.upper() in ("GET", "HEAD", "OPTIONS") and any(path.startswith(p) for p in _SCOPE_SAFE_GET_PREFIXES):
+        return
+    raise HTTPException(status_code=403, detail="API anahtarı bu uç nokta için yetkili değil")
+
+
+async def get_current_user(request: Request = None, db: AsyncSession = Depends(get_db), Authorization: Optional[str] = FastAPIHeader(default=None)) -> CurrentUser:
     if not Authorization or not Authorization.lower().startswith("bearer "):
         raise HTTPException(status_code=401, detail="Missing bearer token")
     token = Authorization.split(" ", 1)[1].strip()
@@ -478,6 +567,9 @@ async def get_current_user(db: AsyncSession = Depends(get_db), Authorization: Op
             raise HTTPException(status_code=401, detail="Invalid API key")
         if api_key.expires_at and api_key.expires_at < datetime.now(timezone.utc):
             raise HTTPException(status_code=401, detail="API key expired")
+        # Enforce the key's scopes (empty list == unrestricted, kept for compat).
+        key_scopes = list(api_key.scopes or [])
+        _enforce_api_scope(request, key_scopes)
         # Per-key rate limiting (if configured)
         if api_key.rate_limit_per_min:
             try:
@@ -510,7 +602,7 @@ async def get_current_user(db: AsyncSession = Depends(get_db), Authorization: Op
         if user.role in (Role.admin, Role.superadmin):
             await _get_or_create_admin_organization(db, user.id)
             await db.commit()
-        return CurrentUser(id=user.id, role=user.role, email=user.email)
+        return CurrentUser(id=user.id, role=user.role, email=user.email, scopes=key_scopes or None)
 
     # JWT path
     try:
@@ -538,6 +630,11 @@ async def get_current_user(db: AsyncSession = Depends(get_db), Authorization: Op
         if not active_rt:
             raise HTTPException(status_code=401, detail="OAuth session revoked")
 
+    # OAuth access tokens carry a space-separated "scope" claim. Enforce it just
+    # like API-key scopes (interactive JWT sessions have no scope claim -> full access).
+    oauth_scopes = [s for s in (payload.get("scope") or "").split() if s] if oauth_client_id else None
+    _enforce_api_scope(request, oauth_scopes)
+
     from .cache import cache, USER_TTL
     cached_user = await cache.get(f"user:{user_id}")
     if cached_user:
@@ -547,7 +644,7 @@ async def get_current_user(db: AsyncSession = Depends(get_db), Authorization: Op
         if cached_role in (Role.admin, Role.superadmin):
             await _get_or_create_admin_organization(db, int(cached_user["id"]))
             await db.commit()
-        return CurrentUser(id=cached_user["id"], role=cached_role, email=cached_user["email"])
+        return CurrentUser(id=cached_user["id"], role=cached_role, email=cached_user["email"], scopes=oauth_scopes or None)
     res = await db.execute(select(User).where(User.id == user_id))
     user = res.scalar_one_or_none()
     if not user:
@@ -558,7 +655,7 @@ async def get_current_user(db: AsyncSession = Depends(get_db), Authorization: Op
         await _get_or_create_admin_organization(db, user.id)
         await db.commit()
     await cache.set(f"user:{user_id}", {"id": user.id, "role": str(user.role.value), "email": user.email, "deleted_at": None}, ttl=USER_TTL)
-    return CurrentUser(id=user.id, role=user.role, email=user.email)
+    return CurrentUser(id=user.id, role=user.role, email=user.email, scopes=oauth_scopes or None)
 
 async def _resolve_public_member_from_authorization(
     db: AsyncSession,

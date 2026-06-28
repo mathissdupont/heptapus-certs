@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import hmac
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -274,7 +275,15 @@ async def token_endpoint(
     """
     client = await _load_client(client_id, db)
 
-    if client_secret is not None and _sha256(client_secret) != client.client_secret_hash:
+    # Authenticate the client. Every registered client is confidential (it always
+    # has a client_secret_hash), so a presented secret must match (constant-time).
+    # A *missing* secret is only acceptable when the grant is bound by PKCE — see
+    # the per-grant checks below. Previously a missing secret skipped auth entirely,
+    # letting anyone who intercepted an auth code redeem it for tokens.
+    secret_ok = client_secret is not None and hmac.compare_digest(
+        _sha256(client_secret), client.client_secret_hash or ""
+    )
+    if client_secret is not None and not secret_ok:
         raise HTTPException(status_code=401, detail="Invalid client credentials")
 
     # ── Authorization Code grant ───────────────────────────────────────────────
@@ -303,7 +312,8 @@ async def token_endpoint(
             raise HTTPException(status_code=400, detail="redirect_uri does not match")
 
         # PKCE verification
-        if code_rec.code_challenge:
+        used_pkce = bool(code_rec.code_challenge)
+        if used_pkce:
             if not code_verifier:
                 raise HTTPException(status_code=400, detail="code_verifier is required")
             if not _verify_pkce(
@@ -312,6 +322,11 @@ async def token_endpoint(
                 code_verifier,
             ):
                 raise HTTPException(status_code=400, detail="code_verifier is invalid")
+
+        # Without PKCE the code is only bound to the client by its secret, so a
+        # valid client_secret is mandatory; otherwise a stolen code is redeemable.
+        if not used_pkce and not secret_ok:
+            raise HTTPException(status_code=401, detail="Client authentication required (client_secret or PKCE)")
 
         code_rec.used = True
         await db.flush()
@@ -351,6 +366,9 @@ async def token_endpoint(
     elif grant_type == "refresh_token":
         if not refresh_token:
             raise HTTPException(status_code=400, detail="refresh_token is required")
+        # Refresh grants carry no PKCE binding, so the client secret is mandatory.
+        if not secret_ok:
+            raise HTTPException(status_code=401, detail="Client authentication required")
 
         rt_rec = (await db.execute(
             select(OAuthRefreshToken).where(

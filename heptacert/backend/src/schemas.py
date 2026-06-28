@@ -641,6 +641,9 @@ class EventTicketOut(BaseModel):
 
 class TicketCheckInIn(BaseModel):
     token: str = Field(min_length=12, max_length=512)
+    # Optional single-use anti-replay nonce (see /checkin-nonce). Required when the
+    # request originates from a kiosk session (X-Kiosk-Token header).
+    nonce: Optional[str] = Field(default=None, max_length=96)
 
 
 class TicketStatusUpdateIn(BaseModel):
@@ -1514,6 +1517,10 @@ class CurrentUser(BaseModel):
     id: int
     role: Role
     email: EmailStr
+    # Scopes carried by the authenticating credential (API key / OAuth access token).
+    # None or empty list == full access (interactive JWT session or unrestricted key).
+    # A non-empty list restricts the credential to exactly the listed scopes.
+    scopes: Optional[List[str]] = None
 
 
 class CurrentPublicMember(BaseModel):

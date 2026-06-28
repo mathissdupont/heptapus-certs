@@ -1,9 +1,9 @@
 import io
 import re
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Optional
 
-from fastapi import Depends, HTTPException, Request
+from fastapi import Depends, Header, HTTPException, Request
 from fastapi.routing import APIRouter
 from fastapi.responses import Response
 from sqlalchemy import delete, select
@@ -202,13 +202,20 @@ async def check_in_event_ticket(
     event_id: int,
     payload: TicketCheckInIn,
     request: Request,
+    kiosk_token: Optional[str] = Header(default=None, alias="X-Kiosk-Token"),
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    from .checkin_ops_api import record_checkin_activity
+    from .checkin_ops_api import record_checkin_activity, _kiosk_from_token, _consume_nonce
 
     ev = await _get_event_for_admin(event_id, me, db, "checkin:write")
     _ensure_ticketing_feature_enabled(ev)
+    # Anti-replay nonce: required for kiosk-originated check-ins, optional otherwise.
+    # Consuming it here (single-use, 5-min TTL, optionally kiosk-bound) makes the
+    # previously-inert /checkin-nonce mechanism actually enforce replay protection.
+    kiosk = await _kiosk_from_token(db, kiosk_token, event_id)
+    if kiosk is not None or payload.nonce:
+        await _consume_nonce(db, event_id, payload.nonce, kiosk)
     clean_token = _ticket_token_from_payload(payload.token)
     ticket_res = await db.execute(
         select(EventTicket)
