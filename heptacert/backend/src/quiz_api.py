@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from .main import (
+    Attendee,
     Certificate,
     CertStatus,
     CurrentPublicMember,
@@ -301,10 +302,20 @@ async def _issue_cert_background(event_id: int, student_name: str, attempt_id: i
                 return
 
             pdf_url = build_public_pdf_url(rel_pdf_path)
+            # Link to the attendee when the name resolves to a single attendee in this
+            # event (collisions stay unlinked and fall back to name matching).
+            att_match = await db.execute(
+                select(Attendee.id)
+                .where(Attendee.event_id == ev.id, Attendee.name == student_name)
+                .limit(2)
+            )
+            att_ids = [r[0] for r in att_match.all()]
+            matched_attendee_id = att_ids[0] if len(att_ids) == 1 else None
             cert = Certificate(
                 uuid=cert_uuid,
                 public_id=public_id,
                 student_name=student_name,
+                attendee_id=matched_attendee_id,
                 event_id=ev.id,
                 pdf_url=pdf_url,
                 status=CertStatus.active,

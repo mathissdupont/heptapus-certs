@@ -257,6 +257,12 @@ class Certificate(Base):
     uuid: Mapped[str] = mapped_column(String(36), unique=True, index=True)
     student_name: Mapped[str] = mapped_column(String(200))
     event_id: Mapped[int] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    # Canonical link to the attendee this certificate was issued for. Nullable
+    # because single-issue certs can be created from a free-text name with no
+    # attendee. Matching prefers this id and falls back to student_name when null.
+    attendee_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("attendees.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     pdf_url: Mapped[str] = mapped_column(Text)
     status: Mapped[CertStatus] = mapped_column(SAEnum(CertStatus, name="cert_status_enum"), default=CertStatus.active)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

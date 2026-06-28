@@ -3746,6 +3746,16 @@ async def _process_one_bulk_certificate_job(job_id: int) -> None:
 
         generated_files = list(job.generated_files or [])
 
+        # Map each attendee name that is UNIQUE within the event to its id so generated
+        # certificates can be linked to the attendee. Names that collide stay unlinked
+        # (attendee_id=None) and fall back to name-based matching.
+        name_rows = await db_job.execute(
+            select(Attendee.name, func.min(Attendee.id), func.count())
+            .where(Attendee.event_id == ev.id)
+            .group_by(Attendee.name)
+        )
+        name_to_attendee_id = {n: int(aid) for n, aid, cnt in name_rows.all() if cnt == 1}
+
         for idx in range(start_idx, end_idx):
             student_name = names[idx]
 
@@ -3758,14 +3768,19 @@ async def _process_one_bulk_certificate_job(job_id: int) -> None:
                 await db_job.commit()
                 return
 
+            matched_attendee_id = name_to_attendee_id.get(student_name)
+            # Prefer the attendee_id link for the duplicate check (fall back to name).
+            dedup_clauses = [and_(Certificate.attendee_id.is_(None), Certificate.student_name == student_name)]
+            if matched_attendee_id is not None:
+                dedup_clauses.append(Certificate.attendee_id == matched_attendee_id)
             cert_check = await db_job.execute(
-                select(Certificate).where(
+                select(Certificate.id).where(
                     Certificate.event_id == ev.id,
-                    Certificate.student_name == student_name,
                     Certificate.deleted_at.is_(None),
+                    or_(*dedup_clauses),
                 )
             )
-            if cert_check.scalar_one_or_none():
+            if cert_check.first():
                 job.already_exists_count += 1
                 job.current_index = idx + 1
                 continue
@@ -3831,6 +3846,7 @@ async def _process_one_bulk_certificate_job(job_id: int) -> None:
                     uuid=cert_uuid,
                     public_id=public_id,
                     student_name=student_name,
+                    attendee_id=matched_attendee_id,
                     event_id=ev.id,
                     pdf_url=pdf_url,
                     status=CertStatus.active,
@@ -12642,18 +12658,20 @@ async def list_attendees(
         .group_by(AttendaonceRecord.attendee_id)
     )
     session_count_map = {aid: int(c) for aid, c in count_rows.all()}
-    cert_name_rows = await db.execute(
-        select(Certificate.student_name).where(
+    cert_rows = await db.execute(
+        select(Certificate.student_name, Certificate.attendee_id).where(
             Certificate.event_id == event_id,
             Certificate.deleted_at.is_(None),
         )
     )
-    cert_names = {row[0] for row in cert_name_rows.all()}
+    cert_data = cert_rows.all()
+    cert_attendee_ids = {aid for _, aid in cert_data if aid is not None}
+    cert_unlinked_names = {name for name, aid in cert_data if aid is None}
 
     results = []
     for a in attendees:
         cnt = session_count_map.get(a.id, 0)
-        has_cert = a.name in cert_names
+        has_cert = a.id in cert_attendee_ids or a.name in cert_unlinked_names
         results.append(AttendeeOut(
             id=a.id,
             event_id=a.event_id,
@@ -12705,13 +12723,16 @@ async def export_attendaonce(
         .group_by(AttendaonceRecord.attendee_id)
     )
     session_count_map = {aid: int(cnt) for aid, cnt in count_rows.all()}
-    cert_name_rows = await db.execute(
-        select(Certificate.student_name).where(
+    cert_rows = await db.execute(
+        select(Certificate.student_name, Certificate.attendee_id).where(
             Certificate.event_id == event_id,
             Certificate.deleted_at.is_(None),
         )
     )
-    cert_names = {row[0] for row in cert_name_rows.all()}
+    cert_data = cert_rows.all()
+    # Prefer the attendee_id link; fall back to name only for unlinked certs.
+    cert_attendee_ids = {aid for _, aid in cert_data if aid is not None}
+    cert_unlinked_names = {name for name, aid in cert_data if aid is None}
 
     # Build data for export
     data = []
@@ -12719,7 +12740,7 @@ async def export_attendaonce(
 
     for a in attendees:
         sessions_attended = session_count_map.get(a.id, 0)
-        has_certificate = a.name in cert_names
+        has_certificate = a.id in cert_attendee_ids or a.name in cert_unlinked_names
 
         row_data = {
             "İsim": a.name,
@@ -13563,13 +13584,19 @@ async def get_attendaonce_matrix(
     records = rec_res.all()
     rec_set: dict[tuple, str] = {(r.attendee_id, r.session_id): r.checked_in_at.isoformat() for r in records}
 
-    # Build certificate lookup by student_name for this event
+    # Build certificate lookup for this event. Prefer the canonical attendee_id link
+    # and fall back to student_name for legacy/unlinked certs (same-name collisions
+    # only resolve via the id map).
     cert_res = await db.execute(
-        select(Certificate.student_name, Certificate.uuid)
+        select(Certificate.student_name, Certificate.uuid, Certificate.attendee_id)
         .where(Certificate.event_id == event_id)
     )
     certs = cert_res.all()
-    cert_map: dict[str, str] = {c.student_name: c.uuid for c in certs}
+    cert_by_attendee: dict[int, str] = {c.attendee_id: c.uuid for c in certs if c.attendee_id is not None}
+    cert_by_name: dict[str, str] = {c.student_name: c.uuid for c in certs if c.attendee_id is None}
+
+    def _cert_uuid_for(att) -> Optional[str]:
+        return cert_by_attendee.get(att.id) or cert_by_name.get(att.name)
 
     # Return JSON format if requested
     if fmt == "json":
@@ -13578,10 +13605,10 @@ async def get_attendaonce_matrix(
             checkins: dict[str, str | None] = {}
             for s in sessions:
                 checkins[str(s.id)] = rec_set.get((a.id, s.id), None)
-            
+
             sessions_attended = sum(1 for s in sessions if (a.id, s.id) in rec_set)
-            has_cert = a.name in cert_map
-            cert_uuid = cert_map.get(a.name)
+            cert_uuid = _cert_uuid_for(a)
+            has_cert = cert_uuid is not None
             
             row = {
                 "attendee_id": a.id,
@@ -13741,15 +13768,19 @@ async def bulk_certify_attendees(
     total_spent = 0
 
     for attendee in eligible:
-        # Check if cert already exists
+        # Check if cert already exists. Prefer the attendee_id link so a renamed
+        # attendee isn't issued a duplicate; fall back to name for unlinked certs.
         cert_check = await db.execute(
-            select(Certificate).where(
+            select(Certificate.id).where(
                 Certificate.event_id == event_id,
-                Certificate.student_name == attendee.name,
                 Certificate.deleted_at.is_(None),
+                or_(
+                    Certificate.attendee_id == attendee.id,
+                    and_(Certificate.attendee_id.is_(None), Certificate.student_name == attendee.name),
+                ),
             )
         )
-        if cert_check.scalar_one_or_none():
+        if cert_check.first():
             already_had_cert += 1
             continue
 
@@ -13841,6 +13872,7 @@ async def bulk_certify_attendees(
         cert = Certificate(
             uuid=cert_uuid,
             student_name=attendee.name,
+            attendee_id=attendee.id,
             event_id=event_id,
             pdf_url=build_public_pdf_url(rel_path),
             status=CertStatus.active,
