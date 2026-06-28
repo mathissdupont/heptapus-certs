@@ -52,7 +52,11 @@ services:
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8765}
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3030}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3030}
-      TRUSTED_PROXY_NETWORKS: ${TRUSTED_PROXY_NETWORKS:-}
+      # Trust X-Forwarded-For only from the internal reverse proxy. Default covers
+      # private/Docker network ranges so rate limiting keys on the real client IP
+      # behind the bundled Caddy. Safe: direct (public-IP) peers never match these,
+      # so their forged XFF is ignored. Narrow to your proxy's subnet if known.
+      TRUSTED_PROXY_NETWORKS: ${TRUSTED_PROXY_NETWORKS:-10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
       CLAMAV_ENABLED: ${CLAMAV_ENABLED:-false}
       CLAMAV_HOST: ${CLAMAV_HOST:-clamav}
       CLAMAV_PORT: ${CLAMAV_PORT:-3310}
@@ -124,7 +128,11 @@ services:
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8765}
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3030}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3030}
-      TRUSTED_PROXY_NETWORKS: ${TRUSTED_PROXY_NETWORKS:-}
+      # Trust X-Forwarded-For only from the internal reverse proxy. Default covers
+      # private/Docker network ranges so rate limiting keys on the real client IP
+      # behind the bundled Caddy. Safe: direct (public-IP) peers never match these,
+      # so their forged XFF is ignored. Narrow to your proxy's subnet if known.
+      TRUSTED_PROXY_NETWORKS: ${TRUSTED_PROXY_NETWORKS:-10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
       CLAMAV_ENABLED: ${CLAMAV_ENABLED:-false}
       CLAMAV_HOST: ${CLAMAV_HOST:-clamav}
       CLAMAV_PORT: ${CLAMAV_PORT:-3310}

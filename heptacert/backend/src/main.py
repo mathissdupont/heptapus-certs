@@ -2610,17 +2610,25 @@ async def startup():
                     if admin.id not in unlimited_cache:
                         unlimited_cache[admin.id] = await _user_has_unlimited_hc(db_auto, admin.id)
                     unlimited = unlimited_cache[admin.id]
-                    if not unlimited and admin.heptacoin_balaonce < cost:
-                        cert.status = CertStatus.expired
-                        logger.warning(
-                            "Certificate auto-renew skipped for cert %s: insufficient HC balance on user %s",
-                            cert.id,
-                            admin.id,
-                        )
-                        continue
-
                     if not unlimited:
-                        admin.heptacoin_balaonce -= cost
+                        # Atomic, race-safe debit: decrement only if the balance is
+                        # still sufficient. The joined `admin` row isn't locked, so a
+                        # read-modify-write here could race a concurrent foreground
+                        # spend into a negative balance. The conditional UPDATE avoids
+                        # that without needing a row lock across the join.
+                        debit_res = await db_auto.execute(
+                            update(User)
+                            .where(User.id == admin.id, User.heptacoin_balaonce >= cost)
+                            .values(heptacoin_balaonce=User.heptacoin_balaonce - cost)
+                        )
+                        if debit_res.rowcount == 0:
+                            cert.status = CertStatus.expired
+                            logger.warning(
+                                "Certificate auto-renew skipped for cert %s: insufficient HC balance on user %s",
+                                cert.id,
+                                admin.id,
+                            )
+                            continue
                         db_auto.add(Transaction(
                             user_id=admin.id,
                             amount=cost,

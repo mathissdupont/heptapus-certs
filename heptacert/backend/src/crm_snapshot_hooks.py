@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .main import (
@@ -118,11 +118,19 @@ async def refresh_crm_snapshot_for_event_email(
 
     certificate_count = 0
     for attendee, attendee_event in rows:
+        # Prefer the canonical attendee_id link; fall back to name only for legacy/
+        # unlinked certs so same-name attendees aren't counted against each other.
         cert_res = await db.execute(
             select(func.count(Certificate.id)).where(
                 Certificate.event_id == attendee_event.id,
                 Certificate.deleted_at.is_(None),
-                func.lower(func.trim(Certificate.student_name)) == _name_key(attendee.name),
+                or_(
+                    Certificate.attendee_id == attendee.id,
+                    and_(
+                        Certificate.attendee_id.is_(None),
+                        func.lower(func.trim(Certificate.student_name)) == _name_key(attendee.name),
+                    ),
+                ),
             )
         )
         certificate_count += int(cert_res.scalar_one() or 0)
