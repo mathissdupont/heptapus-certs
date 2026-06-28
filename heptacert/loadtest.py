@@ -41,7 +41,8 @@ def _register_payload() -> dict:
     tag = secrets.token_hex(6)
     return {
         "name": f"Load Test {tag}",
-        "email": f"load_{tag}@loadtest.local",
+        # example.com is a valid, reservable domain (passes EmailStr); .local is rejected.
+        "email": f"load_{tag}@example.com",
         "kvkk_accepted": True,
         "organizer_notice_accepted": True,
         "cross_border_notice_read": True,
@@ -49,14 +50,19 @@ def _register_payload() -> dict:
     }
 
 
-async def _worker(client, make_request, results, stop_at):
+async def _worker(client, make_request, results, stop_at, error_samples):
     while time.monotonic() < stop_at:
         t0 = time.monotonic()
         try:
             r = await make_request(client)
             results.append((r.status_code, time.monotonic() - t0))
-        except Exception:
+            # Capture a few non-2xx response bodies so failures are diagnosable.
+            if not (200 <= r.status_code < 300) and len(error_samples) < 3:
+                error_samples.append((r.status_code, r.text[:300]))
+        except Exception as e:
             results.append((-1, time.monotonic() - t0))
+            if len(error_samples) < 3:
+                error_samples.append((-1, repr(e)[:300]))
 
 
 async def main():
@@ -87,12 +93,13 @@ async def main():
 
     print(f"Mod={args.mode} eşzamanlılık={args.concurrency} süre={args.duration}s -> {args.base}")
     results: list[tuple[int, float]] = []
+    error_samples: list[tuple[int, str]] = []
     stop_at = time.monotonic() + args.duration
     limits = httpx.Limits(max_connections=args.concurrency + 10,
                           max_keepalive_connections=args.concurrency + 10)
     async with httpx.AsyncClient(limits=limits) as client:
         await asyncio.gather(*[
-            _worker(client, make_request, results, stop_at)
+            _worker(client, make_request, results, stop_at, error_samples)
             for _ in range(args.concurrency)
         ])
 
@@ -116,6 +123,10 @@ async def main():
     print(f"Gecikme p50/p95/p99: {pct(0.50):.0f} / {pct(0.95):.0f} / {pct(0.99):.0f} ms")
     print(f"Ortalama gecikme  : {statistics.mean(lats)*1000:.0f} ms")
     print(f"Durum kodu dağılımı: {dict(sorted(codes.items()))}  (-1 = bağlantı/timeout hatası)")
+    if error_samples:
+        print("\n--- İlk hata örnekleri (durum kodu | gövde) ---")
+        for code, body in error_samples:
+            print(f"[{code}] {body}")
 
 
 if __name__ == "__main__":
