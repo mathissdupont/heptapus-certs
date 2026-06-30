@@ -4,7 +4,7 @@ import { defineRouting } from "next-intl/routing";
 // (src/locales/<locale>.ts) are enabled, so we never expose an untranslated /xx/ URL
 // (bad for SEO/duplicate content). Tier-1 targets de/fr/es/nl/ru/it/pt are added here
 // one by one as their catalog lands. The authenticated app keeps its own custom i18n.
-export const locales = ["tr", "en", "de", "fr", "es"] as const;
+export const locales = ["tr", "en", "de", "fr", "es", "it", "pt", "nl", "ru"] as const;
 export type AppLocale = (typeof locales)[number];
 
 export const defaultLocale: AppLocale = "tr";
