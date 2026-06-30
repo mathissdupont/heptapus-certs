@@ -1,35 +1,68 @@
-﻿"use client";
+"use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { tr } from "@/locales/tr";
 import { en } from "@/locales/en";
 import type { TranslationKey } from "@/locales/tr";
 
+// Adding a language is intentionally a 3-step, low-risk change (ADR-0019):
+//   1. add src/locales/<lang>.ts (it may be partial — missing keys fall back),
+//   2. import it and add it to LOCALES + LANG_LABELS below,
+//   3. add it to the Lang union.
+// No other file needs to change; the LanguageToggle and detection adapt automatically.
 export type Lang = "tr" | "en";
+
+const DEFAULT_LANG: Lang = "tr";   // ultimate fallback / first-load default
+const FALLBACK_LANG: Lang = "en";  // tried before DEFAULT_LANG for missing keys
 
 const LANG_STORAGE_KEY = "heptacert-lang";
 
-const translations: Record<Lang, Record<TranslationKey, string>> = { tr, en };
+// A locale may be incomplete — Partial keeps new languages cheap; missing keys fall back.
+const LOCALES: Record<Lang, Partial<Record<TranslationKey, string>>> = { tr, en };
+
+// Native display names shown in the language switcher.
+const LANG_LABELS: Record<Lang, string> = { tr: "Türkçe", en: "English" };
+
+const SUPPORTED_LANGS = Object.keys(LOCALES) as Lang[];
+
+function isSupported(value: string | null | undefined): value is Lang {
+  return !!value && (SUPPORTED_LANGS as string[]).includes(value);
+}
 
 interface I18nContextValue {
   lang: Lang;
   setLang: (lang: Lang) => void;
   t: (key: TranslationKey, vars?: Record<string, string | number>) => string;
+  supportedLangs: Lang[];
+  langLabels: Record<Lang, string>;
 }
 
 const I18nContext = createContext<I18nContextValue>({
-  lang: "tr",
+  lang: DEFAULT_LANG,
   setLang: () => {},
   t: (key) => key,
+  supportedLangs: SUPPORTED_LANGS,
+  langLabels: LANG_LABELS,
 });
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>("tr");
+  const [lang, setLangState] = useState<Lang>(DEFAULT_LANG);
 
   useEffect(() => {
-    const stored = localStorage.getItem(LANG_STORAGE_KEY) as Lang | null;
-    if (stored === "en" || stored === "tr") {
+    const stored = localStorage.getItem(LANG_STORAGE_KEY);
+    if (isSupported(stored)) {
       setLangState(stored);
+      return;
+    }
+    // First visit (no saved choice): pick the first browser language we support, by its
+    // base subtag (e.g. "en-US" -> "en"). Falls through to DEFAULT_LANG otherwise.
+    const browserLangs = navigator.languages?.length ? navigator.languages : [navigator.language];
+    for (const candidate of browserLangs) {
+      const base = (candidate || "").toLowerCase().split("-")[0];
+      if (isSupported(base)) {
+        setLangState(base);
+        return;
+      }
     }
   }, []);
 
@@ -40,7 +73,12 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   const t = useCallback(
     (key: TranslationKey, vars?: Record<string, string | number>): string => {
-      let str: string = translations[lang][key] ?? translations.tr[key] ?? key;
+      // Resolution order: active language -> FALLBACK_LANG -> DEFAULT_LANG -> raw key.
+      let str: string =
+        LOCALES[lang]?.[key] ??
+        LOCALES[FALLBACK_LANG]?.[key] ??
+        LOCALES[DEFAULT_LANG]?.[key] ??
+        key;
       if (vars) {
         Object.entries(vars).forEach(([name, value]) => {
           str = str.replace(`{${name}}`, String(value));
@@ -51,7 +89,11 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     [lang]
   );
 
-  return <I18nContext.Provider value={{ lang, setLang, t }}>{children}</I18nContext.Provider>;
+  return (
+    <I18nContext.Provider value={{ lang, setLang, t, supportedLangs: SUPPORTED_LANGS, langLabels: LANG_LABELS }}>
+      {children}
+    </I18nContext.Provider>
+  );
 }
 
 export function useI18n() {
@@ -63,28 +105,53 @@ export function useT() {
 }
 
 export function LanguageToggle({ className }: { className?: string }) {
-  const { lang, setLang, t } = useI18n();
-  const nextLang: Lang = lang === "tr" ? "en" : "tr";
-  const label = lang === "tr" ? t("lang_current_english") : t("lang_current_turkish");
-  const title = lang === "tr" ? t("lang_switch_to_english") : t("lang_switch_to_turkish");
-  const ariaLabel = lang === "tr" ? t("lang_aria_switch_to_english") : t("lang_aria_switch_to_turkish");
+  const { lang, setLang, supportedLangs, langLabels } = useI18n();
+
+  // Two languages: keep the original one-tap toggle. Three or more: a compact dropdown.
+  if (supportedLangs.length <= 2) {
+    const nextLang: Lang = supportedLangs.find((l) => l !== lang) ?? lang;
+    return (
+      <button
+        type="button"
+        onClick={() => setLang(nextLang)}
+        title={langLabels[nextLang]}
+        className={
+          className ??
+          "inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900"
+        }
+        aria-label={langLabels[nextLang]}
+      >
+        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-11 font-extrabold tracking-[0.18em] text-slate-700">
+          {lang.toUpperCase()}
+        </span>
+        <span>{langLabels[nextLang]}</span>
+      </button>
+    );
+  }
 
   return (
-    <button
-      type="button"
-      onClick={() => setLang(nextLang)}
-      title={title}
+    <label
       className={
         className ??
-        "inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900"
+        "inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs font-bold text-gray-700 shadow-sm"
       }
-      aria-label={ariaLabel}
     >
+      <span className="sr-only">Language</span>
       <span className="rounded bg-slate-100 px-1.5 py-0.5 text-11 font-extrabold tracking-[0.18em] text-slate-700">
         {lang.toUpperCase()}
       </span>
-      <span>{label}</span>
-    </button>
+      <select
+        value={lang}
+        onChange={(e) => setLang(e.target.value as Lang)}
+        className="bg-transparent pr-1 font-bold text-gray-700 outline-none"
+        aria-label="Select language"
+      >
+        {supportedLangs.map((l) => (
+          <option key={l} value={l}>
+            {langLabels[l]}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
-

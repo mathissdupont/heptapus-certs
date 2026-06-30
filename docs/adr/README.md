@@ -37,6 +37,7 @@ Each ADR uses:
 | [0018](0018-event-type-feature-presets.md) | Event-type feature presets | Accepted |
 | [0019](0019-internationalization-architecture.md) | Internationalization (i18n) architecture | Accepted |
 | [0020](0020-networking-and-meeting-scheduling.md) | Networking & meeting scheduling on the connection graph | Accepted |
+| [0021](0021-international-seo-locale-routed-ssr.md) | International SEO via locale-routed SSR (hybrid i18n) | Accepted |
 
 ---
 

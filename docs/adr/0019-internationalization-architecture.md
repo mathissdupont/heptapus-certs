@@ -3,38 +3,49 @@
 **Status:** Accepted · **Date:** 2026-06-30 · **Related:** [0004](0004-postgresql-alembic-jsonb.md), [0003](0003-nextjs-frontend.md)
 
 ## Context
-The product is single-language today, which is a hard blocker for international sales
-and for organizers running events for multilingual audiences. i18n is not a per-event
-feature toggle — it is cross-cutting infrastructure. There are two distinct concerns
-that are often conflated and must be solved separately:
+The product must work in multiple languages — both the product UI and
+organizer-authored content. There are two distinct concerns that are often conflated
+and must be solved separately:
 
 1. **Product UI strings** — buttons, labels, validation messages baked into the app.
 2. **Customer content** — organizer-authored data (event name/description, email
    templates, certificate text) that itself needs to exist in multiple languages.
 
+A **custom client-side i18n already exists** and is in production: `src/lib/i18n.tsx`
+(an `I18nProvider` + `useI18n`/`useT` + `LanguageToggle`) backed by typed locale objects
+in `src/locales/{tr,en}.ts` (~490 keys each, tr/en balanced), with `{var}` interpolation
+and a tr→key fallback, and the choice persisted in `localStorage`. Introducing a second
+framework (next-intl/next-i18next) would duplicate and conflict with ~130 call sites.
+
 ## Decision
-Treat the two concerns with two different mechanisms.
+**Build on the existing custom i18n; do not introduce a second framework.** Solve the
+two concerns with two mechanisms.
 
-- **UI strings (static):** message catalogs via `next-intl`/`next-i18next`. All
-  hardcoded user-facing strings move behind `t("key")`; catalogs live under `locales/`
-  (`tr`, `en` first). Locale resolves from the user's preference, falling back to the
-  `Accept-Language` header, then the platform default. Adding a language = adding a
-  catalog file, nothing else.
+- **UI strings (static):** keep `src/lib/i18n.tsx` + `src/locales/*`. New user-facing
+  strings are added as typed keys (kept in sync across `tr` and `en`) and read via
+  `useT()`/`t(key, vars)`. Adding a language = adding a `src/locales/<lang>.ts` object
+  and extending the `Lang` union. First-visit locale is detected from the browser
+  (`navigator.language`) when no stored preference exists, then defaults to `tr`.
 - **Customer content (dynamic):** translatable fields are stored as JSONB language maps,
-  `{"tr": "...", "en": "..."}`, consistent with the existing `Event.config` / email
-  template JSONB pattern (ADR-0004). The public surface picks the variant by requested
-  locale and falls back to the event's default language when a translation is missing.
-  Jinja2 email templates (already sandboxed) gain language-keyed variants.
-
-Backend response *messages* intended for end users are localized via the same catalog
-keys where the client cannot localize them itself.
+  `{"tr": "...", "en": "..."}`. For events this lives under the **existing `Event.config`
+  JSONB** (`config.i18n.<field>`), so it needs **no migration** and reuses the
+  established config pattern (ADR-0004). A single resolver picks the variant by requested
+  locale and falls back to the event's stored base value when a translation is missing.
+  Email templates (already JSONB, sandboxed Jinja2) gain language-keyed variants the same
+  way. Backend end-user messages are localized via the same locale keys where the client
+  cannot localize them itself.
 
 ## Consequences
+- One i18n system, not two: no migration off ~130 existing call sites, no bundle/API
+  duplication.
 - Clear separation: translating the UI never touches the database; translating content
   never touches code.
-- Incremental rollout: fields and screens can be migrated to i18n one at a time without
-  a big-bang cutover; untranslated values gracefully fall back.
-- Adding a new locale is cheap (UI: one catalog; content: organizers fill variants).
-- Trade-off: JSONB language maps make some queries/sorting on content fields
-  locale-dependent; we accept this and resolve display-locale at read time rather than
-  denormalizing per-language columns.
+- Content i18n needs no schema migration (rides on `Event.config` JSONB); untranslated
+  values fall back to the base field, so rollout is incremental and never crashes.
+- Adding a locale is cheap (UI: one locale object; content: organizers fill variants).
+- Trade-offs: (1) the custom UI i18n is client-side/`localStorage`, so SSR'd content is
+  not pre-localized at the HTML level — acceptable for the current SPA-style surfaces.
+  (2) JSONB content maps make sorting/searching on translated fields locale-dependent;
+  display-locale is resolved at read time rather than denormalizing per-language columns.
+  (3) The cached public-events list (`_pe_cache_key`) must include the resolved locale in
+  its cache key once listing content is localized, to avoid serving the wrong language.
