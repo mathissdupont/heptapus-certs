@@ -1,3 +1,9 @@
+import createNextIntlPlugin from "next-intl/plugin";
+
+// Loads request-scoped messages for public (next-intl) surfaces. The authenticated
+// app keeps its own custom i18n and is unaffected (ADR-0021).
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async headers() {
@@ -16,4 +22,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

@@ -1,0 +1,11 @@
+{
+  "Meta": {
+    "title": "HeptaCert — Sistema operacional para eventos",
+    "description": "Formulários de inscrição, check-in por QR, certificados, campanhas de e-mail, CRM e análises — tudo numa só plataforma."
+  },
+  "Pilot": {
+    "heading": "HeptaCert internacional",
+    "intro": "Esta página é renderizada no servidor por idioma e tem o seu próprio URL.",
+    "cta": "Começar gratuitamente"
+  }
+}

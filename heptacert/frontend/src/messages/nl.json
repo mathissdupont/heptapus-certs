@@ -1,0 +1,11 @@
+{
+  "Meta": {
+    "title": "HeptaCert — Besturingssysteem voor evenementen",
+    "description": "Registratieformulieren, QR-check-in, certificaten, e-mailcampagnes, CRM en analyses — alles op één platform."
+  },
+  "Pilot": {
+    "heading": "Internationaal HeptaCert",
+    "intro": "Deze pagina wordt per taal server-side gerenderd en heeft een eigen URL.",
+    "cta": "Gratis beginnen"
+  }
+}
