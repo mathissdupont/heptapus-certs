@@ -65,6 +65,10 @@ see [FEATURE_ROADMAP_2026](../reference/FEATURE_ROADMAP_2026.md) for sequencing.
 | [WP25](WP25-exhibitor-and-lead-retrieval.md) | Exhibitor & Booth Management + Lead Retrieval | Booths + scoped exhibitor lead capture |
 | [WP26](WP26-onsite-badge-printing.md) | On-Site Badge Design & Printing | Physical badge design + print at check-in |
 | [WP27](WP27-seating-and-floor-plans.md) | Seating & Floor Plans | Reserved seating (demand-gated) |
+| [WP28](WP28-i18n-localized-public-shell.md) | Localized Public Shell (i18n) | Locale-aware nav/footer/switcher for public SSR |
+| [WP29](WP29-i18n-public-page-migration.md) | Public Page Migration (i18n) | Per-page move under [locale] + string extraction |
+| [WP30](WP30-i18n-international-seo.md) | International SEO Mechanics (i18n) | Per-locale sitemap, hreflang, SSR html lang, canonical |
+| [WP31](WP31-i18n-content-localization.md) | Content Localization (i18n) | Organizer content per locale (Event.config JSONB) |
 
 **Deferred (strategic, pending segment decision — not yet greenlit):** Native mobile app
 (consider PWA + web-push as an interim step) and a native virtual/hybrid stage

@@ -1,111 +1,131 @@
 # HeptaCert — Uluslararasılaşma & Çoklu Dil Geçiş Planı
 
-> Hedef: **Gerçek uluslararası varlık + dil-başına organik SEO.** Çok sayıda Avrupa/Amerika
-> dili, sonra Çince, gerekirse Arapça. Bu doküman; mimariyi, SEO mekaniğini, çeviri hattını
-> ve fazlı geçişi belgeler. Karar kaydı: [ADR-0021](../adr/0021-international-seo-locale-routed-ssr.md)
-> ([ADR-0019](../adr/0019-internationalization-architecture.md)'u SEO yönünde rafine eder).
+> Hedef: **Gerçek uluslararası varlık + dil-başına organik SEO.** Çekirdek Avrupa/Amerika
+> dilleri, sonra (gerekirse) Çince ve Arapça. Bu doküman; mimariyi, mevcut durumu,
+> **kritik bulguları**, sayfa envanterini, sayfa-başına taşıma reçetesini, riskleri ve
+> work package eşlemesini belgeler.
+>
+> Karar kayıtları: [ADR-0019](../adr/0019-internationalization-architecture.md) (custom i18n),
+> [ADR-0021](../adr/0021-international-seo-locale-routed-ssr.md) (hibrit SSR/SEO).
+> Work packages: [WP18](../work-packages/WP18-internationalization.md) (temel — büyük ölçüde teslim),
+> WP28–WP31 (public taşıma — planlandı).
 
-## 0. Neden mevcut custom i18n tek başına yetmiyor (net)
+---
 
-Mevcut sistem `localStorage` + istemci tarafı. Google **tek URL** görür ve onu **tek dilde**
-(varsayılan) render edilmiş HTML olarak indeksler. Dil-başına SEO için şart olanlar — ayrı
-URL (`/de/...`), sunucuda dile-özel HTML, `hreflang`, dile-özel `<title>`/`description`,
-sitemap — istemci tarafı toggle ile **üretilemez**. Bu yüzden public yüzeylerde SSR i18n
-(next-intl) gerekiyor. Auth'lu panelde SEO değeri olmadığından orada custom kalır.
+## 1. Mimari özet (hibrit)
 
-## 1. Mimari: Hibrit (yüzeye göre ayrım)
+| Yüzey | Sistem | Routing | Diller |
+|-------|--------|---------|--------|
+| Auth'lu app (admin/portal) | custom i18n (`src/lib/i18n.tsx`) | prefix yok | tr/en |
+| Public (pazarlama/etkinlik) | **next-intl** | `/{locale}/...` SSR | tr/en/de/fr/es/it/pt/nl/ru |
 
-| Yüzey | Sistem | Routing | Neden |
-|-------|--------|---------|-------|
-| Public/pazarlama/etkinlik | **next-intl** | `/{locale}/...` (SSR) | SEO buradan gelir |
-| Auth'lu app (admin/portal/checkout/auth) | **custom i18n** (mevcut) | prefix yok | SEO yok; 130+ dosya korunur |
+**Tek çeviri kaynağı:** next-intl, custom i18n ile **aynı** `src/locales/<locale>.ts` düz-anahtar
+kataloglarını okur (`src/i18n/request.ts`). Bir string bir kez çevrilir, iki yüzeyde de kullanılır.
 
-**Sınır:** `app/[locale]/(public)/...` altına yalnızca public route grupları taşınır
-(`events`, `marketplace`, `discover`, `community`, `pricing`, `developers`,
-`learning-paths`, public member/profile, anasayfa, hukuki sayfalar). Admin/portal/auth
-mevcut `I18nProvider` ile prefix'siz kalır. İki sistem **tek ortak temel katalog** ve
-çeviri hattını paylaşır → string'ler çatallaşmaz.
+---
 
-## 2. SEO mekaniği (public yüzeyde teslim edilecekler)
+## 2. Mevcut durum (TAMAMLANAN — branch `feat/i18n-public-ssr`)
 
-- **URL stratejisi:** locale-prefixed path (`/tr/...`, `/en/...`, `/de/...`). Varsayılan
-  dil (tr) için strateji: `as-needed` yerine **her zaman prefix** (tutarlı canonical + net
-  hreflang). next-intl middleware yönlendirir.
-- **hreflang alternates:** her sayfa `generateMetadata` → `alternates.languages` ile tüm
-  dil varyantlarını + `x-default` bildirir.
-- **Dile-özel metadata:** `<title>`, `description`, OpenGraph her locale için katalogdan.
-- **`<html lang>`** locale'e göre; **canonical** locale'li URL.
-- **Sitemap:** `sitemap.ts` her public URL'i × her locale + hreflang ile üretir.
-- **robots.ts** locale yollarını engellemez; eski prefix'siz URL'ler için 301 → tercih
-  edilen locale.
+- ✅ **9 dil katalogu**, her biri **490 anahtar** tam (tr, en, de, fr, es, it, pt, nl, ru).
+  Marka terimleri + `{placeholder}`'lar korunmuş; `tsc` eksiksizliği `TranslationKey`'e karşı doğruluyor.
+- ✅ **next-intl altyapısı:** `src/i18n/{routing,request,navigation}.ts`, `next.config.mjs` plugin,
+  middleware kompozisyonu (mevcut white-label/method/legacy-token mantığı korunarak; yalnız
+  locale-prefix'li yollar next-intl'e delege).
+- ✅ **`app/[locale]/layout.tsx`** + pilot (`/[locale]/i18n-pilot`) — SSR i18n + metadata + hreflang kanıtlandı.
+- ✅ **LanguageSwitcher** (next-intl) + **HtmlLangSetter** (istemci tarafı `<html lang>`).
+- ✅ **DeepL çeviri hattı** (`scripts/i18n-translate.mjs`) — gelecekte bakım/ölçek için (şu an manuel çeviri kullanıldı).
+- ✅ `next build` geçiyor (9 locale), mevcut hiçbir route bozulmadı.
 
-## 3. İçerik i18n (organizatör verisi) — ADR-0019 18b
+---
 
-UI string'lerinden ayrı: etkinlik adı/açıklama, e-posta şablonu, sertifika metni.
-- **Saklama:** `Event.config` JSONB → `config.i18n.<field> = {"tr":..,"en":..,"de":..}`
-  (migration yok). E-posta şablonları zaten JSONB.
-- **Çözümleme:** tek `resolve_i18n(map, locale, fallback)` helper; eksik dil → temel değere
-  düşer. Public okuma yolları (`get_public_event_detail`, `public_event_info`,
-  `list_public_events`) locale'e göre çözer.
-- **Cache:** cached liste (`_pe_cache_key`) anahtarına **locale eklenir** (yanlış dil
-  servis etmemek için — kritik).
+## 3. KRİTİK BULGU — neden taşıma "hook değiştir" değil
 
-## 4. Çeviri hattı (490 anahtar × N dil = ölçek sorunu)
+Public sayfalar **katalog `t()` ile değil, koda gömülü `lang === "tr" ? "..." : "..."`**
+ikili koşullarıyla yazılmış (ör. `_home-client.tsx`: 0 `t()` çağrısı, **19** `lang` kullanımı).
+Bunun sonuçları:
 
-Elle çeviri ölçeklenmez. **Makine çevirisi + insan revizyonu** hattı:
-- **Tek doğru kaynak:** temel katalog = **İngilizce** (MT kalitesi en→X en yüksek). TR de
-  birinci sınıf (mevcut). 
-- **Pipeline:** `scripts/i18n-translate.ts` → temel katalogu okur, **DeepL API** (AB
-  dilleri + ZH + AR'de güçlü) ile hedef dillere çevirir, `src/locales/<lang>.ts` yazar,
-  her değere `// MT — needs review` işareti koyar. Var olan insan-onaylı çeviriyi ezmez
-  (idempotent: yalnız eksik/işaretli anahtarları çevirir).
-- **Fallback zinciri** (kodda hazır): aktif dil → İngilizce → Türkçe → anahtar. Yani bir
-  dil %100 çevrilmeden de site kırılmadan çalışır.
-- **Kalite:** öncelikli diller (de/fr/es/nl/ru) insan revizyonu; gerisi MT + topluluk
-  düzeltmesi. Hukuki sayfalar (KVKK vb.) **mutlaka** profesyonel/insan çeviri — MT yeterli değil.
+1. **String çıkarımı gerekli.** Her sayfanın gömülü tr/en metinleri katalog anahtarlarına
+   çıkarılmalı ve 7 yeni dile çevrilmeli (sayfa başına onlarca yeni anahtar).
+2. **Paylaşılan shell custom i18n'e bağlı.** `ClientShell` (nav, footer, `LanguageToggle`)
+   `useI18n` (tr/en) kullanıyor ve admin ile **ortak**. `/de` sayfasında içerik Almanca olsa
+   bile menü tr/en kalır → tutarsız. **Önce locale-aware public shell gerekir.**
+3. **Custom `Lang` genişletilemez.** Admin'de çok sayıda satır-içi `{ tr, en }[lang]` kopya
+   haritası var; `Lang`'e dil eklemek bunları kırar (hem TS hem runtime). Bu yüzden custom
+   tarafı tr/en kalır, ek diller yalnız next-intl tarafında yaşar.
+4. **Çift hook.** Admin `useT` (custom), public `useTranslations` (next-intl). Anahtarlar
+   ortak olduğundan çeviri çatallaşmaz, ama bileşen hangi tarafa aitse o hook'u kullanmalı.
 
-## 5. Dil yayılımı (kademeli)
+> Özet: pages bilingual-inline yazıldığı için her sayfa **gerçek bir refactor** (çıkar → çevir →
+> next-intl'e geçir → `[locale]` altına taşı → eski URL'e 301 → linkleri locale-aware yap).
 
-| Tier | Diller | Not |
-|------|--------|-----|
-| **Tier 0 (mevcut)** | tr, en | Hazır |
-| **Tier 1 (lansman)** | de, fr, es, nl, ru, it, pt | Latin/Kiril; çekirdek AB + Amerika (es/pt) |
-| **Tier 2** | pl, sv, da, fi, no, cs, el, ro, hu, uk, pt-BR | AB geneli + Brezilya |
-| **Tier 3** | zh (中文), ja, ko | CJK; layout/yazı tipi testi gerek |
-| **Tier 4 (RTL — ayrı iş)** | ar, he | `dir="rtl"` + logical CSS + ikon/yön çevirme |
+---
 
-> "Tüm Avrupa+Amerika dilleri" pratikte Tier 1–2 ile karşılanır (Amerika kıtası ağırlıkla
-> en/es/pt/fr). CJK Tier 3. Arapça (RTL) bilinçli olarak ayrı faz — layout işi büyük.
+## 4. Public sayfa envanteri (taşıma ağırlığı)
 
-## 6. Fazlar (efor sırası)
+Ağırlık = gömülü koşul sayısı + alt-route + animasyon karmaşıklığı. (Gerçek i18n çoğunlukla
+`_*-client.tsx` bileşenlerinde.)
 
-1. **Faz A — Altyapı (motor hazır ✅):** custom i18n N-dile genelleştirildi (registry,
-   fallback zinciri aktif→en→tr→key, tarayıcı-dili tespiti, 3+ dilde dropdown). *(Bu commit.)*
-2. **Faz B — next-intl + locale routing (public iskelet):** next-intl kur, `[locale]`
-   segmenti + middleware, public route gruplarını `app/[locale]/(public)/` altına taşı,
-   eski URL'lere 301. Henüz tr/en.
-3. **Faz C — SEO mekaniği:** dile-özel `generateMetadata` + hreflang + canonical +
-   `<html lang>` + locale'li `sitemap.ts`. Lighthouse/Search Console doğrulama.
-4. **Faz D — Çeviri hattı:** DeepL pipeline script + temel katalog (en) + Tier 1 dilleri
-   üret, öncelikli dilleri revize et.
-5. **Faz E — İçerik i18n (18b):** `resolve_i18n` helper + `Event.config.i18n` + public
-   okuma yolları + cache anahtarına locale + admin çeviri girişi UI.
-6. **Faz F — Tier 2/3 diller + RTL (ayrı):** kademeli dil ekleme; Arapça için RTL workstream.
+| Route | Ağırlık | Alt-route | Not |
+|-------|---------|-----------|-----|
+| `/` (home) | **Ağır** | 8 | `_home-client.tsx` 726 satır, 19 gömülü koşul, framer-motion |
+| `/events` (+ `/events/[id]` ve quiz/register/survey/status) | **Ağır** | var | Çok alt-route; detay sayfaları da i18n ister |
+| `/discover` | Orta | yok | 357 satır, 7 gömülü koşul; leaf |
+| `/marketplace` (+ `[event_id]`, `courses`) | Orta | var | 201 satır, 1 gömülü |
+| `/organizations` (+ `[id]`) | Orta | var | Topluluk sayfaları |
+| `/learning-paths` (+ `[id]`) | Orta | var | |
+| `/members`, `/community`, `/post` | Orta | var | Topluluk/sosyal |
+| `/verify`, `/verify/[uuid]` | Hafif-orta | var | Doğrulama (yüksek değerli, az metin) |
+| `/pricing/business`, `/pricing/member` | Orta | yok | **Hardcoded** metin (katalogda yok) — çıkarım gerek |
+| **Hukuki:** `/gizlilik` `/kvkk` `/iade` `/mesafeli-satis` `/kullanim-kosullari` `/iletisim` | — | yok | **Çoğu Türk pazarına özgü (KVKK = TR yasası). Uluslararasılaştırma şüpheli; MT YASAK — insan çeviri.** Muhtemelen kapsam dışı. |
+
+---
+
+## 5. Sayfa-başına taşıma reçetesi (tekrarlanabilir adımlar)
+
+Her public sayfa için, sırayla:
+
+1. **String çıkarımı:** gömülü `lang === "tr" ? A : B` → `t("yeni_anahtar")`. Yeni anahtarları
+   9 katalog dosyasına ekle (tr/en kaynak metinden, 7 dile çeviri).
+2. **Hook geçişi:** `useI18n()/useT()` → next-intl `useTranslations()` / `useLocale()`. Anahtarlar aynı kalır.
+3. **Dosya taşıma:** `app/<route>/` → `app/[locale]/<route>/`. Alt-route'lar da taşınmalı (yoksa locale kopar).
+4. **Metadata:** `generateMetadata` ile locale'e özel `title`/`description` + `hreflang` alternates + canonical.
+5. **Eski URL → 301:** prefix'siz eski yol tercih edilen locale'e yönlenir (SEO/backlink korunur).
+6. **Linkler:** sayfaya işaret eden iç `<Link>`'ler locale-aware (`@/i18n/navigation`).
+7. **Doğrulama:** `tsc` + `next build` + her locale URL'i manuel kontrol.
+
+---
+
+## 6. Faz / sıra (her biri bir work package)
+
+**Önce paylaşılan shell** — tüm sayfaların ön-koşulu; o olmadan her sayfada menü tutarsız.
+
+| Sıra | WP | İş |
+|------|----|----|
+| 1 | **WP28** | **Localized public shell** — `[locale]` için next-intl nav/footer/LanguageSwitcher; admin shell'inden ayrık |
+| 2 | **WP29** | **Sayfa-başına taşıma** — §5 reçetesiyle, ağırlık sırası: discover → marketplace → organizations → learning-paths → events → home (en ağır en sona) |
+| 3 | **WP30** | **Uluslararası SEO mekaniği** — locale'li `sitemap.ts`, `hreflang`, SSR `<html lang>`, canonical, eski-URL 301 standardı |
+| 4 | **WP31** | **İçerik i18n** — organizatör verisi (etkinlik adı/açıklama, e-posta, sertifika) `Event.config.i18n` JSONB + public okuma yolları + cache anahtarına locale |
+
+---
 
 ## 7. Riskler & kararlar
 
-- **Coexistence netliği:** bir ekran ya `[locale]` (next-intl) ya da custom — route grubu
-  sınırı bunu belirler. Karışıklık riskini sınır mimarisi kapatır.
-- **MT maliyeti/kalitesi:** DeepL API ücretli; hacim = 490 × dil. Hukuki metinler MT'ye
-  bırakılmaz. Karar: API bütçesi + öncelikli dil revizyonu.
-- **URL göçü:** mevcut prefix'siz public URL'ler → 301; backlink/SEO değeri korunur.
-- **RTL:** Arapça layout işi büyük; ayrı faz, ayrı QA.
-
-## 8. Onay gereken kararlar (uygulamadan önce)
-
-1. **Hibrit kapsam** onayı: public→next-intl, admin→custom (önerilen) — yoksa tam göç mü?
-2. **Dil tier listesi**: Tier 1 = de/fr/es/nl/ru/it/pt yeterli mi? CJK/Arapça ne zaman?
-3. **Çeviri hattı**: DeepL API (önerilen) onayı + bütçe; hukuki metinler için insan çeviri.
+- **Canlı site:** Tüm iş `feat/i18n-public-ssr` branch'inde; main'e ancak build + manuel test sonrası merge. Prod korunur.
+- **URL göçü:** Eski prefix'siz public URL'ler 301 ile locale'liye taşınır — backlink/SEO değeri korunur, ama mevcut paylaşılmış linkler yönlendirilir.
+- **Alt-route bütünlüğü:** Bir liste sayfası taşınırken detay/alt sayfaları da taşınmalı; yoksa kullanıcı dilini kaybeder.
+- **Duplicate content:** Çevirisi olmayan dilde URL açma → SEO cezası. Kural: bir locale yalnız katalogu tamamsa `routing.locales`'e eklenir (şu an 9'u tam).
+- **Hukuki sayfalar:** KVKK/şartlar TR pazarına özgü + MT'ye bırakılamaz → muhtemelen kapsam dışı; gerekiyorsa profesyonel/insan çeviri.
+- **Çeviri kalitesi:** 9 katalog elle çevrildi; öncelikli diller native-review önerilir. DeepL hattı (WP18) gelecekte yeni anahtarları otomatik çevirebilir.
+- **RTL (Arapça/İbranice):** Eklenirse ayrı layout workstream (`dir="rtl"` + logical CSS) — şu an kapsam dışı.
 
 ---
-_Oluşturma: 2026-06-30 · Mevcut: Next 15.5 App Router, custom i18n (490 anahtar, tr/en). Faz A motoru bu turda hazır._
+
+## 8. Kapsam dışı (bilinçli)
+
+- Native mobil app, native sanal sahne (FEATURE_ROADMAP_2026 Faz 4).
+- Hukuki sayfaların MT çevirisi.
+- RTL dilleri (ileride ayrı workstream).
+- Lokalize URL slug'ları (`/de/preise` gibi) — ilk turda slug'lar ortak kalır; ileride next-intl `pathnames` ile.
+
+---
+_Son güncelleme: 2026-06-30 · Next 15.5 App Router · 9 katalog + altyapı hazır (branch); public taşıma WP28–WP31 ile planlandı._
