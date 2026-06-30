@@ -93,6 +93,7 @@ from .event_features import (
     is_ticketing_enabled,
     normalize_event_type,
     normalize_feature_bool,
+    resolved_feature_defaults,
 )
 from .generator import TemplateConfig, render_certificate_pdf, render_certificate_png_watermarked, new_certificate_uuid
 from .enums import Role, CertStatus, TxType, OrderStatus, AttendeeSource  # enums.py'a tasindi (god-dosya bolme)
@@ -8166,22 +8167,27 @@ async def create_event(
     # New events should require KVKK consent by default.
     next_config.setdefault("kvkk_consent_required", True)
     public_id = await _generate_event_public_id(db)
+    # Per-event-type preset (ADR-0018): seed flag defaults from the chosen event type so
+    # the organizer gets a coherent set without flipping every switch. Explicit payload
+    # values still win — presets only fill flags the client did not send.
+    event_type = normalize_event_type(payload.event_type)
+    feature_defaults = resolved_feature_defaults(event_type)
     ev = Event(
         public_id=public_id,
         admin_id=organization.user_id,
         name=payload.name,
         template_image_url=payload.template_image_url or "placeholder",
         config=next_config,
-        event_type=normalize_event_type(payload.event_type),
-        certificate_enabled=normalize_feature_bool(payload.certificate_enabled, default=FEATURE_DEFAULTS["certificate_enabled"]),
-        checkin_enabled=normalize_feature_bool(payload.checkin_enabled, default=FEATURE_DEFAULTS["checkin_enabled"]),
-        ticketing_enabled=normalize_feature_bool(payload.ticketing_enabled, default=FEATURE_DEFAULTS["ticketing_enabled"]),
-        registration_enabled=normalize_feature_bool(payload.registration_enabled, default=FEATURE_DEFAULTS["registration_enabled"]),
-        raffles_enabled=normalize_feature_bool(payload.raffles_enabled, default=FEATURE_DEFAULTS["raffles_enabled"]),
-        gamification_enabled=normalize_feature_bool(payload.gamification_enabled, default=FEATURE_DEFAULTS["gamification_enabled"]),
-        requires_approval=normalize_feature_bool(payload.requires_approval, default=FEATURE_DEFAULTS["requires_approval"]),
-        quiz_enabled=normalize_feature_bool(payload.quiz_enabled, default=FEATURE_DEFAULTS["quiz_enabled"]),
-        cpd_enabled=normalize_feature_bool(payload.cpd_enabled, default=FEATURE_DEFAULTS["cpd_enabled"]),
+        event_type=event_type,
+        certificate_enabled=normalize_feature_bool(payload.certificate_enabled, default=feature_defaults["certificate_enabled"]),
+        checkin_enabled=normalize_feature_bool(payload.checkin_enabled, default=feature_defaults["checkin_enabled"]),
+        ticketing_enabled=normalize_feature_bool(payload.ticketing_enabled, default=feature_defaults["ticketing_enabled"]),
+        registration_enabled=normalize_feature_bool(payload.registration_enabled, default=feature_defaults["registration_enabled"]),
+        raffles_enabled=normalize_feature_bool(payload.raffles_enabled, default=feature_defaults["raffles_enabled"]),
+        gamification_enabled=normalize_feature_bool(payload.gamification_enabled, default=feature_defaults["gamification_enabled"]),
+        requires_approval=normalize_feature_bool(payload.requires_approval, default=feature_defaults["requires_approval"]),
+        quiz_enabled=normalize_feature_bool(payload.quiz_enabled, default=feature_defaults["quiz_enabled"]),
+        cpd_enabled=normalize_feature_bool(payload.cpd_enabled, default=feature_defaults["cpd_enabled"]),
     )
     db.add(ev)
     await db.flush()

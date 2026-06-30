@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Loader2, Zap } from "lucide-react";
 import { apiFetch } from "@/lib/api";
@@ -46,7 +46,18 @@ const EVENT_TYPE_OPTIONS: Array<{ value: EventType; label: { tr: string; en: str
   { value: "custom", label: { tr: "Özel Etkinlik", en: "Custom Event" } },
 ];
 
-function defaultsForEventType(eventType: EventType) {
+type FeatureDefaults = {
+  certificateEnabled: boolean;
+  checkinEnabled: boolean;
+  ticketingEnabled: boolean;
+  registrationEnabled: boolean;
+  rafflesEnabled: boolean;
+  gamificationEnabled: boolean;
+};
+
+// Fallback only — used until the backend preset map (single source of truth, ADR-0018)
+// is fetched, or if that fetch fails. Kept minimal; do not extend per-type logic here.
+function fallbackDefaultsForEventType(eventType: EventType): FeatureDefaults {
   if (eventType === "concert" || eventType === "club_event") {
     return { certificateEnabled: false, checkinEnabled: true, ticketingEnabled: true, registrationEnabled: true, rafflesEnabled: false, gamificationEnabled: false };
   }
@@ -77,6 +88,38 @@ export default function CreateEventDrawer({ open, onClose, onCreated, venues = [
   const [reservationEndAt, setReservationEndAt] = useState("");
   const [creating, setCreating] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // Backend-resolved feature presets per event type (single source of truth, ADR-0018).
+  const [presetMap, setPresetMap] = useState<Record<string, Record<string, boolean>> | null>(null);
+
+  useEffect(() => {
+    if (!open || presetMap) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiFetch("/admin/event-feature-presets");
+        const data = await res.json();
+        if (!cancelled && data?.presets) setPresetMap(data.presets);
+      } catch {
+        // Non-fatal: fall back to local defaults if the preset endpoint is unavailable.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [open, presetMap]);
+
+  function defaultsForEventType(nextType: EventType): FeatureDefaults {
+    const p = presetMap?.[nextType];
+    if (p) {
+      return {
+        certificateEnabled: !!p.certificate_enabled,
+        checkinEnabled: !!p.checkin_enabled,
+        ticketingEnabled: !!p.ticketing_enabled,
+        registrationEnabled: !!p.registration_enabled,
+        rafflesEnabled: !!p.raffles_enabled,
+        gamificationEnabled: !!p.gamification_enabled,
+      };
+    }
+    return fallbackDefaultsForEventType(nextType);
+  }
 
   const copy = {
     tr: {

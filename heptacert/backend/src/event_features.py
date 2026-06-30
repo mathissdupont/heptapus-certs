@@ -28,10 +28,73 @@ FEATURE_DEFAULTS = {
     "cpd_enabled": False,
 }
 
+# Per-event-type default toggle sets (ADR-0018). These are *starting points* applied at
+# event creation when the client does not explicitly send a flag; they never override an
+# explicitly-provided value, and they never retroactively change an existing event.
+# Only keys present here override FEATURE_DEFAULTS — unlisted flags fall back to it, so a
+# new feature flag added later automatically inherits its FEATURE_DEFAULTS value until a
+# preset opts in. Event types not listed (e.g. certificate_event, custom) use the minimal
+# safe FEATURE_DEFAULTS set. Only reference flags that already exist as Event columns.
+PRESET_BY_EVENT_TYPE: dict[str, dict[str, bool]] = {
+    "seminar": {
+        "certificate_enabled": True,
+        "checkin_enabled": True,
+        "registration_enabled": True,
+    },
+    "workshop": {
+        "certificate_enabled": True,
+        "checkin_enabled": True,
+        "registration_enabled": True,
+        "quiz_enabled": True,
+        "cpd_enabled": True,
+    },
+    "training": {
+        "certificate_enabled": True,
+        "checkin_enabled": True,
+        "registration_enabled": True,
+        "quiz_enabled": True,
+        "cpd_enabled": True,
+    },
+    "conference": {
+        "certificate_enabled": True,
+        "checkin_enabled": True,
+        "registration_enabled": True,
+        "ticketing_enabled": True,
+    },
+    "concert": {
+        "certificate_enabled": False,
+        "checkin_enabled": True,
+        "registration_enabled": True,
+        "ticketing_enabled": True,
+    },
+    "club_event": {
+        "certificate_enabled": False,
+        "checkin_enabled": True,
+        "registration_enabled": True,
+        "gamification_enabled": True,
+    },
+    "online_event": {
+        "certificate_enabled": True,
+        "checkin_enabled": False,
+        "registration_enabled": True,
+    },
+}
+
 
 def normalize_event_type(raw_value: Any) -> str:
     value = str(raw_value or "").strip().lower()
     return value if value in EVENT_TYPES else EVENT_TYPE_CERTIFICATE
+
+
+def resolved_feature_defaults(event_type: Any) -> dict[str, bool]:
+    """Feature defaults for an event type: the type preset overlaid on FEATURE_DEFAULTS.
+
+    Used at event creation so that picking a type (e.g. "conference") seeds a coherent
+    toggle set without the organizer flipping each switch. Unlisted flags fall back to
+    FEATURE_DEFAULTS, so this is forward-compatible with future feature flags."""
+    merged = dict(FEATURE_DEFAULTS)
+    merged.update(PRESET_BY_EVENT_TYPE.get(normalize_event_type(event_type), {}))
+    return merged
 
 
 def normalize_feature_bool(raw_value: Any, *, default: bool) -> bool:

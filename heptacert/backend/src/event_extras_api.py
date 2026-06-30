@@ -31,8 +31,36 @@ from .main import (
     _get_event_registration_fields,
     _validate_registration_fields_for_write,
 )
+from .event_features import (
+    EVENT_TYPES,
+    EVENT_TYPE_CERTIFICATE,
+    PRESET_BY_EVENT_TYPE,
+    resolved_feature_defaults,
+)
 
 router = APIRouter()
+
+
+# ── Event-type feature presets (ADR-0018) ───────────────────────────────────────
+# Read-only: lets the admin UI seed feature toggles when the organizer picks a type,
+# without duplicating the preset map on the frontend (single source of truth).
+
+@router.get(
+    "/api/admin/event-feature-presets",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
+async def get_event_feature_presets(
+    me: CurrentUser = Depends(get_current_user),
+):
+    """Resolved default toggle set per event type (preset overlaid on global defaults)."""
+    return {
+        "default_event_type": EVENT_TYPE_CERTIFICATE,
+        "event_types": sorted(EVENT_TYPES),
+        # Full resolved defaults per type so the client never has to merge anything.
+        "presets": {etype: resolved_feature_defaults(etype) for etype in sorted(EVENT_TYPES)},
+        # Which flags each type explicitly opts into (for UI hints; optional).
+        "explicit_overrides": PRESET_BY_EVENT_TYPE,
+    }
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────

@@ -224,7 +224,18 @@ const EVENT_TYPE_OPTIONS: Array<{ value: EventType; tr: string; en: string }> = 
   { value: "custom", tr: "Özel", en: "Custom" },
 ];
 
-function defaultsForEventType(eventType: EventType) {
+type EventFeatureFlags = {
+  certificate_enabled: boolean;
+  checkin_enabled: boolean;
+  ticketing_enabled: boolean;
+  registration_enabled: boolean;
+  raffles_enabled: boolean;
+  gamification_enabled: boolean;
+};
+
+// Fallback only — used until the backend preset map (single source of truth, ADR-0018)
+// is fetched, or if that fetch fails. Do not extend per-type logic here.
+function fallbackDefaultsForEventType(eventType: EventType): EventFeatureFlags {
   if (eventType === "concert" || eventType === "club_event") {
     return {
       certificate_enabled: false,
@@ -262,6 +273,18 @@ function defaultsForEventType(eventType: EventType) {
     registration_enabled: true,
     raffles_enabled: false,
     gamification_enabled: false,
+  };
+}
+
+// Map a backend preset (snake_case, all flags) down to the 6 flags this form edits.
+function flagsFromPreset(p: Record<string, boolean>): EventFeatureFlags {
+  return {
+    certificate_enabled: !!p.certificate_enabled,
+    checkin_enabled: !!p.checkin_enabled,
+    ticketing_enabled: !!p.ticketing_enabled,
+    registration_enabled: !!p.registration_enabled,
+    raffles_enabled: !!p.raffles_enabled,
+    gamification_enabled: !!p.gamification_enabled,
   };
 }
 
@@ -493,7 +516,28 @@ export default function EventSettingsPage() {
   const [systemEmailTemplates, setSystemEmailTemplates] = useState<EmailTemplate[]>([]);
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [venues, setVenues] = useState<OrganizationVenue[]>([]);
-  
+  // Backend-resolved feature presets per event type (single source of truth, ADR-0018).
+  const [presetMap, setPresetMap] = useState<Record<string, Record<string, boolean>> | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiFetch("/admin/event-feature-presets");
+        const data = await res.json();
+        if (!cancelled && data?.presets) setPresetMap(data.presets);
+      } catch {
+        // Non-fatal: fall back to local defaults if the preset endpoint is unavailable.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  function defaultsForEventType(eventType: EventType): EventFeatureFlags {
+    const p = presetMap?.[eventType];
+    return p ? flagsFromPreset(p) : fallbackDefaultsForEventType(eventType);
+  }
+
   const [formData, setFormData] = useState<FormState>({
     name: "",
     event_date: "",
