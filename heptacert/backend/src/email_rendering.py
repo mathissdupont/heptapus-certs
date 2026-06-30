@@ -10,9 +10,11 @@ from jinja2.sandbox import SandboxedEnvironment
 
 # Admin-authored email templates are rendered through a SANDBOXED Jinja2 environment.
 # A plain jinja2.Template allows `{{ ''.__class__.__mro__... }}` style payloads that
-# reach os/subprocess (SSTI -> RCE). The sandbox blocks dunder/attribute escapes, so a
-# malicious template body can only touch the variables we pass in.
-_sandbox_env = SandboxedEnvironment(autoescape=False)
+# reach os/subprocess (SSTI -> RCE). The sandbox blocks dunder/attribute escapes.
+# autoescape=True additionally HTML-escapes interpolated VARIABLE values (e.g. an
+# attendee-controlled `{{ recipient_name }}`), preventing HTML/link injection into the
+# email — the admin's literal template markup is unaffected (only `{{ }}` output is escaped).
+_sandbox_env = SandboxedEnvironment(autoescape=True)
 
 
 def _event_identifier(event: Any) -> str:

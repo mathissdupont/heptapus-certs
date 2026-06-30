@@ -102,7 +102,11 @@ async def _heptacert_rate_limit_handler(request: Request, exc: RateLimitExceeded
 rate_limit_storage_uri = settings.rate_limit_storage_uri or settings.redis_url or "memory://"
 limiter = Limiter(
     key_func=_rate_limit_key,
-    default_limits=["200/minute"],
+    # No global default limit: only endpoints with an explicit @limiter.limit (login,
+    # register, forgot/reset-password, 2fa, magic-link) are throttled. A global cap
+    # would throttle the public listing + admin dashboard per IP and undo the perf
+    # work. Add a coarse abuse backstop at the reverse proxy (Caddy) instead.
+    default_limits=[],
     storage_uri=rate_limit_storage_uri,
 )
 

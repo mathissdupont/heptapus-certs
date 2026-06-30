@@ -158,6 +158,10 @@ async def oidc_sso_start(
     db: AsyncSession = Depends(get_db),
 ):
     """Redirect browser to the organization's OIDC identity provider."""
+    # Open-redirect guard: only allow same-site relative paths in `next` (reject
+    # absolute URLs and protocol-relative `//evil.com`) before signing it into state.
+    if not (next.startswith("/") and not next.startswith("//")):
+        next = "/admin"
     org = await db.get(Organization, org_id)
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found.")

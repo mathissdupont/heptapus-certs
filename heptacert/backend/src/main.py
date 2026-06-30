@@ -2094,6 +2094,10 @@ def _get_registration_device_id(request: Request) -> tuple[str, bool]:
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _heptacert_rate_limit_handler)
+# REQUIRED for @limiter.limit decorators to actually fire — without this middleware
+# slowapi silently no-ops every rate limit (login/register/forgot/2fa were unlimited).
+from slowapi.middleware import SlowAPIMiddleware
+app.add_middleware(SlowAPIMiddleware)
 logger.info("Rate limiter storage: %s", "redis" if rate_limit_storage_uri.startswith("redis") else "memory")
 
 # Include domains router (custom domains / Caddy ask endpoint)
@@ -7015,6 +7019,13 @@ async def change_admin_role(
         raise HTTPException(status_code=404, detail="Admin not found")
     user.role = Role(payload.role)
     await db.commit()
+    # Invalidate the cached role so demotion/promotion takes effect immediately
+    # instead of lingering for USER_TTL (avoids a stale-privilege window).
+    try:
+        from .cache import cache
+        await cache.delete(f"user:{user.id}")
+    except Exception:
+        pass
     return {"ok": True, "new_role": payload.role}
 
 

@@ -47,6 +47,22 @@
 
 ---
 
+## 3.5. Tur 3 — Kapatılan açıklar (rate-limit, XSS, open-redirect, internal uç)
+
+| # | Şiddet | Açık | Dosya | Düzeltme |
+|---|--------|------|-------|----------|
+| 1 | **Yüksek** | Rate-limit **fiilen devre dışı**: `SlowAPIMiddleware` eklenmediğinden tüm `@limiter.limit` no-op'tu → login/register/forgot/2fa brute-force'a açık | `main.py`, `ratelimit.py` | `SlowAPIMiddleware` eklendi; global `default_limits` kaldırıldı (yalnız hassas uçlar limitli) |
+| 2 | Orta | E-posta değişkenleri escape edilmiyordu (attendee adı → HTML/link enjeksiyonu) | `email_rendering.py` | `SandboxedEnvironment(autoescape=True)` |
+| 3 | Orta | OIDC `next` open-redirect (savunma derinliği) | `oidc_sso_api.py` | Yalnız same-site relative path kabulü |
+| 4 | Orta | `/.internal/caddy/authorize` app-seviyesi ağ kapısı yok (domain enumeration) | `domains_api.py` | Trusted-proxy peer kontrolü (TRUSTED_PROXY_NETWORKS ayarlıysa) |
+| 5 | Düşük | Rol değişiminde user-cache invalidation yok (~120sn revocation gecikmesi) | `main.py` | `change_admin_role`'de cache invalidation |
+
+**Tur 3'te temiz doğrulananlar:** mass-assignment / yetki yükseltme (Pydantic whitelist + `require_role`; self-register rolü hardcoded; superadmin uçları gated; QA-seed çift-kilit), CRM owner cross-org koruması, check-in SSE (auth + tenant-scoped), MCP auth (API-key hash + çift scope), verify uçları (minimum PII), OAuth `redirect_uri` allowlist, event açıklaması stored-XSS (allowlist sanitizer + WRITE'ta uygulanıyor).
+
+**Tur 3 kabul edilen artık riskler:** sunum control-WS token'ında expiry yok (token 192-bit + yeniden üretilebilir; audience bayraklarına bağlamak presenter UX'ini bozar), MCP DNS-rebinding kapalı (kasıtlı, tehdit modeli için makul), yorum gövdesi HTML sanitize edilmiyor (şu an React escape ediyor; ileride HTML render edilirse riskli).
+
+---
+
 ## 4. Güvenli olduğu DOĞRULANAN yüzeyler (kanıt)
 
 Bu yüzeyler incelendi ve sağlam bulundu:

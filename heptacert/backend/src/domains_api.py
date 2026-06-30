@@ -226,7 +226,18 @@ async def check_domain(domain: str, request: Request, me: CurrentUser = Depends(
             return {"status": d.status}
 
 @router.get("/.internal/caddy/authorize")
-async def caddy_authorize(domain: Optional[str] = Query(None)):
+async def caddy_authorize(request: Request, domain: Optional[str] = Query(None)):
+    # Defense-in-depth: this internal forward-auth endpoint must only be callable by
+    # the reverse proxy. When TRUSTED_PROXY_NETWORKS is configured, require the caller's
+    # peer to be the proxy — so a direct external hit (public peer IP) is rejected even
+    # if the backend port is accidentally exposed. If not configured, fall back to the
+    # current behaviour (proxy is expected to block /.internal/*) to avoid breakage.
+    from .config import settings as _settings
+    from .ratelimit import _is_trusted_proxy_peer
+    if (_settings.trusted_proxy_networks or "").strip():
+        peer = request.client.host if request.client else None
+        if not _is_trusted_proxy_peer(peer):
+            raise HTTPException(status_code=404, detail="Not found")
     if not domain:
         raise HTTPException(status_code=400, detail="missing domain")
     async with SessionLocal() as db:
