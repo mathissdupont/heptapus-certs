@@ -757,12 +757,20 @@ async def test_provider_config(
         raise HTTPException(status_code=400, detail="Provider credentials are missing")
     if not cfg.base_url:
         return {"ok": True, "message": "Configuration is present"}
+    # SSRF guard: base_url is admin-configured and we issue an outbound request to it,
+    # so require https + a non-internal host, and never follow redirects (a redirect
+    # to an internal address would otherwise bypass the check).
+    from urllib.parse import urlparse as _urlparse
+    from .webhooks import _is_private_address as _is_priv
+    _parsed_base = _urlparse(cfg.base_url)
+    if _parsed_base.scheme != "https" or not _parsed_base.hostname or _is_priv(_parsed_base.hostname):
+        raise HTTPException(status_code=400, detail="Provider base_url must be a public https URL.")
     headers: dict[str, str] = {}
     if cfg.auth_type == "bearer_token" and cfg.access_token:
         headers["Authorization"] = f"Bearer {cfg.access_token}"
     elif cfg.auth_type == "api_key" and cfg.api_key:
         headers["Authorization"] = f"Bearer {cfg.api_key}"
-    async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+    async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
         res = await client.get(cfg.base_url, headers=headers)
     if res.status_code >= 500:
         raise HTTPException(status_code=502, detail=f"Provider test failed: HTTP {res.status_code}")

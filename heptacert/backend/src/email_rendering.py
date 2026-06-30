@@ -6,7 +6,13 @@ from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import quote
 
-from jinja2 import Template
+from jinja2.sandbox import SandboxedEnvironment
+
+# Admin-authored email templates are rendered through a SANDBOXED Jinja2 environment.
+# A plain jinja2.Template allows `{{ ''.__class__.__mro__... }}` style payloads that
+# reach os/subprocess (SSTI -> RCE). The sandbox blocks dunder/attribute escapes, so a
+# malicious template body can only touch the variables we pass in.
+_sandbox_env = SandboxedEnvironment(autoescape=False)
 
 
 def _event_identifier(event: Any) -> str:
@@ -85,4 +91,4 @@ def build_email_template_vars(
 
 
 def render_template_string(source: str | None, variables: dict[str, Any]) -> str:
-    return Template(source or "").render(**variables)
+    return _sandbox_env.from_string(source or "").render(**variables)

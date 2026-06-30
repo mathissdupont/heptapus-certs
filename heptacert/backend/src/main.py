@@ -42,6 +42,10 @@ from fastapi.responses import FileResponse, StreamingResponse, RedirectResponse,
 from .moderation import moderate_public_text
 try:
     from PIL import Image as PILImage
+    # Cap pixel count to defuse decompression bombs: a tiny file can declare a huge
+    # canvas (e.g. 50000x50000) that explodes RAM when decoded. ~64MP is plenty for
+    # logos/banners/templates; larger raises Image.DecompressionBombError.
+    PILImage.MAX_IMAGE_PIXELS = 64_000_000
 except ImportError:
     PILImage = None  # type: ignore
 try:
@@ -956,6 +960,17 @@ def verify_password(pw: str, pw_hash: str) -> bool:
 _DUMMY_PASSWORD_HASH = pwd_context.hash("heptacert-timing-equalizer")
 
 
+def _csv_safe(value: Any) -> str:
+    """Neutralize CSV/Excel formula injection: cells starting with = + - @ (or a
+    leading tab/CR) are interpreted as formulas by spreadsheet apps, so attacker-
+    controlled fields (attendee names, registration answers) get a leading apostrophe.
+    """
+    s = "" if value is None else str(value)
+    if s[:1] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + s
+    return s
+
+
 # Ã¢â€â‚¬Ã¢â€â‚¬ Email token helpers Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 _email_signer: Optional[URLSafeTimedSerializer] = None
 
@@ -1522,10 +1537,10 @@ async def send_email_async(
     # Render Jinja2 template if template_vars provided
     if template_vars:
         try:
-            from jinja2 import Template
-            template = Template(html_body)
-            html_body = template.render(**template_vars)
-            subject = Template(subject).render(**template_vars)
+            # Sandboxed render (prevents SSTI -> RCE from admin-authored templates).
+            from .email_rendering import render_template_string
+            html_body = render_template_string(html_body, template_vars)
+            subject = render_template_string(subject, template_vars)
         except Exception as exc:
             logger.error("Jinja2 template rendering failed: %s", exc)
             return
@@ -2135,6 +2150,14 @@ async def security_headers_middleware(request: Request, call_next):
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     response.headers.setdefault("Permissions-Policy", "camera=(self), microphone=(), geolocation=()")
+    # Conservative CSP that hardens any HTML/error responses without breaking the
+    # Swagger UI (which loads scripts/styles from a CDN): block framing, plugins,
+    # and <base> hijacking. We intentionally omit a strict default-src/script-src so
+    # the API docs keep working; JSON responses are unaffected by CSP anyway.
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "frame-ancestors 'none'; object-src 'none'; base-uri 'none'",
+    )
     if settings.public_base_url.lower().startswith("https://"):
         response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
     return response
@@ -2674,8 +2697,8 @@ async def startup():
 
         async def _process_bulk_emails():
             """Process pending bulk email jobs every 5 minutes."""
-            from jinja2 import Template
-            
+            from .email_rendering import render_template_string
+
             async with SessionLocal() as db_bulk:
                 # Get all pending jobs
                 res_jobs = await db_bulk.execute(
@@ -2883,9 +2906,9 @@ async def startup():
                                         ),
                                     }
                                     
-                                    # Render subject and body
-                                    subj = Template(template.subject_tr).render(**template_vars)
-                                    body = Template(template.body_html).render(**template_vars)
+                                    # Render subject and body (sandboxed — no SSTI)
+                                    subj = render_template_string(template.subject_tr, template_vars)
+                                    body = render_template_string(template.body_html, template_vars)
 
                                     # Create delivery log first to get its ID for tracking pixel
                                     delivery_log = EmailDeliveryLog(
@@ -10567,7 +10590,7 @@ async def export_certificates(
         writer = csv.writer(buf)
         writer.writerow(columns)
         for c in certs:
-            writer.writerow([
+            writer.writerow([_csv_safe(x) for x in [
                 c.public_id or "",
                 c.student_name,
                 c.status.value if c.status else "",
@@ -10575,7 +10598,7 @@ async def export_certificates(
                 getattr(c, "issued_at", None).isoformat() if getattr(c, "issued_at", None) else "",
                 getattr(c, "hosting_ends_at", None).isoformat() if getattr(c, "hosting_ends_at", None) else "",
                 c.uuid,
-            ])
+            ]])
         return StreamingResponse(
             iter([buf.getvalue()]),
             media_type="text/csv; charset=utf-8",
@@ -11817,6 +11840,7 @@ async def public_event_register(
                     max_age=60 * 60 * 24 * 365,
                     httponly=True,
                     samesite="Lax",
+                    secure=settings.public_base_url.lower().startswith("https://"),
                 )
             return response
 
@@ -11904,6 +11928,7 @@ async def public_event_register(
                 max_age=60 * 60 * 24 * 365,
                 httponly=True,
                 samesite="Lax",
+                secure=settings.public_base_url.lower().startswith("https://"),
             )
         return response
 
@@ -12042,6 +12067,7 @@ async def public_event_register(
             max_age=60 * 60 * 24 * 365,
             httponly=True,
             samesite="Lax",
+            secure=settings.public_base_url.lower().startswith("https://"),
         )
     return response
 
@@ -12843,7 +12869,7 @@ async def export_attendaonce(
         writer.writeheader()
         
         for row in data:
-            writer.writerow({col: row.get(col, "") for col in columns})
+            writer.writerow({col: _csv_safe(row.get(col, "")) for col in columns})
         
         return StreamingResponse(
             iter([buf.getvalue()]),
@@ -13689,6 +13715,11 @@ async def get_attendaonce_matrix(
     df = pd.DataFrame(rows)
     buf = io.BytesIO()
     if fmt == "csv":
+        # Neutralize CSV formula injection on attacker-controlled cells (names, answers).
+        try:
+            df = df.map(_csv_safe)  # pandas >= 2.1
+        except AttributeError:
+            df = df.applymap(_csv_safe)
         df.to_csv(buf, index=False)
         buf.seek(0)
         return StreamingResponse(buf, media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="attendance_{event_id}.csv"'})

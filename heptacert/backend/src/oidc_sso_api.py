@@ -16,14 +16,17 @@ from __future__ import annotations
 
 import secrets
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 import httpx
 import jwt as pyjwt
+from jwt import PyJWKSet
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from .webhooks import _is_private_address
 
 from .main import (
     Organization,
@@ -50,13 +53,70 @@ def _oidc_redirect_uri() -> str:
     return f"{settings.public_base_url.rstrip('/')}/api/auth/oidc/callback"
 
 
+def _assert_safe_oidc_url(url: str, label: str) -> None:
+    """Block SSRF: OIDC endpoints (issuer/token/jwks) are admin-configured, so they
+    must be https and must not resolve to a private/internal/loopback address."""
+    parsed = urlparse(url or "")
+    if parsed.scheme != "https" or not parsed.hostname:
+        raise HTTPException(status_code=400, detail=f"OIDC {label} must be a valid https URL.")
+    if _is_private_address(parsed.hostname):
+        raise HTTPException(status_code=400, detail=f"OIDC {label} is not allowed (internal address).")
+
+
 async def _oidc_discovery(issuer_url: str) -> dict[str, Any]:
+    _assert_safe_oidc_url(issuer_url, "issuer_url")
     url = f"{issuer_url.rstrip('/')}/.well-known/openid-configuration"
-    async with httpx.AsyncClient(timeout=10.0) as client:
+    async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
         res = await client.get(url)
     if res.status_code >= 400:
         raise HTTPException(status_code=502, detail="OIDC discovery document could not be fetched.")
     return res.json()
+
+
+async def _verify_id_token(id_token: str, jwks_uri: str, client_id: str, expected_issuer: str) -> dict[str, Any]:
+    """Verify the IdP id_token signature against the provider's JWKS and validate
+    audience/expiry/issuer. Without this, a forged id_token could spoof any email
+    claim and take over accounts."""
+    _assert_safe_oidc_url(jwks_uri, "jwks_uri")
+    try:
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
+            res = await client.get(jwks_uri)
+        res.raise_for_status()
+        jwk_set = PyJWKSet.from_dict(res.json())
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"OIDC JWKS could not be fetched: {exc}")
+
+    try:
+        header = pyjwt.get_unverified_header(id_token)
+        kid = header.get("kid")
+        alg = header.get("alg") or "RS256"
+        signing_key = None
+        for key in jwk_set.keys:
+            if kid is None or key.key_id == kid:
+                signing_key = key
+                break
+        if signing_key is None:
+            raise HTTPException(status_code=400, detail="OIDC signing key not found for id_token.")
+        claims = pyjwt.decode(
+            id_token,
+            signing_key.key,
+            algorithms=[alg] if alg in ("RS256", "RS384", "RS512", "ES256", "ES384") else ["RS256"],
+            audience=client_id,
+            options={"require": ["exp"], "verify_iss": False},
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"ID token signature verification failed: {exc}")
+
+    # Issuer check (trailing-slash tolerant).
+    if expected_issuer:
+        token_iss = str(claims.get("iss") or "").rstrip("/")
+        if token_iss != expected_issuer.rstrip("/"):
+            raise HTTPException(status_code=400, detail="ID token issuer mismatch.")
+    return claims
 
 
 async def _exchange_code(
@@ -65,7 +125,8 @@ async def _exchange_code(
     client_id: str,
     client_secret: str,
 ) -> dict[str, Any]:
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    _assert_safe_oidc_url(token_endpoint, "token_endpoint")
+    async with httpx.AsyncClient(timeout=15.0, follow_redirects=False) as client:
         res = await client.post(
             token_endpoint,
             data={
@@ -81,23 +142,7 @@ async def _exchange_code(
     return res.json()
 
 
-def _email_from_id_token(id_token: str, expected_issuer: str) -> str:
-    try:
-        # Decode without signature verification — issuer + email claims are enough for our use case.
-        # Full RS256 JWKS verification would require an additional round-trip and key caching.
-        claims = pyjwt.decode(
-            id_token,
-            options={"verify_signature": False},
-            algorithms=["RS256", "RS384", "RS512", "ES256", "HS256"],
-        )
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"ID token could not be decoded: {exc}")
-
-    if expected_issuer:
-        token_iss = str(claims.get("iss") or "").rstrip("/")
-        if token_iss != expected_issuer.rstrip("/"):
-            raise HTTPException(status_code=400, detail="ID token issuer mismatch.")
-
+def _email_from_claims(claims: dict[str, Any]) -> str:
     email = str(claims.get("email") or "").strip().lower()
     if not email:
         raise HTTPException(status_code=400, detail="Email claim missing from ID token.")
@@ -177,8 +222,12 @@ async def oidc_sso_callback(
     if not id_token:
         raise HTTPException(status_code=400, detail="ID token missing from OIDC response.")
 
+    jwks_uri = str(discovery.get("jwks_uri") or "")
+    if not jwks_uri:
+        raise HTTPException(status_code=502, detail="jwks_uri missing from OIDC discovery.")
     issuer_from_discovery = str(discovery.get("issuer") or issuer_url)
-    email = _email_from_id_token(id_token, issuer_from_discovery)
+    claims = await _verify_id_token(id_token, jwks_uri, client_id, issuer_from_discovery)
+    email = _email_from_claims(claims)
 
     # Domain allowlist
     allowed_domains = [str(d).strip().lower() for d in (oidc.get("allowed_domains") or []) if str(d).strip()]

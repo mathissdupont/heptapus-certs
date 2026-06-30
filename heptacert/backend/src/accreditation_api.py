@@ -303,18 +303,26 @@ async def delete_event_cpd(event_id: int, db: AsyncSession = Depends(get_db)):
 
 # ── Member CPD Summary ────────────────────────────────────────────────────────
 
-@router.get("/api/admin/members/{member_id}/cpd")
+@router.get(
+    "/api/admin/members/{member_id}/cpd",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+)
 async def get_member_cpd(
     member_id: int,
     request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # Tenant isolation: only return CPD logs tied to events owned by the caller's
+    # organization. Previously this fetched by member_id alone with no authorization,
+    # leaking other tenants' members' CPD records / PII (IDOR / BOLA).
+    org = await _admin_org(db, me, request)
     rows = (
         await db.execute(
             select(MemberCpdLog, AccreditationBody)
             .join(AccreditationBody, AccreditationBody.id == MemberCpdLog.body_id)
-            .where(MemberCpdLog.member_id == member_id)
+            .join(Event, Event.id == MemberCpdLog.event_id)
+            .where(MemberCpdLog.member_id == member_id, Event.admin_id == org.user_id)
             .order_by(MemberCpdLog.earned_at.desc())
         )
     ).all()
