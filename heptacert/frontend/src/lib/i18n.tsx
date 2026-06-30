@@ -5,11 +5,11 @@ import { tr } from "@/locales/tr";
 import { en } from "@/locales/en";
 import type { TranslationKey } from "@/locales/tr";
 
-// Adding a language is intentionally a 3-step, low-risk change (ADR-0019):
-//   1. add src/locales/<lang>.ts (it may be partial — missing keys fall back),
-//   2. import it and add it to LOCALES + LANG_LABELS below,
-//   3. add it to the Lang union.
-// No other file needs to change; the LanguageToggle and detection adapt automatically.
+// This custom i18n powers the AUTHENTICATED app (admin/portal), where many components
+// also carry inline `{ tr, en }[lang]` copy maps. Widening this union can't be done
+// safely without touching every such component, so it stays tr/en by design.
+// Additional public-facing languages (de/fr/es/...) are served by next-intl on the
+// locale-routed public surfaces instead — see ADR-0021 and src/i18n/*.
 export type Lang = "tr" | "en";
 
 const DEFAULT_LANG: Lang = "tr";   // ultimate fallback / first-load default

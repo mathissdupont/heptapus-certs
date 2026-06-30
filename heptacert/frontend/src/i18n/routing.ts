@@ -1,9 +1,10 @@
 import { defineRouting } from "next-intl/routing";
 
-// Public-surface locales (ADR-0021). Tier 0 (tr/en) + Tier 1 (de/fr/es/nl/ru/it/pt).
-// Adding a locale here + a messages/<locale>.json file is all that a new public
-// language needs. The authenticated app keeps the custom i18n (src/lib/i18n.tsx).
-export const locales = ["tr", "en", "de", "fr", "es", "nl", "ru", "it", "pt"] as const;
+// Public-surface locales (ADR-0021). Only locales that have a real catalog
+// (src/locales/<locale>.ts) are enabled, so we never expose an untranslated /xx/ URL
+// (bad for SEO/duplicate content). Tier-1 targets de/fr/es/nl/ru/it/pt are added here
+// one by one as their catalog lands. The authenticated app keeps its own custom i18n.
+export const locales = ["tr", "en", "de"] as const;
 export type AppLocale = (typeof locales)[number];
 
 export const defaultLocale: AppLocale = "tr";
