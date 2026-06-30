@@ -472,6 +472,18 @@ async def _public_control_deck(db: AsyncSession, token: str) -> Any:
     deck = await _load_deck_row(db, PresentationDeck.control_token == token)
     if not deck:
         raise HTTPException(status_code=404, detail="Presentation not found")
+    # Bound the lifetime of a leaked control (presenter) link: once the linked event is
+    # well over (event_date + 7 days), the control token stops working. Standalone decks
+    # (no event / no event_date) keep working as before — no presenter UX regression.
+    event_id = deck.get("event_id") if hasattr(deck, "get") else getattr(deck, "event_id", None)
+    if event_id:
+        ev = await db.get(Event, event_id)
+        ev_date = getattr(ev, "event_date", None) if ev else None
+        if ev_date is not None:
+            from datetime import timedelta
+            ev_date = ev_date.date() if isinstance(ev_date, datetime) else ev_date
+            if datetime.now(timezone.utc).date() > ev_date + timedelta(days=7):
+                raise HTTPException(status_code=410, detail="Presentation control link has expired")
     return deck
 
 

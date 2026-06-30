@@ -84,19 +84,27 @@ Bu yüzeyler incelendi ve sağlam bulundu:
 
 ---
 
-## 5. Artık riskler / Öneriler (profesyonel inceleme gerektirir)
+## 4.5. Tur 4 — Kapatılan artık riskler
 
-1. **Webhook SSRF — DNS rebinding (Orta):** `_is_private_address` tek `gethostbyname`
-   (IPv4) ile çözüyor; teslimde yeniden çözmüyor. Öneri: teslim anında `getaddrinfo`
-   ile tüm A/AAAA kayıtlarını doğrula, pinned-IP'ye bağlan.
-2. **CSV import satır sınırı (Düşük):** İçe aktarımda satır başına sorgu var, üst sınır
-   yok → DoS. Öneri: `len(df) > 10000` reddi.
-3. **E-posta verify/reset token'ları DB'de düz saklanıyor (Düşük):** İmzalı+süreli
-   oldukları için risk düşük; yine de hash'lenmeleri tercih edilir.
-4. **`signing.py` hardcoded P12 parolası (Düşük):** Yalnızca yerel self-signed PDF
-   imzalama sertifikasını koruyor; env'e taşınmalı.
-5. **Yasal not:** Bu rapor mühendislik incelemesidir; uyumluluk/sertifikasyon (ör.
-   ISO 27001, sızma testi) için bağımsız profesyonel denetim önerilir.
+| Açık | Şiddet | Düzeltme |
+|------|--------|----------|
+| Webhook DNS-rebinding | Orta | `_is_private_address` artık `getaddrinfo` ile TÜM A/AAAA (IPv4+IPv6) kayıtlarını kontrol ediyor; teslim anında yeniden-çözüm + reddetme + `follow_redirects=False` |
+| CSV import satır sınırı yok | Düşük | `> 10000` satır reddi |
+| `signing.py` hardcoded P12 parolası | Düşük | `PDF_SIGNING_P12_PASSWORD` env (legacy default geriye uyumlu) |
+| Control-WS token expiry yok | Orta | Event'e bağlı deck'lerde `event_date + 7 gün` sonrası control linki 410 (standalone deck'ler etkilenmez) |
+| Yorum gövdesi HTML | Düşük | **Kod değişikliği yok** — React metin olarak render ediyor (zaten güvenli); depolamada escape çift-escape regresyonu yaratır. Render daima metin kalmalı. |
+
+## 5. Kalan / Öneriler (profesyonel inceleme gerektirir)
+
+1. **E-posta verify/reset token'ları DB'de düz saklanıyor (Düşük):** İmzalı+süreli
+   oldukları için risk düşük; hash'lenmeleri tercih edilir — verify akışı değişeceği
+   için ayrı/test'li bir iş olarak planlandı.
+2. **MCP DNS-rebinding kapalı (Bilgi):** Kasıtlı (sunucu-sunucu tehdit modeli); tarayıcı
+   tabanlı MCP istemcisi eklenmedikçe risk yok. Bilinçli olarak değiştirilmedi.
+3. **Webhook IP-pinning (Bilgi):** Teslimde yeniden-çözüm eklendi; tam TOCTOU kapanışı
+   için tek-çözüm + pinned-IP transport ileride eklenebilir (kalan pencere çok dar).
+4. **Yasal not:** Bu rapor mühendislik incelemesidir; uyumluluk/sertifikasyon (ör.
+   ISO 27001, bağımsız sızma testi) için profesyonel denetim önerilir.
 
 ---
 

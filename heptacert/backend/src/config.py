@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     clamav_port: int = Field(default=3310, alias="CLAMAV_PORT")
     require_clamav: bool = Field(default=False, alias="REQUIRE_CLAMAV")
     trusted_proxy_networks: str = Field(default="", alias="TRUSTED_PROXY_NETWORKS")
+    # Passphrase for the local self-signed PDF-signing certificate. Default keeps the
+    # legacy value so existing signing_cert.p12 files still open; set a custom value in
+    # production (and delete signing_cert.p12 once so it regenerates) to remove the
+    # in-source default. Only protects a locally generated self-signed cert.
+    pdf_signing_p12_password: str = Field(default="heptacert-internal", alias="PDF_SIGNING_P12_PASSWORD")
     redis_url: str = Field(default="", alias="REDIS_URL")
     rate_limit_storage_uri: str = Field(default="", alias="RATE_LIMIT_STORAGE_URI")
     google_oauth_client_id: str = Field(default="", alias="GOOGLE_OAUTH_CLIENT_ID")

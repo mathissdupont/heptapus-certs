@@ -13214,6 +13214,14 @@ async def import_attendees(
     if not name_col or not email_col:
         raise HTTPException(status_code=400, detail="'name' ve 'email' kolonlarÃ„Â± gerekli")
 
+    # Cap import size: each row runs DB work, so an unbounded file is a DoS vector.
+    _MAX_IMPORT_ROWS = 10000
+    if len(df) > _MAX_IMPORT_ROWS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Çok fazla satır ({len(df)}). Tek seferde en fazla {_MAX_IMPORT_ROWS} kayıt içe aktarılabilir.",
+        )
+
     added = 0
     skipped = 0
     errors = []

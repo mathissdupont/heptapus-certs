@@ -46,7 +46,12 @@ def sign_payload(secret: str, body: bytes) -> str:
 
 
 def _is_private_address(host: str) -> bool:
-    """Return true when a webhook hostname resolves to a private/internal address."""
+    """Return true when a hostname resolves to a private/internal address.
+
+    Resolves ALL A/AAAA records (IPv4 + IPv6) via getaddrinfo — not just the first
+    IPv4 — so an attacker can't hide an internal IP behind extra records. Called both
+    at config time and at delivery time to blunt DNS-rebinding (a host that was public
+    when saved but later points at an internal address)."""
     parsed = urlparse(host if "://" in host else f"//{host}", scheme="https")
     hostname = parsed.hostname or host
     if not hostname:
@@ -55,17 +60,22 @@ def _is_private_address(host: str) -> bool:
     if normalized in {"localhost", "localhost.localdomain"}:
         return True
 
+    addresses: set[str] = set()
     try:
-        addresses = {socket.gethostbyname(normalized)}
+        for info in socket.getaddrinfo(normalized, None):
+            addresses.add(info[4][0])
     except Exception:
         addresses = {normalized}
+    if not addresses:
+        return True
 
     for address in addresses:
         try:
             ip = ipaddress.ip_address(address)
         except ValueError:
             continue
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
+        if (ip.is_private or ip.is_loopback or ip.is_link_local
+                or ip.is_reserved or ip.is_multicast or ip.is_unspecified):
             return True
     return False
 
@@ -78,6 +88,12 @@ async def _try_deliver(
     attempt: int,
 ) -> tuple[int | None, str]:
     """Single delivery attempt. Returns (http_status, response_body_truncated)."""
+    # Re-check at delivery time (not just at save time) to blunt DNS rebinding: a host
+    # that resolved to a public IP when the endpoint was saved may now point inside.
+    delivery_host = urlparse(url).hostname or ""
+    if _is_private_address(delivery_host):
+        logger.warning("Webhook delivery blocked (internal address) url=%s", url)
+        return None, "blocked: resolves to internal address"
     body = json.dumps(payload, default=str).encode()
     signature = sign_payload(secret, body)
     ts = payload.get("timestamp", "") if isinstance(payload, dict) else ""
@@ -89,7 +105,8 @@ async def _try_deliver(
         "X-HeptaCert-Attempt": str(attempt),
     }
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        # follow_redirects=False so a 3xx to an internal address can't bypass the check.
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
             resp = await client.post(url, content=body, headers=headers)
             return resp.status_code, resp.text[:500]
     except Exception as exc:

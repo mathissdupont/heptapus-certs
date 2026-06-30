@@ -15,7 +15,18 @@ logger = logging.getLogger("heptacert.signing")
 
 _CERT_DIR = Path(__file__).parent
 _P12_PATH = _CERT_DIR / "signing_cert.p12"
-_P12_PASSWORD = b"heptacert-internal"
+
+
+def _p12_password() -> bytes:
+    # Env-overridable (PDF_SIGNING_P12_PASSWORD); legacy default keeps existing certs openable.
+    try:
+        from .config import settings
+        return (settings.pdf_signing_p12_password or "heptacert-internal").encode()
+    except Exception:
+        return b"heptacert-internal"
+
+
+_P12_PASSWORD = _p12_password()
 
 
 def _ensure_self_signed_cert() -> None:
