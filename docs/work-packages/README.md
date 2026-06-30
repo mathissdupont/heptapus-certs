@@ -47,6 +47,29 @@ were developed in parallel.
 | [WP15](WP15-seo-geo-and-web-presence.md) | SEO, GEO & Public Web Presence | SSR metadata, structured data, AI discoverability |
 | [WP16](WP16-security-compliance-qa-devops.md) | Security, Compliance, QA & DevOps | Hardening, KVKK, testing, deployment |
 
+### Phase 5 — Competitive expansion (planned)
+Closing feature gaps versus Cvent / Bizzabo / Swapcard / Whova / Eventbrite. Every
+event-scoped item follows the two-layer gate (ADR-0017) and event-type presets (ADR-0018);
+see [FEATURE_ROADMAP_2026](../reference/FEATURE_ROADMAP_2026.md) for sequencing.
+
+| WP | Title | Outcome |
+|----|-------|---------|
+| [WP17](WP17-event-type-presets-and-feature-framework.md) | Event-Type Presets & Feature-Toggle Framework | Uniform two-layer gate + type-driven defaults (foundation) |
+| [WP18](WP18-internationalization.md) | Internationalization (i18n) | UI catalogs (tr/en) + JSONB content language maps |
+| [WP19](WP19-promotion-and-discount-codes.md) | Promotion & Discount Codes | Promo/discount engine on ticket types |
+| [WP20](WP20-agenda-sessions-personal-schedule.md) | Agenda, Sessions & Personal Schedule | Tracks/rooms, capacity, personal schedule, ICS |
+| [WP21](WP21-speaker-portal-and-call-for-papers.md) | Speaker Portal & Call-for-Papers | Abstract submission + review workflow |
+| [WP22](WP22-networking-and-meeting-scheduling.md) | Networking & Meeting Scheduling | 1:1 meetings on the connection graph |
+| [WP23](WP23-live-engagement.md) | Live Engagement (Q&A & Live Polls) | Real-time in-session interaction |
+| [WP24](WP24-gamification-engine.md) | Gamification Engine | Points/leaderboard/achievements (fills existing flag) |
+| [WP25](WP25-exhibitor-and-lead-retrieval.md) | Exhibitor & Booth Management + Lead Retrieval | Booths + scoped exhibitor lead capture |
+| [WP26](WP26-onsite-badge-printing.md) | On-Site Badge Design & Printing | Physical badge design + print at check-in |
+| [WP27](WP27-seating-and-floor-plans.md) | Seating & Floor Plans | Reserved seating (demand-gated) |
+
+**Deferred (strategic, pending segment decision — not yet greenlit):** Native mobile app
+(consider PWA + web-push as an interim step) and a native virtual/hybrid stage
+(streaming/breakout/virtual booths). See FEATURE_ROADMAP_2026 §3 Phase 4.
+
 ## Dependency overview
 
 ```
@@ -83,4 +106,4 @@ as the product expands.
 
 ---
 
-_Last updated: 2026-06-27 · Documentation version 1.0_
+_Last updated: 2026-06-30 · Documentation version 1.1_

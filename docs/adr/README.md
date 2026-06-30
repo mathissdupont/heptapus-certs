@@ -33,7 +33,11 @@ Each ADR uses:
 | [0014](0014-design-system-tailwind-tokens.md) | Token-based design system | Accepted |
 | [0015](0015-seo-geo-strategy.md) | SEO + GEO (AI discoverability) strategy | Accepted |
 | [0016](0016-modular-monolith-api.md) | Modular monolith API (domain-split routers) | Accepted |
+| [0017](0017-per-event-feature-toggles-two-layer-gate.md) | Per-event feature toggles as a two-layer gate | Accepted |
+| [0018](0018-event-type-feature-presets.md) | Event-type feature presets | Accepted |
+| [0019](0019-internationalization-architecture.md) | Internationalization (i18n) architecture | Accepted |
+| [0020](0020-networking-and-meeting-scheduling.md) | Networking & meeting scheduling on the connection graph | Accepted |
 
 ---
 
-_Last updated: 2026-06-27 · Documentation version 1.0_
+_Last updated: 2026-06-30 · Documentation version 1.1_
