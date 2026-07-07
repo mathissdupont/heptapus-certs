@@ -51,6 +51,7 @@ from .utils import *
 logger = logging.getLogger("heptacert")
 
 __all__ = [
+    "attendee_is_confirmed",
     "_ensure_capacity_row",
     "_reserve_option_capacity",
     "_ensure_user_email_config",
@@ -1395,6 +1396,14 @@ async def _get_or_create_ticket_checkin_session(db: AsyncSession, event: Event) 
     db.add(session)
     await db.flush()
     return session
+
+def attendee_is_confirmed(attendee: Any) -> bool:
+    """True when an attendee may check in / receive a certificate. "pending" and
+    "rejected" (awaiting or denied manual/offline-payment approval) are blocked;
+    "not_required" (no approval gate) and "approved" pass."""
+    status = getattr(attendee, "approval_status", None) or "not_required"
+    return status in ("not_required", "approved")
+
 
 async def _record_ticket_attendaonce(
     db: AsyncSession,

@@ -45,6 +45,7 @@ type EventAdminTab =
   | "certificates"
   | "sessions"
   | "attendees"
+  | "approvals"
   | "segments"
   | "team"
   | "ops"
@@ -73,6 +74,7 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { tab: "details",      label: { tr: "Detaylar",       en: "Details"      }, icon: FolderKanban, href: (id) => `/admin/events/${id}` },
   { tab: "attendees",    label: { tr: "Katılımcılar",   en: "Attendees"    }, icon: Users,        href: (id) => `/admin/events/${id}/attendees` },
+  { tab: "approvals",    label: { tr: "Onaylar",        en: "Approvals"    }, icon: ClipboardList, href: (id) => `/admin/events/${id}/approvals` },
   { tab: "certificates", label: { tr: "Sertifikalar",   en: "Certificates" }, icon: LockKeyhole,  href: (id) => `/admin/events/${id}/certificates` },
   { tab: "sessions",     label: { tr: "Oturumlar",      en: "Sessions"     }, icon: QrCode,       href: (id) => `/admin/events/${id}/sessions` },
   { tab: "email",        label: { tr: "E-posta",        en: "Email"        }, icon: Mail,         href: (id) => `/admin/events/${id}/email-templates` },
@@ -107,6 +109,7 @@ const TAB_PERMISSIONS: Partial<Record<EventAdminTab, EventTeamPermission>> = {
   certificates:  "certificates:write",
   sessions:      "checkin:write",
   attendees:     "attendees:read",
+  approvals:     "attendees:read",
   segments:      "attendees:read",
   team:          "team:manage",
   ops:           "checkin:write",

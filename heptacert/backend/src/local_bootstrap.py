@@ -34,6 +34,10 @@ def _sync_additive_schema(sync_conn: sa.Connection) -> None:
 
     if "attendees" in table_names:
         _add_column_if_missing(sync_conn, inspector, "attendees", '"unsubscribed_at" TIMESTAMP WITH TIME ZONE')
+        _add_column_if_missing(sync_conn, inspector, "attendees", "\"approval_status\" VARCHAR(24) NOT NULL DEFAULT 'not_required'")
+        _add_column_if_missing(sync_conn, inspector, "attendees", '"approved_by" INTEGER')
+        _add_column_if_missing(sync_conn, inspector, "attendees", '"approved_at" TIMESTAMP WITH TIME ZONE')
+        _add_column_if_missing(sync_conn, inspector, "attendees", '"approval_note" VARCHAR(500)')
 
     if "users" in table_names:
         _add_column_if_missing(sync_conn, inspector, "users", '"deleted_at" TIMESTAMP WITH TIME ZONE')

@@ -148,3 +148,9 @@ def is_quiz_enabled(event: Any) -> bool:
 
 def is_cpd_enabled(event: Any) -> bool:
     return feature_value(event, "cpd_enabled")
+
+
+def is_approval_required(event: Any) -> bool:
+    """Whether new registrations must be approved by an admin before they count
+    (e.g. after confirming an offline/bank payment). Gates check-in + certificate."""
+    return feature_value(event, "requires_approval")

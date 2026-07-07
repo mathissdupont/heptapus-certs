@@ -85,6 +85,7 @@ from .event_features import (
     FEATURE_DEFAULTS,
     is_certificate_enabled,
     is_checkin_enabled,
+    is_approval_required,
     is_cpd_enabled,
     is_gamification_enabled,
     is_public_registration_enabled,
@@ -11973,6 +11974,9 @@ async def public_event_register(
         email_verified=not require_email_verification,
         public_member_id=member.id if member else None,
         registration_answers=registration_answers,
+        # When the event requires approval (e.g. offline/bank payment), the registration
+        # is held as "pending" until an admin approves it; otherwise it is auto-confirmed.
+        approval_status="pending" if is_approval_required(ev) else "not_required",
     )
     db.add(attendee)
     await db.flush()
@@ -12275,6 +12279,11 @@ async def self_checkin(
         raise HTTPException(
             status_code=404,
             detail="Bu e-posta ile etkinlikte kayıtlı değilsiniz. Lutfen once kayıt olun.",
+        )
+    if not attendee_is_confirmed(attendee):
+        raise HTTPException(
+            status_code=403,
+            detail="Kaydınız onay bekliyor. Check-in için organizatörün onayını bekleyin.",
         )
 
     ip = _client_ip_for_rate_limit(request)
@@ -13403,6 +13412,11 @@ async def admin_manual_checkin(
             status_code=404,
             detail="Bu e-posta ile etkinlikte kayıtlı katılımcı bulunamadı.",
         )
+    if not attendee_is_confirmed(attendee):
+        raise HTTPException(
+            status_code=403,
+            detail="Katılımcı onay bekliyor (ödeme/onay). Check-in öncesi onaylayın.",
+        )
 
     insert_stmt = (
         _pg_insert(AttendaonceRecord.__table__)
@@ -13813,8 +13827,12 @@ async def bulk_certify_attendees(
     )
     attend_counts: dict[int, int] = {r.attendee_id: r.cnt for r in rec_res.all()}
 
-    # Eligible attendees
-    eligible = [a for a in attendees if attend_counts.get(a.id, 0) >= ev.min_sessions_required]
+    # Eligible attendees: met the attendance threshold AND passed approval (pending/
+    # rejected registrations awaiting offline-payment approval are skipped).
+    eligible = [
+        a for a in attendees
+        if attend_counts.get(a.id, 0) >= ev.min_sessions_required and attendee_is_confirmed(a)
+    ]
     below_threshold = len(attendees) - len(eligible)
 
     if not eligible:
@@ -14030,7 +14048,10 @@ async def bulk_certify_attendees_queue(
     )
     attend_counts: dict[int, int] = {r.attendee_id: r.cnt for r in rec_res.all()}
 
-    eligible = [a for a in attendees if attend_counts.get(a.id, 0) >= ev.min_sessions_required]
+    eligible = [
+        a for a in attendees
+        if attend_counts.get(a.id, 0) >= ev.min_sessions_required and attendee_is_confirmed(a)
+    ]
     if not eligible:
         raise HTTPException(status_code=400, detail="Eşiği geçen katılımcı bulunamadı")
 
@@ -15067,6 +15088,9 @@ app.include_router(_ms_excel_api.router)
 
 from . import bulk_generate_api as _bulk_generate_api  # 4d
 app.include_router(_bulk_generate_api.router)
+
+from . import registration_approval_api as _registration_approval_api  # manual/offline-payment approval
+app.include_router(_registration_approval_api.router)
 
 # ── MCP hosted endpoint (/mcp) ─────────────────────────────────────────────────
 # Agents connect to https://yourapp.com/mcp with Authorization: Bearer hc_live_...

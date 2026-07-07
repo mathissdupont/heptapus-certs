@@ -1290,6 +1290,14 @@ class Attendee(Base):
     public_member_id:     Mapped[Optional[int]]         = mapped_column(Integer, ForeignKey("public_members.id", ondelete="SET NULL"), index=True, nullable=True)
     registration_answers: Mapped[Optional[dict]]        = mapped_column(JSONB, nullable=True, default=dict)
     unsubscribed_at:      Mapped[Optional[datetime]]    = mapped_column(DateTime(timezone=True), nullable=True)
+    # Manual approval / offline-payment gate (migration 105). "not_required" = auto-confirmed
+    # (default, backward compatible). When the event requires approval, new registrations are
+    # "pending" until an admin approves (e.g. after confirming an offline payment); "approved"
+    # confirms the attendee, "rejected" declines them. Gates check-in and certificate.
+    approval_status:      Mapped[str]                   = mapped_column(String(24), default="not_required", index=True)
+    approved_by:          Mapped[Optional[int]]         = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    approved_at:          Mapped[Optional[datetime]]    = mapped_column(DateTime(timezone=True), nullable=True)
+    approval_note:        Mapped[Optional[str]]         = mapped_column(String(500), nullable=True)
 
     event: Mapped["Event"] = relationship(back_populates="attendees")
     public_member: Mapped[Optional["PublicMember"]] = relationship(back_populates="attendees")

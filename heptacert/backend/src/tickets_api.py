@@ -31,6 +31,7 @@ from .main import (
     _ticket_download_filename,
     _ticket_to_out,
     _ticket_token_from_payload,
+    attendee_is_confirmed,
     get_current_user,
     get_db,
     is_ticketing_enabled,
@@ -252,6 +253,11 @@ async def check_in_event_ticket(
         )
         await db.commit()
         raise HTTPException(status_code=409, detail="Ticket is cancelled")
+    if ticket.attendee is not None and not attendee_is_confirmed(ticket.attendee):
+        raise HTTPException(
+            status_code=403,
+            detail="Katılımcı onay bekliyor (ödeme/onay). Check-in öncesi onaylayın.",
+        )
     ip = _client_ip_for_rate_limit(request)
     if ticket.status == "used":
         await _record_ticket_attendaonce(db, event=ev, ticket=ticket, ip_address=ip)
