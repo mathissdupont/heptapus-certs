@@ -1479,7 +1479,12 @@ export interface PublicEventDetail {
     name: string;
     session_date?: string | null;
     session_start?: string | null;
+    session_end?: string | null;
     session_location?: string | null;
+    track?: string | null;
+    speaker_name?: string | null;
+    description?: string | null;
+    capacity?: number | null;
   }>;
   visibility: "private" | "unlisted" | "public";
   event_type?: "certificate_event" | "seminar" | "workshop" | "conference" | "concert" | "training" | "club_event" | "online_event" | "custom";
@@ -1490,6 +1495,7 @@ export interface PublicEventDetail {
   raffles_enabled?: boolean;
   gamification_enabled?: boolean;
   requires_approval?: boolean;
+  agenda_enabled?: boolean;
   kvkk_consent_required?: boolean;
   kvkk_consent_text?: string | null;
   organizer_privacy_notice_enabled?: boolean;
@@ -1639,11 +1645,28 @@ export interface SessionOut {
   name: string;
   session_date?: string | null;
   session_start?: string | null;
+  session_end?: string | null;
   session_location?: string | null;
+  track?: string | null;
+  speaker_name?: string | null;
+  description?: string | null;
+  capacity?: number | null;
   checkin_token: string;
   is_active: boolean;
   created_at: string;
   attendance_count: number;
+}
+
+export interface SessionInput {
+  name: string;
+  session_date?: string;
+  session_start?: string;
+  session_end?: string;
+  session_location?: string;
+  track?: string;
+  speaker_name?: string;
+  description?: string;
+  capacity?: number | null;
 }
 
 export interface AttendeeOut {
@@ -1876,7 +1899,7 @@ export async function listSessions(eventId: number): Promise<SessionOut[]> {
 
 export async function createSession(
   eventId: number,
-  data: { name: string; session_date?: string; session_start?: string; session_location?: string }
+  data: SessionInput
 ): Promise<SessionOut> {
   const res = await apiFetch(`/admin/events/${eventId}/sessions`, {
     method: "POST",
@@ -1888,7 +1911,7 @@ export async function createSession(
 export async function updateSession(
   eventId: number,
   sessionId: number,
-  data: { name: string; session_date?: string; session_start?: string; session_location?: string }
+  data: SessionInput
 ): Promise<SessionOut> {
   const res = await apiFetch(`/admin/events/${eventId}/sessions/${sessionId}`, {
     method: "PATCH",
@@ -2617,6 +2640,13 @@ export async function deleteAdminCommunityPost(postPublicId: string): Promise<{ 
 export async function getPublicEventDetail(eventId: EventRouteId): Promise<PublicEventDetail> {
   const res = await publicApiFetch(`/public/events/${toEventRouteId(eventId)}`);
   return res.json();
+}
+
+// Absolute URL for the public agenda calendar (.ics) download (WP20). Browser hits
+// it directly (anchor href), so it must resolve against the public API base — which
+// getApiBase() already does, including white-label host handling.
+export function publicAgendaIcsUrl(eventId: EventRouteId): string {
+  return apiUrl(`/public/events/${toEventRouteId(eventId)}/agenda.ics`);
 }
 
 export async function listPublicEventComments(eventId: EventRouteId): Promise<PublicEventComment[]> {

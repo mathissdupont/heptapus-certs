@@ -83,6 +83,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship,
 
 from .event_features import (
     FEATURE_DEFAULTS,
+    is_agenda_enabled,
     is_certificate_enabled,
     is_checkin_enabled,
     is_approval_required,
@@ -8189,6 +8190,7 @@ async def create_event(
         requires_approval=normalize_feature_bool(payload.requires_approval, default=feature_defaults["requires_approval"]),
         quiz_enabled=normalize_feature_bool(payload.quiz_enabled, default=feature_defaults["quiz_enabled"]),
         cpd_enabled=normalize_feature_bool(payload.cpd_enabled, default=feature_defaults["cpd_enabled"]),
+        agenda_enabled=normalize_feature_bool(payload.agenda_enabled, default=feature_defaults["agenda_enabled"]),
     )
     db.add(ev)
     await db.flush()
@@ -8239,6 +8241,7 @@ def _event_to_out(ev: Event) -> EventOut:
         raffles_enabled=normalize_feature_bool(getattr(ev, "raffles_enabled", None), default=FEATURE_DEFAULTS["raffles_enabled"]),
         gamification_enabled=normalize_feature_bool(getattr(ev, "gamification_enabled", None), default=FEATURE_DEFAULTS["gamification_enabled"]),
         requires_approval=normalize_feature_bool(getattr(ev, "requires_approval", None), default=FEATURE_DEFAULTS["requires_approval"]),
+        agenda_enabled=normalize_feature_bool(getattr(ev, "agenda_enabled", None), default=FEATURE_DEFAULTS["agenda_enabled"]),
         organization_venue_id=config.get("organization_venue_id"),
         venue_reservation_id=config.get("venue_reservation_id"),
         venue_reservation_start_at=config.get("venue_reservation_start_at"),
@@ -9258,6 +9261,8 @@ async def rename_event(
         ev.quiz_enabled = normalize_feature_bool(payload.quiz_enabled, default=FEATURE_DEFAULTS["quiz_enabled"])
     if "cpd_enabled" in payload.model_fields_set:
         ev.cpd_enabled = normalize_feature_bool(payload.cpd_enabled, default=FEATURE_DEFAULTS["cpd_enabled"])
+    if "agenda_enabled" in payload.model_fields_set:
+        ev.agenda_enabled = normalize_feature_bool(payload.agenda_enabled, default=FEATURE_DEFAULTS["agenda_enabled"])
     if "organizer_privacy_notice_enabled" in payload.model_fields_set:
         next_config["organizer_privacy_notice_enabled"] = bool(payload.organizer_privacy_notice_enabled)
         config_dirty = True
@@ -11229,6 +11234,7 @@ def _build_public_event_detail(
         requires_approval=normalize_feature_bool(getattr(event, "requires_approval", None), default=FEATURE_DEFAULTS["requires_approval"]),
         quiz_enabled=is_quiz_enabled(event),
         cpd_enabled=is_cpd_enabled(event),
+        agenda_enabled=is_agenda_enabled(event),
         kvkk_consent_required=_is_event_kvkk_consent_required(event),
         kvkk_consent_text=_get_event_kvkk_consent_text(event),
         organizer_privacy_notice_enabled=_is_event_organizer_privacy_notice_enabled(event),
@@ -11245,7 +11251,12 @@ def _build_public_event_detail(
                 "name": s.name,
                 "session_date": s.session_date.isoformat() if s.session_date else None,
                 "session_start": s.session_start.strftime("%H:%M") if s.session_start else None,
+                "session_end": s.session_end.strftime("%H:%M") if getattr(s, "session_end", None) else None,
                 "session_location": s.session_location,
+                "track": getattr(s, "track", None),
+                "speaker_name": getattr(s, "speaker_name", None),
+                "description": getattr(s, "description", None),
+                "capacity": getattr(s, "capacity", None),
             }
             for s in sessions
         ],
@@ -11374,6 +11385,7 @@ async def list_public_events(
             gamification_enabled=is_gamification_enabled(event),
             quiz_enabled=is_quiz_enabled(event),
             cpd_enabled=is_cpd_enabled(event),
+            agenda_enabled=is_agenda_enabled(event),
         )
         for event in visible_events
     ]
@@ -12544,7 +12556,7 @@ async def list_sessions(
     db: AsyncSession = Depends(get_db),
 ):
     ev = await _get_event_for_admin(event_id, me, db, "checkin:write")
-    _ensure_checkin_feature_enabled(ev)
+    _ensure_sessions_feature_enabled(ev)
     res = await db.execute(
         select(EventSession).where(EventSession.event_id == event_id).order_by(EventSession.session_date, EventSession.session_start, EventSession.id)
     )
@@ -12565,19 +12577,27 @@ async def create_session(
     db: AsyncSession = Depends(get_db),
 ):
     ev = await _get_event_for_admin(event_id, me, db, "checkin:write")
-    _ensure_checkin_feature_enabled(ev)
+    _ensure_sessions_feature_enabled(ev)
     from datetime import date as _date, time as _time
+
+    def _parse_hhmm(value: Optional[str]) -> Optional[_time]:
+        if not value:
+            return None
+        parts = value.split(":")
+        return _time(int(parts[0]), int(parts[1]))
+
     sd = _date.fromisoformat(payload.session_date) if payload.session_date else None
-    st = None
-    if payload.session_start:
-        parts = payload.session_start.split(":")
-        st = _time(int(parts[0]), int(parts[1]))
     session = EventSession(
         event_id=event_id,
         name=payload.name,
         session_date=sd,
-        session_start=st,
+        session_start=_parse_hhmm(payload.session_start),
+        session_end=_parse_hhmm(payload.session_end),
         session_location=payload.session_location,
+        track=payload.track,
+        speaker_name=payload.speaker_name,
+        description=payload.description,
+        capacity=payload.capacity,
         checkin_token=str(_uuid_module.uuid4()).replace("-", ""),
         is_active=False,
     )
@@ -12595,20 +12615,36 @@ async def update_session(
     db: AsyncSession = Depends(get_db),
 ):
     ev = await _get_event_for_admin(event_id, me, db, "checkin:write")
-    _ensure_checkin_feature_enabled(ev)
+    _ensure_sessions_feature_enabled(ev)
     res = await db.execute(select(EventSession).where(EventSession.id == session_id, EventSession.event_id == event_id))
     session = res.scalar_one_or_none()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     from datetime import date as _date, time as _time
+
+    def _parse_hhmm(value: Optional[str]) -> Optional[_time]:
+        if not value:
+            return None
+        parts = value.split(":")
+        return _time(int(parts[0]), int(parts[1]))
+
     session.name = payload.name
     if payload.session_date is not None:
         session.session_date = _date.fromisoformat(payload.session_date) if payload.session_date else None
     if payload.session_start is not None:
-        parts = payload.session_start.split(":")
-        session.session_start = _time(int(parts[0]), int(parts[1])) if payload.session_start else None
+        session.session_start = _parse_hhmm(payload.session_start)
+    if payload.session_end is not None:
+        session.session_end = _parse_hhmm(payload.session_end)
     if payload.session_location is not None:
         session.session_location = payload.session_location
+    if payload.track is not None:
+        session.track = payload.track or None
+    if payload.speaker_name is not None:
+        session.speaker_name = payload.speaker_name or None
+    if payload.description is not None:
+        session.description = payload.description or None
+    if payload.capacity is not None:
+        session.capacity = payload.capacity
     await db.commit()
     cnt_res = await db.execute(select(func.count()).where(AttendaonceRecord.session_id == session.id))
     cnt = int(cnt_res.scalar_one() or 0)
@@ -12623,7 +12659,7 @@ async def delete_session(
     db: AsyncSession = Depends(get_db),
 ):
     ev = await _get_event_for_admin(event_id, me, db, "checkin:write")
-    _ensure_checkin_feature_enabled(ev)
+    _ensure_sessions_feature_enabled(ev)
     res = await db.execute(select(EventSession).where(EventSession.id == session_id, EventSession.event_id == event_id))
     session = res.scalar_one_or_none()
     if not session:
@@ -15091,6 +15127,9 @@ app.include_router(_bulk_generate_api.router)
 
 from . import registration_approval_api as _registration_approval_api  # manual/offline-payment approval
 app.include_router(_registration_approval_api.router)
+
+from . import agenda_api as _agenda_api  # WP20 public agenda ICS export
+app.include_router(_agenda_api.router)
 
 # ── MCP hosted endpoint (/mcp) ─────────────────────────────────────────────────
 # Agents connect to https://yourapp.com/mcp with Authorization: Bearer hc_live_...

@@ -59,7 +59,7 @@ import PageHeader from "@/components/Admin/PageHeader";
 import DateField from "@/components/Admin/DateField";
 import DateTimeField from "@/components/Admin/DateTimeField";
 import RichTextEditor from "@/components/RichTextEditor";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, useT } from "@/lib/i18n";
 import { PlanGateCard } from "@/lib/useSubscription";
 import { useToast } from "@/hooks/useToast";
 import useKeyboardShortcut from "@/hooks/useKeyboardShortcut";
@@ -102,6 +102,7 @@ type EventOut = {
   requires_approval?: boolean;
   quiz_enabled?: boolean;
   cpd_enabled?: boolean;
+  agenda_enabled?: boolean;
   organization_venue_id?: number | null;
   venue_reservation_id?: number | null;
   venue_reservation_start_at?: string | null;
@@ -164,6 +165,7 @@ type FormState = {
   requires_approval: boolean;
   quiz_enabled: boolean;
   cpd_enabled: boolean;
+  agenda_enabled: boolean;
   organizer_privacy_notice_enabled: boolean;
   organizer_privacy_notice_text: string;
   show_cross_border_transfer_notice: boolean;
@@ -326,6 +328,7 @@ export default function EventSettingsPage() {
   const eventId = params.id as string;
   const toast = useToast();
   const { lang } = useI18n();
+  const t = useT();
 
   const copy = lang === "tr"
     ? {
@@ -562,6 +565,7 @@ export default function EventSettingsPage() {
     requires_approval: false,
     quiz_enabled: false,
     cpd_enabled: false,
+    agenda_enabled: false,
     organizer_privacy_notice_enabled: false,
     organizer_privacy_notice_text: "",
     show_cross_border_transfer_notice: true,
@@ -722,6 +726,7 @@ export default function EventSettingsPage() {
         requires_approval: eventData.requires_approval ?? false,
         quiz_enabled: eventData.quiz_enabled ?? false,
         cpd_enabled: eventData.cpd_enabled ?? false,
+        agenda_enabled: eventData.agenda_enabled ?? false,
         organizer_privacy_notice_enabled: Boolean(eventData.config?.organizer_privacy_notice_enabled),
         organizer_privacy_notice_text: String(eventData.config?.organizer_privacy_notice_text || ""),
         show_cross_border_transfer_notice: true,
@@ -1051,6 +1056,7 @@ export default function EventSettingsPage() {
         requires_approval: formData.requires_approval,
         quiz_enabled: formData.quiz_enabled,
         cpd_enabled: formData.cpd_enabled,
+        agenda_enabled: formData.agenda_enabled,
         organizer_privacy_notice_enabled: formData.organizer_privacy_notice_enabled,
         organizer_privacy_notice_text: formData.organizer_privacy_notice_text.trim() || null,
         show_cross_border_transfer_notice: true,
@@ -1320,6 +1326,7 @@ export default function EventSettingsPage() {
                     { key: "requires_approval", label: lang === "tr" ? "Yönetici Kayıt Onay Havuzu" : "Admin approval lifecycle", hint: lang === "tr" ? "Etkinleştirildiğinde yeni kayıtlar siz panelden onay verene kadar bekleme (lead) listesinde tutulur." : "Holds incoming entries in staging queues." },
                     { key: "quiz_enabled", label: lang === "tr" ? "Sınav / Quiz Modülü" : "Quiz module", hint: lang === "tr" ? "Etkinlik için sınav tanımlanabilir; sınav geçme koşuluna göre sertifika verilebilir." : "Enables quiz configuration and certificate-on-pass flow." },
                     { key: "cpd_enabled", label: lang === "tr" ? "CPD Sürekli Mesleki Gelişim" : "CPD module", hint: lang === "tr" ? "Sertifika verilen portal üyelerine CPD saati otomatik eklenir." : "Automatically logs CPD hours when a certificate is issued to a portal member." },
+                    { key: "agenda_enabled", label: t("agenda_settings_label"), hint: t("agenda_settings_hint") },
                   ].map((feature) => (
                     <label key={feature.key} className="flex items-start gap-3 rounded-xl border border-surface-100 bg-surface-50/40 p-4 select-none cursor-pointer hover:bg-surface-50 transition-colors">
                       <input type="checkbox" checked={Boolean(formData[feature.key as keyof FormState])} onChange={(e) => setFormData((curr) => ({ ...curr, [feature.key]: e.target.checked }))} className="mt-0.5 h-4 w-4 rounded-md border-surface-300 text-surface-900 focus:ring-0 cursor-pointer" />

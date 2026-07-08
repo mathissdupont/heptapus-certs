@@ -38,7 +38,7 @@ from .db import Base, SessionLocal, engine, get_db
 from .db_types import JSONB, INET, BIGINT_PK
 from .enums import Role, CertStatus, TxType, OrderStatus, AttendeeSource
 from .event_features import (
-    FEATURE_DEFAULTS, is_certificate_enabled, is_checkin_enabled, is_cpd_enabled,
+    FEATURE_DEFAULTS, is_agenda_enabled, is_certificate_enabled, is_checkin_enabled, is_cpd_enabled,
     is_gamification_enabled, is_public_registration_enabled, is_quiz_enabled,
     is_raffles_enabled, is_ticketing_enabled, normalize_event_type, normalize_feature_bool,
 )
@@ -112,6 +112,7 @@ __all__ = [
     "_event_team_member_to_out",
     "_ensure_certificate_feature_enabled",
     "_ensure_checkin_feature_enabled",
+    "_ensure_sessions_feature_enabled",
     "_ensure_ticketing_feature_enabled",
     "_issue_event_ticket_if_needed",
     "_get_or_create_ticket_checkin_session",
@@ -1344,6 +1345,13 @@ def _ensure_checkin_feature_enabled(event: Event) -> None:
     if not is_checkin_enabled(event):
         raise HTTPException(status_code=403, detail="Check-in features are disabled for this event.")
 
+def _ensure_sessions_feature_enabled(event: Event) -> None:
+    """Session management is available when EITHER check-in or the agenda is enabled.
+    Sessions back both QR attendance (check-in) and the public agenda (WP20), so an
+    online/agenda-only event with check-in off can still build its schedule."""
+    if not (is_checkin_enabled(event) or is_agenda_enabled(event)):
+        raise HTTPException(status_code=403, detail="Session/agenda features are disabled for this event.")
+
 def _ensure_ticketing_feature_enabled(event: Event) -> None:
     if not is_ticketing_enabled(event):
         raise HTTPException(status_code=403, detail="Ticket/pass features are disabled for this event.")
@@ -1462,13 +1470,19 @@ def _ticket_response_payload(ticket: Optional[EventTicket]) -> Optional[Dict[str
 
 def _session_to_out(s: EventSession, attendaonce_count: int = 0) -> SessionOut:
     start_str = s.session_start.strftime("%H:%M") if s.session_start else None
+    end_str = s.session_end.strftime("%H:%M") if getattr(s, "session_end", None) else None
     return SessionOut(
         id=s.id,
         event_id=s.event_id,
         name=s.name,
         session_date=s.session_date.isoformat() if s.session_date else None,
         session_start=start_str,
+        session_end=end_str,
         session_location=s.session_location,
+        track=getattr(s, "track", None),
+        speaker_name=getattr(s, "speaker_name", None),
+        description=getattr(s, "description", None),
+        capacity=getattr(s, "capacity", None),
         checkin_token=s.checkin_token,
         is_active=s.is_active,
         created_at=s.created_at,

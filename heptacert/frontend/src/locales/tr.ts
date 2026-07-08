@@ -529,6 +529,29 @@
   members_connectedBadge: "Bağlanmış",
   members_pendingBadge: "Beklemede",
   members_noResults: "Aramanızla eşleşen üye bulunamadı",
+
+  // WP20 Agenda (sessions / public agenda)
+  agenda_field_end_time: "Bitiş Saati",
+  agenda_field_track: "Bölüm / Track",
+  agenda_field_speaker: "Konuşmacı",
+  agenda_field_description: "Açıklama",
+  agenda_field_capacity: "Kapasite",
+  agenda_track_placeholder: "örn. Ana Sahne",
+  agenda_speaker_placeholder: "örn. Dr. Ayşe Yılmaz",
+  agenda_description_placeholder: "Oturum hakkında kısa açıklama",
+  agenda_capacity_placeholder: "Sınırsız",
+  agenda_capacity_hint: "Boş bırakılırsa sınırsız",
+  agenda_details_section: "Program detayları",
+  agenda_title: "Program",
+  agenda_all_tracks: "Tüm bölümler",
+  agenda_untracked: "Genel",
+  agenda_add_to_calendar: "Takvime Ekle",
+  agenda_download_ics: "Takvim dosyası (.ics) indir",
+  agenda_no_sessions: "Program henüz yayınlanmadı.",
+  agenda_speaker_prefix: "Konuşmacı",
+  agenda_capacity_label: "Kontenjan: {count} kişi",
+  agenda_settings_label: "Program / Ajanda Modülü",
+  agenda_settings_hint: "Etkinleştirildiğinde oturumlar track/oda, konuşmacı ve saat bilgisiyle herkese açık bir programa dönüşür; katılımcılar takvime (.ics) ekleyebilir.",
 } as const;
 
 export type TranslationKey = keyof typeof tr;

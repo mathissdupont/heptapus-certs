@@ -26,6 +26,7 @@ FEATURE_DEFAULTS = {
     "requires_approval": False,
     "quiz_enabled": False,
     "cpd_enabled": False,
+    "agenda_enabled": False,
 }
 
 # Per-event-type default toggle sets (ADR-0018). These are *starting points* applied at
@@ -60,6 +61,7 @@ PRESET_BY_EVENT_TYPE: dict[str, dict[str, bool]] = {
         "checkin_enabled": True,
         "registration_enabled": True,
         "ticketing_enabled": True,
+        "agenda_enabled": True,
     },
     "concert": {
         "certificate_enabled": False,
@@ -77,6 +79,7 @@ PRESET_BY_EVENT_TYPE: dict[str, dict[str, bool]] = {
         "certificate_enabled": True,
         "checkin_enabled": False,
         "registration_enabled": True,
+        "agenda_enabled": True,
     },
 }
 
@@ -154,3 +157,10 @@ def is_approval_required(event: Any) -> bool:
     """Whether new registrations must be approved by an admin before they count
     (e.g. after confirming an offline/bank payment). Gates check-in + certificate."""
     return feature_value(event, "requires_approval")
+
+
+def is_agenda_enabled(event: Any) -> bool:
+    """Whether the structured conference agenda (tracks, rooms, timed sessions,
+    speakers, public agenda view + calendar export) is surfaced for this event.
+    Independent of check-in: an agenda can exist without QR attendance (WP20)."""
+    return feature_value(event, "agenda_enabled")

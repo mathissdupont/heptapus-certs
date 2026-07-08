@@ -206,6 +206,7 @@ class Event(Base):
     requires_approval: Mapped[bool] = mapped_column(Boolean, default=False)
     quiz_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     cpd_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    agenda_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     # Marketplace fields (migration 079)
     is_marketplace_listed: Mapped[bool] = mapped_column(Boolean, default=False)
     marketplace_category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
@@ -1257,7 +1258,13 @@ class EventSession(Base):
     name:                    Mapped[str]            = mapped_column(String(200))
     session_date:            Mapped[Optional[date_type]] = mapped_column(sa_Date, nullable=True)
     session_start:           Mapped[Optional[Any]]  = mapped_column(sa_Time, nullable=True)
+    session_end:             Mapped[Optional[Any]]  = mapped_column(sa_Time, nullable=True)
     session_location:        Mapped[Optional[str]]  = mapped_column(String(300), nullable=True)
+    # WP20 agenda fields: track groups sessions into parallel streams; speaker/description
+    # populate the public agenda card. All nullable / backward compatible.
+    track:                   Mapped[Optional[str]]  = mapped_column(String(120), nullable=True)
+    speaker_name:            Mapped[Optional[str]]  = mapped_column(String(200), nullable=True)
+    description:             Mapped[Optional[str]]  = mapped_column(Text, nullable=True)
     checkin_token:           Mapped[str]            = mapped_column(String(64), unique=True)
     is_active:               Mapped[bool]           = mapped_column(Boolean, default=False)
     enable_participation_test: Mapped[bool]         = mapped_column(Boolean, default=False)

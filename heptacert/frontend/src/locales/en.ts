@@ -532,5 +532,28 @@ export const en: Record<TranslationKey, string> = {
   members_connectedBadge: "Connected",
   members_pendingBadge: "Pending",
   members_noResults: "No members found matching your search",
+
+  // WP20 Agenda (sessions / public agenda)
+  agenda_field_end_time: "End Time",
+  agenda_field_track: "Track",
+  agenda_field_speaker: "Speaker",
+  agenda_field_description: "Description",
+  agenda_field_capacity: "Capacity",
+  agenda_track_placeholder: "e.g. Main Stage",
+  agenda_speaker_placeholder: "e.g. Dr. Jane Smith",
+  agenda_description_placeholder: "Short description of the session",
+  agenda_capacity_placeholder: "Unlimited",
+  agenda_capacity_hint: "Leave empty for unlimited",
+  agenda_details_section: "Agenda details",
+  agenda_title: "Agenda",
+  agenda_all_tracks: "All tracks",
+  agenda_untracked: "General",
+  agenda_add_to_calendar: "Add to Calendar",
+  agenda_download_ics: "Download calendar file (.ics)",
+  agenda_no_sessions: "The agenda hasn't been published yet.",
+  agenda_speaker_prefix: "Speaker",
+  agenda_capacity_label: "Capacity: {count}",
+  agenda_settings_label: "Agenda module",
+  agenda_settings_hint: "When enabled, sessions become a public agenda with tracks/rooms, speakers and times; attendees can add it to their calendar (.ics).",
 };
 

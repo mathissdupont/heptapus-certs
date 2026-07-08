@@ -13,11 +13,11 @@ import PageHeader from "@/components/Admin/PageHeader";
 import DateField from "@/components/Admin/DateField";
 import TimeField from "@/components/Admin/TimeField";
 import { PlanGateCard, isPlanGateError } from "@/lib/useSubscription";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, useT } from "@/lib/i18n";
 import {
   Plus, Loader2, Calendar, Clock, MapPin, QrCode, ToggleLeft,
   ToggleRight, Pencil, Trash2, ChevronLeft, Check, X, Download, ExternalLink,
-  LockKeyhole, Users, UserCheck, Hash, Link2, ClipboardCheck
+  LockKeyhole, Users, UserCheck, Hash, Link2, ClipboardCheck, Mic2, Layers
 } from "lucide-react";
 
 function RegisterLinkBanner({ eventId }: { eventId: string }) {
@@ -67,6 +67,7 @@ export default function AdminSessionsPage() {
   const params = useParams();
   const eventId = Number(params?.id);
   const { lang } = useI18n();
+  const t = useT();
   const isTr = lang === "tr";
 
   const copy = {
@@ -124,7 +125,12 @@ export default function AdminSessionsPage() {
   const [formName, setFormName] = useState("");
   const [formDate, setFormDate] = useState("");
   const [formStart, setFormStart] = useState("");
+  const [formEnd, setFormEnd] = useState("");
   const [formLocation, setFormLocation] = useState("");
+  const [formTrack, setFormTrack] = useState("");
+  const [formSpeaker, setFormSpeaker] = useState("");
+  const [formDescription, setFormDescription] = useState("");
+  const [formCapacity, setFormCapacity] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -169,7 +175,8 @@ export default function AdminSessionsPage() {
 
   function openCreate() {
     setEditingSession(null);
-    setFormName(""); setFormDate(""); setFormStart(""); setFormLocation("");
+    setFormName(""); setFormDate(""); setFormStart(""); setFormEnd(""); setFormLocation("");
+    setFormTrack(""); setFormSpeaker(""); setFormDescription(""); setFormCapacity("");
     setFormError(null);
     setShowForm(true);
   }
@@ -179,7 +186,12 @@ export default function AdminSessionsPage() {
     setFormName(s.name);
     setFormDate(s.session_date || "");
     setFormStart(s.session_start || "");
+    setFormEnd(s.session_end || "");
     setFormLocation(s.session_location || "");
+    setFormTrack(s.track || "");
+    setFormSpeaker(s.speaker_name || "");
+    setFormDescription(s.description || "");
+    setFormCapacity(s.capacity != null ? String(s.capacity) : "");
     setFormError(null);
     setShowForm(true);
   }
@@ -194,7 +206,12 @@ export default function AdminSessionsPage() {
         name: formName.trim(),
         session_date: formDate || undefined,
         session_start: formStart || undefined,
+        session_end: formEnd || undefined,
         session_location: formLocation || undefined,
+        track: formTrack.trim() || undefined,
+        speaker_name: formSpeaker.trim() || undefined,
+        description: formDescription.trim() || undefined,
+        capacity: formCapacity.trim() === "" ? null : Math.max(0, parseInt(formCapacity, 10) || 0),
       };
       if (editingSession) {
         await updateSession(eventId, editingSession.id, data);
@@ -347,7 +364,7 @@ export default function AdminSessionsPage() {
                   required
                 />
               </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <DateField
                   label={copy.date}
                   value={formDate}
@@ -361,15 +378,67 @@ export default function AdminSessionsPage() {
                   onChange={setFormStart}
                   placeholder={copy.timePlaceholder}
                 />
+                <TimeField
+                  label={t("agenda_field_end_time")}
+                  value={formEnd}
+                  onChange={setFormEnd}
+                  placeholder={copy.timePlaceholder}
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="block text-xs font-medium text-surface-600 mb-1">{copy.location}</label>
+                  <input
+                    type="text"
+                    value={formLocation}
+                    onChange={(e) => setFormLocation(e.target.value)}
+                    placeholder={copy.locationPlaceholder}
+                    className="input-field"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-surface-600 mb-1">{t("agenda_field_track")}</label>
+                  <input
+                    type="text"
+                    value={formTrack}
+                    onChange={(e) => setFormTrack(e.target.value)}
+                    placeholder={t("agenda_track_placeholder")}
+                    className="input-field"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="block text-xs font-medium text-surface-600 mb-1">{t("agenda_field_speaker")}</label>
+                  <input
+                    type="text"
+                    value={formSpeaker}
+                    onChange={(e) => setFormSpeaker(e.target.value)}
+                    placeholder={t("agenda_speaker_placeholder")}
+                    className="input-field"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-surface-600 mb-1">{t("agenda_field_capacity")}</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={formCapacity}
+                    onChange={(e) => setFormCapacity(e.target.value)}
+                    placeholder={t("agenda_capacity_placeholder")}
+                    className="input-field"
+                  />
+                  <p className="mt-1 text-11 text-surface-400">{t("agenda_capacity_hint")}</p>
+                </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-surface-600 mb-1">{copy.location}</label>
-                <input
-                  type="text"
-                  value={formLocation}
-                  onChange={(e) => setFormLocation(e.target.value)}
-                  placeholder={copy.locationPlaceholder}
-                  className="input-field"
+                <label className="block text-xs font-medium text-surface-600 mb-1">{t("agenda_field_description")}</label>
+                <textarea
+                  value={formDescription}
+                  onChange={(e) => setFormDescription(e.target.value)}
+                  placeholder={t("agenda_description_placeholder")}
+                  rows={3}
+                  className="input-field resize-y"
                 />
               </div>
               {formError && <p className="text-xs text-red-600">{formError}</p>}
@@ -425,13 +494,25 @@ export default function AdminSessionsPage() {
                       {s.session_start && (
                         <span className="flex items-center gap-1">
                           <Clock className="w-3.5 h-3.5" />
-                          {s.session_start}
+                          {s.session_start}{s.session_end ? `–${s.session_end}` : ""}
                         </span>
                       )}
                       {s.session_location && (
                         <span className="flex items-center gap-1">
                           <MapPin className="w-3.5 h-3.5" />
                           {s.session_location}
+                        </span>
+                      )}
+                      {s.track && (
+                        <span className="flex items-center gap-1">
+                          <Layers className="w-3.5 h-3.5" />
+                          {s.track}
+                        </span>
+                      )}
+                      {s.speaker_name && (
+                        <span className="flex items-center gap-1">
+                          <Mic2 className="w-3.5 h-3.5" />
+                          {s.speaker_name}
                         </span>
                       )}
                       <span className="text-emerald-600 font-medium">{s.attendance_count} {copy.attended}</span>

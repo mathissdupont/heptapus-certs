@@ -297,6 +297,7 @@ class EventRenameIn(BaseModel):
     requires_approval: Optional[bool] = Field(default=None)
     quiz_enabled: Optional[bool] = Field(default=None)
     cpd_enabled: Optional[bool] = Field(default=None)
+    agenda_enabled: Optional[bool] = Field(default=None)
     organizer_privacy_notice_enabled: Optional[bool] = Field(default=None)
     organizer_privacy_notice_text: Optional[str] = Field(default=None, max_length=20000)
     show_cross_border_transfer_notice: Optional[bool] = Field(default=None)
@@ -329,6 +330,7 @@ class EventCreateIn(BaseModel):
     requires_approval: Optional[bool] = Field(default=None)
     quiz_enabled: Optional[bool] = Field(default=None)
     cpd_enabled: Optional[bool] = Field(default=None)
+    agenda_enabled: Optional[bool] = Field(default=None)
     organization_venue_id: Optional[int] = Field(default=None, ge=1)
     auto_reserve_venue: Optional[bool] = Field(default=None)
     venue_reservation_start_at: Optional[datetime] = None
@@ -413,6 +415,7 @@ class EventOut(BaseModel):
     requires_approval: bool = False
     quiz_enabled: bool = False
     cpd_enabled: bool = False
+    agenda_enabled: bool = False
     organization_venue_id: Optional[int] = None
     venue_reservation_id: Optional[int] = None
     venue_reservation_start_at: Optional[str] = None
@@ -584,6 +587,7 @@ class PublicEventListItemOut(BaseModel):
     gamification_enabled: bool = False
     quiz_enabled: bool = False
     cpd_enabled: bool = False
+    agenda_enabled: bool = False
 
 
 class PublicEventDetailOut(BaseModel):
@@ -614,6 +618,7 @@ class PublicEventDetailOut(BaseModel):
     raffles_enabled: bool = False
     gamification_enabled: bool = False
     requires_approval: bool = False
+    agenda_enabled: bool = False
     kvkk_consent_required: bool = True
     kvkk_consent_text: Optional[str] = None
     organizer_privacy_notice_enabled: bool = False
@@ -1789,7 +1794,13 @@ class SessionCreateIn(BaseModel):
     name: str = Field(min_length=2, max_length=200)
     session_date: Optional[str] = None  # YYYY-MM-DD
     session_start: Optional[str] = None  # HH:MM
+    session_end: Optional[str] = None  # HH:MM (WP20 agenda)
     session_location: Optional[str] = Field(default=None, max_length=300)
+    # WP20 agenda fields (all optional, backward compatible)
+    track: Optional[str] = Field(default=None, max_length=120)
+    speaker_name: Optional[str] = Field(default=None, max_length=200)
+    description: Optional[str] = Field(default=None, max_length=4000)
+    capacity: Optional[int] = Field(default=None, ge=0)
 
 
 class SessionOut(BaseModel):
@@ -1798,7 +1809,12 @@ class SessionOut(BaseModel):
     name: str
     session_date: Optional[str] = None
     session_start: Optional[str] = None
+    session_end: Optional[str] = None
     session_location: Optional[str] = None
+    track: Optional[str] = None
+    speaker_name: Optional[str] = None
+    description: Optional[str] = None
+    capacity: Optional[int] = None
     checkin_token: str
     is_active: bool
     created_at: datetime

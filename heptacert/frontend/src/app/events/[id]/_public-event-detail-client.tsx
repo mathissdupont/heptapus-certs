@@ -20,6 +20,9 @@ import {
   CheckCircle2,
   Ticket,
   FileQuestion,
+  CalendarPlus,
+  Layers,
+  Mic2,
 } from "lucide-react";
 import {
   createPublicEventComment,
@@ -27,12 +30,13 @@ import {
   getPublicMemberMe,
   getPublicMemberToken,
   listPublicEventComments,
+  publicAgendaIcsUrl,
   reportPublicEventComment,
   type PublicEventComment,
   type PublicEventDetail,
   type PublicMemberMe,
 } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, useT } from "@/lib/i18n";
 import { fetchCurrentBranding, isWhiteLabelBranding } from "@/lib/whiteLabel";
 
 function formatDate(value: string | null | undefined, lang: "tr" | "en") {
@@ -51,6 +55,8 @@ export default function PublicEventDetailClient() {
   const rawEventId = Array.isArray(params.id) ? params.id[0] : params.id;
   const eventId = rawEventId ? String(rawEventId) : "";
   const { lang } = useI18n();
+  const t = useT();
+  const [selectedTrack, setSelectedTrack] = useState<string | null>(null);
 
   const [event, setEvent] = useState<PublicEventDetail | null>(null);
   const [comments, setComments] = useState<PublicEventComment[]>([]);
@@ -131,6 +137,23 @@ export default function PublicEventDetailClient() {
           },
     [lang],
   );
+
+  // WP20 agenda: when the organizer has enabled the agenda, the sessions column
+  // becomes a filterable, calendar-exportable schedule. Otherwise it stays the
+  // simple session list (backward compatible for check-in-only events).
+  const agendaEnabled = Boolean(event?.agenda_enabled);
+  const agendaTracks = useMemo(() => {
+    const set = new Set<string>();
+    (event?.sessions ?? []).forEach((s) => {
+      if (s.track && s.track.trim()) set.add(s.track.trim());
+    });
+    return Array.from(set);
+  }, [event]);
+  const visibleSessions = useMemo(() => {
+    const list = event?.sessions ?? [];
+    if (!agendaEnabled || !selectedTrack) return list;
+    return list.filter((s) => (s.track?.trim() || null) === selectedTrack);
+  }, [event, agendaEnabled, selectedTrack]);
 
   useEffect(() => {
     let active = true;
@@ -406,28 +429,79 @@ export default function PublicEventDetailClient() {
         {/* Two Column Grid for Details */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           
-          {/* Sessions Column */}
+          {/* Sessions / Agenda Column */}
           <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">
-            <div className="flex items-center gap-2 mb-6">
-              <ListChecks className="h-5 w-5 text-gray-400" />
-              <h2 className="text-lg font-bold text-gray-900">{copy.sessions}</h2>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+              <div className="flex items-center gap-2">
+                <ListChecks className="h-5 w-5 text-gray-400" />
+                <h2 className="text-lg font-bold text-gray-900">
+                  {agendaEnabled ? t("agenda_title") : copy.sessions}
+                </h2>
+              </div>
+              {agendaEnabled && event.sessions.length > 0 && (
+                <a
+                  href={publicAgendaIcsUrl(eventId)}
+                  title={t("agenda_download_ics")}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900"
+                >
+                  <CalendarPlus className="h-3.5 w-3.5" />
+                  {t("agenda_add_to_calendar")}
+                </a>
+              )}
             </div>
-            
+
+            {/* Track filter (only with an enabled agenda and more than one track) */}
+            {agendaEnabled && agendaTracks.length > 1 && (
+              <div className="mb-5 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedTrack(null)}
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                    selectedTrack === null
+                      ? "border-gray-900 bg-gray-900 text-white"
+                      : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  {t("agenda_all_tracks")}
+                </button>
+                {agendaTracks.map((track) => (
+                  <button
+                    key={track}
+                    type="button"
+                    onClick={() => setSelectedTrack(track)}
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                      selectedTrack === track
+                        ? "border-gray-900 bg-gray-900 text-white"
+                        : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    {track}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="space-y-4">
-              {event.sessions.length === 0 ? (
+              {visibleSessions.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-center text-sm text-gray-500">
-                  {copy.noSessions}
+                  {agendaEnabled ? t("agenda_no_sessions") : copy.noSessions}
                 </div>
               ) : (
-                event.sessions.map((session, index) => (
+                visibleSessions.map((session, index) => (
                   <div
                     key={session.id}
                     className="rounded-xl border border-gray-200 bg-white p-5 hover:border-gray-300 transition-colors"
                   >
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between mb-2 gap-2">
                       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                         {copy.sessionLabel} {index + 1}
                       </p>
+                      {agendaEnabled && session.track && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-11 font-semibold text-indigo-700">
+                          <Layers className="h-3 w-3" />
+                          {session.track}
+                        </span>
+                      )}
                     </div>
                     <h3 className="text-base font-semibold text-gray-900 mb-3">
                       {session.name}
@@ -441,6 +515,7 @@ export default function PublicEventDetailClient() {
                         <div className="flex items-center gap-2">
                           <Clock3 className="h-4 w-4 text-gray-400" />
                           {session.session_start}
+                          {session.session_end ? `–${session.session_end}` : ""}
                         </div>
                       )}
                       {session.session_location && (
@@ -448,6 +523,26 @@ export default function PublicEventDetailClient() {
                           <MapPin className="h-4 w-4 text-gray-400" />
                           {session.session_location}
                         </div>
+                      )}
+                      {session.speaker_name && (
+                        <div className="flex items-center gap-2">
+                          <Mic2 className="h-4 w-4 text-gray-400" />
+                          <span>
+                            <span className="text-gray-400">{t("agenda_speaker_prefix")}: </span>
+                            {session.speaker_name}
+                          </span>
+                        </div>
+                      )}
+                      {session.capacity != null && (
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-gray-400" />
+                          {t("agenda_capacity_label", { count: session.capacity })}
+                        </div>
+                      )}
+                      {session.description && (
+                        <p className="pt-1 text-sm leading-relaxed text-gray-500 whitespace-pre-line">
+                          {session.description}
+                        </p>
                       )}
                     </div>
                   </div>

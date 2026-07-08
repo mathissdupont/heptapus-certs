@@ -31,6 +31,13 @@ def _sync_additive_schema(sync_conn: sa.Connection) -> None:
     _add_column_if_missing(sync_conn, inspector, "events", '"requires_approval" BOOLEAN NOT NULL DEFAULT FALSE')
     _add_column_if_missing(sync_conn, inspector, "events", '"raffles_enabled" BOOLEAN NOT NULL DEFAULT FALSE')
     _add_column_if_missing(sync_conn, inspector, "events", '"gamification_enabled" BOOLEAN NOT NULL DEFAULT FALSE')
+    _add_column_if_missing(sync_conn, inspector, "events", '"agenda_enabled" BOOLEAN NOT NULL DEFAULT FALSE')
+
+    if "event_sessions" in table_names:
+        _add_column_if_missing(sync_conn, inspector, "event_sessions", '"session_end" TIME')
+        _add_column_if_missing(sync_conn, inspector, "event_sessions", '"track" VARCHAR(120)')
+        _add_column_if_missing(sync_conn, inspector, "event_sessions", '"speaker_name" VARCHAR(200)')
+        _add_column_if_missing(sync_conn, inspector, "event_sessions", '"description" TEXT')
 
     if "attendees" in table_names:
         _add_column_if_missing(sync_conn, inspector, "attendees", '"unsubscribed_at" TIMESTAMP WITH TIME ZONE')
