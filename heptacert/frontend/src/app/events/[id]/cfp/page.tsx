@@ -156,7 +156,7 @@ export default function CfpSpeakerPage() {
       {!loggedIn ? (
         <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
           <p className="text-sm text-gray-600">{t("cfp_login_required")}</p>
-          <Link href={`/portal/login?next=/events/${eventId}/cfp`} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800">
+          <Link href={`/login?mode=member&next=${encodeURIComponent(`/events/${eventId}/cfp`)}`} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800">
             {t("cfp_login_cta")}
           </Link>
         </div>
