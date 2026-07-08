@@ -23,6 +23,7 @@ import {
   CalendarPlus,
   Layers,
   Mic2,
+  Megaphone,
 } from "lucide-react";
 import {
   createPublicEventComment,
@@ -425,6 +426,20 @@ export default function PublicEventDetailClient() {
             </div>
           </div>
         </section>
+
+        {/* Call-for-Papers CTA */}
+        {event.cfp_enabled && (
+          <Link
+            href={`/events/${eventId}/cfp`}
+            className="mb-8 flex items-center justify-between gap-3 rounded-2xl border border-indigo-200 bg-indigo-50/50 px-6 py-4 transition-colors hover:bg-indigo-50"
+          >
+            <span className="flex items-center gap-3">
+              <Megaphone className="h-5 w-5 text-indigo-500" />
+              <span className="text-sm font-semibold text-indigo-900">{t("cfp_public_cta")}</span>
+            </span>
+            <span className="text-sm font-semibold text-indigo-600">→</span>
+          </Link>
+        )}
 
         {/* Two Column Grid for Details */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">

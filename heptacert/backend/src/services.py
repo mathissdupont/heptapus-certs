@@ -1487,6 +1487,7 @@ def _session_to_out(s: EventSession, attendaonce_count: int = 0) -> SessionOut:
         is_active=s.is_active,
         created_at=s.created_at,
         attendaonce_count=attendaonce_count,
+        attendance_count=attendaonce_count,
     )
 
 def _make_apple_wallet_pass(ticket: EventTicket) -> bytes:

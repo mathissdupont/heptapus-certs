@@ -27,6 +27,7 @@ FEATURE_DEFAULTS = {
     "quiz_enabled": False,
     "cpd_enabled": False,
     "agenda_enabled": False,
+    "cfp_enabled": False,
 }
 
 # Per-event-type default toggle sets (ADR-0018). These are *starting points* applied at
@@ -62,6 +63,7 @@ PRESET_BY_EVENT_TYPE: dict[str, dict[str, bool]] = {
         "registration_enabled": True,
         "ticketing_enabled": True,
         "agenda_enabled": True,
+        "cfp_enabled": True,
     },
     "concert": {
         "certificate_enabled": False,
@@ -164,3 +166,10 @@ def is_agenda_enabled(event: Any) -> bool:
     speakers, public agenda view + calendar export) is surfaced for this event.
     Independent of check-in: an agenda can exist without QR attendance (WP20)."""
     return feature_value(event, "agenda_enabled")
+
+
+def is_cfp_enabled(event: Any) -> bool:
+    """Whether the Call-for-Papers / abstract submission + review workflow is
+    active for this event (WP21): speakers submit abstracts, reviewers score them
+    against a rubric, and accepted talks become agenda sessions."""
+    return feature_value(event, "cfp_enabled")

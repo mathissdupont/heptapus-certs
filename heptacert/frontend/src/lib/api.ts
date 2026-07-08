@@ -290,6 +290,8 @@ export interface EventOut {
   requires_approval?: boolean;
   quiz_enabled?: boolean;
   cpd_enabled?: boolean;
+  agenda_enabled?: boolean;
+  cfp_enabled?: boolean;
 }
 
 export interface CertificateTemplatePreset {
@@ -1496,6 +1498,7 @@ export interface PublicEventDetail {
   gamification_enabled?: boolean;
   requires_approval?: boolean;
   agenda_enabled?: boolean;
+  cfp_enabled?: boolean;
   kvkk_consent_required?: boolean;
   kvkk_consent_text?: string | null;
   organizer_privacy_notice_enabled?: boolean;
@@ -2647,6 +2650,182 @@ export async function getPublicEventDetail(eventId: EventRouteId): Promise<Publi
 // getApiBase() already does, including white-label host handling.
 export function publicAgendaIcsUrl(eventId: EventRouteId): string {
   return apiUrl(`/public/events/${toEventRouteId(eventId)}/agenda.ics`);
+}
+
+// ── WP21 Call-for-Papers ──────────────────────────────────────────────────────
+
+export interface CfpCriterion {
+  id: string;
+  label: string;
+  max: number;
+}
+
+export interface CfpConfig {
+  opens_at?: string | null;
+  closes_at?: string | null;
+  instructions?: string | null;
+  max_per_member?: number | null;
+  criteria: CfpCriterion[];
+}
+
+export interface CfpPublicInfo {
+  cfp_enabled: boolean;
+  is_open: boolean;
+  opens_at?: string | null;
+  closes_at?: string | null;
+  instructions?: string | null;
+  max_per_member?: number | null;
+  criteria: CfpCriterion[];
+  my_submission_count: number;
+}
+
+export interface CfpReview {
+  id: number;
+  submission_id: number;
+  reviewer_user_id: number;
+  reviewer_name?: string | null;
+  scores: Record<string, number>;
+  overall_score?: number | null;
+  comment?: string | null;
+  status: "assigned" | "submitted";
+  updated_at?: string | null;
+}
+
+export interface CfpSubmission {
+  id: number;
+  event_id: number;
+  member_id: number;
+  title: string;
+  abstract: string;
+  speaker_name: string;
+  speaker_bio?: string | null;
+  track?: string | null;
+  status: "submitted" | "under_review" | "accepted" | "rejected" | "withdrawn";
+  decision_note?: string | null;
+  decided_at?: string | null;
+  session_id?: number | null;
+  created_at: string;
+  updated_at?: string | null;
+  reviews: CfpReview[];
+  average_score?: number | null;
+  review_count: number;
+}
+
+export interface CfpReviewer {
+  user_id: number;
+  name?: string | null;
+  email?: string | null;
+}
+
+export interface CfpSubmissionInput {
+  title: string;
+  abstract: string;
+  speaker_name: string;
+  speaker_bio?: string;
+  track?: string;
+}
+
+// Speaker-facing (member-authenticated where noted)
+export async function getCfpPublicInfo(eventId: EventRouteId): Promise<CfpPublicInfo> {
+  const path = `/public/events/${toEventRouteId(eventId)}/cfp`;
+  // Use the member token when present so my_submission_count is populated.
+  const res = getPublicMemberToken()
+    ? await memberApiFetch(path)
+    : await publicApiFetch(path);
+  return res.json();
+}
+
+export async function createCfpSubmission(eventId: EventRouteId, data: CfpSubmissionInput): Promise<CfpSubmission> {
+  const res = await memberApiFetch(`/events/${toEventRouteId(eventId)}/cfp/submissions`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function listMyCfpSubmissions(eventId: EventRouteId): Promise<CfpSubmission[]> {
+  const res = await memberApiFetch(`/events/${toEventRouteId(eventId)}/cfp/my-submissions`);
+  return res.json();
+}
+
+export async function updateCfpSubmission(eventId: EventRouteId, sid: number, data: CfpSubmissionInput): Promise<CfpSubmission> {
+  const res = await memberApiFetch(`/events/${toEventRouteId(eventId)}/cfp/submissions/${sid}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function withdrawCfpSubmission(eventId: EventRouteId, sid: number): Promise<CfpSubmission> {
+  const res = await memberApiFetch(`/events/${toEventRouteId(eventId)}/cfp/submissions/${sid}/withdraw`, {
+    method: "POST",
+  });
+  return res.json();
+}
+
+// Organizer / reviewer (admin token via apiFetch)
+export async function getCfpConfig(eventId: number): Promise<CfpConfig> {
+  const res = await apiFetch(`/admin/events/${eventId}/cfp/config`);
+  return res.json();
+}
+
+export async function setCfpConfig(eventId: number, data: CfpConfig): Promise<CfpConfig> {
+  const res = await apiFetch(`/admin/events/${eventId}/cfp/config`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function listCfpReviewers(eventId: number): Promise<CfpReviewer[]> {
+  const res = await apiFetch(`/admin/events/${eventId}/cfp/reviewers`);
+  return res.json();
+}
+
+export async function listCfpSubmissionsAdmin(eventId: number, status?: string): Promise<CfpSubmission[]> {
+  const qs = status && status !== "all" ? `?status=${encodeURIComponent(status)}` : "";
+  const res = await apiFetch(`/admin/events/${eventId}/cfp/submissions${qs}`);
+  return res.json();
+}
+
+export async function assignCfpReviewers(eventId: number, sid: number, reviewerUserIds: number[]): Promise<CfpSubmission> {
+  const res = await apiFetch(`/admin/events/${eventId}/cfp/submissions/${sid}/assign`, {
+    method: "POST",
+    body: JSON.stringify({ reviewer_user_ids: reviewerUserIds }),
+  });
+  return res.json();
+}
+
+export async function submitCfpReview(
+  eventId: number,
+  sid: number,
+  data: { scores: Record<string, number>; comment?: string },
+): Promise<CfpSubmission> {
+  const res = await apiFetch(`/admin/events/${eventId}/cfp/submissions/${sid}/review`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function decideCfpSubmission(
+  eventId: number,
+  sid: number,
+  data: {
+    decision: "accepted" | "rejected";
+    note?: string;
+    create_session?: boolean;
+    session_date?: string;
+    session_start?: string;
+    session_end?: string;
+    session_location?: string;
+  },
+): Promise<CfpSubmission> {
+  const res = await apiFetch(`/admin/events/${eventId}/cfp/submissions/${sid}/decide`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  return res.json();
 }
 
 export async function listPublicEventComments(eventId: EventRouteId): Promise<PublicEventComment[]> {

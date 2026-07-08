@@ -92,6 +92,8 @@ __all__ = [
     "EventTicket",
     "EventComment",
     "AttendaonceRecord",
+    "CfpSubmission",
+    "CfpReview",
     "CheckinActivityLog",
     "AgentActionLog",
     "CheckinKioskSession",
@@ -207,6 +209,7 @@ class Event(Base):
     quiz_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     cpd_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     agenda_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    cfp_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     # Marketplace fields (migration 079)
     is_marketplace_listed: Mapped[bool] = mapped_column(Boolean, default=False)
     marketplace_category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
@@ -1389,6 +1392,56 @@ class AttendaonceRecord(Base):
 
     __table_args__ = (
         UniqueConstraint("attendee_id", "session_id", name="uq_attendance_attendee_session"),
+    )
+
+
+class CfpSubmission(Base):
+    """WP21 Call-for-Papers abstract submission. Submitted by a PublicMember
+    (reused portal identity). When accepted, materialized into an EventSession
+    (session_id) so the talk appears on the WP20 agenda."""
+    __tablename__ = "cfp_submissions"
+    id:            Mapped[int]           = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id:      Mapped[int]           = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    member_id:     Mapped[int]           = mapped_column(Integer, ForeignKey("public_members.id", ondelete="CASCADE"), index=True)
+    title:         Mapped[str]           = mapped_column(String(300))
+    abstract:      Mapped[str]           = mapped_column(Text)
+    speaker_name:  Mapped[str]           = mapped_column(String(200))
+    speaker_bio:   Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    track:         Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    # submitted -> under_review -> accepted | rejected ; withdrawn (by speaker)
+    status:        Mapped[str]           = mapped_column(String(24), default="submitted", index=True)
+    decision_note: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True)
+    decided_by:    Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    decided_at:    Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    session_id:    Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("event_sessions.id", ondelete="SET NULL"), nullable=True)
+    created_at:    Mapped[datetime]      = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at:    Mapped[datetime]      = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    member:  Mapped["PublicMember"] = relationship()
+    reviews: Mapped[List["CfpReview"]] = relationship(back_populates="submission", cascade="all, delete-orphan")
+
+
+class CfpReview(Base):
+    """One reviewer's rubric scoring of a CFP submission. A row is created on
+    assignment (status="assigned") and filled when the reviewer submits. Per-criterion
+    scores live in `scores` JSONB keyed by the rubric criterion id (rubric definition
+    is stored on Event.config.cfp.criteria)."""
+    __tablename__ = "cfp_reviews"
+    id:               Mapped[int]           = mapped_column(Integer, primary_key=True, autoincrement=True)
+    submission_id:    Mapped[int]           = mapped_column(Integer, ForeignKey("cfp_submissions.id", ondelete="CASCADE"), index=True)
+    reviewer_user_id: Mapped[int]           = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    scores:           Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True, default=dict)
+    overall_score:    Mapped[Optional[float]] = mapped_column(Numeric(6, 2), nullable=True)
+    comment:          Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status:           Mapped[str]           = mapped_column(String(16), default="assigned")  # assigned | submitted
+    created_at:       Mapped[datetime]      = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at:       Mapped[datetime]      = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    submission: Mapped["CfpSubmission"] = relationship(back_populates="reviews")
+    reviewer:   Mapped["User"] = relationship()
+
+    __table_args__ = (
+        UniqueConstraint("submission_id", "reviewer_user_id", name="uq_cfp_review_submission_reviewer"),
     )
 
 

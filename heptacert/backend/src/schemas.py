@@ -298,6 +298,7 @@ class EventRenameIn(BaseModel):
     quiz_enabled: Optional[bool] = Field(default=None)
     cpd_enabled: Optional[bool] = Field(default=None)
     agenda_enabled: Optional[bool] = Field(default=None)
+    cfp_enabled: Optional[bool] = Field(default=None)
     organizer_privacy_notice_enabled: Optional[bool] = Field(default=None)
     organizer_privacy_notice_text: Optional[str] = Field(default=None, max_length=20000)
     show_cross_border_transfer_notice: Optional[bool] = Field(default=None)
@@ -331,6 +332,7 @@ class EventCreateIn(BaseModel):
     quiz_enabled: Optional[bool] = Field(default=None)
     cpd_enabled: Optional[bool] = Field(default=None)
     agenda_enabled: Optional[bool] = Field(default=None)
+    cfp_enabled: Optional[bool] = Field(default=None)
     organization_venue_id: Optional[int] = Field(default=None, ge=1)
     auto_reserve_venue: Optional[bool] = Field(default=None)
     venue_reservation_start_at: Optional[datetime] = None
@@ -416,6 +418,7 @@ class EventOut(BaseModel):
     quiz_enabled: bool = False
     cpd_enabled: bool = False
     agenda_enabled: bool = False
+    cfp_enabled: bool = False
     organization_venue_id: Optional[int] = None
     venue_reservation_id: Optional[int] = None
     venue_reservation_start_at: Optional[str] = None
@@ -588,6 +591,7 @@ class PublicEventListItemOut(BaseModel):
     quiz_enabled: bool = False
     cpd_enabled: bool = False
     agenda_enabled: bool = False
+    cfp_enabled: bool = False
 
 
 class PublicEventDetailOut(BaseModel):
@@ -619,6 +623,7 @@ class PublicEventDetailOut(BaseModel):
     gamification_enabled: bool = False
     requires_approval: bool = False
     agenda_enabled: bool = False
+    cfp_enabled: bool = False
     kvkk_consent_required: bool = True
     kvkk_consent_text: Optional[str] = None
     organizer_privacy_notice_enabled: bool = False
@@ -1819,6 +1824,114 @@ class SessionOut(BaseModel):
     is_active: bool
     created_at: datetime
     attendaonce_count: int = 0
+    # Alias with the correct spelling the frontend consumes (SessionOut.attendance_count).
+    # Kept alongside the legacy misspelled field for backward compatibility.
+    attendance_count: int = 0
+
+
+# ── WP21 Call-for-Papers (CFP) ────────────────────────────────────────────────
+
+class CfpCriterion(BaseModel):
+    id: str = Field(min_length=1, max_length=40)
+    label: str = Field(min_length=1, max_length=120)
+    max: int = Field(default=5, ge=1, le=100)
+
+
+class CfpConfigIn(BaseModel):
+    opens_at: Optional[str] = None   # ISO datetime; None = no lower bound
+    closes_at: Optional[str] = None  # ISO datetime; None = no upper bound
+    instructions: Optional[str] = Field(default=None, max_length=4000)
+    max_per_member: Optional[int] = Field(default=None, ge=1, le=50)
+    criteria: List[CfpCriterion] = Field(default_factory=list, max_length=12)
+
+
+class CfpConfigOut(BaseModel):
+    opens_at: Optional[str] = None
+    closes_at: Optional[str] = None
+    instructions: Optional[str] = None
+    max_per_member: Optional[int] = None
+    criteria: List[CfpCriterion] = Field(default_factory=list)
+
+
+class CfpPublicInfoOut(BaseModel):
+    """What a (potential) speaker sees: window + instructions + rubric labels only
+    (no scoring data), plus their own submission count against the per-member cap."""
+    cfp_enabled: bool = False
+    is_open: bool = False
+    opens_at: Optional[str] = None
+    closes_at: Optional[str] = None
+    instructions: Optional[str] = None
+    max_per_member: Optional[int] = None
+    criteria: List[CfpCriterion] = Field(default_factory=list)
+    my_submission_count: int = 0
+
+
+class CfpSubmissionIn(BaseModel):
+    title: str = Field(min_length=3, max_length=300)
+    abstract: str = Field(min_length=10, max_length=8000)
+    speaker_name: str = Field(min_length=2, max_length=200)
+    speaker_bio: Optional[str] = Field(default=None, max_length=4000)
+    track: Optional[str] = Field(default=None, max_length=120)
+
+
+class CfpReviewOut(BaseModel):
+    id: int
+    submission_id: int
+    reviewer_user_id: int
+    reviewer_name: Optional[str] = None
+    scores: Dict[str, float] = Field(default_factory=dict)
+    overall_score: Optional[float] = None
+    comment: Optional[str] = None
+    status: str = "assigned"
+    updated_at: Optional[datetime] = None
+
+
+class CfpSubmissionOut(BaseModel):
+    id: int
+    event_id: int
+    member_id: int
+    title: str
+    abstract: str
+    speaker_name: str
+    speaker_bio: Optional[str] = None
+    track: Optional[str] = None
+    status: str
+    decision_note: Optional[str] = None
+    decided_at: Optional[datetime] = None
+    session_id: Optional[int] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    # Admin/reviewer view only (omitted / empty on the speaker's own view):
+    reviews: List[CfpReviewOut] = Field(default_factory=list)
+    average_score: Optional[float] = None
+    review_count: int = 0
+
+
+class CfpReviewIn(BaseModel):
+    scores: Dict[str, float] = Field(default_factory=dict)
+    comment: Optional[str] = Field(default=None, max_length=4000)
+
+
+class CfpAssignIn(BaseModel):
+    reviewer_user_ids: List[int] = Field(default_factory=list, max_length=50)
+
+
+class CfpDecisionIn(BaseModel):
+    decision: str = Field(pattern="^(accepted|rejected)$")
+    note: Optional[str] = Field(default=None, max_length=2000)
+    # When accepting, optionally materialise the talk as an agenda session (WP20).
+    create_session: bool = False
+    session_date: Optional[str] = None
+    session_start: Optional[str] = None
+    session_end: Optional[str] = None
+    session_location: Optional[str] = Field(default=None, max_length=300)
+
+
+class CfpReviewerOut(BaseModel):
+    """A user who can be assigned to review (event owner + org team)."""
+    user_id: int
+    name: Optional[str] = None
+    email: Optional[str] = None
 
 
 class AttendeeImportRow(BaseModel):

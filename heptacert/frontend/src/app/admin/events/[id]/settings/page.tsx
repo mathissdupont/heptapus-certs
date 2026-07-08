@@ -103,6 +103,7 @@ type EventOut = {
   quiz_enabled?: boolean;
   cpd_enabled?: boolean;
   agenda_enabled?: boolean;
+  cfp_enabled?: boolean;
   organization_venue_id?: number | null;
   venue_reservation_id?: number | null;
   venue_reservation_start_at?: string | null;
@@ -166,6 +167,7 @@ type FormState = {
   quiz_enabled: boolean;
   cpd_enabled: boolean;
   agenda_enabled: boolean;
+  cfp_enabled: boolean;
   organizer_privacy_notice_enabled: boolean;
   organizer_privacy_notice_text: string;
   show_cross_border_transfer_notice: boolean;
@@ -566,6 +568,7 @@ export default function EventSettingsPage() {
     quiz_enabled: false,
     cpd_enabled: false,
     agenda_enabled: false,
+    cfp_enabled: false,
     organizer_privacy_notice_enabled: false,
     organizer_privacy_notice_text: "",
     show_cross_border_transfer_notice: true,
@@ -727,6 +730,7 @@ export default function EventSettingsPage() {
         quiz_enabled: eventData.quiz_enabled ?? false,
         cpd_enabled: eventData.cpd_enabled ?? false,
         agenda_enabled: eventData.agenda_enabled ?? false,
+        cfp_enabled: eventData.cfp_enabled ?? false,
         organizer_privacy_notice_enabled: Boolean(eventData.config?.organizer_privacy_notice_enabled),
         organizer_privacy_notice_text: String(eventData.config?.organizer_privacy_notice_text || ""),
         show_cross_border_transfer_notice: true,
@@ -1057,6 +1061,7 @@ export default function EventSettingsPage() {
         quiz_enabled: formData.quiz_enabled,
         cpd_enabled: formData.cpd_enabled,
         agenda_enabled: formData.agenda_enabled,
+        cfp_enabled: formData.cfp_enabled,
         organizer_privacy_notice_enabled: formData.organizer_privacy_notice_enabled,
         organizer_privacy_notice_text: formData.organizer_privacy_notice_text.trim() || null,
         show_cross_border_transfer_notice: true,
@@ -1327,6 +1332,7 @@ export default function EventSettingsPage() {
                     { key: "quiz_enabled", label: lang === "tr" ? "Sınav / Quiz Modülü" : "Quiz module", hint: lang === "tr" ? "Etkinlik için sınav tanımlanabilir; sınav geçme koşuluna göre sertifika verilebilir." : "Enables quiz configuration and certificate-on-pass flow." },
                     { key: "cpd_enabled", label: lang === "tr" ? "CPD Sürekli Mesleki Gelişim" : "CPD module", hint: lang === "tr" ? "Sertifika verilen portal üyelerine CPD saati otomatik eklenir." : "Automatically logs CPD hours when a certificate is issued to a portal member." },
                     { key: "agenda_enabled", label: t("agenda_settings_label"), hint: t("agenda_settings_hint") },
+                    { key: "cfp_enabled", label: t("cfp_settings_label"), hint: t("cfp_settings_hint") },
                   ].map((feature) => (
                     <label key={feature.key} className="flex items-start gap-3 rounded-xl border border-surface-100 bg-surface-50/40 p-4 select-none cursor-pointer hover:bg-surface-50 transition-colors">
                       <input type="checkbox" checked={Boolean(formData[feature.key as keyof FormState])} onChange={(e) => setFormData((curr) => ({ ...curr, [feature.key]: e.target.checked }))} className="mt-0.5 h-4 w-4 rounded-md border-surface-300 text-surface-900 focus:ring-0 cursor-pointer" />
