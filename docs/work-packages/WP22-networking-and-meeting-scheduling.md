@@ -1,6 +1,30 @@
 # WP22 — Networking & Meeting Scheduling
 
-**Phase:** 5 — Competitive expansion · **Status:** 📐 Planned · **Related ADRs:** [0020](../adr/0020-networking-and-meeting-scheduling.md), [0017](../adr/0017-per-event-feature-toggles-two-layer-gate.md)
+**Phase:** 5 — Competitive expansion · **Status:** ✅ Phase A shipped · **Related ADRs:** [0020](../adr/0020-networking-and-meeting-scheduling.md), [0017](../adr/0017-per-event-feature-toggles-two-layer-gate.md)
+
+## Delivery status (2026-07-09)
+
+Phase A shipped (discover → request → accept/decline/cancel → both parties' meeting list).
+Reuses the PublicMember identity + connection graph — no new auth.
+
+- Two-layer gate: `Event.networking_meetings_enabled` + `is_networking_meetings_enabled` +
+  `conference` preset + `plan_policy` FeaturePolicy `networking` (growth+) + Settings toggle.
+- `MeetingRequest` model (event-scoped; requester proposes time; status
+  pending→accepted|declined, cancelled) + `PublicMember.interests` JSONB tag list.
+  Migration `108_networking_meetings` (+ `local_bootstrap`).
+- **Block/privacy inherited, not reimplemented:** extracted `connections_api.members_blocked`
+  (symmetric) and reuse it on every request/directory path (ADR-0020). Discoverability is an
+  opt-out flag stored in the shared `member_privacy` SystemConfig blob (`networking_discoverable`).
+- `meetings_api.py` (own router): member networking profile (interests + discoverable),
+  event attendee directory (block + discoverable + tag filtered, self excluded), request /
+  respond / cancel, and a combined "my meetings" (incoming + outgoing) list.
+- Frontend (catalog-first `t()`, `net_*` keys): member-gated networking page
+  `app/events/[id]/networking` (my profile, directory with tag search + request modal, my
+  meetings with accept/decline/withdraw) + Settings toggle + public "Meet attendees" CTA.
+
+**Deferred (Phase B):** published availability slots (Phase A uses a proposed time per
+request), algorithmic/AI matchmaking (ADR-0020 defers), merging confirmed meetings into the
+WP20 agenda ICS feed (no personal-schedule surface exists yet — meetings live in "my meetings").
 
 ## Objective
 Add structured attendee networking — 1:1 meeting requests and scheduled slots, with

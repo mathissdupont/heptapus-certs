@@ -292,6 +292,7 @@ export interface EventOut {
   cpd_enabled?: boolean;
   agenda_enabled?: boolean;
   cfp_enabled?: boolean;
+  networking_meetings_enabled?: boolean;
 }
 
 export interface CertificateTemplatePreset {
@@ -1499,6 +1500,7 @@ export interface PublicEventDetail {
   requires_approval?: boolean;
   agenda_enabled?: boolean;
   cfp_enabled?: boolean;
+  networking_meetings_enabled?: boolean;
   kvkk_consent_required?: boolean;
   kvkk_consent_text?: string | null;
   organizer_privacy_notice_enabled?: boolean;
@@ -2824,6 +2826,90 @@ export async function decideCfpSubmission(
   const res = await apiFetch(`/admin/events/${eventId}/cfp/submissions/${sid}/decide`, {
     method: "POST",
     body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+// ── WP22 Networking & 1:1 meetings ────────────────────────────────────────────
+
+export interface NetworkingProfile {
+  interests: string[];
+  discoverable: boolean;
+}
+
+export interface NetworkingMember {
+  public_id: string;
+  display_name: string;
+  avatar_url?: string | null;
+  headline?: string | null;
+  interests: string[];
+}
+
+export interface MeetingRequest {
+  id: number;
+  event_id: number;
+  status: "pending" | "accepted" | "declined" | "cancelled";
+  is_incoming: boolean;
+  counterpart: NetworkingMember;
+  proposed_start?: string | null;
+  duration_minutes: number;
+  location?: string | null;
+  message?: string | null;
+  response_note?: string | null;
+  created_at: string;
+}
+
+export interface MeetingRequestInput {
+  target_public_id: string;
+  proposed_start?: string;
+  duration_minutes?: number;
+  location?: string;
+  message?: string;
+}
+
+export async function getMyNetworkingProfile(): Promise<NetworkingProfile> {
+  const res = await memberApiFetch("/public/members/me/networking");
+  return res.json();
+}
+
+export async function updateMyNetworkingProfile(data: NetworkingProfile): Promise<NetworkingProfile> {
+  const res = await memberApiFetch("/public/members/me/networking", {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function listNetworkingAttendees(eventId: EventRouteId, tag?: string): Promise<NetworkingMember[]> {
+  const qs = tag && tag.trim() ? `?tag=${encodeURIComponent(tag.trim())}` : "";
+  const res = await memberApiFetch(`/events/${toEventRouteId(eventId)}/networking/attendees${qs}`);
+  return res.json();
+}
+
+export async function listMyMeetings(eventId: EventRouteId): Promise<MeetingRequest[]> {
+  const res = await memberApiFetch(`/events/${toEventRouteId(eventId)}/networking/requests`);
+  return res.json();
+}
+
+export async function createMeetingRequest(eventId: EventRouteId, data: MeetingRequestInput): Promise<MeetingRequest> {
+  const res = await memberApiFetch(`/events/${toEventRouteId(eventId)}/networking/requests`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function respondMeetingRequest(eventId: EventRouteId, rid: number, decision: "accepted" | "declined", note?: string): Promise<MeetingRequest> {
+  const res = await memberApiFetch(`/events/${toEventRouteId(eventId)}/networking/requests/${rid}/respond`, {
+    method: "POST",
+    body: JSON.stringify({ decision, note }),
+  });
+  return res.json();
+}
+
+export async function cancelMeetingRequest(eventId: EventRouteId, rid: number): Promise<MeetingRequest> {
+  const res = await memberApiFetch(`/events/${toEventRouteId(eventId)}/networking/requests/${rid}/cancel`, {
+    method: "POST",
   });
   return res.json();
 }

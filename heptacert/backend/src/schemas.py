@@ -299,6 +299,7 @@ class EventRenameIn(BaseModel):
     cpd_enabled: Optional[bool] = Field(default=None)
     agenda_enabled: Optional[bool] = Field(default=None)
     cfp_enabled: Optional[bool] = Field(default=None)
+    networking_meetings_enabled: Optional[bool] = Field(default=None)
     organizer_privacy_notice_enabled: Optional[bool] = Field(default=None)
     organizer_privacy_notice_text: Optional[str] = Field(default=None, max_length=20000)
     show_cross_border_transfer_notice: Optional[bool] = Field(default=None)
@@ -333,6 +334,7 @@ class EventCreateIn(BaseModel):
     cpd_enabled: Optional[bool] = Field(default=None)
     agenda_enabled: Optional[bool] = Field(default=None)
     cfp_enabled: Optional[bool] = Field(default=None)
+    networking_meetings_enabled: Optional[bool] = Field(default=None)
     organization_venue_id: Optional[int] = Field(default=None, ge=1)
     auto_reserve_venue: Optional[bool] = Field(default=None)
     venue_reservation_start_at: Optional[datetime] = None
@@ -419,6 +421,7 @@ class EventOut(BaseModel):
     cpd_enabled: bool = False
     agenda_enabled: bool = False
     cfp_enabled: bool = False
+    networking_meetings_enabled: bool = False
     organization_venue_id: Optional[int] = None
     venue_reservation_id: Optional[int] = None
     venue_reservation_start_at: Optional[str] = None
@@ -592,6 +595,7 @@ class PublicEventListItemOut(BaseModel):
     cpd_enabled: bool = False
     agenda_enabled: bool = False
     cfp_enabled: bool = False
+    networking_meetings_enabled: bool = False
 
 
 class PublicEventDetailOut(BaseModel):
@@ -624,6 +628,7 @@ class PublicEventDetailOut(BaseModel):
     requires_approval: bool = False
     agenda_enabled: bool = False
     cfp_enabled: bool = False
+    networking_meetings_enabled: bool = False
     kvkk_consent_required: bool = True
     kvkk_consent_text: Optional[str] = None
     organizer_privacy_notice_enabled: bool = False
@@ -1932,6 +1937,53 @@ class CfpReviewerOut(BaseModel):
     user_id: int
     name: Optional[str] = None
     email: Optional[str] = None
+
+
+# ── WP22 Networking & 1:1 meetings ────────────────────────────────────────────
+
+class NetworkingProfileIn(BaseModel):
+    interests: List[str] = Field(default_factory=list, max_length=20)
+    discoverable: bool = True
+
+
+class NetworkingProfileOut(BaseModel):
+    interests: List[str] = Field(default_factory=list)
+    discoverable: bool = True
+
+
+class NetworkingMemberOut(BaseModel):
+    public_id: str
+    display_name: str
+    avatar_url: Optional[str] = None
+    headline: Optional[str] = None
+    interests: List[str] = Field(default_factory=list)
+
+
+class MeetingRequestIn(BaseModel):
+    target_public_id: str = Field(min_length=1, max_length=64)
+    proposed_start: Optional[str] = None  # ISO datetime
+    duration_minutes: int = Field(default=30, ge=5, le=480)
+    location: Optional[str] = Field(default=None, max_length=300)
+    message: Optional[str] = Field(default=None, max_length=1000)
+
+
+class MeetingRespondIn(BaseModel):
+    decision: str = Field(pattern="^(accepted|declined)$")
+    note: Optional[str] = Field(default=None, max_length=1000)
+
+
+class MeetingRequestOut(BaseModel):
+    id: int
+    event_id: int
+    status: str
+    is_incoming: bool  # from the viewer's perspective (they are the target)
+    counterpart: NetworkingMemberOut
+    proposed_start: Optional[str] = None
+    duration_minutes: int = 30
+    location: Optional[str] = None
+    message: Optional[str] = None
+    response_note: Optional[str] = None
+    created_at: datetime
 
 
 class AttendeeImportRow(BaseModel):

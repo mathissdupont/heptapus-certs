@@ -94,6 +94,7 @@ __all__ = [
     "AttendaonceRecord",
     "CfpSubmission",
     "CfpReview",
+    "MeetingRequest",
     "CheckinActivityLog",
     "AgentActionLog",
     "CheckinKioskSession",
@@ -165,6 +166,8 @@ class PublicMember(Base):
     location: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
     website_url: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True)
     contact_email: Mapped[Optional[str]] = mapped_column(String(320), nullable=True)
+    # WP22 networking: free-text interest/skill tags for meeting discovery (list[str]).
+    interests: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True, default=list)
     digest_opt_in: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -210,6 +213,7 @@ class Event(Base):
     cpd_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     agenda_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     cfp_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    networking_meetings_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     # Marketplace fields (migration 079)
     is_marketplace_listed: Mapped[bool] = mapped_column(Boolean, default=False)
     marketplace_category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
@@ -1443,6 +1447,29 @@ class CfpReview(Base):
     __table_args__ = (
         UniqueConstraint("submission_id", "reviewer_user_id", name="uq_cfp_review_submission_reviewer"),
     )
+
+
+class MeetingRequest(Base):
+    """WP22 1:1 networking meeting between two PublicMembers, scoped to an event.
+    The requester proposes a time; the target accepts/declines. Blocked pairs can
+    never create one (enforced via connections_api.members_blocked, ADR-0020)."""
+    __tablename__ = "meeting_requests"
+    id:            Mapped[int]           = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id:      Mapped[int]           = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    requester_id:  Mapped[int]           = mapped_column(Integer, ForeignKey("public_members.id", ondelete="CASCADE"), index=True)
+    target_id:     Mapped[int]           = mapped_column(Integer, ForeignKey("public_members.id", ondelete="CASCADE"), index=True)
+    proposed_start: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    duration_minutes: Mapped[int]        = mapped_column(Integer, default=30)
+    location:      Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    message:       Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    # pending -> accepted | declined ; cancelled (by requester)
+    status:        Mapped[str]           = mapped_column(String(16), default="pending", index=True)
+    response_note: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    created_at:    Mapped[datetime]      = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at:    Mapped[datetime]      = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    requester: Mapped["PublicMember"] = relationship(foreign_keys=[requester_id])
+    target:    Mapped["PublicMember"] = relationship(foreign_keys=[target_id])
 
 
 class CheckinActivityLog(Base):

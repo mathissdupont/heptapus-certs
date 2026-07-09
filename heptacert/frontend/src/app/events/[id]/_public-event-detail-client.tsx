@@ -24,6 +24,7 @@ import {
   Layers,
   Mic2,
   Megaphone,
+  Handshake,
 } from "lucide-react";
 import {
   createPublicEventComment,
@@ -438,6 +439,20 @@ export default function PublicEventDetailClient() {
               <span className="text-sm font-semibold text-indigo-900">{t("cfp_public_cta")}</span>
             </span>
             <span className="text-sm font-semibold text-indigo-600">→</span>
+          </Link>
+        )}
+
+        {/* Networking CTA */}
+        {event.networking_meetings_enabled && (
+          <Link
+            href={`/events/${eventId}/networking`}
+            className="mb-8 flex items-center justify-between gap-3 rounded-2xl border border-teal-200 bg-teal-50/50 px-6 py-4 transition-colors hover:bg-teal-50"
+          >
+            <span className="flex items-center gap-3">
+              <Handshake className="h-5 w-5 text-teal-500" />
+              <span className="text-sm font-semibold text-teal-900">{t("net_public_cta")}</span>
+            </span>
+            <span className="text-sm font-semibold text-teal-600">→</span>
           </Link>
         )}
 

@@ -28,6 +28,7 @@ FEATURE_DEFAULTS = {
     "cpd_enabled": False,
     "agenda_enabled": False,
     "cfp_enabled": False,
+    "networking_meetings_enabled": False,
 }
 
 # Per-event-type default toggle sets (ADR-0018). These are *starting points* applied at
@@ -64,6 +65,7 @@ PRESET_BY_EVENT_TYPE: dict[str, dict[str, bool]] = {
         "ticketing_enabled": True,
         "agenda_enabled": True,
         "cfp_enabled": True,
+        "networking_meetings_enabled": True,
     },
     "concert": {
         "certificate_enabled": False,
@@ -173,3 +175,10 @@ def is_cfp_enabled(event: Any) -> bool:
     active for this event (WP21): speakers submit abstracts, reviewers score them
     against a rubric, and accepted talks become agenda sessions."""
     return feature_value(event, "cfp_enabled")
+
+
+def is_networking_meetings_enabled(event: Any) -> bool:
+    """Whether attendee networking + 1:1 meeting scheduling is active for this
+    event (WP22): members discover each other, request meetings, accept/decline.
+    Builds on the connection graph; blocked/private members are excluded."""
+    return feature_value(event, "networking_meetings_enabled")

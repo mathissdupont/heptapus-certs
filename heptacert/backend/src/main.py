@@ -85,6 +85,7 @@ from .event_features import (
     FEATURE_DEFAULTS,
     is_agenda_enabled,
     is_cfp_enabled,
+    is_networking_meetings_enabled,
     is_certificate_enabled,
     is_checkin_enabled,
     is_approval_required,
@@ -8193,6 +8194,7 @@ async def create_event(
         cpd_enabled=normalize_feature_bool(payload.cpd_enabled, default=feature_defaults["cpd_enabled"]),
         agenda_enabled=normalize_feature_bool(payload.agenda_enabled, default=feature_defaults["agenda_enabled"]),
         cfp_enabled=normalize_feature_bool(payload.cfp_enabled, default=feature_defaults["cfp_enabled"]),
+        networking_meetings_enabled=normalize_feature_bool(payload.networking_meetings_enabled, default=feature_defaults["networking_meetings_enabled"]),
     )
     db.add(ev)
     await db.flush()
@@ -8245,6 +8247,7 @@ def _event_to_out(ev: Event) -> EventOut:
         requires_approval=normalize_feature_bool(getattr(ev, "requires_approval", None), default=FEATURE_DEFAULTS["requires_approval"]),
         agenda_enabled=normalize_feature_bool(getattr(ev, "agenda_enabled", None), default=FEATURE_DEFAULTS["agenda_enabled"]),
         cfp_enabled=normalize_feature_bool(getattr(ev, "cfp_enabled", None), default=FEATURE_DEFAULTS["cfp_enabled"]),
+        networking_meetings_enabled=normalize_feature_bool(getattr(ev, "networking_meetings_enabled", None), default=FEATURE_DEFAULTS["networking_meetings_enabled"]),
         organization_venue_id=config.get("organization_venue_id"),
         venue_reservation_id=config.get("venue_reservation_id"),
         venue_reservation_start_at=config.get("venue_reservation_start_at"),
@@ -9268,6 +9271,8 @@ async def rename_event(
         ev.agenda_enabled = normalize_feature_bool(payload.agenda_enabled, default=FEATURE_DEFAULTS["agenda_enabled"])
     if "cfp_enabled" in payload.model_fields_set:
         ev.cfp_enabled = normalize_feature_bool(payload.cfp_enabled, default=FEATURE_DEFAULTS["cfp_enabled"])
+    if "networking_meetings_enabled" in payload.model_fields_set:
+        ev.networking_meetings_enabled = normalize_feature_bool(payload.networking_meetings_enabled, default=FEATURE_DEFAULTS["networking_meetings_enabled"])
     if "organizer_privacy_notice_enabled" in payload.model_fields_set:
         next_config["organizer_privacy_notice_enabled"] = bool(payload.organizer_privacy_notice_enabled)
         config_dirty = True
@@ -11241,6 +11246,7 @@ def _build_public_event_detail(
         cpd_enabled=is_cpd_enabled(event),
         agenda_enabled=is_agenda_enabled(event),
         cfp_enabled=is_cfp_enabled(event),
+        networking_meetings_enabled=is_networking_meetings_enabled(event),
         kvkk_consent_required=_is_event_kvkk_consent_required(event),
         kvkk_consent_text=_get_event_kvkk_consent_text(event),
         organizer_privacy_notice_enabled=_is_event_organizer_privacy_notice_enabled(event),
@@ -11393,6 +11399,7 @@ async def list_public_events(
             cpd_enabled=is_cpd_enabled(event),
             agenda_enabled=is_agenda_enabled(event),
             cfp_enabled=is_cfp_enabled(event),
+            networking_meetings_enabled=is_networking_meetings_enabled(event),
         )
         for event in visible_events
     ]
@@ -15140,6 +15147,9 @@ app.include_router(_agenda_api.router)
 
 from . import cfp_api as _cfp_api  # WP21 call-for-papers submission + review
 app.include_router(_cfp_api.router)
+
+from . import meetings_api as _meetings_api  # WP22 networking + 1:1 meetings
+app.include_router(_meetings_api.router)
 
 # ── MCP hosted endpoint (/mcp) ─────────────────────────────────────────────────
 # Agents connect to https://yourapp.com/mcp with Authorization: Bearer hc_live_...

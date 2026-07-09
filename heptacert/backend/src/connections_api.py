@@ -153,6 +153,21 @@ def _can_view_private_list(target: PublicMember, viewer: Optional[CurrentPublicM
     return bool(viewer and viewer.public_id == target.public_id)
 
 
+async def members_blocked(db: AsyncSession, member_a_id: int, member_b_id: int) -> bool:
+    """Whether a block exists between two members in EITHER direction. Shared block
+    check reused by connections and WP22 networking, so a blocked pair can never
+    reach each other through any feature (ADR-0020)."""
+    if member_a_id == member_b_id:
+        return False
+    res = await db.execute(
+        select(PublicMemberBlocklist.id).where(
+            PublicMemberBlocklist.blocker_id.in_([member_a_id, member_b_id]),
+            PublicMemberBlocklist.blocked_id.in_([member_a_id, member_b_id]),
+        )
+    )
+    return res.scalar_one_or_none() is not None
+
+
 # API Endpoints
 @router.post("/api/public/members/{member_public_id}/follow")
 @limiter.limit("30/hour")
