@@ -1,6 +1,30 @@
 # WP23 — Live Engagement (Q&A & Live Polls)
 
-**Phase:** 5 — Competitive expansion · **Status:** 📐 Planned · **Related ADRs:** [0017](../adr/0017-per-event-feature-toggles-two-layer-gate.md), [0012](../adr/0012-mcp-streamable-http-mount.md)
+**Phase:** 5 — Competitive expansion · **Status:** ✅ Phase A shipped · **Related ADRs:** [0017](../adr/0017-per-event-feature-toggles-two-layer-gate.md), [0012](../adr/0012-mcp-streamable-http-mount.md)
+
+## Delivery status (2026-07-09)
+
+Phase A shipped: member-authenticated live Q&A (ask/upvote/moderate) + live polls
+(vote/live results) with a presenter moderation console.
+
+- Two-layer gate: `Event.live_engagement_enabled` + `is_live_engagement_enabled` +
+  `conference` preset + `plan_policy` FeaturePolicy `live_engagement` (pro+) + Settings toggle.
+- Models: `LiveQuestion` + `LiveQuestionVote` (upvote-once) + `LivePoll` (options JSONB) +
+  `LivePollVote` (one per member). Migration `109_live_engagement` (+ `local_bootstrap`).
+- `live_engagement_api.py` (own router): attendee ask/upvote/list + poll list/vote (all
+  rate-limited via the slowapi `limiter`); moderator list-incl-hidden / moderate
+  (answered|hidden|visible) / poll create-status-delete.
+- **Real-time = short-polling (~4-5s), not SSE** — a deliberate call for the shared
+  single-server deploy (persistent SSE per attendee is riskier). Satisfies the "near
+  real time" acceptance criterion; the client refetches on an interval while the tab is
+  visible. An SSE moderator stream (reusing the checkin_ops queue pattern) is a Phase B option.
+- Frontend (catalog-first `t()`, `live_*` keys): member-gated attendee panel
+  `app/events/[id]/live` (polls with live result bars + Q&A with upvote) + moderator console
+  `app/admin/events/[id]/live` (poll builder + open/close/delete + question moderate) +
+  EventAdminNav "Live" tab + public "Join live Q&A" CTA.
+
+**Deferred (Phase B):** SSE push, word clouds / advanced visualizations, per-session
+scoping UI (session_id is stored but the Phase A UI is event-wide).
 
 ## Objective
 Add real-time session engagement — live audience Q&A and live polls — complementing the

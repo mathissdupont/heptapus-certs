@@ -29,6 +29,7 @@ FEATURE_DEFAULTS = {
     "agenda_enabled": False,
     "cfp_enabled": False,
     "networking_meetings_enabled": False,
+    "live_engagement_enabled": False,
 }
 
 # Per-event-type default toggle sets (ADR-0018). These are *starting points* applied at
@@ -66,6 +67,7 @@ PRESET_BY_EVENT_TYPE: dict[str, dict[str, bool]] = {
         "agenda_enabled": True,
         "cfp_enabled": True,
         "networking_meetings_enabled": True,
+        "live_engagement_enabled": True,
     },
     "concert": {
         "certificate_enabled": False,
@@ -182,3 +184,10 @@ def is_networking_meetings_enabled(event: Any) -> bool:
     event (WP22): members discover each other, request meetings, accept/decline.
     Builds on the connection graph; blocked/private members are excluded."""
     return feature_value(event, "networking_meetings_enabled")
+
+
+def is_live_engagement_enabled(event: Any) -> bool:
+    """Whether real-time in-session engagement is active for this event (WP23):
+    live audience Q&A (submit/upvote/moderate) and live polls. Member-authenticated,
+    rate-limited; complements the async quiz/survey tooling."""
+    return feature_value(event, "live_engagement_enabled")

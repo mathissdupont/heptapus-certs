@@ -37,6 +37,7 @@ import {
   ShoppingBag,
   GraduationCap,
   Megaphone,
+  Radio,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { apiFetch, getEventAccess, type EventAccessOut, type EventOut, type EventTeamPermission } from "@/lib/api";
@@ -48,6 +49,7 @@ type EventAdminTab =
   | "attendees"
   | "approvals"
   | "cfp"
+  | "live"
   | "segments"
   | "team"
   | "ops"
@@ -95,6 +97,7 @@ const NAV_ITEMS: NavItem[] = [
   { tab: "quiz",         label: { tr: "Sınav",          en: "Quiz"         }, icon: FileQuestion,  href: (id) => `/admin/events/${id}/quiz` },
   { tab: "presentations", label: { tr: "Sunumlar",       en: "Presentations" }, icon: Presentation, href: (id) => `/admin/events/${id}/presentations` },
   { tab: "cfp",          label: { tr: "Bildiriler",     en: "Proposals"    }, icon: Megaphone,     href: (id) => `/admin/events/${id}/cfp` },
+  { tab: "live",         label: { tr: "Canlı",          en: "Live"         }, icon: Radio,         href: (id) => `/admin/events/${id}/live` },
   { tab: "cpd",          label: { tr: "CPD",            en: "CPD"          }, icon: GraduationCap, href: (id) => `/admin/events/${id}/cpd` },
   { tab: "marketplace",  label: { tr: "Marketplace",    en: "Marketplace"  }, icon: ShoppingBag,   href: (id) => `/admin/events/${id}/marketplace` },
   { tab: "settings",     label: { tr: "Ayarlar",        en: "Settings"     }, icon: Settings,     href: (id) => `/admin/events/${id}/settings` },
@@ -114,6 +117,7 @@ const TAB_PERMISSIONS: Partial<Record<EventAdminTab, EventTeamPermission>> = {
   attendees:     "attendees:read",
   approvals:     "attendees:read",
   cfp:           "attendees:read",
+  live:          "attendees:read",
   segments:      "attendees:read",
   team:          "team:manage",
   ops:           "checkin:write",
@@ -159,6 +163,7 @@ function isNavItemEnabled(item: NavItem, event: EventOut | null) {
   if (item.tab === "quiz" && event.quiz_enabled !== true) return false;
   if (item.tab === "cpd" && event.cpd_enabled !== true) return false;
   if (item.tab === "cfp" && event.cfp_enabled !== true) return false;
+  if (item.tab === "live" && event.live_engagement_enabled !== true) return false;
   return true;
 }
 
@@ -201,6 +206,7 @@ function getActiveFromPath(pathname: string): EventAdminTab {
   if (pathname.includes("/automations"))        return "automations";
   if (pathname.includes("/presentations"))      return "presentations";
   if (pathname.includes("/cfp"))               return "cfp";
+  if (pathname.includes("/live"))              return "live";
   if (pathname.includes("/cpd"))               return "cpd";
   if (pathname.includes("/quiz"))              return "quiz";
   if (pathname.includes("/marketplace"))       return "marketplace";

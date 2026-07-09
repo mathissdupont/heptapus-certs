@@ -57,6 +57,7 @@ FEATURE_POLICIES: dict[str, FeaturePolicy] = {
     "agenda": FeaturePolicy("agenda", ("starter", "pro", "growth", "enterprise"), "Ajanda", "Agenda"),
     "cfp": FeaturePolicy("cfp", ("growth", "enterprise"), "Bildiri Çağrısı (CFP)", "Call for Papers"),
     "networking": FeaturePolicy("networking", ("growth", "enterprise"), "Networking & 1:1 Toplantı", "Networking & Meetings"),
+    "live_engagement": FeaturePolicy("live_engagement", ("pro", "growth", "enterprise"), "Canlı Katılım (Q&A + Poll)", "Live Engagement"),
     "bulk_certificates": FeaturePolicy("bulk_certificates", ("pro", "growth", "enterprise"), "Toplu sertifika", "Bulk certificates"),
     "custom_registration": FeaturePolicy("custom_registration", ("pro", "growth", "enterprise"), "Ozel kayit formlari", "Custom registration"),
     "automation": FeaturePolicy("automation", ("growth", "enterprise"), "Otomasyon", "Automation"),

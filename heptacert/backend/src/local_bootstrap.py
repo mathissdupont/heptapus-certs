@@ -34,6 +34,7 @@ def _sync_additive_schema(sync_conn: sa.Connection) -> None:
     _add_column_if_missing(sync_conn, inspector, "events", '"agenda_enabled" BOOLEAN NOT NULL DEFAULT FALSE')
     _add_column_if_missing(sync_conn, inspector, "events", '"cfp_enabled" BOOLEAN NOT NULL DEFAULT FALSE')
     _add_column_if_missing(sync_conn, inspector, "events", '"networking_meetings_enabled" BOOLEAN NOT NULL DEFAULT FALSE')
+    _add_column_if_missing(sync_conn, inspector, "events", '"live_engagement_enabled" BOOLEAN NOT NULL DEFAULT FALSE')
 
     if "public_members" in table_names:
         _add_column_if_missing(sync_conn, inspector, "public_members", '"interests" JSONB')

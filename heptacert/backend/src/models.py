@@ -95,6 +95,10 @@ __all__ = [
     "CfpSubmission",
     "CfpReview",
     "MeetingRequest",
+    "LiveQuestion",
+    "LiveQuestionVote",
+    "LivePoll",
+    "LivePollVote",
     "CheckinActivityLog",
     "AgentActionLog",
     "CheckinKioskSession",
@@ -214,6 +218,7 @@ class Event(Base):
     agenda_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     cfp_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     networking_meetings_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    live_engagement_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     # Marketplace fields (migration 079)
     is_marketplace_listed: Mapped[bool] = mapped_column(Boolean, default=False)
     marketplace_category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
@@ -1470,6 +1475,68 @@ class MeetingRequest(Base):
 
     requester: Mapped["PublicMember"] = relationship(foreign_keys=[requester_id])
     target:    Mapped["PublicMember"] = relationship(foreign_keys=[target_id])
+
+
+class LiveQuestion(Base):
+    """WP23 live audience Q&A entry. Member-submitted, optionally session-scoped.
+    Moderators mark answered / hide. Upvotes tracked in LiveQuestionVote."""
+    __tablename__ = "live_questions"
+    id:         Mapped[int]           = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id:   Mapped[int]           = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    session_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("event_sessions.id", ondelete="SET NULL"), index=True, nullable=True)
+    member_id:  Mapped[int]           = mapped_column(Integer, ForeignKey("public_members.id", ondelete="CASCADE"), index=True)
+    text:       Mapped[str]           = mapped_column(String(1000))
+    # visible (default) | answered | hidden
+    status:     Mapped[str]           = mapped_column(String(16), default="visible", index=True)
+    created_at: Mapped[datetime]      = mapped_column(DateTime(timezone=True), server_default=func.now())
+    answered_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    member: Mapped["PublicMember"] = relationship()
+    votes:  Mapped[List["LiveQuestionVote"]] = relationship(back_populates="question", cascade="all, delete-orphan")
+
+
+class LiveQuestionVote(Base):
+    __tablename__ = "live_question_votes"
+    id:          Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    question_id: Mapped[int] = mapped_column(Integer, ForeignKey("live_questions.id", ondelete="CASCADE"), index=True)
+    member_id:   Mapped[int] = mapped_column(Integer, ForeignKey("public_members.id", ondelete="CASCADE"), index=True)
+    created_at:  Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    question: Mapped["LiveQuestion"] = relationship(back_populates="votes")
+
+    __table_args__ = (
+        UniqueConstraint("question_id", "member_id", name="uq_live_question_vote"),
+    )
+
+
+class LivePoll(Base):
+    """WP23 live poll. options = JSONB list of {id, label}. Single-choice in Phase A."""
+    __tablename__ = "live_polls"
+    id:         Mapped[int]           = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id:   Mapped[int]           = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    session_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("event_sessions.id", ondelete="SET NULL"), index=True, nullable=True)
+    prompt:     Mapped[str]           = mapped_column(String(500))
+    options:    Mapped[list]          = mapped_column(JSONB, default=list)
+    # draft | open | closed
+    status:     Mapped[str]           = mapped_column(String(16), default="open", index=True)
+    created_at: Mapped[datetime]      = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    votes: Mapped[List["LivePollVote"]] = relationship(back_populates="poll", cascade="all, delete-orphan")
+
+
+class LivePollVote(Base):
+    __tablename__ = "live_poll_votes"
+    id:        Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    poll_id:   Mapped[int] = mapped_column(Integer, ForeignKey("live_polls.id", ondelete="CASCADE"), index=True)
+    member_id: Mapped[int] = mapped_column(Integer, ForeignKey("public_members.id", ondelete="CASCADE"), index=True)
+    option_id: Mapped[str] = mapped_column(String(40))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    poll: Mapped["LivePoll"] = relationship(back_populates="votes")
+
+    __table_args__ = (
+        UniqueConstraint("poll_id", "member_id", name="uq_live_poll_vote"),
+    )
 
 
 class CheckinActivityLog(Base):

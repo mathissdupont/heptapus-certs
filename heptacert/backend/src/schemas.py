@@ -300,6 +300,7 @@ class EventRenameIn(BaseModel):
     agenda_enabled: Optional[bool] = Field(default=None)
     cfp_enabled: Optional[bool] = Field(default=None)
     networking_meetings_enabled: Optional[bool] = Field(default=None)
+    live_engagement_enabled: Optional[bool] = Field(default=None)
     organizer_privacy_notice_enabled: Optional[bool] = Field(default=None)
     organizer_privacy_notice_text: Optional[str] = Field(default=None, max_length=20000)
     show_cross_border_transfer_notice: Optional[bool] = Field(default=None)
@@ -335,6 +336,7 @@ class EventCreateIn(BaseModel):
     agenda_enabled: Optional[bool] = Field(default=None)
     cfp_enabled: Optional[bool] = Field(default=None)
     networking_meetings_enabled: Optional[bool] = Field(default=None)
+    live_engagement_enabled: Optional[bool] = Field(default=None)
     organization_venue_id: Optional[int] = Field(default=None, ge=1)
     auto_reserve_venue: Optional[bool] = Field(default=None)
     venue_reservation_start_at: Optional[datetime] = None
@@ -422,6 +424,7 @@ class EventOut(BaseModel):
     agenda_enabled: bool = False
     cfp_enabled: bool = False
     networking_meetings_enabled: bool = False
+    live_engagement_enabled: bool = False
     organization_venue_id: Optional[int] = None
     venue_reservation_id: Optional[int] = None
     venue_reservation_start_at: Optional[str] = None
@@ -596,6 +599,7 @@ class PublicEventListItemOut(BaseModel):
     agenda_enabled: bool = False
     cfp_enabled: bool = False
     networking_meetings_enabled: bool = False
+    live_engagement_enabled: bool = False
 
 
 class PublicEventDetailOut(BaseModel):
@@ -629,6 +633,7 @@ class PublicEventDetailOut(BaseModel):
     agenda_enabled: bool = False
     cfp_enabled: bool = False
     networking_meetings_enabled: bool = False
+    live_engagement_enabled: bool = False
     kvkk_consent_required: bool = True
     kvkk_consent_text: Optional[str] = None
     organizer_privacy_notice_enabled: bool = False
@@ -1983,6 +1988,61 @@ class MeetingRequestOut(BaseModel):
     location: Optional[str] = None
     message: Optional[str] = None
     response_note: Optional[str] = None
+    created_at: datetime
+
+
+# ── WP23 Live engagement (Q&A + polls) ────────────────────────────────────────
+
+class LiveQuestionIn(BaseModel):
+    text: str = Field(min_length=3, max_length=1000)
+    session_id: Optional[int] = None
+
+
+class LiveQuestionOut(BaseModel):
+    id: int
+    event_id: int
+    session_id: Optional[int] = None
+    text: str
+    status: str
+    author_name: Optional[str] = None
+    upvotes: int = 0
+    my_vote: bool = False
+    created_at: datetime
+
+
+class LiveQuestionModerateIn(BaseModel):
+    action: str = Field(pattern="^(answered|hidden|visible)$")
+
+
+class LivePollOptionOut(BaseModel):
+    id: str
+    label: str
+    votes: int = 0
+
+
+class LivePollIn(BaseModel):
+    prompt: str = Field(min_length=2, max_length=500)
+    options: List[str] = Field(min_length=2, max_length=10)
+    session_id: Optional[int] = None
+
+
+class LivePollStatusIn(BaseModel):
+    status: str = Field(pattern="^(open|closed|draft)$")
+
+
+class LivePollVoteIn(BaseModel):
+    option_id: str = Field(min_length=1, max_length=40)
+
+
+class LivePollOut(BaseModel):
+    id: int
+    event_id: int
+    session_id: Optional[int] = None
+    prompt: str
+    status: str
+    options: List[LivePollOptionOut] = Field(default_factory=list)
+    total_votes: int = 0
+    my_vote: Optional[str] = None
     created_at: datetime
 
 

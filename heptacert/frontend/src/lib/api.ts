@@ -293,6 +293,7 @@ export interface EventOut {
   agenda_enabled?: boolean;
   cfp_enabled?: boolean;
   networking_meetings_enabled?: boolean;
+  live_engagement_enabled?: boolean;
 }
 
 export interface CertificateTemplatePreset {
@@ -1501,6 +1502,7 @@ export interface PublicEventDetail {
   agenda_enabled?: boolean;
   cfp_enabled?: boolean;
   networking_meetings_enabled?: boolean;
+  live_engagement_enabled?: boolean;
   kvkk_consent_required?: boolean;
   kvkk_consent_text?: string | null;
   organizer_privacy_notice_enabled?: boolean;
@@ -2912,6 +2914,85 @@ export async function cancelMeetingRequest(eventId: EventRouteId, rid: number): 
     method: "POST",
   });
   return res.json();
+}
+
+// ── WP23 Live engagement (Q&A + polls) ────────────────────────────────────────
+
+export interface LiveQuestion {
+  id: number;
+  event_id: number;
+  session_id?: number | null;
+  text: string;
+  status: "visible" | "answered" | "hidden";
+  author_name?: string | null;
+  upvotes: number;
+  my_vote: boolean;
+  created_at: string;
+}
+
+export interface LivePollOption {
+  id: string;
+  label: string;
+  votes: number;
+}
+
+export interface LivePoll {
+  id: number;
+  event_id: number;
+  session_id?: number | null;
+  prompt: string;
+  status: "draft" | "open" | "closed";
+  options: LivePollOption[];
+  total_votes: number;
+  my_vote?: string | null;
+  created_at: string;
+}
+
+// Attendee (member-authenticated)
+export async function listLiveQuestions(eventId: EventRouteId): Promise<LiveQuestion[]> {
+  const res = await memberApiFetch(`/events/${toEventRouteId(eventId)}/live/questions`);
+  return res.json();
+}
+export async function askLiveQuestion(eventId: EventRouteId, text: string): Promise<LiveQuestion> {
+  const res = await memberApiFetch(`/events/${toEventRouteId(eventId)}/live/questions`, { method: "POST", body: JSON.stringify({ text }) });
+  return res.json();
+}
+export async function upvoteLiveQuestion(eventId: EventRouteId, qid: number): Promise<LiveQuestion> {
+  const res = await memberApiFetch(`/events/${toEventRouteId(eventId)}/live/questions/${qid}/upvote`, { method: "POST" });
+  return res.json();
+}
+export async function listLivePolls(eventId: EventRouteId): Promise<LivePoll[]> {
+  const res = await memberApiFetch(`/events/${toEventRouteId(eventId)}/live/polls`);
+  return res.json();
+}
+export async function voteLivePoll(eventId: EventRouteId, pid: number, optionId: string): Promise<LivePoll> {
+  const res = await memberApiFetch(`/events/${toEventRouteId(eventId)}/live/polls/${pid}/vote`, { method: "POST", body: JSON.stringify({ option_id: optionId }) });
+  return res.json();
+}
+
+// Moderator / presenter (admin)
+export async function moderatorListQuestions(eventId: number): Promise<LiveQuestion[]> {
+  const res = await apiFetch(`/admin/events/${eventId}/live/questions`);
+  return res.json();
+}
+export async function moderateQuestion(eventId: number, qid: number, action: "answered" | "hidden" | "visible"): Promise<LiveQuestion> {
+  const res = await apiFetch(`/admin/events/${eventId}/live/questions/${qid}/moderate`, { method: "POST", body: JSON.stringify({ action }) });
+  return res.json();
+}
+export async function moderatorListPolls(eventId: number): Promise<LivePoll[]> {
+  const res = await apiFetch(`/admin/events/${eventId}/live/polls`);
+  return res.json();
+}
+export async function createLivePoll(eventId: number, data: { prompt: string; options: string[]; session_id?: number }): Promise<LivePoll> {
+  const res = await apiFetch(`/admin/events/${eventId}/live/polls`, { method: "POST", body: JSON.stringify(data) });
+  return res.json();
+}
+export async function setLivePollStatus(eventId: number, pid: number, status: "open" | "closed" | "draft"): Promise<LivePoll> {
+  const res = await apiFetch(`/admin/events/${eventId}/live/polls/${pid}/status`, { method: "POST", body: JSON.stringify({ status }) });
+  return res.json();
+}
+export async function deleteLivePoll(eventId: number, pid: number): Promise<void> {
+  await apiFetch(`/admin/events/${eventId}/live/polls/${pid}`, { method: "DELETE" });
 }
 
 export async function listPublicEventComments(eventId: EventRouteId): Promise<PublicEventComment[]> {

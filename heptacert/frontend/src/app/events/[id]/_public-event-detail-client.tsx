@@ -25,6 +25,7 @@ import {
   Mic2,
   Megaphone,
   Handshake,
+  Radio,
 } from "lucide-react";
 import {
   createPublicEventComment,
@@ -453,6 +454,20 @@ export default function PublicEventDetailClient() {
               <span className="text-sm font-semibold text-teal-900">{t("net_public_cta")}</span>
             </span>
             <span className="text-sm font-semibold text-teal-600">→</span>
+          </Link>
+        )}
+
+        {/* Live engagement CTA */}
+        {event.live_engagement_enabled && (
+          <Link
+            href={`/events/${eventId}/live`}
+            className="mb-8 flex items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50/50 px-6 py-4 transition-colors hover:bg-rose-50"
+          >
+            <span className="flex items-center gap-3">
+              <Radio className="h-5 w-5 text-rose-500" />
+              <span className="text-sm font-semibold text-rose-900">{t("live_public_cta")}</span>
+            </span>
+            <span className="text-sm font-semibold text-rose-600">→</span>
           </Link>
         )}
 

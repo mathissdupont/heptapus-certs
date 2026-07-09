@@ -105,6 +105,7 @@ type EventOut = {
   agenda_enabled?: boolean;
   cfp_enabled?: boolean;
   networking_meetings_enabled?: boolean;
+  live_engagement_enabled?: boolean;
   organization_venue_id?: number | null;
   venue_reservation_id?: number | null;
   venue_reservation_start_at?: string | null;
@@ -170,6 +171,7 @@ type FormState = {
   agenda_enabled: boolean;
   cfp_enabled: boolean;
   networking_meetings_enabled: boolean;
+  live_engagement_enabled: boolean;
   organizer_privacy_notice_enabled: boolean;
   organizer_privacy_notice_text: string;
   show_cross_border_transfer_notice: boolean;
@@ -572,6 +574,7 @@ export default function EventSettingsPage() {
     agenda_enabled: false,
     cfp_enabled: false,
     networking_meetings_enabled: false,
+    live_engagement_enabled: false,
     organizer_privacy_notice_enabled: false,
     organizer_privacy_notice_text: "",
     show_cross_border_transfer_notice: true,
@@ -735,6 +738,7 @@ export default function EventSettingsPage() {
         agenda_enabled: eventData.agenda_enabled ?? false,
         cfp_enabled: eventData.cfp_enabled ?? false,
         networking_meetings_enabled: eventData.networking_meetings_enabled ?? false,
+        live_engagement_enabled: eventData.live_engagement_enabled ?? false,
         organizer_privacy_notice_enabled: Boolean(eventData.config?.organizer_privacy_notice_enabled),
         organizer_privacy_notice_text: String(eventData.config?.organizer_privacy_notice_text || ""),
         show_cross_border_transfer_notice: true,
@@ -1067,6 +1071,7 @@ export default function EventSettingsPage() {
         agenda_enabled: formData.agenda_enabled,
         cfp_enabled: formData.cfp_enabled,
         networking_meetings_enabled: formData.networking_meetings_enabled,
+        live_engagement_enabled: formData.live_engagement_enabled,
         organizer_privacy_notice_enabled: formData.organizer_privacy_notice_enabled,
         organizer_privacy_notice_text: formData.organizer_privacy_notice_text.trim() || null,
         show_cross_border_transfer_notice: true,
@@ -1339,6 +1344,7 @@ export default function EventSettingsPage() {
                     { key: "agenda_enabled", label: t("agenda_settings_label"), hint: t("agenda_settings_hint") },
                     { key: "cfp_enabled", label: t("cfp_settings_label"), hint: t("cfp_settings_hint") },
                     { key: "networking_meetings_enabled", label: t("net_settings_label"), hint: t("net_settings_hint") },
+                    { key: "live_engagement_enabled", label: t("live_settings_label"), hint: t("live_settings_hint") },
                   ].map((feature) => (
                     <label key={feature.key} className="flex items-start gap-3 rounded-xl border border-surface-100 bg-surface-50/40 p-4 select-none cursor-pointer hover:bg-surface-50 transition-colors">
                       <input type="checkbox" checked={Boolean(formData[feature.key as keyof FormState])} onChange={(e) => setFormData((curr) => ({ ...curr, [feature.key]: e.target.checked }))} className="mt-0.5 h-4 w-4 rounded-md border-surface-300 text-surface-900 focus:ring-0 cursor-pointer" />
