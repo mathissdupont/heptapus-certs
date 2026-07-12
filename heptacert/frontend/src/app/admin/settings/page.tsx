@@ -22,7 +22,7 @@ import {
   Sparkles, RefreshCcw, Trash2,
   BadgeCheck, Link2, UploadCloud, MonitorSmartphone,
   UserCog, FileText,
-  Blocks, CalendarCheck2, ChartNoAxesCombined,
+  Blocks, CalendarCheck2, ChartNoAxesCombined, UsersRound,
 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
 import { useToast } from "@/hooks/useToast";
@@ -1159,6 +1159,15 @@ const MODULE_META = [
     descEn: "Create AI-assisted decks and export them as PowerPoint files.",
     color: "violet",
   },
+  {
+    key: "crm" as keyof OrgModules,
+    icon: UsersRound,
+    labelTr: "CRM & Satış",
+    labelEn: "CRM & Sales",
+    descTr: "Katılımcı CRM, şirket hesapları, sequence otomasyonları ve satış pipeline.",
+    descEn: "Participant CRM, company accounts, sequence automation and sales pipeline.",
+    color: "sky",
+  },
 ];
 
 const COLOR_MAP: Record<string, { ring: string; bg: string; text: string; dot: string; badge: string }> = {
@@ -1183,11 +1192,18 @@ const COLOR_MAP: Record<string, { ring: string; bg: string; text: string; dot: s
     dot: "bg-emerald-500",
     badge: "bg-emerald-100 text-emerald-700",
   },
+  sky: {
+    ring: "ring-sky-500",
+    bg: "bg-sky-50",
+    text: "text-sky-700",
+    dot: "bg-sky-500",
+    badge: "bg-sky-100 text-sky-700",
+  },
 };
 
 function ModulesTab() {
   const toast = useToast();
-  const [modules, setModules] = useState<OrgModules>({ events: true, lms: false, accreditation: true, presentations: true });
+  const [modules, setModules] = useState<OrgModules>({ events: true, lms: false, accreditation: true, presentations: true, crm: true });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 

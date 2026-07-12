@@ -26,15 +26,18 @@ DEFAULT_MODULES: dict[str, bool] = {
     "lms": True,
     "accreditation": True,
     "presentations": True,
+    # CRM was previously always-on; it is now a toggleable module (defaults on so
+    # existing orgs keep it) like presentations.
+    "crm": True,
 }
 
 # Which modules are on by default for each org type
 ORG_TYPE_DEFAULTS: dict[str, dict[str, bool]] = {
-    "event_organizer": {"events": True, "lms": False, "accreditation": False, "presentations": True},
-    "training_institute": {"events": True, "lms": True, "accreditation": True, "presentations": True},
-    "university": {"events": True, "lms": True, "accreditation": True, "presentations": True},
-    "corporate_training": {"events": False, "lms": True, "accreditation": False, "presentations": True},
-    "professional_association": {"events": True, "lms": True, "accreditation": True, "presentations": True},
+    "event_organizer": {"events": True, "lms": False, "accreditation": False, "presentations": True, "crm": True},
+    "training_institute": {"events": True, "lms": True, "accreditation": True, "presentations": True, "crm": True},
+    "university": {"events": True, "lms": True, "accreditation": True, "presentations": True, "crm": True},
+    "corporate_training": {"events": False, "lms": True, "accreditation": False, "presentations": True, "crm": True},
+    "professional_association": {"events": True, "lms": True, "accreditation": True, "presentations": True, "crm": True},
 }
 
 
@@ -51,6 +54,7 @@ class ModulesIn(BaseModel):
     lms: bool = True
     accreditation: bool = True
     presentations: bool = True
+    crm: bool = True
 
 
 class OnboardingIn(BaseModel):

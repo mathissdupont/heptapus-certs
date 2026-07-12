@@ -21,9 +21,33 @@ import { Callout, Tabs, Steps } from "nextra/components";
 | Kendi Agent'ın | Python/JS SDK | ✅ [MCP SDK](https://github.com/modelcontextprotocol/python-sdk) |
 | ChatGPT | Web | ❌ MCP değil — [Actions kullan](#chatgpt--openai-actions) |
 
+## Bağlantı yöntemi: OAuth (önerilen) veya API anahtarı
+
+HeptaCert MCP sunucusuna iki şekilde bağlanabilirsiniz:
+
+1. **OAuth ile giriş (önerilen)** — OAuth destekleyen her istemci (claude.ai, Claude
+   Desktop, Cursor, Windsurf, kendi agent'ınız) `https://heptacert.com/mcp` adresini
+   eklediğinizde sizi otomatik olarak HeptaCert giriş + izin (consent) ekranına
+   yönlendirir. Giriş yapar, vermek istediğiniz yetkileri (scope) onaylarsınız — API
+   anahtarı oluşturup kopyalamanıza gerek kalmaz. Her kullanıcı kendi hesabı ve
+   yetkileriyle bağlanır; erişimi istediğiniz an **Entegrasyonlar** sayfasından
+   kaldırabilirsiniz.
+
+2. **API anahtarı** — Otomasyon/script senaryoları için `Authorization: Bearer
+   hc_live_...` başlığıyla doğrudan bağlanın (aşağıdaki config örnekleri).
+
+<Callout>
+**OAuth nasıl çalışır?** İstemci token olmadan `/mcp`'ye bağlanır → sunucu
+`401 + WWW-Authenticate` ile OAuth keşif adresini bildirir → istemci standart
+keşif belgelerini okur (`/.well-known/oauth-authorization-server` ve
+`/.well-known/oauth-protected-resource`), gerekirse kendini otomatik kaydeder
+(Dynamic Client Registration, RFC 7591) ve Authorization Code + PKCE akışıyla
+giriş yaptırır. Herhangi bir standart uyumlu MCP istemcisi için elle ayar gerekmez.
+</Callout>
+
 ## Kurulum
 
-Tüm istemciler için iki temel ayar gereklidir:
+API anahtarıyla bağlanmak isterseniz, iki temel ayar gereklidir:
 - **URL (hosted mod):** `https://heptacert.com/mcp`
 - **Authorization header:** `Bearer hc_live_YOUR_KEY`
 

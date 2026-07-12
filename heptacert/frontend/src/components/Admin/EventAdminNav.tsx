@@ -34,7 +34,6 @@ import {
   FolderKanban,
   FileQuestion,
   Presentation,
-  ShoppingBag,
   GraduationCap,
   Megaphone,
   Radio,
@@ -65,7 +64,6 @@ type EventAdminTab =
   | "quiz"
   | "presentations"
   | "cpd"
-  | "marketplace"
   | "settings";
 
 type NavItem = {
@@ -99,7 +97,6 @@ const NAV_ITEMS: NavItem[] = [
   { tab: "cfp",          label: { tr: "Bildiriler",     en: "Proposals"    }, icon: Megaphone,     href: (id) => `/admin/events/${id}/cfp` },
   { tab: "live",         label: { tr: "Canlı",          en: "Live"         }, icon: Radio,         href: (id) => `/admin/events/${id}/live` },
   { tab: "cpd",          label: { tr: "CPD",            en: "CPD"          }, icon: GraduationCap, href: (id) => `/admin/events/${id}/cpd` },
-  { tab: "marketplace",  label: { tr: "Marketplace",    en: "Marketplace"  }, icon: ShoppingBag,   href: (id) => `/admin/events/${id}/marketplace` },
   { tab: "settings",     label: { tr: "Ayarlar",        en: "Settings"     }, icon: Settings,     href: (id) => `/admin/events/${id}/settings` },
 ];
 
@@ -133,7 +130,6 @@ const TAB_PERMISSIONS: Partial<Record<EventAdminTab, EventTeamPermission>> = {
   quiz:          "certificates:write",
   presentations: "certificates:write",
   cpd:           "settings:write",
-  marketplace:   "settings:write",
   settings:      "settings:write",
 };
 
@@ -209,7 +205,6 @@ function getActiveFromPath(pathname: string): EventAdminTab {
   if (pathname.includes("/live"))              return "live";
   if (pathname.includes("/cpd"))               return "cpd";
   if (pathname.includes("/quiz"))              return "quiz";
-  if (pathname.includes("/marketplace"))       return "marketplace";
   if (pathname.includes("/settings"))          return "settings";
   return "details";
 }

@@ -51,6 +51,7 @@ from .utils import *
 logger = logging.getLogger("heptacert")
 
 __all__ = [
+    "GRANTABLE_SCOPES",
     "attendee_is_confirmed",
     "_ensure_capacity_row",
     "_reserve_option_capacity",
@@ -469,6 +470,34 @@ async def log_webhook_delivery(
 # An empty/None scope list means "full access" (interactive sessions, unrestricted
 # keys) and is intentionally left untouched for backwards compatibility.
 
+# ── Single source of truth for grantable scopes ─────────────────────────────
+# Every scope that _required_scope_for_request() below can return MUST appear
+# here, otherwise a credential can never be granted the scope it needs and the
+# matching endpoints become unreachable for scoped tokens. API keys
+# (api_keys_ext_api.API_SCOPES), the OAuth server (oauth_api.VALID_SCOPES) and
+# the consent UI all derive from this map — keep them in sync by referencing it,
+# never by re-declaring scopes. Labels are Turkish (default product language)
+# and surface directly on the OAuth consent screen.
+GRANTABLE_SCOPES: Dict[str, str] = {
+    "events:read":        "Etkinlikleri oku",
+    "events:write":       "Etkinlik oluştur, güncelle ve sil",
+    "attendees:read":     "Katılımcıları oku",
+    "attendees:write":    "Katılımcı ekle, güncelle ve kaldır",
+    "certificates:read":  "Sertifikaları oku",
+    "certificates:write": "Sertifika oluştur ve iptal et",
+    "sessions:read":      "Oturumları oku",
+    "sessions:write":     "Oturum oluştur, güncelle ve sil",
+    "checkin:write":      "Check-in (yoklama) işlemi yap",
+    "analytics:read":     "Analitik ve istatistikleri oku",
+    "reports:read":       "Raporları oku",
+    "automations:read":   "Otomasyon kurallarını oku",
+    "automations:write":  "Otomasyon kuralı oluştur ve yönet",
+    "crm:read":           "CRM verilerini oku",
+    "crm:write":          "CRM verilerini yönet",
+    "forms:read":         "Lead formlarını oku",
+    "forms:write":        "Lead formları oluştur ve düzenle",
+}
+
 # Meta/identity endpoints a scope-restricted credential may always reach even
 # though they map to no resource scope. Everything else that can't be classified
 # is denied (least privilege) — including billing, auth and other sensitive paths.
@@ -500,7 +529,11 @@ def _required_scope_for_request(method: str, path: str) -> Optional[str]:
     # Certificates nest under /events/.../certificates — check before events.
     if "certificate" in p or "/bulk-certify" in p or "/bulk-generate" in p or "/tier" in p:
         return f"certificates:{action}"
-    if "/checkin" in p or "/kiosk" in p or "/attend" in p:
+    # Check-in endpoints only. NOTE: do NOT match a bare "/attend" here — it is a
+    # substring of "/attendees" and "/attendance", which would misclassify all
+    # attendee CRUD as check-in (a token with attendees:write would be denied on
+    # POST /attendees). Attendee paths are handled by the next branch.
+    if "/checkin" in p or "/kiosk" in p:
         # No checkin:read scope exists; reads fall back to attendees:read.
         return "checkin:write" if action == "write" else "attendees:read"
     if "/attendees" in p or "/attendance" in p or "/attendaonce" in p or "/registration" in p:
@@ -513,6 +546,18 @@ def _required_scope_for_request(method: str, path: str) -> Optional[str]:
         return f"crm:{action}"
     if "/lead-forms" in p or "/forms" in p:
         return f"forms:{action}"
+    # LMS: enrollments behave like attendees; everything else (courses, modules,
+    # settings) is gated by the events scope. LMS analytics already matched above.
+    if "/enrollments" in p:
+        return f"attendees:{action}"
+    if "/lms" in p:
+        return f"events:{action}"
+    # Integration/config surfaces the MCP tools touch. No dedicated scope exists,
+    # so they ride on the events scope (matching the MCP tool declarations).
+    if "/webhooks" in p:
+        return f"events:{action}"
+    if "/organization" in p:
+        return f"events:{action}"
     if "/events" in p or "/event" in p:
         return f"events:{action}"
     return None
@@ -539,6 +584,11 @@ def _enforce_api_scope(request: Optional[Request], held_scopes: Optional[List[st
         return
     path = request.url.path
     method = request.method
+    # MCP meta endpoints (identity check + fire-and-forget audit logging) touch no
+    # business resource and must stay reachable by any authenticated credential
+    # regardless of its scope set, so scoped OAuth tokens can still be audited.
+    if path.startswith("/api/admin/mcp/"):
+        return
     required = _required_scope_for_request(method, path)
     if required is not None:
         if not _scopes_satisfy(held_scopes, required):
@@ -621,13 +671,22 @@ async def get_current_user(request: Request = None, db: AsyncSession = Depends(g
     oauth_client_id = payload.get("client_id")
     if oauth_client_id:
         from sqlalchemy import text as _sa_text
+        # Bound params (not literal `false`/`now()`) so the query is portable
+        # across Postgres (prod) and SQLite (tests); SQLAlchemy adapts the bool
+        # and datetime to each dialect.
         active_rt = (await db.execute(
             _sa_text(
                 "SELECT 1 FROM oauth_refresh_tokens "
-                "WHERE user_id = :uid AND client_id = :cid AND revoked = false AND expires_at > now() "
+                "WHERE user_id = :uid AND client_id = :cid "
+                "AND revoked = :not_revoked AND expires_at > :now "
                 "LIMIT 1"
             ),
-            {"uid": user_id, "cid": oauth_client_id},
+            {
+                "uid": user_id,
+                "cid": oauth_client_id,
+                "not_revoked": False,
+                "now": datetime.now(timezone.utc),
+            },
         )).scalar()
         if not active_rt:
             raise HTTPException(status_code=401, detail="OAuth session revoked")

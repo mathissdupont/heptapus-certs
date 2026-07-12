@@ -25,8 +25,12 @@
 		on_demand
 	}
 
-	@api path /api/* /docs* /redoc*
-	handle @api {
+	# Backend-owned paths. /mcp is the hosted MCP endpoint; the /.well-known/oauth-*
+	# and openid-configuration docs are the OAuth/MCP discovery metadata (RFC 8414 +
+	# RFC 9728) that any AI client fetches to connect. /oauth/authorize is NOT here:
+	# it is the interactive login/consent page and must stay on the frontend.
+	@backend path /api/* /docs* /redoc* /mcp /mcp/* /.well-known/oauth-authorization-server* /.well-known/oauth-protected-resource* /.well-known/openid-configuration
+	handle @backend {
 		reverse_proxy heptacert-backend:8000
 	}
 

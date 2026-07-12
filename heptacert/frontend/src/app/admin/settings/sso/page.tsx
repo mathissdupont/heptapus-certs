@@ -5,6 +5,7 @@ import {
   Check, KeyRound, Loader2, Plus, ShieldCheck, Trash2, ToggleLeft, ToggleRight, X,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import PageHeader from "@/components/Admin/PageHeader";
 
 type SsoConfig = {
   id: number;
@@ -20,7 +21,7 @@ type SsoConfig = {
 const PROVIDER_INFO: Record<string, { label: string; color: string; icon: string }> = {
   google: { label: "Google", color: "bg-red-50 border-red-200 text-red-700", icon: "G" },
   microsoft: { label: "Microsoft / Azure AD", color: "bg-blue-50 border-blue-200 text-blue-700", icon: "M" },
-  generic_oidc: { label: "Generic OIDC", color: "bg-purple-50 border-purple-200 text-purple-700", icon: "⚙" },
+  generic_oidc: { label: "Generic OIDC", color: "bg-surface-100 border-surface-200 text-surface-600", icon: "⚙" },
 };
 
 const emptyForm = {
@@ -97,60 +98,56 @@ export default function SsoSettingsPage() {
   const existingProviders = configs.map((c) => c.provider);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6 px-4 py-8">
       {toast.msg && (
         <div
-          className={`fixed top-4 right-4 z-50 text-sm text-white px-4 py-2.5 rounded-xl shadow-lg ${toast.ok ? "bg-gray-900" : "bg-red-600"}`}
+          className={`fixed right-4 top-4 z-50 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-lg ${toast.ok ? "bg-surface-900" : "bg-rose-600"}`}
         >
           {toast.msg}
         </div>
       )}
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-indigo-600" />
-            SSO / OAuth2 Ayarları
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Google, Microsoft veya özel OIDC sağlayıcısı ile tek oturum açma.
-          </p>
-        </div>
-        <button
-          onClick={() => setShowNew(true)}
-          disabled={existingProviders.length >= 3}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
-        >
-          <Plus className="w-4 h-4" />
-          SSO Ekle
-        </button>
-      </div>
+      <PageHeader
+        title="SSO / OAuth2 Ayarları"
+        subtitle="Google, Microsoft veya özel OIDC sağlayıcısı ile tek oturum açma."
+        icon={<ShieldCheck className="h-6 w-6" />}
+        actions={
+          <button
+            onClick={() => setShowNew(true)}
+            disabled={existingProviders.length >= 3}
+            className="inline-flex items-center gap-2 rounded-xl bg-surface-900 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-surface-800 disabled:opacity-50"
+          >
+            <Plus className="h-4 w-4" />
+            SSO Ekle
+          </button>
+        }
+      />
 
       {/* How it works */}
-      <div className="bg-indigo-50 rounded-xl border border-indigo-100 p-4 text-sm text-indigo-800 space-y-1">
-        <p className="font-semibold">Nasıl çalışır?</p>
-        <ol className="list-decimal list-inside space-y-1 text-indigo-700">
+      <div className="space-y-1 rounded-2xl border border-surface-200 bg-surface-50 p-4 text-xs text-surface-600">
+        <p className="font-semibold text-surface-800">Nasıl çalışır?</p>
+        <ol className="list-inside list-decimal space-y-1">
           <li>OAuth2 sağlayıcınızda (Google Cloud / Azure AD) bir uygulama oluşturun.</li>
-          <li>Redirect URI olarak <code className="bg-indigo-100 px-1 rounded">/auth/sso/callback/{"{"}provider{"}"}</code> ekleyin.</li>
-          <li>Client ID ve Secret'ı buraya girin, SSO'yu etkinleştirin.</li>
-          <li>Üyeler <code className="bg-indigo-100 px-1 rounded">/auth/sso/{"{"}provider{"}"}/login</code> adresiyle giriş yapar.</li>
+          <li>Redirect URI olarak <code className="rounded bg-surface-100 px-1 font-mono">/auth/sso/callback/{"{"}provider{"}"}</code> ekleyin.</li>
+          <li>Client ID ve Secret&apos;ı buraya girin, SSO&apos;yu etkinleştirin.</li>
+          <li>Üyeler <code className="rounded bg-surface-100 px-1 font-mono">/auth/sso/{"{"}provider{"}"}/login</code> adresiyle giriş yapar.</li>
         </ol>
       </div>
 
       {/* New config form */}
       {showNew && (
-        <div className="bg-white rounded-xl border border-indigo-200 p-5 space-y-4">
+        <div className="space-y-4 rounded-2xl border border-surface-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Yeni SSO Sağlayıcısı</h2>
-            <button onClick={() => setShowNew(false)} className="text-gray-400 hover:text-gray-600">
-              <X className="w-4 h-4" />
+            <h2 className="text-sm font-semibold tracking-tight text-surface-900">Yeni SSO Sağlayıcısı</h2>
+            <button onClick={() => setShowNew(false)} className="text-surface-400 transition-colors hover:text-surface-700">
+              <X className="h-4 w-4" />
             </button>
           </div>
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Sağlayıcı</label>
+              <label className="mb-1 block text-xs font-semibold text-surface-700">Sağlayıcı</label>
               <select
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none"
+                className="min-h-[38px] w-full appearance-none rounded-xl border border-surface-200 bg-white px-3 text-xs font-semibold outline-none transition focus:border-surface-900"
                 value={form.provider}
                 onChange={(e) => setForm((p) => ({ ...p, provider: e.target.value }))}
               >
@@ -162,19 +159,19 @@ export default function SsoSettingsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Client ID *</label>
+              <label className="mb-1 block text-xs font-semibold text-surface-700">Client ID *</label>
               <input
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="min-h-[38px] w-full rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 placeholder:text-surface-400"
                 placeholder="OAuth2 Client ID"
                 value={form.client_id}
                 onChange={(e) => setForm((p) => ({ ...p, client_id: e.target.value }))}
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Client Secret *</label>
+              <label className="mb-1 block text-xs font-semibold text-surface-700">Client Secret *</label>
               <input
                 type="password"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="min-h-[38px] w-full rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 placeholder:text-surface-400"
                 placeholder="OAuth2 Client Secret"
                 value={form.client_secret}
                 onChange={(e) => setForm((p) => ({ ...p, client_secret: e.target.value }))}
@@ -182,9 +179,9 @@ export default function SsoSettingsPage() {
             </div>
             {form.provider === "microsoft" && (
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Azure Tenant ID</label>
+                <label className="mb-1 block text-xs font-semibold text-surface-700">Azure Tenant ID</label>
                 <input
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none"
+                  className="min-h-[38px] w-full rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 placeholder:text-surface-400"
                   placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                   value={form.tenant_id}
                   onChange={(e) => setForm((p) => ({ ...p, tenant_id: e.target.value }))}
@@ -193,11 +190,11 @@ export default function SsoSettingsPage() {
             )}
           </div>
           <div className="flex justify-end gap-3">
-            <button onClick={() => setShowNew(false)} className="text-sm text-gray-600 px-4 py-2">İptal</button>
+            <button onClick={() => setShowNew(false)} className="px-4 py-2 text-xs font-semibold text-surface-500 transition-colors hover:text-surface-900">İptal</button>
             <button
               onClick={createConfig}
               disabled={saving || !form.client_id || !form.client_secret}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+              className="rounded-xl bg-surface-900 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-surface-800 disabled:opacity-50"
             >
               {saving ? "Kaydediliyor..." : "Kaydet"}
             </button>
@@ -207,54 +204,54 @@ export default function SsoSettingsPage() {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
+          <Loader2 className="h-5 w-5 animate-spin text-surface-400" />
         </div>
       ) : configs.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
-          <KeyRound className="w-8 h-8 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">Henüz SSO yapılandırması yok.</p>
-          <p className="text-sm text-gray-400 mt-1">
+        <div className="rounded-2xl border border-dashed border-surface-200 bg-white py-16 text-center">
+          <KeyRound className="mx-auto mb-3 h-8 w-8 text-surface-300" />
+          <p className="text-sm font-semibold text-surface-500">Henüz SSO yapılandırması yok.</p>
+          <p className="mt-1 text-xs text-surface-400">
             Google veya Microsoft ile tek tıkla giriş ekleyin.
           </p>
         </div>
       ) : (
         <div className="space-y-3">
           {configs.map((c) => {
-            const info = PROVIDER_INFO[c.provider] ?? { label: c.provider, color: "bg-gray-100 border-gray-200 text-gray-700", icon: "?" };
+            const info = PROVIDER_INFO[c.provider] ?? { label: c.provider, color: "bg-surface-100 border-surface-200 text-surface-600", icon: "?" };
             return (
               <div
                 key={c.id}
-                className={`bg-white rounded-xl border p-4 flex items-center justify-between gap-3 ${c.is_active ? "" : "opacity-60"}`}
+                className={`flex items-center justify-between gap-3 rounded-2xl border border-surface-200 bg-white p-4 shadow-sm ${c.is_active ? "" : "opacity-60"}`}
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className={`w-10 h-10 rounded-lg border flex items-center justify-center flex-shrink-0 text-sm font-bold ${info.color}`}>
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border text-sm font-bold ${info.color}`}>
                     {info.icon}
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-gray-900">{info.label}</p>
+                      <p className="text-sm font-semibold text-surface-900">{info.label}</p>
                       {c.is_active && (
-                        <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                          <Check className="w-2.5 h-2.5" /> Aktif
+                        <span className="flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 py-0.5 text-11 font-semibold text-emerald-700">
+                          <Check className="h-2.5 w-2.5" /> Aktif
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-400 truncate mt-0.5">
+                    <p className="mt-0.5 truncate text-11 text-surface-400">
                       {c.client_id ? `Client ID: ${c.client_id.slice(0, 20)}...` : "Client ID girilmedi"}
                       {c.has_secret && " · Secret ✓"}
                       {c.tenant_id && ` · Tenant: ${c.tenant_id.slice(0, 8)}...`}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <button onClick={() => toggleActive(c)} className="text-gray-400 hover:text-indigo-600">
+                <div className="flex flex-shrink-0 items-center gap-2">
+                  <button onClick={() => toggleActive(c)} className="text-surface-400 transition-colors hover:text-surface-900" aria-label="Toggle SSO">
                     {c.is_active
-                      ? <ToggleRight className="w-6 h-6 text-indigo-600" />
-                      : <ToggleLeft className="w-6 h-6" />
+                      ? <ToggleRight className="h-6 w-6 text-surface-900" />
+                      : <ToggleLeft className="h-6 w-6" />
                     }
                   </button>
-                  <button onClick={() => deleteConfig(c.id)} className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500">
-                    <Trash2 className="w-4 h-4" />
+                  <button onClick={() => deleteConfig(c.id)} className="rounded-lg p-1.5 text-surface-400 transition-colors hover:bg-rose-50 hover:text-rose-500" aria-label="Sil">
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               </div>

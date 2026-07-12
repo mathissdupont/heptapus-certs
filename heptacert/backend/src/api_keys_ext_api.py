@@ -21,20 +21,11 @@ from .main import (
 
 router = APIRouter()
 
-API_SCOPES = {
-    "events:read":        "Etkinlikleri oku",
-    "events:write":       "Etkinlik oluştur / güncelle",
-    "certificates:read":  "Sertifikaları oku",
-    "certificates:write": "Sertifika oluştur / iptal et",
-    "attendees:read":     "Katılımcıları oku",
-    "attendees:write":    "Katılımcı ekle / güncelle",
-    "crm:read":           "CRM verilerini oku",
-    "crm:write":          "CRM verilerini yaz",
-    "analytics:read":     "Analitik verileri oku",
-    "forms:read":         "Lead formları oku",
-    "forms:write":        "Lead formlarına yaz",
-    "reports:read":       "Raporları oku",
-}
+# Grantable API-key scopes derive from the single source of truth in services.py
+# so they can never drift out of sync with the scope-enforcement mapper
+# (_required_scope_for_request). Previously this list omitted sessions/checkin/
+# automations, which made those endpoints unreachable for any scoped key.
+from .services import GRANTABLE_SCOPES as API_SCOPES
 
 
 class ApiKeyUpdateIn(BaseModel):
