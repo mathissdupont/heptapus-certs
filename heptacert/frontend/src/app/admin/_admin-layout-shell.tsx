@@ -135,9 +135,8 @@ const ONBOARDING_MODULES = [
 // 3: Akreditasyon       — module: accreditation
 // 4: CRM & Satış        — always visible
 // 5: İletişim           — always visible
-// 6: İçerik             — module: presentations
-// 7: Analitik           — always visible
-// 8: Platform           — always visible
+// 6: Analitik           — always visible
+// 7: Platform           — always visible
 
 const NAV_GROUPS: NavGroup[] = [
   {
@@ -228,13 +227,14 @@ const NAV_GROUPS: NavGroup[] = [
 ];
 
 // Primary mobile nav — always-visible items (module-gated items excluded here)
-// Indices: [0]=Genel, [1]=Etkinlikler, [5]=İletişim, [4]=CRM, [8]=Platform
+// Indices: [0]=Genel, [1]=Etkinlikler, [5]=İletişim, [4]=CRM, [7]=Platform
+// (Platform shifted 8→7 after the "İçerik/Sunumlar" group was removed above.)
 const PRIMARY_MOBILE_ITEMS: NavItem[] = [
   NAV_GROUPS[0].items[0],  // Dashboard
   NAV_GROUPS[1].items[0],  // Etkinlikler
   NAV_GROUPS[5].items[0],  // Email Merkezi
   NAV_GROUPS[4].items[0],  // CRM
-  NAV_GROUPS[8].items[4],  // Settings
+  NAV_GROUPS[7].items[4],  // Settings
 ];
 
 const AUTH_PATH_PREFIXES = ["/admin/login", "/admin/magic-verify", "/admin/auth"];
@@ -656,7 +656,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
     //   base[1] = NAV_GROUPS[2].items[0];
     // }
     if (role === "superadmin") {
-      base[4] = NAV_GROUPS[8].items[5];
+      base[4] = NAV_GROUPS[7].items[5];
     }
     // Sınırlı üyelik rolünde: yetkisi olmayan hızlı-erişim öğelerini gizle
     // (Dashboard her zaman kalır; ana menüyle tutarlı olsun diye).
