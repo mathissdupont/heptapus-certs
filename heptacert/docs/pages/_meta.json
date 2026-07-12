@@ -1,10 +1,7 @@
 {
   "index": "Giriş",
-  "quickstart": "Hızlı Başlangıç",
-  "concepts": "Temel Kavramlar",
-  "authentication": "Kimlik Doğrulama",
-  "api-reference": "API Referansı",
-  "mcp-agent": "MCP & AI Agents",
-  "cli": "CLI",
-  "webhooks": "Webhooks"
+  "getting-started": "Başlarken",
+  "guides": "Kılavuzlar",
+  "integrations": "Entegrasyonlar",
+  "api-reference": "API Referansı"
 }
