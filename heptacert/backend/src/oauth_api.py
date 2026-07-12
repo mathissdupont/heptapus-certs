@@ -28,7 +28,7 @@ from typing import Optional
 from urllib.parse import urlencode
 
 import jwt as pyjwt
-from fastapi import APIRouter, Depends, Form, HTTPException, Query
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import Boolean, DateTime, Integer, String, Text, select
 from .db_types import JSONB
@@ -54,15 +54,13 @@ ACCESS_TOKEN_MINUTES  = 60          # short-lived JWT (revocation is handled via
 REFRESH_TOKEN_DAYS    = 30          # long-lived opaque token
 AUTH_CODE_MINUTES     = 10          # one-time auth code window
 
-VALID_SCOPES = {
-    "events:read", "events:write",
-    "attendees:read", "attendees:write",
-    "certificates:read", "certificates:write",
-    "crm:read", "crm:write",
-    "analytics:read",
-    "forms:read", "forms:write",
-    "reports:read",
-}
+# Grantable OAuth scopes derive from the single source of truth in services.py
+# (GRANTABLE_SCOPES) so the OAuth server, API keys and the scope-enforcement
+# mapper stay in lockstep. Previously this set omitted sessions/checkin/
+# automations, so an OAuth token could never be granted them and MCP tools like
+# create_session / manual_checkin / create_automation_rule failed with 403.
+from .services import GRANTABLE_SCOPES
+VALID_SCOPES = set(GRANTABLE_SCOPES)
 
 
 # ── DB Models ──────────────────────────────────────────────────────────────────
@@ -72,7 +70,8 @@ class OAuthClient(Base):
 
     id:                 Mapped[int]           = mapped_column(Integer, primary_key=True)
     client_id:          Mapped[str]           = mapped_column(String(64), unique=True, nullable=False)
-    client_secret_hash: Mapped[str]           = mapped_column(String(128), nullable=False)
+    # NULL == public client (PKCE, no secret). Set == confidential client.
+    client_secret_hash: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     name:               Mapped[str]           = mapped_column(String(200), nullable=False)
     redirect_uris:      Mapped[list]          = mapped_column(JSONB, nullable=False, default=list)
     allowed_scopes:     Mapped[list]          = mapped_column(JSONB, nullable=False, default=list)
@@ -188,8 +187,13 @@ async def validate_oauth_params(
     if redirect_uri not in (client.redirect_uris or []):
         raise HTTPException(status_code=400, detail="redirect_uri not registered for this client")
 
+    allowed   = list(client.allowed_scopes or [])
     requested = [s for s in scope.split() if s]
-    granted   = [s for s in requested if s in (client.allowed_scopes or [])]
+    # A client that requests no scope is granted the client's full allowed set —
+    # NOT an empty set. An empty scope claim would be read as "full access" by the
+    # REST enforcement layer, so tokens must always carry explicit scopes. The
+    # consent screen shows exactly this list, keeping approval honest.
+    granted   = [s for s in requested if s in allowed] if requested else allowed
 
     return ValidateOut(
         client_name=client.name,
@@ -229,10 +233,12 @@ async def issue_auth_code(
     if payload.redirect_uri not in (client.redirect_uris or []):
         raise HTTPException(status_code=400, detail="redirect_uri not registered")
 
-    scopes = [
-        s for s in payload.scope.split()
-        if s in (client.allowed_scopes or [])
-    ]
+    # Mirror /api/oauth/validate: no scope requested → grant the client's full
+    # allowed set (explicit, never empty). This prevents an empty scope claim from
+    # being interpreted as unrestricted "full access" downstream.
+    allowed    = list(client.allowed_scopes or [])
+    requested  = [s for s in payload.scope.split() if s]
+    scopes     = [s for s in requested if s in allowed] if requested else allowed
 
     raw_code  = secrets.token_urlsafe(32)
     code_record = OAuthCode(
@@ -366,8 +372,12 @@ async def token_endpoint(
     elif grant_type == "refresh_token":
         if not refresh_token:
             raise HTTPException(status_code=400, detail="refresh_token is required")
-        # Refresh grants carry no PKCE binding, so the client secret is mandatory.
-        if not secret_ok:
+        # Confidential clients must present their secret. PUBLIC clients (PKCE, no
+        # stored secret — the common MCP case) authenticate by binding: the query
+        # below only returns a token issued to THIS client_id, and the opaque
+        # refresh token itself is the proof of possession.
+        client_is_public = not (client.client_secret_hash or "")
+        if not client_is_public and not secret_ok:
             raise HTTPException(status_code=401, detail="Client authentication required")
 
         rt_rec = (await db.execute(
@@ -408,6 +418,129 @@ async def token_endpoint(
 
     else:
         raise HTTPException(status_code=400, detail=f"Unsupported grant_type: {grant_type}")
+
+
+# ── Dynamic Client Registration (RFC 7591) ─────────────────────────────────────
+# Open registration: any OAuth/MCP client (claude.ai, Claude Desktop, Cursor,
+# Windsurf, a custom agent) can register itself, so users don't need a superadmin
+# to pre-register every tool. This is safe because a freshly registered client is
+# inert — it can do nothing until a real user completes the login + consent flow,
+# every issued token is per-user and scope-bounded at consent time, and a
+# superadmin can deactivate any client / revoke its tokens at any moment.
+
+# Registration abuse (row spam) is throttled per IP.
+_DCR_MAX_PER_HOUR = 20
+
+
+def _is_registerable_redirect_uri(uri: str) -> bool:
+    """Only https redirect URIs are allowed, plus http on loopback for local dev.
+    Blocks non-http(s) schemes and plain-http public URLs (open-redirect / token
+    exfiltration risk)."""
+    u = (uri or "").strip().lower()
+    if u.startswith("https://"):
+        return True
+    if u.startswith("http://"):
+        host = u[len("http://"):].split("/", 1)[0].split(":", 1)[0]
+        return host in ("localhost", "127.0.0.1", "[::1]")
+    return False
+
+
+class ClientRegistrationIn(BaseModel):
+    # RFC 7591 metadata. redirect_uris is the only hard requirement for the
+    # authorization-code flow we support.
+    redirect_uris:              list[str]      = Field(..., min_length=1)
+    client_name:                Optional[str]  = Field(default=None, max_length=200)
+    scope:                      Optional[str]  = None   # space-separated
+    grant_types:                Optional[list[str]] = None
+    response_types:             Optional[list[str]] = None
+    token_endpoint_auth_method: str            = "none"  # default: public (PKCE)
+    logo_uri:                   Optional[str]  = Field(default=None, max_length=500)
+
+
+@router.post("/api/oauth/register", status_code=201, tags=["oauth"])
+async def register_client(
+    payload: ClientRegistrationIn,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Dynamic Client Registration endpoint (RFC 7591).
+
+    Public clients (token_endpoint_auth_method="none", the MCP default) are stored
+    with no secret and authenticate via PKCE. Confidential clients
+    ("client_secret_post") receive a client_secret ONCE in the response.
+    """
+    # ── Per-IP rate limit ──────────────────────────────────────────────────────
+    ip = (request.client.host if request.client else "unknown")
+    try:
+        from .cache import cache
+        import time as _time
+        bucket = int(_time.time() // 3600)
+        rl_key = f"dcr_rl:{ip}:{bucket}"
+        current = int(await cache.get(rl_key) or 0)
+        if current >= _DCR_MAX_PER_HOUR:
+            raise HTTPException(status_code=429, detail="Too many client registrations; try again later.")
+        await cache.set(rl_key, current + 1, ttl=3600)
+    except HTTPException:
+        raise
+    except Exception:
+        pass  # never let a cache hiccup block legitimate registration
+
+    # ── Validate redirect URIs ───────────────────────────────────────────────────
+    redirect_uris = [u.strip() for u in payload.redirect_uris if u and u.strip()]
+    if not redirect_uris:
+        raise HTTPException(status_code=400, detail="At least one redirect_uri is required")
+    bad = [u for u in redirect_uris if not _is_registerable_redirect_uri(u)]
+    if bad:
+        raise HTTPException(
+            status_code=400,
+            detail=f"redirect_uri must be https (or http on localhost): {bad[0]}",
+        )
+
+    # ── Scopes: bound to what a token can actually be granted ────────────────────
+    requested = [s for s in (payload.scope or "").split() if s]
+    allowed = [s for s in requested if s in VALID_SCOPES]
+    if not allowed:
+        # No (valid) scope requested → allow the full grantable set; the user still
+        # approves only what they want on the consent screen.
+        allowed = sorted(VALID_SCOPES)
+
+    # ── Public vs confidential ───────────────────────────────────────────────────
+    auth_method = (payload.token_endpoint_auth_method or "none").lower()
+    is_confidential = auth_method == "client_secret_post"
+
+    client_id = f"hc_{secrets.token_hex(8)}"
+    raw_secret: Optional[str] = None
+    secret_hash: Optional[str] = None
+    if is_confidential:
+        raw_secret = secrets.token_urlsafe(32)
+        secret_hash = _sha256(raw_secret)
+
+    db.add(OAuthClient(
+        client_id          = client_id,
+        client_secret_hash = secret_hash,   # NULL for public clients
+        name               = (payload.client_name or "MCP Client").strip()[:200] or "MCP Client",
+        redirect_uris      = redirect_uris,
+        allowed_scopes     = allowed,
+        logo_url           = payload.logo_uri,
+        is_active          = True,
+    ))
+    await db.commit()
+
+    resp: dict = {
+        "client_id":                  client_id,
+        "client_id_issued_at":        int(_now().timestamp()),
+        "client_secret_expires_at":   0,   # never expires
+        "redirect_uris":              redirect_uris,
+        "token_endpoint_auth_method": "client_secret_post" if is_confidential else "none",
+        "grant_types":                ["authorization_code", "refresh_token"],
+        "response_types":             ["code"],
+        "scope":                      " ".join(allowed),
+        "client_name":                (payload.client_name or "MCP Client"),
+    }
+    if raw_secret is not None:
+        resp["client_secret"] = raw_secret   # shown ONCE
+    return resp
 
 
 # ── Superadmin: manage registered OAuth clients ────────────────────────────────

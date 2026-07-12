@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, Trash2, Copy, CheckCircle2, AlertTriangle, ToggleLeft, ToggleRight, Pencil, X, Check, LogOut } from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, listApiScopes, type ApiScopeOption } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 type OAuthClient = {
@@ -17,6 +17,7 @@ type OAuthClient = {
 
 type NewSecret = { client_id: string; client_secret: string; name: string };
 
+// Keep in sync with services.GRANTABLE_SCOPES (backend single source of truth).
 const ALL_SCOPES = [
   "events:read",
   "events:write",
@@ -24,7 +25,12 @@ const ALL_SCOPES = [
   "attendees:write",
   "certificates:read",
   "certificates:write",
+  "sessions:read",
+  "sessions:write",
+  "checkin:write",
   "analytics:read",
+  "automations:read",
+  "automations:write",
   "crm:read",
   "crm:write",
   "forms:read",
@@ -131,10 +137,38 @@ function CopyButton({ value, copy }: { value: string; copy: CopyText }) {
 function CreateClientForm({ onCreated, copy }: { onCreated: (s: NewSecret) => void; copy: CopyText }) {
   const [name, setName] = useState("");
   const [uris, setUris] = useState("");
-  const [scopes, setScopes] = useState<string[]>(ALL_SCOPES.filter((s) => !s.includes("crm") && !s.includes("forms")));
+  // Scope options come from the backend (single source of truth) so the label is
+  // human-readable and the list never drifts from what a token can be granted.
+  // ALL_SCOPES is only a fallback if the fetch fails.
+  const [scopeOptions, setScopeOptions] = useState<ApiScopeOption[]>([]);
+  const [scopes, setScopes] = useState<string[]>([]);
   const [logo, setLogo] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const _defaultSelected = (opts: ApiScopeOption[]) =>
+    opts.map((o) => o.value).filter((v) => !v.includes("crm") && !v.includes("forms"));
+
+  useEffect(() => {
+    let alive = true;
+    const applyFallback = () => {
+      const list = ALL_SCOPES.map((v) => ({ value: v, label: v }));
+      if (!alive) return;
+      setScopeOptions(list);
+      setScopes(_defaultSelected(list));
+    };
+    listApiScopes()
+      .then((opts) => {
+        if (!alive) return;
+        const list = opts.length ? opts : ALL_SCOPES.map((v) => ({ value: v, label: v }));
+        setScopeOptions(list);
+        setScopes(_defaultSelected(list));
+      })
+      .catch(applyFallback);
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   function toggleScope(scope: string) {
     setScopes((prev) => (prev.includes(scope) ? prev.filter((x) => x !== scope) : [...prev, scope]));
@@ -163,7 +197,7 @@ function CreateClientForm({ onCreated, copy }: { onCreated: (s: NewSecret) => vo
       setName("");
       setUris("");
       setLogo("");
-      setScopes(ALL_SCOPES.filter((s) => !s.includes("crm") && !s.includes("forms")));
+      setScopes(_defaultSelected(scopeOptions));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : copy.createFailed);
     } finally {
@@ -196,16 +230,17 @@ function CreateClientForm({ onCreated, copy }: { onCreated: (s: NewSecret) => vo
       <div>
         <p className="label">{copy.scopes}</p>
         <div className="flex flex-wrap gap-2">
-          {ALL_SCOPES.map((scope) => (
+          {scopeOptions.map((opt) => (
             <button
-              key={scope}
+              key={opt.value}
               type="button"
-              onClick={() => toggleScope(scope)}
+              onClick={() => toggleScope(opt.value)}
+              title={opt.value}
               className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
-                scopes.includes(scope) ? "border-brand-800 bg-brand-900 text-white" : "border-surface-200 bg-white text-surface-500 hover:border-surface-300"
+                scopes.includes(opt.value) ? "border-brand-800 bg-brand-900 text-white" : "border-surface-200 bg-white text-surface-500 hover:border-surface-300"
               }`}
             >
-              {scope}
+              {opt.label}
             </button>
           ))}
         </div>

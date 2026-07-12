@@ -8247,6 +8247,11 @@ def _event_to_out(ev: Event) -> EventOut:
         raffles_enabled=normalize_feature_bool(getattr(ev, "raffles_enabled", None), default=FEATURE_DEFAULTS["raffles_enabled"]),
         gamification_enabled=normalize_feature_bool(getattr(ev, "gamification_enabled", None), default=FEATURE_DEFAULTS["gamification_enabled"]),
         requires_approval=normalize_feature_bool(getattr(ev, "requires_approval", None), default=FEATURE_DEFAULTS["requires_approval"]),
+        # quiz_enabled + cpd_enabled were previously omitted here, so every GET/PATCH
+        # response defaulted them to False regardless of the stored column — the
+        # settings checkbox reverted on refresh and the module tab never appeared.
+        quiz_enabled=normalize_feature_bool(getattr(ev, "quiz_enabled", None), default=FEATURE_DEFAULTS["quiz_enabled"]),
+        cpd_enabled=normalize_feature_bool(getattr(ev, "cpd_enabled", None), default=FEATURE_DEFAULTS["cpd_enabled"]),
         agenda_enabled=normalize_feature_bool(getattr(ev, "agenda_enabled", None), default=FEATURE_DEFAULTS["agenda_enabled"]),
         cfp_enabled=normalize_feature_bool(getattr(ev, "cfp_enabled", None), default=FEATURE_DEFAULTS["cfp_enabled"]),
         networking_meetings_enabled=normalize_feature_bool(getattr(ev, "networking_meetings_enabled", None), default=FEATURE_DEFAULTS["networking_meetings_enabled"]),
@@ -8434,7 +8439,14 @@ async def mcp_me(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Return current user identity and API key scopes. Used by MCP server to validate scope."""
+    """Return current user identity and granted scopes. Used by the MCP server to
+    validate scope before calling a tool.
+
+    Two credential shapes carry scopes: hc_live_ API keys (scopes stored on the
+    key row) and OAuth access tokens (scopes live in the JWT's `scope` claim).
+    Interactive admin JWTs carry no scope claim and therefore report an empty
+    list == full access, matching REST-layer behaviour.
+    """
     scopes: List[str] = []
     key_prefix: Optional[str] = None
     token = (Authorization or "").split(" ", 1)[-1].strip()
@@ -8445,6 +8457,16 @@ async def mcp_me(
         if api_key:
             scopes = list(api_key.scopes or [])
             key_prefix = api_key.key_prefix
+    else:
+        # OAuth access token: surface the scopes bound at consent time so the MCP
+        # server can give a friendly pre-check (the REST layer enforces them too).
+        try:
+            payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+            if payload.get("client_id"):
+                scopes = [s for s in (payload.get("scope") or "").split() if s]
+                key_prefix = (payload.get("client_id") or "")[:12] or None
+        except Exception:
+            pass
     return AgentMeOut(user_id=me.id, email=str(me.email), api_key_prefix=key_prefix, scopes=scopes)
 
 
@@ -9973,20 +9995,10 @@ async def delete_api_key(key_id: int, me: CurrentUser = Depends(get_current_user
     return {"ok": True}
 
 
-_DEFINED_SCOPES = [
-    {"value": "events:read",        "label": "View events"},
-    {"value": "events:write",       "label": "Create and manage events"},
-    {"value": "attendees:read",     "label": "View attendees"},
-    {"value": "attendees:write",    "label": "Add and manage attendees"},
-    {"value": "certificates:read",  "label": "View certificates"},
-    {"value": "certificates:write", "label": "Issue and revoke certificates"},
-    {"value": "sessions:read",      "label": "View sessions"},
-    {"value": "sessions:write",     "label": "Create and manage sessions"},
-    {"value": "checkin:write",      "label": "Perform check-ins"},
-    {"value": "analytics:read",     "label": "Access analytics and reports"},
-    {"value": "automations:read",   "label": "View automation rules"},
-    {"value": "automations:write",  "label": "Create and manage automation rules"},
-]
+# Derived from the single source of truth (services.GRANTABLE_SCOPES, re-exported
+# into this module via `from .services import *`) so every scope-listing surface
+# agrees with what the enforcement mapper actually requires.
+_DEFINED_SCOPES = [{"value": k, "label": v} for k, v in GRANTABLE_SCOPES.items()]
 
 
 
@@ -14806,6 +14818,11 @@ app.include_router(_notification_integrations_api.router)
 from . import oauth_api as _oauth_api
 app.include_router(_oauth_api.router)
 
+# OAuth 2.0 / MCP discovery metadata (RFC 8414 + RFC 9728). Makes the OAuth
+# server above auto-discoverable by any standards-compliant OAuth/MCP client.
+from . import oauth_metadata_api as _oauth_metadata_api
+app.include_router(_oauth_metadata_api.router)
+
 from . import ai_content_api as _ai_content_api
 app.include_router(_ai_content_api.router)
 
@@ -15169,7 +15186,57 @@ from . import mcp_server as _mcp_server_module  # noqa: E402
 # Build the Streamable HTTP sub-app once and mount it. The sub-app serves at "/"
 # (see mcp_server.streamable_http_path) so the public endpoint is exactly "/mcp".
 _mcp_streamable_app = _mcp_server_module.mcp.streamable_http_app()
-app.mount("/mcp", _mcp_streamable_app)
+
+
+class _MCPAuthChallenge:
+    """ASGI wrapper that turns an unauthenticated /mcp request into a proper
+    401 + WWW-Authenticate challenge.
+
+    This is the entry point of the OAuth discovery chain: an MCP client that
+    connects without a token receives `WWW-Authenticate: Bearer
+    resource_metadata="…/.well-known/oauth-protected-resource"`, follows it to
+    the metadata, and runs the OAuth flow. Requests that already carry an
+    Authorization header pass straight through — the MCP server forwards the
+    token to the REST API, which validates it and enforces scopes. CORS
+    preflight (OPTIONS) is never challenged so browser-based clients still work.
+    """
+
+    def __init__(self, app, resource_metadata_url: str):
+        self.app = app
+        self._challenge = f'Bearer resource_metadata="{resource_metadata_url}"'
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http" and scope.get("method", "").upper() != "OPTIONS":
+            headers = dict(scope.get("headers") or [])
+            if not headers.get(b"authorization"):
+                body = (
+                    b'{"error":"unauthorized",'
+                    b'"error_description":"Authentication required. '
+                    b'Discover how to obtain a token via the resource_metadata '
+                    b'URL in the WWW-Authenticate header."}'
+                )
+                await send({
+                    "type": "http.response.start",
+                    "status": 401,
+                    "headers": [
+                        (b"content-type", b"application/json"),
+                        (b"www-authenticate", self._challenge.encode("latin-1")),
+                    ],
+                })
+                await send({"type": "http.response.body", "body": body})
+                return
+        await self.app(scope, receive, send)
+
+
+app.mount(
+    "/mcp",
+    _MCPAuthChallenge(
+        _mcp_streamable_app,
+        resource_metadata_url=(
+            f"{settings.public_base_url.rstrip('/')}/.well-known/oauth-protected-resource"
+        ),
+    ),
+)
 
 
 # FastAPI's app.mount() does NOT run a mounted sub-app's lifespan, so the MCP

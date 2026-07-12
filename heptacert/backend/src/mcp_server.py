@@ -66,6 +66,7 @@ and query analytics — all within proper security boundaries.
 """
 
 import asyncio
+import hashlib
 import json
 import os
 import sys
@@ -123,7 +124,12 @@ def _get_api_key(ctx: Optional[Context] = None) -> str:
             auth = request.headers.get("authorization", "")
             if auth.lower().startswith("bearer "):
                 key = auth.split(" ", 1)[1].strip()
-                if key and key.startswith("hc_live_"):
+                # Accept ANY bearer credential: an hc_live_ API key OR an OAuth
+                # access token (JWT) minted via the OAuth flow. Both are forwarded
+                # verbatim to the REST API, which validates the credential and
+                # enforces scopes. This is what lets any OAuth/MCP client connect,
+                # not just holders of a hand-issued API key.
+                if key:
                     return key
         except Exception:
             pass
@@ -131,7 +137,8 @@ def _get_api_key(ctx: Optional[Context] = None) -> str:
         return API_KEY_ENV
     raise RuntimeError(
         "No API key found. In stdio mode: set HEPTACERT_API_KEY env var. "
-        "In HTTP mode: pass Authorization: Bearer hc_live_... in the request header."
+        "In HTTP mode: pass Authorization: Bearer <hc_live_... or OAuth token> "
+        "in the request header."
     )
 
 
@@ -185,10 +192,16 @@ _SCOPE_CACHE_TTL = 60.0  # seconds
 
 
 async def _get_scopes(api_key: str) -> list[str]:
-    """Fetch and cache the scopes for the given API key (by prefix)."""
+    """Fetch and cache the scopes for the given credential.
+
+    Cache by a hash of the FULL token, not a prefix: every HS256 OAuth JWT
+    shares the same leading characters (the encoded {"alg":"HS256"} header), so
+    a prefix key would collide across users and leak one user's scopes to
+    another. A hash uniquely identifies each credential.
+    """
     import time
-    prefix = api_key[:12]
-    cached = _scope_cache.get(prefix)
+    cache_key = hashlib.sha256(api_key.encode()).hexdigest()[:32]
+    cached = _scope_cache.get(cache_key)
     if cached and (time.time() - cached[0]) < _SCOPE_CACHE_TTL:
         return cached[1]
     try:
@@ -196,22 +209,38 @@ async def _get_scopes(api_key: str) -> list[str]:
         scopes = list(data.get("scopes") or [])
     except Exception:
         scopes = []
-    _scope_cache[prefix] = (time.time(), scopes)
+    _scope_cache[cache_key] = (time.time(), scopes)
     return scopes
+
+
+def _scope_satisfied(held: list[str], required: str) -> bool:
+    """Mirror the REST layer's _scopes_satisfy: an exact match, or a ':write'
+    scope implying the matching ':read'. Keeps the MCP pre-check from falsely
+    denying (e.g. an events:write token calling a read tool)."""
+    if required in held:
+        return True
+    if required.endswith(":read"):
+        resource = required.split(":", 1)[0]
+        if f"{resource}:write" in held:
+            return True
+    return False
 
 
 async def _require_scope(api_key: str, scope: str) -> None:
     """
-    Raise a clear error if the API key lacks the required scope.
-    JWT-authenticated sessions (empty scopes list) are treated as having all scopes.
+    Raise a clear error if the credential lacks the required scope.
+    Unscoped credentials (interactive JWT / unrestricted key -> empty list) are
+    treated as full access, matching the REST layer. The REST API enforces scope
+    again on the forwarded call, so this is a friendly pre-check, not the only gate.
     """
     scopes = await _get_scopes(api_key)
     if not scopes:
-        return  # JWT / unscoped key → full access
-    if scope not in scopes:
+        return  # unscoped credential → full access
+    if not _scope_satisfied(scopes, scope):
         raise PermissionError(
-            f"API key does not have the '{scope}' scope. "
-            f"Go to HeptaCert Admin → Settings → API Keys and add this scope to your key."
+            f"This credential does not have the '{scope}' scope. "
+            f"Re-connect granting that scope, or (for an hc_live_ key) add it in "
+            f"HeptaCert Admin → Settings → API Keys."
         )
 
 
@@ -228,7 +257,13 @@ def _fire_and_forget_log(
     """Non-blocking agent action log — does not delay the tool response."""
     async def _log():
         try:
-            prefix = api_key[:8] if len(api_key) >= 8 else api_key
+            # hc_live_ keys log their recognisable prefix; OAuth JWTs all share
+            # the same leading chars, so log a short stable hash instead of a
+            # useless "eyJhbGci" for every OAuth caller. (max_length=12)
+            if api_key.startswith("hc_"):
+                prefix = api_key[:8]
+            else:
+                prefix = "oauth:" + hashlib.sha256(api_key.encode()).hexdigest()[:6]
             body = {
                 "tool_name": tool_name,
                 "event_id": event_id,
@@ -708,7 +743,7 @@ async def list_sessions(ctx: Context, event_id: int) -> str:
     location, speaker, capacity, is_active, attendance_count.
     """
     api_key = _get_api_key(ctx)
-    await _require_scope(api_key, "events:read")
+    await _require_scope(api_key, "sessions:read")
     data = await _get(f"/api/admin/events/{event_id}/sessions", api_key)
     return _fmt(data)
 
@@ -741,7 +776,7 @@ async def create_session(
     Returns the new session object with its `id`.
     """
     api_key = _get_api_key(ctx)
-    await _require_scope(api_key, "events:write")
+    await _require_scope(api_key, "sessions:write")
     body: dict = {"title": title}
     if description is not None:
         body["description"] = description
@@ -787,7 +822,7 @@ async def update_session(
         is_active: False to hide this session from attendees.
     """
     api_key = _get_api_key(ctx)
-    await _require_scope(api_key, "events:write")
+    await _require_scope(api_key, "sessions:write")
     fields = {
         "title": title, "description": description, "start_time": start_time,
         "end_time": end_time, "location": location, "speaker": speaker,
@@ -821,7 +856,7 @@ async def delete_session(
         confirm: True to confirm deletion. Default: False (preview only).
     """
     api_key = _get_api_key(ctx)
-    await _require_scope(api_key, "events:write")
+    await _require_scope(api_key, "sessions:write")
     if not confirm:
         sessions = await _get(f"/api/admin/events/{event_id}/sessions", api_key)
         target = next((s for s in (sessions if isinstance(sessions, list) else []) if s.get("id") == session_id), {})
@@ -877,7 +912,7 @@ async def manual_checkin(
     Returns the check-in record.
     """
     api_key = _get_api_key(ctx)
-    await _require_scope(api_key, "attendees:write")
+    await _require_scope(api_key, "checkin:write")
     body = {"email": attendee_email}
     data = await _post(f"/api/admin/events/{event_id}/sessions/{session_id}/checkin", api_key, body)
     _fire_and_forget_log(api_key, "manual_checkin", event_id=event_id,
@@ -1036,7 +1071,7 @@ async def list_automation_rules(ctx: Context, event_id: int) -> str:
       lms_module_completed, lms_assignment_graded, lms_journey_completed, compliance_overdue.
     """
     api_key = _get_api_key(ctx)
-    await _require_scope(api_key, "events:read")
+    await _require_scope(api_key, "automations:read")
     data = await _get(f"/api/admin/events/{event_id}/automations", api_key)
     return _fmt(data)
 
@@ -1068,7 +1103,7 @@ async def create_automation_rule(
     Returns the updated automation rule set for the event.
     """
     api_key = _get_api_key(ctx)
-    await _require_scope(api_key, "events:write")
+    await _require_scope(api_key, "automations:write")
     body: dict = {
         "name": name, "trigger": trigger, "actions": actions,
         "trigger_config": trigger_config or {}, "enabled": enabled,
@@ -1228,7 +1263,7 @@ async def get_survey_responses(
     and a `responses` dict keyed by question text.
     """
     api_key = _get_api_key(ctx)
-    await _require_scope(api_key, "analytics:read")
+    await _require_scope(api_key, "events:read")
     params: dict = {"page": page, "limit": limit}
     data = await _get(f"/api/admin/events/{event_id}/surveys/responses", api_key, params=params)
     return _fmt(data)
@@ -1458,7 +1493,7 @@ async def search_attendees_across_events(
     Returns a list of matches with event context for each.
     """
     api_key = _get_api_key(ctx)
-    await _require_scope(api_key, "attendees:read")
+    await _require_scope(api_key, "crm:read")
     data = await _get("/api/admin/crm/contacts", api_key, params={"search": query, "limit": limit})
     return _fmt(data)
 

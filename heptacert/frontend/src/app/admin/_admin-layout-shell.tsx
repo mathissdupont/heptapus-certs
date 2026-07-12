@@ -72,7 +72,7 @@ type OrganizationContext = {
   permissions: string[];
 };
 
-const DEFAULT_MODULES: OrgModules = { events: true, lms: false, accreditation: true, presentations: true };
+const DEFAULT_MODULES: OrgModules = { events: true, lms: false, accreditation: true, presentations: true, crm: true };
 
 type OrgModulesResponse = {
   modules: OrgModules;
@@ -82,8 +82,8 @@ type OrgModulesResponse = {
 };
 
 const ORG_TYPE_PRESETS: Record<string, OrgModules> = {
-  event_organizer: { events: true, lms: false, accreditation: false, presentations: true },
-  professional_association: { events: true, lms: false, accreditation: true, presentations: true },
+  event_organizer: { events: true, lms: false, accreditation: false, presentations: true, crm: true },
+  professional_association: { events: true, lms: false, accreditation: true, presentations: true, crm: true },
 };
 
 const ONBOARDING_TYPES = [
@@ -119,6 +119,12 @@ const ONBOARDING_MODULES = [
     icon: Presentation,
     label: { tr: "Sunumlar", en: "Presentations" },
     description: { tr: "AI destekli sunum ve PowerPoint export", en: "AI-assisted decks and PowerPoint export" },
+  },
+  {
+    key: "crm" as keyof OrgModules,
+    icon: UsersRound,
+    label: { tr: "CRM & Satış", en: "CRM & Sales" },
+    description: { tr: "Katılımcı CRM, şirket hesapları, sequence ve satış pipeline", en: "Participant CRM, accounts, sequences and sales pipeline" },
   },
 ] as const;
 
@@ -181,6 +187,7 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: { tr: "CRM & Satış", en: "CRM & Sales" },
+    module: "crm",
     enterpriseOnly: true,
     items: [
       { href: "/admin/crm", label: { tr: "Katılımcı CRM", en: "Participant CRM" }, icon: UsersRound, exact: true },
@@ -198,13 +205,8 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/admin/assistant", label: { tr: "Asistan", en: "Assistant" }, icon: MessageCircle },
     ],
   },
-  {
-    label: { tr: "İçerik", en: "Content" },
-    module: "presentations",
-    items: [
-      { href: "/admin/presentations", label: { tr: "Sunumlar", en: "Presentations" }, icon: Presentation, permission: "presentations:read" },
-    ],
-  },
+  // "İçerik / Sunumlar" removed from the general nav: presentations now live under
+  // each event (EventAdminNav → Sunumlar tab), so the top-level entry was redundant.
   {
     label: { tr: "Analitik & Raporlar", en: "Analytics & Reports" },
     items: [
