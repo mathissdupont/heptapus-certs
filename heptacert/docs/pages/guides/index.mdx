@@ -1,0 +1,29 @@
+import { Callout, Cards } from "nextra/components";
+
+# Kılavuzlar
+
+Görev odaklı, uçtan uca rehberler. Her kılavuz gerçek bir işi (etkinlik açmak, katılımcı onaylamak, sertifika yayımlamak) baştan sona anlatır. Kavramsal arka plan için [Temel Kavramlar](/getting-started/concepts), tam uç nokta listesi için [API Referansı](/api-reference) sayfalarına bakın.
+
+<Callout>
+Bu kılavuzlar **HeptaCert yönetim paneli** üzerinden anlatılır. Aynı işlemlerin tamamı [REST API](/api-reference), [CLI](/integrations/cli) ve [MCP / AI agent](/integrations/mcp-agent) ile de yapılabilir — hangi yolu seçerseniz seçin veri modeli ve yetkiler aynıdır.
+</Callout>
+
+## Bu bölümdeki kılavuzlar
+
+<Cards>
+  <Cards.Card title="Etkinlik Oluşturma" href="/guides/creating-events" />
+  <Cards.Card title="Kayıt & Onaylar" href="/guides/registration-and-approvals" />
+  <Cards.Card title="QR Check-in" href="/guides/check-in" />
+  <Cards.Card title="Sertifikalar" href="/guides/certificates" />
+  <Cards.Card title="E-posta & Otomasyon" href="/guides/email-and-automation" />
+</Cards>
+
+## Tipik akış
+
+Çoğu organizatör şu sırayı izler:
+
+1. **Etkinliği oluştur** ve türüne göre modülleri aç (sertifika, check-in, kayıt).
+2. **Kayıt formunu** yapılandır; gerekiyorsa **onay** akışını aç.
+3. Etkinlik günü **QR check-in** ile yoklama al.
+4. Yoklama koşulu sağlanınca **sertifikaları yayımla** ve doğrulanabilir hale getir.
+5. **E-posta otomasyonu** ile hatırlatma, sertifika teslimi ve takip mesajlarını otomatikleştir.

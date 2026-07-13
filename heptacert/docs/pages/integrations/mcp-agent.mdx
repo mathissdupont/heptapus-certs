@@ -266,7 +266,7 @@ Agent: list_attendees + list_certificates karşılaştırıyorum...
 ## Güvenlik
 
 - Her MCP isteği Bearer token ile doğrulanır.
-- **Scope'lar MCP katmanında uygulanır.** Anahtarınızda gerekli scope yoksa araç çalışmadan reddedilir. Örneğin `certificates:write` olmadan `issue_certificates` başarısız olur. (bkz. [Scope'lar](/authentication#scopelar-i̇zinler))
+- **Scope'lar MCP katmanında uygulanır.** Anahtarınızda gerekli scope yoksa araç çalışmadan reddedilir. Örneğin `certificates:write` olmadan `issue_certificates` başarısız olur. (bkz. [Scope'lar](/api-reference/authentication#scopelar-i̇zinler))
 - Tüm yazma işlemleri **Agent Logs** sayfasına kaydedilir (Admin → Ayarlar → Agent Logları). `list_agent_logs` aracıyla veya `hc logs list` ile inceleyebilirsiniz.
 
 ## Sorun Giderme
@@ -281,6 +281,6 @@ Agent: list_attendees + list_certificates karşılaştırıyorum...
 
 ## Sonraki Adımlar
 
-- [Scope'lar ve güvenlik →](/authentication)
-- [Aynı işlemler CLI ile →](/cli)
+- [Scope'lar ve güvenlik →](/api-reference/authentication)
+- [Aynı işlemler CLI ile →](/integrations/cli)
 - [REST API referansı →](/api-reference)

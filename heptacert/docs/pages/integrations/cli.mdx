@@ -1,6 +1,6 @@
 # CLI (hc)
 
-HeptaCert komut satırı aracı — otomasyon, scripting ve hızlı yönetim için. REST API'nin tamamını terminalden kullanılabilir kılar ve aynı [API anahtarı + scope](/authentication) modelini paylaşır.
+HeptaCert komut satırı aracı — otomasyon, scripting ve hızlı yönetim için. REST API'nin tamamını terminalden kullanılabilir kılar ve aynı [API anahtarı + scope](/api-reference/authentication) modelini paylaşır.
 
 import { Callout } from "nextra/components";
 
@@ -162,7 +162,7 @@ hc webhooks create https://myapp.com/hooks/heptacert \
 hc webhooks delete 3
 ```
 
-Webhook olayları ve imza doğrulama için [Webhooks](/webhooks) sayfasına bakın.
+Webhook olayları ve imza doğrulama için [Webhooks](/integrations/webhooks) sayfasına bakın.
 
 ### Konfigürasyon
 
@@ -212,6 +212,6 @@ CI/CD ortamlarında etkileşimli `hc auth login` yerine `HEPTACERT_API_KEY` orta
 
 ## Sonraki Adımlar
 
-- [Aynı işlemler AI asistanı ile (MCP) →](/mcp-agent)
-- [Scope'lar ve güvenlik →](/authentication)
+- [Aynı işlemler AI asistanı ile (MCP) →](/integrations/mcp-agent)
+- [Scope'lar ve güvenlik →](/api-reference/authentication)
 - [REST API referansı →](/api-reference)

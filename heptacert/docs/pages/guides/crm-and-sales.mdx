@@ -1,0 +1,37 @@
+import { Callout } from "nextra/components";
+
+# CRM & Satış
+
+HeptaCert, etkinliklerden bağımsız bir **kişi/şirket (CRM) katmanı** ve hafif bir **satış** araç seti içerir: kişiler, şirket hesapları, sequence otomasyonları, satış pipeline'ı ve lead formları.
+
+<Callout type="info">
+CRM, **açılıp kapanabilen bir organizasyon modülüdür**. Görünmüyorsa **Ayarlar → Modüller**'den açın. Bkz. [Organizasyon & Modüller](/guides/organization-and-modules).
+</Callout>
+
+## Kişiler (Katılımcı CRM)
+
+Kişiler, tüm etkinliklerdeki katılımcıların birleşik görünümüdür. Bir kişinin hangi etkinliklere katıldığını, sertifikalarını ve etkileşim geçmişini tek yerden görürsünüz. Kişileri ada/e-postaya göre arayabilir ve etkinlikler arası geçmişini izleyebilirsiniz.
+
+## Şirket hesapları (Accounts)
+
+Kişileri **şirket hesapları** altında gruplayarak kurumsal ilişkileri yönetirsiniz — hangi şirketten kaç kişi katıldı, şirket bazlı fırsatlar vb.
+
+## Sequence'lar
+
+**Sequence'lar**, bir kişiye zamanlanmış adımlarla (örn. e-posta serisi) otomatik ulaşmanızı sağlayan iş akışlarıdır — takip ve besleme (nurture) senaryoları için.
+
+## Satış pipeline
+
+**Pipeline**, fırsatları aşamalara göre (örn. İlk temas → Teklif → Kazanıldı) takip ettiğiniz görünümdür. Etkinlik katılımcılarından doğan satış fırsatlarını buradan yönetirsiniz.
+
+## Lead formları
+
+**Lead formları**, etkinlik kaydından bağımsız olarak potansiyel müşteri toplamak için kullanılan formlardır. Toplanan lead'ler CRM'e düşer ve sequence/pipeline ile işlenebilir.
+
+## Yetkiler (API/MCP)
+
+CRM işlemleri REST/MCP üzerinden `crm:read` / `crm:write` scope'larıyla; lead formları `forms:read` / `forms:write` ile yetkilendirilir. Bkz. [Kimlik Doğrulama](/api-reference/authentication).
+
+<Callout>
+Bir AI asistanına *"ahmet@example.com kişisinin geçmişini getir"* diyebilirsiniz — asistan `search_attendees_across_events` aracını çağırır (bkz. [MCP & AI Agents](/integrations/mcp-agent)).
+</Callout>

@@ -1,0 +1,97 @@
+import { Callout, Steps, Tabs } from "nextra/components";
+
+# Etkinlik Oluşturma
+
+Etkinlik, HeptaCert'teki en temel kaynaktır: katılımcılar, oturumlar, check-in, sertifikalar ve otomasyonlar hep bir etkinliğe bağlıdır. Bu kılavuz bir etkinliğin nasıl oluşturulacağını ve modüllerinin nasıl yapılandırılacağını anlatır.
+
+## Etkinlik türleri
+
+Etkinlik oluştururken bir **tür** seçersiniz. Tür, yalnızca bir başlangıç noktasıdır — ilgili modülleri mantıklı bir varsayılan kümeyle açar; sonrasında her anahtarı tek tek değiştirebilirsiniz.
+
+| Tür | Tipik kullanım | Öne çıkan varsayılanlar |
+|-----|----------------|--------------------------|
+| `certificate_event` | Sertifikalı eğitim/etkinlik | Sertifika + kayıt + check-in |
+| `seminar` | Seminer, panel | Kayıt + check-in + sertifika |
+| `workshop` | Atölye | + Quiz + CPD |
+| `training` | Kurumsal eğitim | + Quiz + CPD |
+| `conference` | Konferans | + Biletleme + Ajanda + CFP + Networking + Canlı |
+| `concert` | Konser / gösteri | Biletleme (sertifika kapalı) |
+| `club_event` | Kulüp etkinliği | Oyunlaştırma (sertifika kapalı) |
+| `online_event` | Online etkinlik | Ajanda (check-in kapalı) |
+| `custom` | Özel | Minimal güvenli varsayılanlar |
+
+<Callout type="info">
+Tür seçimi mevcut etkinlikleri **geriye dönük değiştirmez** ve açıkça verdiğiniz bir modül tercihini ezmez. Sadece oluşturma anında başlangıç anahtarlarını belirler.
+</Callout>
+
+## Etkinlik oluşturma
+
+<Steps>
+### Panelden "Yeni Etkinlik"
+
+**Etkinlikler → Yeni Etkinlik**'e gidin. En azından bir **ad** girin; tarih, açıklama ve konum opsiyoneldir (sonradan da eklenebilir).
+
+### Türü seçin
+
+Etkinliğin türünü seçin. İlgili modüller otomatik açılır; **Ayarlar** sekmesinden istediğiniz anahtarı değiştirebilirsiniz.
+
+### Modülleri ayarlayın
+
+Etkinlik **Ayarlar → Özellik Matrisi** altından modülleri açıp kapatın (aşağıya bakın).
+</Steps>
+
+## Modüller (özellik anahtarları)
+
+Her etkinlik, bağımsız açılıp kapanabilen modüllere sahiptir. Bir modül kapalıysa ilgili sekme ve akışlar gizlenir.
+
+| Anahtar | Ne yapar |
+|---------|----------|
+| `certificate_enabled` | Sertifika üretimi ve doğrulama |
+| `checkin_enabled` | QR check-in, oturumlar, kapı kontrolü |
+| `registration_enabled` | Herkese açık kayıt formu |
+| `ticketing_enabled` | Ücretli/biletli giriş |
+| `requires_approval` | Kayıtları yönetici onayına takma (bkz. [Kayıt & Onaylar](/guides/registration-and-approvals)) |
+| `quiz_enabled` | Sınav/quiz modülü; geçme koşuluna göre sertifika |
+| `cpd_enabled` | CPD saati kaydı (akreditasyon) |
+| `agenda_enabled` | Yapılandırılmış konferans ajandası |
+| `cfp_enabled` | Bildiri çağrısı (Call for Papers) |
+| `raffles_enabled` | Canlı çekiliş |
+| `gamification_enabled` | Rozet & oyunlaştırma |
+
+<Callout type="warning">
+Bir modülü kapatmak veriyi silmez; yalnızca arayüzde gizler. Örneğin `certificate_enabled`'ı kapatmak yayımlanmış sertifikaları geçersiz kılmaz.
+</Callout>
+
+## Görünürlük
+
+- **`private`** (varsayılan) — etkinlik yalnızca bağlantıyla erişilebilir.
+- **`public`** — herkese açık etkinlik dizininde listelenir.
+
+## Aynı işlem API / CLI / MCP ile
+
+<Tabs items={["REST API", "CLI", "MCP"]}>
+  <Tabs.Tab>
+  ```bash
+  curl -X POST https://heptacert.com/api/admin/events \
+    -H "Authorization: Bearer hc_live_..." \
+    -H "Content-Type: application/json" \
+    -d '{"name":"Python Summit 2026","event_type":"conference"}'
+  ```
+  Ayrıntılar: [API Referansı](/api-reference).
+  </Tabs.Tab>
+  <Tabs.Tab>
+  ```bash
+  hc events create --name "Python Summit 2026" --type conference
+  ```
+  Ayrıntılar: [CLI](/integrations/cli).
+  </Tabs.Tab>
+  <Tabs.Tab>
+  Bir AI asistanına şunu söylemeniz yeterli: *"15 Eylül'de Python Summit 2026 adında bir konferans oluştur."* Asistan `create_event` aracını çağırır. Bkz. [MCP & AI Agents](/integrations/mcp-agent).
+  </Tabs.Tab>
+</Tabs>
+
+## Sonraki adımlar
+
+- [Kayıt & Onaylar →](/guides/registration-and-approvals)
+- [QR Check-in →](/guides/check-in)
+- [Sertifikalar →](/guides/certificates)

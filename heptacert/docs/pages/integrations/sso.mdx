@@ -1,0 +1,60 @@
+import { Callout, Steps } from "nextra/components";
+
+# SSO / OAuth2
+
+Ekibinizin ve üyelerinizin HeptaCert'e **Google**, **Microsoft / Azure AD** veya herhangi bir **OIDC** sağlayıcısı ile tek oturum açmasını (SSO) sağlayın.
+
+<Callout type="info">
+SSO ayarları **Ayarlar → SSO / OAuth2** (`/admin/settings/sso`) sayfasından yönetilir. Bir organizasyon en fazla üç sağlayıcı tanımlayabilir.
+</Callout>
+
+## Desteklenen sağlayıcılar
+
+| Sağlayıcı | Değer | Ek alan |
+|-----------|-------|---------|
+| Google | `google` | — |
+| Microsoft / Azure AD | `microsoft` | Azure Tenant ID |
+| Generic OIDC | `generic_oidc` | Sağlayıcıya göre |
+
+## Kurulum
+
+<Steps>
+### Sağlayıcıda uygulama oluşturun
+
+OAuth2 sağlayıcınızda (Google Cloud Console / Azure AD) bir uygulama kaydı oluşturun.
+
+### Redirect URI ekleyin
+
+Yönlendirme (callback) adresi olarak şunu ekleyin:
+
+```
+https://heptacert.com/auth/sso/callback/{provider}
+```
+
+`{provider}` yerine `google`, `microsoft` veya `generic_oidc` gelir.
+
+### Client ID ve Secret'ı girin
+
+HeptaCert **Ayarlar → SSO / OAuth2** sayfasında sağlayıcıyı seçin, **Client ID** ve **Client Secret** değerlerini girin (Microsoft için ayrıca Tenant ID). Kaydedin ve **etkinleştirin**.
+
+### Giriş
+
+Kullanıcılar şu adresle giriş yapar:
+
+```
+https://heptacert.com/auth/sso/{provider}/login
+```
+</Steps>
+
+<Callout type="warning">
+Client Secret sunucuda güvenli şekilde saklanır ve arayüzde bir daha gösterilmez; yalnızca "girildi" bilgisi görünür. Sağlayıcıyı istediğiniz zaman **devre dışı** bırakabilir veya silebilirsiniz.
+</Callout>
+
+## SSO ile OAuth agent bağlantısı farkı
+
+Bu sayfadaki SSO, **kullanıcıların HeptaCert'e giriş yapması** içindir. AI istemcilerinin (claude.ai, Cursor vb.) HeptaCert'e **bağlanması** için kullanılan OAuth akışı ayrıdır ve otomatik keşif + Dynamic Client Registration ile çalışır — bkz. [MCP & AI Agents](/integrations/mcp-agent).
+
+## Sonraki adımlar
+
+- [MCP & AI Agents →](/integrations/mcp-agent)
+- [Kimlik Doğrulama & Scope'lar →](/api-reference/authentication)

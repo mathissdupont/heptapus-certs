@@ -1,0 +1,62 @@
+import { Callout, Steps } from "nextra/components";
+
+# Sertifikalar
+
+HeptaCert'in çekirdeği: katılım/başarı koşulu sağlandığında **doğrulanabilir** dijital sertifikalar üretmek. Bu kılavuz şablon, seviye (tier), yayımlama, doğrulama ve iptal akışlarını kapsar.
+
+<Callout type="info">
+Sertifika akışları `certificate_enabled` açıkken görünür.
+</Callout>
+
+## Şablonlar
+
+Bir **sertifika şablonu**, arka plan görselini ve üzerine yerleştirilen alanların konumunu tanımlar:
+
+- Katılımcı adının konumu, yazı tipi boyutu/rengi/hizası
+- QR kodun konumu ve boyutu (doğrulama için)
+- Sertifika kimliğinin konumu
+- Hologram/filigran gibi güvenlik öğeleri
+
+HeptaCert birkaç hazır şablonla gelir (Minimalist, Profesyonel, Renkli) ve kendi şablonunuzu yükleyebilirsiniz. Şablonu etkinliğin **Editör** sekmesinden düzenlersiniz.
+
+## Seviyeler (tiers)
+
+Sertifika **seviyeleri**, katılım eşiğine göre farklı sertifikalar vermenizi sağlar — örneğin "Katılım" (%50+ oturum) ve "Başarı" (%90+ oturum). Her seviyenin bir eşiği ve adı olur; katılımcı, eşiğine göre ilgili seviyeyi alır.
+
+## Sertifika yayımlama
+
+<Steps>
+### Uygunluğu doğrulayın
+
+Katılımcıların check-in koşulunu (`min_sessions_required`) sağladığından emin olun. Bkz. [QR Check-in](/guides/check-in).
+
+### Yayımla
+
+Etkinlik **Sertifikalar** sekmesinden **tüm uygun katılımcılara** ya da seçili kişilere sertifika yayımlayın. Yayımlama, her katılımcı için bir PDF üretir ve benzersiz bir doğrulama kimliği atar.
+
+### Teslim edin
+
+Sertifikaları e-posta ile otomatik gönderebilirsiniz (bkz. [E-posta & Otomasyon](/guides/email-and-automation)) veya katılımcı kendi doğrulama bağlantısından indirir.
+</Steps>
+
+<Callout type="warning">
+**Toplu üretim** asenkron bir **iş (job)** olarak çalışır; büyük listelerde üretim arka planda tamamlanır. İşin durumunu panelden veya API'den takip edebilirsiniz.
+</Callout>
+
+## Doğrulama
+
+Her sertifikanın herkese açık bir doğrulama sayfası vardır: `heptacert.com/c/{public_id}`. Bu sayfa sertifikanın **geçerli/iptal** durumunu, katılımcı ve etkinlik bilgisini gösterir. QR kod da bu sayfaya yönlendirir — böylece üçüncü taraflar sertifikanın gerçekliğini doğrulayabilir.
+
+## İptal (revoke)
+
+Bir sertifikayı iptal ettiğinizde PDF bağlantısı erişilemez hale gelir ve doğrulama sayfası "iptal edilmiş" olarak işaretlenir. İptal **geri alınamaz**.
+
+## Aynı işlemler API / CLI / MCP ile
+
+- REST: `POST /api/admin/events/{id}/certificates` (yayımla), `POST /api/admin/certificates/{id}/revoke` (iptal). Bkz. [API Referansı](/api-reference).
+- MCP araçları: `issue_certificates`, `revoke_certificate`, `list_certificates`, `get_certificate_by_public_id`. Bkz. [MCP & AI Agents](/integrations/mcp-agent).
+
+## Sonraki adımlar
+
+- [E-posta & Otomasyon →](/guides/email-and-automation)
+- [Kimlik Doğrulama & Scope'lar →](/api-reference/authentication) — `certificates:write` scope'u

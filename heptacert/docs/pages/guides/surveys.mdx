@@ -1,0 +1,22 @@
+import { Callout } from "nextra/components";
+
+# Anketler
+
+Etkinlik öncesi/sonrası **anketlerle** katılımcı geri bildirimi toplayın. Anket yanıtları analitikle birleşir ve rozet/otomasyon tetikleyebilir.
+
+## Anket yapılandırma
+
+Etkinliğe bir anket tanımlar, sorularını (çoktan seçmeli, ölçek, açık uçlu vb.) eklersiniz. Anketi zorunlu veya opsiyonel yapabilirsiniz.
+
+## Yanıtları toplama ve görüntüleme
+
+Katılımcılar anketi katılımcı portalı veya gönderilen bağlantı üzerinden doldurur. Yanıtları etkinlik **Anketler** görünümünde inceler, respondent bazında veya toplu olarak analiz edersiniz.
+
+## Rozet ve otomasyonla entegrasyon
+
+- Anketi tamamlayan katılımcılara **rozet** verilebilir (bkz. [Çekiliş & Oyunlaştırma](/guides/raffles-and-gamification)).
+- **`survey_not_completed`** tetikleyicisiyle anketi doldurmayanlara otomatik hatırlatma gönderebilirsiniz (bkz. [E-posta & Otomasyon](/guides/email-and-automation)).
+
+<Callout>
+Anket yanıtlarına API/MCP üzerinden `analytics:read`/`events:read` yetkisiyle erişilir (`get_survey_responses`). Bkz. [MCP & AI Agents](/integrations/mcp-agent).
+</Callout>

@@ -1,0 +1,57 @@
+# Sözlük
+
+HeptaCert dokümantasyonunda geçen temel terimler.
+
+**Etkinlik (Event)**
+Platformun en temel kaynağı. Katılımcılar, oturumlar, check-in, sertifikalar ve otomasyonlar bir etkinliğe bağlıdır. Bkz. [Etkinlik Oluşturma](/guides/creating-events).
+
+**Etkinlik türü (Event type)**
+Etkinlik oluştururken seçilen ve modüllerin başlangıç varsayılanlarını belirleyen kategori (`seminar`, `conference`, `training` vb.).
+
+**Modül / özellik anahtarı (Feature flag)**
+Bir etkinlikte bağımsız açılıp kapanan yetenek (`certificate_enabled`, `checkin_enabled`, `quiz_enabled` …). Kapalı modülün arayüzü gizlenir.
+
+**Katılımcı (Attendee)**
+Bir etkinliğe kaydolan kişi. Kayıt, check-in, sertifika ve onay durumu katılımcı üzerinde tutulur.
+
+**Oturum (Session)**
+Bir etkinliğin zaman/konum/konuşmacı içeren alt birimi. Yoklama oturum bazında alınır.
+
+**Check-in (Yoklama)**
+Katılımcının etkinliğe/oturuma katılımının kaydı. Sertifika uygunluğunun temelidir. Bkz. [QR Check-in](/guides/check-in).
+
+**`min_sessions_required`**
+Sertifikaya hak kazanmak için gereken en az oturum katılım sayısı.
+
+**Onay durumu (Approval status)**
+`requires_approval` açık etkinliklerde kaydın durumu: `not_required`, `pending`, `approved`, `rejected`.
+
+**Sertifika (Certificate)**
+Katılım/başarı koşulu sağlandığında üretilen, herkese açık doğrulanabilir belge. Benzersiz bir `public_id` taşır.
+
+**Seviye (Tier)**
+Katılım eşiğine göre farklı sertifika kademesi (örn. "Katılım" / "Başarı").
+
+**Şablon (Template)**
+Sertifikanın arka planını ve üzerindeki alanların (ad, QR, kimlik) konumunu tanımlayan tasarım.
+
+**Scope (Yetki)**
+Bir API anahtarının veya OAuth token'ının ne yapabileceğini sınırlayan izin (`events:read`, `certificates:write` …). Bkz. [Kimlik Doğrulama](/api-reference/authentication).
+
+**API anahtarı (API key)**
+`hc_live_` ile başlayan, otomasyon/entegrasyon için kullanılan kimlik bilgisi.
+
+**OAuth / MCP**
+AI istemcilerinin HeptaCert'e kullanıcı hesabıyla, giriş+izin akışıyla bağlanmasını sağlayan protokol. Bkz. [MCP & AI Agents](/integrations/mcp-agent).
+
+**Webhook**
+Bir olay gerçekleştiğinde (kayıt, check-in, sertifika…) dış bir URL'ye gönderilen HTTP bildirimi. Bkz. [Webhooks](/integrations/webhooks).
+
+**Otomasyon kuralı (Automation rule)**
+Bir tetikleyici + aksiyon(lar)dan oluşan, HeptaCert içi otomatik iş akışı. Bkz. [E-posta & Otomasyon](/guides/email-and-automation).
+
+**CPD**
+Sürekli Mesleki Gelişim; sertifika verilen üyelere otomatik işlenebilen mesleki gelişim saati.
+
+**Organizasyon modülü**
+Organizasyon genelinde açılıp kapanabilen üst düzey yetenek (Etkinlikler, Akreditasyon, Sunumlar, CRM). Panelde **Ayarlar → Modüller**'den yönetilir.

@@ -1,0 +1,32 @@
+import { Callout } from "nextra/components";
+
+# Biletleme
+
+Ücretli veya kontenjanlı etkinliklerde katılımcılara **dijital giriş bileti** verin. Biletleme, kayıt ve check-in akışlarıyla entegre çalışır.
+
+<Callout type="info">
+Biletleme, etkinlik **Ayarlar**'ından `ticketing_enabled` anahtarıyla açılır. Konser/gösteri gibi türlerde varsayılan olarak açık gelir.
+</Callout>
+
+## Nasıl çalışır?
+
+- Biletleme açıkken her yeni kayıt için **cüzdan uyumlu, benzersiz bir QR giriş kartı** üretilir.
+- Katılımcı bileti e-postasından veya katılımcı portalından erişir.
+- Etkinlik günü bu QR, [check-in](/guides/check-in) akışında okutularak giriş doğrulanır.
+
+## Bilet türleri ve kontenjan
+
+Farklı bilet türleri (örn. Standart, VIP, Öğrenci) ve her türe kontenjan tanımlayabilirsiniz. Kayıt formundaki `select` alanlarına seçenek bazlı kapasite vererek de kontenjan yönetimi yapılabilir (bkz. [Kayıt & Onaylar](/guides/registration-and-approvals)).
+
+## Ödemeler
+
+Ücretli biletlerde ödeme akışı devreye girer; tamamlanan ödemeler **Platform → Ödemeler** altında izlenir. Ödeme tamamlandığında `payment.completed` webhook olayı tetiklenebilir (bkz. [Webhooks](/integrations/webhooks)).
+
+<Callout type="warning">
+Bilet + onay birlikte kullanılıyorsa: `requires_approval` açıkken katılımcı, onaylanana kadar geçerli sayılmaz. Ödeme onayını bu akışla eşleştirebilirsiniz.
+</Callout>
+
+## Sonraki adımlar
+
+- [QR Check-in →](/guides/check-in)
+- [Analitik & Raporlar →](/guides/analytics-and-reports)

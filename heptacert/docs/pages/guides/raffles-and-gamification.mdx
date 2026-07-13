@@ -1,0 +1,24 @@
+import { Callout } from "nextra/components";
+
+# Çekiliş & Oyunlaştırma
+
+Katılımı artırmak için **canlı çekiliş** ve **oyunlaştırma (rozetler)** modüllerini kullanın. İkisi de etkinlik bazında ayrı ayrı açılır.
+
+## Canlı çekiliş
+
+`raffles_enabled` açıkken bir **çekiliş** tanımlar ve sahnede/ekranda canlı olarak çalıştırırsınız. Çekiliş, katılım şartlarına bağlanabilir — örneğin yalnızca **check-in yapmış** katılımcılar havuza girer. Kazanan(lar) rastgele ve şeffaf biçimde belirlenir; sunum modu büyük ekran için uygundur.
+
+<Callout type="info">
+Çekiliş katılım koşulları check-in verisine dayanır — [QR Check-in](/guides/check-in) akışını kurmanız çekilişi anlamlı kılar.
+</Callout>
+
+## Oyunlaştırma & rozetler
+
+`gamification_enabled` açıkken katılımcılar, tanımladığınız görevleri (oturuma katılma, anket doldurma vb.) tamamladıkça **dijital rozetler** kazanır. Rozetler katılımcı profilinde görünür ve otomasyonu tetikleyebilir (**`badge_earned`**).
+
+## Otomasyonla entegrasyon
+
+- Rozet kazanımında otomatik e-posta/tebrik gönderin (**`badge_earned`** tetikleyicisi).
+- Anket tamamlama → rozet → çekiliş uygunluğu gibi zincirler kurabilirsiniz.
+
+Bkz. [E-posta & Otomasyon](/guides/email-and-automation) ve [Anketler](/guides/surveys).

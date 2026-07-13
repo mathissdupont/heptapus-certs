@@ -1,0 +1,32 @@
+import { Callout } from "nextra/components";
+
+# Analitik & Raporlar
+
+Etkinliklerinizin performansını ölçün: kayıt eğilimi, katılım oranı, sertifika üretimi, e-posta etkileşimi ve oturum bazlı kırılımlar.
+
+## Etkinlik analitiği
+
+Her etkinliğin **Analitik** görünümü şunları içerir:
+
+- **Kayıt eğilimi** — zamana göre kayıt sayısı
+- **Check-in zaman çizelgesi** — giriş yoğunluğu
+- **Sertifika istatistikleri** — üretilen/iptal edilen sertifikalar
+- **E-posta performansı** — gönderim, açılma, tıklanma oranları
+- **Oturum katılım kırılımı** — oturum bazında yoklama
+
+## Organizasyon geneli analitik
+
+**Analitik & Raporlar → Analitik** altından tüm etkinlikleri kapsayan üst düzey metrikleri görürsünüz — toplam katılımcı, etkinlik başına ortalama katılım, dönemsel karşılaştırmalar.
+
+## Raporlar
+
+**Raporlar** bölümünden PDF/veri çıktıları üretebilir ve düzenli (zamanlanmış) raporlar tanımlayabilirsiniz. Raporlara API/MCP üzerinden `reports:read` / `analytics:read` yetkisiyle erişilir.
+
+<Callout>
+Bir AI asistanına *"bugün en yüksek katılımlı etkinlik hangisi?"* diye sorabilirsiniz — asistan `get_event_analytics` / `get_attendance_summary` araçlarını çağırır (bkz. [MCP & AI Agents](/integrations/mcp-agent)).
+</Callout>
+
+## Sonraki adımlar
+
+- [Akreditasyon & CPD →](/guides/accreditation-cpd)
+- [API Referansı →](/api-reference)
