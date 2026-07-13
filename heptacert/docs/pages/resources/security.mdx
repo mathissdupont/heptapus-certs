@@ -1,0 +1,39 @@
+import { Callout } from "nextra/components";
+
+# Güvenlik & KVKK
+
+HeptaCert'in güvenlik yaklaşımı ve kişisel verilerin korunmasına ilişkin notlar.
+
+<Callout type="warning">
+Bu sayfa bilgilendirme amaçlıdır ve hukuki tavsiye yerine geçmez. Kurumsal uyum yükümlülükleriniz için hukuk danışmanınıza başvurun.
+</Callout>
+
+## Kimlik doğrulama & yetkilendirme
+
+- **API anahtarları** `hc_live_` önekiyle üretilir ve sunucuda yalnızca özet (hash) olarak saklanır; tam anahtar yalnızca oluşturma anında gösterilir.
+- **Scope bazlı yetki:** Anahtarlara ve OAuth token'larına verilen scope'lar hem REST API'de hem MCP katmanında uygulanır — kapsam dışı istek reddedilir. Her entegrasyona yalnızca ihtiyaç duyduğu scope'u verin (en az yetki ilkesi). Bkz. [Kimlik Doğrulama](/api-reference/authentication).
+- **OAuth (AI istemcileri):** Kullanıcı hesabıyla giriş + açık izin (consent) akışı; her token kullanıcıya ve onaylanan scope'lara bağlıdır ve istendiğinde iptal edilebilir.
+- **SSO:** Ekip ve üye girişleri için Google / Microsoft / OIDC. Client secret'lar sunucuda güvenli saklanır. Bkz. [SSO / OAuth2](/integrations/sso).
+
+## Denetim & izlenebilirlik
+
+- Yönetici ve agent (MCP) yazma işlemleri **denetim kaydına (audit log)** yazılır; kim, ne zaman, hangi işlemi yaptı izlenebilir.
+- Webhook'lar isteğe bağlı **HMAC-SHA256 imzası** ile doğrulanabilir, böylece alıcı sistem isteğin gerçekten HeptaCert'ten geldiğini teyit eder.
+
+## Veri koruma & KVKK
+
+- **Veri minimizasyonu:** Entegrasyon akışlarında yalnızca gerekli alanlar paylaşılır. Örneğin OAuth `userinfo` uç noktası yalnızca kullanıcı kimliği ve e-postayı döndürür.
+- **Aydınlatma & rıza:** Kayıt formlarında ve üçüncü-taraf erişim izinlerinde (ör. bir AI istemcisine bağlanırken) KVKK aydınlatma metni gösterilir; kullanıcı hangi verinin paylaşılacağını görür ve onaylar.
+- **Erişimi geri alma:** Kullanıcılar ve organizasyon yöneticileri, verilen OAuth erişimlerini ve API anahtarlarını istedikleri an iptal edebilir.
+- **Sınır ötesi aktarım:** Etkinlik bazında sınır-ötesi veri aktarımı bildirimi ve rızası yapılandırılabilir.
+
+<Callout>
+Üçüncü taraf entegrasyonlarında (AI istemcileri, webhook alıcıları) verinin bir dış sisteme aktarıldığını unutmayın. Aktarımın kapsamını ilgili entegrasyonun scope'larıyla sınırlandırın.
+</Callout>
+
+## İyi uygulamalar
+
+- Her entegrasyon için ayrı, dar kapsamlı API anahtarı kullanın; sızıntı halinde tek anahtarı iptal edin.
+- Anahtarları kaynak koda veya sohbet/loglara yazmayın; ortam değişkeni / gizli yönetimi kullanın.
+- Kullanılmayan API anahtarlarını ve OAuth bağlantılarını düzenli olarak temizleyin.
+- Webhook alıcılarınızda imza doğrulamasını zorunlu kılın.

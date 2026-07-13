@@ -1,0 +1,50 @@
+import { Callout } from "nextra/components";
+
+# Sık Sorulan Sorular
+
+## Genel
+
+### HeptaCert nedir?
+Uçtan uca bir etkinlik yönetim platformu: kayıt, QR check-in, otomatik sertifika üretimi/doğrulama, e-posta otomasyonu, CRM ve analitik. Aynı işlemler panel, [REST API](/api-reference), [CLI](/integrations/cli) ve [AI agent (MCP)](/integrations/mcp-agent) üzerinden yapılabilir.
+
+### Panel, API, CLI ve MCP arasında fark var mı?
+Hayır — hepsi aynı veri modelini ve aynı [yetki (scope) modelini](/api-reference/authentication) paylaşır. Hangi yolu seçerseniz seçin yapabilecekleriniz aynıdır.
+
+## Kimlik doğrulama & yetkiler
+
+### API anahtarı nasıl alırım?
+Panelde **Ayarlar → API Anahtarları**'ndan oluşturun. Anahtar `hc_live_` ile başlar ve yalnızca oluşturma anında tam olarak gösterilir — güvenli saklayın.
+
+### Scope (yetki) atamazsam ne olur?
+Scope atanmamış bir anahtar **tam erişime** sahiptir. Bir veya daha fazla scope atarsanız anahtar yalnızca o scope'ların izin verdiği işlemleri yapabilir; kapsam dışı istek `403` döner. Bkz. [Kimlik Doğrulama](/api-reference/authentication).
+
+### AI istemcimi (claude.ai, Cursor…) nasıl bağlarım?
+OAuth destekleyen istemciler `https://heptacert.com/mcp` adresini ekleyince otomatik giriş + izin akışına yönlendirilir — API anahtarı kopyalamanıza gerek yoktur. Ayrıntılar: [MCP & AI Agents](/integrations/mcp-agent).
+
+## Sertifikalar
+
+### Sertifika ne zaman verilebilir?
+Katılımcı check-in koşulunu (varsa `min_sessions_required`) ve `requires_approval` açıksa onay şartını sağladığında. Bkz. [Sertifikalar](/guides/certificates).
+
+### Sertifika nasıl doğrulanır?
+Her sertifikanın herkese açık bir doğrulama sayfası vardır (`heptacert.com/c/{public_id}`); QR kod da buraya yönlendirir. Sayfa geçerli/iptal durumunu gösterir.
+
+### Sertifikayı iptal edebilir miyim?
+Evet, ancak iptal **geri alınamaz** — PDF bağlantısı erişilemez olur ve doğrulama sayfası "iptal edilmiş" gösterir.
+
+## Webhook & otomasyon
+
+### Webhook mu, otomasyon mu kullanmalıyım?
+Otomasyon HeptaCert *içinde* tepki üretir (e-posta, hatırlatma); webhook olayı *dış* sisteme iletir. Bkz. [E-posta & Otomasyon](/guides/email-and-automation) ve [Webhooks](/integrations/webhooks).
+
+### Webhook imzasını nasıl doğrularım?
+Webhook'a bir imzalama sırrı (secret) tanımlarsanız her istek HMAC-SHA256 imzasıyla gelir. Bkz. [Webhooks](/integrations/webhooks).
+
+## Veri & gizlilik
+
+### Verilerim nasıl korunuyor?
+Erişim kontrolü, denetim kaydı (audit log) ve scope bazlı yetkilendirme uygulanır. Ayrıntılar: [Güvenlik & KVKK](/resources/security).
+
+<Callout>
+Sorunuz burada yok mu? [Sözlük](/resources/glossary) ve [Temel Kavramlar](/getting-started/concepts) sayfalarına da bakın.
+</Callout>
