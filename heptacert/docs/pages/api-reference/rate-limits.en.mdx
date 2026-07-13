@@ -1,0 +1,36 @@
+import { Callout } from "nextra/components";
+
+# Rate Limits
+
+Request limits protect API usage. When a limit is exceeded, `429 Too Many Requests` is returned.
+
+## Per-API-key limit
+
+You can define an optional **requests-per-minute** limit (`rate_limit_per_min`) on each API key. When exceeded, the response is:
+
+```
+HTTP/1.1 429 Too Many Requests
+X-RateLimit-Limit: 120
+X-RateLimit-Remaining: 0
+Retry-After: 60
+```
+
+- **`X-RateLimit-Limit`** — allowed requests per minute
+- **`X-RateLimit-Remaining`** — remaining requests
+- **`Retry-After`** — seconds to wait before retrying
+
+If no limit is defined for the key, no per-minute cap applies (only general protection rules).
+
+## Authentication endpoints
+
+Sensitive endpoints such as login, registration, password reset and 2FA are additionally rate-limited to prevent abuse.
+
+## Best practices
+
+- When you get a `429`, respect the **`Retry-After`** value; apply exponential backoff.
+- For bulk operations use **bulk endpoints** instead of single calls (e.g. bulk attendee add), so you do more work with fewer requests.
+- For high-volume integrations, set a suitable `rate_limit_per_min` on your key and adjust as needed.
+
+<Callout>
+Long-running operations (e.g. bulk certificate generation) run as asynchronous **jobs** rather than synchronous requests; you poll the status from a separate endpoint — which also reduces rate-limit pressure. See [API Reference → Bulk Certificate Generation](/api-reference).
+</Callout>

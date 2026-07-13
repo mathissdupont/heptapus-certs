@@ -1,0 +1,50 @@
+import { Callout } from "nextra/components";
+
+# Error Codes
+
+The HeptaCert API returns standard HTTP status codes and a consistent error body.
+
+## Error body
+
+Most errors contain a single `detail` field:
+
+```json
+{ "detail": "API key does not have the required scope: certificates:write" }
+```
+
+Input validation errors (`422`) return a per-field array:
+
+```json
+{
+  "detail": [
+    { "type": "missing", "loc": ["body", "name"], "msg": "Field required" }
+  ]
+}
+```
+
+## Status codes
+
+| Code | Meaning | Typical cause |
+|------|---------|---------------|
+| `200` / `201` | Success | Request handled (201: resource created) |
+| `400` | Bad Request | Missing/invalid parameter, business-rule violation |
+| `401` | Unauthorized | Missing/invalid/expired token; revoked OAuth session |
+| `403` | Forbidden | Insufficient role **or** the key/token lacks the required **scope** |
+| `404` | Not Found | Resource doesn't exist — or you don't have access (org isolation) |
+| `409` | Conflict | Conflict — e.g. the same email is already registered for the event |
+| `422` | Unprocessable Entity | Input validation error (per-field `detail` array) |
+| `429` | Too Many Requests | Rate limit exceeded (see [Rate Limits](/api-reference/rate-limits)) |
+| `5xx` | Server Error | Unexpected server error |
+
+<Callout type="info">
+**403 vs 404:** When you access a resource belonging to another organization, we may return **`404`** instead of `403` to avoid leaking its existence. This is a deliberate design that prevents IDOR (insecure direct object reference) leaks.
+</Callout>
+
+## Scope errors
+
+A scope-restricted key/token that hits an endpoint outside its scope gets `403`, with `detail` naming the required scope. Fix: add the relevant scope to the key, or reconnect the OAuth client requesting that scope. See [Authentication](/api-reference/authentication).
+
+## Machine-readable schema & interactive docs
+
+- **OpenAPI schema:** `https://heptacert.com/api/openapi.json` — import it to generate your own client/SDK.
+- **Swagger UI:** `https://heptacert.com/docs` · **ReDoc:** `https://heptacert.com/redoc`

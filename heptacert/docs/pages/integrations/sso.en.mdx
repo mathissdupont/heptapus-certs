@@ -1,0 +1,60 @@
+import { Callout, Steps } from "nextra/components";
+
+# SSO / OAuth2
+
+Let your team and members sign in to HeptaCert with single sign-on (SSO) via **Google**, **Microsoft / Azure AD** or any **OIDC** provider.
+
+<Callout type="info">
+SSO settings are managed under **Settings → SSO / OAuth2** (`/admin/settings/sso`). An organization can define up to three providers.
+</Callout>
+
+## Supported providers
+
+| Provider | Value | Extra field |
+|----------|-------|-------------|
+| Google | `google` | — |
+| Microsoft / Azure AD | `microsoft` | Azure Tenant ID |
+| Generic OIDC | `generic_oidc` | Provider-specific |
+
+## Setup
+
+<Steps>
+### Create an app at the provider
+
+Create an app registration at your OAuth2 provider (Google Cloud Console / Azure AD).
+
+### Add the redirect URI
+
+Add the following as the callback address:
+
+```
+https://heptacert.com/auth/sso/callback/{provider}
+```
+
+Replace `{provider}` with `google`, `microsoft` or `generic_oidc`.
+
+### Enter Client ID and Secret
+
+On HeptaCert's **Settings → SSO / OAuth2** page, select the provider, enter the **Client ID** and **Client Secret** (plus Tenant ID for Microsoft). Save and **enable** it.
+
+### Login
+
+Users sign in via:
+
+```
+https://heptacert.com/auth/sso/{provider}/login
+```
+</Steps>
+
+<Callout type="warning">
+The Client Secret is stored securely on the server and never shown again in the UI; only a "provided" indicator appears. You can **disable** or delete a provider at any time.
+</Callout>
+
+## SSO vs. OAuth agent connection
+
+The SSO here is for **users signing in** to HeptaCert. The OAuth flow used by AI clients (claude.ai, Cursor, etc.) to **connect** to HeptaCert is separate and works with automatic discovery + Dynamic Client Registration — see [MCP & AI Agents](/integrations/mcp-agent).
+
+## Next steps
+
+- [MCP & AI Agents →](/integrations/mcp-agent)
+- [Authentication & Scopes →](/api-reference/authentication)

@@ -1,0 +1,57 @@
+# Glossary
+
+Key terms used across the HeptaCert documentation.
+
+**Event**
+The most fundamental resource. Attendees, sessions, check-in, certificates and automations belong to an event. See [Creating Events](/guides/creating-events).
+
+**Event type**
+The category chosen when creating an event that seeds the initial defaults of its modules (`seminar`, `conference`, `training`, etc.).
+
+**Module / feature flag**
+An independently toggleable capability on an event (`certificate_enabled`, `checkin_enabled`, `quiz_enabled`, …). A disabled module's UI is hidden.
+
+**Attendee**
+A person who registers for an event. Registration, check-in, certificate and approval status are tracked on the attendee.
+
+**Session**
+A sub-unit of an event with time/location/speaker. Attendance is taken per session.
+
+**Check-in**
+The record of an attendee's presence at an event/session. It's the basis of certificate eligibility. See [QR Check-in](/guides/check-in).
+
+**`min_sessions_required`**
+The minimum number of session attendances required to be eligible for a certificate.
+
+**Approval status**
+The state of a registration on events with `requires_approval` on: `not_required`, `pending`, `approved`, `rejected`.
+
+**Certificate**
+A publicly verifiable document produced when an attendance/achievement rule is met. Carries a unique `public_id`.
+
+**Tier**
+A certificate level by attendance threshold (e.g. "Attendance" / "Achievement").
+
+**Template**
+The design defining a certificate's background and the position of its fields (name, QR, ID).
+
+**Scope**
+A permission limiting what an API key or OAuth token can do (`events:read`, `certificates:write`, …). See [Authentication](/api-reference/authentication).
+
+**API key**
+A credential starting with `hc_live_`, used for automation/integration.
+
+**OAuth / MCP**
+The protocol that lets AI clients connect to HeptaCert with a user account, via a login + consent flow. See [MCP & AI Agents](/integrations/mcp-agent).
+
+**Webhook**
+An HTTP notification sent to an external URL when an event occurs (registration, check-in, certificate…). See [Webhooks](/integrations/webhooks).
+
+**Automation rule**
+An in-HeptaCert automatic workflow made of a trigger + action(s). See [Email & Automation](/guides/email-and-automation).
+
+**CPD**
+Continuing Professional Development; professional development hours that can be logged automatically for members who receive a certificate.
+
+**Organization module**
+A top-level capability that can be toggled organization-wide (Events, Accreditation, Presentations, CRM). Managed under **Settings → Modules**.

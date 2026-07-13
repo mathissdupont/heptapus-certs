@@ -1,0 +1,39 @@
+import { Callout } from "nextra/components";
+
+# Security & KVKK
+
+HeptaCert's security approach and notes on personal data protection.
+
+<Callout type="warning">
+This page is informational and does not constitute legal advice. Consult your legal counsel for your organization's compliance obligations.
+</Callout>
+
+## Authentication & authorization
+
+- **API keys** are generated with the `hc_live_` prefix and stored only as a hash on the server; the full key is shown only at creation time.
+- **Scope-based permissions:** scopes on keys and OAuth tokens are enforced both at the REST API and the MCP layer — an out-of-scope request is rejected. Grant each integration only the scope it needs (least-privilege principle). See [Authentication](/api-reference/authentication).
+- **OAuth (AI clients):** a login + explicit consent flow with a user account; each token is bound to the user and the approved scopes and can be revoked at any time.
+- **SSO:** Google / Microsoft / OIDC for team and member logins. Client secrets are stored securely on the server. See [SSO / OAuth2](/integrations/sso).
+
+## Audit & traceability
+
+- Admin and agent (MCP) write operations are recorded in an **audit log**; who did what, when, is traceable.
+- Webhooks can be verified with an optional **HMAC-SHA256 signature**, so the receiving system can confirm the request truly came from HeptaCert.
+
+## Data protection & KVKK
+
+- **Data minimization:** integration flows share only the necessary fields. For example, the OAuth `userinfo` endpoint returns only the user id and email.
+- **Notice & consent:** registration forms and third-party access grants (e.g. connecting an AI client) show a KVKK notice; the user sees which data will be shared and approves it.
+- **Revoking access:** users and organization admins can revoke granted OAuth access and API keys at any time.
+- **Cross-border transfer:** cross-border data transfer notice and consent can be configured per event.
+
+<Callout>
+In third-party integrations (AI clients, webhook receivers), remember that data is transferred to an external system. Limit the transfer's scope with that integration's scopes.
+</Callout>
+
+## Best practices
+
+- Use a separate, narrowly-scoped API key per integration; if one leaks, revoke just that key.
+- Don't write keys into source code or chat/logs; use environment variables / secret management.
+- Regularly clean up unused API keys and OAuth connections.
+- Enforce signature verification on your webhook receivers.

@@ -1,0 +1,50 @@
+import { Callout } from "nextra/components";
+
+# Frequently Asked Questions
+
+## General
+
+### What is HeptaCert?
+An end-to-end event management platform: registration, QR check-in, automatic certificate generation/verification, email automation, CRM and analytics. The same operations are available via the panel, [REST API](/api-reference), [CLI](/integrations/cli) and [AI agent (MCP)](/integrations/mcp-agent).
+
+### Is there a difference between the panel, API, CLI and MCP?
+No — they all share the same data model and the same [scope model](/api-reference/authentication). Whichever path you choose, what you can do is the same.
+
+## Authentication & permissions
+
+### How do I get an API key?
+Create one in the panel under **Settings → API Keys**. The key starts with `hc_live_` and is shown in full only at creation time — store it securely.
+
+### What happens if I don't assign a scope?
+A key with no scope has **full access**. If you assign one or more scopes, the key can only perform the operations those scopes allow; an out-of-scope request returns `403`. See [Authentication](/api-reference/authentication).
+
+### How do I connect my AI client (claude.ai, Cursor…)?
+OAuth-capable clients are routed to an automatic login + consent flow when you add `https://heptacert.com/mcp` — no need to copy an API key. Details: [MCP & AI Agents](/integrations/mcp-agent).
+
+## Certificates
+
+### When can a certificate be issued?
+When the attendee meets the check-in rule (`min_sessions_required`, if any) and, if `requires_approval` is on, the approval requirement. See [Certificates](/guides/certificates).
+
+### How is a certificate verified?
+Each certificate has a public verification page (`heptacert.com/c/{public_id}`); the QR code points there too. The page shows the valid/revoked status.
+
+### Can I revoke a certificate?
+Yes, but revocation is **irreversible** — the PDF link becomes inaccessible and the verification page shows "revoked".
+
+## Webhooks & automation
+
+### Should I use a webhook or automation?
+Automation produces a reaction *inside* HeptaCert (email, reminder); a webhook relays the event to an *external* system. See [Email & Automation](/guides/email-and-automation) and [Webhooks](/integrations/webhooks).
+
+### How do I verify a webhook signature?
+If you set a signing secret on the webhook, every request arrives with an HMAC-SHA256 signature. See [Webhooks](/integrations/webhooks).
+
+## Data & privacy
+
+### How is my data protected?
+Access control, an audit log and scope-based authorization are applied. Details: [Security & KVKK](/resources/security).
+
+<Callout>
+Not seeing your question here? Also check the [Glossary](/resources/glossary) and [Core Concepts](/getting-started/concepts).
+</Callout>
