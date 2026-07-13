@@ -1,0 +1,39 @@
+import { Callout } from "nextra/components";
+
+# Organizasyon & Modüller
+
+HeptaCert, organizasyonunuzun ihtiyacına göre **modüller** açıp kapatmanıza izin verir. Böylece arayüz yalnızca kullandığınız yeteneklerle sınırlı, sade kalır.
+
+## Organizasyon modülleri
+
+Modüller **Ayarlar → Modüller** sayfasından açılıp kapatılır. Kapalı bir modülün ana menüdeki bölümü gizlenir.
+
+| Modül | Neyi açar |
+|-------|-----------|
+| **Etkinlikler** | Etkinlik, katılımcı, check-in, sertifika yönetimi |
+| **Akreditasyon** | CPD saati kaydı ve akreditasyon/uyum raporları |
+| **Sunumlar** | AI destekli sunum hazırlama ve PowerPoint export (etkinlik altında) |
+| **CRM** | Kişiler, şirket hesapları, sequence ve satış pipeline |
+
+<Callout type="info">
+Modül anahtarları organizasyon geneldir. Etkinlik içi **özellik anahtarları** (sertifika, check-in, quiz…) bundan ayrıdır ve etkinlik bazında ayarlanır — bkz. [Etkinlik Oluşturma](/guides/creating-events).
+</Callout>
+
+## Organizasyon tipi
+
+İlk kurulumda (onboarding) bir **organizasyon tipi** seçersiniz (örn. etkinlik organizatörü, mesleki dernek). Tip, modüllerin başlangıç kümesini belirler; sonrasında her modülü tek tek değiştirebilirsiniz. Tip seçimi yalnızca başlangıç varsayılanıdır, kalıcı bir kısıt değildir.
+
+## Ekip & roller
+
+Bir etkinliğe, farklı yetki seviyeleriyle ekip üyeleri ekleyebilirsiniz (yönetici, check-in görevlisi, sertifika görevlisi, e-posta görevlisi, analitik, görüntüleyici). Her rol, yalnızca ilgili işlemleri yapabilir. Etkinlik **Ekip** sekmesinden yönetilir.
+
+Roller şu izinlere eşlenir: `event:view`, `team:manage`, `attendees:read/write`, `checkin:write`, `certificates:write`, `email:write`, `analytics:read`, `settings:write`.
+
+## Beyaz etiket (white-label)
+
+Kurumsal planlarda kendi alan adınız ve markanızla (logo, renk) beyaz-etiket bir deneyim sunabilirsiniz. Alan adı doğrulama ve marka ayarları organizasyon ayarlarından yönetilir.
+
+## Sonraki adımlar
+
+- [Temel Kavramlar →](/getting-started/concepts)
+- [CRM & Satış →](/guides/crm-and-sales)
