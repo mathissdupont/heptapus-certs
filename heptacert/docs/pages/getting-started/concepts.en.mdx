@@ -1,0 +1,169 @@
+import { Callout } from "nextra/components";
+
+# Core Concepts
+
+This page explains HeptaCert's data model and the concepts that recur across the API. Understanding this model before diving into endpoints makes it easy to grasp which resource belongs to which.
+
+## Data model
+
+HeptaCert's core revolves around the **event**. Every other resource depends, directly or indirectly, on an event.
+
+```
+Organization
+└── Event
+    ├── Attendee
+    │   ├── Registration
+    │   ├── Check-in (Attendance)
+    │   └── Certificate
+    ├── Session            ← agenda / program
+    ├── Certificate Template + Tiers
+    ├── Survey
+    ├── Badge
+    ├── Automation Rule
+    └── Sponsor / Raffle
+
+Organization (event-independent)
+├── CRM (Account → Contact → Deal)
+├── Lead Forms
+├── API Keys
+└── Webhook Endpoints
+```
+
+## Core resources
+
+### Event
+
+Represents a conference, workshop, training or webinar. It's the top-level container in the system. Every event has **feature flags** you can toggle independently:
+
+| Flag | Description |
+|------|-------------|
+| `certificate_enabled` | Whether certificate issuance is on |
+| `registration_enabled` | Whether the public registration form is active |
+| `registration_closed` | Whether registration is temporarily stopped |
+| `checkin_enabled` | Whether session-based check-in is on |
+
+The `event_type` field takes values like `conference`, `workshop`, `webinar`, `training` and only affects the initial module defaults — it does not change runtime behavior.
+
+The `visibility` field (`public` / `private`) determines whether the event appears in the public event directory.
+
+<details>
+<summary>Typical fields of an event object</summary>
+
+```json
+{
+  "id": 42,
+  "name": "Python Summit 2026",
+  "event_type": "conference",
+  "event_date": "2026-09-15T09:00:00",
+  "event_location": "Istanbul",
+  "event_description": "...",
+  "visibility": "public",
+  "certificate_enabled": true,
+  "registration_enabled": true,
+  "registration_closed": false,
+  "checkin_enabled": true,
+  "attendee_count": 150,
+  "created_at": "2026-06-01T12:00:00"
+}
+```
+</details>
+
+### Attendee
+
+A person tied to an event. Attendees can be created in three ways, and the `source` field indicates the origin:
+
+| Source | Description |
+|--------|-------------|
+| `manual` | Added by hand from the admin panel or API |
+| `registration` | Registered via the public registration form |
+| `import` | Came in via CSV / Excel bulk import |
+
+The same email can appear only once per event. Trying to add it again returns `409 Conflict`.
+
+<Callout type="info">
+An attendee is **specific to one event**. If the same person attended two different events, there are two separate attendee records. To track a person across events, use the CRM layer and the `search_attendees_across_events` tool.
+</Callout>
+
+### Certificate
+
+A verifiable document issued to an attendee. Each certificate has two identifiers:
+
+- **`public_id`** — a short, shareable public id (e.g. `abc123xyz`). Used in the public verification link.
+- **`uuid`** — the internal unique id. Used in the verification URL path.
+
+A certificate can be in one of these states:
+
+| State | Description |
+|-------|-------------|
+| `active` | Valid, verifiable |
+| `revoked` | Revoked — the verification page shows "invalid" |
+| `expired` | Past its expiry date |
+
+Certificates can be created one by one or via **bulk generation** from an Excel list. Bulk generation runs as an asynchronous **job** — see [Bulk Generation](/api-reference).
+
+### Certificate Tiers
+
+An event can define different certificate tiers by participation level (e.g. "Attendance", "Achievement", "Excellence"). Tiers are usually tied to conditions such as check-in rate or survey completion. `get_certificate_tier_summary` returns how many certificates are in each tier.
+
+### Session
+
+An agenda/program item of an event — a talk, panel or workshop. Sessions have start/end times, a speaker, a location and a capacity. Check-in is done **at the session level**: an attendee checks in to specific sessions, not the event as a whole. This enables per-session attendance analytics.
+
+### Survey & Badge
+
+- **Survey** — collects post-event feedback. Responses can feed automation triggers (e.g. remind attendees who didn't complete the survey).
+- **Badge** — achievement indicators. Attendees earn badges when they meet conditions; badges can trigger automations.
+
+## Automation
+
+Automation rules are **event-driven**: when a trigger fires, one or more actions run.
+
+```json
+{
+  "name": "Thank-you email after certificate",
+  "trigger": "certificate_issued",
+  "actions": [
+    { "type": "send_email", "template_id": 5, "delay_hours": 0 }
+  ],
+  "enabled": true
+}
+```
+
+**Triggers:** `attended_event`, `registered_no_show`, `certificate_issued`, `survey_not_completed`, `badge_earned`, `compliance_overdue`
+
+Automations (triggered internally by scheduled jobs) and webhooks (instant HTTP notifications to external systems) are different things — don't use one in place of the other:
+
+| | Automation | Webhook |
+|---|------------|---------|
+| Target | In-HeptaCert action (send email, etc.) | Your server |
+| Fires | Event + scheduling rule | At the moment of the event |
+| Use | "When X happens, do Y" | "Notify my system" |
+
+## CRM layer
+
+CRM is a layer **independent** of events, tracking people over time and across events:
+
+- **Account** — a company/organization
+- **Contact** — an individual (may have attended multiple events)
+- **Deal** — a sales/relationship opportunity, with an activity history
+
+Attendee data flows into CRM via **snapshot hooks**: when an attendee registers or receives a certificate, the CRM profile is updated. A **lead score** quantifies a person's engagement and can trigger the `crm.lead_score_changed` webhook when it changes.
+
+## Identities and access paths
+
+You can reach the same data through multiple paths; they all touch the same resources:
+
+| Path | Use |
+|------|-----|
+| **REST API** | Server-to-server integration, scripts |
+| **CLI (`hc`)** | Terminal, automation, CI/CD |
+| **MCP** | AI assistants (Claude, Cursor, etc.) |
+| **Webhooks** | Outbound event notification (one-way: HeptaCert → you) |
+
+They all share the same **API key** and the same **scope** model. When you restrict a scope, the restriction applies across all paths.
+
+## Next steps
+
+- [Authentication & Scopes →](/api-reference/authentication)
+- [API Reference →](/api-reference)
+- [Webhook Events →](/integrations/webhooks)

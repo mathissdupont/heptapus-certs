@@ -21,9 +21,21 @@ import { Callout, Steps, Tabs } from "nextra/components";
 The HeptaCert MCP server speaks standard MCP. Any compatible client gets the same toolset and authentication.
 </Callout>
 
+## Connection method: OAuth (recommended) or API key
+
+There are two ways to connect to the HeptaCert MCP server:
+
+1. **Sign in with OAuth (recommended)** — any OAuth-capable client (claude.ai, Claude Desktop, Cursor, Windsurf, your own agent) redirects you to a HeptaCert login + consent screen when you add `https://heptacert.com/mcp`. You sign in and approve the scopes you want — no need to create and paste an API key. Each user connects with their own account and permissions; you can revoke access anytime from the **Integrations** page.
+
+2. **API key** — for automation/script scenarios, connect directly with the `Authorization: Bearer hc_live_...` header (config examples below).
+
+<Callout>
+**How does OAuth work?** The client connects to `/mcp` with no token → the server responds `401 + WWW-Authenticate` announcing the OAuth discovery URL → the client reads the standard discovery documents (`/.well-known/oauth-authorization-server` and `/.well-known/oauth-protected-resource`), registers itself if needed (Dynamic Client Registration, RFC 7591) and runs the Authorization Code + PKCE flow. No manual setup is needed for any standards-compliant MCP client.
+</Callout>
+
 ## Setup
 
-All clients need two things:
+If you prefer to connect with an API key, two things are needed:
 - **URL (hosted mode):** `https://heptacert.com/mcp`
 - **Authorization header:** `Bearer hc_live_YOUR_KEY`
 
