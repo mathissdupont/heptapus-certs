@@ -1,4 +1,6 @@
 {
   "index": "Uç Noktalar",
-  "authentication": "Kimlik Doğrulama"
+  "authentication": "Kimlik Doğrulama",
+  "errors": "Hata Kodları",
+  "rate-limits": "Rate Limit"
 }

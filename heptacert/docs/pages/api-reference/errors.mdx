@@ -1,0 +1,50 @@
+import { Callout } from "nextra/components";
+
+# Hata Kodları
+
+HeptaCert API'si standart HTTP durum kodları ve tutarlı bir hata gövdesi döndürür.
+
+## Hata gövdesi
+
+Çoğu hata tek bir `detail` alanı içerir:
+
+```json
+{ "detail": "API anahtarı gerekli yetkiye sahip değil: certificates:write" }
+```
+
+Girdi doğrulama hataları (`422`) ise alan bazında bir dizi döndürür:
+
+```json
+{
+  "detail": [
+    { "type": "missing", "loc": ["body", "name"], "msg": "Field required" }
+  ]
+}
+```
+
+## Durum kodları
+
+| Kod | Anlam | Tipik neden |
+|-----|-------|-------------|
+| `200` / `201` | Başarılı | İstek işlendi (201: kaynak oluşturuldu) |
+| `400` | Bad Request | Eksik/geçersiz parametre, iş kuralı ihlali |
+| `401` | Unauthorized | Eksik/geçersiz/expired token; iptal edilmiş OAuth oturumu |
+| `403` | Forbidden | Rol yetersiz **veya** anahtar/token gerekli **scope**'a sahip değil |
+| `404` | Not Found | Kaynak yok — ya da erişim yetkiniz yok (org izolasyonu) |
+| `409` | Conflict | Çakışma — örn. aynı e-posta etkinliğe zaten kayıtlı |
+| `422` | Unprocessable Entity | Girdi doğrulama hatası (alan bazlı `detail` dizisi) |
+| `429` | Too Many Requests | Rate limit aşıldı (bkz. [Rate Limit](/api-reference/rate-limits)) |
+| `5xx` | Server Error | Beklenmeyen sunucu hatası |
+
+<Callout type="info">
+**403 vs 404:** Başka bir organizasyona ait bir kaynağa eriştiğinizde, varlığını sızdırmamak için `403` yerine **`404`** dönebiliriz. Bu, IDOR (yetkisiz nesne erişimi) sızıntısını önleyen bilinçli bir tasarımdır.
+</Callout>
+
+## Scope hataları
+
+Scope'u kısıtlı bir anahtar/token, kapsamı dışındaki bir uca istterse `403` alır ve `detail` gerekli scope'u belirtir. Çözüm: anahtara ilgili scope'u ekleyin veya OAuth istemcisini o scope'u isteyerek yeniden bağlayın. Bkz. [Kimlik Doğrulama](/api-reference/authentication).
+
+## Makine-okunur şema & etkileşimli docs
+
+- **OpenAPI şeması:** `https://heptacert.com/api/openapi.json` — kendi istemcinizi/SDK'nızı üretmek için içe aktarın.
+- **Swagger UI:** `https://heptacert.com/docs` · **ReDoc:** `https://heptacert.com/redoc`

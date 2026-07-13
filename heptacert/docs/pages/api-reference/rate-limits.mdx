@@ -1,0 +1,36 @@
+import { Callout } from "nextra/components";
+
+# Rate Limit
+
+API kullanımını korumak için istek sınırları uygulanır. Sınır aşıldığında `429 Too Many Requests` döner.
+
+## API anahtarı başına sınır
+
+Her API anahtarına isteğe bağlı bir **dakika başına istek** sınırı (`rate_limit_per_min`) tanımlayabilirsiniz. Sınır aşıldığında yanıt:
+
+```
+HTTP/1.1 429 Too Many Requests
+X-RateLimit-Limit: 120
+X-RateLimit-Remaining: 0
+Retry-After: 60
+```
+
+- **`X-RateLimit-Limit`** — dakikadaki izinli istek sayısı
+- **`X-RateLimit-Remaining`** — kalan istek
+- **`Retry-After`** — yeniden denemeden önce beklenecek saniye
+
+Anahtar için sınır tanımlanmadıysa dakika-başı kısıtı uygulanmaz (yalnızca genel koruma kuralları geçerlidir).
+
+## Kimlik doğrulama uçları
+
+Login, kayıt, şifre sıfırlama ve 2FA gibi hassas uçlar, kötüye kullanımı önlemek için ayrıca hız sınırlıdır.
+
+## İyi uygulamalar
+
+- `429` aldığınızda **`Retry-After`** süresine uyun; üstel geri çekilme (exponential backoff) uygulayın.
+- Toplu işlemlerde tekil çağrı yerine **toplu uçları** kullanın (örn. katılımcı toplu ekleme), böylece daha az istekle daha çok iş yaparsınız.
+- Yüksek hacimli entegrasyonlar için anahtarınıza uygun bir `rate_limit_per_min` belirleyin ve isteğe göre ayarlayın.
+
+<Callout>
+Uzun süren işler (örn. toplu sertifika üretimi) senkron istek yerine asenkron **iş (job)** olarak çalışır; durumu ayrı uçtan sorgularsınız — bu da rate limit baskısını azaltır. Bkz. [API Referansı → Toplu Sertifika Üretimi](/api-reference).
+</Callout>
