@@ -1,0 +1,59 @@
+import { Callout, Steps } from "nextra/components";
+
+# Kayıt & Onaylar
+
+Katılımcılar etkinliğe herkese açık **kayıt formu** üzerinden katılır. İsteğe bağlı olarak kayıtları **yönetici onayına** takabilir, **kota** ve **e-posta doğrulaması** uygulayabilirsiniz.
+
+## Kayıt formu
+
+Kayıt formu, etkinliğin **Ayarlar** sayfasından yapılandırılır. Varsayılan ad/e-posta alanlarına ek olarak **özel alanlar** tanımlayabilirsiniz:
+
+- **Alan tipleri:** metin, e-posta, telefon, seçim (`select`), onay kutusu vb.
+- **Zorunluluk:** her alan zorunlu veya opsiyonel olabilir.
+- **Koşullu zorunluluk:** bir alan yalnızca başka bir alan belirli bir değerdeyse zorunlu olabilir (`required_when`).
+- **Seçim kapasiteleri:** `select` alanlarında her seçeneğe kontenjan verilebilir (örn. "Öğle yemeği: Vejetaryen (50 kişi)").
+
+<Callout type="info">
+`registration_enabled` kapalıysa dışarıdan kayıt alınmaz; katılımcıları yalnızca siz manuel olarak veya içe aktararak eklersiniz.
+</Callout>
+
+## Kota ve e-posta doğrulaması
+
+- **Kota** (`registration_quota_enabled` + `registration_quota`): toplam kayıt sayısını sınırlar. Kota dolduğunda form kapanır.
+- **E-posta doğrulaması** (`require_email_verification`): katılımcı, kaydını e-postasındaki bağlantıyla doğrulamadan geçerli sayılmaz.
+- **Kaydı kapatma** (`registration_closed`): yeni kayıtları anında durdurur.
+
+## Onay akışı
+
+Ödeme/ön eleme gerektiren etkinliklerde kayıtları yönetici onayına takabilirsiniz.
+
+<Steps>
+### Onayı aç
+
+Etkinlik **Ayarlar**'da **Yönetici Kayıt Onay Havuzu** (`requires_approval`) anahtarını açın.
+
+### Kayıtlar beklemeye düşer
+
+Bu andan itibaren yeni her kayıt **`pending` (bekliyor)** durumunda tutulur. Bekleyen bir katılımcı check-in yapamaz ve sertifika alamaz.
+
+### Onayla veya reddet
+
+Etkinlik **Onaylar** sekmesine gidin. Bekleyen kayıtları görür, isterseniz bir **not** (ödeme referansı vb.) ekleyerek **Onayla** veya **Reddet** dersiniz.
+
+### Onaylanan katılımcı aktifleşir
+
+Onaylanan katılımcı artık check-in yapabilir ve sertifikaya hak kazanır.
+</Steps>
+
+<Callout type="warning">
+Onay durumları: `not_required` · `pending` · `approved` · `rejected`. Onay yalnızca `requires_approval` açıkken devreye girer; kapalıyken tüm kayıtlar doğrudan geçerli olur.
+</Callout>
+
+## Toplu içe aktarma
+
+Mevcut bir katılımcı listesini Excel/CSV veya API ile toplu olarak ekleyebilirsiniz. Toplu ekleme, kota ve onay kurallarına tabidir. Ayrıntılar için [API Referansı](/api-reference) ve [CLI](/integrations/cli) sayfalarına bakın.
+
+## Sonraki adımlar
+
+- [QR Check-in →](/guides/check-in)
+- [E-posta & Otomasyon →](/guides/email-and-automation) — kayıt sonrası otomatik karşılama e-postası

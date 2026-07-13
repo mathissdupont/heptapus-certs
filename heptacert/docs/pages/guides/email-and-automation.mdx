@@ -1,0 +1,55 @@
+import { Callout, Steps } from "nextra/components";
+
+# E-posta & Otomasyon
+
+Karşılama e-postaları, hatırlatmalar, sertifika teslimi ve takip mesajlarını elle göndermek yerine **tetikleyici tabanlı otomasyon** ile otomatikleştirin.
+
+## E-posta şablonları
+
+Etkinlik **E-posta** sekmesinde yeniden kullanılabilir şablonlar tanımlarsınız. Şablonlar, katılımcı adı/etkinlik bilgisi gibi değişkenlerle kişiselleştirilir ve otomasyon kuralları ile tetiklenir. Toplu gönderim ve gönderim analitiği (açılma, tıklanma) panelden izlenir.
+
+## Otomasyon kuralları
+
+Bir **otomasyon kuralı** bir *tetikleyici* + bir veya daha fazla *aksiyon*dan oluşur.
+
+### Tetikleyiciler
+
+| Tetikleyici | Ne zaman çalışır |
+|-------------|-------------------|
+| `attended_event` | Katılımcı check-in yaptığında |
+| `registered_no_show` | Kaydolup gelmeyenler için |
+| `certificate_issued` | Sertifika yayımlandığında |
+| `survey_not_completed` | Anketi doldurmayanlar için |
+| `badge_earned` | Rozet kazanıldığında |
+| `audience_segment` | Bir segmente girenler için |
+| `compliance_overdue` | Uyum/CPD gecikmesinde |
+
+### Aksiyonlar
+
+- **`send_email`** — bir şablonu, opsiyonel gecikmeyle (`delay_hours`) gönderir.
+- **`create_reminder`** — belirli bir süre sonra hatırlatma oluşturur.
+- **`webhook_dispatch`** — dış bir sisteme HTTP isteği gönderir (bkz. [Webhooks](/integrations/webhooks)).
+
+<Steps>
+### Kuralı oluştur
+
+Etkinlik **Otomasyon** sekmesinde bir kural ekleyin: bir tetikleyici seçin ve aksiyonlarını tanımlayın.
+
+### Etkinleştir
+
+Kuralı etkinleştirdiğinizde tetikleyici koşulu sağlandıkça aksiyonlar otomatik çalışır. Çalışma sayıları kural üzerinde görünür.
+</Steps>
+
+<Callout type="info">
+**Örnek:** "Check-in sonrası sertifika e-postası" — Tetikleyici `attended_event`, aksiyon `send_email` (sertifika şablonu, `delay_hours: 0`). Katılımcı yoklama verir vermez sertifikası e-postayla gider.
+</Callout>
+
+## Otomasyon mu, Webhook mu?
+
+- **Otomasyon**, HeptaCert *içinde* bir tepki üretir (e-posta gönder, hatırlatma oluştur).
+- **Webhook**, olayı *dış* bir sisteme iletir (kendi backend'iniz, Zapier vb.). İkisi birlikte kullanılabilir: `webhook_dispatch` aksiyonu ya da doğrudan olay abonelikleri. Bkz. [Webhooks](/integrations/webhooks).
+
+## Sonraki adımlar
+
+- [Webhooks →](/integrations/webhooks)
+- Aynı işlemler AI asistanı ile: [`create_automation_rule`, `list_automation_rules`](/integrations/mcp-agent)

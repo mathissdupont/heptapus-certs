@@ -1,0 +1,56 @@
+import { Callout, Steps } from "nextra/components";
+
+# QR Check-in
+
+Check-in, katılımcının etkinliğe (veya belirli bir oturuma) fiziksel/çevrimiçi katılımını kaydeder. Yoklama kayıtları, sertifika uygunluğunun temelini oluşturur.
+
+<Callout type="info">
+Check-in akışları `checkin_enabled` açıkken görünür. Kapalıysa oturumlar, kapı kontrolü ve yoklama matrisi gizlenir.
+</Callout>
+
+## Oturumlar
+
+Bir etkinlik bir veya daha fazla **oturum** (session) içerebilir — örneğin bir konferansın farklı sunumları. Her oturumun başlığı, zamanı, konumu, konuşmacısı ve kapasitesi olabilir. Yoklama oturum bazında alınır.
+
+**Minimum oturum koşulu** (`min_sessions_required`): Katılımcının sertifikaya hak kazanması için katılması gereken en az oturum sayısı. Örneğin 3 oturumlu bir eğitimde bu değer 3 ise, yalnızca üç oturuma da check-in yapan katılımcı sertifika alır.
+
+## Check-in yöntemleri
+
+<Steps>
+### QR ile self check-in
+
+Her katılımcının benzersiz bir QR/check-in bağlantısı vardır (`/attend/{token}`). Kapıdaki bir tarayıcı veya katılımcının kendi telefonu bu kodu okutarak yoklamayı kaydeder.
+
+### Panelden arama (lookup)
+
+**Check-in** sekmesinde katılımcıyı ad veya e-posta ile arayıp (`checkin-lookup`) durumunu görür ve manuel işaretlersiniz.
+
+### Manuel check-in
+
+Belirli bir oturuma, katılımcının e-postasıyla manuel check-in yapabilirsiniz — QR okutulamadığında kullanışlıdır.
+</Steps>
+
+## Yoklama özeti
+
+**Canlı Ops / Check-in** ekranında anlık olarak görürsünüz:
+
+- Toplam kayıtlı ve toplam check-in yapan sayısı
+- Katılım oranı
+- Oturum bazında kırılım
+
+## Kioskları ve kapı kontrolü
+
+Etkinlik günü, giriş noktalarına bir **kiosk** tarayıcı sekmesi açarak sürekli check-in alabilirsiniz. Aynı yoklama verisi tüm cihazlarda anlık senkronize olur.
+
+## Sertifikaya bağlantı
+
+Check-in tamamlandığında (ve `min_sessions_required` koşulu sağlandığında) katılımcı sertifikaya **uygun** hale gelir. Sertifika yayımlamak için bkz. [Sertifikalar](/guides/certificates).
+
+<Callout type="warning">
+`requires_approval` açık bir etkinlikte yalnızca **onaylanmış** katılımcılar check-in yapabilir. Bkz. [Kayıt & Onaylar](/guides/registration-and-approvals).
+</Callout>
+
+## Sonraki adımlar
+
+- [Sertifikalar →](/guides/certificates)
+- Aynı işlemler AI asistanı ile: [`manual_checkin`, `get_attendance_summary`](/integrations/mcp-agent)
