@@ -1,0 +1,97 @@
+import { Callout, Steps, Tabs } from "nextra/components";
+
+# Creating Events
+
+An event is the most fundamental resource in HeptaCert: attendees, sessions, check-in, certificates and automations all belong to an event. This guide covers how to create an event and configure its modules.
+
+## Event types
+
+When you create an event you pick a **type**. The type is only a starting point — it enables a sensible default set of modules; you can toggle each switch afterwards.
+
+| Type | Typical use | Notable defaults |
+|------|-------------|------------------|
+| `certificate_event` | Certified training/event | Certificate + registration + check-in |
+| `seminar` | Seminar, panel | Registration + check-in + certificate |
+| `workshop` | Workshop | + Quiz + CPD |
+| `training` | Corporate training | + Quiz + CPD |
+| `conference` | Conference | + Ticketing + Agenda + CFP + Networking + Live |
+| `concert` | Concert / show | Ticketing (certificate off) |
+| `club_event` | Club event | Gamification (certificate off) |
+| `online_event` | Online event | Agenda (check-in off) |
+| `custom` | Custom | Minimal safe defaults |
+
+<Callout type="info">
+The type choice does **not** retroactively change existing events and never overrides a flag you set explicitly. It only seeds the initial switches at creation time.
+</Callout>
+
+## Creating an event
+
+<Steps>
+### "New Event" from the panel
+
+Go to **Events → New Event**. Enter at least a **name**; date, description and location are optional (and can be added later).
+
+### Pick the type
+
+Choose the event type. The relevant modules turn on automatically; you can change any switch from the **Settings** tab.
+
+### Configure modules
+
+Toggle modules under the event's **Settings → Feature Matrix** (see below).
+</Steps>
+
+## Modules (feature flags)
+
+Every event has independently toggleable modules. When a module is off, its tab and flows are hidden.
+
+| Flag | What it does |
+|------|--------------|
+| `certificate_enabled` | Certificate generation and verification |
+| `checkin_enabled` | QR check-in, sessions, gate control |
+| `registration_enabled` | Public registration form |
+| `ticketing_enabled` | Paid/ticketed entry |
+| `requires_approval` | Hold registrations for admin approval (see [Registration & Approvals](/guides/registration-and-approvals)) |
+| `quiz_enabled` | Quiz module; certificate on pass |
+| `cpd_enabled` | CPD hour logging (accreditation) |
+| `agenda_enabled` | Structured conference agenda |
+| `cfp_enabled` | Call for Papers |
+| `raffles_enabled` | Live raffle |
+| `gamification_enabled` | Badges & gamification |
+
+<Callout type="warning">
+Turning a module off does not delete data; it only hides it in the UI. For example, disabling `certificate_enabled` does not invalidate already-issued certificates.
+</Callout>
+
+## Visibility
+
+- **`private`** (default) — reachable only via link.
+- **`public`** — listed in the public event directory.
+
+## Same action via API / CLI / MCP
+
+<Tabs items={["REST API", "CLI", "MCP"]}>
+  <Tabs.Tab>
+  ```bash
+  curl -X POST https://heptacert.com/api/admin/events \
+    -H "Authorization: Bearer hc_live_..." \
+    -H "Content-Type: application/json" \
+    -d '{"name":"Python Summit 2026","event_type":"conference"}'
+  ```
+  Details: [API Reference](/api-reference).
+  </Tabs.Tab>
+  <Tabs.Tab>
+  ```bash
+  hc events create --name "Python Summit 2026" --type conference
+  ```
+  Details: [CLI](/integrations/cli).
+  </Tabs.Tab>
+  <Tabs.Tab>
+  Just tell an AI assistant: *"Create a conference called Python Summit 2026 on September 15."* The assistant calls the `create_event` tool. See [MCP & AI Agents](/integrations/mcp-agent).
+  </Tabs.Tab>
+</Tabs>
+
+## Next steps
+
+- [Registration & Approvals →](/guides/registration-and-approvals)
+- [QR Check-in →](/guides/check-in)
+- [Certificates →](/guides/certificates)

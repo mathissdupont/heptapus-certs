@@ -1,0 +1,59 @@
+import { Callout, Steps } from "nextra/components";
+
+# Registration & Approvals
+
+Attendees join an event through a public **registration form**. Optionally, you can hold registrations for **admin approval** and enforce a **quota** and **email verification**.
+
+## Registration form
+
+The registration form is configured from the event's **Settings** page. In addition to the default name/email fields you can define **custom fields**:
+
+- **Field types:** text, email, phone, select, checkbox, etc.
+- **Required:** each field can be required or optional.
+- **Conditional requirement:** a field can be required only when another field has a certain value (`required_when`).
+- **Option capacities:** `select` fields can assign a quota to each option (e.g. "Lunch: Vegetarian (50 seats)").
+
+<Callout type="info">
+If `registration_enabled` is off, no external registrations are taken; you add attendees only manually or via import.
+</Callout>
+
+## Quota and email verification
+
+- **Quota** (`registration_quota_enabled` + `registration_quota`): caps the total number of registrations. The form closes when the quota is reached.
+- **Email verification** (`require_email_verification`): an attendee isn't counted valid until they verify via the email link.
+- **Close registration** (`registration_closed`): stops new registrations instantly.
+
+## Approval flow
+
+For events requiring payment/pre-screening you can hold registrations for admin approval.
+
+<Steps>
+### Enable approval
+
+In the event **Settings**, turn on **Admin Approval Queue** (`requires_approval`).
+
+### Registrations become pending
+
+From then on every new registration is held in the **`pending`** state. A pending attendee cannot check in or receive a certificate.
+
+### Approve or reject
+
+Go to the event **Approvals** tab. Review pending registrations and, optionally adding a **note** (payment reference, etc.), click **Approve** or **Reject**.
+
+### Approved attendee activates
+
+An approved attendee can now check in and is eligible for a certificate.
+</Steps>
+
+<Callout type="warning">
+Approval states: `not_required` · `pending` · `approved` · `rejected`. Approval only applies when `requires_approval` is on; when off, all registrations are valid immediately.
+</Callout>
+
+## Bulk import
+
+You can add an existing attendee list in bulk via Excel/CSV or the API. Bulk import respects quota and approval rules. See the [API Reference](/api-reference) and [CLI](/integrations/cli).
+
+## Next steps
+
+- [QR Check-in →](/guides/check-in)
+- [Email & Automation →](/guides/email-and-automation) — automatic welcome email after registration

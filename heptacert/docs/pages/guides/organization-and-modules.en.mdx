@@ -1,0 +1,39 @@
+import { Callout } from "nextra/components";
+
+# Organization & Modules
+
+HeptaCert lets you turn **modules** on and off to match your organization's needs, so the interface stays lean — limited to the capabilities you actually use.
+
+## Organization modules
+
+Modules are toggled from **Settings → Modules**. When a module is off, its section in the main menu is hidden.
+
+| Module | What it enables |
+|--------|-----------------|
+| **Events** | Event, attendee, check-in, certificate management |
+| **Accreditation** | CPD hour logging and accreditation/compliance reports |
+| **Presentations** | AI-assisted deck creation and PowerPoint export (under events) |
+| **CRM** | Contacts, company accounts, sequences and sales pipeline |
+
+<Callout type="info">
+Module switches are organization-wide. Per-event **feature flags** (certificate, check-in, quiz…) are separate and set per event — see [Creating Events](/guides/creating-events).
+</Callout>
+
+## Organization type
+
+During initial setup (onboarding) you pick an **organization type** (e.g. event organizer, professional association). The type seeds the initial module set; you can change each module afterwards. The type choice is only an initial default, not a permanent constraint.
+
+## Team & roles
+
+You can add team members to an event with different permission levels (manager, check-in staff, certificate staff, email staff, analytics, viewer). Each role can only perform its relevant actions. Managed from the event **Team** tab.
+
+Roles map to these permissions: `event:view`, `team:manage`, `attendees:read/write`, `checkin:write`, `certificates:write`, `email:write`, `analytics:read`, `settings:write`.
+
+## White-label
+
+On enterprise plans you can offer a white-label experience with your own domain and branding (logo, color). Domain verification and branding settings are managed from organization settings.
+
+## Next steps
+
+- [Core Concepts →](/getting-started/concepts)
+- [CRM & Sales →](/guides/crm-and-sales)

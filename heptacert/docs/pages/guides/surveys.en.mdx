@@ -1,0 +1,22 @@
+import { Callout } from "nextra/components";
+
+# Surveys
+
+Collect attendee feedback with pre/post-event **surveys**. Survey responses merge into analytics and can trigger badges/automation.
+
+## Configuring a survey
+
+You define a survey on the event and add its questions (multiple choice, scale, open-ended, etc.). The survey can be mandatory or optional.
+
+## Collecting and viewing responses
+
+Attendees fill the survey via the attendee portal or a shared link. You review responses in the event **Surveys** view, per respondent or in aggregate.
+
+## Integration with badges and automation
+
+- Attendees who complete the survey can be awarded a **badge** (see [Raffles & Gamification](/guides/raffles-and-gamification)).
+- With the **`survey_not_completed`** trigger you can send an automatic reminder to those who haven't filled it (see [Email & Automation](/guides/email-and-automation)).
+
+<Callout>
+Survey responses are accessed via API/MCP with the `analytics:read`/`events:read` scope (`get_survey_responses`). See [MCP & AI Agents](/integrations/mcp-agent).
+</Callout>

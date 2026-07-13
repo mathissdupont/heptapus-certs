@@ -1,0 +1,55 @@
+import { Callout, Steps } from "nextra/components";
+
+# Email & Automation
+
+Instead of manually sending welcome emails, reminders, certificate delivery and follow-ups, automate them with **trigger-based automation**.
+
+## Email templates
+
+On the event **Email** tab you define reusable templates. Templates are personalized with variables like attendee name/event info and fired by automation rules. Bulk sending and delivery analytics (opens, clicks) are tracked from the panel.
+
+## Automation rules
+
+An **automation rule** consists of a *trigger* plus one or more *actions*.
+
+### Triggers
+
+| Trigger | Fires when |
+|---------|------------|
+| `attended_event` | An attendee checks in |
+| `registered_no_show` | For those who registered but didn't attend |
+| `certificate_issued` | A certificate is issued |
+| `survey_not_completed` | For those who didn't fill the survey |
+| `badge_earned` | A badge is earned |
+| `audience_segment` | For those entering a segment |
+| `compliance_overdue` | On compliance/CPD overdue |
+
+### Actions
+
+- **`send_email`** — sends a template, with optional delay (`delay_hours`).
+- **`create_reminder`** — creates a reminder after a set time.
+- **`webhook_dispatch`** — sends an HTTP request to an external system (see [Webhooks](/integrations/webhooks)).
+
+<Steps>
+### Create the rule
+
+On the event **Automation** tab, add a rule: pick a trigger and define its actions.
+
+### Enable
+
+When you enable the rule, actions run automatically whenever the trigger condition is met. Run counts appear on the rule.
+</Steps>
+
+<Callout type="info">
+**Example:** "Certificate email after check-in" — trigger `attended_event`, action `send_email` (certificate template, `delay_hours: 0`). As soon as the attendee checks in, their certificate is emailed.
+</Callout>
+
+## Automation vs. webhook?
+
+- **Automation** produces a reaction *inside* HeptaCert (send email, create reminder).
+- **Webhook** relays the event to an *external* system (your backend, Zapier, etc.). They can be used together: via the `webhook_dispatch` action or direct event subscriptions. See [Webhooks](/integrations/webhooks).
+
+## Next steps
+
+- [Webhooks →](/integrations/webhooks)
+- Same actions via AI assistant: [`create_automation_rule`, `list_automation_rules`](/integrations/mcp-agent)

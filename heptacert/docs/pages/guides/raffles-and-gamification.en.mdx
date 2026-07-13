@@ -1,0 +1,24 @@
+import { Callout } from "nextra/components";
+
+# Raffles & Gamification
+
+Boost engagement with **live raffles** and **gamification (badges)**. Both are enabled per event, independently.
+
+## Live raffle
+
+With `raffles_enabled` on, you define a **raffle** and run it live on stage/screen. The raffle can be tied to attendance conditions — for example, only attendees who **checked in** enter the pool. Winner(s) are chosen randomly and transparently; the presentation mode suits a big screen.
+
+<Callout type="info">
+Raffle eligibility relies on check-in data — setting up the [QR Check-in](/guides/check-in) flow makes the raffle meaningful.
+</Callout>
+
+## Gamification & badges
+
+With `gamification_enabled` on, attendees earn **digital badges** as they complete the tasks you define (attending a session, filling a survey, etc.). Badges appear on the attendee profile and can trigger automation (**`badge_earned`**).
+
+## Integration with automation
+
+- Send an automatic email/congratulation on a badge earn (the **`badge_earned`** trigger).
+- Build chains like survey completion → badge → raffle eligibility.
+
+See [Email & Automation](/guides/email-and-automation) and [Surveys](/guides/surveys).

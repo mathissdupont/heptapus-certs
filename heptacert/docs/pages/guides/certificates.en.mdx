@@ -1,0 +1,62 @@
+import { Callout, Steps } from "nextra/components";
+
+# Certificates
+
+HeptaCert's core: producing **verifiable** digital certificates when an attendance/achievement rule is met. This guide covers templates, tiers, issuing, verification and revocation.
+
+<Callout type="info">
+Certificate flows appear when `certificate_enabled` is on.
+</Callout>
+
+## Templates
+
+A **certificate template** defines the background image and the position of fields placed on it:
+
+- Recipient name position, font size/color/alignment
+- QR code position and size (for verification)
+- Certificate ID position
+- Security elements like hologram/watermark
+
+HeptaCert ships with a few ready templates (Minimalist, Professional, Colorful) and you can upload your own. You edit the template from the event's **Editor** tab.
+
+## Tiers
+
+Certificate **tiers** let you award different certificates by attendance threshold — e.g. "Attendance" (50%+ of sessions) and "Achievement" (90%+). Each tier has a threshold and a name; an attendee receives the tier matching their threshold.
+
+## Issuing certificates
+
+<Steps>
+### Verify eligibility
+
+Make sure attendees meet the check-in rule (`min_sessions_required`). See [QR Check-in](/guides/check-in).
+
+### Issue
+
+From the event **Certificates** tab, issue certificates to **all eligible attendees** or selected people. Issuing produces a PDF for each attendee and assigns a unique verification ID.
+
+### Deliver
+
+Send certificates automatically by email (see [Email & Automation](/guides/email-and-automation)) or let the attendee download from their verification link.
+</Steps>
+
+<Callout type="warning">
+**Bulk generation** runs as an asynchronous **job**; for large lists, generation completes in the background. You can track the job status from the panel or API.
+</Callout>
+
+## Verification
+
+Each certificate has a public verification page: `heptacert.com/c/{public_id}`. This page shows the certificate's **valid/revoked** status and the attendee/event details. The QR code also points here — so third parties can verify authenticity.
+
+## Revocation
+
+When you revoke a certificate, the PDF link becomes inaccessible and the verification page is marked "revoked". Revocation is **irreversible**.
+
+## Same actions via API / CLI / MCP
+
+- REST: `POST /api/admin/events/{id}/certificates` (issue), `POST /api/admin/certificates/{id}/revoke` (revoke). See [API Reference](/api-reference).
+- MCP tools: `issue_certificates`, `revoke_certificate`, `list_certificates`, `get_certificate_by_public_id`. See [MCP & AI Agents](/integrations/mcp-agent).
+
+## Next steps
+
+- [Email & Automation →](/guides/email-and-automation)
+- [Authentication & Scopes →](/api-reference/authentication) — the `certificates:write` scope

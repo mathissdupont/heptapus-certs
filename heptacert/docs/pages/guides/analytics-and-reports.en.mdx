@@ -1,0 +1,32 @@
+import { Callout } from "nextra/components";
+
+# Analytics & Reports
+
+Measure your events' performance: registration trend, attendance rate, certificate output, email engagement and per-session breakdowns.
+
+## Event analytics
+
+Each event's **Analytics** view includes:
+
+- **Registration trend** — registrations over time
+- **Check-in timeline** — entry intensity
+- **Certificate stats** — issued/revoked certificates
+- **Email performance** — send, open, click rates
+- **Session attendance breakdown** — attendance per session
+
+## Organization-wide analytics
+
+Under **Analytics & Reports → Analytics** you see top-level metrics across all events — total attendees, average attendance per event, period comparisons.
+
+## Reports
+
+From the **Reports** section you can produce PDF/data exports and define scheduled reports. Reports are accessed via API/MCP with the `reports:read` / `analytics:read` scope.
+
+<Callout>
+You can ask an AI assistant *"which event had the highest attendance today?"* — the assistant calls the `get_event_analytics` / `get_attendance_summary` tools (see [MCP & AI Agents](/integrations/mcp-agent)).
+</Callout>
+
+## Next steps
+
+- [Accreditation & CPD →](/guides/accreditation-cpd)
+- [API Reference →](/api-reference)

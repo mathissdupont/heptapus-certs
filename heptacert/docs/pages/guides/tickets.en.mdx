@@ -1,0 +1,32 @@
+import { Callout } from "nextra/components";
+
+# Ticketing
+
+For paid or capacity-limited events, issue attendees a **digital entry ticket**. Ticketing integrates with the registration and check-in flows.
+
+<Callout type="info">
+Ticketing is enabled with the `ticketing_enabled` flag in the event **Settings**. Types like concert/show enable it by default.
+</Callout>
+
+## How it works
+
+- With ticketing on, each new registration generates a **wallet-compatible, unique QR entry pass**.
+- The attendee accesses the ticket from their email or the attendee portal.
+- On event day this QR is scanned in the [check-in](/guides/check-in) flow to validate entry.
+
+## Ticket types and capacity
+
+You can define different ticket types (e.g. Standard, VIP, Student) with a quota per type. Capacity can also be managed via option-level capacities on `select` fields in the registration form (see [Registration & Approvals](/guides/registration-and-approvals)).
+
+## Payments
+
+For paid tickets a payment flow kicks in; completed payments are tracked under **Platform → Payments**. When a payment completes, the `payment.completed` webhook event can fire (see [Webhooks](/integrations/webhooks)).
+
+<Callout type="warning">
+When tickets + approval are used together: with `requires_approval` on, an attendee isn't counted valid until approved. You can match payment confirmation to this flow.
+</Callout>
+
+## Next steps
+
+- [QR Check-in →](/guides/check-in)
+- [Analytics & Reports →](/guides/analytics-and-reports)

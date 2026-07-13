@@ -1,0 +1,29 @@
+import { Callout, Cards } from "nextra/components";
+
+# Guides
+
+Task-oriented, end-to-end walkthroughs. Each guide covers a real job — creating an event, approving attendees, issuing certificates — from start to finish. For conceptual background see [Core Concepts](/getting-started/concepts); for the full endpoint list see the [API Reference](/api-reference).
+
+<Callout>
+These guides are written around the **HeptaCert admin dashboard**. Everything here can also be done via the [REST API](/api-reference), [CLI](/integrations/cli) and [MCP / AI agent](/integrations/mcp-agent) — whichever path you pick, the data model and permissions are identical.
+</Callout>
+
+## Guides in this section
+
+<Cards>
+  <Cards.Card title="Creating Events" href="/guides/creating-events" />
+  <Cards.Card title="Registration & Approvals" href="/guides/registration-and-approvals" />
+  <Cards.Card title="QR Check-in" href="/guides/check-in" />
+  <Cards.Card title="Certificates" href="/guides/certificates" />
+  <Cards.Card title="Email & Automation" href="/guides/email-and-automation" />
+</Cards>
+
+## Typical flow
+
+Most organizers follow this order:
+
+1. **Create the event** and enable the modules its type needs (certificates, check-in, registration).
+2. Configure the **registration form**; enable the **approval** flow if needed.
+3. On event day, take attendance with **QR check-in**.
+4. Once the attendance rule is met, **issue certificates** and make them verifiable.
+5. Use **email automation** to automate reminders, certificate delivery and follow-ups.

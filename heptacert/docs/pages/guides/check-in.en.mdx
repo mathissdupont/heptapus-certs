@@ -1,0 +1,56 @@
+import { Callout, Steps } from "nextra/components";
+
+# QR Check-in
+
+Check-in records an attendee's physical/online presence at an event (or a specific session). Attendance records are the basis of certificate eligibility.
+
+<Callout type="info">
+Check-in flows appear when `checkin_enabled` is on. When off, sessions, gate control and the attendance matrix are hidden.
+</Callout>
+
+## Sessions
+
+An event can contain one or more **sessions** — e.g. the different talks of a conference. Each session can have a title, time, location, speaker and capacity. Attendance is taken per session.
+
+**Minimum session requirement** (`min_sessions_required`): the least number of sessions an attendee must attend to be eligible for a certificate. For example, in a 3-session training with this set to 3, only an attendee who checked in to all three sessions gets a certificate.
+
+## Check-in methods
+
+<Steps>
+### QR self check-in
+
+Every attendee has a unique QR/check-in link (`/attend/{token}`). A scanner at the gate or the attendee's own phone records attendance by reading this code.
+
+### Panel lookup
+
+On the **Check-in** tab you search the attendee by name or email (`checkin-lookup`), see their status and mark them manually.
+
+### Manual check-in
+
+You can manually check an attendee into a specific session by their email — handy when a QR can't be scanned.
+</Steps>
+
+## Attendance summary
+
+On the **Live Ops / Check-in** screen you see in real time:
+
+- Total registered and total checked-in
+- Attendance rate
+- Per-session breakdown
+
+## Kiosks and gate control
+
+On event day, open a **kiosk** browser tab at entry points for continuous check-in. The same attendance data syncs instantly across all devices.
+
+## Link to certificates
+
+Once check-in is complete (and the `min_sessions_required` rule is met), the attendee becomes **eligible** for a certificate. To issue certificates, see [Certificates](/guides/certificates).
+
+<Callout type="warning">
+On an event with `requires_approval` on, only **approved** attendees can check in. See [Registration & Approvals](/guides/registration-and-approvals).
+</Callout>
+
+## Next steps
+
+- [Certificates →](/guides/certificates)
+- Same actions via AI assistant: [`manual_checkin`, `get_attendance_summary`](/integrations/mcp-agent)

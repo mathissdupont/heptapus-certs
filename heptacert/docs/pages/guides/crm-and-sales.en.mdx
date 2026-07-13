@@ -1,0 +1,37 @@
+import { Callout } from "nextra/components";
+
+# CRM & Sales
+
+HeptaCert includes an event-independent **contact/company (CRM) layer** and a lightweight **sales** toolkit: contacts, company accounts, sequence automation, a sales pipeline and lead forms.
+
+<Callout type="info">
+CRM is a **toggleable organization module**. If you don't see it, enable it under **Settings → Modules**. See [Organization & Modules](/guides/organization-and-modules).
+</Callout>
+
+## Contacts (Participant CRM)
+
+Contacts are a unified view of attendees across all events. You see which events a person attended, their certificates and interaction history in one place. You can search contacts by name/email and track their cross-event history.
+
+## Company accounts
+
+By grouping contacts under **company accounts** you manage corporate relationships — how many people attended from a company, company-level opportunities, etc.
+
+## Sequences
+
+**Sequences** are workflows that reach a contact automatically with scheduled steps (e.g. an email series) — for follow-up and nurture scenarios.
+
+## Sales pipeline
+
+The **pipeline** is the view where you track opportunities by stage (e.g. First contact → Proposal → Won). You manage sales opportunities arising from event attendees here.
+
+## Lead forms
+
+**Lead forms** collect prospects independently of event registration. Captured leads land in the CRM and can be processed with sequences/pipeline.
+
+## Permissions (API/MCP)
+
+CRM operations are authorized over REST/MCP with the `crm:read` / `crm:write` scopes; lead forms with `forms:read` / `forms:write`. See [Authentication](/api-reference/authentication).
+
+<Callout>
+You can tell an AI assistant *"pull the history of ahmet@example.com"* — the assistant calls the `search_attendees_across_events` tool (see [MCP & AI Agents](/integrations/mcp-agent)).
+</Callout>
