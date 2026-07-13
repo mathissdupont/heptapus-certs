@@ -1,0 +1,26 @@
+import { Callout } from "nextra/components";
+
+# Akreditasyon & CPD
+
+Mesleki gelişim (CPD) saatlerini otomatik kaydedin ve akreditasyon/uyum raporları üretin. **Akreditasyon** bir organizasyon modülüdür.
+
+<Callout type="info">
+Modül görünmüyorsa **Ayarlar → Modüller → Akreditasyon**'u açın. Etkinlik bazında ise CPD, `cpd_enabled` anahtarıyla kontrol edilir. Bkz. [Organizasyon & Modüller](/guides/organization-and-modules).
+</Callout>
+
+## CPD saati kaydı
+
+`cpd_enabled` açık bir etkinlikte, portal üyesi bir katılımcıya **sertifika verildiğinde** ilgili CPD saati otomatik olarak profiline eklenir. Böylece katılımcılar mesleki gelişim kayıtlarını tek yerde biriktirir.
+
+## Akreditasyon kurumları
+
+MYK, SMMM, TMMOB gibi akreditasyon kurumlarına yönelik CPD saatlerini izler ve raporlarsınız. Etkinlik/kurs bazında kredi tanımlayıp toplulaştırılmış raporlar üretebilirsiniz.
+
+## Uyum takibi
+
+Zorunlu eğitim/yenileme gereksinimlerini izleyip gecikmeleri yakalayabilirsiniz. **`compliance_overdue`** tetikleyicisiyle gecikenlere otomatik hatırlatma gönderilir (bkz. [E-posta & Otomasyon](/guides/email-and-automation)).
+
+## Sonraki adımlar
+
+- [Sertifikalar →](/guides/certificates)
+- [Analitik & Raporlar →](/guides/analytics-and-reports)
