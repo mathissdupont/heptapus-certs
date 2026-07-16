@@ -1317,6 +1317,13 @@ class Attendee(Base):
     approved_by:          Mapped[Optional[int]]         = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     approved_at:          Mapped[Optional[datetime]]    = mapped_column(DateTime(timezone=True), nullable=True)
     approval_note:        Mapped[Optional[str]]         = mapped_column(String(500), nullable=True)
+    # KVKK data retention / anonymization (WP28, migration 111). anonymize_after is the
+    # resolved disposal date (relative mode: registered_at + retention days; fixed mode:
+    # the configured date); anonymized_at is set once the pii-marked fields have been
+    # irreversibly disposed and acts as the idempotency guard. Both NULL = feature off /
+    # not yet due / already handled.
+    anonymize_after:      Mapped[Optional[datetime]]    = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    anonymized_at:        Mapped[Optional[datetime]]    = mapped_column(DateTime(timezone=True), nullable=True)
 
     event: Mapped["Event"] = relationship(back_populates="attendees")
     public_member: Mapped[Optional["PublicMember"]] = relationship(back_populates="attendees")
@@ -1326,6 +1333,27 @@ class Attendee(Base):
     __table_args__ = (
         UniqueConstraint("event_id", "email", name="uq_attendee_event_email"),
     )
+
+
+class AnonymizationLog(Base):
+    """Immutable, PII-free audit trail for KVKK data anonymization (WP28).
+
+    One row per attendee disposal. Deliberately decoupled from attendees/events
+    (plain integer ids, no ForeignKey) so the record survives attendee/event
+    deletion and can never be cascade-removed — it is the accountability proof that
+    disposal happened. It records WHICH field ids were disposed and WHEN, and never
+    stores the original values.
+    """
+    __tablename__ = "anonymization_log"
+
+    id:              Mapped[int]                = mapped_column(Integer, primary_key=True, autoincrement=True)
+    attendee_id:     Mapped[int]                = mapped_column(Integer, index=True)
+    event_id:        Mapped[Optional[int]]      = mapped_column(Integer, index=True, nullable=True)
+    organization_id: Mapped[Optional[int]]      = mapped_column(Integer, index=True, nullable=True)
+    field_ids:       Mapped[Optional[list]]     = mapped_column(JSONB, nullable=True)
+    method:          Mapped[str]                = mapped_column(String(32), default="key_removal")
+    trigger:         Mapped[str]                = mapped_column(String(24), default="auto")
+    created_at:      Mapped[datetime]           = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class EventTicket(Base):
