@@ -3276,6 +3276,14 @@ async def startup():
                 except Exception as mail_exc:
                     logger.warning("Anonymization approval email failed for %s: %s", admin_email, mail_exc)
 
+        async def _process_scheduled_reports():
+            """Run due scheduled reports (report_scheduler had no executor — none ever ran)."""
+            try:
+                from .report_runner import run_due_scheduled_reports
+                await run_due_scheduled_reports()
+            except Exception as exc:
+                logger.warning("Scheduled report job failed: %s", exc)
+
         if settings.enable_scheduler:
             scheduler.add_job(_notify_expiring_certs, "cron", hour=2, minute=0)
             scheduler.add_job(_auto_renew_certificates, "interval", hours=1)
@@ -3290,6 +3298,7 @@ async def startup():
             scheduler.add_job(_auto_calculate_badges, "interval", minutes=30)
             scheduler.add_job(_notify_lms_due_dates, "cron", hour=7, minute=0)
             scheduler.add_job(_anonymize_expired_attendee_data, "cron", hour=3, minute=45)
+            scheduler.add_job(_process_scheduled_reports, "interval", minutes=15)
             scheduler.start()
             logger.info("APScheduler started Ã¢â‚¬â€ cert notifications + monthly HC renewal + system digest + bulk email processing + bulk certificate queue")
         else:
