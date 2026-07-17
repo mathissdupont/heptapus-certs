@@ -1,6 +1,6 @@
 # WP28 — Data Retention & Anonymization (KVKK)
 
-**Phase:** 5 — Planned (compliance & data governance) · **Status:** 📐 Planned · **Related ADRs:** [0017](../adr/0017-per-event-feature-toggles-two-layer-gate.md), [0013](../adr/0013-background-jobs-and-workers.md) · **Proposes:** ADR-0022 (irreversible anonymization & retention policy)
+**Phase:** 5 — Compliance & data governance · **Status:** 🔄 Phase A + B shipped · Phase C pending · **Related ADRs:** [0017](../adr/0017-per-event-feature-toggles-two-layer-gate.md), [0013](../adr/0013-background-jobs-and-workers.md) · **Proposes:** ADR-0022 (irreversible anonymization & retention policy)
 
 ## Objective
 Let each organization declare which registration fields are personal data, set a
@@ -147,11 +147,16 @@ WP11 (plan gating), WP16 (KVKK/compliance baseline). Infra: ADR-0013 (APSchedule
 ADR-0017 (two-layer gate). Proposes ADR-0022 (irreversible anonymization & retention).
 
 ## Phasing
-- **Phase A — Core engine (name/email excluded):** migration 111, `pii` flag +
-  validation, retention policy storage + `anonymize_after` materialization,
-  `anonymization_service.py` + daily sweep, audit log, emails. Independently shippable.
-- **Phase B — Admin UI:** form-builder PII checkbox, event retention settings,
-  org-default, approval screen; two-layer gate surface.
-- **Phase C — Scope extension (higher risk, isolated):** fulfil the member-deletion
-  30-day purge via the engine; verify the certificate frozen-name path so an opt-in
-  `name`/`email` disposal cannot break certificate rendering/verification.
+- **Phase A — Core engine (name/email excluded): ✅ shipped** (`5bec968`) — migration
+  111, `pii` flag + validation, retention policy storage + `anonymize_after`
+  materialization, `anonymization_service.py` + daily sweep, audit log, emails.
+- **Phase B — Admin UI: ✅ shipped** (`5857cb7`) — form-builder PII checkbox, per-event
+  retention settings + inline approval UI (`RetentionPolicySection`), org-default editor
+  (`OrgRetentionDefault`) in the compliance tab, shared `RetentionPolicyFields`,
+  catalog-first i18n (tr/en). Backend approval endpoints (`anonymization-status`,
+  `anonymization-approve`) + `anonymize_event_pending` + org `retention_default`.
+- **Phase C — Scope extension (higher risk, isolated): 📐 pending** — fulfil the
+  member-deletion 30-day purge via the engine; verify the certificate frozen-name path so
+  an opt-in `name`/`email` disposal cannot break certificate rendering/verification;
+  physical deletion of files referenced by `__documents` for pii-marked file fields.
+  Also deferred: pre-warning emails (`notify_before_days` is stored but not yet used).
