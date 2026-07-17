@@ -1,6 +1,6 @@
 # WP28 — Data Retention & Anonymization (KVKK)
 
-**Phase:** 5 — Compliance & data governance · **Status:** 🔄 Phase A + B shipped · Phase C pending · **Related ADRs:** [0017](../adr/0017-per-event-feature-toggles-two-layer-gate.md), [0013](../adr/0013-background-jobs-and-workers.md) · **Proposes:** ADR-0022 (irreversible anonymization & retention policy)
+**Phase:** 5 — Compliance & data governance · **Status:** ✅ Phase A–C shipped (deploy pending) · **Related ADRs:** [0017](../adr/0017-per-event-feature-toggles-two-layer-gate.md), [0013](../adr/0013-background-jobs-and-workers.md) · **Proposes:** ADR-0022 (irreversible anonymization & retention policy)
 
 ## Objective
 Let each organization declare which registration fields are personal data, set a
@@ -155,8 +155,14 @@ ADR-0017 (two-layer gate). Proposes ADR-0022 (irreversible anonymization & reten
   (`OrgRetentionDefault`) in the compliance tab, shared `RetentionPolicyFields`,
   catalog-first i18n (tr/en). Backend approval endpoints (`anonymization-status`,
   `anonymization-approve`) + `anonymize_event_pending` + org `retention_default`.
-- **Phase C — Scope extension (higher risk, isolated): 📐 pending** — fulfil the
-  member-deletion 30-day purge via the engine; verify the certificate frozen-name path so
-  an opt-in `name`/`email` disposal cannot break certificate rendering/verification;
-  physical deletion of files referenced by `__documents` for pii-marked file fields.
-  Also deferred: pre-warning emails (`notify_before_days` is stored but not yet used).
+- **Phase C — Scope extension: ✅ shipped** (`<pending>`) — member-deletion 30-day purge
+  (`purge_deleted_members`, migration 112 adds `public_members.purged_at`) that erases a
+  deleted member's remaining PII (email) and fully anonymizes their attendee rows across
+  all events (`erase_all`); physical deletion of `__documents` files for disposed file
+  fields; pre-warning emails N days before disposal (`send_pre_warnings`, deduped via a
+  `__anon_warned_at` marker). Certificate frozen-name path **verified**: certificates keep
+  their own `Certificate.student_name` snapshot and pre-rendered PDF, so anonymizing an
+  attendee (even opt-in `name`/`email`) does not affect certificate validity — no code
+  change needed there.
+- **Known minor gap:** disposal/warning emails route to the event admin; the policy's
+  `notify_email` override is stored but not yet used for routing.

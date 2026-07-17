@@ -27,14 +27,16 @@ Design notes:
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .config import settings
 from .db import SessionLocal
-from .models import Attendee, Event, User, Organization, AnonymizationLog
+from .models import Attendee, Event, User, Organization, PublicMember, AnonymizationLog
 from .services import _get_event_retention_policy, _resolve_anonymize_after
 
 logger = logging.getLogger(__name__)
@@ -64,6 +66,37 @@ def _collect_pii_field_ids(event: Event) -> List[str]:
     return ids
 
 
+def _safe_unlink(rel_path: Any) -> None:
+    """Delete a stored registration document, guarding against path traversal."""
+    if not rel_path:
+        return
+    try:
+        root = Path(settings.local_storage_dir).resolve()
+        target = (root / str(rel_path)).resolve()
+        if target.is_relative_to(root) and target.is_file():
+            target.unlink()
+    except Exception:
+        logger.warning("Anonymization: could not delete document file %s", rel_path)
+
+
+def _delete_disposed_documents(answers: Dict[str, Any], disposed: List[str]) -> None:
+    """Physically remove uploaded files for disposed file fields and prune __documents."""
+    docs = answers.get("__documents")
+    if not isinstance(docs, list) or not docs:
+        return
+    disposed_set = set(disposed)
+    remaining: List[Any] = []
+    for doc in docs:
+        if isinstance(doc, dict) and str(doc.get("field_id") or "") in disposed_set:
+            _safe_unlink(doc.get("path"))
+        else:
+            remaining.append(doc)
+    if remaining:
+        answers["__documents"] = remaining
+    else:
+        answers.pop("__documents", None)
+
+
 async def anonymize_attendee(
     db: AsyncSession,
     attendee: Attendee,
@@ -71,6 +104,7 @@ async def anonymize_attendee(
     *,
     trigger: str = "auto",
     include_name_email: bool = False,
+    erase_all: bool = False,
     organization_id: Optional[int] = None,
     commit: bool = False,
 ) -> Optional[List[str]]:
@@ -92,10 +126,21 @@ async def anonymize_attendee(
     answers: Dict[str, Any] = dict(attendee.registration_answers or {})
     disposed: List[str] = []
 
-    for fid in _collect_pii_field_ids(event):
+    if erase_all:
+        # Right-to-erasure (member deletion): dispose every answer, not just pii-marked
+        # ones, and force name/email disposal. Reserved system keys (__...) stay intact.
+        target_ids = [key for key in answers.keys() if not key.startswith("__")]
+        include_name_email = True
+    else:
+        target_ids = _collect_pii_field_ids(event)
+
+    for fid in target_ids:
         if fid in answers:
             answers.pop(fid, None)
             disposed.append(fid)
+
+    # Physically delete uploaded files behind any disposed file-type field.
+    _delete_disposed_documents(answers, disposed)
 
     if include_name_email:
         # name/email are NOT NULL columns (email also unique per event), so we overwrite
@@ -374,3 +419,140 @@ async def anonymize_event_pending(
     if commit:
         await db.commit()
     return disposed
+
+
+PRE_WARNING_MARKER_KEY = "__anon_warned_at"
+
+
+async def send_pre_warnings(
+    db: Optional[AsyncSession] = None,
+    *,
+    now: Optional[datetime] = None,
+) -> Dict[str, Any]:
+    """Flag attendees approaching irreversible disposal so admins can be pre-warned.
+
+    Scans attendees whose anonymize_after falls within their event's notify_before_days
+    window (and are not yet warned or anonymized), stamps a __anon_warned_at marker for
+    dedup, and returns a by-admin summary the caller emails. Applies to both triggers.
+    """
+    owns_session = db is None
+    if db is None:
+        db = SessionLocal()
+    now = now or datetime.now(timezone.utc)
+    max_window = 365  # widest possible notify_before_days; narrowed per policy below
+    warned_by_admin: Dict[str, Dict[str, Any]] = {}
+    try:
+        res = await db.execute(
+            select(Attendee, Event, User)
+            .join(Event, Attendee.event_id == Event.id)
+            .join(User, Event.admin_id == User.id)
+            .where(
+                Attendee.anonymize_after.is_not(None),
+                Attendee.anonymized_at.is_(None),
+                Attendee.anonymize_after > now,
+                Attendee.anonymize_after <= now + timedelta(days=max_window),
+            )
+            .order_by(Attendee.event_id)
+        )
+        rows = res.all()
+        org_cache: Dict[int, Optional[Organization]] = {}
+        policy_cache: Dict[int, Optional[Dict[str, Any]]] = {}
+        for attendee, event, admin in rows:
+            answers = attendee.registration_answers or {}
+            if answers.get(PRE_WARNING_MARKER_KEY):
+                continue
+            if event.id not in policy_cache:
+                org = await _resolve_org(db, event.admin_id, org_cache)
+                policy_cache[event.id] = _get_event_retention_policy(event, org.settings if org else None)
+            policy = policy_cache[event.id]
+            if not policy:
+                continue
+            lead = int(policy.get("notify_before_days") or 0)
+            if lead <= 0:
+                continue  # no pre-warning configured
+            due_at = attendee.anonymize_after
+            if due_at.tzinfo is None:  # SQLite returns naive datetimes; Postgres is aware
+                due_at = due_at.replace(tzinfo=timezone.utc)
+            if due_at > now + timedelta(days=lead):
+                continue  # not yet within the warning window
+            updated = dict(answers)
+            updated[PRE_WARNING_MARKER_KEY] = now.isoformat()
+            attendee.registration_answers = updated
+            entry = warned_by_admin.setdefault(admin.email, {"count": 0, "events": {}})
+            entry["count"] += 1
+            ev = entry["events"].setdefault(event.id, {"name": event.name, "count": 0})
+            ev["count"] += 1
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        logger.exception("Anonymization pre-warning scan failed")
+        raise
+    finally:
+        if owns_session:
+            await db.close()
+    return {"warned_by_admin": warned_by_admin}
+
+
+async def purge_deleted_members(
+    db: Optional[AsyncSession] = None,
+    *,
+    now: Optional[datetime] = None,
+    purge_after_days: int = 30,
+) -> int:
+    """Complete the post-deletion PII purge promised to members who deleted their account.
+
+    For each PublicMember whose deleted_at matured (>= purge_after_days ago) and has not
+    been purged: irreversibly erase their attendee data across all events (erase_all) and
+    scrub their remaining account PII (email -> sentinel, interests cleared), then stamp
+    purged_at. Certificates keep their frozen student_name and stay verifiable. Idempotent
+    via purged_at. Returns the number of members purged.
+    """
+    owns_session = db is None
+    if db is None:
+        db = SessionLocal()
+    now = now or datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=purge_after_days)
+    purged = 0
+    try:
+        res = await db.execute(
+            select(PublicMember).where(
+                PublicMember.deleted_at.is_not(None),
+                PublicMember.deleted_at <= cutoff,
+                PublicMember.purged_at.is_(None),
+            )
+        )
+        members = res.scalars().all()
+        org_cache: Dict[int, Optional[Organization]] = {}
+        for member in members:
+            att_res = await db.execute(
+                select(Attendee, Event)
+                .join(Event, Attendee.event_id == Event.id)
+                .where(Attendee.public_member_id == member.id, Attendee.anonymized_at.is_(None))
+            )
+            for attendee, event in att_res.all():
+                org = await _resolve_org(db, event.admin_id, org_cache)
+                await anonymize_attendee(
+                    db,
+                    attendee,
+                    event,
+                    trigger="member_deletion",
+                    erase_all=True,
+                    organization_id=(org.id if org else None),
+                    commit=False,
+                )
+            # The delete endpoint scrubbed profile fields but left email intact; finish it.
+            member.email = f"deleted-{member.id}@deleted.invalid"
+            member.interests = []
+            member.purged_at = now
+            purged += 1
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        logger.exception("Member purge failed")
+        raise
+    finally:
+        if owns_session:
+            await db.close()
+    if purged:
+        logger.info("Member purge: %d deleted member(s) fully erased", purged)
+    return purged

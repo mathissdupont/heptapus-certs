@@ -176,6 +176,9 @@ class PublicMember(Base):
     password_hash: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    # WP28 Phase C: set once the post-deletion purge has erased this member's remaining
+    # PII (email) and anonymized their attendee rows. Idempotency guard for the purge job.
+    purged_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     verification_token: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
     password_reset_token: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)

@@ -9,6 +9,7 @@ Covers three layers:
 """
 
 import uuid
+from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from unittest.mock import MagicMock
 
@@ -27,10 +28,14 @@ from src.anonymization_service import (
     run_anonymization_sweep,
     materialize_anonymize_after,
     recompute_event_anonymize_after,
+    send_pre_warnings,
+    purge_deleted_members,
     ANONYMIZED_TOMBSTONE_KEY,
+    PRE_WARNING_MARKER_KEY,
 )
-from src.models import Attendee, Event, User, Organization, AnonymizationLog
+from src.models import Attendee, Event, User, Organization, AnonymizationLog, PublicMember
 from src.main import SessionLocal, Role, app, create_access_token
+from src.config import settings
 
 UTC = timezone.utc
 
@@ -348,3 +353,130 @@ async def test_approve_endpoint_status_and_disposal():
         att = await sess.get(Attendee, seeded["attendee_id"])
         assert att.anonymized_at is not None
         assert "tckn" not in (att.registration_answers or {})
+
+
+# ── Phase C: erase-all, file deletion, member purge, pre-warning ─────────────────
+
+@pytest.mark.asyncio
+async def test_erase_all_disposes_all_answers_and_contact():
+    db = MagicMock()
+    event = _make_event(registration_fields=[{"id": "tckn", "label": "TC", "type": "text", "pii": False}])
+    att = Attendee(
+        id=71, event_id=10, name="Ali", email="ali@x.com", source="self_register",
+        registration_answers={"tckn": "1", "note": "x", "__kvkk": {"accepted": True}},
+    )
+    disposed = await anonymize_attendee(db, att, event, trigger="member_deletion", erase_all=True)
+    assert set(disposed) >= {"tckn", "note", "name", "email"}
+    ans = att.registration_answers
+    assert "tckn" not in ans and "note" not in ans
+    assert ans.get("__kvkk") == {"accepted": True}          # reserved key preserved
+    assert att.name != "Ali" and att.email.endswith("@anonymized.invalid")
+
+
+@pytest.mark.asyncio
+async def test_file_field_disposal_deletes_document():
+    root = Path(settings.local_storage_dir).resolve()
+    doc_dir = root / "regdocs_test"
+    doc_dir.mkdir(parents=True, exist_ok=True)
+    f = doc_dir / "id-scan.pdf"
+    f.write_bytes(b"%PDF-1.4 fake")
+    rel = "regdocs_test/id-scan.pdf"
+    assert f.exists()
+
+    db = MagicMock()
+    event = _make_event(registration_fields=[{"id": "idscan", "label": "Kimlik", "type": "file", "pii": True}])
+    att = Attendee(
+        id=72, event_id=10, name="B", email="b@x.com", source="self_register",
+        registration_answers={
+            "idscan": rel,
+            "__documents": [{"field_id": "idscan", "path": rel, "name": "id-scan.pdf"}],
+        },
+    )
+    disposed = await anonymize_attendee(db, att, event, trigger="auto")
+    assert "idscan" in disposed
+    assert not f.exists()                                    # physical file deleted
+    assert "__documents" not in att.registration_answers     # pruned (only doc removed)
+
+
+@pytest.mark.asyncio
+async def test_member_purge_erases_and_is_idempotent():
+    async with SessionLocal() as sess:
+        async with sess.begin():
+            admin = User(email=f"purge-adm-{uuid.uuid4().hex[:8]}@test.com", password_hash="x", role=Role.admin)
+            sess.add(admin)
+            await sess.flush()
+            event = Event(admin_id=admin.id, name="Ev", template_image_url="t.png", config={})
+            sess.add(event)
+            await sess.flush()
+            member = PublicMember(
+                public_id=f"pm-{uuid.uuid4().hex[:8]}",
+                email=f"m-{uuid.uuid4().hex[:8]}@x.com",
+                display_name="Silinmiş Üye",
+                password_hash="x",
+                deleted_at=datetime(2020, 1, 1, tzinfo=UTC),
+            )
+            sess.add(member)
+            await sess.flush()
+            att = Attendee(
+                event_id=event.id, name="Real Name", email=f"att-{uuid.uuid4().hex[:8]}@x.com",
+                source="self_register", public_member_id=member.id,
+                registration_answers={"tckn": "12345678901", "note": "keep?"},
+            )
+            sess.add(att)
+            await sess.flush()
+            member_id, att_id = member.id, att.id
+
+    purged = await purge_deleted_members(now=datetime(2026, 6, 1, tzinfo=UTC))
+    assert purged >= 1
+
+    async with SessionLocal() as sess:
+        m = await sess.get(PublicMember, member_id)
+        assert m.purged_at is not None
+        assert m.email == f"deleted-{member_id}@deleted.invalid"
+        a = await sess.get(Attendee, att_id)
+        assert a.anonymized_at is not None
+        answers = a.registration_answers or {}
+        assert "tckn" not in answers and "note" not in answers
+        assert a.name != "Real Name"
+
+    # idempotent: nothing left to purge
+    assert await purge_deleted_members(now=datetime(2026, 6, 1, tzinfo=UTC)) == 0
+
+
+@pytest.mark.asyncio
+async def test_pre_warning_marks_and_dedupes():
+    async with SessionLocal() as sess:
+        async with sess.begin():
+            admin = User(email=f"warn-adm-{uuid.uuid4().hex[:8]}@test.com", password_hash="x", role=Role.admin)
+            sess.add(admin)
+            await sess.flush()
+            event = Event(
+                admin_id=admin.id, name="Warn Ev", template_image_url="t.png",
+                config={
+                    "registration_fields": [{"id": "tckn", "label": "TC", "type": "text", "pii": True}],
+                    "retention": {"enabled": True, "mode": "relative", "retention_days": 30,
+                                  "trigger": "auto", "notify_before_days": 7, "include_name_email": False},
+                },
+            )
+            sess.add(event)
+            await sess.flush()
+            att = Attendee(
+                event_id=event.id, name="C", email=f"c-{uuid.uuid4().hex[:8]}@x.com",
+                source="self_register", registration_answers={"tckn": "1"},
+                anonymize_after=datetime(2026, 6, 5, tzinfo=UTC),  # 4 days after `now` below
+            )
+            sess.add(att)
+            await sess.flush()
+            admin_email, att_id = admin.email, att.id
+
+    now = datetime(2026, 6, 1, tzinfo=UTC)  # disposal in 4 days, inside the 7-day window
+    summary = await send_pre_warnings(now=now)
+    assert admin_email in summary["warned_by_admin"]
+
+    async with SessionLocal() as sess:
+        a = await sess.get(Attendee, att_id)
+        assert a.registration_answers.get(PRE_WARNING_MARKER_KEY)
+
+    # second run: already marked -> not warned again
+    summary2 = await send_pre_warnings(now=now)
+    assert admin_email not in summary2["warned_by_admin"]

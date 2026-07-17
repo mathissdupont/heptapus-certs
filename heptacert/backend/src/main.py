@@ -3193,10 +3193,14 @@ async def startup():
             try:
                 from .anonymization_service import (
                     materialize_anonymize_after,
+                    send_pre_warnings,
                     run_anonymization_sweep,
+                    purge_deleted_members,
                 )
                 await materialize_anonymize_after()
+                warn_summary = await send_pre_warnings()
                 summary = await run_anonymization_sweep()
+                await purge_deleted_members()
             except Exception as exc:
                 logger.warning("Anonymization job failed: %s", exc)
                 return
@@ -3207,6 +3211,28 @@ async def startup():
                     f"<td>{int(ev.get('count') or 0)}</td></tr>"
                     for ev in events.values()
                 )
+
+            for admin_email, data in (warn_summary.get("warned_by_admin") or {}).items():
+                try:
+                    count = int(data.get("count") or 0)
+                    html = f"""
+                    <h2>KVKK Anonimleştirme Ön Uyarısı</h2>
+                    <p>Aşağıdaki etkinliklerde {count} katılımcı kaydındaki işaretli kişisel veriler
+                    yaklaşan saklama süresi sonunda geri döndürülemez şekilde anonimleştirilecek.
+                    Gerekli görürseniz panelden politikayı düzenleyebilirsiniz.</p>
+                    <table border="1" cellpadding="6" style="border-collapse:collapse">
+                    <tr><th>Etkinlik</th><th>Kayıt</th></tr>
+                    {_rows(data.get("events", {}))}
+                    </table>
+                    <p><a href="{settings.frontend_base_url}/admin/events">Panele Git →</a></p>
+                    """
+                    await send_email_async(
+                        admin_email,
+                        f"HeptaCert: {count} kayıt yakında anonimleştirilecek (KVKK)",
+                        html,
+                    )
+                except Exception as mail_exc:
+                    logger.warning("Anonymization pre-warning email failed for %s: %s", admin_email, mail_exc)
 
             for admin_email, data in (summary.get("disposed_by_admin") or {}).items():
                 try:
