@@ -21,7 +21,7 @@ from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import DateTime, Integer, Numeric, String, Text, Boolean, select, delete
+from sqlalchemy import DateTime, Integer, Numeric, String, Text, Boolean, func, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -37,9 +37,9 @@ from .event_features import (
     PRESET_BY_EVENT_TYPE,
     resolved_feature_defaults,
 )
-from .models import Organization
+from .models import Organization, Attendee
 from .services import _get_event_retention_policy, _normalize_retention_policy
-from .anonymization_service import recompute_event_anonymize_after
+from .anonymization_service import recompute_event_anonymize_after, anonymize_event_pending
 
 router = APIRouter()
 
@@ -271,6 +271,72 @@ async def set_retention_policy(
         "effective": _get_event_retention_policy(event, org_settings),
         "attendees_rescheduled": rescheduled,
     }
+
+
+@router.get(
+    "/api/admin/events/{event_id}/anonymization-status",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    tags=["data-retention"],
+)
+async def get_anonymization_status(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Counts for the approval UI: how many attendees are due (pending) vs already done."""
+    event = await _get_event_or_404(event_id, me, db)
+    org_settings = await _org_settings_for_event(event, db)
+    policy = _get_event_retention_policy(event, org_settings)
+    now = datetime.now(timezone.utc)
+    pending = (
+        await db.execute(
+            select(func.count()).select_from(Attendee).where(
+                Attendee.event_id == event_id,
+                Attendee.anonymized_at.is_(None),
+                Attendee.anonymize_after.is_not(None),
+                Attendee.anonymize_after <= now,
+            )
+        )
+    ).scalar() or 0
+    anonymized = (
+        await db.execute(
+            select(func.count()).select_from(Attendee).where(
+                Attendee.event_id == event_id,
+                Attendee.anonymized_at.is_not(None),
+            )
+        )
+    ).scalar() or 0
+    return {
+        "event_id": event_id,
+        "enabled": policy is not None,
+        "trigger": policy.get("trigger") if policy else None,
+        "pending": int(pending),
+        "anonymized": int(anonymized),
+    }
+
+
+@router.post(
+    "/api/admin/events/{event_id}/anonymization-approve",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    tags=["data-retention"],
+)
+async def approve_anonymization(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Confirm and irreversibly anonymize the event's due (pending) attendees now."""
+    event = await _get_event_or_404(event_id, me, db)
+    org = (
+        await db.execute(select(Organization).where(Organization.user_id == event.admin_id))
+    ).scalar_one_or_none()
+    disposed = await anonymize_event_pending(
+        db, event,
+        org_settings=(org.settings if org else None),
+        organization_id=(org.id if org else None),
+        commit=True,
+    )
+    return {"event_id": event_id, "disposed": disposed}
 
 
 # ── Ticket types ───────────────────────────────────────────────────────────────

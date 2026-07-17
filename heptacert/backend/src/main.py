@@ -9964,6 +9964,12 @@ async def update_admin_organization_settings(payload: dict[str, Any], request: R
             else:
                 settings_data[key] = str(value).strip() if value is not None else ""
 
+    # WP28: org-wide default retention policy (nested object; normalized before store).
+    if "retention_default" in payload:
+        from .services import _normalize_retention_policy
+        normalized_retention = _normalize_retention_policy(payload.get("retention_default"))
+        settings_data["retention_default"] = normalized_retention if normalized_retention is not None else {"enabled": False}
+
     org_name = str(payload.get("org_name") or "").strip()
     if org_name:
         org.org_name = org_name[:200]

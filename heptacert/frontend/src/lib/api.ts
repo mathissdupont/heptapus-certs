@@ -1644,6 +1644,66 @@ export interface RegistrationField {
   helper_text?: string | null;
   options?: Array<string | { label: string; capacity?: number | null }>;
   selection_mode?: "single" | "multiple";  // For "select" type: single choice or multiple choices
+  pii?: boolean;  // WP28: personal data — anonymized when the retention period expires
+}
+
+// ── WP28 data retention & anonymization ──────────────────────────────────────
+export type RetentionMode = "relative" | "fixed";
+export type RetentionTrigger = "auto" | "approve";
+
+export interface RetentionPolicy {
+  enabled: boolean;
+  mode: RetentionMode;
+  retention_days?: number | null;
+  fixed_date?: string | null;         // "YYYY-MM-DD" (fixed mode)
+  trigger: RetentionTrigger;
+  notify_before_days?: number;
+  notify_email?: string | null;
+  include_name_email?: boolean;
+}
+
+export interface RetentionPolicyResponse {
+  event_id?: number;
+  policy: RetentionPolicy | null;      // stored on the event (null if unset)
+  effective: RetentionPolicy | null;   // resolved incl. org default
+  org_default?: RetentionPolicy | null;
+  attendees_rescheduled?: number;
+}
+
+export interface AnonymizationStatus {
+  event_id: number;
+  enabled: boolean;
+  trigger: RetentionTrigger | null;
+  pending: number;      // due but not yet disposed
+  anonymized: number;   // already disposed
+}
+
+export async function getEventRetentionPolicy(eventId: number): Promise<RetentionPolicyResponse> {
+  const res = await apiFetch(`/admin/events/${eventId}/retention-policy`);
+  return res.json();
+}
+
+export async function setEventRetentionPolicy(
+  eventId: number,
+  policy: RetentionPolicy,
+): Promise<RetentionPolicyResponse> {
+  const res = await apiFetch(`/admin/events/${eventId}/retention-policy`, {
+    method: "PUT",
+    body: JSON.stringify(policy),
+  });
+  return res.json();
+}
+
+export async function getAnonymizationStatus(eventId: number): Promise<AnonymizationStatus> {
+  const res = await apiFetch(`/admin/events/${eventId}/anonymization-status`);
+  return res.json();
+}
+
+export async function approveAnonymization(
+  eventId: number,
+): Promise<{ event_id: number; disposed: number }> {
+  const res = await apiFetch(`/admin/events/${eventId}/anonymization-approve`, { method: "POST" });
+  return res.json();
 }
 
 export interface SessionOut {

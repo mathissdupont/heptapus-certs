@@ -207,7 +207,10 @@ async def _seed(*, trigger="auto", days=30, past_due=True, with_after=True, enab
             )
             sess.add(att)
             await sess.flush()
-            return {"admin_email": admin.email, "event_id": event.id, "attendee_id": att.id}
+            return {
+                "admin_id": admin.id, "admin_email": admin.email,
+                "event_id": event.id, "attendee_id": att.id,
+            }
 
 
 @pytest.mark.asyncio
@@ -303,3 +306,45 @@ async def test_retention_policy_endpoint_set_get_and_validation():
         got = await ac.get(f"/api/admin/events/{event_id}/retention-policy", headers=headers)
         assert got.status_code == 200
         assert got.json()["policy"]["trigger"] == "auto"
+
+
+def test_org_default_fallback_and_event_override():
+    org_settings = {"retention_default": {"enabled": True, "mode": "relative", "retention_days": 60}}
+    # event with no per-event policy -> inherits org default
+    ev_none = Event(id=901, admin_id=1, name="E", template_image_url="t.png", config={})
+    p = _get_event_retention_policy(ev_none, org_settings)
+    assert p is not None and p["retention_days"] == 60
+    # event-level policy overrides the org default
+    ev_over = Event(id=902, admin_id=1, name="E2", template_image_url="t.png",
+                    config={"retention": {"enabled": True, "mode": "relative", "retention_days": 10}})
+    assert _get_event_retention_policy(ev_over, org_settings)["retention_days"] == 10
+
+
+@pytest.mark.asyncio
+async def test_approve_endpoint_status_and_disposal():
+    seeded = await _seed(trigger="approve")
+    token = create_access_token(user_id=seeded["admin_id"], role=Role.admin)
+    headers = {"Authorization": f"Bearer {token}"}
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        status = await ac.get(
+            f"/api/admin/events/{seeded['event_id']}/anonymization-status", headers=headers
+        )
+        assert status.status_code == 200
+        body = status.json()
+        assert body["trigger"] == "approve" and body["pending"] == 1
+
+        approved = await ac.post(
+            f"/api/admin/events/{seeded['event_id']}/anonymization-approve", headers=headers
+        )
+        assert approved.status_code == 200 and approved.json()["disposed"] == 1
+
+        after = await ac.get(
+            f"/api/admin/events/{seeded['event_id']}/anonymization-status", headers=headers
+        )
+        assert after.json()["pending"] == 0 and after.json()["anonymized"] == 1
+
+    async with SessionLocal() as sess:
+        att = await sess.get(Attendee, seeded["attendee_id"])
+        assert att.anonymized_at is not None
+        assert "tckn" not in (att.registration_answers or {})

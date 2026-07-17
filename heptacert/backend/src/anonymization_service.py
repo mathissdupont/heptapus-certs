@@ -328,3 +328,49 @@ async def run_anonymization_sweep(
         "disposed_by_admin": disposed_by_admin,
         "pending_by_admin": pending_by_admin,
     }
+
+
+async def anonymize_event_pending(
+    db: AsyncSession,
+    event: Event,
+    *,
+    now: Optional[datetime] = None,
+    org_settings: Optional[Dict[str, Any]] = None,
+    organization_id: Optional[int] = None,
+    commit: bool = True,
+) -> int:
+    """Dispose every due, not-yet-anonymized attendee of one event (approve-mode confirm).
+
+    Called by the admin approval endpoint when an organizer confirms an ``approve``-trigger
+    disposal. Disposal is irreversible. Honors the effective policy's include_name_email.
+    Returns the number of attendees disposed.
+    """
+    now = now or datetime.now(timezone.utc)
+    policy = _get_event_retention_policy(event, org_settings)
+    include_name_email = bool(policy.get("include_name_email")) if policy else False
+
+    res = await db.execute(
+        select(Attendee).where(
+            Attendee.event_id == event.id,
+            Attendee.anonymized_at.is_(None),
+            Attendee.anonymize_after.is_not(None),
+            Attendee.anonymize_after <= now,
+        )
+    )
+    disposed = 0
+    for attendee in res.scalars():
+        result = await anonymize_attendee(
+            db,
+            attendee,
+            event,
+            trigger="approve",
+            include_name_email=include_name_email,
+            organization_id=organization_id,
+            commit=False,
+        )
+        if result is not None:
+            disposed += 1
+
+    if commit:
+        await db.commit()
+    return disposed
