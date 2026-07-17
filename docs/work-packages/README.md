@@ -65,6 +65,7 @@ see [FEATURE_ROADMAP_2026](../reference/FEATURE_ROADMAP_2026.md) for sequencing.
 | [WP25](WP25-exhibitor-and-lead-retrieval.md) | Exhibitor & Booth Management + Lead Retrieval | Booths + scoped exhibitor lead capture |
 | [WP26](WP26-onsite-badge-printing.md) | On-Site Badge Design & Printing | Physical badge design + print at check-in |
 | [WP27](WP27-seating-and-floor-plans.md) | Seating & Floor Plans | Reserved seating (demand-gated) |
+| [WP28](WP28-data-retention-and-anonymization.md) | Data Retention & Anonymization (KVKK) | Per-field PII marking + retention policy + irreversible auto-anonymization |
 
 **Deferred (strategic, pending segment decision — not yet greenlit):** Native mobile app
 (consider PWA + web-push as an interim step) and a native virtual/hybrid stage

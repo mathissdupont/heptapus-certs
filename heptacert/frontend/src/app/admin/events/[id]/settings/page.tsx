@@ -58,6 +58,7 @@ import EventAdminNav, { refreshEventAdminMeta } from "@/components/Admin/EventAd
 import PageHeader from "@/components/Admin/PageHeader";
 import DateField from "@/components/Admin/DateField";
 import DateTimeField from "@/components/Admin/DateTimeField";
+import RetentionPolicySection from "@/components/Admin/RetentionPolicySection";
 import RichTextEditor from "@/components/RichTextEditor";
 import { useI18n, useT } from "@/lib/i18n";
 import { PlanGateCard } from "@/lib/useSubscription";
@@ -319,6 +320,7 @@ function createRegistrationField(): RegistrationField {
     helper_text: "",
     options: [],
     selection_mode: "single",
+    pii: false,
   };
 }
 
@@ -1039,6 +1041,7 @@ export default function EventSettingsPage() {
           label: field.label.trim(),
           type: field.type,
           required: Boolean(field.required),
+          pii: Boolean(field.pii),
           required_when_field_id: field.required_when_field_id?.trim() || null,
           required_when_equals: field.required_when_equals?.trim() || null,
           placeholder: field.placeholder?.trim() || null,
@@ -1456,6 +1459,8 @@ export default function EventSettingsPage() {
                 </div>
               </div>
             </section>
+
+            <RetentionPolicySection eventId={Number(eventId)} />
           </div>
         )}
 
@@ -1576,6 +1581,10 @@ export default function EventSettingsPage() {
                           <label className="inline-flex cursor-pointer items-center gap-2.5 select-none">
                             <input type="checkbox" checked={field.required} onChange={(e) => updateRegistrationField(field.id, { required: e.target.checked })} className="h-4 w-4 rounded-md border-surface-300 text-surface-900 focus:ring-0 cursor-pointer" />
                             <span className="text-xs font-semibold text-surface-800 tracking-tight">{copy.requiredField}</span>
+                          </label>
+                          <label className="inline-flex cursor-pointer items-center gap-2.5 select-none" title={t("field_pii_hint")}>
+                            <input type="checkbox" checked={Boolean(field.pii)} onChange={(e) => updateRegistrationField(field.id, { pii: e.target.checked })} className="h-4 w-4 rounded-md border-surface-300 text-amber-600 focus:ring-0 cursor-pointer" />
+                            <span className="text-xs font-semibold text-amber-700 tracking-tight">{t("field_pii_label")}</span>
                           </label>
                         </div>
 

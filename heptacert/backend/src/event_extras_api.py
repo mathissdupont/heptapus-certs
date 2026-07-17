@@ -21,7 +21,7 @@ from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import DateTime, Integer, Numeric, String, Text, Boolean, select, delete
+from sqlalchemy import DateTime, Integer, Numeric, String, Text, Boolean, func, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -37,6 +37,9 @@ from .event_features import (
     PRESET_BY_EVENT_TYPE,
     resolved_feature_defaults,
 )
+from .models import Organization, Attendee
+from .services import _get_event_retention_policy, _normalize_retention_policy
+from .anonymization_service import recompute_event_anonymize_after, anonymize_event_pending
 
 router = APIRouter()
 
@@ -160,6 +163,180 @@ async def append_registration_field(
     event.config = config
     await db.commit()
     return {"event_id": event_id, "field": new_field, "total_fields": len(updated)}
+
+
+# ── Data retention & anonymization (WP28) ───────────────────────────────────────
+# Per-event KVKK retention policy. The per-field `pii` flag lives on the registration
+# fields (see RegField validation); this endpoint controls WHEN pii-marked answers are
+# irreversibly anonymized and HOW (auto vs approve). Writing the policy immediately
+# reschedules the event's attendees (recompute_event_anonymize_after).
+
+class RetentionPolicyIn(BaseModel):
+    enabled: bool = False
+    mode: str = Field(default="relative", description="relative | fixed")
+    retention_days: Optional[int] = Field(default=None, ge=0, le=3650)
+    fixed_date: Optional[str] = Field(default=None, description="YYYY-MM-DD")
+    trigger: str = Field(default="auto", description="auto | approve")
+    notify_before_days: int = Field(default=0, ge=0, le=365)
+    notify_email: Optional[str] = Field(default=None, max_length=320)
+    include_name_email: bool = False
+
+
+async def _org_settings_for_event(event: Event, db: AsyncSession) -> Optional[dict]:
+    org = (
+        await db.execute(select(Organization).where(Organization.user_id == event.admin_id))
+    ).scalar_one_or_none()
+    return org.settings if org else None
+
+
+@router.get(
+    "/api/admin/events/{event_id}/retention-policy",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    tags=["data-retention"],
+)
+async def get_retention_policy(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Return the event's stored retention policy plus the effective (org-fallback) one."""
+    event = await _get_event_or_404(event_id, me, db)
+    org_settings = await _org_settings_for_event(event, db)
+    return {
+        "event_id": event_id,
+        "policy": (event.config or {}).get("retention"),
+        "effective": _get_event_retention_policy(event, org_settings),
+        "org_default": (org_settings or {}).get("retention_default"),
+    }
+
+
+@router.put(
+    "/api/admin/events/{event_id}/retention-policy",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    tags=["data-retention"],
+)
+async def set_retention_policy(
+    event_id: int,
+    payload: RetentionPolicyIn,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Set the event retention policy and reschedule its attendees immediately.
+
+    Disposal is irreversible once it runs; this only schedules WHEN. Pass enabled=false
+    to turn retention off (clears the attendees' scheduled disposal dates).
+    """
+    event = await _get_event_or_404(event_id, me, db)
+
+    mode = (payload.mode or "relative").strip().lower()
+    trigger = (payload.trigger or "auto").strip().lower()
+    if payload.enabled:
+        if mode not in ("relative", "fixed"):
+            raise HTTPException(status_code=400, detail="mode must be 'relative' or 'fixed'")
+        if trigger not in ("auto", "approve"):
+            raise HTTPException(status_code=400, detail="trigger must be 'auto' or 'approve'")
+        if mode == "relative" and payload.retention_days is None:
+            raise HTTPException(status_code=400, detail="retention_days is required for relative mode")
+        if mode == "fixed":
+            try:
+                datetime.strptime((payload.fixed_date or "").strip(), "%Y-%m-%d")
+            except ValueError:
+                raise HTTPException(status_code=400, detail="fixed_date must be YYYY-MM-DD for fixed mode")
+
+    raw = {
+        "enabled": bool(payload.enabled),
+        "mode": mode,
+        "retention_days": payload.retention_days,
+        "fixed_date": (payload.fixed_date or "").strip() or None,
+        "trigger": trigger,
+        "notify_before_days": payload.notify_before_days,
+        "notify_email": (payload.notify_email or "").strip() or None,
+        "include_name_email": bool(payload.include_name_email),
+    }
+    normalized = _normalize_retention_policy(raw)
+    to_store = normalized if normalized is not None else {"enabled": False}
+
+    config = dict(event.config or {})
+    config["retention"] = to_store
+    event.config = config
+
+    org_settings = await _org_settings_for_event(event, db)
+    rescheduled = await recompute_event_anonymize_after(
+        db, event, org_settings=org_settings, only_null=False, commit=False
+    )
+    await db.commit()
+    return {
+        "event_id": event_id,
+        "policy": to_store,
+        "effective": _get_event_retention_policy(event, org_settings),
+        "attendees_rescheduled": rescheduled,
+    }
+
+
+@router.get(
+    "/api/admin/events/{event_id}/anonymization-status",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    tags=["data-retention"],
+)
+async def get_anonymization_status(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Counts for the approval UI: how many attendees are due (pending) vs already done."""
+    event = await _get_event_or_404(event_id, me, db)
+    org_settings = await _org_settings_for_event(event, db)
+    policy = _get_event_retention_policy(event, org_settings)
+    now = datetime.now(timezone.utc)
+    pending = (
+        await db.execute(
+            select(func.count()).select_from(Attendee).where(
+                Attendee.event_id == event_id,
+                Attendee.anonymized_at.is_(None),
+                Attendee.anonymize_after.is_not(None),
+                Attendee.anonymize_after <= now,
+            )
+        )
+    ).scalar() or 0
+    anonymized = (
+        await db.execute(
+            select(func.count()).select_from(Attendee).where(
+                Attendee.event_id == event_id,
+                Attendee.anonymized_at.is_not(None),
+            )
+        )
+    ).scalar() or 0
+    return {
+        "event_id": event_id,
+        "enabled": policy is not None,
+        "trigger": policy.get("trigger") if policy else None,
+        "pending": int(pending),
+        "anonymized": int(anonymized),
+    }
+
+
+@router.post(
+    "/api/admin/events/{event_id}/anonymization-approve",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    tags=["data-retention"],
+)
+async def approve_anonymization(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Confirm and irreversibly anonymize the event's due (pending) attendees now."""
+    event = await _get_event_or_404(event_id, me, db)
+    org = (
+        await db.execute(select(Organization).where(Organization.user_id == event.admin_id))
+    ).scalar_one_or_none()
+    disposed = await anonymize_event_pending(
+        db, event,
+        org_settings=(org.settings if org else None),
+        organization_id=(org.id if org else None),
+        commit=True,
+    )
+    return {"event_id": event_id, "disposed": disposed}
 
 
 # ── Ticket types ───────────────────────────────────────────────────────────────

@@ -3183,6 +3183,99 @@ async def startup():
             except Exception as exc:
                 logger.warning("LMS due-date notification job failed: %s", exc)
 
+        async def _anonymize_expired_attendee_data():
+            """WP28 KVKK: materialize disposal dates, then irreversibly anonymize due data.
+
+            auto-trigger events are disposed and their admins get a post-disposal notice;
+            approve-trigger events stay pending and their admins get a confirmation
+            request. All failures are logged and swallowed so the scheduler never dies.
+            """
+            try:
+                from .anonymization_service import (
+                    materialize_anonymize_after,
+                    send_pre_warnings,
+                    run_anonymization_sweep,
+                    purge_deleted_members,
+                )
+                await materialize_anonymize_after()
+                warn_summary = await send_pre_warnings()
+                summary = await run_anonymization_sweep()
+                await purge_deleted_members()
+            except Exception as exc:
+                logger.warning("Anonymization job failed: %s", exc)
+                return
+
+            def _rows(events: dict) -> str:
+                return "".join(
+                    f"<tr><td>{escape(str(ev.get('name') or ''))}</td>"
+                    f"<td>{int(ev.get('count') or 0)}</td></tr>"
+                    for ev in events.values()
+                )
+
+            for admin_email, data in (warn_summary.get("warned_by_admin") or {}).items():
+                try:
+                    count = int(data.get("count") or 0)
+                    html = f"""
+                    <h2>KVKK Anonimleştirme Ön Uyarısı</h2>
+                    <p>Aşağıdaki etkinliklerde {count} katılımcı kaydındaki işaretli kişisel veriler
+                    yaklaşan saklama süresi sonunda geri döndürülemez şekilde anonimleştirilecek.
+                    Gerekli görürseniz panelden politikayı düzenleyebilirsiniz.</p>
+                    <table border="1" cellpadding="6" style="border-collapse:collapse">
+                    <tr><th>Etkinlik</th><th>Kayıt</th></tr>
+                    {_rows(data.get("events", {}))}
+                    </table>
+                    <p><a href="{settings.frontend_base_url}/admin/events">Panele Git →</a></p>
+                    """
+                    await send_email_async(
+                        admin_email,
+                        f"HeptaCert: {count} kayıt yakında anonimleştirilecek (KVKK)",
+                        html,
+                    )
+                except Exception as mail_exc:
+                    logger.warning("Anonymization pre-warning email failed for %s: %s", admin_email, mail_exc)
+
+            for admin_email, data in (summary.get("disposed_by_admin") or {}).items():
+                try:
+                    count = int(data.get("count") or 0)
+                    html = f"""
+                    <h2>KVKK Veri Anonimleştirme Bildirimi</h2>
+                    <p>Saklama süresi dolan kayıtlarda işaretli kişisel veri alanları geri
+                    döndürülemez şekilde anonimleştirildi. Toplam {count} katılımcı kaydı işlendi.</p>
+                    <table border="1" cellpadding="6" style="border-collapse:collapse">
+                    <tr><th>Etkinlik</th><th>Anonimleştirilen kayıt</th></tr>
+                    {_rows(data.get("events", {}))}
+                    </table>
+                    <p><a href="{settings.frontend_base_url}/admin/events">Panele Git →</a></p>
+                    """
+                    await send_email_async(
+                        admin_email,
+                        f"HeptaCert: {count} kayıt anonimleştirildi (KVKK)",
+                        html,
+                    )
+                except Exception as mail_exc:
+                    logger.warning("Anonymization post-disposal email failed for %s: %s", admin_email, mail_exc)
+
+            for admin_email, data in (summary.get("pending_by_admin") or {}).items():
+                try:
+                    count = int(data.get("count") or 0)
+                    html = f"""
+                    <h2>KVKK Anonimleştirme Onayı Bekliyor</h2>
+                    <p>Saklama süresi dolan {count} katılımcı kaydı anonimleştirilmeye hazır.
+                    Onay modunu seçtiğiniz için işlem onayınızı bekliyor. Bu işlem geri alınamaz.</p>
+                    <table border="1" cellpadding="6" style="border-collapse:collapse">
+                    <tr><th>Etkinlik</th><th>Bekleyen kayıt</th></tr>
+                    {_rows(data.get("events", {}))}
+                    </table>
+                    <p><a href="{settings.frontend_base_url}/admin/events">Panele Git →</a></p>
+                    """
+                    await send_email_async(
+                        admin_email,
+                        f"HeptaCert: {count} kayıt anonimleştirme onayı bekliyor (KVKK)",
+                        html,
+                    )
+                except Exception as mail_exc:
+                    logger.warning("Anonymization approval email failed for %s: %s", admin_email, mail_exc)
+
         if settings.enable_scheduler:
             scheduler.add_job(_notify_expiring_certs, "cron", hour=2, minute=0)
             scheduler.add_job(_auto_renew_certificates, "interval", hours=1)
@@ -3196,6 +3289,7 @@ async def startup():
             scheduler.add_job(_process_bulk_certificate_jobs, "interval", seconds=3)
             scheduler.add_job(_auto_calculate_badges, "interval", minutes=30)
             scheduler.add_job(_notify_lms_due_dates, "cron", hour=7, minute=0)
+            scheduler.add_job(_anonymize_expired_attendee_data, "cron", hour=3, minute=45)
             scheduler.start()
             logger.info("APScheduler started Ã¢â‚¬â€ cert notifications + monthly HC renewal + system digest + bulk email processing + bulk certificate queue")
         else:
@@ -3403,6 +3497,9 @@ def _validate_registration_fields_for_write(raw_fields: Any, *, existing_fields:
             "label": label,
             "type": field_type,
             "required": bool(item.get("required")),
+            # WP28: field-level PII flag. When true, this answer is disposed by the KVKK
+            # anonymization sweep once the event's retention period expires (irreversible).
+            "pii": bool(item.get("pii")),
             "placeholder": placeholder,
             "helper_text": helper_text,
         }
@@ -3504,6 +3601,7 @@ def _normalize_registration_fields(raw_fields: Any) -> List[Dict[str, Any]]:
             "label": label,
             "type": field_type,
             "required": required,
+            "pii": bool(item.get("pii")),  # WP28 field-level PII flag (see validator)
             "placeholder": placeholder,
             "helper_text": helper_text,
         }
@@ -9891,6 +9989,12 @@ async def update_admin_organization_settings(payload: dict[str, Any], request: R
                 settings_data[key] = bool(value)
             else:
                 settings_data[key] = str(value).strip() if value is not None else ""
+
+    # WP28: org-wide default retention policy (nested object; normalized before store).
+    if "retention_default" in payload:
+        from .services import _normalize_retention_policy
+        normalized_retention = _normalize_retention_policy(payload.get("retention_default"))
+        settings_data["retention_default"] = normalized_retention if normalized_retention is not None else {"enabled": False}
 
     org_name = str(payload.get("org_name") or "").strip()
     if org_name:

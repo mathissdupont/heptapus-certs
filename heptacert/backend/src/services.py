@@ -927,6 +927,109 @@ def _get_event_data_retention_note(event: Event) -> Optional[str]:
     value = str(config.get("data_retention_note") or "").strip()
     return value or None
 
+# --- WP28 KVKK data retention / anonymization policy -------------------------
+# Retention policy lives in Event.config["retention"] (per-event) with a fallback to
+# Organization.settings["retention_default"] (org-wide default). The per-field `pii`
+# flag lives in registration_fields. These helpers normalize the policy and resolve the
+# per-attendee disposal date consumed by the anonymization engine (anonymization_service).
+RETENTION_MODES = {"relative", "fixed"}
+RETENTION_TRIGGERS = {"auto", "approve"}
+RETENTION_MAX_DAYS = 3650  # 10-year hard cap to neutralize typo/runaway values
+
+def _normalize_retention_policy(raw: Any) -> Optional[Dict[str, Any]]:
+    """Normalize a retention-policy dict (Event.config or Organization.settings).
+
+    Returns None when retention is absent, disabled, or malformed (so an inert config
+    never schedules a disposal). A returned policy always has: enabled=True, mode,
+    trigger, notify_before_days (0..365), include_name_email, and either
+    retention_days (relative) or fixed_date 'YYYY-MM-DD' (fixed).
+    """
+    if not isinstance(raw, dict) or not bool(raw.get("enabled")):
+        return None
+
+    mode = str(raw.get("mode") or "relative").strip().lower()
+    if mode not in RETENTION_MODES:
+        mode = "relative"
+    trigger = str(raw.get("trigger") or "auto").strip().lower()
+    if trigger not in RETENTION_TRIGGERS:
+        trigger = "auto"
+
+    try:
+        notify_before_days = int(raw.get("notify_before_days") or 0)
+    except (TypeError, ValueError):
+        notify_before_days = 0
+    notify_before_days = max(0, min(notify_before_days, 365))
+
+    policy: Dict[str, Any] = {
+        "enabled": True,
+        "mode": mode,
+        "trigger": trigger,
+        "notify_before_days": notify_before_days,
+        # Certificate integrity: name/email are excluded from disposal by default and
+        # only touched when the org explicitly opts in (see WP28 design decisions).
+        "include_name_email": bool(raw.get("include_name_email")),
+    }
+
+    notify_email = str(raw.get("notify_email") or "").strip()
+    if notify_email:
+        policy["notify_email"] = notify_email[:320]
+
+    if mode == "fixed":
+        try:
+            parsed = datetime.strptime(str(raw.get("fixed_date") or "").strip(), "%Y-%m-%d")
+        except ValueError:
+            return None  # fixed mode without a valid date is inert
+        policy["fixed_date"] = parsed.strftime("%Y-%m-%d")
+    else:
+        try:
+            retention_days = int(raw.get("retention_days"))
+        except (TypeError, ValueError):
+            return None  # relative mode needs a day count
+        if retention_days < 0:
+            return None
+        policy["retention_days"] = min(retention_days, RETENTION_MAX_DAYS)
+
+    return policy
+
+def _get_event_retention_policy(
+    event: Event, org_settings: Optional[Dict[str, Any]] = None
+) -> Optional[Dict[str, Any]]:
+    """Resolve the effective retention policy for an event.
+
+    Event.config['retention'] wins; otherwise fall back to the org-wide default in
+    Organization.settings['retention_default']. Returns None when neither enables it.
+    """
+    config = event.config or {}
+    policy = _normalize_retention_policy(config.get("retention"))
+    if policy is not None:
+        return policy
+    if isinstance(org_settings, dict):
+        return _normalize_retention_policy(org_settings.get("retention_default"))
+    return None
+
+def _resolve_anonymize_after(
+    policy: Optional[Dict[str, Any]], registered_at: Optional[datetime]
+) -> Optional[datetime]:
+    """Compute the disposal timestamp for one attendee under a retention policy.
+
+    Relative mode counts retention_days from the attendee's own registration date
+    (per-attendee reference, WP28). Fixed mode returns the configured calendar date at
+    00:00 UTC for every attendee. Returns None when there is no active policy (or a
+    relative policy but no registration date), leaving anonymize_after NULL.
+    """
+    if not policy:
+        return None
+    if policy["mode"] == "fixed":
+        try:
+            parsed = datetime.strptime(policy["fixed_date"], "%Y-%m-%d")
+        except (KeyError, ValueError):
+            return None
+        return parsed.replace(tzinfo=timezone.utc)
+    if registered_at is None:
+        return None
+    base = registered_at if registered_at.tzinfo else registered_at.replace(tzinfo=timezone.utc)
+    return base + timedelta(days=int(policy.get("retention_days", 0)))
+
 def _is_event_registration_closed(event: Event) -> bool:
     config = event.config or {}
     if bool(config.get("registration_closed")):

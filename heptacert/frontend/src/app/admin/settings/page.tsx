@@ -25,6 +25,7 @@ import {
   Blocks, CalendarCheck2, ChartNoAxesCombined, UsersRound,
 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
+import OrgRetentionDefault from "@/components/Admin/OrgRetentionDefault";
 import { useToast } from "@/hooks/useToast";
 import { normalizeExternalUrl } from "@/lib/url";
 import HeptaCertLogoMark from "@/components/Brand/HeptaCertLogoMark";
@@ -1341,7 +1342,8 @@ function ComplianceTab() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+    <div className="space-y-6">
+      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
       <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
         <div className="mb-6 flex items-center gap-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600"><FileText className="h-5 w-5" /></div>
@@ -1370,6 +1372,8 @@ function ComplianceTab() {
           <li>Metin versiyonu ve zaman damgası</li>
         </ul>
       </aside>
+      </div>
+      <OrgRetentionDefault />
     </div>
   );
 }
