@@ -8,6 +8,7 @@ import {
   Download,
   ExternalLink,
   FileBadge2,
+  FileText,
   Loader2,
   Mail,
   Presentation,
@@ -16,12 +17,12 @@ import {
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { apiFetch, getApiBase, getToken } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 type Job = {
   id: number;
-  type: "bulk_email" | "bulk_certificate" | "segment_export" | "presentation_conversion";
+  type: "bulk_email" | "bulk_certificate" | "segment_export" | "presentation_conversion" | "document_export";
   type_label: string;
   event_id: number;
   event_name: string | null;
@@ -49,6 +50,7 @@ const TYPE_ICON: Record<string, React.ElementType> = {
   bulk_certificate: FileBadge2,
   segment_export: TableProperties,
   presentation_conversion: Presentation,
+  document_export: FileText,
 };
 
 const STATUS_CONFIG: Record<string, { label: string; labelEn: string; color: string; icon: React.ElementType }> = {
@@ -127,13 +129,29 @@ export default function AdminJobsPage() {
     }
   };
 
-  const handleDownload = (job: Job) => {
+  const handleDownload = async (job: Job) => {
     if (!job.download_url) return;
-    const token = getToken();
-    const url = `${getApiBase()}${job.download_url.replace(/^\/api/, "")}`;
-    const a = document.createElement("a");
-    a.href = token ? `${url}${url.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}` : url;
-    a.click();
+    // Fetch through apiFetch so the Authorization header is sent (a plain <a> navigation
+    // cannot carry it → the backend would 401 and the org middleware would bounce to
+    // /admin/login). Stream the response into a blob and trigger a client-side download.
+    const path = job.download_url.replace(/^\/api/, "");
+    try {
+      const res = await apiFetch(path);
+      const blob = await res.blob();
+      const cd = res.headers.get("Content-Disposition") || "";
+      const match = /filename\*?=(?:UTF-8'')?["']?([^"';\n]+)/i.exec(cd);
+      const filename = match ? decodeURIComponent(match[1]) : `${job.type}-${job.id}`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (ex: any) {
+      setError(ex?.message || (isTr ? "İndirme başarısız." : "Download failed."));
+    }
   };
 
   const jobs = data?.jobs ?? [];
