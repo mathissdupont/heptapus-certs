@@ -2144,6 +2144,7 @@ _AUDIT_SKIP_PREFIXES = (
     "/api/waitlist",
     "/api/public/attendees/",
     "/api/public/members/",
+    "/api/public/events/",
     "/api/admin/google/sheets/callback",
     "/api/admin/microsoft/excel/callback",
     "/api/admin/microsoft/calendar/callback",
@@ -3276,6 +3277,14 @@ async def startup():
                 except Exception as mail_exc:
                     logger.warning("Anonymization approval email failed for %s: %s", admin_email, mail_exc)
 
+        async def _process_scheduled_reports():
+            """Run due scheduled reports (report_scheduler had no executor — none ever ran)."""
+            try:
+                from .report_runner import run_due_scheduled_reports
+                await run_due_scheduled_reports()
+            except Exception as exc:
+                logger.warning("Scheduled report job failed: %s", exc)
+
         if settings.enable_scheduler:
             scheduler.add_job(_notify_expiring_certs, "cron", hour=2, minute=0)
             scheduler.add_job(_auto_renew_certificates, "interval", hours=1)
@@ -3290,6 +3299,7 @@ async def startup():
             scheduler.add_job(_auto_calculate_badges, "interval", minutes=30)
             scheduler.add_job(_notify_lms_due_dates, "cron", hour=7, minute=0)
             scheduler.add_job(_anonymize_expired_attendee_data, "cron", hour=3, minute=45)
+            scheduler.add_job(_process_scheduled_reports, "interval", minutes=15)
             scheduler.start()
             logger.info("APScheduler started Ã¢â‚¬â€ cert notifications + monthly HC renewal + system digest + bulk email processing + bulk certificate queue")
         else:
@@ -15003,6 +15013,10 @@ async def list_my_jobs(
     from .audience_segments_api import SegmentExportJob
     from .document_export_jobs import DocumentExportJob
     from .presentation_models import PresentationDeck
+    from sqlalchemy import true as sa_true
+
+    # Superadmin sees every job; a regular admin sees the ones they created.
+    is_super = me.role == Role.superadmin
 
     now = datetime.now(timezone.utc)
     since = now - timedelta(days=7)
@@ -15014,7 +15028,7 @@ async def list_my_jobs(
             select(BulkEmailJob, Event)
             .join(Event, Event.id == BulkEmailJob.event_id)
             .where(
-                BulkEmailJob.created_by == me.id,
+                sa_true() if is_super else BulkEmailJob.created_by == me.id,
                 or_(
                     BulkEmailJob.status.in_(["pending", "sending", "in_progress"]),
                     BulkEmailJob.created_at >= since,
@@ -15055,7 +15069,7 @@ async def list_my_jobs(
             select(BulkCertificateJob, Event)
             .join(Event, Event.id == BulkCertificateJob.event_id)
             .where(
-                BulkCertificateJob.created_by == me.id,
+                sa_true() if is_super else BulkCertificateJob.created_by == me.id,
                 or_(
                     BulkCertificateJob.status.in_(["pending", "processing"]),
                     BulkCertificateJob.created_at >= since,
@@ -15097,7 +15111,7 @@ async def list_my_jobs(
             select(SegmentExportJob, Event)
             .join(Event, Event.id == SegmentExportJob.event_id)
             .where(
-                SegmentExportJob.created_by == me.id,
+                sa_true() if is_super else SegmentExportJob.created_by == me.id,
                 or_(
                     SegmentExportJob.status.in_(["pending", "processing"]),
                     SegmentExportJob.created_at >= since,
@@ -15136,7 +15150,7 @@ async def list_my_jobs(
             select(PresentationDeck, Event)
             .join(Event, Event.id == PresentationDeck.event_id)
             .where(
-                PresentationDeck.created_by == me.id,
+                sa_true() if is_super else PresentationDeck.created_by == me.id,
                 PresentationDeck.file_path.is_not(None),
                 PresentationDeck.conversion_status != "not_required",
                 or_(
@@ -15173,6 +15187,45 @@ async def list_my_jobs(
             "download_url": f"/api/admin/presentations/{deck.id}/file?variant=converted" if is_ready and deck.converted_file_path else None,
             "can_cancel": False,
             "can_download": is_ready and bool(deck.converted_file_path),
+        })
+
+    # ── Document export jobs (audit-log / legal-consent reports) ─────────
+    doc_rows = (
+        await db.execute(
+            select(DocumentExportJob)
+            .where(
+                sa_true() if is_super else DocumentExportJob.requested_by == me.id,
+                or_(
+                    DocumentExportJob.status.in_(["pending", "processing"]),
+                    DocumentExportJob.created_at >= since,
+                ),
+            )
+            .order_by(DocumentExportJob.created_at.desc())
+            .limit(limit)
+        )
+    ).scalars().all()
+    for job in doc_rows:
+        is_done = job.status == "completed"
+        jobs.append({
+            "id": job.id,
+            "type": "document_export",
+            "type_label": "Rapor / Doküman Export",
+            "event_id": None,
+            "event_name": None,
+            "status": job.status,
+            "total": int(job.row_count or 0),
+            "done": int(job.row_count or 0) if is_done else 0,
+            "success": int(job.row_count or 0) if is_done else 0,
+            "failed": 0,
+            "progress_pct": 100 if is_done else (50 if job.status == "processing" else 0),
+            "created_at": job.created_at.isoformat() if job.created_at else None,
+            "started_at": job.started_at.isoformat() if job.started_at else None,
+            "completed_at": job.completed_at.isoformat() if job.completed_at else None,
+            "error_message": job.error_message,
+            "detail_url": "/admin/settings",
+            "download_url": f"/api/admin/document-export-jobs/{job.id}/download" if is_done and job.output_file_path else None,
+            "can_cancel": False,
+            "can_download": is_done and bool(job.output_file_path),
         })
 
     jobs.sort(key=lambda j: j.get("created_at") or "", reverse=True)
