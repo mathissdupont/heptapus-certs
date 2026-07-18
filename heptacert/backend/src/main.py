@@ -2144,6 +2144,7 @@ _AUDIT_SKIP_PREFIXES = (
     "/api/waitlist",
     "/api/public/attendees/",
     "/api/public/members/",
+    "/api/public/events/",
     "/api/admin/google/sheets/callback",
     "/api/admin/microsoft/excel/callback",
     "/api/admin/microsoft/calendar/callback",
