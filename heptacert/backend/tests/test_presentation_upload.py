@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
+import subprocess
+import sys
 from uuid import uuid4
 from unittest.mock import patch
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -11,6 +13,27 @@ from httpx import ASGITransport, AsyncClient
 from src.main import Event, Organization, Role, SessionLocal, User, app, create_access_token, hash_password, settings
 from src.presentation_models import PresentationDeck
 from src.presentation_conversion_worker import _mark_conversion_failure, _recover_stale_decks
+
+
+def test_standalone_worker_registers_presentation_fk_targets():
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "from src.presentation_conversion_worker import PresentationDeck; "
+                "from src.db import Base; "
+                "required={'users','events','organizations'}; "
+                "missing=required-set(Base.metadata.tables); "
+                "assert not missing, f'missing tables: {sorted(missing)}'"
+            ),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def _minimal_pptx() -> bytes:

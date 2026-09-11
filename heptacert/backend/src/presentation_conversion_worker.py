@@ -12,6 +12,12 @@ from sqlalchemy import or_, select
 
 from .config import settings
 from .db import SessionLocal
+# The worker is a standalone process, so importing PresentationDeck alone does
+# not register the tables targeted by its foreign keys (users, events and
+# organizations) in Base.metadata. SQLAlchemy resolves those targets during an
+# ORM flush; without this import every claimed job crashes with
+# NoReferencedTableError before conversion starts.
+from . import models as _core_models  # noqa: F401
 from .presentation_converter import PresentationConversionError, convert_powerpoint_to_pdf, is_powerpoint_path
 from .presentation_models import PresentationDeck
 
