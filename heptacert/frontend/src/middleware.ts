@@ -47,6 +47,7 @@ const LEGACY_TOKEN_ROUTES = [
 
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  const isBackendOwnedProxyPath = pathname === "/mcp" || pathname.startsWith("/mcp/");
   const hostname = (request.headers.get("x-forwarded-host") || request.headers.get("host") || "")
     .split(",")[0]
     .split(":")[0]
@@ -66,7 +67,8 @@ export function middleware(request: NextRequest) {
 
   if (
     !["GET", "HEAD", "OPTIONS"].includes(request.method) &&
-    !pathname.startsWith("/api/")
+    !pathname.startsWith("/api/") &&
+    !isBackendOwnedProxyPath
   ) {
     return NextResponse.json(
       { error: "Method not allowed" },

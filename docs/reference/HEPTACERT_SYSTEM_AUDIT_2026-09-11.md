@@ -109,7 +109,7 @@ some current redirects still target absent `/admin/lms/...` routes.
 Decision required: either restore the LMS API/UI as a supported product or
 remove every active portal/calendar/link/redirect surface until it is ready.
 
-#### 3. Production hosted MCP endpoint is misrouted
+#### 3. Production hosted MCP endpoint is misrouted — remediated on current branch
 
 The code mounts the MCP ASGI app at `/mcp`, and product documentation tells
 agents to connect there. In production:
@@ -118,10 +118,18 @@ agents to connect there. In production:
 - A valid MCP initialize `POST /mcp` returned HTTP 405 with
   `Allow: GET, HEAD, OPTIONS`.
 
-The external Caddy configuration is not in this repository, so the likely cause
-is that `/mcp` is routed to the frontend rather than the backend. Add an exact
-reverse-proxy rule (including POST and streaming), then run a protocol-level MCP
-initialize/tools-list smoke test in deployment CI.
+The direct Caddy route remains the preferred production path, but the frontend
+now has a safe fallback proxy for `/mcp` and the OAuth discovery routes. The
+frontend Docker image now receives its internal backend address at build time;
+previously the runtime-only value was too late for compiled Next.js rewrites.
+The frontend method guard now permits MCP POST requests while continuing to
+reject POST requests to ordinary UI routes. A Docker-backed smoke test through
+the frontend returned 401 discovery challenges without credentials, 200 for
+both discovery documents, and a successful MCP `initialize` SSE response with
+protocol version `2025-06-18` when an Authorization header was supplied.
+
+Production will continue returning the old 404/405 behavior until the updated
+frontend image or the documented Caddy route is deployed.
 
 #### 4. Certificate tier rules are not evaluated
 
@@ -257,7 +265,8 @@ navigation entry so the shell is not presented as a complete hub.
    backend packages and add a blocking CI dependency audit.
 3. Decide LMS scope; restore its API/UI completely or hide/remove every live
    portal surface and broken redirect.
-4. Fix Caddy routing for `/mcp` and run an authenticated protocol smoke test.
+4. **Completed on current branch; deploy pending:** add a resilient `/mcp`
+   routing fallback and verify a protocol-level initialize smoke through Docker.
 5. Implement and test actual certificate-tier condition evaluation.
 6. Replace false-green health reporting with dependency and worker readiness.
 7. Repair user-facing mojibake and add an automated source guard.

@@ -1,19 +1,32 @@
 /** @type {import('next').NextConfig} */
 
-// The reverse proxy routes /api/* to the backend and everything else here (the
-// Next.js frontend). OAuth/MCP discovery documents must be served from the
-// backend (the authorization server owns them), so we transparently proxy the
-// /.well-known/oauth-* paths to it. This keeps discovery working with the
-// default proxy config without requiring an extra Caddy rule. The backend
-// builds the absolute URLs inside these documents from its own settings, so
-// proxying does not distort issuer/endpoint values.
+// Caddy normally sends backend-owned paths there directly. Keep these rewrites
+// as a deployment-safe fallback: older/shared proxy configurations that only
+// route /api/* must still expose MCP and its OAuth discovery documents.
+// NEXT_SERVER_API_BASE is a build-time setting because Next compiles rewrites
+// into the production image; setting it only on the running container is too
+// late and leaves the compiled destination pointing at localhost.
 const BACKEND_ORIGIN = (
-  process.env.NEXT_SERVER_API_BASE || "http://localhost:8000/api"
+  process.env.NEXT_SERVER_API_BASE ||
+  process.env.INTERNAL_API_BASE ||
+  (process.env.NODE_ENV === "production"
+    ? "http://backend:8000/api"
+    : "http://localhost:8000/api")
 ).replace(/\/api\/?$/, "");
 
 const nextConfig = {
   async rewrites() {
     return [
+      {
+        // Target the slash form inside FastAPI so Starlette's mount redirect
+        // cannot fight Next.js's trailing-slash normalization.
+        source: "/mcp",
+        destination: `${BACKEND_ORIGIN}/mcp/`,
+      },
+      {
+        source: "/mcp/:path*",
+        destination: `${BACKEND_ORIGIN}/mcp/:path*`,
+      },
       {
         source: "/.well-known/oauth-authorization-server",
         destination: `${BACKEND_ORIGIN}/.well-known/oauth-authorization-server`,
