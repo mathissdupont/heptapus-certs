@@ -1,4 +1,4 @@
-import { apiFetch, apiUrl, getApiOrigin, getToken, publicApiFetch } from "@/lib/api";
+import { ApiError, apiFetch, apiUrl, clearToken, getApiOrigin, getSelectedOrganizationId, getToken, publicApiFetch } from "@/lib/api";
 
 export type PresentationSlide = {
   title: string;
@@ -114,18 +114,53 @@ export async function listEventPresentations(eventId: number): Promise<Presentat
 
 export async function uploadEventPresentation(
   eventId: number,
-  payload: { title: string; description?: string; language: string; file: File }
+  payload: { title: string; description?: string; language: string; file: File },
+  onProgress?: (percent: number) => void
 ): Promise<PresentationDeck> {
   const form = new FormData();
   form.append("title", payload.title);
   form.append("language", payload.language);
   if (payload.description) form.append("description", payload.description);
   form.append("file", payload.file);
-  const res = await apiFetch(`/admin/presentations/events/${eventId}/upload`, {
-    method: "POST",
-    body: form,
+  return new Promise<PresentationDeck>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", apiUrl(`/admin/presentations/events/${eventId}/upload`));
+    xhr.timeout = 5 * 60_000;
+
+    const token = getToken();
+    if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    const organizationId = getSelectedOrganizationId();
+    if (token && organizationId) xhr.setRequestHeader("X-Organization-Id", organizationId);
+    if (typeof window !== "undefined") xhr.setRequestHeader("X-App-Lang", localStorage.getItem("heptacert-lang") || "tr");
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) {
+        onProgress?.(Math.min(99, Math.round((event.loaded / event.total) * 100)));
+      }
+    };
+    xhr.onload = () => {
+      let body: any = null;
+      try {
+        body = xhr.responseText ? JSON.parse(xhr.responseText) : null;
+      } catch {}
+      if (xhr.status >= 200 && xhr.status < 300 && body) {
+        onProgress?.(100);
+        resolve(body as PresentationDeck);
+        return;
+      }
+      const detail = typeof body?.detail === "string" ? body.detail : body?.detail?.message;
+      if (xhr.status === 401 && token) {
+        clearToken();
+        if (typeof window !== "undefined") window.location.href = "/admin/login";
+      }
+      reject(new ApiError(xhr.status, detail || `Upload failed (${xhr.status})`));
+    };
+    xhr.onerror = () => reject(new ApiError(0, "Network error while uploading the presentation."));
+    xhr.ontimeout = () => reject(new ApiError(0, "Presentation upload timed out."));
+    xhr.onabort = () => reject(new ApiError(0, "Presentation upload was cancelled."));
+    onProgress?.(0);
+    xhr.send(form);
   });
-  return res.json();
 }
 
 function securePresentationUrl(path?: string | null): string | null {
@@ -254,6 +289,11 @@ export async function regeneratePresenterToken(id: number): Promise<Presentation
 
 export async function deletePresentation(id: number): Promise<void> {
   await apiFetch(`/admin/presentations/${id}`, { method: "DELETE" });
+}
+
+export async function retryPresentationConversion(id: number): Promise<PresentationDeck> {
+  const res = await apiFetch(`/admin/presentations/${id}/retry-conversion`, { method: "POST" });
+  return res.json();
 }
 
 export async function getPublicAudiencePresentation(token: string): Promise<PublicPresentationDeck> {

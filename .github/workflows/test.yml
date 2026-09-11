@@ -44,9 +44,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run unit tests (fast, no DB)
-        run: python -m pytest tests/ -v --tb=short -m "unit or not integration" -x
-
       - name: Run all tests with coverage
         run: |
           python -m pytest tests/ -v --tb=short \
@@ -65,7 +62,7 @@ jobs:
       - name: Check for security issues (bandit)
         run: |
           pip install bandit
-          bandit -r src/ -ll -ii --skip B101,B106 || true
+          bandit -r src/ -ll -ii --skip B101,B106
 
   frontend-lint:
     name: Frontend Lint & Type Check
@@ -88,7 +85,16 @@ jobs:
         run: npm ci
 
       - name: TypeScript type check
-        run: npx tsc --noEmit || true
+        run: npx tsc --noEmit
 
-      - name: Lint check
-        run: npx next lint || true
+      - name: Frontend tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_BASE: http://localhost:8000/api
+          NODE_ENV: production
+
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high

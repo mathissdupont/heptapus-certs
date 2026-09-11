@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AlertTriangle, CheckCircle2, Clock3, Copy, Download, Eye, FileText, Loader2, MonitorPlay, Presentation, RefreshCw, Shield, Smartphone, Trash2, Upload } from "lucide-react";
@@ -10,6 +10,7 @@ import {
   getPresentationSecurity,
   listEventPresentations,
   presentationFileUrl,
+  retryPresentationConversion,
   updatePresentationSecurity,
   uploadEventPresentation,
   type PresentationDeck,
@@ -55,6 +56,9 @@ export default function EventPresentationsPage() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [retryingId, setRetryingId] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [securityByDeck, setSecurityByDeck] = useState<Record<number, PresentationSecuritySettings>>({});
   const [securityLoading, setSecurityLoading] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -108,22 +112,38 @@ export default function EventPresentationsPage() {
   async function handleUpload() {
     if (!file) return;
     setWorking(true);
+    setUploadProgress(0);
     try {
       const next = await uploadEventPresentation(eventId, {
         title: title.trim() || file.name.replace(/\.(pdf|pptx?|PDF|PPTX?)$/, ""),
         description: description.trim() || undefined,
         language: isTr ? "tr" : "en",
         file,
-      });
+      }, setUploadProgress);
       setItems((current) => [next, ...current]);
       setTitle("");
       setDescription("");
       setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       setError(null);
     } catch (ex: any) {
       setError(ex?.message || copy.uploadFailed);
     } finally {
       setWorking(false);
+      setUploadProgress(null);
+    }
+  }
+
+  async function handleRetry(deck: PresentationDeck) {
+    setRetryingId(deck.id);
+    try {
+      const next = await retryPresentationConversion(deck.id);
+      setItems((current) => current.map((item) => item.id === deck.id ? next : item));
+      setError(null);
+    } catch (ex: any) {
+      setError(ex?.message || copy.loadFailed);
+    } finally {
+      setRetryingId(null);
     }
   }
 
@@ -223,6 +243,7 @@ export default function EventPresentationsPage() {
             <span className="text-sm font-semibold text-surface-700">{file?.name || copy.choose}</span>
             <span className="mt-1 text-xs text-surface-400">PDF, PPTX, PPT</span>
             <input
+              ref={fileInputRef}
               type="file"
               accept=".pdf,.ppt,.pptx,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
               className="hidden"
@@ -233,6 +254,17 @@ export default function EventPresentationsPage() {
             {working ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
             {working ? copy.uploading : copy.upload}
           </button>
+          {working && uploadProgress !== null && (
+            <div className="space-y-1" aria-live="polite">
+              <div className="flex justify-between text-xs font-semibold text-surface-600">
+                <span>{copy.uploading}</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-surface-100" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={uploadProgress}>
+                <div className="h-full rounded-full bg-brand-600 transition-[width]" style={{ width: `${uploadProgress}%` }} />
+              </div>
+            </div>
+          )}
           <p className="helper-text">{copy.pptxNote}</p>
         </div>
 
@@ -291,6 +323,12 @@ export default function EventPresentationsPage() {
                         <button type="button" onClick={() => void handleDownload(deck)} className="btn-secondary">
                           <Download className="h-4 w-4" />
                           {copy.download}
+                        </button>
+                      )}
+                      {deck.conversion_status === "failed" && (
+                        <button type="button" onClick={() => void handleRetry(deck)} disabled={retryingId === deck.id} className="btn-secondary">
+                          <RefreshCw className={`h-4 w-4 ${retryingId === deck.id ? "animate-spin" : ""}`} />
+                          {isTr ? "Dönüşümü yeniden dene" : "Retry conversion"}
                         </button>
                       )}
                       <button type="button" onClick={() => void handleDelete(deck)} className="btn-secondary text-red-600 hover:bg-red-50">

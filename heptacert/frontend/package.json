@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
-    "start": "next start -p 3000"
+    "start": "next start -p 3000",
+    "test": "vitest run"
   },
   "dependencies": {
     "@tanstack/react-table": "^8.21.3",
@@ -13,25 +14,29 @@
     "framer-motion": "^11.0.0",
     "html5-qrcode": "^2.3.4",
     "lucide-react": "0.460.0",
-    "next": "15.5.18",
+    "next": "15.5.25",
     "pdfjs-dist": "^4.10.38",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-draggable": "4.4.6",
     "react-markdown": "^10.1.0",
+    "sharp": "^0.35.4",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
-    "@types/node": "20.11.30",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^20.19.43",
     "@types/react": "18.3.4",
     "autoprefixer": "10.4.20",
-    "postcss": "8.5.15",
+    "jsdom": "^26.1.0",
+    "postcss": "8.5.28",
     "tailwindcss": "3.4.14",
-    "typescript": "5.6.3"
+    "typescript": "5.6.3",
+    "vitest": "^4.1.11"
   },
   "overrides": {
-    "next": {
-      "postcss": "8.5.10"
-    }
+    "postcss": "8.5.28"
   }
 }

@@ -1174,7 +1174,8 @@ class WebhookEndpointIn(BaseModel):
             if "private" in str(exc) or "internal" in str(exc):
                 raise
             # hostname is a domain name Ã¢â‚¬â€ block known internal hostnames
-            blocked = ("localhost", "127.0.0.1", "0.0.0.0", "[::1]", "metadata.google", "169.254.169.254")
+            # These are values to reject, not an interface binding.
+            blocked = ("localhost", "127.0.0.1", "0.0.0.0", "[::1]", "metadata.google", "169.254.169.254")  # nosec B104
             if any(hostname.lower().startswith(b) for b in blocked):
                 raise ValueError("Webhook URL must not point to localhost or metadata services")
         return v

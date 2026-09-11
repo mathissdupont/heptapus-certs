@@ -175,7 +175,7 @@ function formatApiDetail(detail: unknown): string {
 async function requestApi(
   path: string,
   init: RequestInit = {},
-  options: { token?: string | null; onUnauthorized?: () => void } = {}
+  options: { token?: string | null; onUnauthorized?: () => void; timeoutMs?: number } = {}
 ) {
   const token = options.token ?? null;
   const headers = new Headers(init.headers);
@@ -194,7 +194,7 @@ async function requestApi(
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30_000);
+  const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? 30_000);
 
   let res: Response;
   try {
@@ -235,9 +235,14 @@ async function requestApi(
   return res;
 }
 
-export async function apiFetch<T = Response>(path: string, init: RequestInit = {}): Promise<T> {
+export async function apiFetch<T = Response>(
+  path: string,
+  init: RequestInit = {},
+  options: { timeoutMs?: number } = {}
+): Promise<T> {
   return requestApi(path, init, {
     token: getToken(),
+    timeoutMs: options.timeoutMs,
     onUnauthorized: () => {
       clearToken();
       if (typeof window !== "undefined") {

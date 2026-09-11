@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import subprocess
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from sqlalchemy import or_, select
@@ -29,6 +29,7 @@ async def _claim_next_deck() -> int | None:
                 select(PresentationDeck)
                 .where(
                     PresentationDeck.conversion_status == "queued",
+                    PresentationDeck.conversion_attempts < settings.presentation_conversion_max_attempts,
                     PresentationDeck.file_path.is_not(None),
                     or_(
                         PresentationDeck.file_filename.ilike("%.ppt"),
@@ -51,6 +52,35 @@ async def _claim_next_deck() -> int | None:
             return deck.id
 
 
+async def _recover_stale_decks() -> int:
+    cutoff = datetime.now(timezone.utc) - timedelta(seconds=settings.presentation_conversion_stale_seconds)
+    recovered = 0
+    async with SessionLocal() as db:
+        decks = (
+            await db.execute(
+                select(PresentationDeck).where(
+                    PresentationDeck.conversion_status == "processing",
+                    PresentationDeck.updated_at < cutoff,
+                )
+            )
+        ).scalars().all()
+        for deck in decks:
+            attempts = deck.conversion_attempts or 0
+            if attempts >= settings.presentation_conversion_max_attempts:
+                deck.conversion_status = "failed"
+                deck.status = "failed"
+                deck.conversion_error = "Presentation conversion timed out after the maximum number of attempts"
+            else:
+                deck.conversion_status = "queued"
+                deck.status = "processing"
+                deck.conversion_error = "Previous conversion attempt timed out; queued for retry"
+            deck.updated_at = datetime.now(timezone.utc)
+            recovered += 1
+        if recovered:
+            await db.commit()
+    return recovered
+
+
 async def _mark_deck(deck_id: int, **updates: object) -> None:
     async with SessionLocal() as db:
         deck = await db.get(PresentationDeck, deck_id)
@@ -58,6 +88,19 @@ async def _mark_deck(deck_id: int, **updates: object) -> None:
             return
         for key, value in updates.items():
             setattr(deck, key, value)
+        deck.updated_at = datetime.now(timezone.utc)
+        await db.commit()
+
+
+async def _mark_conversion_failure(deck_id: int, error: str) -> None:
+    async with SessionLocal() as db:
+        deck = await db.get(PresentationDeck, deck_id)
+        if not deck:
+            return
+        exhausted = (deck.conversion_attempts or 0) >= settings.presentation_conversion_max_attempts
+        deck.conversion_status = "failed" if exhausted else "queued"
+        deck.status = "failed" if exhausted else "processing"
+        deck.conversion_error = error[:2000]
         deck.updated_at = datetime.now(timezone.utc)
         await db.commit()
 
@@ -76,12 +119,7 @@ async def _process_deck(deck_id: int) -> None:
         convert_powerpoint_to_pdf(deck.file_path, output_rel_path)
     except (PresentationConversionError, subprocess.TimeoutExpired, OSError) as exc:  # type: ignore[name-defined]
         logger.exception("Presentation conversion failed for deck %s", deck_id)
-        await _mark_deck(
-            deck_id,
-            conversion_status="failed",
-            conversion_error=str(exc)[:2000],
-            status="failed",
-        )
+        await _mark_conversion_failure(deck_id, str(exc))
         return
 
     await _mark_deck(
@@ -102,6 +140,9 @@ async def run_worker() -> None:
         return
     logger.info("Presentation converter worker started")
     while True:
+        recovered = await _recover_stale_decks()
+        if recovered:
+            logger.warning("Recovered %s stale presentation conversion job(s)", recovered)
         deck_id = await _claim_next_deck()
         if deck_id is None:
             await asyncio.sleep(settings.presentation_converter_interval_seconds)

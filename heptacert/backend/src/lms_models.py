@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import (
     Boolean, DateTime, ForeignKey, Index, Integer, Numeric,
@@ -11,6 +11,9 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .main import Base
+
+if TYPE_CHECKING:
+    from .lms_extended_models import CourseGradeSummary
 
 
 # ---------------------------------------------------------------------------

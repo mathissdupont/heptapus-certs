@@ -7,7 +7,9 @@ PowerPoint files without coupling the feature to the legacy LMS code.
 from __future__ import annotations
 
 import json
+import logging
 import secrets
+import zipfile
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
@@ -31,6 +33,7 @@ from .upload_security import scan_upload_with_clamav
 
 router = APIRouter(prefix="/api/admin/presentations", tags=["presentations"])
 public_router = APIRouter(prefix="/api/public/presentations", tags=["public-presentations"])
+logger = logging.getLogger("heptacert.presentation_api")
 
 ALLOWED_UPLOAD_TYPES = {
     "application/pdf": ".pdf",
@@ -526,13 +529,70 @@ def _presentation_file_response(deck: Any, file_path: str, file_filename: Option
 
 
 def _safe_upload_suffix(content_type: str, filename: str) -> str:
-    if content_type in ALLOWED_UPLOAD_TYPES:
-        return ALLOWED_UPLOAD_TYPES[content_type]
     lower = filename.lower()
-    for suffix in (".pdf", ".pptx", ".ppt"):
-        if lower.endswith(suffix):
-            return suffix
+    filename_suffix = next((suffix for suffix in (".pdf", ".pptx", ".ppt") if lower.endswith(suffix)), None)
+    content_suffix = ALLOWED_UPLOAD_TYPES.get(content_type)
+    if filename_suffix and content_suffix and filename_suffix != content_suffix:
+        raise HTTPException(status_code=400, detail="File extension and content type do not match")
+    if filename_suffix:
+        return filename_suffix
+    if content_suffix:
+        return content_suffix
     raise HTTPException(status_code=400, detail="Only PDF and PowerPoint files are supported")
+
+
+def _validate_presentation_payload(raw: bytes, suffix: str) -> None:
+    """Reject disguised files and unsafe PPTX archives before malware scanning."""
+    if suffix == ".pdf":
+        if b"%PDF-" not in raw[:1024] or b"%%EOF" not in raw[-2048:]:
+            raise HTTPException(status_code=400, detail="The uploaded file is not a valid PDF")
+        return
+    if suffix == ".ppt":
+        if (
+            not raw.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1")
+            or "PowerPoint Document".encode("utf-16le") not in raw
+        ):
+            raise HTTPException(status_code=400, detail="The uploaded file is not a valid PowerPoint presentation")
+        return
+
+    try:
+        with zipfile.ZipFile(BytesIO(raw)) as archive:
+            entries = archive.infolist()
+            names = {entry.filename.replace("\\", "/") for entry in entries}
+            if "[Content_Types].xml" not in names or "ppt/presentation.xml" not in names:
+                raise HTTPException(status_code=400, detail="The uploaded file is not a valid PowerPoint presentation")
+            if len(entries) > 10_000:
+                raise HTTPException(status_code=400, detail="The PowerPoint archive contains too many files")
+            total_uncompressed = 0
+            for entry in entries:
+                if entry.flag_bits & 0x1:
+                    raise HTTPException(status_code=400, detail="Encrypted PowerPoint files are not supported")
+                total_uncompressed += entry.file_size
+                if entry.file_size > 10 * 1024 * 1024 and entry.compress_size and entry.file_size / entry.compress_size > 1000:
+                    raise HTTPException(status_code=400, detail="The PowerPoint archive has an unsafe compression ratio")
+            if total_uncompressed > 512 * 1024 * 1024:
+                raise HTTPException(status_code=400, detail="The expanded PowerPoint archive is too large")
+            if archive.testzip() is not None:
+                raise HTTPException(status_code=400, detail="The PowerPoint archive is corrupted")
+    except HTTPException:
+        raise
+    except (zipfile.BadZipFile, RuntimeError, ValueError, OSError):
+        raise HTTPException(status_code=400, detail="The uploaded file is not a valid PowerPoint presentation") from None
+
+
+def _delete_storage_files(*relative_paths: Optional[str]) -> None:
+    storage_root = Path(settings.local_storage_dir).resolve()
+    for relative_path in relative_paths:
+        if not relative_path:
+            continue
+        abs_path = (storage_root / relative_path).resolve()
+        if not abs_path.is_relative_to(storage_root):
+            logger.warning("Refused to delete presentation path outside storage root: %s", relative_path)
+            continue
+        try:
+            abs_path.unlink(missing_ok=True)
+        except OSError:
+            logger.exception("Could not delete presentation file: %s", abs_path)
 
 
 def _upload_media_type(deck: PresentationDeck) -> str:
@@ -646,12 +706,16 @@ async def _store_presentation_pointer_state(deck_id: int, active: bool, x: Optio
 
 async def _store_upload_file(deck: PresentationDeck, file: UploadFile) -> None:
     suffix = _safe_upload_suffix(file.content_type or "", file.filename or "")
-    raw = await file.read()
+    max_upload_bytes = settings.presentation_max_upload_mb * 1024 * 1024
+    buffer = BytesIO()
+    while chunk := await file.read(1024 * 1024):
+        if buffer.tell() + len(chunk) > max_upload_bytes:
+            raise HTTPException(status_code=413, detail=f"Presentation file is too large. Maximum size is {settings.presentation_max_upload_mb} MB.")
+        buffer.write(chunk)
+    raw = buffer.getvalue()
     if not raw:
         raise HTTPException(status_code=400, detail="File is empty")
-    max_upload_bytes = settings.presentation_max_upload_mb * 1024 * 1024
-    if len(raw) > max_upload_bytes:
-        raise HTTPException(status_code=413, detail=f"Presentation file is too large. Maximum size is {settings.presentation_max_upload_mb} MB.")
+    _validate_presentation_payload(raw, suffix)
     await scan_upload_with_clamav(raw)
     event_id = deck.get("event_id") if hasattr(deck, "get") else deck.event_id
     deck_id = deck.get("id") if hasattr(deck, "get") else deck.id
@@ -752,16 +816,21 @@ async def upload_event_presentation(
     )
     db.add(deck)
     await db.flush()
-    await _store_upload_file(deck, file)
-    await write_audit_log(
-        db,
-        user_id=me.id,
-        action="presentation.upload",
-        resource_type="presentation_deck",
-        resource_id=str(deck.id),
-        extra={"event_id": event.id, "filename": deck.file_filename, "content_type": deck.file_content_type},
-    )
-    await db.commit()
+    try:
+        await _store_upload_file(deck, file)
+        await write_audit_log(
+            db,
+            user_id=me.id,
+            action="presentation.upload",
+            resource_type="presentation_deck",
+            resource_id=str(deck.id),
+            extra={"event_id": event.id, "filename": deck.file_filename, "content_type": deck.file_content_type},
+        )
+        await db.commit()
+    except Exception:
+        _delete_storage_files(deck.file_path)
+        await db.rollback()
+        raise
     row = await _load_deck_row(db, PresentationDeck.id == deck.id)
     if row is None:
         raise HTTPException(status_code=404, detail="Presentation not found")
@@ -1105,9 +1174,49 @@ async def delete_deck(
     db: AsyncSession = Depends(get_db),
 ) -> None:
     deck = await _authorized_deck(db, me, deck_id, request, "presentations:write")
+    stored_paths = (deck.get("file_path"), deck.get("converted_file_path"), deck.get("last_export_path"))
     await write_audit_log(db, user_id=me.id, action="presentation.delete", resource_type="presentation_deck", resource_id=str(deck["id"]))
     await db.execute(PresentationDeck.__table__.delete().where(PresentationDeck.id == deck["id"]))
     await db.commit()
+    _delete_storage_files(*stored_paths)
+
+
+@router.post("/{deck_id}/retry-conversion", response_model=DeckOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+async def retry_deck_conversion(
+    deck_id: int,
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> DeckOut:
+    deck = await _authorized_deck(db, me, deck_id, request, "presentations:write")
+    if not deck.get("file_path") or not is_powerpoint_path(deck.get("file_filename") or deck.get("file_path")):
+        raise HTTPException(status_code=409, detail="Only uploaded PowerPoint presentations can be converted")
+    if deck.get("conversion_status") in {"queued", "processing"}:
+        raise HTTPException(status_code=409, detail="Presentation conversion is already in progress")
+    await db.execute(
+        PresentationDeck.__table__.update()
+        .where(PresentationDeck.id == deck["id"])
+        .values(
+            conversion_status="queued",
+            conversion_error=None,
+            conversion_attempts=0,
+            converted_file_path=None,
+            converted_file_filename=None,
+            status="processing",
+        )
+    )
+    await write_audit_log(
+        db,
+        user_id=me.id,
+        action="presentation.conversion.retry",
+        resource_type="presentation_deck",
+        resource_id=str(deck["id"]),
+    )
+    await db.commit()
+    row = await _load_deck_row(db, PresentationDeck.id == deck["id"])
+    if row is None:
+        raise HTTPException(status_code=404, detail="Presentation not found")
+    return _deck_out_from_row(row)
 
 
 @router.post("/{deck_id}/export", response_model=DeckOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])

@@ -1724,7 +1724,9 @@ def _make_apple_wallet_pass(ticket: EventTicket) -> bytes:
         "logo@2x.png": _make_pass_icon(320),
     }
     manifest = {
-        name: hashlib.sha1(content).hexdigest()
+        # Apple Wallet's manifest format mandates SHA-1. The digest is a file
+        # manifest checksum; the detached PKCS#7 signature provides integrity.
+        name: hashlib.sha1(content, usedforsecurity=False).hexdigest()
         for name, content in files.items()
     }
     manifest_bytes = json.dumps(manifest, separators=(",", ":"), sort_keys=True).encode("utf-8")

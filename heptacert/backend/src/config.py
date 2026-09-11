@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     clamav_host: str = Field(default="127.0.0.1", alias="CLAMAV_HOST")
     clamav_port: int = Field(default=3310, alias="CLAMAV_PORT")
     require_clamav: bool = Field(default=False, alias="REQUIRE_CLAMAV")
+    clamav_scan_timeout_seconds: int = Field(default=120, ge=5, le=600, alias="CLAMAV_SCAN_TIMEOUT_SECONDS")
     trusted_proxy_networks: str = Field(default="", alias="TRUSTED_PROXY_NETWORKS")
     # Passphrase for the local self-signed PDF-signing certificate. Default keeps the
     # legacy value so existing signing_cert.p12 files still open; set a custom value in
@@ -55,6 +56,8 @@ class Settings(BaseSettings):
     presentation_converter_enabled: bool = Field(default=True, alias="PRESENTATION_CONVERTER_ENABLED")
     presentation_converter_interval_seconds: float = Field(default=5.0, ge=1, le=300, alias="PRESENTATION_CONVERTER_INTERVAL_SECONDS")
     presentation_converter_timeout_seconds: int = Field(default=120, ge=10, le=900, alias="PRESENTATION_CONVERTER_TIMEOUT_SECONDS")
+    presentation_conversion_stale_seconds: int = Field(default=300, ge=30, le=3600, alias="PRESENTATION_CONVERSION_STALE_SECONDS")
+    presentation_conversion_max_attempts: int = Field(default=3, ge=1, le=10, alias="PRESENTATION_CONVERSION_MAX_ATTEMPTS")
     presentation_max_upload_mb: int = Field(default=80, ge=1, le=1024, alias="PRESENTATION_MAX_UPLOAD_MB")
     soffice_bin: str = Field(default="soffice", alias="SOFFICE_BIN")
 

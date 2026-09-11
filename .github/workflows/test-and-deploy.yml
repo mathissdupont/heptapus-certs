@@ -52,16 +52,20 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools wheel
           pip install -r requirements.txt
-          pip install flake8
+          pip install flake8 bandit
 
-      - name: Lint with flake8
+      - name: Block Python syntax and undefined-name errors
+        run: flake8 src --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: Report Python style and complexity
         continue-on-error: true
-        run: |
-          flake8 src --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 src --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        run: flake8 src --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Check for security issues
+        run: bandit -r src/ -ll -ii --skip B101,B106
 
       - name: Run tests with coverage
-        run: python -m pytest tests/ -v --tb=short --cov=src --cov-report=term-missing --cov-report=xml --cov-report=html
+        run: python -m pytest tests/ -v --tb=short --cov=src --cov-report=term-missing --cov-report=xml --cov-report=html --cov-fail-under=40
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
@@ -95,8 +99,14 @@ jobs:
       - name: Type check with TypeScript
         run: npx tsc --noEmit
 
+      - name: Frontend tests
+        run: npm test
+
       - name: Build frontend
         run: npm run build
         env:
           NEXT_PUBLIC_API_BASE: http://localhost:8000/api
           NODE_ENV: production
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high

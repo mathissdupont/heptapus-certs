@@ -2018,7 +2018,9 @@ def _mailchimp_config(org: Organization) -> dict[str, Any]:
 
 def _mailchimp_subscriber_hash(email: str) -> str:
     import hashlib
-    return hashlib.md5(email.strip().lower().encode()).hexdigest()
+    # Mailchimp's API identifies subscribers with MD5; this is not used as a
+    # password, signature, or other security primitive.
+    return hashlib.md5(email.strip().lower().encode(), usedforsecurity=False).hexdigest()
 
 
 def _mailchimp_datacenter(api_key: str) -> str:

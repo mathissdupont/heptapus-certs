@@ -24,7 +24,7 @@ from datetime import date as date_type
 from html import escape
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 from urllib.parse import quote, urlencode, urlparse
 
 import httpx
@@ -52,6 +52,9 @@ except ImportError:
 
 from .config import settings
 from .enums import Role, CertStatus, TxType, OrderStatus, AttendeeSource
+
+if TYPE_CHECKING:
+    from .main import Certificate, Event, EventSurvey, EventTicket
 
 __all__ = [
     "compute_hosting_ends",

@@ -1597,7 +1597,9 @@ if __name__ == "__main__":
             "Users authenticate per-request via Authorization: Bearer hc_live_... header.",
             file=sys.stderr,
         )
-        mcp.run(transport="streamable-http", host="0.0.0.0", port=port)
+        # The hosted MCP process runs inside a container and must be reachable
+        # by the reverse proxy on the container network.
+        mcp.run(transport="streamable-http", host="0.0.0.0", port=port)  # nosec B104
     else:
         print(f"ERROR: Unknown transport '{transport}'. Use 'stdio' or 'streamable-http'.", file=sys.stderr)
         sys.exit(1)
