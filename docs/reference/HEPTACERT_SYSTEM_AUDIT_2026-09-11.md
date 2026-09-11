@@ -13,16 +13,19 @@ test used only the isolated local Docker database and storage.
 
 The certificate/event core is broad and the automated suite is green, but the
 product is not yet uniformly production-ready. Presentation upload now works
-end to end after two rounds of fixes. The highest remaining risks are vulnerable
-backend dependencies, an exposed but disconnected LMS portal, a production MCP
-route that is not reaching the backend, misleading health reporting, and a
-certificate-tier evaluator that ignores its configured conditions.
+end to end after two rounds of fixes. The highest remaining risks are an exposed
+but disconnected LMS portal, a production MCP route that is not reaching the
+backend, misleading health reporting, and a certificate-tier evaluator that
+ignores its configured conditions. The backend dependency findings discovered
+during the audit have been remediated on the current branch.
 
 ### Verified working
 
 - Backend: 542 tests passed; syntax and critical flake8 checks passed.
 - Frontend: type check, production build, and 3 Vitest tests passed in the
   presentation-fix work; production `npm audit` currently reports 0 findings.
+- Backend dependency upgrades: compatibility tests passed and the repeated
+  `pip-audit` reports no known vulnerabilities.
 - Database: a clean local PostgreSQL instance migrated to
   `112_public_member_purged_at`, the single Alembic head.
 - Local infrastructure: PostgreSQL and Redis became healthy; ClamAV accepted a
@@ -66,7 +69,7 @@ certificate-tier evaluator that ignores its configured conditions.
 
 ### P0 — release blockers
 
-#### 1. Backend dependency vulnerabilities
+#### 1. Backend dependency vulnerabilities — remediated on current branch
 
 `pip-audit` found 56 known vulnerability records across 7 direct/resolved
 packages. Duplicate advisories appear because of dependency extras, but every
@@ -82,8 +85,11 @@ package below needs review and upgrade:
 | `dnspython` | 2.4.2 | 2.6.1 |
 | `mcp` | 1.12.4 resolved from an open range | 1.28.1 |
 
-Upgrade these in compatibility groups, run the full suite after each group, and
-repeat the audit. Add `pip-audit` to CI so a future vulnerable pin is blocked.
+The affected packages and the required compatibility pins for Pydantic and
+Uvicorn were upgraded. The 134 focused security/auth/payment/MCP/presentation
+tests passed, the full backend suite passed, `pip check` found no broken
+requirements, and the repeated audit found no known vulnerabilities.
+`pip-audit` is now a blocking step in both root CI workflows.
 
 #### 2. LMS/member portal is publicly reachable but disconnected
 
@@ -247,8 +253,8 @@ navigation entry so the shell is not presented as a complete hub.
 
 1. Deploy the presentation worker/ClamAV fixes and repeat the real PPTX smoke on
    the server; add a worker heartbeat alarm.
-2. Upgrade and re-audit the seven vulnerable backend packages in compatibility
-   groups.
+2. **Completed on current branch:** upgrade and re-audit the seven vulnerable
+   backend packages and add a blocking CI dependency audit.
 3. Decide LMS scope; restore its API/UI completely or hide/remove every live
    portal surface and broken redirect.
 4. Fix Caddy routing for `/mcp` and run an authenticated protocol smoke test.
@@ -270,8 +276,8 @@ navigation entry so the shell is not presented as a complete hub.
 - Focused presentation suite: 11 passed.
 - Python critical lint: 0 syntax/undefined-name errors.
 - Frontend production dependency audit: 0 vulnerabilities.
-- Backend dependency audit: 56 records in 7 packages.
+- Initial backend dependency audit: 56 records in 7 packages; repeated audit
+  after remediation: no known vulnerabilities.
 - Production OpenAPI: 512 path templates and about 650 HTTP operations.
 - Production health: HTTP 200 with `{"status":"ok"}`.
 - Alembic: one head, `112_public_member_purged_at`.
-
