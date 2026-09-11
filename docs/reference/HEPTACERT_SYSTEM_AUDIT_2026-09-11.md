@@ -13,17 +13,19 @@ test used only the isolated local Docker database and storage.
 
 The certificate/event core is broad and the automated suite is green, but the
 product is not yet uniformly production-ready. Presentation upload now works
-end to end after two rounds of fixes. The highest remaining risks are an exposed
-but disconnected LMS portal, a production MCP route that is not reaching the
-backend, misleading health reporting, and a certificate-tier evaluator that
-ignores its configured conditions. The backend dependency findings discovered
-during the audit have been remediated on the current branch.
+end to end after two rounds of fixes. The exposed LMS portal and MCP routing
+defects have been remediated on the current branch. The highest remaining risks
+are misleading health reporting and a certificate-tier evaluator that ignores
+its configured conditions. The dependency findings discovered during the audit
+have also been remediated on the current branch.
 
 ### Verified working
 
 - Backend: 542 tests passed; syntax and critical flake8 checks passed.
 - Frontend: type check, production build, and 3 Vitest tests passed in the
   presentation-fix work; production `npm audit` currently reports 0 findings.
+- Documentation site: its patched Next.js Docker image built successfully,
+  served the home/MCP/CLI pages, and production `npm audit` reports 0 findings.
 - Backend dependency upgrades: compatibility tests passed and the repeated
   `pip-audit` reports no known vulnerabilities.
 - Database: a clean local PostgreSQL instance migrated to
@@ -271,17 +273,20 @@ navigation entry so the shell is not presented as a complete hub.
    tool and CLI surfaces.
 4. **Completed on current branch; deploy pending:** add a resilient `/mcp`
    routing fallback and verify a protocol-level initialize smoke through Docker.
-5. Implement and test actual certificate-tier condition evaluation.
-6. Replace false-green health reporting with dependency and worker readiness.
-7. Repair user-facing mojibake and add an automated source guard.
-8. Make frontend/docs/backend Docker builds deterministic and small.
-9. Correct CLI defaults and all broken documentation URLs; add link/contract
+5. **Completed on current branch:** upgrade vulnerable documentation
+   dependencies, use lockfile-deterministic Docker installs, and enforce docs
+   build/audit checks in CI.
+6. Implement and test actual certificate-tier condition evaluation.
+7. Replace false-green health reporting with dependency and worker readiness.
+8. Repair user-facing mojibake and add an automated source guard.
+9. Finish making the backend Docker build deterministic and small.
+10. Correct CLI defaults and all broken documentation URLs; add link/contract
    checks.
-10. Confirm whether paid checkout should be live; if yes, complete provider and
-    webhook acceptance testing.
-11. Add PostgreSQL integration and browser critical-journey tests, then raise CI
-    coverage thresholds module by module.
-12. Address lifecycle/Pydantic/datetime deprecations and remaining UI shells.
+11. Confirm whether paid checkout should be live; if yes, complete provider and
+   webhook acceptance testing.
+12. Add PostgreSQL integration and browser critical-journey tests, then raise CI
+   coverage thresholds module by module.
+13. Address lifecycle/Pydantic/datetime deprecations and remaining UI shells.
 
 ## Commands/evidence snapshot
 
