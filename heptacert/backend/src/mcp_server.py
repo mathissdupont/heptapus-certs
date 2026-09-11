@@ -2,8 +2,8 @@
 HeptaCert MCP Server
 
 Expose HeptaCert as a full agentic MCP service. AI agents can create and manage
-events, attendees, sessions, certificates, check-ins, LMS courses, automation rules,
-and query analytics — all within proper security boundaries.
+events, attendees, sessions, certificates, check-ins, automation rules, and query
+analytics — all within proper security boundaries.
 
 ── Authentication ────────────────────────────────────────────────────────────────
   stdio mode (Claude Desktop):
@@ -98,13 +98,13 @@ mcp = FastMCP(
     instructions=(
         "You are connected to HeptaCert, a professional event management and certificate "
         "issuance platform. You can create and manage events, attendees, sessions, "
-        "certificates, check-ins, LMS courses, automation rules, and view analytics.\n\n"
+        "certificates, check-ins, automation rules, and view analytics.\n\n"
         "IMPORTANT RULES:\n"
         "- Always confirm event name and date with the user before creating records.\n"
         "- For destructive actions (delete_event, remove_attendee, revoke_certificate, "
         "delete_session) call without confirm=True first to preview, then call again with "
         "confirm=True only after explicit user approval.\n"
-        "- Use list_events to discover event IDs. Use list_lms_courses for course IDs.\n"
+        "- Use list_events to discover event IDs.\n"
         "- Never invent IDs — always look them up first."
     ),
 )
@@ -1067,8 +1067,7 @@ async def list_automation_rules(ctx: Context, event_id: int) -> str:
 
     Trigger types:
       attended_event, registered_no_show, certificate_issued, survey_not_completed,
-      badge_earned, audience_segment, lms_course_enrolled, lms_course_completed,
-      lms_module_completed, lms_assignment_graded, lms_journey_completed, compliance_overdue.
+      badge_earned, audience_segment, compliance_overdue.
     """
     api_key = _get_api_key(ctx)
     await _require_scope(api_key, "automations:read")
@@ -1113,132 +1112,6 @@ async def create_automation_rule(
                          payload={"name": name, "trigger": trigger},
                          result_summary=f"Created automation '{name}' (trigger={trigger}) for event {event_id}")
     return _fmt({"status": "created", "automation": data})
-
-
-# ── Tools: LMS ────────────────────────────────────────────────────────────────
-
-
-@mcp.tool()
-async def list_lms_courses(ctx: Context, search: str = "", limit: int = 20) -> str:
-    """
-    List LMS courses in the account.
-
-    Args:
-        search: Filter by course title. Optional.
-        limit: Max results (1–100). Default: 20.
-
-    Returns {total, courses[]} with: id, title, status, enrollment_count,
-    module_count, completion_rate.
-    """
-    api_key = _get_api_key(ctx)
-    await _require_scope(api_key, "events:read")
-    data = await _get("/api/admin/lms/courses", api_key)
-    courses: list = data if isinstance(data, list) else data.get("courses", data.get("items", []))  # type: ignore[union-attr]
-    if search:
-        kw = search.lower()
-        courses = [c for c in courses if kw in (c.get("title") or "").lower()]
-    courses = courses[: max(1, min(limit, 100))]
-    return _fmt({"total": len(courses), "courses": courses})
-
-
-@mcp.tool()
-async def get_lms_course(ctx: Context, course_id: int) -> str:
-    """
-    Get full details of an LMS course including modules and settings.
-
-    Args:
-        course_id: Numeric course ID (from list_lms_courses).
-    """
-    api_key = _get_api_key(ctx)
-    await _require_scope(api_key, "events:read")
-    data = await _get(f"/api/admin/lms/courses/{course_id}", api_key)
-    return _fmt(data)
-
-
-@mcp.tool()
-async def list_lms_enrollments(
-    ctx: Context,
-    course_id: int,
-    page: int = 1,
-    limit: int = 50,
-    search: str = "",
-) -> str:
-    """
-    List learner enrollments for an LMS course.
-
-    Args:
-        course_id: Numeric course ID.
-        page: Page number. Default: 1.
-        limit: Records per page (max 200). Default: 50.
-        search: Filter by learner name or email. Optional.
-
-    Returns paginated enrollments with: id, learner name, email, enrolled_at,
-    progress_pct, completed_at, grade.
-    """
-    api_key = _get_api_key(ctx)
-    await _require_scope(api_key, "attendees:read")
-    params: dict = {"page": page, "limit": limit}
-    if search:
-        params["search"] = search
-    data = await _get(f"/api/admin/lms/courses/{course_id}/enrollments", api_key, params=params)
-    return _fmt(data)
-
-
-@mcp.tool()
-async def enroll_in_lms_course(
-    ctx: Context,
-    course_id: int,
-    email: str,
-    first_name: str,
-    last_name: str,
-) -> str:
-    """
-    Enroll a learner in an LMS course.
-
-    Args:
-        course_id: Numeric LMS course ID.
-        email: Learner's email address.
-        first_name: Learner's first name.
-        last_name: Learner's last name.
-
-    Returns the enrollment record.
-    """
-    api_key = _get_api_key(ctx)
-    await _require_scope(api_key, "attendees:write")
-    body = {"enrollments": [{"email": email, "first_name": first_name, "last_name": last_name}]}
-    data = await _post(f"/api/admin/lms/courses/{course_id}/enrollments/import", api_key, body)
-    _fire_and_forget_log(api_key, "enroll_in_lms_course",
-                         payload={"course_id": course_id, "email": email},
-                         result_summary=f"Enrolled {email} in course {course_id}")
-    return _fmt({"status": "enrolled", "result": data})
-
-
-@mcp.tool()
-async def get_lms_course_analytics(ctx: Context, course_id: int) -> str:
-    """
-    Get analytics for an LMS course: enrollment trends, completion rates, module drop-off.
-
-    Args:
-        course_id: Numeric course ID.
-    """
-    api_key = _get_api_key(ctx)
-    await _require_scope(api_key, "analytics:read")
-    data = await _get(f"/api/admin/lms/courses/{course_id}/analytics", api_key)
-    return _fmt(data)
-
-
-@mcp.tool()
-async def get_lms_analytics(ctx: Context) -> str:
-    """
-    Get org-wide LMS analytics: total enrollments, active learners, completion rate,
-    top courses, recent activity.
-
-    No arguments required.
-    """
-    api_key = _get_api_key(ctx)
-    await _require_scope(api_key, "analytics:read")
-    data = await _get("/api/admin/lms/analytics", api_key)
-    return _fmt(data)
 
 
 # ── Tools: Surveys & Analytics ─────────────────────────────────────────────────

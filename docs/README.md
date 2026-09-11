@@ -3,7 +3,7 @@
 HeptaCert is an end-to-end **event operating system**: a single platform that runs
 the full event lifecycle — registration, QR check-in and attendance, automated and
 publicly verifiable digital certificates, email campaigns and automation, CRM,
-learning paths and LMS, accreditation/CPD, a public training marketplace, billing,
+learning paths, accreditation/CPD, a public training marketplace, billing,
 deep integrations, and an MCP server for AI agents.
 
 This folder is the canonical engineering documentation for the platform. It is
@@ -35,7 +35,7 @@ Decision Records (ADRs) capturing *the decisions that shaped it*.
 | Frontend | Next.js (App + Pages routers), TypeScript, Tailwind design system, i18n (tr/en), white-label branding |
 | API surface | ~690 REST routes across domain-split routers; OpenAPI; Bearer-token API keys with scopes |
 | Data model | 150+ SQLAlchemy models |
-| AI access | MCP (Model Context Protocol) server at `/mcp` exposing ~44 agent tools |
+| AI access | MCP (Model Context Protocol) server at `/mcp` exposing 38 agent tools |
 | Payments | iyzico / PayTR / Stripe behind a provider abstraction; HeptaCoin usage credits |
 | Integrations | Slack, Teams, Discord, Google Chat, WhatsApp, HubSpot, Salesforce, Mailchimp, Google/Microsoft, Zoom, SSO/OIDC, webhooks |
 | Deployment | Docker Compose; reverse proxy with custom-domain (white-label) support |

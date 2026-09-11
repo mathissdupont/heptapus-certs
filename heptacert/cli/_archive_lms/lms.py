@@ -1,5 +1,7 @@
 """hc lms — courses, enrollments, analytics"""
 
+# Archived: the LMS API routers are not mounted and this module is not registered.
+
 from __future__ import annotations
 
 from typing import Optional

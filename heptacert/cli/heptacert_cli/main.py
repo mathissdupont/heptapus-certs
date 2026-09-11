@@ -7,7 +7,7 @@ from rich import print as rprint
 
 from .commands import (
     auth, automations, attendees, certs, checkin,
-    config, events, lms, logs, sessions, webhooks,
+    config, events, logs, sessions, webhooks,
 )
 from .client import HeptaCertClient
 from .config import get_api_key
@@ -27,7 +27,6 @@ app.add_typer(attendees.app,   name="attendees",   help="Manage attendees.")
 app.add_typer(certs.app,       name="certs",       help="Manage certificates.")
 app.add_typer(sessions.app,    name="sessions",    help="Manage event sessions.")
 app.add_typer(checkin.app,     name="checkin",     help="Check-in operations.")
-app.add_typer(lms.app,         name="lms",         help="LMS courses and enrollments.")
 app.add_typer(automations.app, name="automations", help="Automation rules.")
 app.add_typer(webhooks.app,    name="webhooks",    help="Webhook endpoints.")
 app.add_typer(logs.app,        name="logs",        help="AI agent audit trail.")

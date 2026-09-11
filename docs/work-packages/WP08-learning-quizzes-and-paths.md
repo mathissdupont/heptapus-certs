@@ -1,6 +1,11 @@
 # WP08 — Quizzes, Learning Paths & LMS
 
-**Phase:** 2 — Engagement & growth · **Status:** ✅ Delivered · 🔄 Iterating
+**Phase:** 2 — Engagement & growth · **Status:** ✅ Quiz/learning paths delivered · LMS archived
+
+> Current scope note: the course LMS routers, UI, CLI commands and MCP tools are
+> retired and kept under `_archive_lms` or in Git history. Quiz and standalone
+> learning-path features remain active. The LMS bullets below describe the
+> historical implementation, not a currently advertised surface.
 
 ## Objective
 Support structured learning and assessment: a quiz engine that can gate

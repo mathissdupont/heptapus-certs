@@ -91,7 +91,7 @@ tests passed, the full backend suite passed, `pip check` found no broken
 requirements, and the repeated audit found no known vulnerabilities.
 `pip-audit` is now a blocking step in both root CI workflows.
 
-#### 2. LMS/member portal is publicly reachable but disconnected
+#### 2. LMS/member portal is publicly reachable but disconnected — remediated
 
 The active portal dashboard and calendar request these endpoints:
 
@@ -106,8 +106,12 @@ exist in the active Next app. `/portal/courses` explicitly says the feature is
 temporarily disabled. The original LMS pages are under `_archive_lms`, while
 some current redirects still target absent `/admin/lms/...` routes.
 
-Decision required: either restore the LMS API/UI as a supported product or
-remove every active portal/calendar/link/redirect surface until it is ready.
+Product decision: LMS remains retired and archived. The live portal, calendar,
+disabled-course placeholder and broken event LMS bridge redirect were moved
+under `frontend/_archive_lms`, outside the Next.js route tree. The six MCP tools
+and the `hc lms` CLI command group that called archived APIs were also removed
+from active registration while their source remains recoverable in the archive
+or Git history. User-facing MCP documentation now lists the 38 active tools.
 
 #### 3. Production hosted MCP endpoint is misrouted — remediated on current branch
 
@@ -263,8 +267,8 @@ navigation entry so the shell is not presented as a complete hub.
    the server; add a worker heartbeat alarm.
 2. **Completed on current branch:** upgrade and re-audit the seven vulnerable
    backend packages and add a blocking CI dependency audit.
-3. Decide LMS scope; restore its API/UI completely or hide/remove every live
-   portal surface and broken redirect.
+3. **Completed:** keep LMS archived and remove its live portal, redirect, MCP
+   tool and CLI surfaces.
 4. **Completed on current branch; deploy pending:** add a resilient `/mcp`
    routing fallback and verify a protocol-level initialize smoke through Docker.
 5. Implement and test actual certificate-tier condition evaluation.

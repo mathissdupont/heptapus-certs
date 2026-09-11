@@ -13,11 +13,13 @@ LMS backend router'ları devre dışı (bkz. `backend/_archive_lms/`). Bu sayfal
 
 ## Yeniden aktive etmek için
 1. Önce backend'i aktive edin (`backend/_archive_lms/README.md`).
-2. `app/courses/` ve `app/admin/lms/` klasörlerini tekrar `frontend/src/app/` altına taşıyın.
+2. `app/courses/`, `app/portal/` ve `app/admin/lms/` klasörlerini tekrar `frontend/src/app/` altına taşıyın.
 3. Navigasyon linklerini geri açın:
    - `src/app/admin/_admin-layout-shell.tsx` — yorum satırına alınmış LMS menü öğeleri
-   - `src/app/portal/layout.tsx` — `/portal/courses` linki ("LMS devre disi" yorumu)
+   - Arşivdeki `app/portal/layout.tsx` — `/portal/courses` linki
 4. Taşınan sayfalar `@/components`, `@/lib/api` gibi paylaşılan modülleri kullanır; bunlar `src/` içinde kaldığı için import'lar geri taşıma sonrası çalışır.
 
-## Not: Portal kuplajı
-`src/app/portal/` içindeki üye portalı (login + ana sayfa + takvim) hâlâ canlıdır ve bazı LMS endpoint'lerini (`/public/my-courses`, `/public/courses/{id}/calendar`) çağırır. Bu çağrılar `Promise.allSettled` / `try-catch` ile zarif şekilde boş sonuç döner, hata vermez. Portal LMS yeniden açılınca otomatik dolacaktır.
+## Portal kuplajı
+Eski üye portalı da `app/portal/` altına arşivlendi. Böylece kapalı LMS
+endpoint'lerini çağıran `/portal` yüzeyi artık canlı bir Next.js route'u değildir.
+MCP içindeki LMS araçları da aktif araç listesinden kaldırılmıştır.

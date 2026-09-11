@@ -131,8 +131,8 @@ platform directly.
 - Endpoint: https://heptacert.com/mcp (Streamable HTTP transport).
 - Auth: per-request `Authorization: Bearer hc_live_...` header (API key from the
   admin dashboard). Scopes from the key are enforced per tool.
-- Tooling: ~44 tools across events, attendees, sessions, certificates, check-in,
-  automation rules, webhooks, analytics, and LMS — read and write.
+- Tooling: 38 active tools across events, attendees, sessions, certificates,
+  check-in, automation rules, webhooks, and analytics — read and write.
 - Safety: destructive tools (delete event, remove attendee, revoke certificate,
   delete session) require an explicit confirm step; every write is recorded in the
   agent audit log.

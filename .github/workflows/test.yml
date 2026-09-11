@@ -47,6 +47,11 @@ jobs:
       - name: Audit Python dependencies
         run: python -m pip_audit -r requirements.txt --progress-spinner off
 
+      - name: Verify CLI package
+        run: |
+          pip install ../cli
+          hc --help
+
       - name: Run all tests with coverage
         run: |
           python -m pytest tests/ -v --tb=short \

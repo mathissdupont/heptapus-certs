@@ -56,7 +56,7 @@ def create_automation(
     \b
     Trigger types:
       attended_event, registered_no_show, certificate_issued, survey_not_completed,
-      badge_earned, lms_course_enrolled, lms_course_completed, compliance_overdue, ...
+      badge_earned, audience_segment, compliance_overdue, ...
 
     \b
     Action examples:

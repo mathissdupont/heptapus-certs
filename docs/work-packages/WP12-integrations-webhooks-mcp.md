@@ -19,13 +19,13 @@ webinar, generic providers); outbound webhooks with HMAC; the MCP server.
 - Integration catalog endpoint driving the admin Integrations UI.
 - Encrypted-at-rest secrets with masking and merge-on-update.
 - Outbound webhooks with HMAC signing, delivery logging, and retries.
-- MCP server (Streamable HTTP) at `/mcp` with ~44 tools, per-request Bearer auth,
+- MCP server (Streamable HTTP) at `/mcp` with 38 active tools, per-request Bearer auth,
   scope enforcement, and an agent audit trail.
 
 ## Key components
 - `heptacert/backend/src/notification_integrations_api.py` — channels, payload builders (Slack/Teams/Discord/Google Chat), `trigger_notification_integrations`, catalog, secret masking.
 - `heptacert/backend/src/webhooks.py` + `services.py` — `deliver_webhook`, signing, delivery logs.
-- `heptacert/backend/src/mcp_server.py` — FastMCP app, 44 tools, scope enforcement.
+- `heptacert/backend/src/mcp_server.py` — FastMCP app, 38 active tools, scope enforcement.
 - `heptacert/backend/src/main.py` — `/mcp` mount + session-manager lifecycle (see ADR-0012), agent log endpoints.
 - `heptacert/backend/src/oauth_api.py`, `sso_api.py`, `lti_api.py` — identity/edu connectors.
 - Frontend: `heptacert/frontend/src/app/admin/integrations/page.tsx`.

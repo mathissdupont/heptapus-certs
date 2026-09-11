@@ -25,6 +25,7 @@ from src.main import (
     create_access_token, hash_password,
 )
 from src.services import GRANTABLE_SCOPES, _required_scope_for_request
+from src.mcp_server import mcp
 
 
 @pytest.fixture(autouse=True)
@@ -296,3 +297,11 @@ class TestEndToEndScopeEnforcement:
             })
         assert refreshed.status_code == 200, refreshed.text
         assert refreshed.json().get("access_token")
+
+
+@pytest.mark.asyncio
+async def test_archived_lms_tools_are_not_advertised():
+    tools = await mcp.list_tools()
+    tool_names = {tool.name for tool in tools}
+
+    assert not {name for name in tool_names if "lms" in name}

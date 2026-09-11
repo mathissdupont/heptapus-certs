@@ -1,5 +1,7 @@
 "use client";
 
+// Archived with the retired LMS portal. This file is outside src/app and is not a route.
+
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";

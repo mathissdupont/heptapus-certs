@@ -1,3 +1,4 @@
+// Archived with the retired LMS portal. This file is outside src/app and is not a route.
 export default function PortalCoursesDisabled() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[400px] text-center gap-3 p-8">

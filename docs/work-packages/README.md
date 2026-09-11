@@ -29,7 +29,7 @@ were developed in parallel.
 |----|-------|---------|
 | [WP06](WP06-email-and-automation.md) | Email, Templates & Automation | Bulk email, drip sequences, tracking |
 | [WP07](WP07-crm-and-lead-management.md) | CRM & Lead Management | Contacts, accounts, deals, lead forms |
-| [WP08](WP08-learning-quizzes-and-paths.md) | Quizzes, Learning Paths & LMS | Assessments, learning paths, course LMS |
+| [WP08](WP08-learning-quizzes-and-paths.md) | Quizzes & Learning Paths | Assessments and learning paths; course LMS archived |
 | [WP09](WP09-accreditation-and-cpd.md) | Accreditation & CPD | CPD hours, accreditation bodies, transcripts |
 
 ### Phase 3 — Platform & ecosystem

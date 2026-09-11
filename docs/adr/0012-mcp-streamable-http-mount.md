@@ -9,7 +9,7 @@ FastAPI deployment (no separate service), support multiple workers, and authenti
 each agent independently.
 
 ## Decision
-Expose a **FastMCP** server (~44 tools) mounted at **`/mcp`** as a Streamable HTTP
+Expose a **FastMCP** server (38 active tools) mounted at **`/mcp`** as a Streamable HTTP
 sub-app. To make this work correctly inside FastAPI, four settings are mandatory:
 - `streamable_http_path="/"` so mounting at `/mcp` yields the endpoint at `/mcp`
   (the default would resolve to `/mcp/mcp`);
