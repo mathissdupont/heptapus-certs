@@ -6,9 +6,9 @@ import Link from "next/link";
 import { CalendarDays, Loader2, MapPin, ShieldCheck, Ticket, UserCircle2, ArrowRight, Clock, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { getPublicMemberMe, listMyPublicEvents, type PublicMemberEvent } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type Lang } from "@/lib/i18n";
 
-function formatDate(value: string | null | undefined, lang: "tr" | "en") {
+function formatDate(value: string | null | undefined, lang: Lang) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;

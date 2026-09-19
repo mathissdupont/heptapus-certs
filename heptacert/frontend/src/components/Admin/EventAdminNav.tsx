@@ -39,7 +39,7 @@ import {
   Megaphone,
   Radio,
 } from "lucide-react";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type Lang } from "@/lib/i18n";
 import { apiFetch, getEventAccess, type EventAccessOut, type EventOut, type EventTeamPermission } from "@/lib/api";
 
 type EventAdminTab =
@@ -540,6 +540,6 @@ function NavSkeleton({ variant }: { variant: "inline" | "sidebar" }) {
   );
 }
 
-function getActiveLabel(active: EventAdminTab, lang: "tr" | "en") {
-  return NAV_ITEMS.find((item) => item.tab === active)?.label[lang] ?? "";
+function getActiveLabel(active: EventAdminTab, lang: Lang) {
+  return pickLang(NAV_ITEMS.find((item) => item.tab === active)?.label, lang) ?? "";
 }

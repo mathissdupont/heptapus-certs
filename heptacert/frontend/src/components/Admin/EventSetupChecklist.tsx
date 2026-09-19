@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { CheckCircle2, Circle, ArrowRight } from "lucide-react";
 import type { EventOut } from "@/lib/api";
+import type { Lang } from "@/lib/i18n";
 
 type EventSetupChecklistProps = {
   event: EventOut;
@@ -11,7 +12,7 @@ type EventSetupChecklistProps = {
     sessions?: number;
     active_certificates?: number;
   } | null;
-  lang?: "tr" | "en";
+  lang?: Lang;
 };
 
 export default function EventSetupChecklist({ event, overview, lang = "tr" }: EventSetupChecklistProps) {

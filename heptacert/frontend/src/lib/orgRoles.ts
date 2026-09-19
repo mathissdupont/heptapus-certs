@@ -1,9 +1,10 @@
 import { pickLang } from "@/lib/pickLang";
+import type { Lang } from "@/lib/i18n";
 // Organizasyon üyelik rolleri için okunabilir etiketler ve yetki yardımcıları.
 // Backend ham rol anahtarlarını (`venue_manager` vb.) döndürür; arayüzde bunları
 // olduğu gibi göstermek yerine bu modül üzerinden insancıl etikete çeviririz.
 
-export type OrgLang = "tr" | "en";
+export type OrgLang = Lang;
 
 export type OrgRoleContext = {
   owned?: boolean;

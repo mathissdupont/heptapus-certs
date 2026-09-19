@@ -40,10 +40,10 @@ import {
   type PublicEventDetail,
   type PublicMemberMe,
 } from "@/lib/api";
-import { useI18n, useT } from "@/lib/i18n";
+import { useI18n, useT, type Lang } from "@/lib/i18n";
 import { fetchCurrentBranding, isWhiteLabelBranding } from "@/lib/whiteLabel";
 
-function formatDate(value: string | null | undefined, lang: "tr" | "en") {
+function formatDate(value: string | null | undefined, lang: Lang) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;

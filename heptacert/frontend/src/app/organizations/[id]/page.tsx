@@ -34,11 +34,11 @@ import {
   type PublicMemberMe,
   type PublicOrganizationDetail,
 } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type Lang } from "@/lib/i18n";
 import { normalizeExternalUrl } from "@/lib/url";
 import { fetchCurrentBranding, isWhiteLabelBranding } from "@/lib/whiteLabel";
 
-function formatTimestamp(value: string, lang: "tr" | "en") {
+function formatTimestamp(value: string, lang: Lang) {
   return new Intl.DateTimeFormat(localeTag(lang), {
     day: "numeric",
     month: "short",

@@ -58,14 +58,28 @@ _MESSAGES: dict[str, dict[str, str]] = {
 }
 
 
+def normalize_message_lang(value: str | None, *, default: str = "tr") -> str:
+    """Map an app/browser locale to the backend's available message catalogs.
+
+    Turkish stays Turkish. Every explicit non-Turkish locale falls back to English,
+    while an absent value keeps the caller's default. This lets the nine-language UI
+    send its real locale without receiving unrelated Turkish fallback copy.
+    """
+    raw = (value or "").strip().lower()
+    if not raw:
+        return default
+    primary = raw.split(",", 1)[0].split(";", 1)[0].replace("_", "-").split("-", 1)[0]
+    return "tr" if primary == "tr" else "en"
+
+
 def lang_from_request(request: Request) -> str:
-    """Detect language from X-App-Lang or Accept-Language header. Returns 'tr' or 'en'."""
-    app_lang = request.headers.get("X-App-Lang", "").strip().lower()
-    if app_lang in ("tr", "en"):
-        return app_lang
-    accept = request.headers.get("Accept-Language", "").lower()
-    if accept.startswith("en"):
-        return "en"
+    """Detect a supported message language from app or browser headers."""
+    app_lang = request.headers.get("X-App-Lang", "")
+    if app_lang.strip():
+        return normalize_message_lang(app_lang)
+    accept = request.headers.get("Accept-Language", "")
+    if accept.strip():
+        return normalize_message_lang(accept)
     return "tr"
 
 
@@ -73,5 +87,6 @@ def t(key: str, lang: str = "tr", fallback: str | None = None) -> str:
     """Translate a message key to the given language."""
     entry = _MESSAGES.get(key)
     if entry:
-        return entry.get(lang) or entry.get("tr") or key
+        resolved_lang = normalize_message_lang(lang)
+        return entry.get(resolved_lang) or entry.get("en") or entry.get("tr") or key
     return fallback or key

@@ -309,9 +309,7 @@ function Navbar() {
             {/* Auth section */}
             <div className="border-t border-surface-100 bg-surface-50 px-4 py-4">
               <div className="mb-4 flex items-center justify-between px-1">
-                <span className="text-xs font-medium text-surface-500">
-                  {lang === "tr" ? "Dil" : "Language"}
-                </span>
+                <span className="text-xs font-medium text-surface-500">{t("language_switcher_label")}</span>
                 <LanguageToggle />
               </div>
 

@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { apiFetch, getPlatformHealth } from "@/lib/api";
 import PageHeader from "@/components/Admin/PageHeader";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type Lang } from "@/lib/i18n";
 
 type SystemHealth = {
   disk_total_gb?: number;
@@ -35,7 +35,7 @@ type PlatformHealth = {
   probes: Record<string, { ok: boolean; status: string; detail: string }>;
 };
 
-function formatUptime(seconds: number, lang: "tr" | "en") {
+function formatUptime(seconds: number, lang: Lang) {
   const days = Math.floor(seconds / 86400);
   const hours = Math.floor((seconds % 86400) / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);

@@ -47,13 +47,13 @@
 |---|---|---|---|
 | 0 | Guardrails (`check:ui` ratchet) | ✅ Done | `d7c3cbc` |
 | 1 | Revive the multi-language branch | ✅ Done | `df28bad` |
-| 2 | Unlock more than two languages | ✅ Done | "stop admin screens crashing on a third language" |
+| 2 | Unlock more than two languages | ✅ Done | `980ca3a` + "unlock nine-language application selector" |
 | 3 | Semantic token layer + theme restore | 🔄 Next | — |
 | 4 | Date & time pickers | ⏳ Not started | — |
 | 5 | Landing as the first locale-routed page | ⏳ Not started | — |
 | 6 | First-run onboarding | ⏳ Not started | — |
 | 7 | Surface-by-surface single pass | ⏳ Not started | — |
-| 8 | Widen `Lang` in the authenticated app | ⏳ Not started | — |
+| 8 | Widen `Lang` in the authenticated app | 🟡 Type/selector delivered early; catalog migration remains | "unlock nine-language application selector" |
 
 ## Invariants — do not break
 
@@ -125,6 +125,40 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-09-20 — Phase 2 follow-up: nine-language authenticated selector unlocked
+
+- **Claude handoff audited.** `980ca3a` was clean and already pushed. Its Phase 2
+  crash-prevention work was intact; the unfinished part was exposing the seven additional
+  languages in the authenticated application and removing the remaining reverse
+  fallbacks that sent every non-English locale to Turkish.
+- **One locale model.** `src/lib/i18n.tsx` now uses the nine-locale `AppLocale` union and
+  loads all nine complete catalogs. `LanguageToggle` consequently renders the existing
+  dropdown with Turkish, English, German, French, Spanish, Italian, Portuguese, Dutch
+  and Russian; its accessible label and the mobile shell label use
+  `language_switcher_label` from the catalogs.
+- **Safe legacy fallback.** Existing TR/EN-only inline maps continue to use English for
+  the seven additional languages through `pickLang()`. Admin onboarding and the in-app
+  tour no longer use reverse binary fallbacks. Helper/component language parameter types
+  now accept the shared locale union without weakening the selected-language state.
+  This brings forward the Phase 8 type/selector portion at the user's request; moving the
+  remaining legacy inline copy into all catalogs still belongs to Phase 7/8.
+- **Backend language normalization.** Explicit Turkish locales use Turkish; every
+  explicit non-Turkish application locale uses the existing English message fallback.
+  This is applied consistently to request messages, built-in badge templates,
+  deterministic AI email fallback and email-preview subjects, instead of accidentally
+  returning Turkish for German/French/etc. An absent language keeps the historic Turkish
+  default.
+- **Tests and ratchet.** Added authenticated selector persistence/render tests (German
+  and Russian) and backend language/fallback tests. `lang-binary-check` dropped
+  **544 → 541**; indexed locale lookups and locale ternaries remain **0**; all nine
+  catalogs remain equal at **678 keys**.
+- **Verification:** `npm run check:ui` ✓ · frontend tests **43/43** ·
+  `npx tsc --noEmit` ✓ · production build ✓ · backend tests **554/554**.
+- **Docker smoke:** not rerun; Docker Desktop's Linux engine was stopped on this machine.
+  This change does not touch `next.config.mjs` or `middleware.ts`; the pre-deploy MCP
+  smoke remains listed under "Also outstanding" above.
+- **Next:** Phase 3 — semantic token layer + hidden theme restore, in the order above.
 
 ### 2026-09-19 — Phase 2 done: no admin screen crashes on a third language
 

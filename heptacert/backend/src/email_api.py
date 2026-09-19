@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .email_rendering import build_email_template_vars, render_template_string
 from .email_template_presets import SYSTEM_EMAIL_TEMPLATE_PRESETS
+from .i18n import normalize_message_lang
 from .main import (
     Attendee,
     BulkEmailJob,
@@ -370,7 +371,7 @@ async def preview_email_template(
     }
     
     # Select subject and body based on language
-    if language == "en" and hasattr(template, 'subject_en'):
+    if normalize_message_lang(language) == "en" and hasattr(template, 'subject_en'):
         subject = template.subject_en
     else:
         subject = template.subject_tr

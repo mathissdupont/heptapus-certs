@@ -3,15 +3,20 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { tr } from "@/locales/tr";
 import { en } from "@/locales/en";
+import { de } from "@/locales/de";
+import { fr } from "@/locales/fr";
+import { es } from "@/locales/es";
+import { it } from "@/locales/it";
+import { pt } from "@/locales/pt";
+import { nl } from "@/locales/nl";
+import { ru } from "@/locales/ru";
+import type { AppLocale } from "@/i18n/routing";
 import type { TranslationKey } from "@/locales/tr";
 
-// This custom i18n powers the AUTHENTICATED app (admin/portal). It stays tr/en for now
-// because many components still carry `{ tr, en }[lang]` lookups and binary tr/en
-// comparisons that crash or fall back to English for any other language.
-// WP32 removes them (tracked by `npm run check:ui`) and widens this union in its final
-// phase. Public-facing languages (de/fr/es/...) are already served by next-intl on the
-// locale-routed public surfaces — see ADR-0021 and src/i18n/*.
-export type Lang = "tr" | "en";
+// The authenticated app and locale-routed public pages share the same locale union and
+// flat catalogs. Legacy inline tr/en copy maps use pickLang() and fall back to English;
+// catalog-backed screens render the selected language directly.
+export type Lang = AppLocale;
 
 const DEFAULT_LANG: Lang = "tr";   // ultimate fallback / first-load default
 const FALLBACK_LANG: Lang = "en";  // tried before DEFAULT_LANG for missing keys
@@ -19,10 +24,30 @@ const FALLBACK_LANG: Lang = "en";  // tried before DEFAULT_LANG for missing keys
 const LANG_STORAGE_KEY = "heptacert-lang";
 
 // A locale may be incomplete — Partial keeps new languages cheap; missing keys fall back.
-const LOCALES: Record<Lang, Partial<Record<TranslationKey, string>>> = { tr, en };
+const LOCALES: Record<Lang, Partial<Record<TranslationKey, string>>> = {
+  tr,
+  en,
+  de,
+  fr,
+  es,
+  it,
+  pt,
+  nl,
+  ru,
+};
 
 // Native display names shown in the language switcher.
-const LANG_LABELS: Record<Lang, string> = { tr: "Türkçe", en: "English" };
+const LANG_LABELS: Record<Lang, string> = {
+  tr: "Türkçe",
+  en: "English",
+  de: "Deutsch",
+  fr: "Français",
+  es: "Español",
+  it: "Italiano",
+  pt: "Português",
+  nl: "Nederlands",
+  ru: "Русский",
+};
 
 const SUPPORTED_LANGS = Object.keys(LOCALES) as Lang[];
 
@@ -106,7 +131,7 @@ export function useT() {
 }
 
 export function LanguageToggle({ className }: { className?: string }) {
-  const { lang, setLang, supportedLangs, langLabels } = useI18n();
+  const { lang, setLang, supportedLangs, langLabels, t } = useI18n();
 
   // Two languages: keep the original one-tap toggle. Three or more: a compact dropdown.
   if (supportedLangs.length <= 2) {
@@ -137,7 +162,7 @@ export function LanguageToggle({ className }: { className?: string }) {
         "inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs font-bold text-gray-700 shadow-sm"
       }
     >
-      <span className="sr-only">Language</span>
+      <span className="sr-only">{t("language_switcher_label")}</span>
       <span className="rounded bg-slate-100 px-1.5 py-0.5 text-11 font-extrabold tracking-[0.18em] text-slate-700">
         {lang.toUpperCase()}
       </span>
@@ -145,7 +170,7 @@ export function LanguageToggle({ className }: { className?: string }) {
         value={lang}
         onChange={(e) => setLang(e.target.value as Lang)}
         className="bg-transparent pr-1 font-bold text-gray-700 outline-none"
-        aria-label="Select language"
+        aria-label={t("language_switcher_label")}
       >
         {supportedLangs.map((l) => (
           <option key={l} value={l}>

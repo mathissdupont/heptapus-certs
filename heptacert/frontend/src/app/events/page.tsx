@@ -8,11 +8,11 @@ import { useRouter } from "next/navigation";
 import { CalendarDays, MapPin, Search, Building2, ArrowRight, ShieldCheck, Ticket } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { listPublicEvents, type PublicEventListItem } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type Lang } from "@/lib/i18n";
 import { stripRichTextToPlainText } from "@/lib/richText";
 import { fetchCurrentBranding, isWhiteLabelBranding } from "@/lib/whiteLabel";
 
-function formatDate(value: string | null | undefined, lang: "tr" | "en") {
+function formatDate(value: string | null | undefined, lang: Lang) {
   if (!value) return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -35,7 +35,7 @@ const EVENT_TYPE_LABELS: Record<string, { tr: string; en: string }> = {
   custom:            { tr: "Özel",       en: "Custom"       },
 };
 
-function eventTypeLabel(item: PublicEventListItem, lang: "tr" | "en") {
+function eventTypeLabel(item: PublicEventListItem, lang: Lang) {
   const key = item.event_type || "certificate_event";
   return pickLang(EVENT_TYPE_LABELS[key], lang) || key;
 }
@@ -281,7 +281,7 @@ function EventSection({
   title: string;
   count: number;
   items: PublicEventListItem[];
-  lang: "tr" | "en";
+  lang: Lang;
   copy: Record<string, string>;
   muted?: boolean;
 }) {
@@ -316,7 +316,7 @@ function EventCard({
   muted,
 }: {
   item: PublicEventListItem;
-  lang: "tr" | "en";
+  lang: Lang;
   copy: Record<string, string>;
   muted: boolean;
 }) {

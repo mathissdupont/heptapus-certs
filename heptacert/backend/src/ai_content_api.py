@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from .main import CurrentUser, Event, Role, get_current_user, get_db, require_role, settings
+from .i18n import normalize_message_lang
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -97,7 +98,7 @@ class EmailGenerateOut(BaseModel):
 
 
 def _email_fallback(payload: EmailGenerateIn) -> EmailGenerateOut:
-    if payload.language == "en":
+    if normalize_message_lang(payload.language) == "en":
         subject = f"Invitation: {payload.event_name}"
         body = f"<p>Dear participant,</p><p>We are pleased to invite you to <strong>{payload.event_name}</strong>."
         if payload.event_date:

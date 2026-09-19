@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { HelpCircle, X, ChevronLeft, ChevronRight, CheckCircle2, MousePointerClick } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { getRoleFromToken } from "@/lib/api";
+import { pickLang } from "@/lib/pickLang";
 
 type TourStep = {
   title: string;
@@ -289,7 +290,7 @@ function getTargetBubblePosition(selector: string): TargetBubble | null {
 export default function InAppTourGuide() {
   const pathname = usePathname() || "";
   const { lang } = useI18n();
-  const copy = lang === "en" ? EN_COPY : TR_COPY;
+  const copy = pickLang({ tr: TR_COPY, en: EN_COPY }, lang);
   const [role, setRole] = useState<string | null>(null);
 
   const [open, setOpen] = useState(false);

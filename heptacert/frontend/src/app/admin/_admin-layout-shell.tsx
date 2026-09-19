@@ -410,8 +410,6 @@ function OnboardingWizard({
   const [orgName, setOrgName] = useState(initialName);
   const [orgType, setOrgType] = useState(initialOrgType);
   const [selectedModules, setSelectedModules] = useState<OrgModules>(initialModules);
-  const locale = lang === "en" ? "en" : "tr";
-
   useEffect(() => {
     setOrgName(initialName);
     setOrgType(initialOrgType);
@@ -511,8 +509,8 @@ function OnboardingWizard({
                     }`}
                   >
                     <Icon className={`mb-3 h-5 w-5 ${selected ? "text-brand-600" : "text-surface-400"}`} />
-                    <div className="text-sm font-semibold text-surface-900">{item.label[locale]}</div>
-                    <p className="mt-1 text-xs leading-5 text-surface-500">{item.description[locale]}</p>
+                    <div className="text-sm font-semibold text-surface-900">{pickLang(item.label, lang)}</div>
+                    <p className="mt-1 text-xs leading-5 text-surface-500">{pickLang(item.description, lang)}</p>
                   </button>
                 );
               })}
@@ -540,8 +538,8 @@ function OnboardingWizard({
                       <Icon className="h-5 w-5" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold text-surface-900">{item.label[locale]}</span>
-                      <span className="mt-1 block text-xs leading-5 text-surface-500">{item.description[locale]}</span>
+                      <span className="block text-sm font-semibold text-surface-900">{pickLang(item.label, lang)}</span>
+                      <span className="mt-1 block text-xs leading-5 text-surface-500">{pickLang(item.description, lang)}</span>
                     </span>
                     {selected && <CheckCircle2 className="h-5 w-5 shrink-0 text-brand-600" />}
                   </button>

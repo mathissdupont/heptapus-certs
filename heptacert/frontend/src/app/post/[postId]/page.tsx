@@ -30,7 +30,7 @@ import {
   type CommunityPostEditHistoryItem,
   type PublicMemberMe,
 } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type Lang } from "@/lib/i18n";
 
 function formatNumber(num: number): string {
   if (num >= 1000) {
@@ -39,7 +39,7 @@ function formatNumber(num: number): string {
   return num.toString();
 }
 
-function formatTimeAgo(dateString: string, lang: "tr" | "en") {
+function formatTimeAgo(dateString: string, lang: Lang) {
   const date = new Date(dateString);
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);

@@ -12,7 +12,7 @@ import {
   type CommunityPost,
   type PublicMemberMe,
 } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type Lang } from "@/lib/i18n";
 
 interface ScoredPost extends CommunityPost {
   score: number;
@@ -87,7 +87,7 @@ function formatNumber(n: number): string {
   return n >= 1000 ? (n / 1000).toFixed(1) + "K" : String(n);
 }
 
-function formatTimeAgo(dateString: string, lang: "tr" | "en") {
+function formatTimeAgo(dateString: string, lang: Lang) {
   const secs = Math.floor((Date.now() - new Date(dateString).getTime()) / 1000);
   if (secs < 60) return lang === "tr" ? "Az önce" : "Just now";
   const mins = Math.floor(secs / 60);

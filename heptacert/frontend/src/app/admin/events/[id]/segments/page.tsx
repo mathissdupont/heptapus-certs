@@ -518,7 +518,7 @@ export default function EventSegmentsPage() {
                   >
                     {STANDARD_KEYS.map(key => (
                       <option key={key} value={key}>
-                        {SEGMENT_KEY_LABELS[key]?.[lang] ?? key}
+                        {pickLang(SEGMENT_KEY_LABELS[key], lang) ?? key}
                       </option>
                     ))}
                     <option value="registration_answer">{pickLang(SEGMENT_KEY_LABELS.registration_answer, lang)}</option>

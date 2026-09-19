@@ -104,6 +104,7 @@ from .generator import TemplateConfig, render_certificate_pdf, render_certificat
 from .enums import Role, CertStatus, TxType, OrderStatus, AttendeeSource  # enums.py'a tasindi (god-dosya bolme)
 from .services import *  # noqa: F401,F403  (servis/auth fonk. services.py'a tasindi)
 from .utils import *  # noqa: F401,F403  (saf yardimcilar utils.py'a tasindi)
+from .i18n import normalize_message_lang
 
 logger = logging.getLogger("heptacert")
 
@@ -15334,7 +15335,7 @@ async def list_builtin_badge_templates(lang: str = "tr"):
     Organizers pick from these to pre-fill their event's badge definitions.
     """
     from .badge_template_seeds import get_builtin_badge_templates  # noqa: PLC0415
-    templates = await get_builtin_badge_templates(lang=lang if lang in ("tr", "en") else "tr")
+    templates = await get_builtin_badge_templates(lang=normalize_message_lang(lang))
     return {"templates": templates, "total": len(templates)}
 
 
@@ -15506,4 +15507,3 @@ async def _stop_mcp_session_manager():
             await cm.__aexit__(None, None, None)
         except Exception:
             logger.exception("Error while stopping MCP session manager")
-
