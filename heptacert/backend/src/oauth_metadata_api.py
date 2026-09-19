@@ -47,6 +47,10 @@ def _frontend() -> str:
     return settings.frontend_base_url.rstrip("/")
 
 
+def _documentation() -> str:
+    return f"{settings.docs_base_url.rstrip('/')}/integrations/mcp-agent"
+
+
 def _authorization_server_metadata() -> dict:
     base = _backend()
     return {
@@ -64,7 +68,7 @@ def _authorization_server_metadata() -> dict:
         # "none" == public client authenticating via PKCE (typical for MCP clients);
         # "client_secret_post" == confidential client presenting its secret.
         "token_endpoint_auth_methods_supported": ["client_secret_post", "none"],
-        "service_documentation": f"{_frontend()}/docs/mcp-agent",
+        "service_documentation": _documentation(),
     }
 
 
@@ -75,7 +79,7 @@ def _protected_resource_metadata() -> dict:
         "authorization_servers": [base],
         "scopes_supported": sorted(GRANTABLE_SCOPES.keys()),
         "bearer_methods_supported": ["header"],
-        "resource_documentation": f"{_frontend()}/docs/mcp-agent",
+        "resource_documentation": _documentation(),
     }
 
 

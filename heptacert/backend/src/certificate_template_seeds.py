@@ -6,7 +6,7 @@ Run directly to insert built-in template presets into the database:
 
 Or call seed_builtin_presets(db, base_url) from a startup hook.
 
-base_url should be the public frontend origin, e.g. "https://app.heptacert.com"
+base_url should be the public frontend origin, e.g. "https://heptacert.com"
 so that template SVG assets resolve correctly.
 """
 

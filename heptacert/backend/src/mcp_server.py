@@ -1427,10 +1427,12 @@ async def get_certificate_by_public_id(ctx: Context, public_id: str) -> str:
     Look up a certificate by its public verification ID (from the verify URL).
 
     Useful for: checking if a certificate is valid, getting attendee details,
-    verifying authenticity from a cert URL like heptacert.com/c/abc123xyz.
+    verifying authenticity from a cert URL like
+    heptacert.com/verify/550e8400-e29b-41d4-a716-446655440000.
 
     Args:
-        public_id: The short alphanumeric ID from the certificate URL.
+        public_id: The certificate UUID from the verification URL. The argument
+            name is retained for compatibility with existing MCP clients.
 
     Returns certificate details including status, attendee, event, issued_at.
     """

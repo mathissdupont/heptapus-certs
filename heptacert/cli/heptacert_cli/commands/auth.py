@@ -27,7 +27,7 @@ def login(
     ),
     api_base: Optional[str] = typer.Option(
         None, "--url", "-u",
-        help="API base URL. Default: https://app.heptacert.com",
+        help="API base URL. Default: https://heptacert.com",
         envvar="HEPTACERT_API_BASE",
     ),
 ):

@@ -207,25 +207,24 @@ backend image now installs `fontconfig` and `fonts-dejavu-core` explicitly in a
 single apt layer and clears package indexes. A clean image build succeeded and
 `fc-match` inside the resulting container resolved DejaVu Sans correctly.
 
-#### 10. CLI default host does not resolve
+#### 10. CLI default host did not resolve — resolved
 
-The CLI defaults to `https://app.heptacert.com`, while the product and docs use
-`https://heptacert.com`. DNS resolution for `app.heptacert.com` failed during
-the audit, so a newly installed CLI cannot connect without manual configuration.
+The CLI now defaults to `https://heptacert.com`, and its login help text uses the
+same canonical origin. The documentation contract check fails if the retired
+`app.heptacert.com` default is reintroduced.
 
-#### 11. Public documentation contains broken routes
+#### 11. Public documentation contained broken routes — resolved
 
-- Documentation and developer examples still publish
-  `heptacert.com/c/{public_id}`; that page returns 404. The active route is
-  `/verify/{uuid}`.
-- Documentation advertises Swagger at `/docs` and ReDoc at `/redoc`; both return
-  404 because FastAPI initializes with docs and ReDoc disabled. Only
-  `/api/openapi.json` is live.
-- The feature roadmap is stale: it marks several already-implemented event
-  modules missing, while the product roadmap marks localization complete despite
-  active hard-coded/single-language and corrupted strings.
+Certificate examples now use `/verify/{uuid}`; the disabled Swagger and ReDoc
+pages are no longer advertised, while `/api/openapi.json` remains the documented
+machine-readable contract. MCP OAuth metadata now points to the real documentation
+site instead of the nonexistent frontend `/docs/mcp-agent` route. The feature and
+product roadmaps were reconciled with implemented presets, gamification, CFP,
+meetings and live-engagement modules, and localization is correctly marked partial.
 
-Update docs from the generated OpenAPI schema and add link checking in CI.
+A dependency-free CI check validates all internal links across 36 documentation
+pages and scans 426 active public-contract files for retired URLs. The corrected
+documentation image built under Linux and served the changed pages with HTTP 200.
 
 ### P2 — quality and maintainability
 
@@ -291,8 +290,8 @@ navigation entry so the shell is not presented as a complete hub.
    automated source guard.
 9. **Completed on current branch:** make frontend installs/context deterministic,
    produce a standalone runtime, and replace the backend's broken font fallback.
-10. Correct CLI defaults and all broken documentation URLs; add link/contract
-   checks.
+10. **Completed on current branch:** correct CLI defaults and broken public URLs,
+    reconcile roadmap status, and enforce link/contract checks in CI.
 11. Confirm whether paid checkout should be live; if yes, complete provider and
    webhook acceptance testing.
 12. Add PostgreSQL integration and browser critical-journey tests, then raise CI

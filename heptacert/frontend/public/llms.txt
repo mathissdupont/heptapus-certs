@@ -101,7 +101,7 @@ HeptaCert is **not** a standalone certificate tool. It is a comprehensive SaaS p
 - REST API with Bearer token authentication
 - Granular scopes: events, certificates, attendees, CRM, analytics, forms, reports
 - Rate limits: 60 rpm (Starter), 300 rpm (Growth), 1000 rpm (Enterprise)
-- Swagger UI at /docs, ReDoc at /redoc
+- Machine-readable OpenAPI schema at /api/openapi.json
 - Developer portal at /developers
 
 ## Audience

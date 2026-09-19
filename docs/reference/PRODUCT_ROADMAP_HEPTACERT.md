@@ -167,7 +167,8 @@ This roadmap tracks the feature direction discussed for turning HeptaCert from a
 - [x] Add integration tests for automation dispatch, segment export, training notifications, and check-in logs
 - [x] Add product telemetry events for feature usage without storing sensitive content
 - [x] Add admin-facing health checks for worker, email, webhook, export, and scheduler status
-- [x] Finish full Turkish/English localization pass and remove mojibake/English-keyboard Turkish strings
+- [ ] Finish the Turkish/English localization pass across legacy UI surfaces
+- [x] Remove known active-backend mojibake and add an automated source guard
 
 ## Revenue Packaging Notes
 

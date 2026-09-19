@@ -6,6 +6,7 @@
 >
 > İşaretleme: ✅ Doğrulanmış mevcut · ❌ Doğrulanmış eksik · 🟡 Kısmi/kabuk.
 > Şiddet/efor analizi `docs/reference` rakip-boşluğu çalışmasına dayanır.
+> Durumlar 2026-09-19 tarihinde aktif kaynak ve route'lara göre yeniden doğrulandı.
 
 ---
 
@@ -33,7 +34,7 @@
 
 ---
 
-## 1. Etkinlik Tipi → Varsayılan Özellik Setleri (önce bu yapılmalı)
+## 1. Etkinlik Tipi → Varsayılan Özellik Setleri ✅
 
 Yeni hiçbir özellik eklemeden, **mevcut bayrakları** etkinlik tipine göre ön-ayarlayan
 bir harita. Admin deneyimini anında sadeleştirir; sonraki tüm fazların temeli.
@@ -47,8 +48,8 @@ bir harita. Admin deneyimini anında sadeleştirir; sonraki tüm fazların temel
 | club_event | registration, checkin, gamification |
 | online_event | registration, sessions, (virtual link) |
 
-**İş:** `event_features.py` içine `PRESET_BY_EVENT_TYPE: dict[str, dict[str,bool]]` +
-etkinlik oluşturma/tip değiştirmede uygulanması. **Efor: Düşük.** Risk: yok (mevcut alanlar).
+**Mevcut:** `event_features.py` içindeki tip ön-ayarları etkinlik oluşturma akışında
+uygulanıyor; backend ve frontend sözleşme testleriyle korunuyor.
 
 ---
 
@@ -56,11 +57,12 @@ etkinlik oluşturma/tip değiştirmede uygulanması. **Efor: Düşük.** Risk: y
 
 i18n bir "özellik toggle'ı" değil, **altyapı**. İki ayrı eksen, karıştırılmamalı:
 
-### 2a. Ürün arayüzü dili (frontend statik metinler)
-- **Yaklaşım:** `next-intl` veya `next-i18next` ile mesaj sözlükleri (`tr`, `en` başlangıç).
-- Tüm hardcoded string'ler `t("key")` ile dışarı alınır; sözlük dosyaları `locales/`.
-- Dil seçimi: kullanıcı tercihi + tarayıcı `Accept-Language` fallback.
-- **Efor: Orta-Yüksek** (string çıkarımı geniş ama mekanik).
+### 2a. Ürün arayüzü dili (frontend statik metinler) 🟡
+- **Mevcut yaklaşım:** ADR-0019 uyarınca mevcut `I18nProvider`, `useT` ve `locales/tr|en`
+  katalogları korunuyor; ikinci bir i18n framework'ü eklenmiyor.
+- Dil seçimi ve geniş bir TR/EN katalog yüzeyi mevcut, ancak eski ekranlardaki sabit
+  metinlerin tamamı henüz kataloğa taşınmış değil.
+- **Kalan efor: Orta** (sabit metin envanteri, katalog tamamlama ve SSR/public yüzey).
 
 ### 2b. Müşteri içeriği çok-dilliliği (admin'in girdiği etkinlik adı/açıklama, e-posta şablonu, sertifika metni)
 - **Yaklaşım:** çevrilebilir alanlar `JSONB` ile `{"tr": "...", "en": "..."}` saklanır
@@ -83,18 +85,18 @@ Her satır tek sözleşmeye uyar: **Event toggle + FeaturePolicy + helper**. Sı
 | Özellik | Durum | Toggle alanı | Plan kapısı | Efor |
 |---|---|---|---|---|
 | **Promosyon/indirim kodu** ❌ | yok | `promo_codes_enabled` | pro+ | Düşük |
-| **Kişisel ajanda + oturum kapasitesi/rezervasyon** 🟡 | session var, "my schedule"/kapasite yok | `agenda_enabled` | tümü | Orta |
-| **Gamification'ı gerçekten doldur** 🟡 | bayrak var, arkası boş | (mevcut `gamification_enabled`) | growth+ | Düşük-Orta |
+| **Kişisel ajanda + oturum kapasitesi/rezervasyon** 🟡 | oturum CRUD + public ICS var; kişisel program/kapasite yok | `agenda_enabled` | tümü | Orta |
+| **Gamification: puan, rozet, leaderboard** ✅ | kural, hesaplama, katılımcı rozetleri ve leaderboard mevcut | `gamification_enabled` | growth+ | Tamamlandı |
 
-> Gamification bayrağı zaten mevcut ama implementasyon yok — leaderboard/puan/rozet-kuralı
-> eklenince "boş kabuk" kapanır, yeni migration gerekmez.
+> Gamification boş kabuğu kapandı; kalan işler ürün analitiği ve tarayıcı yolculuk
+> testlerinin derinleştirilmesidir.
 
 ### Faz 2 — Farklılaştırıcılar (kimlikle uyumlu, rakipte pahalı)
 | Özellik | Durum | Toggle alanı | Plan kapısı | Efor |
 |---|---|---|---|---|
-| **Speaker portal + Call-for-Papers / abstract inceleme** ❌ | `abstract` geçiyor, akış yok | `cfp_enabled` | growth+ | Orta |
-| **Randevu / 1:1 toplantı planlama (matchmaking temeli)** ❌ | `connections_api` sadece takip grafiği | `networking_meetings_enabled` | growth+ | Yüksek |
-| **Canlı katılım: oturum-içi Q&A + canlı poll** ❌ | quiz/survey async var | `live_engagement_enabled` | pro+ | Orta |
+| **Speaker portal + Call-for-Papers / abstract inceleme** ✅ | başvuru, reviewer atama, inceleme ve karar akışı mevcut | `cfp_enabled` | growth+ | Tamamlandı |
+| **Randevu / 1:1 toplantı planlama (matchmaking temeli)** ✅ | profil, keşif, talep, yanıt ve iptal akışı mevcut | `networking_meetings_enabled` | growth+ | Tamamlandı |
+| **Canlı katılım: oturum-içi Q&A + canlı poll** ✅ | soru, upvote, moderasyon, poll ve oy akışı mevcut | `live_engagement_enabled` | pro+ | Tamamlandı |
 
 > Networking: `connections_api`'nin takip/blok grafiği temel; üstüne takvim + slot +
 > 1:1 talep/onay eklenir. AI eşleştirme sonraya bırakılabilir (önce manuel/etiket bazlı).
@@ -127,13 +129,10 @@ Her satır tek sözleşmeye uyar: **Event toggle + FeaturePolicy + helper**. Sı
 
 ## 5. Önerilen Uygulama Sırası (tek geliştirici / tek sunucu gerçeğine göre)
 
-1. **Etkinlik tipi ön-ayarları** (Bölüm 1) — sadeliğin temeli, düşük efor.
-2. **i18n 2a** (arayüz tr/en) — uluslararası satış engelini kaldırır.
-3. **Promosyon kodu** (Faz 1) — hızlı ticari getiri.
-4. **Kişisel ajanda + oturum kapasitesi** (Faz 1) — katılımcı deneyimi.
-5. **Speaker/CFP** (Faz 2) — kimlikle en uyumlu farklılaştırıcı.
-6. **i18n 2b** (içerik çok-dilliliği) + **Randevu/matchmaking** (Faz 2).
-7. Faz 3 (fuar) ve Faz 4 (mobil/sanal) — segment kararından sonra.
+1. **Promosyon kodu** (Faz 1) — hızlı ticari getiri.
+2. **Kişisel ajanda + oturum kapasitesi** (Faz 1) — mevcut ICS altyapısını tamamlar.
+3. **i18n 2a tamamlama + 2b içerik çok-dilliliği** — kalan uluslararasılaşma işi.
+4. Faz 3 (fuar) ve Faz 4 (mobil/sanal) — segment kararından sonra.
 
 ---
 

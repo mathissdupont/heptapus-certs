@@ -281,7 +281,7 @@ ${copy.codeComment}
     "public_id": "abc123",
     "attendee_name": "Ahmet Yılmaz",
     "issued_at": "2026-06-01T10:00:00Z",
-    "cert_url": "https://heptacert.com/c/abc123"
+    "cert_url": "https://heptacert.com/verify/550e8400-e29b-41d4-a716-446655440000"
   }
 ]`}
             </pre>

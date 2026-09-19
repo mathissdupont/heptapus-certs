@@ -130,5 +130,8 @@ jobs:
       - name: Production dependency audit
         run: npm audit --omit=dev --audit-level=high
 
+      - name: Check documentation links and public URL contracts
+        run: npm run check:links
+
       - name: Production build
         run: npm run build

@@ -123,6 +123,7 @@ class TestDiscoveryMetadata:
         assert d["code_challenge_methods_supported"] == ["S256"]
         assert "none" in d["token_endpoint_auth_methods_supported"]
         assert set(d["scopes_supported"]) == set(GRANTABLE_SCOPES)
+        assert d["service_documentation"] == "https://docs.heptacert.com/integrations/mcp-agent"
 
     @pytest.mark.asyncio
     async def test_protected_resource_metadata(self):
@@ -131,6 +132,7 @@ class TestDiscoveryMetadata:
         assert r.status_code == 200
         d = r.json()
         assert d["resource"].endswith("/mcp")
+        assert d["resource_documentation"] == "https://docs.heptacert.com/integrations/mcp-agent"
         assert isinstance(d["authorization_servers"], list) and d["authorization_servers"]
 
 

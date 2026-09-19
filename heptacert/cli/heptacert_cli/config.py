@@ -9,7 +9,7 @@ from typing import Optional
 
 CONFIG_DIR = Path.home() / ".heptacert"
 CONFIG_FILE = CONFIG_DIR / "config.json"
-DEFAULT_API_BASE = "https://app.heptacert.com"
+DEFAULT_API_BASE = "https://heptacert.com"
 
 
 def _load() -> dict:
