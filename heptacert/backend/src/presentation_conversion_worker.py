@@ -20,6 +20,7 @@ from .db import SessionLocal
 from . import models as _core_models  # noqa: F401
 from .presentation_converter import PresentationConversionError, convert_powerpoint_to_pdf, is_powerpoint_path
 from .presentation_models import PresentationDeck
+from .operational_health import PRESENTATION_WORKER_HEARTBEAT, publish_heartbeat
 
 logger = logging.getLogger("heptacert.presentation_conversion_worker")
 
@@ -146,6 +147,11 @@ async def run_worker() -> None:
         return
     logger.info("Presentation converter worker started")
     while True:
+        heartbeat_ttl = max(
+            settings.health_heartbeat_ttl_seconds,
+            settings.presentation_converter_timeout_seconds + 30,
+        )
+        await publish_heartbeat(PRESENTATION_WORKER_HEARTBEAT, ttl_seconds=heartbeat_ttl)
         recovered = await _recover_stale_decks()
         if recovered:
             logger.warning("Recovered %s stale presentation conversion job(s)", recovered)

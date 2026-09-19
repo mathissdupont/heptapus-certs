@@ -282,6 +282,7 @@ REGISTRATION_DEVICE_COOKIE = "heptacert_reg_device"
 
 from .models import *  # noqa: F401,F403  (modeller models.py'a tasindi)
 from .certificate_tier_rules import select_certificate_tier
+from .operational_health import SCHEDULER_HEARTBEAT, collect_readiness, publish_heartbeat
 
 
 
@@ -3287,6 +3288,13 @@ async def startup():
                 logger.warning("Scheduled report job failed: %s", exc)
 
         if settings.enable_scheduler:
+            await publish_heartbeat(SCHEDULER_HEARTBEAT)
+            scheduler.add_job(
+                publish_heartbeat,
+                "interval",
+                seconds=max(5, settings.health_heartbeat_ttl_seconds // 3),
+                args=[SCHEDULER_HEARTBEAT],
+            )
             scheduler.add_job(_notify_expiring_certs, "cron", hour=2, minute=0)
             scheduler.add_job(_auto_renew_certificates, "interval", hours=1)
             scheduler.add_job(_monthly_hc_renewal, "cron", hour=3, minute=30)
@@ -4996,7 +5004,15 @@ async def get_survey_responses(
 @app.get("/api/health")
 @limiter.exempt
 async def health_check():
+    """Process liveness only; dependency checks live at /api/ready."""
     return {"status": "ok"}
+
+
+@app.get("/api/ready")
+@limiter.exempt
+async def readiness_check(db: AsyncSession = Depends(get_db)):
+    payload = await collect_readiness(db)
+    return JSONResponse(status_code=200 if payload["ready"] else 503, content=payload)
 
 
 @app.get("/api/openapi.json", include_in_schema=False)
@@ -15028,6 +15044,7 @@ async def get_job_status(db: AsyncSession = Depends(get_db)):
     """Real-time status of all background job queues — for ops/monitoring."""
     now = datetime.now(timezone.utc)
     since_hour = now - timedelta(hours=1)
+    readiness = await collect_readiness(db)
 
     bulk_pending = (await db.execute(select(func.count(BulkEmailJob.id)).where(BulkEmailJob.status == "pending"))).scalar_one()
     bulk_processing = (await db.execute(select(func.count(BulkEmailJob.id)).where(BulkEmailJob.status == "processing"))).scalar_one()
@@ -15061,10 +15078,10 @@ async def get_job_status(db: AsyncSession = Depends(get_db)):
         "document_export": {"pending": int(doc_pending)},
         "certificate_bulk": {"pending": int(bulk_cert_pending), "processing": int(bulk_cert_processing)},
         "training_notifications": {"failed_last_hour": int(notif_failed_recent)},
-        # scheduler_enabled reflects THIS instance only. In production the scheduler
-        # runs exclusively in the backend_jobs container (ENABLE_SCHEDULER=true there).
+        # Distinguish local configuration from the shared scheduler heartbeat.
         "scheduler_enabled_this_instance": settings.enable_scheduler,
-        "scheduler_enabled": True,  # jobs always run somewhere in the deployment
+        "scheduler_enabled": readiness["probes"]["scheduler"]["ok"],
+        "scheduler_heartbeat": readiness["probes"]["scheduler"].get("last_heartbeat"),
     }
 
 

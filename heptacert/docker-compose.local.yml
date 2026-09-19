@@ -63,6 +63,8 @@ services:
       CLAMAV_SCAN_TIMEOUT_SECONDS: ${CLAMAV_SCAN_TIMEOUT_SECONDS:-120}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       RATE_LIMIT_STORAGE_URI: ${RATE_LIMIT_STORAGE_URI:-redis://redis:6379/0}
+      HEALTH_REQUIRE_PRESENTATION_WORKER: ${HEALTH_REQUIRE_PRESENTATION_WORKER:-true}
+      HEALTH_REQUIRE_SCHEDULER: ${HEALTH_REQUIRE_SCHEDULER:-false}
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
       GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
       STORAGE_MODE: local
@@ -97,7 +99,7 @@ services:
       - "${BACKEND_PORT:-8765}:8000"
     command: sh -lc "alembic upgrade head && python -m src.local_bootstrap && uvicorn src.main:app --host 0.0.0.0 --port 8000 --workers 1"
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')\" || exit 1"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/ready')\" || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -131,6 +133,7 @@ services:
       PRESENTATION_CONVERTER_TIMEOUT_SECONDS: ${PRESENTATION_CONVERTER_TIMEOUT_SECONDS:-120}
       PRESENTATION_CONVERSION_STALE_SECONDS: ${PRESENTATION_CONVERSION_STALE_SECONDS:-300}
       PRESENTATION_CONVERSION_MAX_ATTEMPTS: ${PRESENTATION_CONVERSION_MAX_ATTEMPTS:-3}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       SOFFICE_BIN: ${SOFFICE_BIN:-soffice}
       DB_POOL_SIZE: ${PRESENTATION_WORKER_DB_POOL_SIZE:-2}
       DB_POOL_MAX_OVERFLOW: ${PRESENTATION_WORKER_DB_POOL_MAX_OVERFLOW:-2}
@@ -141,7 +144,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      backend:
+      redis:
         condition: service_healthy
     restart: unless-stopped
 

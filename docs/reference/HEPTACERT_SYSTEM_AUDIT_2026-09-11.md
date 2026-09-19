@@ -16,14 +16,15 @@ product is not yet uniformly production-ready. Presentation upload now works
 end to end after two rounds of fixes. The exposed LMS portal and MCP routing
 defects have been remediated on the current branch. Certificate-tier assignment
 now evaluates validated conditions instead of assigning the first tier to every
-certificate. The highest remaining risk is misleading health reporting. The
-dependency findings discovered during the audit have also been remediated on
-the current branch.
+certificate, and dependency-aware readiness now detects missing infrastructure
+and workers. The highest remaining risks are corrupted user-facing strings,
+backend image reproducibility and broken public documentation links. The
+dependency findings discovered during the audit have also been remediated.
 
 ### Verified working
 
-- Backend: 546 tests passed; syntax and critical flake8 checks passed.
-- Frontend: type check, production build, and 3 Vitest tests passed in the
+- Backend: 549 tests passed; syntax and critical flake8 checks passed.
+- Frontend: type check, production build, and 6 Vitest tests passed in the
   presentation-fix work; production `npm audit` currently reports 0 findings.
 - Documentation site: its patched Next.js Docker image built successfully,
   served the home/MCP/CLI pages, and production `npm audit` reports 0 findings.
@@ -154,17 +155,23 @@ validation.
 
 ### P1 — high priority
 
-#### 5. Health endpoints can be green while workers are down
+#### 5. Health endpoints could be green while workers were down — resolved on current branch
 
-`GET /api/health` always returns `{"status":"ok"}` and checks no dependency.
-During this audit it stayed green while the presentation worker was in a crash
-loop. The superadmin platform-health endpoint infers worker health only from
-queue sizes, and job status hard-codes `scheduler_enabled: true` even if the
-jobs container is absent.
+`GET /api/health` remains an intentionally shallow process-liveness check. The
+new `GET /api/ready` performs bounded, parallel PostgreSQL, Redis and ClamAV
+probes and verifies expiring Redis heartbeats from the presentation worker and
+scheduler when those components are required by deployment configuration. It
+returns HTTP 503 when a required dependency or heartbeat is unavailable.
 
-Add explicit DB/Redis/ClamAV probes, worker heartbeats, queue-age thresholds and
-scheduler heartbeat ownership. Keep a shallow liveness endpoint, but use a
-dependency-aware readiness endpoint for Compose and monitoring.
+Both Compose definitions now use readiness for backend health, start workers
+without a circular backend-health dependency, and provide Redis to the
+presentation worker. The superadmin platform-health and job-status responses
+now expose the actual component heartbeats instead of inferring worker state
+from queue size or hard-coding the scheduler as enabled. A local Docker smoke
+returned 200 with database, Redis and worker healthy; after stopping the worker
+and expiring its heartbeat it returned 503, then recovered to 200 after restart.
+Queue age thresholds remain a worthwhile monitoring enhancement, but a missing
+worker can no longer produce a false-green deployment readiness result.
 
 #### 6. Production payments are disabled
 
@@ -231,7 +238,7 @@ Update docs from the generated OpenAPI schema and add link checking in CI.
 
 #### 12. Test breadth is high, but risk coverage remains shallow
 
-There are 510 explicit test functions and 546 collected cases for roughly 650
+There are 513 explicit test functions and 549 collected cases for roughly 650
 API operations. The last coverage run reported 44.47% total coverage, only just
 above the 40% CI floor. Previously observed low-coverage high-risk modules
 include agenda, meetings, OIDC SSO, analytics, email, CFP, tickets, learning
@@ -244,7 +251,7 @@ contract tests should come before a global percentage increase.
 
 #### 13. No browser-level critical journey suite
 
-The frontend currently has three focused Vitest tests. There is no active
+The frontend currently has six focused Vitest tests. There is no active
 Playwright/Cypress suite proving login, event creation, registration, check-in,
 certificate issuance/verification, payment, presentation or portal journeys.
 Add a small Docker-backed browser suite and run it before deployment.
@@ -285,7 +292,8 @@ navigation entry so the shell is not presented as a complete hub.
    build/audit checks in CI.
 6. **Completed on current branch:** implement and test actual certificate-tier
    condition evaluation, template assignment and fail-closed validation.
-7. Replace false-green health reporting with dependency and worker readiness.
+7. **Completed on current branch:** replace false-green health reporting with
+   dependency probes, worker/scheduler heartbeats and Docker readiness checks.
 8. Repair user-facing mojibake and add an automated source guard.
 9. Finish making the backend Docker build deterministic and small.
 10. Correct CLI defaults and all broken documentation URLs; add link/contract
@@ -298,7 +306,7 @@ navigation entry so the shell is not presented as a complete hub.
 
 ## Commands/evidence snapshot
 
-- Backend suite: `python -m pytest tests -q` → 546 passed, 36 warnings.
+- Backend suite: `python -m pytest tests -q` → 549 passed, 36 warnings.
 - Focused presentation suite: 11 passed.
 - Python critical lint: 0 syntax/undefined-name errors.
 - Frontend production dependency audit: 0 vulnerabilities.
