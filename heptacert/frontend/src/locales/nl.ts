@@ -731,4 +731,8 @@ export const nl: Record<TranslationKey, string> = {
   live_saved: "Opgeslagen.",
   live_action_failed: "Actie mislukt.",
   language_switcher_label: "Taal kiezen",
+  theme_switcher_label: "Thema kiezen",
+  theme_light: "Licht",
+  theme_dark: "Donker",
+  theme_system: "Systeem",
 };

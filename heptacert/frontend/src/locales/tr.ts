@@ -728,6 +728,10 @@
   live_saved: "Kaydedildi.",
   live_action_failed: "İşlem başarısız.",
   language_switcher_label: "Dil seçin",
+  theme_switcher_label: "Tema seçin",
+  theme_light: "Açık",
+  theme_dark: "Koyu",
+  theme_system: "Sistem",
 } as const;
 
 export type TranslationKey = keyof typeof tr;

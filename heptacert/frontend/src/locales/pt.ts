@@ -731,4 +731,8 @@ export const pt: Record<TranslationKey, string> = {
   live_saved: "Guardado.",
   live_action_failed: "A ação falhou.",
   language_switcher_label: "Selecionar idioma",
+  theme_switcher_label: "Selecionar tema",
+  theme_light: "Claro",
+  theme_dark: "Escuro",
+  theme_system: "Sistema",
 };

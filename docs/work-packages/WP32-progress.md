@@ -19,24 +19,18 @@
     translates the keys that phase adds, into every catalog. Optional automation: DeepL
     API Free (`scripts/i18n-translate.mjs` on the branch already routes `:fx` keys to
     `api-free.deepl.com`).
-- **Active phase:** Phase 3 — Semantic token layer + theme restore (ADR-0022).
-- **Next step** (Phase 3, in order):
-  1. In `src/app/globals.css`, declare semantic role variables on bare `:root` as
-     space-separated RGB channels (e.g. `--bg-canvas: 250 250 249;`) so Tailwind opacity
-     modifiers keep working, and redefine only those variables under `.dark`.
-  2. Map the Tailwind `surface-*` scale in `tailwind.config.ts` onto the variables with
-     `rgb(var(--…) / <alpha-value>)` — `surface-200/80`-style classes are common, so the
-     channel format is required, not optional.
-  3. Re-express the `globals.css` component layer (`.card`, `.btn-*`, `.input`,
-     `.badge-*`, banners, `.table-*`, `.sidebar-item`, `.empty-state`, `.skeleton`) in the
-     roles.
-  4. Replace the hard-coded `light` in `src/app/_theme-initializer.tsx` with a pre-paint
-     script that reads the stored preference and `prefers-color-scheme`; restore a real
-     `src/components/ThemeToggle.tsx` on `src/lib/theme.ts`, **hidden behind a flag**
-     until Phase 7 completes (invariant 5).
-  5. Keep runtime white-label `--site-brand-color` overriding the accent in both themes.
-  6. Tests: role variables flip under `.dark`; the pre-paint script honors a stored
-     preference; `check:ui`, `npm test`, `tsc`, build.
+- **Active phase:** Phase 4 — accessible, themed, language-aware date/time pickers.
+- **Next step** (Phase 4, in order):
+  1. Add `react-day-picker` v9 and its compatible `date-fns` version through npm; never
+     hand-edit the lockfile. Preserve the existing `DateField`/`TimeField`/
+     `DateTimeField` call-site APIs and native value contracts.
+  2. Make the shared picker shell keyboard/focus complete (Escape restores focus,
+     `aria-expanded`/`aria-haspopup`, 40px mobile targets, popover flipping), localized
+     for all nine languages, and fix `DateTimeField`'s UTC-derived default date.
+  3. Add `min`/`max`, typed time entry and configurable `minuteStep`; then replace all 14
+     remaining native date/time inputs, starting with attendee-facing networking.
+  4. Add keyboard, value round-trip and third-language locale tests; lower
+     `native-date-input` to zero; run `check:ui`, tests, tsc and production build.
 - **Also outstanding:** run the Docker-based MCP smoke (see "How to verify") before the
   next production deploy — it could not run during Phase 1 because Docker Desktop was
   stopped.
@@ -48,8 +42,8 @@
 | 0 | Guardrails (`check:ui` ratchet) | ✅ Done | `d7c3cbc` |
 | 1 | Revive the multi-language branch | ✅ Done | `df28bad` |
 | 2 | Unlock more than two languages | ✅ Done | `980ca3a` + "unlock nine-language application selector" |
-| 3 | Semantic token layer + theme restore | 🔄 Next | — |
-| 4 | Date & time pickers | ⏳ Not started | — |
+| 3 | Semantic token layer + theme restore | ✅ Done | "restore semantic theming behind rollout flag" |
+| 4 | Date & time pickers | 🔄 Next | — |
 | 5 | Landing as the first locale-routed page | ⏳ Not started | — |
 | 6 | First-run onboarding | ⏳ Not started | — |
 | 7 | Surface-by-surface single pass | ⏳ Not started | — |
@@ -125,6 +119,45 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-09-20 — Phase 3 done: semantic theme foundation restored safely
+
+- **Semantic roles.** `globals.css` now defines light and dark channel-valued roles for
+  canvas/raised/sunken/active backgrounds, primary-to-faint content, borders, accent,
+  focus, shadows and success/warning/danger/info states. The `.dark` block only
+  redefines those roles. Body, selection, scrollbars, brand gradients and shadows now
+  consume them.
+- **Tailwind bridge.** `surface-*` and `sidebar-*` map to the roles with
+  `rgb(var(--…) / <alpha-value>)`, preserving opacity modifiers. New explicit utilities
+  (`bg-raised`, `text-content-*`, `border-outline-*`, `status-*`, `accent-*`) support
+  unambiguous migrations. The global component layer — buttons, inputs, cards, tabs,
+  badges, banners, tables, navigation, empty/loading states — no longer hardcodes light
+  surfaces or fixed status palettes.
+- **White-label invariant.** `--site-brand-color` remains the source for the accent and
+  its soft/border variants use `color-mix`, so the existing runtime inline override stays
+  authoritative without needing RGB parsing or a second JavaScript setter.
+- **Theme runtime.** `lib/theme.ts` now validates/persists `light | dark | system`,
+  resolves `matchMedia`, applies `.dark` plus `color-scheme`, and watches system changes.
+  The pre-paint script honors stored/system preference when enabled without rewriting
+  storage. `ThemeToggle` cycles system/light/dark and is wired into both shells.
+- **Safe rollout.** `NEXT_PUBLIC_THEME_TOGGLE_ENABLED` defaults to `false`; it gates both
+  the control and pre-paint dark activation. A stored preference is preserved while the
+  flag is off, but production stays light until Phase 7 finishes — no half-themed
+  surface can become user-visible accidentally.
+- **Catalogs and reference screen.** Four theme-control strings were added to every
+  catalog (all nine now **682 keys**). `/admin/events` was converted to raised/status
+  roles and has no fixed white/gray/slate/status-palette colors left, providing the first
+  token-pure admin reference surface.
+- **Tests and ratchet.** New tests cover role parity/differences, opacity-aware Tailwind
+  mappings, white-label accent ownership, stored and system pre-paint behavior, rollout
+  gating, theme persistence/listeners and the hidden/working control. `light-only-color`
+  dropped **3508 → 3507** after its intermediate **3524 → 3508** drop; all other
+  baselines stayed flat.
+- **Verification:** `npm run check:ui` ✓ · frontend tests **51/51** ·
+  `npx tsc --noEmit` ✓ · production build ✓. Run tsc after, not concurrently with,
+  `next build`: both write `.next/types`, and parallel execution creates transient
+  missing-generated-file errors on Windows.
+- **Next:** Phase 4 — accessible date/time picker family and zero native date inputs.
 
 ### 2026-09-20 — Phase 2 follow-up: nine-language authenticated selector unlocked
 

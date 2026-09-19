@@ -327,7 +327,7 @@ export default function AdminEvents() {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             {me?.heptacoin_balance !== undefined && me.heptacoin_balance > 0 && (
-              <span className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-700">
+              <span className="inline-flex items-center gap-1.5 rounded-lg border border-status-warning-border bg-status-warning-bg px-2.5 py-1.5 text-xs font-medium text-status-warning-content">
                 <Coins className="h-3.5 w-3.5" /> {me.heptacoin_balance} HC
               </span>
             )}
@@ -376,9 +376,9 @@ export default function AdminEvents() {
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-3.5 md:grid-cols-4">
         <StatCard label={copy.totalEvents} value={events.length} icon={<CalendarRange className="h-4 w-4 stroke-[1.8]" />} />
-        <StatCard label={copy.totalCertificates} value={totalCertificates} icon={<ListChecks className="h-4 w-4 stroke-[1.8]" />} iconBg="bg-emerald-50 border border-emerald-100 text-emerald-600" />
-        <StatCard label={copy.planStatus} value={hasPaidPlan ? copy.premium : copy.starter} icon={<Sparkles className="h-4 w-4 stroke-[1.8]" />} iconBg="bg-amber-50 border border-amber-100 text-amber-600" />
-        <StatCard label={copy.balance} value={`${me?.heptacoin_balance ?? 0} HC`} icon={<Coins className="h-4 w-4 stroke-[1.8]" />} iconBg="bg-sky-50 border border-sky-100 text-sky-600" />
+        <StatCard label={copy.totalCertificates} value={totalCertificates} icon={<ListChecks className="h-4 w-4 stroke-[1.8]" />} iconBg="bg-status-success-bg border border-status-success-border text-status-success-content" />
+        <StatCard label={copy.planStatus} value={hasPaidPlan ? copy.premium : copy.starter} icon={<Sparkles className="h-4 w-4 stroke-[1.8]" />} iconBg="bg-status-warning-bg border border-status-warning-border text-status-warning-content" />
+        <StatCard label={copy.balance} value={`${me?.heptacoin_balance ?? 0} HC`} icon={<Coins className="h-4 w-4 stroke-[1.8]" />} iconBg="bg-status-info-bg border border-status-info-border text-status-info-content" />
       </div>
 
       {/* Search + filter toolbar */}
@@ -414,11 +414,11 @@ export default function AdminEvents() {
         {err && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
             {isPermissionError ? (
-              <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                <Shield className="h-5 w-5 shrink-0 text-amber-600" />
+              <div className="flex items-start gap-3 rounded-xl border border-status-warning-border bg-status-warning-bg p-4">
+                <Shield className="h-5 w-5 shrink-0 text-status-warning-content" />
                 <div className="text-sm">
-                  <p className="font-medium text-amber-800">{copy.noEventPermTitle}</p>
-                  <p className="mt-0.5 text-amber-700">{copy.noEventPermBody}</p>
+                  <p className="font-medium text-status-warning-content">{copy.noEventPermTitle}</p>
+                  <p className="mt-0.5 text-status-warning-content/90">{copy.noEventPermBody}</p>
                   {eventCapableTarget && (
                     <button onClick={switchToEventCapableOrg} className="btn-secondary mt-2.5 text-xs">
                       {copy.switchToOwn}
@@ -474,7 +474,7 @@ export default function AdminEvents() {
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-surface-200 bg-white shadow-card">
+        <div className="overflow-hidden rounded-xl border border-surface-200 bg-raised shadow-card">
           {filteredEvents.map((ev, i) => (
             <motion.div
               key={ev.id}
@@ -503,7 +503,7 @@ export default function AdminEvents() {
                       }}
                       autoFocus
                     />
-                    <button onClick={() => saveRename(ev.id)} className="rounded-lg bg-emerald-50 p-1.5 text-emerald-600 hover:bg-emerald-100 transition-colors">
+                    <button onClick={() => saveRename(ev.id)} className="rounded-lg bg-status-success-bg p-1.5 text-status-success-content transition-colors hover:brightness-95">
                       <Check className="h-4 w-4" />
                     </button>
                     <button onClick={() => setRenamingId(null)} className="rounded-lg bg-surface-100 p-1.5 text-surface-500 hover:bg-surface-200 transition-colors">
@@ -518,19 +518,19 @@ export default function AdminEvents() {
                         {pickLang(EVENT_TYPE_OPTIONS.find((o) => o.value === (ev.event_type || "certificate_event"))?.label, lang) || ev.event_type}
                       </span>
                       {ev.ticketing_enabled && (
-                        <span className="inline-flex items-center rounded-full border border-sky-100 bg-sky-50 px-2 py-0.5 text-11 font-medium text-sky-700">
+                        <span className="inline-flex items-center rounded-full border border-status-info-border bg-status-info-bg px-2 py-0.5 text-11 font-medium text-status-info-content">
                           {copy.tickets}
                         </span>
                       )}
                       {ev.certificate_enabled !== false && (
-                        <span className="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-11 font-medium text-emerald-700">
+                        <span className="inline-flex items-center rounded-full border border-status-success-border bg-status-success-bg px-2 py-0.5 text-11 font-medium text-status-success-content">
                           {copy.certificates}
                         </span>
                       )}
                       {ev.template_image_url !== "placeholder" ? (
-                        <span className="text-11 text-emerald-600">· {copy.templateUploaded}</span>
+                        <span className="text-11 text-status-success-content">· {copy.templateUploaded}</span>
                       ) : (
-                        <span className="text-11 text-rose-500">· {copy.templateMissing}</span>
+                        <span className="text-11 text-status-danger-content">· {copy.templateMissing}</span>
                       )}
                     </div>
                   </div>
@@ -556,7 +556,7 @@ export default function AdminEvents() {
                       title={copy.registerLink}
                     >
                       {copiedId === ev.id ? (
-                        <ClipboardCheck className="h-3.5 w-3.5 text-emerald-600" />
+                        <ClipboardCheck className="h-3.5 w-3.5 text-status-success-content" />
                       ) : (
                         <Link2 className="h-3.5 w-3.5" />
                       )}
@@ -569,7 +569,7 @@ export default function AdminEvents() {
                   <button
                     onClick={() => setDeleteTargetId(ev.id)}
                     aria-label={`${copy.delete}: ${ev.name}`}
-                    className="btn-ghost px-2.5 py-1.5 text-xs text-rose-500 hover:bg-rose-50 hover:text-rose-700"
+                    className="btn-ghost px-2.5 py-1.5 text-xs text-status-danger-content hover:bg-status-danger-bg hover:text-status-danger-content"
                     title={copy.delete}
                   >
                     <Trash2 className="h-3.5 w-3.5" />

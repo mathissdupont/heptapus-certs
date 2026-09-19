@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { Activity, CalendarDays, Home, Menu, QrCode, Share, Shield, Smartphone, Ticket, X, Plus } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { I18nProvider, LanguageToggle, useT, useI18n } from "@/lib/i18n";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   PUBLIC_MEMBER_TOKEN_EVENT,
   clearPublicMemberToken,
@@ -234,6 +235,7 @@ function Navbar() {
 
         {/* Desktop right actions */}
         <div className="hidden shrink-0 items-center gap-3 lg:flex">
+          <ThemeToggle />
           <LanguageToggle />
           <div className="mx-1 h-5 w-px bg-surface-200" />
 

@@ -317,11 +317,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <meta name="category" content="event management, certificate platform, training management" />
         <ThemeInitializer />
       </head>
-      <body className="min-h-screen bg-slate-50 text-gray-900 antialiased transition-colors">
+      <body className="min-h-screen bg-canvas text-content-primary antialiased transition-colors">
         <div
           className="fixed left-0 right-0 top-0 z-50 h-[3px]"
           style={{
-            background: "linear-gradient(90deg, #111827, #374151)",
+            background: "linear-gradient(90deg, var(--site-brand-color), rgb(var(--content-secondary)))",
           }}
         />
         <ClientShell>{children}</ClientShell>

@@ -731,4 +731,8 @@ export const ru: Record<TranslationKey, string> = {
   live_saved: "Сохранено.",
   live_action_failed: "Не удалось выполнить действие.",
   language_switcher_label: "Выберите язык",
+  theme_switcher_label: "Выбрать тему",
+  theme_light: "Светлая",
+  theme_dark: "Тёмная",
+  theme_system: "Системная",
 };

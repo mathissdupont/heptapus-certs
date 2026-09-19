@@ -12,6 +12,48 @@ export default {
         "13": ["0.8125rem", { lineHeight: "1.25rem" }], /* 13px — between xs(12) and sm(14) */
       },
       colors: {
+        canvas: "rgb(var(--bg-canvas) / <alpha-value>)",
+        raised: "rgb(var(--bg-raised) / <alpha-value>)",
+        sunken: "rgb(var(--bg-sunken) / <alpha-value>)",
+        content: {
+          primary: "rgb(var(--content-primary) / <alpha-value>)",
+          secondary: "rgb(var(--content-secondary) / <alpha-value>)",
+          muted: "rgb(var(--content-muted) / <alpha-value>)",
+          faint: "rgb(var(--content-faint) / <alpha-value>)",
+          inverted: "rgb(var(--content-inverted) / <alpha-value>)",
+        },
+        outline: {
+          subtle: "rgb(var(--border-subtle) / <alpha-value>)",
+          strong: "rgb(var(--border-strong) / <alpha-value>)",
+        },
+        accent: {
+          DEFAULT: "var(--site-brand-color)",
+          soft: "var(--site-brand-accent)",
+          border: "var(--site-brand-border)",
+          contrast: "var(--site-brand-contrast)",
+        },
+        status: {
+          success: {
+            bg: "rgb(var(--status-success-bg) / <alpha-value>)",
+            border: "rgb(var(--status-success-border) / <alpha-value>)",
+            content: "rgb(var(--status-success-content) / <alpha-value>)",
+          },
+          warning: {
+            bg: "rgb(var(--status-warning-bg) / <alpha-value>)",
+            border: "rgb(var(--status-warning-border) / <alpha-value>)",
+            content: "rgb(var(--status-warning-content) / <alpha-value>)",
+          },
+          danger: {
+            bg: "rgb(var(--status-danger-bg) / <alpha-value>)",
+            border: "rgb(var(--status-danger-border) / <alpha-value>)",
+            content: "rgb(var(--status-danger-content) / <alpha-value>)",
+          },
+          info: {
+            bg: "rgb(var(--status-info-bg) / <alpha-value>)",
+            border: "rgb(var(--status-info-border) / <alpha-value>)",
+            content: "rgb(var(--status-info-content) / <alpha-value>)",
+          },
+        },
         // Primary brand palette: neutral charcoal/ink (replaces indigo)
         brand: {
           50: "#F9FAFB",
@@ -26,23 +68,23 @@ export default {
           900: "#111827",
         },
         surface: {
-          50: "#fafaf9",
-          100: "#f5f5f4",
-          150: "#efede9",
-          200: "#e7e5e0",
-          300: "#d6d3d1",
-          400: "#a8a29e",
-          500: "#78716c",
-          600: "#57534e",
-          700: "#44403c",
-          800: "#292524",
-          900: "#1c1917",
+          50: "rgb(var(--bg-canvas) / <alpha-value>)",
+          100: "rgb(var(--bg-sunken) / <alpha-value>)",
+          150: "rgb(var(--border-subtle) / <alpha-value>)",
+          200: "rgb(var(--border-subtle) / <alpha-value>)",
+          300: "rgb(var(--border-strong) / <alpha-value>)",
+          400: "rgb(var(--content-faint) / <alpha-value>)",
+          500: "rgb(var(--content-muted) / <alpha-value>)",
+          600: "rgb(var(--content-secondary) / <alpha-value>)",
+          700: "rgb(var(--content-secondary-strong) / <alpha-value>)",
+          800: "rgb(var(--content-primary-soft) / <alpha-value>)",
+          900: "rgb(var(--content-primary) / <alpha-value>)",
         },
         sidebar: {
-          DEFAULT: "#fbfaf8",
-          hover: "#f0ede8",
-          active: "#E8E6E3",
-          border: "#e8e4de",
+          DEFAULT: "rgb(var(--bg-raised) / <alpha-value>)",
+          hover: "rgb(var(--bg-sunken) / <alpha-value>)",
+          active: "rgb(var(--bg-active) / <alpha-value>)",
+          border: "rgb(var(--border-subtle) / <alpha-value>)",
         },
       },
       animation: {

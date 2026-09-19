@@ -12,6 +12,7 @@ import InAppTourGuide from "@/components/Admin/InAppTourGuide";
 import AIAssistant from "@/components/Admin/AIAssistant";
 import HeptaCertLogoMark from "@/components/Brand/HeptaCertLogoMark";
 import CommandPalette from "@/components/Admin/CommandPalette";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarCheck2,
@@ -871,7 +872,8 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
                 </select>
               </label>
             )}
-            <LanguageToggle className="inline-flex items-center gap-2 rounded-lg border border-surface-200 bg-white px-3 py-1.5 text-xs font-bold text-surface-700 shadow-sm transition-colors hover:bg-surface-50 hover:text-surface-900" />
+            <ThemeToggle />
+            <LanguageToggle className="inline-flex items-center gap-2 rounded-lg border border-surface-200 bg-raised px-3 py-1.5 text-xs font-bold text-surface-700 shadow-sm transition-colors hover:bg-surface-50 hover:text-surface-900" />
             <div className="hidden min-w-0 items-center gap-3 lg:flex">
               <div className="text-right">
                 <div className="text-11 font-medium uppercase tracking-wider text-surface-400">{topbarText.workspace}</div>

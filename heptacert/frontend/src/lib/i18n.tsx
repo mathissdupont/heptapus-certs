@@ -143,11 +143,11 @@ export function LanguageToggle({ className }: { className?: string }) {
         title={langLabels[nextLang]}
         className={
           className ??
-          "inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900"
+          "inline-flex items-center gap-2 rounded-lg border border-surface-200 bg-raised px-3 py-1.5 text-xs font-bold text-surface-700 shadow-sm transition-colors hover:bg-surface-50 hover:text-surface-900"
         }
         aria-label={langLabels[nextLang]}
       >
-        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-11 font-extrabold tracking-[0.18em] text-slate-700">
+        <span className="rounded bg-surface-100 px-1.5 py-0.5 text-11 font-extrabold tracking-[0.18em] text-surface-700">
           {lang.toUpperCase()}
         </span>
         <span>{langLabels[nextLang]}</span>
@@ -159,17 +159,17 @@ export function LanguageToggle({ className }: { className?: string }) {
     <label
       className={
         className ??
-        "inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs font-bold text-gray-700 shadow-sm"
+        "inline-flex items-center gap-2 rounded-lg border border-surface-200 bg-raised px-2 py-1.5 text-xs font-bold text-surface-700 shadow-sm"
       }
     >
       <span className="sr-only">{t("language_switcher_label")}</span>
-      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-11 font-extrabold tracking-[0.18em] text-slate-700">
+      <span className="rounded bg-surface-100 px-1.5 py-0.5 text-11 font-extrabold tracking-[0.18em] text-surface-700">
         {lang.toUpperCase()}
       </span>
       <select
         value={lang}
         onChange={(e) => setLang(e.target.value as Lang)}
-        className="bg-transparent pr-1 font-bold text-gray-700 outline-none"
+        className="bg-transparent pr-1 font-bold text-surface-700 outline-none"
         aria-label={t("language_switcher_label")}
       >
         {supportedLangs.map((l) => (

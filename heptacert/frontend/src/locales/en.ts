@@ -731,5 +731,8 @@ export const en: Record<TranslationKey, string> = {
   live_saved: "Saved.",
   live_action_failed: "Action failed.",
   language_switcher_label: "Select language",
+  theme_switcher_label: "Select theme",
+  theme_light: "Light",
+  theme_dark: "Dark",
+  theme_system: "System",
 };
-
