@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import {
@@ -848,7 +849,7 @@ export default function AdminAttendeesPage() {
                       <span className="text-surface-300">{copy.googleInactive}</span>
                     )}
                     {sheetsStatus?.last_synced_at && (
-                      <span>{copy.googleLastSync} {new Date(sheetsStatus.last_synced_at).toLocaleDateString("tr-TR", { hour: "2-digit", minute: "2-digit" })}</span>
+                      <span>{copy.googleLastSync} {new Date(sheetsStatus.last_synced_at).toLocaleDateString(localeTag(lang), { hour: "2-digit", minute: "2-digit" })}</span>
                     )}
                   </div>
                 </div>
@@ -905,7 +906,7 @@ export default function AdminAttendeesPage() {
                       <span className="text-surface-300">{copy.microsoftInactive}</span>
                     )}
                     {excelStatus?.last_synced_at && (
-                      <span>{copy.microsoftLastSync} {new Date(excelStatus.last_synced_at).toLocaleDateString("tr-TR", { hour: "2-digit", minute: "2-digit" })}</span>
+                      <span>{copy.microsoftLastSync} {new Date(excelStatus.last_synced_at).toLocaleDateString(localeTag(lang), { hour: "2-digit", minute: "2-digit" })}</span>
                     )}
                   </div>
                 </div>
@@ -1353,7 +1354,7 @@ export default function AdminAttendeesPage() {
                   </div>
                   <div className="rounded-xl border border-surface-100 bg-surface-50/50 p-3">
                     <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">{copy.drawerRegisteredAt}</p>
-                    <p className="mt-1 text-11 font-mono font-bold text-surface-500 leading-none">{new Date(selectedAttendee.registered_at).toLocaleDateString("tr-TR")}</p>
+                    <p className="mt-1 text-11 font-mono font-bold text-surface-500 leading-none">{new Date(selectedAttendee.registered_at).toLocaleDateString(localeTag(lang))}</p>
                   </div>
                 </div>
 

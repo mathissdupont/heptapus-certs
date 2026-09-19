@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState } from "react";
 import {
   ScheduledReportOut,
@@ -39,9 +40,9 @@ const EMPTY_FORM: FormState = {
   active: true,
 };
 
-function formatDate(iso: string | null): string {
+function formatDate(iso: string | null, lang?: string | null): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleString("tr-TR", {
+  return new Date(iso).toLocaleString(localeTag(lang), {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -391,8 +392,8 @@ export default function ScheduledReportsPage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatDate(r.last_run_at)}</td>
-                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatDate(r.next_run_at)}</td>
+                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatDate(r.last_run_at, lang)}</td>
+                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatDate(r.next_run_at, lang)}</td>
                   <td className="px-4 py-3">
                     <span
                       className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${

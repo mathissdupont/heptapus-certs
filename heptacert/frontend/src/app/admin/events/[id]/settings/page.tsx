@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
 import type { ElementType } from "react";
 import Link from "next/link";
@@ -1258,7 +1259,7 @@ export default function EventSettingsPage() {
                 </label>
                 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <DateField label={copy.date} value={formData.event_date} onChange={(val) => setFormData((curr) => ({ ...curr, event_date: val }))} placeholder={copy.datePlaceholder} locale={lang === "tr" ? "tr-TR" : "en-US"} />
+                  <DateField label={copy.date} value={formData.event_date} onChange={(val) => setFormData((curr) => ({ ...curr, event_date: val }))} placeholder={copy.datePlaceholder} locale={localeTag(lang)} />
                   <label className="block w-full">
                     <span className="block text-11 font-bold text-surface-500 mb-1">{copy.location}</span>
                     <input value={formData.event_location} onChange={(e) => setFormData((curr) => ({ ...curr, event_location: e.target.value }))} className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900" placeholder={copy.locationPlaceholder} />
@@ -1298,8 +1299,8 @@ export default function EventSettingsPage() {
                     </div>
                   </label>
 
-                  <DateTimeField value={formData.venue_reservation_start_at} onChange={(val) => setFormData((curr) => ({ ...curr, venue_reservation_start_at: val }))} label={lang === "tr" ? "Rezervasyon Başlangıcı" : "Reservation Start"} disabled={!formData.organization_venue_id} locale={lang === "tr" ? "tr-TR" : "en-US"} />
-                  <DateTimeField value={formData.venue_reservation_end_at} onChange={(val) => setFormData((curr) => ({ ...curr, venue_reservation_end_at: val }))} label={lang === "tr" ? "Rezervasyon Bitişi" : "Reservation End"} disabled={!formData.organization_venue_id} locale={lang === "tr" ? "tr-TR" : "en-US"} />
+                  <DateTimeField value={formData.venue_reservation_start_at} onChange={(val) => setFormData((curr) => ({ ...curr, venue_reservation_start_at: val }))} label={lang === "tr" ? "Rezervasyon Başlangıcı" : "Reservation Start"} disabled={!formData.organization_venue_id} locale={localeTag(lang)} />
+                  <DateTimeField value={formData.venue_reservation_end_at} onChange={(val) => setFormData((curr) => ({ ...curr, venue_reservation_end_at: val }))} label={lang === "tr" ? "Rezervasyon Bitişi" : "Reservation End"} disabled={!formData.organization_venue_id} locale={localeTag(lang)} />
                 </div>
 
                 <label className="flex items-center gap-2.5 select-none pt-1">

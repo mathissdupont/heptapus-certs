@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState } from "react";
 import {
   AlertCircle,
@@ -516,7 +517,7 @@ export default function SMTPConfigurationPage() {
                       <span className="font-sans font-medium text-11 text-surface-400">{account.has_password ? copy.credentialsEncrypted : copy.noPassword}</span>
                     </p>
                     <p className="text-11 text-surface-400 font-sans pt-1 border-t border-gray-50/30">
-                      {new Date(account.updated_at).toLocaleDateString(isTr ? "tr-TR" : "en-US", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      {new Date(account.updated_at).toLocaleDateString(localeTag(lang), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                     </p>
                   </div>
                 </div>

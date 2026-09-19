@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Mail, MessageCircle, ChevronDown, ChevronUp, Send, X, Check } from "lucide-react";
@@ -207,7 +208,7 @@ export default function SupportTicketsPage() {
                   </span>
                 </div>
                 <p className="text-xs text-surface-500">
-                  {new Date(ticket.created_at).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US")}
+                  {new Date(ticket.created_at).toLocaleDateString(localeTag(lang))}
                 </p>
               </button>
             ))}
@@ -225,7 +226,7 @@ export default function SupportTicketsPage() {
                   <div className="space-y-1 text-sm text-surface-600">
                     <p>{text.user}: {selectedTicket.user_id}</p>
                     <p>{text.organization}: {selectedTicket.organization_id}</p>
-                    <p>{text.created}: {new Date(selectedTicket.created_at).toLocaleString(lang === "tr" ? "tr-TR" : "en-US")}</p>
+                    <p>{text.created}: {new Date(selectedTicket.created_at).toLocaleString(localeTag(lang))}</p>
                   </div>
                 </div>
 
@@ -260,7 +261,7 @@ export default function SupportTicketsPage() {
                     >
                       <p className="text-sm">{msg.message}</p>
                       <p className={`text-xs mt-1 ${msg.role === "user" ? "text-surface-600" : "text-brand-100"}`}>
-                        {new Date(msg.timestamp).toLocaleTimeString(lang === "tr" ? "tr-TR" : "en-US", {
+                        {new Date(msg.timestamp).toLocaleTimeString(localeTag(lang), {
                           hour: "2-digit",
                           minute: "2-digit"
                         })}

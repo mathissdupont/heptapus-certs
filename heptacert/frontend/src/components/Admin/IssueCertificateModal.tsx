@@ -1,5 +1,7 @@
 "use client";
 
+import { pickLang } from "@/lib/pickLang";
+import { localeTag } from "@/lib/localeTag";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Zap, Loader2, AlertCircle, ExternalLink } from "lucide-react";
@@ -36,7 +38,7 @@ export default function IssueCertificateModal({
   const [issuing, setIssuing] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const copy = {
+  const copy = pickLang({
     tr: {
       title: "Sertifika Oluştur",
       nameLabel: "Alıcı Adı",
@@ -77,11 +79,11 @@ export default function IssueCertificateModal({
       created: (n: string) => `Certificate for "${n}" created.`,
       failed: "Certificate issue failed.",
     },
-  }[lang];
+  }, lang);
 
   function formatHc(units?: number | null) {
     if (typeof units !== "number") return "—";
-    return `${(units / 10).toLocaleString(lang === "tr" ? "tr-TR" : "en-US", { maximumFractionDigits: 1 })} HC`;
+    return `${(units / 10).toLocaleString(localeTag(lang), { maximumFractionDigits: 1 })} HC`;
   }
 
   const hostingCost = term === "monthly" ? sampleMonthlyCost : sampleYearlyCost;

@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
 import {
   Bell,
@@ -62,11 +63,11 @@ const emptyForm = {
   evidence_label: "",
 };
 
-function formatDate(value?: string | null) {
+function formatDate(value?: string | null, lang?: string | null) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short", year: "numeric" }).format(date);
+  return new Intl.DateTimeFormat(localeTag(lang), { day: "2-digit", month: "short", year: "numeric" }).format(date);
 }
 
 function toDateTimeInput(value?: string | null) {
@@ -581,8 +582,8 @@ export default function AdminTrainingPage() {
                   </div>
                   <div className="mt-3 grid gap-2 text-xs text-surface-500 md:grid-cols-4">
                     <span>{copy.department}: {item.department || copy.general}</span>
-                    <span>{copy.dueDate}: {formatDate(item.due_at)}</span>
-                    <span>{copy.renewal}: {formatDate(item.renewal_due_at)}</span>
+                    <span>{copy.dueDate}: {formatDate(item.due_at, lang)}</span>
+                    <span>{copy.renewal}: {formatDate(item.renewal_due_at, lang)}</span>
                     <span>{copy.certificate}: {item.certificate_uuid || "-"}</span>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -677,7 +678,7 @@ export default function AdminTrainingPage() {
                 recommendations.map((event) => (
                   <div key={event.id} className="rounded-lg border border-surface-200 bg-white p-3">
                     <p className="font-bold text-surface-900">{event.name}</p>
-                    <p className="mt-1 text-xs text-surface-500">{formatDate(event.event_date)} {event.event_location ? `- ${event.event_location}` : ""}</p>
+                    <p className="mt-1 text-xs text-surface-500">{formatDate(event.event_date, lang)} {event.event_location ? `- ${event.event_location}` : ""}</p>
                   </div>
                 ))
               )}

@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { CalendarDays, Search, Loader2 } from "lucide-react";
@@ -11,6 +12,7 @@ type CardCopy = {
 };
 
 function EventCard({ event, cardCopy }: { event: MarketplaceEventOut; cardCopy: CardCopy }) {
+  const { lang } = useI18n();
   const isFree = !event.marketplace_price || event.marketplace_price === 0;
 
   return (
@@ -53,7 +55,7 @@ function EventCard({ event, cardCopy }: { event: MarketplaceEventOut; cardCopy: 
             {event.org_name && <span className="truncate">{event.org_name}</span>}
           </div>
           <span className={`text-sm font-semibold flex-shrink-0 ml-2 ${isFree ? "text-green-600" : "text-surface-900"}`}>
-            {isFree ? cardCopy.free : `₺${event.marketplace_price?.toLocaleString("tr-TR")}`}
+            {isFree ? cardCopy.free : `₺${event.marketplace_price?.toLocaleString(localeTag(lang))}`}
           </span>
         </div>
       </div>

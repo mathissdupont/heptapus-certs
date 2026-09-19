@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -534,7 +535,7 @@ export default function SequenceDetailPage() {
                       <td className="px-4 py-3 text-center text-gray-500">{e.current_step}</td>
                       <td className="px-4 py-3 text-gray-500">
                         {e.next_send_at
-                          ? new Date(e.next_send_at).toLocaleString(lang === "tr" ? "tr-TR" : "en-US", {
+                          ? new Date(e.next_send_at).toLocaleString(localeTag(lang), {
                               dateStyle: "short",
                               timeStyle: "short",
                             })

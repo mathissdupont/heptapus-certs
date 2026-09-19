@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -47,7 +48,7 @@ export default function NetworkingPage() {
     if (!value) return "";
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return value;
-    return new Intl.DateTimeFormat(lang === "tr" ? "tr-TR" : "en-US", { dateStyle: "medium", timeStyle: "short" }).format(d);
+    return new Intl.DateTimeFormat(localeTag(lang), { dateStyle: "medium", timeStyle: "short" }).format(d);
   }
 
   async function load() {

@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -340,7 +341,7 @@ export default function EventRegisterPage() {
 
   const brandName = branding?.org_name || "HeptaCert";
   const brandColor = branding?.brand_color || "#7c73ff";
-  const locale = lang === "tr" ? "tr-TR" : "en-US";
+  const locale = localeTag(lang);
   const certificateEnabled = event?.certificate_enabled !== false;
   const ticketingEnabled = event?.ticketing_enabled === true;
   const organizerNoticeEnabled = Boolean(event?.organizer_privacy_notice_enabled);

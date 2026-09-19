@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -280,7 +281,7 @@ export default function EventSurveyPage() {
             {copy.type}: {badge.badge_type}
           </span>
           <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-            {new Date(badge.awarded_at).toLocaleString(lang === "tr" ? "tr-TR" : "en-US")}
+            {new Date(badge.awarded_at).toLocaleString(localeTag(lang))}
           </span>
         </div>
       </div>

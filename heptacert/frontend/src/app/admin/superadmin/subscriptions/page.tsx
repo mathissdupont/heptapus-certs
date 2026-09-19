@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
@@ -76,7 +77,6 @@ export default function SuperadminSubscriptionsPage() {
         emptyBody: "İlk manuel plan atamasını yaparak listeyi oluşturmaya başlayın.",
         deleteTitle: "Aboneliği iptal et",
         deleteBody: "Bu aboneliği pasif duruma almak istediğinizden emin misiniz?",
-        locale: "tr-TR",
       }
     : {
         title: "Subscriptions",
@@ -104,7 +104,6 @@ export default function SuperadminSubscriptionsPage() {
         emptyBody: "Start by assigning the first manual plan from the panel above.",
         deleteTitle: "Revoke subscription",
         deleteBody: "Are you sure you want to set this subscription to inactive?",
-        locale: "en-US",
       };
 
   const load = async () => {
@@ -262,11 +261,11 @@ export default function SuperadminSubscriptionsPage() {
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 <div className="rounded-2xl border border-surface-200 bg-surface-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-surface-400">{copy.startedAt}</p>
-                  <p className="mt-2 text-sm font-medium text-surface-800">{new Date(row.started_at).toLocaleDateString(copy.locale)}</p>
+                  <p className="mt-2 text-sm font-medium text-surface-800">{new Date(row.started_at).toLocaleDateString(localeTag(lang))}</p>
                 </div>
                 <div className="rounded-2xl border border-surface-200 bg-surface-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-surface-400">{copy.expiresAt}</p>
-                  <p className="mt-2 text-sm font-medium text-surface-800">{row.expires_at ? new Date(row.expires_at).toLocaleDateString(copy.locale) : "-"}</p>
+                  <p className="mt-2 text-sm font-medium text-surface-800">{row.expires_at ? new Date(row.expires_at).toLocaleDateString(localeTag(lang)) : "-"}</p>
                 </div>
                 <div className="rounded-2xl border border-surface-200 bg-surface-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-surface-400">{copy.status}</p>

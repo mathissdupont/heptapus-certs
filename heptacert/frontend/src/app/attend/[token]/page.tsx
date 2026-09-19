@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -130,7 +131,7 @@ export default function AttendCheckinPage() {
   const brandColor = branding?.brand_color || "#2563eb";
   const eventHref = sessionInfo ? `/events/${sessionInfo.event_public_id}/register` : "#";
   const statusHref = sessionInfo ? `/events/${sessionInfo.event_public_id}/status` : "#";
-  const locale = lang === "tr" ? "tr-TR" : "en-US";
+  const locale = localeTag(lang);
 
   const pageBg = useMemo(
     () => ({

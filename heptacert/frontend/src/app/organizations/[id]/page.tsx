@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -38,7 +39,7 @@ import { normalizeExternalUrl } from "@/lib/url";
 import { fetchCurrentBranding, isWhiteLabelBranding } from "@/lib/whiteLabel";
 
 function formatTimestamp(value: string, lang: "tr" | "en") {
-  return new Intl.DateTimeFormat(lang === "tr" ? "tr-TR" : "en-US", {
+  return new Intl.DateTimeFormat(localeTag(lang), {
     day: "numeric",
     month: "short",
     year: "numeric",

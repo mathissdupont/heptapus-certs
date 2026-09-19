@@ -1,5 +1,6 @@
 "use client";
 
+import { pickLang } from "@/lib/pickLang";
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Upload, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
@@ -24,7 +25,7 @@ export default function ImportAttendeeModal({ open, onClose, onImported, eventId
   const [result, setResult] = useState<{ added: number; skipped: number } | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  const copy = {
+  const copy = pickLang({
     tr: {
       title: "Excel / CSV İçe Aktar",
       hint: "Şablonda en azından ad ve e-posta sütunları yer almalıdır.",
@@ -47,7 +48,7 @@ export default function ImportAttendeeModal({ open, onClose, onImported, eventId
       failed: "Import failed.",
       close: "Close",
     },
-  }[lang];
+  }, lang);
 
   async function handleImport() {
     if (!file) return;

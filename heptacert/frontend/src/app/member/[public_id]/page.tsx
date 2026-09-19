@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -442,7 +443,7 @@ export default function PublicMemberProfilePage() {
               {copy.certificates}
             </h2>
             <span className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-500">
-              {(member.certificates?.length ?? 0).toLocaleString(lang === "tr" ? "tr-TR" : "en-US")}
+              {(member.certificates?.length ?? 0).toLocaleString(localeTag(lang))}
             </span>
           </div>
 
@@ -469,7 +470,7 @@ export default function PublicMemberProfilePage() {
                         <h3 className="truncate text-sm font-bold text-gray-900">{cert.event_name}</h3>
                         <p className="mt-1 text-xs text-gray-500">
                           {cert.issued_at
-                            ? new Date(cert.issued_at).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US", {
+                            ? new Date(cert.issued_at).toLocaleDateString(localeTag(lang), {
                                 day: "numeric",
                                 month: "short",
                                 year: "numeric",

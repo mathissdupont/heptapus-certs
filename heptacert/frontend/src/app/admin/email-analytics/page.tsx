@@ -1,5 +1,7 @@
 ﻿"use client";
 
+import { pickLang } from "@/lib/pickLang";
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState } from "react";
 import { Mail, TrendingUp, Loader2, AlertCircle, Send, BarChart3, MousePointerClick, Eye, Percent } from "lucide-react";
 import Link from "next/link";
@@ -29,7 +31,7 @@ export default function EmailAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const copy = {
+  const copy = pickLang({
     tr: {
       loadFailed: "Etkinlikler yüklenemedi",
       title: "E-posta Analitik",
@@ -43,7 +45,6 @@ export default function EmailAnalyticsPage() {
       chooseEvent: (count: number) => `${count} etkinlik · Analitik için etkinlik seçin`,
       bulkEmail: "Toplu E-posta",
       analytics: "Analitik",
-      locale: "tr-TR",
     },
     en: {
       loadFailed: "Failed to load events",
@@ -58,9 +59,8 @@ export default function EmailAnalyticsPage() {
       chooseEvent: (count: number) => `${count} events · Choose an event for analytics`,
       bulkEmail: "Bulk Email",
       analytics: "Analytics",
-      locale: "en-US",
     },
-  }[lang];
+  }, lang);
 
   useEffect(() => {
     fetchEvents();
@@ -175,7 +175,7 @@ export default function EmailAnalyticsPage() {
                     <p className="text-xs font-bold text-surface-900 tracking-tight">{event.name}</p>
                     {event.event_date && (
                       <p className="text-11 font-semibold text-surface-400 font-mono uppercase">
-                        {new Date(event.event_date).toLocaleDateString(copy.locale, { day: "2-digit", month: "short", year: "numeric" })}
+                        {new Date(event.event_date).toLocaleDateString(localeTag(lang), { day: "2-digit", month: "short", year: "numeric" })}
                       </p>
                     )}
                   </div>

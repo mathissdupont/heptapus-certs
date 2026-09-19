@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -102,7 +103,7 @@ export default function AdminCheckinPage() {
 
   const { lang } = useI18n();
   const isTr = lang === "tr";
-  const locale = isTr ? "tr-TR" : "en-US";
+  const locale = localeTag(lang);
   const copy = {
     // QR classification messages
     emptyQr: isTr ? "Boş QR okundu." : "Empty QR scanned.",

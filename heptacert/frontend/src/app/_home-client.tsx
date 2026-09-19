@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import {
   ArrowRight, CalendarDays, CheckCircle2, ExternalLink,
   QrCode, Users, Mail, BarChart3, Layers,
@@ -456,7 +457,7 @@ export default function LandingPage() {
                     <CalendarDays className="h-4 w-4 text-slate-400 transition-colors group-hover:text-slate-600" />
                     <h3 className="mt-4 text-sm font-semibold tracking-tight text-slate-900">{event.name}</h3>
                     <p className="mt-1.5 text-xs text-slate-500">
-                      {event.event_date ? new Date(event.event_date).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US") : (lang === "tr" ? "Tarih yakında" : "Date TBA")}
+                      {event.event_date ? new Date(event.event_date).toLocaleDateString(localeTag(lang)) : (lang === "tr" ? "Tarih yakında" : "Date TBA")}
                     </p>
                     {event.event_location && <p className="mt-1 text-xs text-slate-400">{event.event_location}</p>}
                   </Link>

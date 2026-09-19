@@ -26,7 +26,7 @@ function scoreFaqAnswer(question: string, faqItem: FaqItem): number {
 }
 
 export function findFaqAnswer(question: string, lang = "tr"): string | null {
-  const db = FAQ_DATABASE[lang] || FAQ_DATABASE["en"];
+  const db = FAQ_DATABASE[lang] ?? FAQ_DATABASE["en"];
   let best: { item: FaqItem; score: number } | null = null;
   for (const it of db) {
     const s = scoreFaqAnswer(question, it);

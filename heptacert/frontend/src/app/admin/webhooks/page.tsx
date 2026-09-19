@@ -1,5 +1,7 @@
 'use client';
 
+import { localeTag } from "@/lib/localeTag";
+import { useI18n } from "@/lib/i18n";
 import { useState, useEffect } from 'react';
 import { apiFetch } from '@/lib/api';
 import { useToast } from '@/hooks/useToast';
@@ -46,11 +48,12 @@ function getEventMeta(type: string) {
   return EVENT_TYPES.find(e => e.value === type) ?? { value: type, label: type, color: 'badge-neutral' };
 }
 
-function fmt(s: string) {
-  return new Date(s).toLocaleString('tr-TR', { dateStyle: 'medium', timeStyle: 'short' });
+function fmt(s: string, lang?: string | null) {
+  return new Date(s).toLocaleString(localeTag(lang), { dateStyle: 'medium', timeStyle: 'short' });
 }
 
 export default function WebhooksPage() {
+  const { lang } = useI18n();
   const toast = useToast();
   const [webhooks, setWebhooks] = useState<Webhook[]>([]);
   const [loading, setLoading] = useState(true);
@@ -313,7 +316,7 @@ export default function WebhooksPage() {
                         </span>
                       </div>
                       <code className="text-xs text-surface-600 font-mono break-all">{webhook.url}</code>
-                      <p className="text-xs text-surface-400 mt-1">Oluşturuldu: {fmt(webhook.created_at)}</p>
+                      <p className="text-xs text-surface-400 mt-1">Oluşturuldu: {fmt(webhook.created_at, lang)}</p>
                     </div>
 
                     {/* Actions */}

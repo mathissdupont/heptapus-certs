@@ -1,5 +1,7 @@
 ﻿"use client";
 
+import { pickLang } from "@/lib/pickLang";
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState, type ElementType } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -76,7 +78,7 @@ export default function EventIndexPage() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const copy = {
+  const copy = pickLang({
     tr: {
       eyebrow: "Etkinlik Detayları",
       loading: "Etkinlik detayları yükleniyor...",
@@ -139,7 +141,7 @@ export default function EventIndexPage() {
       email: "Email",
       emailBody: "Govern automated confirmation matrices and event-scoped template assets.",
     },
-  }[lang];
+  }, lang);
 
   useEffect(() => {
     let active = true;
@@ -280,7 +282,7 @@ export default function EventIndexPage() {
               {event.event_date && (
                 <span className="inline-flex items-center gap-1 rounded-md border border-surface-100 bg-surface-50 px-2.5 py-0.5 shadow-sm font-mono uppercase">
                   <CalendarDays className="h-3 w-3 text-surface-400" />
-                  {new Date(event.event_date).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US", { day: "2-digit", month: "short", year: "numeric" })}
+                  {new Date(event.event_date).toLocaleDateString(localeTag(lang), { day: "2-digit", month: "short", year: "numeric" })}
                 </span>
               )}
               <span className="inline-flex items-center gap-1 rounded-md border border-surface-100 bg-surface-50 px-2.5 py-0.5 shadow-sm font-mono">

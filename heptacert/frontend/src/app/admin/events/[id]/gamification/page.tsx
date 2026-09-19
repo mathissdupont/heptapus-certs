@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useRef } from "react";
+import { localeTag } from "@/lib/localeTag";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Save, Plus, X, Loader2, CheckCircle2, AlertCircle,
@@ -287,17 +288,11 @@ type BadgeSummary = {
   };
 };
 
-const badgeDateFormatterTr = new Intl.DateTimeFormat("tr-TR", {
+const BADGE_DATE_OPTIONS: Intl.DateTimeFormatOptions = {
   dateStyle: "medium",
   timeStyle: "short",
   timeZone: "Europe/Istanbul",
-});
-
-const badgeDateFormatterEn = new Intl.DateTimeFormat("en-GB", {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "Europe/Istanbul",
-});
+};
 
 export default function GamificationPage() {
   const params = useParams();
@@ -373,7 +368,7 @@ export default function GamificationPage() {
     no: isTr ? "Hayır" : "No",
   };
 
-  const badgeDateFormatter = isTr ? badgeDateFormatterTr : badgeDateFormatterEn;
+  const badgeDateFormatter = new Intl.DateTimeFormat(localeTag(lang), BADGE_DATE_OPTIONS);
 
   const [eventName, setEventName] = useState("");
   const [badgeRules, setBadgeRules] = useState<BadgeRules | null>(null);

@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import {
   apiFetch,
   API_BASE,
@@ -52,7 +53,7 @@ import {
   Trash2,
 } from "lucide-react";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
-import { useT } from "@/lib/i18n";
+import { useT, useI18n } from "@/lib/i18n";
 
 /* ─── Types ──────────────────────────────────────────────── */
 type FieldConfig = {
@@ -343,6 +344,7 @@ function FieldPanel({ label, field, onChange }: {
 
 /* ─── Main ───────────────────────────────────────────────── */
 export default function EditorPage() {
+  const { lang } = useI18n();
   const params = useParams<{ id: string }>();
   const eventId = Number(params.id);
   const t = useT();
@@ -1420,7 +1422,7 @@ export default function EditorPage() {
                               )}
                               <div className="min-w-0 flex-1">
                                 <p className="truncate text-11 font-bold text-surface-700">{preset.name}</p>
-                                <p className="text-11 text-surface-400">{new Date(preset.updated_at).toLocaleString("tr-TR")}</p>
+                                <p className="text-11 text-surface-400">{new Date(preset.updated_at).toLocaleString(localeTag(lang))}</p>
                               </div>
                             </div>
                             <div className="mt-3 flex gap-2">
@@ -1469,7 +1471,7 @@ export default function EditorPage() {
                           )}
                           <div className="min-w-0">
                             <p className="text-11 font-semibold text-surface-700">#{snap.id}</p>
-                            <p className="text-11 text-surface-400">{new Date(snap.created_at).toLocaleString("tr-TR")}</p>
+                            <p className="text-11 text-surface-400">{new Date(snap.created_at).toLocaleString(localeTag(lang))}</p>
                           </div>
                         </div>
                         <button

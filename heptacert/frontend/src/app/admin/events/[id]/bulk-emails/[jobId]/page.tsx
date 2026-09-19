@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -262,7 +263,7 @@ export default function EmailJobDetailsPage() {
               <div className="absolute -left-[19.5px] top-1 flex h-2 w-2 items-center justify-center rounded-full bg-white ring-4 ring-white border border-gray-400" />
               <div className="min-w-0 flex-1 space-y-0.5 text-xs">
                 <p className="font-bold text-surface-900 tracking-tight">{copy.jobQueued}</p>
-                <p className="font-medium text-surface-400 font-mono">{new Date(job.created_at).toLocaleString(isTr ? "tr-TR" : "en-US", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short", year: "numeric" })}</p>
+                <p className="font-medium text-surface-400 font-mono">{new Date(job.created_at).toLocaleString(localeTag(lang), { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short", year: "numeric" })}</p>
               </div>
             </div>
 
@@ -272,7 +273,7 @@ export default function EmailJobDetailsPage() {
                 <div className="absolute -left-[19.5px] top-1 flex h-2 w-2 items-center justify-center rounded-full bg-white ring-4 ring-white border border-gray-950 bg-surface-900 shadow-sm" />
                 <div className="min-w-0 flex-1 space-y-0.5 text-xs">
                   <p className="font-bold text-surface-900 tracking-tight">{copy.lastQueueActivity}</p>
-                  <p className="font-medium text-surface-400 font-mono">{new Date(job.updated_at).toLocaleString(isTr ? "tr-TR" : "en-US", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short", year: "numeric" })}</p>
+                  <p className="font-medium text-surface-400 font-mono">{new Date(job.updated_at).toLocaleString(localeTag(lang), { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short", year: "numeric" })}</p>
                 </div>
               </div>
             )}

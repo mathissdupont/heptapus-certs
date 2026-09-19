@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { Loader2, CheckCircle2, XCircle, Clock, AlertCircle, Search, RefreshCw, ClipboardList } from "lucide-react";
@@ -190,7 +191,7 @@ export default function ApprovalsPage() {
                   <div className="truncate text-xs text-surface-500">{r.email}</div>
                   {r.registered_at && (
                     <div className="mt-0.5 text-11 text-surface-400">
-                      {t.registered}: {new Date(r.registered_at).toLocaleString(isTr ? "tr-TR" : "en-US")}
+                      {t.registered}: {new Date(r.registered_at).toLocaleString(localeTag(lang))}
                     </div>
                   )}
                   {r.approval_note && (

@@ -1,5 +1,7 @@
 "use client";
 
+import { pickLang } from "@/lib/pickLang";
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -14,7 +16,7 @@ function formatDate(value: string | null | undefined, lang: "tr" | "en") {
   if (!value) return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(lang === "tr" ? "tr-TR" : "en-US", {
+  return new Intl.DateTimeFormat(localeTag(lang), {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -35,7 +37,7 @@ const EVENT_TYPE_LABELS: Record<string, { tr: string; en: string }> = {
 
 function eventTypeLabel(item: PublicEventListItem, lang: "tr" | "en") {
   const key = item.event_type || "certificate_event";
-  return EVENT_TYPE_LABELS[key]?.[lang] || key;
+  return pickLang(EVENT_TYPE_LABELS[key], lang) || key;
 }
 
 const stagger = {
@@ -201,7 +203,7 @@ export default function PublicEventsPage() {
                 <option value="all">{copy.allTypes}</option>
                 {typeOptions.map((type) => (
                   <option key={type} value={type}>
-                    {EVENT_TYPE_LABELS[type]?.[lang] || type}
+                    {pickLang(EVENT_TYPE_LABELS[type], lang) || type}
                   </option>
                 ))}
               </select>

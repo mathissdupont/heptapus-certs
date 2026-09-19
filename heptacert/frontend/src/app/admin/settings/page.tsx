@@ -1,5 +1,7 @@
 ﻿"use client";
 
+import { localeTag } from "@/lib/localeTag";
+import { useI18n } from "@/lib/i18n";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
@@ -50,9 +52,9 @@ type OrganizationContext = {
   permissions: string[];
 };
 
-function fmtDate(s: string | null) {
+function fmtDate(s: string | null, lang?: string | null) {
   if (!s) return "-";
-  return new Date(s).toLocaleDateString("tr-TR", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  return new Date(s).toLocaleDateString(localeTag(lang), { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 function titleCaseStatus(raw: string) {
@@ -309,6 +311,7 @@ function TwoFATab() {
 type Transaction = { id: number; type: "credit" | "spend"; amount: number; description: string; created_at: string; };
 
 function TransactionsTab() {
+  const { lang } = useI18n();
   const [items, setItems] = useState<Transaction[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -350,7 +353,7 @@ function TransactionsTab() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-zinc-900">{tx.description}</p>
-                  <p className="text-xs text-zinc-500 mt-0.5">{fmtDate(tx.created_at)}</p>
+                  <p className="text-xs text-zinc-500 mt-0.5">{fmtDate(tx.created_at, lang)}</p>
                 </div>
               </div>
               <span className={`text-sm font-bold tracking-tight ${tx.type === "credit" ? "text-emerald-600" : "text-zinc-900"}`}>
@@ -374,6 +377,7 @@ function TransactionsTab() {
 
 // ─── Custom Domain Tab ───────────────────────────────────────────────────────
 function CustomDomainTab() {
+  const { lang } = useI18n();
   const toast = useToast();
   const [domain, setDomain] = useState("");
   const [loading, setLoading] = useState(true);
@@ -563,7 +567,7 @@ function CustomDomainTab() {
                         <p className="truncate font-semibold text-zinc-900">{d.domain}</p>
                         <span className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-11 font-bold uppercase tracking-wider ${itemStatus.chipClass}`}>{itemStatus.label}</span>
                       </div>
-                      <p className="mt-1 text-xs text-zinc-500">Eklenme: {fmtDate(d.created_at || null)}</p>
+                      <p className="mt-1 text-xs text-zinc-500">Eklenme: {fmtDate(d.created_at || null, lang)}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button type="button" className="rounded-lg bg-white border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 transition shadow-sm inline-flex items-center gap-1.5"
@@ -802,6 +806,7 @@ function OrganizationTeamTab() {
 
 // ─── Branding Tab ────────────────────────────────────────────────────────────
 function BrandingTab() {
+  const { lang } = useI18n();
   const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -1059,7 +1064,7 @@ function BrandingTab() {
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-sm font-semibold text-zinc-900">{post.author_name}</p>
-                        <p className="mt-0.5 text-xs text-zinc-400">{fmtDate(post.created_at)}</p>
+                        <p className="mt-0.5 text-xs text-zinc-400">{fmtDate(post.created_at, lang)}</p>
                       </div>
                       <button type="button" onClick={() => void removeCommunityPost(post.public_id)} className="rounded-lg bg-rose-50 p-2 text-rose-600 transition hover:bg-rose-100" title="Sil">
                         <Trash2 className="h-4 w-4" />

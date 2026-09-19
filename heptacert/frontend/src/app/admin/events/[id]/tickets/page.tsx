@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { checkInEventTicket, listEventTickets, updateEventTicketStatus, type EventTicketOut } from "@/lib/api";
@@ -27,7 +28,7 @@ import {
 
 type TicketFilter = "all" | "issued" | "used" | "cancelled" | "revoked";
 
-function formatDate(value?: string | null, locale = "tr-TR") {
+function formatDate(value: string | null | undefined, locale: string) {
   if (!value) return "-";
   try {
     return new Intl.DateTimeFormat(locale, {
@@ -75,7 +76,7 @@ export default function EventTicketsPage() {
 
   const { lang } = useI18n();
   const isTr = lang === "tr";
-  const locale = isTr ? "tr-TR" : "en-US";
+  const locale = localeTag(lang);
   const copy = {
     // Ticket status labels
     statusUsed: isTr ? "Giriş yapıldı" : "Checked in",

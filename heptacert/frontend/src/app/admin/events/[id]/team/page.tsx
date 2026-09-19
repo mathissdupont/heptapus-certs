@@ -1,5 +1,7 @@
 "use client";
 
+import { pickLang } from "@/lib/pickLang";
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { CheckCircle2, Loader2, Mail, Plus, ShieldCheck, Trash2, UserCog, X, ChevronDown } from "lucide-react";
@@ -65,7 +67,7 @@ export default function EventTeamPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [expandedMemberId, setExpandedMemberId] = useState<number | null>(null);
 
-  const copy = {
+  const copy = pickLang({
     tr: {
       title: "Etkinlik Ekibi",
       subtitle: "Bu etkinlikte görev alacak kişilere rol bazlı erişim verin.",
@@ -110,10 +112,10 @@ export default function EventTeamPage() {
       selectPermissions: "Select permissions or change the role",
       cancel: "Cancel",
     },
-  }[lang];
+  }, lang);
 
   const roleLabel = useMemo(() => {
-    return new Map(ROLE_OPTIONS.map((item) => [item.value, item[lang]]));
+    return new Map(ROLE_OPTIONS.map((item) => [item.value, pickLang(item, lang)]));
   }, [lang]);
 
   async function load() {
@@ -252,7 +254,7 @@ export default function EventTeamPage() {
               >
                 {ROLE_OPTIONS.map((item) => (
                   <option key={item.value} value={item.value}>
-                    {item[lang]}
+                    {pickLang(item, lang)}
                   </option>
                 ))}
               </select>
@@ -275,7 +277,7 @@ export default function EventTeamPage() {
                   } ${item.value === "event:view" ? "cursor-default opacity-80" : ""}`}
                 >
                   <CheckCircle2 className={`h-4 w-4 shrink-0 ${permissions.includes(item.value) ? "text-brand-600" : "text-surface-300"}`} />
-                  <span>{item[lang]}</span>
+                  <span>{pickLang(item, lang)}</span>
                 </button>
               ))}
             </div>
@@ -370,7 +372,7 @@ export default function EventTeamPage() {
                         >
                           {ROLE_OPTIONS.map((item) => (
                             <option key={item.value} value={item.value}>
-                              {item[lang]}
+                              {pickLang(item, lang)}
                             </option>
                           ))}
                         </select>
@@ -409,7 +411,7 @@ export default function EventTeamPage() {
                             } ${item.value === "event:view" ? "cursor-default opacity-80" : ""}`}
                           >
                             <CheckCircle2 className={`h-4 w-4 shrink-0 ${member.effective_permissions.includes(item.value) ? "text-brand-600" : "text-surface-300"}`} />
-                            <span>{item[lang]}</span>
+                            <span>{pickLang(item, lang)}</span>
                           </button>
                         ))}
                       </div>
@@ -443,7 +445,7 @@ export default function EventTeamPage() {
               <div key={item.id} className="grid gap-1 p-4 sm:grid-cols-[140px_1fr] sm:gap-4 sm:p-5">
                 <p className="text-xs font-semibold text-surface-500">
                   {new Date(item.created_at).toLocaleString(
-                    lang === "tr" ? "tr-TR" : "en-US"
+                    localeTag(lang)
                   )}
                 </p>
                 <div>

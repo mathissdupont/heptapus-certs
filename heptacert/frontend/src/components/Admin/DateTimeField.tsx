@@ -2,6 +2,8 @@
 
 import DateField from "./DateField";
 import TimeField from "./TimeField";
+import { useI18n } from "@/lib/i18n";
+import { localeTag } from "@/lib/localeTag";
 
 type DateTimeFieldProps = {
   value: string;
@@ -31,9 +33,11 @@ export default function DateTimeField({
   dateLabel = "Tarih",
   timeLabel = "Saat",
   disabled = false,
-  locale = "tr-TR",
+  locale: localeProp,
   className = "",
 }: DateTimeFieldProps) {
+  const { lang } = useI18n();
+  const locale = localeProp ?? localeTag(lang);
   const { date, time } = splitDateTime(value);
 
   return (

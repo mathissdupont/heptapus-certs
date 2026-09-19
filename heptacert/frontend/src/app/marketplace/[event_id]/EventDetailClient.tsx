@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 
@@ -48,7 +49,7 @@ export default function EventDetailClient({ event }: { event: MarketplaceEvent }
         };
 
   const isFree = !event.marketplace_price || event.marketplace_price === 0;
-  const locale = lang === "tr" ? "tr-TR" : "en-GB";
+  const locale = localeTag(lang);
 
   return (
     <div className="min-h-screen bg-surface-50">
@@ -128,7 +129,7 @@ export default function EventDetailClient({ event }: { event: MarketplaceEvent }
             <div>
               <span className="text-xs text-surface-400 uppercase tracking-wide font-medium">{copy.price}</span>
               <p className={`text-sm font-semibold mt-1 ${isFree ? "text-green-600" : "text-surface-900"}`}>
-                {isFree ? copy.free : `₺${event.marketplace_price?.toLocaleString("tr-TR")}`}
+                {isFree ? copy.free : `₺${event.marketplace_price?.toLocaleString(localeTag(lang))}`}
               </p>
             </div>
           </div>

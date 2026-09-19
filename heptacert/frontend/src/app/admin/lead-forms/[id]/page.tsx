@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -514,7 +515,7 @@ export default function LeadFormBuilderPage() {
                         </td>
                       ))}
                       <td className="px-4 py-3 text-gray-400 text-xs">
-                        {new Date(sub.submitted_at).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" })}
+                        {new Date(sub.submitted_at).toLocaleString(localeTag(lang), { dateStyle: "short", timeStyle: "short" })}
                       </td>
                     </tr>
                   ))}

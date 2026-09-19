@@ -1,5 +1,7 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
+import { useI18n } from "@/lib/i18n";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -21,9 +23,9 @@ type CreateForm = {
 
 const EMPTY_FORM: CreateForm = { name: "", scopes: [], expires_days: "" };
 
-function formatDate(iso: string | null) {
+function formatDate(iso: string | null, lang?: string | null) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("tr-TR", {
+  return new Date(iso).toLocaleDateString(localeTag(lang), {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -31,6 +33,7 @@ function formatDate(iso: string | null) {
 }
 
 export default function ApiSettingsPage() {
+  const { lang } = useI18n();
   const [keys, setKeys] = useState<ApiKeyFull[]>([]);
   const [scopes, setScopes] = useState<ApiScopeOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -275,9 +278,9 @@ export default function ApiSettingsPage() {
                   </div>
                 </div>
                 <div className="text-right text-xs text-gray-400 whitespace-nowrap">
-                  <p>Oluşturuldu: {formatDate(k.created_at)}</p>
-                  <p>Son kul.: {formatDate(k.last_used_at)}</p>
-                  <p>Geçerlilik: {k.expires_at ? formatDate(k.expires_at) : "Sonsuz"}</p>
+                  <p>Oluşturuldu: {formatDate(k.created_at, lang)}</p>
+                  <p>Son kul.: {formatDate(k.last_used_at, lang)}</p>
+                  <p>Geçerlilik: {k.expires_at ? formatDate(k.expires_at, lang) : "Sonsuz"}</p>
                 </div>
               </div>
 

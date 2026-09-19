@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState } from "react";
 import {
   Award,
@@ -67,11 +68,11 @@ const STAGE_LABELS_EN: Record<string, string> = {
 };
 
 function formatNumber(value: number, lang: string) {
-  return value.toLocaleString(lang === "tr" ? "tr-TR" : "en-US");
+  return value.toLocaleString(localeTag(lang));
 }
 
 function formatCurrency(value: number, lang: string) {
-  return new Intl.NumberFormat(lang === "tr" ? "tr-TR" : "en-US", {
+  return new Intl.NumberFormat(localeTag(lang), {
     style: "currency",
     currency: "TRY",
     maximumFractionDigits: 0,
@@ -424,7 +425,7 @@ export default function OrgAnalyticsPage() {
                       <tr key={ev.event_id} className="table-tr-hover">
                         <td className="table-td">
                           <div className="line-clamp-1 font-semibold text-surface-900">{ev.event_name}</div>
-                          {ev.event_date && <div className="text-xs text-surface-400">{new Date(ev.event_date).toLocaleDateString(isTr ? "tr-TR" : "en-US")}</div>}
+                          {ev.event_date && <div className="text-xs text-surface-400">{new Date(ev.event_date).toLocaleDateString(localeTag(lang))}</div>}
                         </td>
                         <td className="table-td text-center">{ev.registered}</td>
                         <td className="table-td text-center">{ev.certified}</td>

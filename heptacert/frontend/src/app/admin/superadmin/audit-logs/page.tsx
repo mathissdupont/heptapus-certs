@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
@@ -76,7 +77,6 @@ export default function AuditLogsPage() {
         justNow: "Az önce",
         last24Hours: "24 saatte",
         records: "kayıt",
-        locale: "tr-TR",
       }
     : {
         title: "Audit Log",
@@ -105,7 +105,6 @@ export default function AuditLogsPage() {
         justNow: "Just now",
         last24Hours: "in the last 24h",
         records: "records",
-        locale: "en-US",
       };
 
   const fetchLogs = async (mode: "load" | "refresh" = "load") => {
@@ -344,7 +343,7 @@ export default function AuditLogsPage() {
                   </div>
 
                   <div className="rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3 text-sm">
-                    <p className="font-semibold text-surface-900">{new Date(log.created_at).toLocaleString(copy.locale)}</p>
+                    <p className="font-semibold text-surface-900">{new Date(log.created_at).toLocaleString(localeTag(lang))}</p>
                     <p className="mt-1 text-xs text-surface-500">{formatRelative(log.created_at)}</p>
                   </div>
                 </div>

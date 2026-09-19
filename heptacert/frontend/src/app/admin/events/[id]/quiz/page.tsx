@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import {
@@ -604,7 +605,7 @@ export default function QuizBuilderPage() {
                           )}
                         </td>
                         <td className="table-td text-xs">
-                          {attempt.completed_at ? new Date(attempt.completed_at).toLocaleDateString(isTr ? "tr-TR" : "en-US") : copy.inProgress}
+                          {attempt.completed_at ? new Date(attempt.completed_at).toLocaleDateString(localeTag(lang)) : copy.inProgress}
                         </td>
                       </tr>
                     ))}

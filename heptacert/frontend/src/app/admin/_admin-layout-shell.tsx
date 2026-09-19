@@ -1,5 +1,6 @@
 "use client";
 
+import { pickLang } from "@/lib/pickLang";
 import type { ReactNode } from "react";
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -326,7 +327,7 @@ function SidebarContent({
           <div key={group.label.en}>
             {!collapsed && (
               <p className="mb-1.5 px-2 text-11 font-semibold uppercase tracking-wider text-surface-400">
-                {group.label[lang]}
+                {pickLang(group.label, lang)}
               </p>
             )}
             {collapsed && <div className="mb-1.5 border-t border-sidebar-border" />}
@@ -335,7 +336,7 @@ function SidebarContent({
                 .map((item) => {
                   const active = isActive(pathname, item);
                   const Icon = item.icon;
-                  const label = item.label[lang];
+                  const label = pickLang(item.label, lang);
                   if (collapsed) {
                     return (
                       <Link
@@ -928,7 +929,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
                   className={active ? "mobile-bottom-nav-item-active" : "mobile-bottom-nav-item"}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{item.label[lang]}</span>
+                  <span className="truncate">{pickLang(item.label, lang)}</span>
                 </Link>
               );
             })}

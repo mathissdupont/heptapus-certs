@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { localeTag } from "@/lib/localeTag";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -131,7 +132,7 @@ export default function VerifyPage({ params }: { params: { uuid: string } }) {
       });
   }, [params.uuid]);
 
-  const locale = lang === "tr" ? "tr-TR" : "en-US";
+  const locale = localeTag(lang);
   const statusMeta = cert?.status === "active"
     ? { label: copy.valid, icon: CheckCircle2, bar: "bg-emerald-500", chip: "bg-emerald-50 border-emerald-200 text-emerald-700" }
     : cert?.status === "revoked"

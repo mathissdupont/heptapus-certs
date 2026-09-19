@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -1060,7 +1061,7 @@ export default function SurveysPage() {
                           </span>
                         </div>
                         <p className="mt-1 text-sm text-surface-500">{response.attendee_email || copy.noEmail}</p>
-                        <p className="mt-2 text-xs text-surface-400">{new Date(response.completed_at).toLocaleString(isTr ? "tr-TR" : "en-US")}</p>
+                        <p className="mt-2 text-xs text-surface-400">{new Date(response.completed_at).toLocaleString(localeTag(lang))}</p>
                         {response.external_response_id ? (
                           <p className="mt-2 text-xs font-medium text-surface-500">{copy.externalResponseId}: <span className="font-mono text-surface-700">{response.external_response_id}</span></p>
                         ) : null}

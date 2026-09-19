@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -110,7 +111,7 @@ export default function VerifyIndexPage() {
 
   const brandName = branding?.org_name || "HeptaCert";
   const isWhiteLabel = branding?.settings?.hide_heptacert_home;
-  const locale = lang === "tr" ? "tr-TR" : "en-US";
+  const locale = localeTag(lang);
 
   function buildVerifyHref(certUuid: string) {
     return `${verifyBasePath}/${certUuid}`;

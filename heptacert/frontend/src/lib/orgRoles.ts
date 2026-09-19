@@ -1,3 +1,4 @@
+import { pickLang } from "@/lib/pickLang";
 // Organizasyon üyelik rolleri için okunabilir etiketler ve yetki yardımcıları.
 // Backend ham rol anahtarlarını (`venue_manager` vb.) döndürür; arayüzde bunları
 // olduğu gibi göstermek yerine bu modül üzerinden insancıl etikete çeviririz.
@@ -24,7 +25,7 @@ const ORG_ROLE_LABELS: Record<string, { tr: string; en: string }> = {
 export function orgRoleLabel(role: string | undefined | null, lang: OrgLang): string {
   if (!role) return lang === "tr" ? "Üye" : "Member";
   const entry = ORG_ROLE_LABELS[role];
-  if (entry) return entry[lang];
+  if (entry) return pickLang(entry, lang);
   return role
     .split(/[_\s]+/)
     .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : word))

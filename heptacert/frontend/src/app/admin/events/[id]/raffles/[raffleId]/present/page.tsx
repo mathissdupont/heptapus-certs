@@ -628,7 +628,7 @@ export default function RafflePresentationPage() {
               {raffle?.winners.length ? (
                 <div className="inline-flex items-center gap-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-5 py-3 text-sm font-semibold text-emerald-200">
                   <Trophy className="h-4 w-4" />
-                  {copy.lastDraw(formatRaffleDate(raffle.drawn_at))}
+                  {copy.lastDraw(formatRaffleDate(raffle.drawn_at, lang))}
                 </div>
               ) : null}
             </div>

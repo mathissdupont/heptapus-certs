@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -67,7 +68,6 @@ export default function SuperadminHealthPage() {
         onlineDetail: "Servisler yanıt veriyor ve sağlık metrikleri düzenli olarak güncelleniyor.",
         probes: "Servis kontrolleri",
         updatedAt: "Son güncelleme",
-        locale: "tr-TR",
       }
     : {
         title: "System Health",
@@ -85,7 +85,6 @@ export default function SuperadminHealthPage() {
         onlineDetail: "Core services are responding and health metrics are updating normally.",
         probes: "Service probes",
         updatedAt: "Updated",
-        locale: "en-US",
       };
 
   const load = async (mode: "load" | "refresh" = "load") => {
@@ -198,7 +197,7 @@ export default function SuperadminHealthPage() {
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-base font-semibold text-surface-900">{copy.probes}</h2>
-              <p className="text-sm text-surface-500">{new Date(platform.checked_at).toLocaleString(copy.locale)}</p>
+              <p className="text-sm text-surface-500">{new Date(platform.checked_at).toLocaleString(localeTag(lang))}</p>
             </div>
           </div>
           <div className="grid gap-3 md:grid-cols-5">
@@ -253,7 +252,7 @@ export default function SuperadminHealthPage() {
           </div>
           <div className="rounded-2xl border border-surface-200 bg-surface-50 p-4 text-sm text-surface-600">
             <p className="font-semibold text-surface-900">{copy.updatedAt}</p>
-            <p className="mt-1">{new Date().toLocaleString(copy.locale)}</p>
+            <p className="mt-1">{new Date().toLocaleString(localeTag(lang))}</p>
           </div>
         </div>
 

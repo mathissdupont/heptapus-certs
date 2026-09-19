@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
+import { localeTag } from "@/lib/localeTag";
 
 type DateFieldProps = {
   value: string;
@@ -31,7 +33,9 @@ function sameDay(a: Date, b: Date | null) {
   return Boolean(b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate());
 }
 
-export default function DateField({ value, onChange, label, placeholder = "Tarih seçin", locale = "tr-TR", className = "" }: DateFieldProps) {
+export default function DateField({ value, onChange, label, placeholder = "Tarih seçin", locale: localeProp, className = "" }: DateFieldProps) {
+  const { lang } = useI18n();
+  const locale = localeProp ?? localeTag(lang);
   const selectedDate = parseDate(value);
   const [open, setOpen] = useState(false);
   const [visibleMonth, setVisibleMonth] = useState(() => selectedDate ?? new Date());

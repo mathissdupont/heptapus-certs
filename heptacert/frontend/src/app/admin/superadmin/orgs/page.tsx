@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -99,7 +100,6 @@ export default function SuperadminOrgsPage() {
         caddyWaiting: "Caddy bekliyor",
         dnsTarget: "DNS hedefi",
         verificationRecord: "Doğrulama kaydı",
-        locale: "tr-TR",
       }
     : {
         title: "Organizations",
@@ -140,7 +140,6 @@ export default function SuperadminOrgsPage() {
         caddyWaiting: "Waiting for Caddy",
         dnsTarget: "DNS target",
         verificationRecord: "Verification record",
-        locale: "en-US",
       };
 
   const resetForm = () => {
@@ -176,9 +175,9 @@ export default function SuperadminOrgsPage() {
       { label: copy.total, value: orgs.length, detail: lang === "tr" ? "aktif yapı" : "active records" },
       { label: copy.domains, value: withDomain, detail: lang === "tr" ? "bağlı domain" : "connected domains" },
       { label: copy.branded, value: withLogo, detail: lang === "tr" ? "logo tanımlı" : "with uploaded logo" },
-      { label: copy.latest, value: latest ? latest.org_name : "-", detail: latest ? new Date(latest.created_at).toLocaleDateString(copy.locale) : "-" },
+      { label: copy.latest, value: latest ? latest.org_name : "-", detail: latest ? new Date(latest.created_at).toLocaleDateString(localeTag(lang)) : "-" },
     ];
-  }, [copy.branded, copy.domains, copy.latest, copy.locale, copy.total, lang, orgs]);
+  }, [copy.branded, copy.domains, copy.latest, copy.total, lang, orgs]);
 
   const startCreate = () => {
     setForm(EMPTY_FORM);
@@ -470,7 +469,7 @@ export default function SuperadminOrgsPage() {
               </div>
 
               <div className="mt-4 flex items-center justify-between text-xs text-surface-400">
-                <span>{new Date(org.created_at).toLocaleDateString(copy.locale)}</span>
+                <span>{new Date(org.created_at).toLocaleDateString(localeTag(lang))}</span>
                 <span>{org.brand_color}</span>
               </div>
               {org.custom_domain && (

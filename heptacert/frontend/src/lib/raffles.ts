@@ -1,3 +1,4 @@
+import { localeTag } from "@/lib/localeTag";
 import type { EventRaffleOut } from "@/lib/api";
 
 export type RaffleRound = {
@@ -6,9 +7,9 @@ export type RaffleRound = {
   reserve: EventRaffleOut["winners"];
 };
 
-export function formatRaffleDate(value?: string | null) {
+export function formatRaffleDate(value?: string | null, lang?: string | null) {
   if (!value) return "Henüz çekilmedi";
-  return new Date(value).toLocaleString("tr-TR", {
+  return new Date(value).toLocaleString(localeTag(lang), {
     year: "numeric",
     month: "short",
     day: "numeric",

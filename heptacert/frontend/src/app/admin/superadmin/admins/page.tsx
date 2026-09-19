@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
 import {
   Loader2,
@@ -307,7 +308,7 @@ export default function SuperAdminAdminsPage() {
                     <div className="min-w-0">
                       <p className="truncate font-semibold text-surface-900">{admin.email}</p>
                       <p className="mt-1 text-xs text-surface-500">
-                        {copy.createdAt}: {admin.created_at ? new Date(admin.created_at).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US") : "-"}
+                        {copy.createdAt}: {admin.created_at ? new Date(admin.created_at).toLocaleDateString(localeTag(lang)) : "-"}
                       </p>
                     </div>
                     <div className="text-right">
@@ -386,7 +387,7 @@ export default function SuperAdminAdminsPage() {
                         )}
                       </td>
                       <td className="px-6 py-4 text-sm font-semibold text-amber-600">{admin.heptacoin_balance} HC</td>
-                      <td className="px-6 py-4 text-sm text-surface-500">{admin.created_at ? new Date(admin.created_at).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US") : "-"}</td>
+                      <td className="px-6 py-4 text-sm text-surface-500">{admin.created_at ? new Date(admin.created_at).toLocaleDateString(localeTag(lang)) : "-"}</td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           {editingId === admin.id ? (

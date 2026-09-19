@@ -1,5 +1,6 @@
 "use client";
 
+import { pickLang } from "@/lib/pickLang";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { Building2, Plus, RefreshCcw, Pencil, Trash2, MapPin, Users, Loader2 } from "lucide-react";
@@ -29,7 +30,7 @@ export default function AdminVenues() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const copy = {
+  const copy = pickLang({
     tr: {
       title: "Salonlar",
       subtitle: "Kurumunuzun etkinlik alanlarını ve kapasitelerini yönetin",
@@ -92,7 +93,7 @@ export default function AdminVenues() {
       people: "people",
       inactive: "Inactive",
     },
-  }[lang];
+  }, lang);
 
   async function loadVenues() {
     setLoading(true);

@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -46,7 +47,7 @@ function formatDate(value: string | null | undefined, lang: "tr" | "en") {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(lang === "tr" ? "tr-TR" : "en-US", {
+  return new Intl.DateTimeFormat(localeTag(lang), {
     day: "2-digit",
     month: "long",
     year: "numeric",
@@ -740,7 +741,7 @@ export default function PublicEventDetailClient() {
                           </Link>
                           <span className="text-xs text-gray-500">
                             {new Date(comment.created_at).toLocaleString(
-                              lang === "tr" ? "tr-TR" : "en-US",
+                              localeTag(lang),
                               { dateStyle: 'medium', timeStyle: 'short' }
                             )}
                           </span>

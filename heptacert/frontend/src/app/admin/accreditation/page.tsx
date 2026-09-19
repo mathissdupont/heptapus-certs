@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState } from "react";
 import {
   AccreditationBodyOption,
@@ -34,7 +35,7 @@ const EMPTY_FORM: FormState = {
 
 function formatDate(iso: string | null, lang: string) {
   if (!iso) return "-";
-  return new Date(iso).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US", {
+  return new Date(iso).toLocaleDateString(localeTag(lang), {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -43,7 +44,7 @@ function formatDate(iso: string | null, lang: string) {
 
 function formatDateTime(iso: string, lang: string) {
   if (!iso) return "-";
-  return new Date(iso).toLocaleString(lang === "tr" ? "tr-TR" : "en-US", {
+  return new Date(iso).toLocaleString(localeTag(lang), {
     day: "numeric",
     month: "short",
     year: "numeric",

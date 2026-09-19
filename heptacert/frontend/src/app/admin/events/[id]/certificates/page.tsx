@@ -1,5 +1,7 @@
 "use client";
 
+import { pickLang } from "@/lib/pickLang";
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -250,13 +252,13 @@ export default function CertificatesPage() {
   function formatRemaining(c: CertificateOut) {
     if (c.status === "expired" || c.days_remaining === 0) return lang === "tr" ? "Süresi doldu" : "Expired";
     if (typeof c.days_remaining === "number") return `${c.days_remaining} ${copy.days}`;
-    if (c.hosting_ends_at) return new Date(c.hosting_ends_at).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US");
+    if (c.hosting_ends_at) return new Date(c.hosting_ends_at).toLocaleDateString(localeTag(lang));
     return "—";
   }
 
   function formatHc(units?: number | null) {
     if (typeof units !== "number") return "—";
-    return `${(units / 10).toLocaleString(lang === "tr" ? "tr-TR" : "en-US", { maximumFractionDigits: 1 })} HC`;
+    return `${(units / 10).toLocaleString(localeTag(lang), { maximumFractionDigits: 1 })} HC`;
   }
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
@@ -370,7 +372,7 @@ export default function CertificatesPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className="truncate text-sm font-medium text-surface-900">{c.student_name}</p>
-                      <span className={`text-xs font-medium ${sc.text}`}>{sc.label[lang]}</span>
+                      <span className={`text-xs font-medium ${sc.text}`}>{pickLang(sc.label, lang)}</span>
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-surface-400">
                       <span className="font-mono">{c.uuid.split("-")[0]}</span>

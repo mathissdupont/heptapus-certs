@@ -1,5 +1,6 @@
 "use client";
 
+import { pickLang } from "@/lib/pickLang";
 import type { ElementType } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -42,7 +43,7 @@ export default function CommandPalette() {
   const [query, setQuery] = useState("");
   const eventId = getEventId(pathname);
 
-  const copy = {
+  const copy = pickLang({
     tr: {
       button: "Komut paleti",
       placeholder: "Sayfa, işlem veya modül ara...",
@@ -89,7 +90,7 @@ export default function CommandPalette() {
       tickets: "Tickets",
       eventSettings: "Event settings",
     },
-  }[lang];
+  }, lang);
 
   const commands = useMemo<CommandItem[]>(() => {
     const base: CommandItem[] = [

@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState } from "react";
 import { Activity, Clock3, Loader2 } from "lucide-react";
 import { listEventTeamActivity, type EventTeamActivity } from "@/lib/api";
@@ -99,7 +100,7 @@ export default function EventActivityTimeline({ eventId }: { eventId: number }) 
                   {/* Sağ Tarih/Saat Rozeti */}
                   <time className="shrink-0 self-start rounded-lg border border-surface-100/70 bg-surface-50 px-2 py-0.5 font-mono text-11 font-medium text-surface-400 shadow-sm">
                     {new Date(item.created_at).toLocaleString(
-                      lang === "tr" ? "tr-TR" : "en-US", 
+                      localeTag(lang),
                       { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" }
                     )}
                   </time>

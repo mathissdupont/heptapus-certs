@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { motion } from "framer-motion";
 import { CheckCircle2, ShieldCheck, Coins, Loader2, AlertCircle, Clock, Mail, X, Phone, User } from "lucide-react";
 import Link from "next/link";
@@ -216,7 +217,7 @@ export default function PricingPage({ mode: _mode = "all" }: PricingClientProps)
                       ) : (canCheckout || !paymentEnabled) && typeof livePrice === "number" ? (
                         <>
                           <span className="text-3xl font-bold text-surface-900">
-                            {new Intl.NumberFormat(lang === "tr" ? "tr-TR" : "en-US", {
+                            {new Intl.NumberFormat(localeTag(lang), {
                               style: "currency",
                               currency: "TRY",
                               maximumFractionDigits: 0,
@@ -234,7 +235,7 @@ export default function PricingPage({ mode: _mode = "all" }: PricingClientProps)
                         <Coins className="h-3.5 w-3.5" />
                         {tier.is_free
                           ? t("pricing_pay_as_you_go")
-                          : `${tier.hc_quota.toLocaleString(lang === "tr" ? "tr-TR" : "en-US")} HC`}
+                          : `${tier.hc_quota.toLocaleString(localeTag(lang))} HC`}
                       </div>
                     ) : null}
                   </div>

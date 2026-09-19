@@ -1,5 +1,6 @@
 "use client";
 
+import { pickLang } from "@/lib/pickLang";
 import Link from "next/link";
 import {
   createContext,
@@ -249,10 +250,10 @@ export default function EventAdminNav({
   const activeItem = visibleNavItems.find((item) => item.tab === resolvedActive);
   const ActiveIcon = activeItem?.icon;
 
-  const copy = {
+  const copy = pickLang({
     tr: { allEvents: "Tüm Etkinlikler", eventFallback: (id: string | number) => `Etkinlik #${id}`, more: "Daha Fazla" },
     en: { allEvents: "All Events",       eventFallback: (id: string | number) => `Event #${id}`,   more: "More" },
-  }[lang];
+  }, lang);
 
   useEffect(() => {
     let cancelled = false;
@@ -358,7 +359,7 @@ export default function EventAdminNav({
                     }`}
                   >
                     <Icon className={`h-4 w-4 shrink-0 ${isAct ? "text-surface-700" : "text-surface-400"}`} />
-                    <span className="min-w-0 truncate">{label[lang]}</span>
+                    <span className="min-w-0 truncate">{pickLang(label, lang)}</span>
                   </Link>
                 );
               })
@@ -404,7 +405,7 @@ export default function EventAdminNav({
                 className="inline-flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-surface-200 bg-surface-50 px-3 py-2 text-sm font-semibold text-surface-900"
               >
                 {ActiveIcon && <ActiveIcon className="h-4 w-4 shrink-0 text-surface-500" />}
-                <span className="min-w-0 truncate">{activeItem.label[lang]}</span>
+                <span className="min-w-0 truncate">{pickLang(activeItem.label, lang)}</span>
               </Link>
             )}
             <button
@@ -434,7 +435,7 @@ export default function EventAdminNav({
                       }`}
                     >
                       <Icon className="h-4 w-4 shrink-0 text-surface-400" />
-                      <span className="min-w-0 truncate">{label[lang]}</span>
+                      <span className="min-w-0 truncate">{pickLang(label, lang)}</span>
                     </Link>
                   );
                 })}
@@ -469,7 +470,7 @@ export default function EventAdminNav({
                         : "text-surface-500 hover:text-surface-800"
                     }`}
                   >
-                    {label[lang]}
+                    {pickLang(label, lang)}
                   </Link>
                 );
               })}
@@ -511,7 +512,7 @@ export default function EventAdminNav({
                             }`}
                           >
                             <Icon className="h-4 w-4 shrink-0 text-surface-400" />
-                            {label[lang]}
+                            {pickLang(label, lang)}
                           </Link>
                         );
                       })}

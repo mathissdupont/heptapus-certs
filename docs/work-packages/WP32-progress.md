@@ -19,22 +19,24 @@
     translates the keys that phase adds, into every catalog. Optional automation: DeepL
     API Free (`scripts/i18n-translate.mjs` on the branch already routes `:fx` keys to
     `api-free.deepl.com`).
-- **Active phase:** Phase 2 — Unlock more than two languages.
-- **Next step** (Phase 2, in order):
-  1. `npm run check:ui -- --report lang-indexed-lookup` lists the 37 bare `[lang]`
-     lookups; `--report locale-tag-ternary` and `--report locale-tag-literal` list the
-     locale-tag sites.
-  2. Create `src/lib/localeTag.ts` exporting `localeTag(lang)` → BCP-47 tag (`tr-TR`,
-     `en-US`, `de-DE`, `fr-FR`, `es-ES`, `it-IT`, `pt-PT`, `nl-NL`, `ru-RU`). `check:ui`
-     already exempts this path from `locale-tag-literal`.
-  3. Replace the 55 `? "tr-TR" : "en-US"` switches and the other hardcoded tags with
-     `localeTag(lang)`.
-  4. Replace the 37 bare `[lang]` lookups with catalog keys (translate every new key into
-     all nine catalogs). Where a full migration is too large for this phase, use
-     `value[lang] ?? value.en` — the checker does not count that form.
-  5. Add a regression test that renders each fixed component with a non-tr/en language
-     and asserts it does not crash.
-  6. Lock the lower counts: `npm run check:ui -- --update-baseline`, commit the JSON.
+- **Active phase:** Phase 3 — Semantic token layer + theme restore (ADR-0022).
+- **Next step** (Phase 3, in order):
+  1. In `src/app/globals.css`, declare semantic role variables on bare `:root` as
+     space-separated RGB channels (e.g. `--bg-canvas: 250 250 249;`) so Tailwind opacity
+     modifiers keep working, and redefine only those variables under `.dark`.
+  2. Map the Tailwind `surface-*` scale in `tailwind.config.ts` onto the variables with
+     `rgb(var(--…) / <alpha-value>)` — `surface-200/80`-style classes are common, so the
+     channel format is required, not optional.
+  3. Re-express the `globals.css` component layer (`.card`, `.btn-*`, `.input`,
+     `.badge-*`, banners, `.table-*`, `.sidebar-item`, `.empty-state`, `.skeleton`) in the
+     roles.
+  4. Replace the hard-coded `light` in `src/app/_theme-initializer.tsx` with a pre-paint
+     script that reads the stored preference and `prefers-color-scheme`; restore a real
+     `src/components/ThemeToggle.tsx` on `src/lib/theme.ts`, **hidden behind a flag**
+     until Phase 7 completes (invariant 5).
+  5. Keep runtime white-label `--site-brand-color` overriding the accent in both themes.
+  6. Tests: role variables flip under `.dark`; the pre-paint script honors a stored
+     preference; `check:ui`, `npm test`, `tsc`, build.
 - **Also outstanding:** run the Docker-based MCP smoke (see "How to verify") before the
   next production deploy — it could not run during Phase 1 because Docker Desktop was
   stopped.
@@ -44,9 +46,9 @@
 | Phase | Title | Status | Commits |
 |---|---|---|---|
 | 0 | Guardrails (`check:ui` ratchet) | ✅ Done | `d7c3cbc` |
-| 1 | Revive the multi-language branch | ✅ Done | merge commit "revive nine-language public routing from feat/i18n-public-ssr" |
-| 2 | Unlock more than two languages | 🔄 Next | — |
-| 3 | Semantic token layer + theme restore | ⏳ Not started | — |
+| 1 | Revive the multi-language branch | ✅ Done | `df28bad` |
+| 2 | Unlock more than two languages | ✅ Done | "stop admin screens crashing on a third language" |
+| 3 | Semantic token layer + theme restore | 🔄 Next | — |
 | 4 | Date & time pickers | ⏳ Not started | — |
 | 5 | Landing as the first locale-routed page | ⏳ Not started | — |
 | 6 | First-run onboarding | ⏳ Not started | — |
@@ -123,6 +125,56 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-09-19 — Phase 2 done: no admin screen crashes on a third language
+
+- **New helpers.**
+  - `src/lib/localeTag.ts` — `localeTag(lang)` maps a language code to the formatting
+    tag (`tr-TR`, `en-US`, `de-DE`, `fr-FR`, `es-ES`, `it-IT`, `pt-PT`, `nl-NL`, `ru-RU`).
+    Unknown codes and region tags pass through to `Intl`; a missing language falls back
+    to `tr-TR`. A test fails if a locale in `src/i18n/routing.ts` has no tag.
+  - `src/lib/pickLang.ts` — `pickLang(map, lang)` returns `map[lang] ?? map.en` (and
+    `undefined` for a missing map). A plain module, not `"use client"`, so server code
+    such as `lib/orgRoles.ts` can import it. It is the sanctioned stopgap; the maps
+    themselves move into the catalog in Phase 7, when each file is opened once for colors
+    and strings together.
+- **Locale tags.** 59 binary ternaries rewritten to `localeTag(lang)` (the 55 counted
+  plus four `en-GB` variants); 8 copy objects lost their `locale: "tr-TR" | "en-US"`
+  fields (`copy.locale` → `localeTag(lang)`); 10 module-level date helpers gained a
+  trailing `lang` parameter with every call site updated (including `formatRaffleDate`'s
+  caller in `raffles/[raffleId]/present`); 17 inline `toLocale*String("tr-TR")` calls;
+  `DateField`/`DateTimeField` now default to the active language instead of Turkish;
+  `gamification`'s two module-level formatters became one built per render. Nine
+  components that never read the language (`StatCard`, three `settings` tabs, `webhooks`,
+  `settings/api`, `raffles` card, public `marketplace` card, public ticket page, the
+  certificate editor) now call `useI18n()`.
+- **Two deliberate behaviour changes.** English dates are `en-US` everywhere — four places
+  used `en-GB` (learning paths, marketplace detail, API keys, gamification badges).
+  English number and price formatting now uses English grouping (`1,234,567`) where it was
+  hardcoded Turkish (`1.234.567`).
+- **Left on purpose:** the two `toLocaleLowerCase("tr-TR")` calls in
+  `lib/useSubscription.tsx`. They fold Turkish server messages with Turkish casing rules
+  (İ/ı) for matching — not display formatting.
+- **`[lang]` lookups:** 14 inline `const copy = { tr, en }[lang]` maps wrapped in
+  `pickLang(…, lang)`; 23 named lookups (`label[lang]`, `item[lang]`,
+  `EVENT_TYPE_LABELS[key]?.[lang]`, …) moved to `pickLang`; `faq.ts` switched its
+  existing `||` fallback to `??`.
+- **Ratchet locked lower:** `lang-indexed-lookup` 37 → **0**, `locale-tag-ternary` 55 →
+  **0**, `locale-tag-literal` 165 → **2**, `lang-binary-check` 587 → 544 (the rewritten
+  ternaries were also binary checks). Other rules unchanged.
+- **Tests.** `src/test/localeTag.test.ts` and `src/test/thirdLanguage.test.tsx` — the
+  latter renders `AddAttendeeModal`, `ImportAttendeeModal`, `IssueCertificateModal`,
+  `EventAdminNav` (with event and permissions loaded) and `StatCard` as a German user:
+  each shows English copy instead of crashing, and `StatCard` prints `1.234.567`.
+  Deviation from the plan: representative shared components are rendered, not all 20
+  touched files; the ratchet at 0 is what guarantees no bare lookup remains anywhere.
+- **Test infrastructure.** This was the first `.tsx` test, so `vitest.config.mts` now sets
+  `oxc.jsx.runtime = "automatic"` — Vitest 4 runs Vite 8, whose oxc transformer honours
+  the tsconfig's Next-oriented `jsx: "preserve"` otherwise.
+- **Verification:** `npm run check:ui` ✓ at the new baseline · `npm test` 41/41 ·
+  `npx tsc --noEmit` ✓ · production build ✓ (exit 0) · 87 files changed,
+  +310/−215, no BOM changes.
+- **Next:** Phase 3 — see "Next step" above.
 
 ### 2026-09-19 — Phase 1 done: multi-language branch merged into `main`
 

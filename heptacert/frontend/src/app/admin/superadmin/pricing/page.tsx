@@ -59,7 +59,6 @@ export default function SuperadminPricingPage() {
         quota: "HC kota",
         trFeatures: "Özellikler (TR)",
         enFeatures: "Features (EN)",
-        locale: "tr-TR",
       }
     : {
         title: "Pricing",
@@ -74,7 +73,6 @@ export default function SuperadminPricingPage() {
         quota: "HC quota",
         trFeatures: "Features (TR)",
         enFeatures: "Features (EN)",
-        locale: "en-US",
       };
 
   const load = async (mode: "load" | "refresh" = "load") => {

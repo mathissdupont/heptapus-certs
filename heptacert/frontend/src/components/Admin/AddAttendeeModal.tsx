@@ -1,5 +1,6 @@
 "use client";
 
+import { pickLang } from "@/lib/pickLang";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, UserPlus, Loader2, AlertCircle } from "lucide-react";
@@ -24,7 +25,7 @@ export default function AddAttendeeModal({ open, onClose, onAdded, eventId }: Ad
   const [adding, setAdding] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const copy = {
+  const copy = pickLang({
     tr: {
       title: "Katılımcı Ekle",
       emailLabel: "E-posta",
@@ -49,7 +50,7 @@ export default function AddAttendeeModal({ open, onClose, onAdded, eventId }: Ad
       added: "Attendee added successfully.",
       failed: "Failed to add attendee.",
     },
-  }[lang];
+  }, lang);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

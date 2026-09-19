@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -153,7 +154,7 @@ export default function LearningPathProgressPage() {
           </div>
           {isDone && (
             <p className="text-xs text-green-600 mt-0.5 font-medium">
-              {copy.completed} — {new Date(data.completed_at!).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-GB")}
+              {copy.completed} — {new Date(data.completed_at!).toLocaleDateString(localeTag(lang))}
             </p>
           )}
         </div>
@@ -231,7 +232,7 @@ export default function LearningPathProgressPage() {
                   <div className="font-medium text-gray-900 truncate">{step.event_name}</div>
                   <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-400">
                     {step.event_date && (
-                      <span>{new Date(step.event_date).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-GB")}</span>
+                      <span>{new Date(step.event_date).toLocaleDateString(localeTag(lang))}</span>
                     )}
                     {!step.required && (
                       <span className="text-amber-500">{copy.optional}</span>

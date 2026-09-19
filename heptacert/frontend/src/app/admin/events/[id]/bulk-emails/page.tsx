@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -328,7 +329,7 @@ export default function BulkEmailsPage() {
                         
                         <div className="pt-1 flex flex-wrap gap-1.5 text-11 font-bold text-surface-400 uppercase tracking-wider">
                           <span className="bg-surface-50 border border-surface-100 px-2 py-0.5 rounded-md">{copy.recipientLabel}: {getRecipientLabel(job.recipient_type)}</span>
-                          <span className="bg-surface-50 border border-surface-100 px-2 py-0.5 rounded-md font-mono">{new Date(job.created_at).toLocaleDateString("tr-TR")}</span>
+                          <span className="bg-surface-50 border border-surface-100 px-2 py-0.5 rounded-md font-mono">{new Date(job.created_at).toLocaleDateString(localeTag(lang))}</span>
                         </div>
                       </div>
                       

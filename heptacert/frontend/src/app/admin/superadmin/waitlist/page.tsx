@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
@@ -54,7 +55,6 @@ export default function SuperadminWaitlistPage() {
         emptyBody: "Henüz yeni kayıt gelmediğinde potansiyel müşteri listesi burada görünecek.",
         noNote: "Not yok",
         noPlan: "Plan yok",
-        locale: "tr-TR",
       }
     : {
         title: "Waitlist",
@@ -70,7 +70,6 @@ export default function SuperadminWaitlistPage() {
         emptyBody: "New inbound leads will appear here once requests start arriving.",
         noNote: "No notes",
         noPlan: "No plan",
-        locale: "en-US",
       };
 
   const load = async () => {
@@ -190,7 +189,7 @@ export default function SuperadminWaitlistPage() {
                 <p className="mt-2 text-sm text-surface-700">{row.note || copy.noNote}</p>
               </div>
 
-              <div className="mt-4 text-xs text-surface-400">{new Date(row.created_at).toLocaleString(copy.locale)}</div>
+              <div className="mt-4 text-xs text-surface-400">{new Date(row.created_at).toLocaleString(localeTag(lang))}</div>
             </article>
           ))}
         </div>

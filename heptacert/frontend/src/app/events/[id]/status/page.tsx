@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -264,7 +265,7 @@ export default function EventParticipantStatusPage() {
   const brandColor = branding?.brand_color || "#4f46e5";
   const brandName = branding?.org_name || "HeptaCert";
   const surveyHref = token ? `/events/${eventId}/survey?token=${encodeURIComponent(token)}` : `/events/${eventId}/survey`;
-  const locale = lang === "tr" ? "tr-TR" : "en-US";
+  const locale = localeTag(lang);
   const badgeDateFormatter = useMemo(() => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Istanbul" }), [locale]);
 
   // Çok hafif, modern bir arka plan

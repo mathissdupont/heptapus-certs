@@ -1,5 +1,7 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
+import { useI18n } from "@/lib/i18n";
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 
@@ -24,6 +26,7 @@ export function StatCard({
   delay = 0,
   className = "",
 }: StatCardProps) {
+  const { lang } = useI18n();
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -38,7 +41,7 @@ export function StatCard({
           </p>
 
           <p className="mt-1.5 text-2xl font-semibold tracking-tight text-surface-900 tabular-nums">
-            {typeof value === "number" ? value.toLocaleString("tr-TR") : value}
+            {typeof value === "number" ? value.toLocaleString(localeTag(lang)) : value}
           </p>
 
           {trend && (

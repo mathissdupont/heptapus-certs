@@ -1,5 +1,7 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
+import { useI18n } from "@/lib/i18n";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -35,9 +37,9 @@ import {
   Users,
 } from "lucide-react";
 
-function fmtDate(value?: string | null) {
+function fmtDate(value?: string | null, lang?: string | null) {
   if (!value) return "Henüz çekilmedi";
-  return new Date(value).toLocaleString("tr-TR", {
+  return new Date(value).toLocaleString(localeTag(lang), {
     day: "2-digit",
     month: "short",
     hour: "2-digit",
@@ -478,6 +480,7 @@ function RaffleCard({
   onDelete: (raffle: EventRaffleOut) => void;
   onExport: (raffle: EventRaffleOut) => void;
 }) {
+  const { lang } = useI18n();
   const rounds = splitRaffleRounds(raffle);
   const eligiblePreview = raffle.eligible_attendees.slice(0, 20);
 
@@ -565,7 +568,7 @@ function RaffleCard({
 
         <details className="rounded-2xl border border-surface-200 bg-surface-50 p-3" open={raffle.winners.length > 0}>
           <summary className="cursor-pointer text-sm font-bold text-surface-900">
-            Kazananlar ({raffle.winners.length}) · {fmtDate(raffle.drawn_at)}
+            Kazananlar ({raffle.winners.length}) · {fmtDate(raffle.drawn_at, lang)}
           </summary>
           {rounds.length === 0 ? (
             <p className="mt-3 text-sm text-surface-500">Bu çekiliş için henüz kazanan seçilmedi.</p>

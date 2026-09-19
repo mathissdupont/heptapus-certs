@@ -1,5 +1,6 @@
 "use client";
 
+import { pickLang } from "@/lib/pickLang";
 import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
@@ -54,7 +55,7 @@ export default function DashboardPage() {
   const [err, setErr] = useState<string | null>(null);
   const toast = useToast();
 
-  const copy = {
+  const copy = pickLang({
     tr: {
       title: "Dashboard",
       subtitle: "Genel bakış ve hızlı erişim",
@@ -113,7 +114,7 @@ export default function DashboardPage() {
       certCount: "certificates",
       allHealthy: "Certificate health looks clean.",
     },
-  }[lang];
+  }, lang);
 
   useEffect(() => {
     (async () => {

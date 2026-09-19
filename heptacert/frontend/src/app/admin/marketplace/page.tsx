@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import {
@@ -290,12 +291,12 @@ export default function AdminMarketplacePage() {
                     {!ev.marketplace_price || ev.marketplace_price === 0 ? (
                       <span className="text-green-600 font-medium">{copy.free}</span>
                     ) : (
-                      <span>₺{ev.marketplace_price.toLocaleString("tr-TR")}</span>
+                      <span>₺{ev.marketplace_price.toLocaleString(localeTag(lang))}</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-gray-500">
                     {ev.event_date
-                      ? new Date(ev.event_date).toLocaleDateString("tr-TR")
+                      ? new Date(ev.event_date).toLocaleDateString(localeTag(lang))
                       : "—"}
                   </td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">

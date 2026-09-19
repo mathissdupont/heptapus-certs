@@ -1,5 +1,7 @@
 "use client";
 
+import { pickLang } from "@/lib/pickLang";
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
 import {
   apiFetch,
@@ -48,7 +50,7 @@ export default function AdminReservations() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [calendarStatus, setCalendarStatus] = useState<GoogleCalendarReservationStatus | null>(null);
 
-  const copy = {
+  const copy = pickLang({
     tr: {
       title: "Rezervasyonlar",
       subtitle: "Salon rezervasyon takvimini yönetin",
@@ -117,7 +119,7 @@ export default function AdminReservations() {
       syncDone: (p: number, n: number, u: number) => `Synced. Pulled: ${p}, new: ${n}, updated: ${u}.`,
       syncFailed: "Google Calendar sync could not complete.",
     },
-  }[lang];
+  }, lang);
 
   const venueName = useMemo(() => {
     const map = new Map<number, OrganizationVenue>();
@@ -247,7 +249,7 @@ export default function AdminReservations() {
   function fmt(iso: string): string {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return iso;
-    return d.toLocaleString(lang === "tr" ? "tr-TR" : "en-US", {
+    return d.toLocaleString(localeTag(lang), {
       dateStyle: "medium",
       timeStyle: "short",
     });

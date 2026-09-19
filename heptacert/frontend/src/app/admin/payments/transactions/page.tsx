@@ -1,5 +1,7 @@
 ﻿"use client";
 
+import { pickLang } from "@/lib/pickLang";
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState } from "react";
 import { Loader2, AlertCircle, CreditCard, Coins, TrendingUp } from "lucide-react";
 import { apiFetch } from "@/lib/api";
@@ -35,7 +37,7 @@ export default function TransactionsPage() {
   const [error, setError] = useState<string | null>(null);
   const toast = useToast();
 
-  const copy = {
+  const copy = pickLang({
     tr: {
       title: "Ödeme İşlemleri",
       subtitle: "Ödeme siparişleri ve HeptaCoin işlem geçmişi",
@@ -56,7 +58,6 @@ export default function TransactionsPage() {
         failed: "Başarısız",
         refunded: "İade Edildi",
       },
-      locale: "tr-TR",
     },
     en: {
       title: "Payments",
@@ -78,9 +79,8 @@ export default function TransactionsPage() {
         failed: "Failed",
         refunded: "Refunded",
       },
-      locale: "en-US",
     },
-  }[lang];
+  }, lang);
 
   const orderStatus: Record<string, { label: string; cls: string }> = {
     pending: { label: copy.status.pending, cls: "bg-amber-100 text-amber-800" },
@@ -152,7 +152,7 @@ export default function TransactionsPage() {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-surface-900">{o.plan_id ?? copy.orderFallback(o.id)}</p>
                   <p className="mt-0.5 text-xs text-surface-400">
-                    {new Date(o.created_at).toLocaleDateString(copy.locale)} · {o.provider}
+                    {new Date(o.created_at).toLocaleDateString(localeTag(lang))} · {o.provider}
                   </p>
                 </div>
                 <span className="text-sm font-semibold text-surface-900">
@@ -182,7 +182,7 @@ export default function TransactionsPage() {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-surface-900">{tx.description || coinLabel[tx.type]}</p>
                   <p className="mt-0.5 text-xs text-surface-400">
-                    {new Date(tx.timestamp).toLocaleDateString(copy.locale, {
+                    {new Date(tx.timestamp).toLocaleDateString(localeTag(lang), {
                       day: "numeric",
                       month: "long",
                       year: "numeric",

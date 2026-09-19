@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader2, Briefcase, TrendingUp } from "lucide-react";
@@ -143,8 +144,8 @@ export default function CrmPipelinePage() {
         </div>
         <div className="flex items-center gap-4 text-sm text-gray-500">
           <span><span className="font-semibold text-gray-900">{totalDeals}</span> {copy.deals}</span>
-          <span>{copy.total}: <span className="font-semibold text-gray-900">₺{totalValue.toLocaleString("tr-TR")}</span></span>
-          <span>{copy.won}: <span className="font-semibold text-green-600">₺{wonValue.toLocaleString("tr-TR")}</span></span>
+          <span>{copy.total}: <span className="font-semibold text-gray-900">₺{totalValue.toLocaleString(localeTag(lang))}</span></span>
+          <span>{copy.won}: <span className="font-semibold text-green-600">₺{wonValue.toLocaleString(localeTag(lang))}</span></span>
         </div>
       </div>
 
@@ -178,7 +179,7 @@ export default function CrmPipelinePage() {
                     </Link>
                     <p className="text-xs text-gray-400">{deal.account_name}</p>
                     {deal.amount != null && (
-                      <p className="text-xs font-medium text-gray-700">₺{deal.amount.toLocaleString("tr-TR")}</p>
+                      <p className="text-xs font-medium text-gray-700">₺{deal.amount.toLocaleString(localeTag(lang))}</p>
                     )}
                     {/* Move buttons */}
                     <div className="flex gap-1 pt-1">
@@ -209,7 +210,7 @@ export default function CrmPipelinePage() {
 
               {stageValue > 0 && (
                 <p className="text-xs text-right text-gray-400 pr-1">
-                  ₺{stageValue.toLocaleString("tr-TR")}
+                  ₺{stageValue.toLocaleString(localeTag(lang))}
                 </p>
               )}
             </div>

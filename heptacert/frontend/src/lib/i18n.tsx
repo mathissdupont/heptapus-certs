@@ -56,7 +56,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     // First visit (no saved choice): pick the first browser language we support, by its
-    // base subtag (e.g. "en-US" -> "en"). Falls through to DEFAULT_LANG otherwise.
+    // base subtag (e.g. en-US -> en). Falls through to DEFAULT_LANG otherwise.
     const browserLangs = navigator.languages?.length ? navigator.languages : [navigator.language];
     for (const candidate of browserLangs) {
       const base = (candidate || "").toLowerCase().split("-")[0];

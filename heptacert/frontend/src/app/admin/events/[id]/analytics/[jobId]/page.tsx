@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
@@ -315,11 +316,11 @@ export default function DeliveryAnalyticsPage() {
                       </span>
                     </td>
                     <td className="px-5 py-3.5 text-xs font-medium text-surface-500 font-mono">
-                      {new Date(log.sent_at).toLocaleString(isTr ? 'tr-TR' : 'en-US', { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
+                      {new Date(log.sent_at).toLocaleString(localeTag(lang), { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
                     </td>
                     <td className="px-5 py-3.5 text-xs font-medium text-surface-500 font-mono">
                       {log.opened_at
-                        ? new Date(log.opened_at).toLocaleString(isTr ? 'tr-TR' : 'en-US', { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })
+                        ? new Date(log.opened_at).toLocaleString(localeTag(lang), { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })
                         : '-'}
                     </td>
                     {stats.failure_rate > 0 && (

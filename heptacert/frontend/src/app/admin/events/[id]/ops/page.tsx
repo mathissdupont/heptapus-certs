@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
 import type { ElementType } from "react";
 import Link from "next/link";
@@ -29,9 +30,9 @@ import {
   type EventOperationSnapshot,
 } from "@/lib/api";
 
-function formatTime(value?: string | null) {
+function formatTime(value?: string | null, lang?: string | null) {
   if (!value) return "-";
-  return new Date(value).toLocaleString("tr-TR", {
+  return new Date(value).toLocaleString(localeTag(lang), {
     day: "2-digit",
     month: "2-digit",
     hour: "2-digit",
@@ -172,7 +173,7 @@ export default function EventOperationsPage() {
             {snapshot?.event_name || copy.eventFallback(eventId)}
           </h1>
           <div className="flex items-center gap-1 text-11 font-semibold text-surface-400 font-mono uppercase">
-            <span>{copy.lastUpdate} {formatTime(snapshot?.generated_at)}</span>
+            <span>{copy.lastUpdate} {formatTime(snapshot?.generated_at, lang)}</span>
           </div>
         </div>
         
@@ -286,7 +287,7 @@ export default function EventOperationsPage() {
                         <div className="pt-1 flex flex-wrap gap-x-2 text-11 font-bold text-surface-400">
                           <span className="text-surface-900">{record.session_name}</span>
                           <span>·</span>
-                          <span className="font-mono text-surface-400">{formatTime(record.checked_in_at)}</span>
+                          <span className="font-mono text-surface-400">{formatTime(record.checked_in_at, lang)}</span>
                         </div>
                       </div>
                       

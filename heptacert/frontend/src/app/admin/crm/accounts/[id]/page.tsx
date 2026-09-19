@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -749,7 +750,7 @@ export default function CrmAccountDetailPage() {
                       </div>
                       <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
                         {deal.amount != null && (
-                          <span>₺{deal.amount.toLocaleString("tr-TR")}</span>
+                          <span>₺{deal.amount.toLocaleString(localeTag(lang))}</span>
                         )}
                         <span>{deal.activity_count} {copy.activityCount}</span>
                       </div>
@@ -815,7 +816,7 @@ export default function CrmAccountDetailPage() {
                                 <div className="flex-1 min-w-0">
                                   <p className="text-xs text-gray-800">{act.content}</p>
                                   <p className="text-xs text-gray-400 mt-0.5">
-                                    {new Date(act.activity_at).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" })}
+                                    {new Date(act.activity_at).toLocaleString(localeTag(lang), { dateStyle: "short", timeStyle: "short" })}
                                   </p>
                                 </div>
                                 <button

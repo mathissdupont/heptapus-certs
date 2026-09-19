@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { CalendarDays, Loader2, MapPin, ShieldCheck, Ticket, UserCircle2, ArrowRight, Clock, CheckCircle2 } from "lucide-react";
@@ -11,7 +12,7 @@ function formatDate(value: string | null | undefined, lang: "tr" | "en") {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(lang === "tr" ? "tr-TR" : "en-US", {
+  return new Intl.DateTimeFormat(localeTag(lang), {
     day: "numeric",
     month: "short",
     year: "numeric",

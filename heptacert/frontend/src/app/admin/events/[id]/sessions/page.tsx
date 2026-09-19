@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import {
@@ -370,7 +371,7 @@ export default function AdminSessionsPage() {
                   value={formDate}
                   onChange={setFormDate}
                   placeholder={copy.datePlaceholder}
-                  locale={isTr ? "tr-TR" : "en-US"}
+                  locale={localeTag(lang)}
                 />
                 <TimeField
                   label={copy.time}
@@ -488,7 +489,7 @@ export default function AdminSessionsPage() {
                       {s.session_date && (
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5" />
-                          {new Date(s.session_date).toLocaleDateString(isTr ? "tr-TR" : "en-US")}
+                          {new Date(s.session_date).toLocaleDateString(localeTag(lang))}
                         </span>
                       )}
                       {s.session_start && (

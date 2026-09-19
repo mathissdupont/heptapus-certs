@@ -1,5 +1,7 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
+import { useI18n } from "@/lib/i18n";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { apiUrl, getPublicTicket, type PublicTicketInfo } from "@/lib/api";
@@ -23,10 +25,10 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 };
 
-function formatDate(value?: string | null) {
+function formatDate(value?: string | null, lang?: string | null) {
   if (!value) return "-";
   try {
-    return new Intl.DateTimeFormat("tr-TR", {
+    return new Intl.DateTimeFormat(localeTag(lang), {
       dateStyle: "medium",
       timeStyle: "short",
     }).format(new Date(value));
@@ -36,6 +38,7 @@ function formatDate(value?: string | null) {
 }
 
 export default function PublicTicketPage() {
+  const { lang } = useI18n();
   const params = useParams();
   const token = Array.isArray(params?.token) ? params.token[0] : params?.token;
   const [ticket, setTicket] = useState<PublicTicketInfo | null>(null);
@@ -201,13 +204,13 @@ export default function PublicTicketPage() {
               <div>
                 <p className="text-13 font-medium text-zinc-400">Oluşturma</p>
                 <p className="mt-1 text-sm font-medium text-zinc-900">
-                  {formatDate(ticket.issued_at)}
+                  {formatDate(ticket.issued_at, lang)}
                 </p>
               </div>
               <div>
                 <p className="text-13 font-medium text-zinc-400">Giriş Zamanı</p>
                 <p className="mt-1 text-sm font-medium text-zinc-900">
-                  {formatDate(ticket.checked_in_at)}
+                  {formatDate(ticket.checked_in_at, lang)}
                 </p>
               </div>
             </div>

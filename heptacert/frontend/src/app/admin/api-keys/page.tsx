@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState, useMemo } from "react";
 import { ArrowLeft, Loader2, AlertCircle, Plus, Copy, CheckCircle2, Eye, EyeOff, Trash2, Lock, Calendar, Terminal } from "lucide-react";
 import Link from "next/link";
@@ -192,7 +193,7 @@ export default function ApiKeysPage() {
     setTimeout(() => setCopiedKeyId(null), 2000);
   };
 
-  const dateLocale = isTr ? "tr-TR" : "en-GB";
+  const dateLocale = localeTag(lang);
 
   const columns = useMemo<ColumnDef<ApiKey>[]>(
     () => [

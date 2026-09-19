@@ -1,5 +1,6 @@
 "use client";
 
+import { pickLang } from "@/lib/pickLang";
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch, getMySubscription, getSelectedOrganizationId, setSelectedOrganizationId } from "@/lib/api";
 import { orgRoleLabel, canManageEvents } from "@/lib/orgRoles";
@@ -86,7 +87,7 @@ export default function AdminEvents() {
   const [venues, setVenues] = useState<OrganizationVenue[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const copy = {
+  const copy = pickLang({
     tr: {
       title: "Etkinlikler",
       subtitle: "Etkinliklerinizi yönetin ve sertifika süreçlerini takip edin",
@@ -179,7 +180,7 @@ export default function AdminEvents() {
       noEventPermBody: "In this organization you can only access the areas you're authorized for. Switch to your own organization to manage events.",
       switchToOwn: "Switch to my organization",
     },
-  }[lang];
+  }, lang);
 
   function copyRegisterLink(id: number, publicId?: string | null) {
     const routeId = publicId || String(id);
@@ -398,7 +399,7 @@ export default function AdminEvents() {
         >
           <option value="all">{copy.allEventTypes}</option>
           {EVENT_TYPE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label[lang]}</option>
+            <option key={opt.value} value={opt.value}>{pickLang(opt.label, lang)}</option>
           ))}
         </select>
         <span className="shrink-0 text-sm text-surface-400">
@@ -514,7 +515,7 @@ export default function AdminEvents() {
                     <p className="truncate text-sm font-medium text-surface-900">{ev.name}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-1.5">
                       <span className="badge-neutral text-11">
-                        {EVENT_TYPE_OPTIONS.find((o) => o.value === (ev.event_type || "certificate_event"))?.label[lang] || ev.event_type}
+                        {pickLang(EVENT_TYPE_OPTIONS.find((o) => o.value === (ev.event_type || "certificate_event"))?.label, lang) || ev.event_type}
                       </span>
                       {ev.ticketing_enabled && (
                         <span className="inline-flex items-center rounded-full border border-sky-100 bg-sky-50 px-2 py-0.5 text-11 font-medium text-sky-700">

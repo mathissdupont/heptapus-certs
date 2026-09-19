@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
@@ -256,7 +257,8 @@ function JobCard({
   onDownload: (job: Job) => void;
   cancelling: number | null;
 }) {
-  const locale = isTr ? "tr-TR" : "en-US";
+  const { lang } = useI18n();
+  const locale = localeTag(lang);
   const sc = STATUS_CONFIG[job.status] ?? STATUS_CONFIG.pending;
   const StatusIcon = sc.icon;
   const TypeIcon = TYPE_ICON[job.type] ?? Mail;

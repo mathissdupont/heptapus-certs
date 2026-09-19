@@ -1,5 +1,7 @@
 "use client";
 
+import { pickLang } from "@/lib/pickLang";
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Loader2, Zap } from "lucide-react";
@@ -121,7 +123,7 @@ export default function CreateEventDrawer({ open, onClose, onCreated, venues = [
     return fallbackDefaultsForEventType(nextType);
   }
 
-  const copy = {
+  const copy = pickLang({
     tr: {
       title: "Yeni Etkinlik",
       nameLabel: "Etkinlik Adı",
@@ -172,7 +174,7 @@ export default function CreateEventDrawer({ open, onClose, onCreated, venues = [
       created: (n: string) => `"${n}" created.`,
       createFailed: "Failed to create event.",
     },
-  }[lang];
+  }, lang);
 
   function applyTypeDefaults(nextType: EventType) {
     const d = defaultsForEventType(nextType);
@@ -311,7 +313,7 @@ export default function CreateEventDrawer({ open, onClose, onCreated, venues = [
                 >
                   {EVENT_TYPE_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
-                      {opt.label[lang]}
+                      {pickLang(opt.label, lang)}
                     </option>
                   ))}
                 </select>
@@ -371,13 +373,13 @@ export default function CreateEventDrawer({ open, onClose, onCreated, venues = [
                           value={reservationStartAt}
                           onChange={setReservationStartAt}
                           label={copy.startLabel}
-                          locale={lang === "tr" ? "tr-TR" : "en-US"}
+                          locale={localeTag(lang)}
                         />
                         <DateTimeField
                           value={reservationEndAt}
                           onChange={setReservationEndAt}
                           label={copy.endLabel}
-                          locale={lang === "tr" ? "tr-TR" : "en-US"}
+                          locale={localeTag(lang)}
                         />
                       </div>
                       <label className="flex items-start gap-2.5 text-sm text-surface-700">

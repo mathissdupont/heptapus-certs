@@ -1,5 +1,6 @@
 "use client";
 
+import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CheckCircle2,
@@ -76,11 +77,11 @@ function formatTag(raw: string): string {
   return stripped.replace(/[_-]/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 }
 
-function formatDate(value?: string | null) {
+function formatDate(value?: string | null, lang?: string | null) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("tr-TR", {
+  return new Intl.DateTimeFormat(localeTag(lang), {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -1034,7 +1035,7 @@ export default function AdminCrmPage() {
                   
                   <div className="flex items-center gap-1 text-11 font-semibold text-surface-400 pt-1 border-t border-gray-50">
                     <Calendar className="h-3 w-3" />
-                    <span>{copy.updated}: {formatDate(detail.meta.updated_at)}</span>
+                    <span>{copy.updated}: {formatDate(detail.meta.updated_at, lang)}</span>
                   </div>
                 </div>
 
@@ -1058,7 +1059,7 @@ export default function AdminCrmPage() {
                                   <Icon className="h-3 w-3 shrink-0 text-surface-400" />
                                   <span>{item.label}</span>
                                 </p>
-                                <p className="text-11 font-medium text-surface-400 font-mono">{formatDate(item.at)}</p>
+                                <p className="text-11 font-medium text-surface-400 font-mono">{formatDate(item.at, lang)}</p>
                               </div>
                             </div>
                           );
@@ -1078,7 +1079,7 @@ export default function AdminCrmPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <h4 className="font-bold text-xs text-surface-900 tracking-tight truncate">{item.event_name}</h4>
-                          <p className="mt-0.5 text-11 font-medium text-surface-400">{copy.registered}: {formatDate(item.registered_at)}</p>
+                          <p className="mt-0.5 text-11 font-medium text-surface-400">{copy.registered}: {formatDate(item.registered_at, lang)}</p>
                         </div>
                         <span className="shrink-0 rounded-md bg-surface-50 border border-surface-100 px-1.5 py-0.5 text-11 font-bold text-surface-400">
                           #{item.event_id}

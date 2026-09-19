@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { pickLang } from "@/lib/pickLang";
 import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -520,8 +521,8 @@ export default function EventSegmentsPage() {
                         {SEGMENT_KEY_LABELS[key]?.[lang] ?? key}
                       </option>
                     ))}
-                    <option value="registration_answer">{SEGMENT_KEY_LABELS.registration_answer[lang]}</option>
-                    <option value="location_filter">{SEGMENT_KEY_LABELS.location_filter[lang]}</option>
+                    <option value="registration_answer">{pickLang(SEGMENT_KEY_LABELS.registration_answer, lang)}</option>
+                    <option value="location_filter">{pickLang(SEGMENT_KEY_LABELS.location_filter, lang)}</option>
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-surface-400" />
                 </div>

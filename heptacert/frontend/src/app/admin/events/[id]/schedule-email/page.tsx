@@ -1,5 +1,6 @@
 'use client';
 
+import { localeTag } from "@/lib/localeTag";
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
@@ -32,7 +33,7 @@ export default function ScheduleEmailPage() {
   const params = useParams();
   const { lang } = useI18n();
   const isTr = lang === "tr";
-  const locale = isTr ? "tr-TR" : "en-US";
+  const locale = localeTag(lang);
 
   const copy = {
     invalidId:       isTr ? "Geçersiz etkinlik ID" : "Invalid event ID",
