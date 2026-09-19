@@ -5,11 +5,12 @@ import { tr } from "@/locales/tr";
 import { en } from "@/locales/en";
 import type { TranslationKey } from "@/locales/tr";
 
-// Adding a language is intentionally a 3-step, low-risk change (ADR-0019):
-//   1. add src/locales/<lang>.ts (it may be partial — missing keys fall back),
-//   2. import it and add it to LOCALES + LANG_LABELS below,
-//   3. add it to the Lang union.
-// No other file needs to change; the LanguageToggle and detection adapt automatically.
+// This custom i18n powers the AUTHENTICATED app (admin/portal). It stays tr/en for now
+// because many components still carry `{ tr, en }[lang]` lookups and binary tr/en
+// comparisons that crash or fall back to English for any other language.
+// WP32 removes them (tracked by `npm run check:ui`) and widens this union in its final
+// phase. Public-facing languages (de/fr/es/...) are already served by next-intl on the
+// locale-routed public surfaces — see ADR-0021 and src/i18n/*.
 export type Lang = "tr" | "en";
 
 const DEFAULT_LANG: Lang = "tr";   // ultimate fallback / first-load default

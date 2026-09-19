@@ -730,5 +730,6 @@ export const en: Record<TranslationKey, string> = {
   live_poll_closed: "Closed",
   live_saved: "Saved.",
   live_action_failed: "Action failed.",
+  language_switcher_label: "Select language",
 };
 

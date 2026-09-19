@@ -66,6 +66,10 @@ see [FEATURE_ROADMAP_2026](../reference/FEATURE_ROADMAP_2026.md) for sequencing.
 | [WP26](WP26-onsite-badge-printing.md) | On-Site Badge Design & Printing | Physical badge design + print at check-in |
 | [WP27](WP27-seating-and-floor-plans.md) | Seating & Floor Plans | Reserved seating (demand-gated) |
 | [WP28](WP28-data-retention-and-anonymization.md) | Data Retention & Anonymization (KVKK) | Per-field PII marking + retention policy + irreversible auto-anonymization |
+| [WP33](WP33-i18n-localized-public-shell.md) | Localized Public Shell (i18n) | Locale-aware nav/footer/switcher for public SSR |
+| [WP34](WP34-i18n-public-page-migration.md) | Public Page Migration (i18n) | Per-page move under [locale] + string extraction |
+| [WP35](WP35-i18n-international-seo.md) | International SEO Mechanics (i18n) | Per-locale sitemap, hreflang, SSR html lang, canonical |
+| [WP36](WP36-i18n-content-localization.md) | Content Localization (i18n) | Organizer content per locale (Event.config JSONB) |
 
 **Deferred (strategic, pending segment decision — not yet greenlit):** Native mobile app
 (consider PWA + web-push as an interim step) and a native virtual/hybrid stage
@@ -76,9 +80,9 @@ see [FEATURE_ROADMAP_2026](../reference/FEATURE_ROADMAP_2026.md) for sequencing.
 |----|-------|---------|
 | [WP32](WP32-ui-overhaul-landing-onboarding-theming.md) | UI Overhaul: Landing, Onboarding, Theming & Multi-Language | Locale-routed landing, first-run onboarding, semantic tokens + dark theme, two-language lock removed |
 
-WP29–WP31 are intentionally skipped: the shelved `feat/i18n-public-ssr` branch uses
-WP28–WP31 for its i18n packages, which are renumbered when it merges (its WP28 collides
-with the data-retention WP28 above).
+WP29–WP31 are unused. The i18n packages written on `feat/i18n-public-ssr` as WP28–WP31
+were renumbered WP33–WP36 when that branch merged, because WP28 was already data
+retention. WP32 executes WP33–WP35 for the landing and marketing pages.
 
 ## Dependency overview
 

@@ -1,4 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import createMiddleware from "next-intl/middleware";
+import { routing } from "./i18n/routing";
+
+// next-intl handles locale routing for PUBLIC surfaces only (ADR-0021). During the
+// phased rollout it runs solely on already locale-prefixed paths (/en/.., /de/..), so
+// existing non-prefixed routes keep working untouched until they are migrated.
+const intlMiddleware = createMiddleware(routing);
+const LOCALE_PREFIX_RE = /^\/(tr|en|de|fr|es|nl|ru|it|pt)(\/|$)/;
 
 const PRIMARY_APP_HOSTS = new Set([
   "localhost",
@@ -87,5 +95,16 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Locale-prefixed public paths are delegated to next-intl (locale resolution +
+  // i18n request context). Everything else falls through to the existing app.
+  if (LOCALE_PREFIX_RE.test(pathname)) {
+    return intlMiddleware(request);
+  }
+
   return NextResponse.next();
 }
+
+// No `config.matcher` on purpose: this middleware must keep running on every path, as it
+// did before next-intl arrived. A matcher that skips paths containing "." would silently
+// disable LEGACY_TOKEN_ROUTES, because itsdangerous tokens (payload.timestamp.signature)
+// contain dots. next-intl only needs the locale-prefixed paths, delegated above.

@@ -727,6 +727,7 @@
   live_poll_closed: "Kapalı",
   live_saved: "Kaydedildi.",
   live_action_failed: "İşlem başarısız.",
+  language_switcher_label: "Dil seçin",
 } as const;
 
 export type TranslationKey = keyof typeof tr;

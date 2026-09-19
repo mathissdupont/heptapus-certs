@@ -19,39 +19,33 @@
     translates the keys that phase adds, into every catalog. Optional automation: DeepL
     API Free (`scripts/i18n-translate.mjs` on the branch already routes `:fx` keys to
     `api-free.deepl.com`).
-- **Active phase:** Phase 1 — Revive the multi-language branch.
-- **Next step** (Phase 1, in order):
-  1. On `main`: `git merge --no-ff feat/i18n-public-ssr`. Expect three conflicts.
-  2. `heptacert/frontend/package.json` — take `main`'s side, then add
-     `"next-intl": "^4.14.5"` to `dependencies` and the branch's two scripts:
-     `"i18n:translate": "node scripts/i18n-translate.mjs"`,
-     `"i18n:translate:dry": "node scripts/i18n-translate.mjs --dry-run"`.
-  3. `heptacert/frontend/package-lock.json` — `git checkout --ours` it, then run
-     `npm install` in `heptacert/frontend` to regenerate; then
-     `npm audit --omit=dev --audit-level=high`. Never hand-merge the lockfile.
-  4. `docs/work-packages/README.md` — keep `main`'s structure. Renumber the branch's i18n
-     packages to **WP33–WP36** (`WP28-i18n-localized-public-shell` → WP33,
-     `WP29-i18n-public-page-migration` → WP34, `WP30-i18n-international-seo` → WP35,
-     `WP31-i18n-content-localization` → WP36), rename the files, fix every cross-link
-     (including `docs/reference/I18N_INTERNATIONALIZATION_PLAN.md`), list them in the
-     README, and update the README note that currently says WP29–WP31 are skipped.
-  5. Translate the ~187 keys each branch catalog (`de`, `fr`, `es`, `it`, `pt`, `nl`, `ru`)
-     is missing and drop any key that no longer exists in `tr.ts`. Once `routing.ts`
-     exists, `npm run check:ui` **requires** every routed locale to be complete, so the
-     merge cannot be committed until this is done.
-  6. Verify: `next.config.mjs` (the next-intl plugin wraps it — standalone output, `/mcp`
-     and OAuth rewrites, headers must survive), `middleware.ts` (white-label redirects,
-     method gating, legacy token routes), `npm test`, `npx tsc --noEmit`, `npm run build`,
-     `npm run check:ui`, `/{tr,en,de,…}/i18n-pilot` in all nine languages, un-prefixed
-     routes unchanged, MCP smoke.
+- **Active phase:** Phase 2 — Unlock more than two languages.
+- **Next step** (Phase 2, in order):
+  1. `npm run check:ui -- --report lang-indexed-lookup` lists the 37 bare `[lang]`
+     lookups; `--report locale-tag-ternary` and `--report locale-tag-literal` list the
+     locale-tag sites.
+  2. Create `src/lib/localeTag.ts` exporting `localeTag(lang)` → BCP-47 tag (`tr-TR`,
+     `en-US`, `de-DE`, `fr-FR`, `es-ES`, `it-IT`, `pt-PT`, `nl-NL`, `ru-RU`). `check:ui`
+     already exempts this path from `locale-tag-literal`.
+  3. Replace the 55 `? "tr-TR" : "en-US"` switches and the other hardcoded tags with
+     `localeTag(lang)`.
+  4. Replace the 37 bare `[lang]` lookups with catalog keys (translate every new key into
+     all nine catalogs). Where a full migration is too large for this phase, use
+     `value[lang] ?? value.en` — the checker does not count that form.
+  5. Add a regression test that renders each fixed component with a non-tr/en language
+     and asserts it does not crash.
+  6. Lock the lower counts: `npm run check:ui -- --update-baseline`, commit the JSON.
+- **Also outstanding:** run the Docker-based MCP smoke (see "How to verify") before the
+  next production deploy — it could not run during Phase 1 because Docker Desktop was
+  stopped.
 
 ## Phase status
 
 | Phase | Title | Status | Commits |
 |---|---|---|---|
-| 0 | Guardrails (`check:ui` ratchet) | ✅ Done | "add UI contract ratchet for i18n, theming and date inputs" |
-| 1 | Revive the multi-language branch | 🔄 Next | — |
-| 2 | Unlock more than two languages | ⏳ Not started | — |
+| 0 | Guardrails (`check:ui` ratchet) | ✅ Done | `d7c3cbc` |
+| 1 | Revive the multi-language branch | ✅ Done | merge commit "revive nine-language public routing from feat/i18n-public-ssr" |
+| 2 | Unlock more than two languages | 🔄 Next | — |
 | 3 | Semantic token layer + theme restore | ⏳ Not started | — |
 | 4 | Date & time pickers | ⏳ Not started | — |
 | 5 | Landing as the first locale-routed page | ⏳ Not started | — |
@@ -129,6 +123,63 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-09-19 — Phase 1 done: multi-language branch merged into `main`
+
+- **Merged** `feat/i18n-public-ssr` with `git merge --no-ff` (a merge commit, so the
+  branch's seven commits keep their history). The three predicted conflicts were resolved
+  as planned:
+  - `heptacert/frontend/package.json` — `main`'s side plus `next-intl ^4.14.5` (resolved
+    4.14.5; peers `next ^15`, `react ^18`) and the `i18n:translate` /
+    `i18n:translate:dry` scripts.
+  - `heptacert/frontend/package-lock.json` — `main`'s side regenerated with
+    `npm install` (+27 packages); `npm audit --omit=dev --audit-level=high` → 0
+    vulnerabilities.
+  - `docs/work-packages/README.md` — kept WP28 (data retention); the branch's i18n
+    packages are now **WP33–WP36** (files renamed; every cross-reference inside them and
+    in `docs/reference/I18N_INTERNATIONALIZATION_PLAN.md` updated).
+- **Regression caught in the merge and fixed.** The branch added
+  `export const config = { matcher: [...] }` to `middleware.ts`, skipping every path that
+  contains a dot. `main` has no matcher, and `LEGACY_TOKEN_ROUTES` redirects URLs whose
+  itsdangerous tokens (`payload.timestamp.signature`) contain dots — the matcher would
+  have silently disabled those redirects in production. The matcher is removed (next-intl
+  only needs the locale-prefixed paths, which the middleware already delegates) and
+  `src/test/middleware.test.ts` now pins both the redirect and the absence of a matcher.
+- **Branch files brought up to the Phase 0 contract.** The pilot page and
+  `LanguageSwitcher` added 10 light-only color utilities → moved to `surface-*`. The
+  switcher's hardcoded English label → new catalog key `language_switcher_label`.
+- **Catalogs.** 188 keys translated into `de`, `fr`, `es`, `it`, `pt`, `nl`, `ru` (187
+  added to `main` since July plus the new label). All nine catalogs now hold 678 keys with
+  matching placeholders. Each target file gained 200 lines and lost 0 — no existing
+  translation changed. Conventions to keep: `de`/`fr`/`nl` formal (Sie/vous/u), `es`/`it`
+  informal (tú/tu), `pt` is European Portuguese ("Iniciar sessão", "A carregar…"). Counted
+  strings use a "Label: {count}" form, because there is no plural support yet and
+  "{count} votes" reads wrongly for 1.
+- **Test infrastructure.** `vitest.config.mts` inlines `next-intl` (its ESM build imports
+  `next/server` without an extension, which Node's resolver rejects).
+  `src/test/nextConfig.test.ts` handles the plugin-wrapped `NextConfig` type and now also
+  asserts the security headers survive the wrap.
+- `src/lib/i18n.tsx`: the branch's comment said `Lang` stays tr/en "by design"; it now
+  says it stays tr/en until WP32 Phase 8.
+- **Verification:** `npm run check:ui` ✓ (every baseline unchanged; nine catalogs
+  consistent) · `npm test` 27/27 · `npx tsc --noEmit` ✓ · production build ✓ ·
+  end-to-end smoke **23/23** on the real standalone server: `/` 200; `/pricing` keeps its
+  own 307 → `/pricing/business` (200) — that redirect is in `src/app/pricing/page.tsx`,
+  not new; `/{tr,en,de,fr,es,it,pt,nl,ru}/i18n-pilot` 200 with localized titles (de and
+  ru asserted), `hreflang` alternates and a `/de` canonical; `/xx/i18n-pilot` 404; a
+  dotted legacy token URL 307 → `/verify-email?token=…` with the token intact;
+  `POST /mcp` proxied to the backend (401); OAuth discovery proxied (200); `POST` to a
+  page still 405; `X-Frame-Options` present.
+- **Gotcha (local only):** building on this machine nests the standalone entry at
+  `.next/standalone/OneDrive/Masaüstü/heptapus-certs/heptacert/frontend/server.js`,
+  because Next picks a higher output-tracing root from another lockfile in the home
+  directory. The Docker build context is the frontend folder, so there it stays at
+  `.next/standalone/server.js`.
+- **Not run: the Docker-based MCP smoke** — Docker Desktop was stopped. It was replaced by
+  a smoke of the real standalone server (`node .next/standalone/server.js`) built with
+  `NEXT_SERVER_API_BASE` pointing at a local mock backend, which exercises the same
+  rewrites. Run the Docker smoke before the next production deploy.
+- **Next:** Phase 2 — see "Next step" above.
 
 ### 2026-09-19 — Phase 0 done: `check:ui` guardrail
 
