@@ -24,7 +24,7 @@ dependency findings discovered during the audit have also been remediated.
 ### Verified working
 
 - Backend: 550 tests passed; syntax and critical flake8 checks passed.
-- Frontend: type check, production build, and 6 Vitest tests passed in the
+- Frontend: type check, production build, and 7 Vitest tests passed in the
   presentation-fix work; production `npm audit` currently reports 0 findings.
 - Documentation site: its patched Next.js Docker image built successfully,
   served the home/MCP/CLI pages, and production `npm audit` reports 0 findings.
@@ -190,26 +190,22 @@ markers without embedding a corrupted literal. A regression test scans every
 active backend Python source and fails when known mojibake markers or the Unicode
 replacement character is introduced. Archived LMS sources remain untouched.
 
-#### 8. Docker frontend build is slow and non-deterministic
+#### 8. Docker frontend build was slow and non-deterministic — resolved
 
-The frontend directory is about 1.08 GB locally: `.next` is about 555 MB and
-`node_modules` about 524 MB. There is no frontend `.dockerignore`; the observed
-build transferred roughly 649 MB of context. Its Dockerfile copies only
-`package.json`, runs `npm install` without `package-lock.json`, and therefore
-does not use the committed dependency graph. The build stalled at that step
-during the combined Compose build.
+The frontend now has a strict `.dockerignore`, installs the committed lockfile
+with `npm ci`, and produces a multi-stage Next.js standalone runtime image that
+runs as the unprivileged `nextjs` user. The verified Docker build transferred
+76.45 KB instead of the previously observed roughly 649 MB, reported zero npm
+vulnerabilities. Its temporary container served the home page and OAuth resource
+discovery with HTTP 200 while the unauthenticated MCP endpoint correctly returned
+401. The documentation Dockerfile also uses its committed lockfile.
 
-Add a strict `.dockerignore`, copy `package.json` plus `package-lock.json`, run
-`npm ci`, and use a multi-stage standalone Next.js image. Apply the same lockfile
-correction to the docs Dockerfile.
+#### 9. Backend image font step was broken — resolved
 
-#### 9. Backend image font step is broken and non-reproducible
-
-The backend Dockerfile calls `curl` and `fc-cache`, but the base image does not
-install either command first. The build logs show `curl: not found`, then every
-build falls back to `apt-get install fonts-dejavu-core`; `fc-cache` is silently
-ignored through `|| true`. Install the intended packages explicitly in one
-layer and remove the network download/fallback branch.
+The unreliable GitHub font download and silent fallback were removed. The
+backend image now installs `fontconfig` and `fonts-dejavu-core` explicitly in a
+single apt layer and clears package indexes. A clean image build succeeded and
+`fc-match` inside the resulting container resolved DejaVu Sans correctly.
 
 #### 10. CLI default host does not resolve
 
@@ -248,7 +244,7 @@ contract tests should come before a global percentage increase.
 
 #### 13. No browser-level critical journey suite
 
-The frontend currently has six focused Vitest tests. There is no active
+The frontend currently has seven focused Vitest tests. There is no active
 Playwright/Cypress suite proving login, event creation, registration, check-in,
 certificate issuance/verification, payment, presentation or portal journeys.
 Add a small Docker-backed browser suite and run it before deployment.
@@ -293,7 +289,8 @@ navigation entry so the shell is not presented as a complete hub.
    dependency probes, worker/scheduler heartbeats and Docker readiness checks.
 8. **Completed on current branch:** repair user-facing mojibake and add an
    automated source guard.
-9. Finish making the backend Docker build deterministic and small.
+9. **Completed on current branch:** make frontend installs/context deterministic,
+   produce a standalone runtime, and replace the backend's broken font fallback.
 10. Correct CLI defaults and all broken documentation URLs; add link/contract
    checks.
 11. Confirm whether paid checkout should be live; if yes, complete provider and

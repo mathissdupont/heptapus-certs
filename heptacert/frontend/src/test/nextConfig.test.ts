@@ -3,6 +3,10 @@ import { describe, expect, it } from "vitest";
 import nextConfig from "../../next.config.mjs";
 
 describe("backend-owned fallback rewrites", () => {
+  it("produces a standalone deployment artifact", () => {
+    expect(nextConfig.output).toBe("standalone");
+  });
+
   it("proxies MCP and OAuth discovery to the backend", async () => {
     const rewrites = await nextConfig.rewrites();
     const bySource = new Map(rewrites.map((rewrite) => [rewrite.source, rewrite.destination]));

@@ -15,6 +15,7 @@ const BACKEND_ORIGIN = (
 ).replace(/\/api\/?$/, "");
 
 const nextConfig = {
+  output: "standalone",
   async rewrites() {
     return [
       {
