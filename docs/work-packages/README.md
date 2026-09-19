@@ -71,6 +71,15 @@ see [FEATURE_ROADMAP_2026](../reference/FEATURE_ROADMAP_2026.md) for sequencing.
 (consider PWA + web-push as an interim step) and a native virtual/hybrid stage
 (streaming/breakout/virtual booths). See FEATURE_ROADMAP_2026 §3 Phase 4.
 
+### Phase 6 — Experience (proposed)
+| WP | Title | Outcome |
+|----|-------|---------|
+| [WP32](WP32-ui-overhaul-landing-onboarding-theming.md) | UI Overhaul: Landing, Onboarding, Theming & Multi-Language | Locale-routed landing, first-run onboarding, semantic tokens + dark theme, two-language lock removed |
+
+WP29–WP31 are intentionally skipped: the shelved `feat/i18n-public-ssr` branch uses
+WP28–WP31 for its i18n packages, which are renumbered when it merges (its WP28 collides
+with the data-retention WP28 above).
+
 ## Dependency overview
 
 ```
