@@ -23,7 +23,7 @@ dependency findings discovered during the audit have also been remediated.
 
 ### Verified working
 
-- Backend: 549 tests passed; syntax and critical flake8 checks passed.
+- Backend: 550 tests passed; syntax and critical flake8 checks passed.
 - Frontend: type check, production build, and 6 Vitest tests passed in the
   presentation-fix work; production `npm audit` currently reports 0 findings.
 - Documentation site: its patched Next.js Docker image built successfully,
@@ -181,17 +181,14 @@ configuration if monetization is intentionally paused; otherwise paid plan
 purchase is not operational and provider/webhook reconciliation needs a sandbox
 then production acceptance test.
 
-#### 7. User-visible backend text is corrupted
+#### 7. User-visible backend text was corrupted — resolved on current branch
 
-At least 50 `HTTPException(detail=...)` lines contain mojibake. Confirmed areas
-include badge calculation, certificate tiers, sponsors, raffle, account/profile
-updates, domain-scoped login and bulk generation. These strings are returned to
-the UI and can produce text such as corrupted versions of “Etkinlik bulunamadı”
-and “Yetkisiz erişim”.
-
-Repair UTF-8 strings with a scripted, reviewable mapping; do not blindly recode
-the entire 15k-line `main.py`. Add a source scan that rejects common mojibake
-sequences in user-facing literals.
+Corrupted UTF-8 text in active backend API errors, transactional email HTML,
+comments and labels was repaired in the seven affected source files. The legacy
+default-email-template repair now detects the common Windows-1252 mojibake
+markers without embedding a corrupted literal. A regression test scans every
+active backend Python source and fails when known mojibake markers or the Unicode
+replacement character is introduced. Archived LMS sources remain untouched.
 
 #### 8. Docker frontend build is slow and non-deterministic
 
@@ -238,7 +235,7 @@ Update docs from the generated OpenAPI schema and add link checking in CI.
 
 #### 12. Test breadth is high, but risk coverage remains shallow
 
-There are 513 explicit test functions and 549 collected cases for roughly 650
+There are 514 explicit test functions and 550 collected cases for roughly 650
 API operations. The last coverage run reported 44.47% total coverage, only just
 above the 40% CI floor. Previously observed low-coverage high-risk modules
 include agenda, meetings, OIDC SSO, analytics, email, CFP, tickets, learning
@@ -294,7 +291,8 @@ navigation entry so the shell is not presented as a complete hub.
    condition evaluation, template assignment and fail-closed validation.
 7. **Completed on current branch:** replace false-green health reporting with
    dependency probes, worker/scheduler heartbeats and Docker readiness checks.
-8. Repair user-facing mojibake and add an automated source guard.
+8. **Completed on current branch:** repair user-facing mojibake and add an
+   automated source guard.
 9. Finish making the backend Docker build deterministic and small.
 10. Correct CLI defaults and all broken documentation URLs; add link/contract
    checks.
@@ -306,7 +304,7 @@ navigation entry so the shell is not presented as a complete hub.
 
 ## Commands/evidence snapshot
 
-- Backend suite: `python -m pytest tests -q` → 549 passed, 36 warnings.
+- Backend suite: `python -m pytest tests -q` → 550 passed, 36 warnings.
 - Focused presentation suite: 11 passed.
 - Python critical lint: 0 syntax/undefined-name errors.
 - Frontend production dependency audit: 0 vulnerabilities.

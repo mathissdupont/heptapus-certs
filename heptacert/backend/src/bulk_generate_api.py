@@ -75,7 +75,7 @@ async def bulk_generate(
     if len(raw) > MAX_EXCEL_SIZE:
         raise HTTPException(
             status_code=413,
-            detail=f"Excel dosyasÃ„Â± ÃƒÂ§ok bÃƒÂ¼yÃƒÂ¼k. Maksimum {MAX_EXCEL_SIZE // (1024*1024)} MB.",
+            detail=f"Excel dosyası çok büyük. Maksimum {MAX_EXCEL_SIZE // (1024*1024)} MB.",
         )
     await scan_upload_with_clamav(raw)
     try:
@@ -100,7 +100,7 @@ async def bulk_generate(
     if not names:
         raise bad_request("No names found in Excel")
     if len(names) > 1000:
-        raise bad_request("Excel'de en fazla 1000 isim iÃ…Å¸lenebilir. DosyayÃ„Â± bÃƒÂ¶lerek tekrar deneyin.")
+        raise bad_request("Excel'de en fazla 1000 isim işlenebilir. Dosyayı bölerek tekrar deneyin.")
 
     # User
     res_u = await db.execute(select(User).where(User.id == me.id))
@@ -109,14 +109,14 @@ async def bulk_generate(
     ISSUE_UNITS_PER_CERT = 10
     HOSTING_ESTIMATE_UNITS = 20  # estimate per cert for early balance check
 
-    # Ã¢â€â‚¬Ã¢â€â‚¬ Early balance check (before any file I/O) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+    # ── Early balance check (before any file I/O) ───────────────────────────────
     estimated_total = len(names) * (ISSUE_UNITS_PER_CERT + HOSTING_ESTIMATE_UNITS)
     if user.heptacoin_balaonce < estimated_total:
         raise HTTPException(
             status_code=402,
             detail=f"Yetersiz HeptaCoin. TahminiGereksinim={estimated_total}, Bakiye={user.heptacoin_balaonce}",
         )
-    # Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+    # ──────────────────────────────────────────────────────────────────────────
 
     chunk_size = 5 if len(names) >= 500 else 10
 
@@ -236,7 +236,7 @@ async def download_bulk_generate_job_zip(
     if not job:
         raise HTTPException(status_code=404, detail="Bulk certificate job not found")
     if job.status != "completed" or not job.zip_file_path:
-        raise HTTPException(status_code=409, detail="Job henÃƒÂ¼z tamamlanmadÃ„Â±")
+        raise HTTPException(status_code=409, detail="Job henüz tamamlanmadı")
 
     zip_path = Path(settings.local_storage_dir) / job.zip_file_path
     if not zip_path.exists():

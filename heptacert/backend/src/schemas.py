@@ -1230,7 +1230,7 @@ class WebhookEndpointIn(BaseModel):
         except ValueError as exc:
             if "private" in str(exc) or "internal" in str(exc):
                 raise
-            # hostname is a domain name Ã¢â‚¬â€ block known internal hostnames
+            # hostname is a domain name — block known internal hostnames
             # These are values to reject, not an interface binding.
             blocked = ("localhost", "127.0.0.1", "0.0.0.0", "[::1]", "metadata.google", "169.254.169.254")  # nosec B104
             if any(hostname.lower().startswith(b) for b in blocked):

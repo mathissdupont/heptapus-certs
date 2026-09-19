@@ -60,10 +60,10 @@ async def create_sponsor_slot(
     e_res = await db.execute(select(Event).where(Event.id == event_id))
     event = e_res.scalar_one_or_none()
     if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
 
     if not await _can_manage_organization_event(db, current_user, event.admin_id):
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
 
     # Create sponsor slot
     sponsor_slot = SponsorSlot(
@@ -92,10 +92,10 @@ async def list_sponsors(
     e_res = await db.execute(select(Event).where(Event.id == event_id))
     event = e_res.scalar_one_or_none()
     if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
 
     if not await _can_manage_organization_event(db, current_user, event.admin_id):
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
 
     ss_res = await db.execute(
         select(SponsorSlot)
@@ -124,10 +124,10 @@ async def update_sponsor_slot(
     e_res = await db.execute(select(Event).where(Event.id == event_id))
     event = e_res.scalar_one_or_none()
     if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
 
     if not await _can_manage_organization_event(db, current_user, event.admin_id):
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
 
     # Get sponsor slot
     ss_res = await db.execute(
@@ -138,7 +138,7 @@ async def update_sponsor_slot(
     )
     sponsor_slot = ss_res.scalar_one_or_none()
     if not sponsor_slot:
-        raise HTTPException(status_code=404, detail="Sponsor bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Sponsor bulunamadı")
 
     # Update fields
     sponsor_slot.slot_position = sponsor_in.slot_position
@@ -166,10 +166,10 @@ async def delete_sponsor_slot(
     e_res = await db.execute(select(Event).where(Event.id == event_id))
     event = e_res.scalar_one_or_none()
     if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
 
     if not await _can_manage_organization_event(db, current_user, event.admin_id):
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
 
     # Get sponsor slot
     ss_res = await db.execute(
@@ -180,14 +180,14 @@ async def delete_sponsor_slot(
     )
     sponsor_slot = ss_res.scalar_one_or_none()
     if not sponsor_slot:
-        raise HTTPException(status_code=404, detail="Sponsor bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Sponsor bulunamadı")
 
     await db.delete(sponsor_slot)
     await db.commit()
 
     return {
         "status": "deleted",
-        "message": f"Sponsor '{sponsor_slot.sponsor_name}' kaldÃ„Â±rÃ„Â±ldÃ„Â±",
+        "message": f"Sponsor '{sponsor_slot.sponsor_name}' kaldırıldı",
     }
 
 

@@ -1154,7 +1154,7 @@ async def _build_participant_badge_items(
     return badge_items
 
 def editor_config_to_template_config(raw: dict) -> "TemplateConfig":
-    """Translate nested EditorConfig or flat legacy format â†’ TemplateConfig."""
+    """Translate nested EditorConfig or flat legacy format → TemplateConfig."""
     if "name" in raw and isinstance(raw.get("name"), dict):
         name    = raw["name"]
         cert_id = raw.get("cert_id") or {}

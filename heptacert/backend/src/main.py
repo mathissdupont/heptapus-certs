@@ -518,7 +518,7 @@ async def _sync_registration_option_capacities(db: AsyncSession, event: "Event")
             await db.delete(row)
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Payment DB models (created by migration 002) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Payment DB models (created by migration 002) ─────────────────────────────
 
 # OrderStatus -> enums.py (yukarida import edildi)
 
@@ -527,7 +527,7 @@ async def _sync_registration_option_capacities(db: AsyncSession, event: "Event")
 
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Enterprise DB models (created by migration 003) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Enterprise DB models (created by migration 003) ──────────────────────────
 
 
 
@@ -564,7 +564,7 @@ async def _sync_registration_option_capacities(db: AsyncSession, event: "Event")
 
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Email System Models (created by migration 008) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Email System Models (created by migration 008) ───────────────────────────
 
 
 
@@ -590,7 +590,7 @@ async def _sync_registration_option_capacities(db: AsyncSession, event: "Event")
 
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Attendaonce management models (migration 003) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Attendaonce management models (migration 003) ──────────────────────────────
 
 # AttendeeSource -> enums.py (yukarida import edildi)
 
@@ -605,7 +605,7 @@ async def _sync_registration_option_capacities(db: AsyncSession, event: "Event")
 
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Gamification: Badge Rules & Participant Badges Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Gamification: Badge Rules & Participant Badges ─────────────────────────
 
 
 
@@ -623,7 +623,7 @@ AttendanceRecord = AttendaonceRecord
 
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Certificate Tiers Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Certificate Tiers ───────────────────────────────────────────────────────
 
 
 
@@ -631,13 +631,13 @@ AttendanceRecord = AttendaonceRecord
 
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Survey System Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Survey System ───────────────────────────────────────────────────────────
 
 
 
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Sponsor Slots Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Sponsor Slots ───────────────────────────────────────────────────────────
 
 
 
@@ -766,7 +766,7 @@ from .event_team import (  # event_team.py'a tasindi (god-dosya bolme)
 
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Enterprise Pydantic models Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Enterprise Pydantic models ────────────────────────────────────────────────
 
 
 
@@ -780,7 +780,7 @@ from .event_team import (  # event_team.py'a tasindi (god-dosya bolme)
 
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Gamification & Survey Request/Response Models Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Gamification & Survey Request/Response Models ───────────────────────────
 
 
 
@@ -846,7 +846,7 @@ from .event_team import (  # event_team.py'a tasindi (god-dosya bolme)
 
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Email System Schemas Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Email System Schemas ──────────────────────────────────────────────────────
 
 
 
@@ -915,7 +915,7 @@ def hosting_units(term: str, asset_size_bytes: int) -> int:
     m = monthly_hosting_units(asset_size_bytes)
     if term == "monthly":
         return m
-    return m * 10  # yearly: 10 ay Ã¼cret
+    return m * 10  # yearly: 10 ay ücret
 
 
 
@@ -979,7 +979,7 @@ def _csv_safe(value: Any) -> str:
     return s
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Email token helpers Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Email token helpers ────────────────────────────────────────────────────────
 _email_signer: Optional[URLSafeTimedSerializer] = None
 
 def get_signer() -> URLSafeTimedSerializer:
@@ -1560,7 +1560,7 @@ async def send_email_async(
             "{{ unsubscribe_url }}" in html_body
             or "{{unsubscribe_url}}" in html_body
             or "topluluk güncellemeleri" in html_body.lower()
-            or "topluluk gÃ¼ncellemeleri" in html_body.lower()
+            or "topluluk güncellemeleri" in html_body.lower()
             or "topluluk guncellemeleri" in html_body.lower()
             or "topluluk guoncellemeleri" in html_body.lower()
         )
@@ -1916,7 +1916,7 @@ async def trigger_webhooks(
 
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ──────────────────────────────────────────────────────────────────────────────
 
 
 
@@ -2119,7 +2119,7 @@ except Exception:
 
 origins = [o.strip() for o in settings.cors_origins.split(",")] if settings.cors_origins else ["*"]
 # When wildcard, allow_credentials must be False (browser blocks credentials+wildcard per CORS spec).
-# JWT auth uses Authorization header Ã¢â‚¬â€ no cookies Ã¢â‚¬â€ so credentials=False is fine.
+# JWT auth uses Authorization header — no cookies — so credentials=False is fine.
 if origins == ["*"]:
     app.add_middleware(
         CORSMiddleware,
@@ -2139,7 +2139,7 @@ else:
     )
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Audit log middleware Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Audit log middleware ──────────────────────────────────────────────────────
 _AUDIT_SKIP_PREFIXES = (
     "/api/auth/", "/api/billing/webhook/", "/api/files/",
     "/api/verify/", "/api/pricing/", "/api/stats", "/api/billing/status",
@@ -2199,7 +2199,7 @@ async def organization_middleware(request: Request, call_next):
                         "settings": getattr(org, "settings", {}) or {},
                     }
         except Exception:
-            # Fail open: do not block requests if DB lookup fails Ã¢â‚¬â€ logging only.
+            # Fail open: do not block requests if DB lookup fails — logging only.
             logger.debug("organization_middleware: lookup failed for host %s", host)
 
     # If a human opens an API URL in the browser without Authorization, redirect
@@ -2557,7 +2557,11 @@ async def startup():
         ]
         repaired = 0
         for template, update_data in zip(system_templates[:2], default_template_updates):
-            if template.name != update_data["name"] or "Ä" in (template.body_html or "") or "Ä" in (template.subject_tr or ""):
+            legacy_mojibake_markers = ("\u00c2", "\u00c3", "\u00c4", "\u00c5")
+            template_text = f"{template.body_html or ''}\n{template.subject_tr or ''}"
+            if template.name != update_data["name"] or any(
+                marker in template_text for marker in legacy_mojibake_markers
+            ):
                 template.name = update_data["name"]
                 template.subject_tr = update_data["subject_tr"]
                 template.subject_en = update_data["subject_en"]
@@ -2609,17 +2613,17 @@ async def startup():
                             for c in data["certs"]
                         )
                         html = f"""
-                        <h2>Ã¢Å¡Â Ã¯Â¸Â BarÃ„Â±ndÃ„Â±rma SÃƒÂ¼resi Doluyor Ã¢â‚¬â€ {days_left} GÃƒÂ¼n</h2>
-                        <p>AÃ…Å¸aÃ„Å¸Ã„Â±daki sertifikalarÃ„Â±n barÃ„Â±ndÃ„Â±rma sÃƒÂ¼resi yakÃ„Â±nda dolacak. Yenilemek iÃƒÂ§in panele giriÃ…Å¸ yapÃ„Â±n.</p>
+                        <h2>⚠️ Barındırma Süresi Doluyor — {days_left} Gün</h2>
+                        <p>Aşağıdaki sertifikaların barındırma süresi yakında dolacak. Yenilemek için panele giriş yapın.</p>
                         <table border="1" cellpadding="6" style="border-collapse:collapse">
-                        <tr><th>KatÃ„Â±lÃ„Â±mcÃ„Â±</th><th>Etkinlik</th><th>BitiÃ…Å¸ Tarihi</th></tr>
+                        <tr><th>Katılımcı</th><th>Etkinlik</th><th>Bitiş Tarihi</th></tr>
                         {rows_html}
                         </table>
-                        <p><a href="{settings.frontend_base_url}/admin/events">Panele Git â†’</a></p>
+                        <p><a href="{settings.frontend_base_url}/admin/events">Panele Git →</a></p>
                         """
                         await send_email_async(
                             data["email"],
-                            f"Ã¢Å¡Â Ã¯Â¸Â HeptaCert: {len(data['certs'])} sertifikanÃ„Â±n barÃ„Â±ndÃ„Â±rma sÃƒÂ¼resi {days_left} gÃƒÂ¼nde doluyor",
+                            f"⚠️ HeptaCert: {len(data['certs'])} sertifikanın barındırma süresi {days_left} günde doluyor",
                             html,
                         )
 
@@ -3310,7 +3314,7 @@ async def startup():
             scheduler.add_job(_anonymize_expired_attendee_data, "cron", hour=3, minute=45)
             scheduler.add_job(_process_scheduled_reports, "interval", minutes=15)
             scheduler.start()
-            logger.info("APScheduler started Ã¢â‚¬â€ cert notifications + monthly HC renewal + system digest + bulk email processing + bulk certificate queue")
+            logger.info("APScheduler started — cert notifications + monthly HC renewal + system digest + bulk email processing + bulk certificate queue")
         else:
             logger.info("APScheduler skipped because ENABLE_SCHEDULER=false")
     except Exception as e:
@@ -4099,7 +4103,7 @@ async def _process_bulk_certificate_jobs() -> None:
                 logger.error("Bulk certificate queue processor failed for job=%s: %s", job_id, e)
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Badge Management Endpoints Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Badge Management Endpoints ────────────────────────────────────────────────
 
 async def _can_manage_organization_event(db: AsyncSession, me: CurrentUser, owner_user_id: int) -> bool:
     if me.role == Role.superadmin or owner_user_id == me.id:
@@ -4120,7 +4124,7 @@ async def create_or_update_badge_rules(
     e_res = await db.execute(select(Event).where(Event.id == event_id))
     event = e_res.scalar_one_or_none()
     if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
     
     if not await _can_manage_organization_event(db, current_user, event.admin_id):
         raise HTTPException(status_code=403, detail="Unauthorized")
@@ -4163,10 +4167,10 @@ async def get_badge_rules(
     e_res = await db.execute(select(Event).where(Event.id == event_id))
     event = e_res.scalar_one_or_none()
     if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
 
     if not await _can_manage_organization_event(db, current_user, event.admin_id):
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
 
     if not is_gamification_enabled(event):
         raise HTTPException(status_code=403, detail="Oyunlaştırma bu etkinlikte kapalı")
@@ -4190,10 +4194,10 @@ async def award_badge_manually(
     e_res = await db.execute(select(Event).where(Event.id == event_id))
     event = e_res.scalar_one_or_none()
     if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
 
     if not await _can_manage_organization_event(db, current_user, event.admin_id):
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
 
     if not is_gamification_enabled(event):
         raise HTTPException(status_code=403, detail="Oyunlaştırma bu etkinlikte kapalı")
@@ -4207,7 +4211,7 @@ async def award_badge_manually(
     )
     attendee = att_res.scalar_one_or_none()
     if not attendee:
-        raise HTTPException(status_code=404, detail="KatÃ„Â±lÃ„Â±mcÃ„Â± bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Katılımcı bulunamadı")
 
     # Check if badge already exists
     pb_res = await db.execute(
@@ -4219,7 +4223,7 @@ async def award_badge_manually(
     )
     existing_badge = pb_res.scalar_one_or_none()
     if existing_badge:
-        raise HTTPException(status_code=409, detail="Bu rozet zaten veriliÅŸ")
+        raise HTTPException(status_code=409, detail="Bu rozet zaten verilmiş")
 
     # Create badge
     new_badge = ParticipantBadge(
@@ -4250,10 +4254,10 @@ async def list_badges(
     e_res = await db.execute(select(Event).where(Event.id == event_id))
     event = e_res.scalar_one_or_none()
     if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
 
     if not await _can_manage_organization_event(db, current_user, event.admin_id):
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
 
     if not is_gamification_enabled(event):
         raise HTTPException(status_code=403, detail="Oyunlaştırma bu etkinlikte kapalı")
@@ -4452,10 +4456,10 @@ async def trigger_automatic_badge_calculation(
     e_res = await db.execute(select(Event).where(Event.id == event_id))
     event = e_res.scalar_one_or_none()
     if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
 
     if not await _can_manage_organization_event(db, current_user, event.admin_id):
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
 
     if not is_gamification_enabled(event):
         raise HTTPException(status_code=403, detail="Oyunlaştırma bu etkinlikte kapalı")
@@ -4466,12 +4470,12 @@ async def trigger_automatic_badge_calculation(
     )
     badge_rule = br_res.scalar_one_or_none()
     if not badge_rule:
-        raise HTTPException(status_code=404, detail="Bu etkinlik iÃƒÂ§in rozet kurallarÃ„Â± belirlenmemiÃ…Å¸")
+        raise HTTPException(status_code=404, detail="Bu etkinlik için rozet kuralları belirlenmemiş")
 
     if not badge_rule.enabled:
-        raise HTTPException(status_code=400, detail="Rozet sistemi bu etkinlik iÃƒÂ§in devre dÃ„Â±Ã…Å¸Ã„Â±")
+        raise HTTPException(status_code=400, detail="Rozet sistemi bu etkinlik için devre dışı")
     if not badge_rule.badge_definitions:
-        raise HTTPException(status_code=400, detail="Hesaplama iÃƒÂ§in en az bir rozet tanÃ„Â±mÃ„Â± gerekli")
+        raise HTTPException(status_code=400, detail="Hesaplama için en az bir rozet tanımı gerekli")
 
     # Get all attendees
     att_res = await db.execute(
@@ -4583,12 +4587,12 @@ async def trigger_automatic_badge_calculation(
 
     return {
         "status": "success",
-        "message": f"{created_count} rozet hesaplandÃ„Â± ve verildi",
+        "message": f"{created_count} rozet hesaplandı ve verildi",
         "badges_created": created_count,
     }
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Certificate Tier Endpoints Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Certificate Tier Endpoints ────────────────────────────────────────────────
 
 
 
@@ -4603,10 +4607,10 @@ async def assign_certificate_tiers(
     e_res = await db.execute(select(Event).where(Event.id == event_id))
     event = e_res.scalar_one_or_none()
     if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
 
     if not await _can_manage_organization_event(db, current_user, event.admin_id):
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
 
     # Get tier rules
     ctr_res = await db.execute(
@@ -4614,7 +4618,7 @@ async def assign_certificate_tiers(
     )
     tier_rule = ctr_res.scalar_one_or_none()
     if not tier_rule:
-        raise HTTPException(status_code=404, detail="Bu etkinlik iÃƒÂ§in sertifika seviyesi kurallarÃ„Â± belirlenmemiÃ…Å¸")
+        raise HTTPException(status_code=404, detail="Bu etkinlik için sertifika seviyesi kuralları belirlenmemiş")
 
     tier_definitions = tier_rule.tier_definitions or []
     if not isinstance(tier_definitions, list) or not tier_definitions:
@@ -4706,7 +4710,7 @@ async def assign_certificate_tiers(
 
     return {
         "status": "success",
-        "message": f"{assigned_count} sertifikaya seviye atandÃ„Â±",
+        "message": f"{assigned_count} sertifikaya seviye atandı",
         "certificates_assigned": assigned_count,
         "certificates_unmatched": unmatched_count,
         "certificates_considered": len(certificates),
@@ -4723,10 +4727,10 @@ async def get_tier_summary(
     e_res = await db.execute(select(Event).where(Event.id == event_id))
     event = e_res.scalar_one_or_none()
     if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
 
     if not await _can_manage_organization_event(db, current_user, event.admin_id):
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
 
     # Get tier distribution
     certs_res = await db.execute(
@@ -4754,7 +4758,7 @@ async def get_tier_summary(
     return tier_summary
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Survey Integration Endpoints Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Survey Integration Endpoints ──────────────────────────────────────────────
 
 
 
@@ -4801,7 +4805,7 @@ async def submit_builtin_survey(
     if not attendee:
         raise HTTPException(status_code=404, detail="Katlmc bulunamad")
     if token_email and attendee.email.lower() != token_email:
-        raise HTTPException(status_code=404, detail="KatÃ„Â±lÃ„Â±mcÃ„Â± bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Katılımcı bulunamadı")
 
     es_res = await db.execute(select(EventSurvey).where(EventSurvey.event_id == event_db_id))
     event_survey = es_res.scalar_one_or_none()
@@ -4955,10 +4959,10 @@ async def get_survey_responses(
     e_res = await db.execute(select(Event).where(Event.id == event_id))
     event = e_res.scalar_one_or_none()
     if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı")
 
     if not await _can_manage_organization_event(db, current_user, event.admin_id):
-        raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim")
 
     sr_res = await db.execute(
         select(SurveyResponse)
@@ -4996,7 +5000,7 @@ async def get_survey_responses(
     }
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Sponsor Management Endpoints Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Sponsor Management Endpoints ──────────────────────────────────────────────
 
 
 
@@ -5301,16 +5305,16 @@ async def login(request: Request, data: LoginIn, db: AsyncSession = Depends(get_
                             if allow_entry:
                                 allowed = True
                         except Exception:
-                            # DB problem when checking allowlist Ã¢â‚¬â€ fail closed
-                            raise HTTPException(status_code=500, detail="Alan adÃ„Â± eriÃ…Å¸imi doÃ„Å¸rulanamadÃ„Â±.")
+                            # DB problem when checking allowlist — fail closed
+                            raise HTTPException(status_code=500, detail="Alan adı erişimi doğrulanamadı.")
 
                     if not allowed:
-                        raise HTTPException(status_code=403, detail="Bu alan adÃ„Â± iÃƒÂ§in yalnÃ„Â±zca yetkili hesaplar giriÃ…Å¸ yapabilir.")
+                        raise HTTPException(status_code=403, detail="Bu alan adı için yalnızca yetkili hesaplar giriş yapabilir.")
     except HTTPException:
         raise
     except Exception:
         # If DB check fails for some reason, fail closed to be safe.
-        raise HTTPException(status_code=500, detail="Alan adÃ„Â± eriÃ…Å¸imi doÃ„Å¸rulanamadÃ„Â±.")
+        raise HTTPException(status_code=500, detail="Alan adı erişimi doğrulanamadı.")
 
     await write_audit_log(
         db,
@@ -6878,9 +6882,9 @@ async def _enqueue_superadmin_bulk_email_job(job_id: int) -> None:
         task.add_done_callback(_cleanup)
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Admin: Email Templates Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Admin: Email Templates ────────────────────────────────────────────────────
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Admin: Certificate Templates Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Admin: Certificate Templates ────────────────────────────────────────────
 
 @app.get(
     "/api/system/cert-templates",
@@ -6920,7 +6924,7 @@ async def apply_cert_template(
     )
     cert_template = ct_res.scalar_one_or_none()
     if not cert_template:
-        raise HTTPException(status_code=404, detail="Sertifika Ã…Å¸ablonu bulunamadÃ„Â±")
+        raise HTTPException(status_code=404, detail="Sertifika şablonu bulunamadı")
     
     # Update event with template image and config
     event.template_image_url = cert_template.template_image_url
@@ -6932,9 +6936,9 @@ async def apply_cert_template(
     return _event_to_out(event)
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Admin: Email Configuration (SMTP) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Admin: Email Configuration (SMTP) ────────────────────────────────────────
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Admin: Bulk Email Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Admin: Bulk Email ────────────────────────────────────────────────────────
 
 @app.post(
     "/api/admin/webhooks",
@@ -7174,7 +7178,7 @@ async def create_admin(payload: CreateAdminIn, db: AsyncSession = Depends(get_db
         password_hash=hash_password(payload.password),
         role=Role.admin,
         heptacoin_balaonce=0,
-        is_verified=True,  # superadmin tarafÃ„Â±ndan oluÃ…Å¸turulan hesaplar otomatik doÃ„Å¸rulanÃ„Â±r
+        is_verified=True,  # superadmin tarafından oluşturulan hesaplar otomatik doğrulanır
     )
     db.add(admin)
     await db.commit()
@@ -7191,7 +7195,7 @@ async def delete_admin(
     db: AsyncSession = Depends(get_db),
 ):
     if admin_id == me.id:
-        raise bad_request("Kendi hesabÃ„Â±nÃ„Â±zÃ„Â± silemezsiniz.")
+        raise bad_request("Kendi hesabınızı silemezsiniz.")
     res = await db.execute(select(User).where(User.id == admin_id))
     user = res.scalar_one_or_none()
     if not user:
@@ -7209,7 +7213,7 @@ async def change_admin_role(
     db: AsyncSession = Depends(get_db),
 ):
     if admin_id == me.id:
-        raise bad_request("Kendi rolÃƒÂ¼nÃƒÂ¼zÃƒÂ¼ deÃ„Å¸iÃ…Å¸tiremezsiniz.")
+        raise bad_request("Kendi rolünüzü değiştiremezsiniz.")
     res = await db.execute(select(User).where(User.id == admin_id))
     user = res.scalar_one_or_none()
     if not user:
@@ -7255,12 +7259,12 @@ async def credit_coins(payload: CreditCoinsIn, db: AsyncSession = Depends(get_db
     return {"admin_user_id": user.id, "new_balance": user.heptacoin_balaonce}
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Waitlist Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Waitlist ──────────────────────────────────────────────────────────────────
 
 @app.post("/api/waitlist", status_code=201)
 @limiter.limit("5/minute")
 async def join_waitlist(request: Request, data: WaitlistIn, db: AsyncSession = Depends(get_db)):
-    """Public endpoint Ã¢â‚¬â€ anyone can join the waitlist."""
+    """Public endpoint — anyone can join the waitlist."""
     existing = await db.execute(select(WaitlistEntry).where(WaitlistEntry.email == str(data.email)))
     if existing.scalar_one_or_none():
         return {"ok": True, "already_registered": True}
@@ -7287,7 +7291,7 @@ async def get_waitlist(db: AsyncSession = Depends(get_db)):
     }
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Pricing Config (public GET + superadmin PATCH) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Pricing Config (public GET + superadmin PATCH) ────────────────────────────
 
 @app.get("/api/pricing/config", response_model=PricingConfigOut)
 async def get_pricing_config(db: AsyncSession = Depends(get_db)):
@@ -7321,7 +7325,7 @@ async def update_pricing_config(payload: PricingConfigOut, db: AsyncSession = De
     return payload
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Public Stats Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Public Stats ──────────────────────────────────────────────────────────────
 
 DEFAULT_STATS = {
     "active_members": "12.4K+",
@@ -7341,7 +7345,7 @@ DEFAULT_STATS = {
 
 @app.get("/api/stats", response_model=StatsOut)
 async def get_public_stats(db: AsyncSession = Depends(get_db)):
-    """Public stats endpoint Ã¢â‚¬â€ returns display values (overridden by superadmin or real DB counts)."""
+    """Public stats endpoint — returns display values (overridden by superadmin or real DB counts)."""
     res = await db.execute(select(SystemConfig).where(SystemConfig.key == "stats"))
     cfg = res.scalar_one_or_none()
     overrides: dict = cfg.value if cfg else {}
@@ -7401,7 +7405,7 @@ async def update_stats_config(payload: StatsIn, db: AsyncSession = Depends(get_d
     return data
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Billing / Payment endpoints Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Billing / Payment endpoints ───────────────────────────────────────────────
 
 from .payments import get_provider, PaymentRequest  # noqa: E402
 
@@ -8153,10 +8157,10 @@ async def change_password(
     res = await db.execute(select(User).where(User.id == me.id))
     user = res.scalar_one()
     if not verify_password(data.current_password, user.password_hash):
-        raise bad_request("Mevcut Ã…Å¸ifre yanlÃ„Â±Ã…Å¸.")
+        raise bad_request("Mevcut şifre yanlış.")
     user.password_hash = hash_password(data.new_password)
     await db.commit()
-    return {"detail": "Ã…Âifre baÃ…Å¸arÃ„Â±yla gÃƒÂ¼oncellendi."}
+    return {"detail": "Şifre başarıyla güoncellendi."}
 
 
 @app.patch("/api/me/email", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
@@ -8168,16 +8172,16 @@ async def change_email(
     res = await db.execute(select(User).where(User.id == me.id))
     user = res.scalar_one()
     if not verify_password(data.current_password, user.password_hash):
-        raise bad_request("Mevcut Ã…Å¸ifre yanlÃ„Â±Ã…Å¸.")
+        raise bad_request("Mevcut şifre yanlış.")
     new_email_norm = str(data.new_email).strip().lower()
     exists = await db.execute(
         select(User).where(func.lower(User.email) == new_email_norm, User.id != me.id)
     )
     if exists.scalar_one_or_none():
-        raise bad_request("Bu e-posta adresi zaten kullanÃ„Â±mda.")
+        raise bad_request("Bu e-posta adresi zaten kullanımda.")
     user.email = new_email_norm
     await db.commit()
-    return {"detail": "E-posta baÃ…Å¸arÃ„Â±yla gÃƒÂ¼oncellendi."}
+    return {"detail": "E-posta başarıyla güoncellendi."}
 
 
 @app.delete("/api/me", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
@@ -9794,7 +9798,7 @@ async def verify(uuid: str, request: Request, db: AsyncSession = Depends(get_db)
 
     pdf_url = cert.pdf_url if cert.status == CertStatus.active else None
 
-    # Ã¢â€â‚¬Ã¢â€â‚¬ Record verification hit Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+    # ── Record verification hit ───────────────────────────────────────────────
     client_ip = request.client.host if request.client else None
     user_agent = request.headers.get("user-agent", "")
     referer = request.headers.get("referer", "")
@@ -9805,7 +9809,7 @@ async def verify(uuid: str, request: Request, db: AsyncSession = Depends(get_db)
         referer=referer[:512],
     ))
 
-    # Ã¢â€â‚¬Ã¢â€â‚¬ View count Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+    # ── View count ────────────────────────────────────────────────────────────
     count_res = await db.execute(
         select(func.count()).select_from(
             select(VerificationHit).where(VerificationHit.cert_uuid == uuid).subquery()
@@ -9813,7 +9817,7 @@ async def verify(uuid: str, request: Request, db: AsyncSession = Depends(get_db)
     )
     view_count = int(count_res.scalar_one() or 0) + 1  # +1 for current hit
 
-    # Ã¢â€â‚¬Ã¢â€â‚¬ Organization branding (match Host header to custom_domain) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+    # ── Organization branding (match Host header to custom_domain) ────────────
     branding: Optional[Dict[str, Any]] = None
     host = request.headers.get("host", "")
     if host:
@@ -9829,7 +9833,7 @@ async def verify(uuid: str, request: Request, db: AsyncSession = Depends(get_db)
                 "brand_color": org.brand_color,
             }
 
-    # Ã¢â€â‚¬Ã¢â€â‚¬ LinkedIn URL Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+    # ── LinkedIn URL ──────────────────────────────────────────────────────────
     canonical_verify_url = build_certificate_verify_url(uuid)
     linkedin_share_url: Optional[str] = None
     linkedin_add_url: Optional[str] = None
@@ -9854,7 +9858,7 @@ async def verify(uuid: str, request: Request, db: AsyncSession = Depends(get_db)
 
     await db.commit()
 
-    # Ã¢â€â‚¬Ã¢â€â‚¬ Watermarked PNG URL (only if the file was generated) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+    # ── Watermarked PNG URL (only if the file was generated) ──────────────────
     png_url: Optional[str] = None
     rel_png_path = f"pngs/event_{ev.id}/{cert.uuid}.png"
     abs_png_path = Path(settings.local_storage_dir) / rel_png_path
@@ -9897,12 +9901,12 @@ async def verify_watermark(
     """
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Sadece görsel dosyaları kabul edilir (PNG veya JPEG).")
-        raise HTTPException(status_code=400, detail="Sadece gÃƒÂ¶rsel dosyalarÃ„Â± kabul edilir (PNG, JPEG, Ã¢â‚¬Â¦)")
+        raise HTTPException(status_code=400, detail="Sadece görsel dosyaları kabul edilir (PNG, JPEG, …)")
 
     img_bytes = await file.read()
     if len(img_bytes) > 30 * 1024 * 1024:  # 30 MB guard
         raise HTTPException(status_code=413, detail="Dosya 30 MB sinirini asiyor.")
-        raise HTTPException(status_code=413, detail="Dosya 30 MB sÃ„Â±nÃ„Â±rÃ„Â±nÃ„Â± aÃ…Å¸Ã„Â±yor")
+        raise HTTPException(status_code=413, detail="Dosya 30 MB sınırını aşıyor")
 
     await _scan_upload_with_clamav(img_bytes)
 
@@ -9920,7 +9924,7 @@ async def verify_watermark(
         )
         return WatermarkVerifyOut(
             valid=False,
-            message="Bu gÃƒÂ¶rselde HeptaCert damgasÃ„Â± bulunamadÃ„Â±. Orijinal PNG dosyasÃ„Â±nÃ„Â± yÃƒÂ¼kleyin.",
+            message="Bu görselde HeptaCert damgası bulunamadı. Orijinal PNG dosyasını yükleyin.",
         )
 
     payload = payload.strip()
@@ -9951,7 +9955,7 @@ async def verify_watermark(
         )
         return WatermarkVerifyOut(
             valid=False,
-            message=f"Damga gÃƒÂ¶rÃƒÂ¼ldÃƒÂ¼ ({payload}) ancak veritabanÃ„Â±nda eÃ…Å¸leÃ…Å¸en sertifika bulunamadÃ„Â±.",
+            message=f"Damga görüldü ({payload}) ancak veritabanında eşleşen sertifika bulunamadı.",
             public_id=payload,
         )
 
@@ -9976,7 +9980,7 @@ async def verify_watermark(
     return WatermarkVerifyOut(
         valid=cert.status == CertStatus.active,
         message=(
-            f"Bu gÃƒÂ¶rsel geÃƒÂ§erli bir HeptaCert sertifika kaydÃ„Â±na ait."
+            f"Bu görsel geçerli bir HeptaCert sertifika kaydına ait."
             if cert.status == CertStatus.active
             else f"Sertifika bulundu ancak durumu: {cert.status.value}."
         ),
@@ -10269,7 +10273,7 @@ async def get_public_branding(request: Request, db: AsyncSession = Depends(get_d
     )
     org = result.scalar_one_or_none()
 
-    # EÃ„Å¸er custom domain yoksa fallback
+    # Eğer custom domain yoksa fallback
     if not org:
         return {
             "org_name": "HeptaCert",
@@ -10280,7 +10284,7 @@ async def get_public_branding(request: Request, db: AsyncSession = Depends(get_d
             }
         }
 
-    # settings ÃƒÂ§ek (senin DBÃ¢â‚¬â„¢de JSONB)
+    # settings çek (senin DB'de JSONB)
     settings_data = {}
 
     if hasattr(org, "settings") and org.settings:
@@ -10326,7 +10330,7 @@ async def list_certificates(
         if len(s) >= 2:
             # Sanitise: keep only alphanumeric, spaces, Turkish chars
             import re as _re
-            _safe_words = [w for w in _re.sub(r"[^\w\sÃƒÂ§Ã„Å¸Ã„Â±ÃƒÂ¶Ã…Å¸ÃƒÂ¼Ãƒâ€¡Ã„ÂÃ„Â°Ãƒâ€“Ã…ÂÃƒÅ“]", "", s).split() if w]
+            _safe_words = [w for w in _re.sub(r"[^\w\sçğıöşüÇĞİÖŞÜ]", "", s).split() if w]
             if _safe_words:
                 tsq_str = " & ".join([w + ":*" for w in _safe_words])
                 try:
@@ -10357,7 +10361,7 @@ async def list_certificates(
     items = res.scalars().all()
 
     def to_out(c: Certificate) -> CertificateOut:
-        # expired/revoked -> pdf kapalÃ„Â± (X)
+        # expired/revoked -> pdf kapalı (X)
         pdf_url = c.pdf_url if c.status == CertStatus.active else None
         return CertificateOut(
             id=c.id,
@@ -10782,9 +10786,9 @@ async def bulk_certificate_action(
     return {"ok": True, "processed": processed, "action": payload.action}
 
 
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+# ═══════════════════════════════════════════════════════════════════════════════
 # Certificate Export (CSV / XLSX)
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+# ═══════════════════════════════════════════════════════════════════════════════
 
 @app.get(
     "/api/admin/events/{event_id}/certificates/export",
@@ -10853,9 +10857,9 @@ async def export_certificates(
         )
 
 
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+# ═══════════════════════════════════════════════════════════════════════════════
 # Dashboard Analytics
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+# ═══════════════════════════════════════════════════════════════════════════════
 
 @app.get(
     "/api/admin/dashboard/stats",
@@ -10936,9 +10940,9 @@ async def dashboard_stats(
     )
 
 
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+# ═══════════════════════════════════════════════════════════════════════════════
 # Superadmin System Health
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+# ═══════════════════════════════════════════════════════════════════════════════
 
 @app.get(
     "/api/superadmin/system-health",
@@ -11010,9 +11014,9 @@ async def system_health(db: AsyncSession = Depends(get_db)):
     }
 
 
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+# ═══════════════════════════════════════════════════════════════════════════════
 # Superadmin Subscription Management
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+# ═══════════════════════════════════════════════════════════════════════════════
 
 
 
@@ -11054,12 +11058,12 @@ async def grant_subscription(payload: GrantSubscriptionIn, db: AsyncSession = De
     user_res = await db.execute(select(User).where(User.email == payload.user_email))
     user = user_res.scalar_one_or_none()
     if not user:
-        raise HTTPException(status_code=404, detail="KullanÃ„Â±cÃ„Â± bulunamadÃ„Â±.")
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
 
     # Validate plan_id
     valid_plans = [t["id"] for t in DEFAULT_PRICING]
     if payload.plan_id not in valid_plans:
-        raise HTTPException(status_code=400, detail=f"GeÃ§ersiz plan. GeÃ§erli planlar: {', '.join(valid_plans)}")
+        raise HTTPException(status_code=400, detail=f"Geçersiz plan. Geçerli planlar: {', '.join(valid_plans)}")
 
     # Deactivate all existing active subscriptions for this user
     await db.execute(
@@ -11110,15 +11114,15 @@ async def revoke_subscription(sub_id: int, db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(Subscription).where(Subscription.id == sub_id))
     sub = res.scalar_one_or_none()
     if not sub:
-        raise HTTPException(status_code=404, detail="Abonelik bulunamadÃ„Â±.")
+        raise HTTPException(status_code=404, detail="Abonelik bulunamadı.")
     sub.is_active = False
     await db.commit()
     return {"detail": "Abonelik iptal edildi."}
 
 
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+# ═══════════════════════════════════════════════════════════════════════════════
 # Magic Link Authentication
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+# ═══════════════════════════════════════════════════════════════════════════════
 
 @app.post("/api/auth/magic-link")
 @limiter.limit("3/minute")
@@ -11184,17 +11188,17 @@ async def verify_magic_link(
     )
 
 
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+# ═══════════════════════════════════════════════════════════════════════════════
 # Template History
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+# ═══════════════════════════════════════════════════════════════════════════════
 
 
 
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+# ═══════════════════════════════════════════════════════════════════════════════
 # Attendaonce Management
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+# ═══════════════════════════════════════════════════════════════════════════════
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Pydantic schemas for attendaonce Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Pydantic schemas for attendaonce ────────────────────────────────────────
 
 
 
@@ -11315,7 +11319,7 @@ def _build_attendee_register_webhook_payload(
 
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Helper: resolve event + ownership Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Helper: resolve event + ownership ───────────────────────────────────────
 
 
 
@@ -11418,7 +11422,7 @@ async def _get_event_for_owner(event_id: int, me: CurrentUser, db: AsyncSession)
 
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Public: event info & self-register Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Public: event info & self-register ──────────────────────────────────────
 
 
 
@@ -12423,7 +12427,7 @@ async def verify_attendee_email(event_id: str, token: str = Query(...), db: Asyn
     }
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Public: QR check-in Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Public: QR check-in ─────────────────────────────────────────────────
 @app.post("/api/events/{event_id}/resend-verification")
 @limiter.limit("3/hour")
 async def resend_attendee_verification_email(
@@ -12777,7 +12781,7 @@ async def update_support_ticket(
     return ticket
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Admin: Sessions Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Admin: Sessions ────────────────────────────────────────────────────────────────
 
 @app.get("/api/admin/events/{event_id}/sessions", dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)])
 async def list_sessions(
@@ -12942,13 +12946,13 @@ async def get_session_qr(
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    # Event sahibinin organization/domain bilgisini Ã§ek
+    # Event sahibinin organization/domain bilgisini çek
     org_res = await db.execute(
         select(Organization).where(Organization.user_id == ev.admin_id)
     )
     org = org_res.scalar_one_or_none()
 
-    # Ã–oncelik: organization custom domain
+    # Öncelik: organization custom domain
     if org and org.custom_domain:
         checkin_url = f"https://{org.custom_domain}/attend/{session.checkin_token}"
     else:
@@ -12974,7 +12978,7 @@ async def get_session_qr(
         media_type="image/png",
         headers={"X-Checkin-URL": checkin_url},
     )
-# Ã¢â€â‚¬Ã¢â€â‚¬ Admin: Attendees Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Admin: Attendees ────────────────────────────────────────────────────────────────
 
 @app.get("/api/admin/events/{event_id}/attendees", dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)])
 async def list_attendees(
@@ -13486,14 +13490,14 @@ async def import_attendees(
         else:
             df = pd.read_excel(io.BytesIO(content))
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Dosya okunamadÃ„Â±: {e}")
+        raise HTTPException(status_code=400, detail=f"Dosya okunamadı: {e}")
 
     # Find name and email columns (case-insensitive)
     col_map = {c.lower(): c for c in df.columns}
     name_col = col_map.get("name") or col_map.get("ad") or col_map.get("isim")
     email_col = col_map.get("email") or col_map.get("e-posta") or col_map.get("eposta")
     if not name_col or not email_col:
-        raise HTTPException(status_code=400, detail="'name' ve 'email' kolonlarÃ„Â± gerekli")
+        raise HTTPException(status_code=400, detail="'name' ve 'email' kolonları gerekli")
 
     # Cap import size: each row runs DB work, so an unbounded file is a DoS vector.
     _MAX_IMPORT_ROWS = 10000
@@ -13638,7 +13642,7 @@ async def delete_attendee(
     return {"ok": True}
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Admin: Attendaonce matrix & manual check-in Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Admin: Attendaonce matrix & manual check-in ───────────────────────────────
 
 @app.post(
     "/api/admin/events/{event_id}/sessions/{session_id}/checkin",
@@ -14038,7 +14042,7 @@ async def get_attendaonce_matrix(
         )
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Admin: Bulk certify Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Admin: Bulk certify ─────────────────────────────────────────────────────────────────
 
 
 
@@ -14354,9 +14358,9 @@ async def bulk_certify_attendees_queue(
     return job
 
 
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+# ═══════════════════════════════════════════════════════════════════════════════
 # Admin: Transaction list (paginated)
-# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+# ═══════════════════════════════════════════════════════════════════════════════
 
 @app.get(
     "/api/admin/transactions/list",
@@ -14386,7 +14390,7 @@ async def list_my_transactions_paginated(
     }
 
 
-# Ã¢â€â‚¬Ã¢â€â‚¬ Public: Email Unsubscribe Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# ── Public: Email Unsubscribe ────────────────────────────────────────────────
 
 # ═════ SUPERADMIN: AUDIT LOGS ═════
 
@@ -15502,6 +15506,4 @@ async def _stop_mcp_session_manager():
             await cm.__aexit__(None, None, None)
         except Exception:
             logger.exception("Error while stopping MCP session manager")
-
-
 

@@ -262,7 +262,10 @@ async def draw_event_raffle(
     event = await _get_event_for_admin(event_id, me, db, "settings:write")
     raffle = await _get_raffle_for_admin(event_id, raffle_id, me, db)
     if raffle.winners:
-        raise HTTPException(status_code=400, detail="Kazananlar zaten ÃƒÂ§ekildi. Yeni tur iÃƒÂ§in tekrar ÃƒÂ§ek kullanÃ„Â±n")
+        raise HTTPException(
+            status_code=400,
+            detail="Kazananlar zaten çekildi. Yeni bir tur için tekrar çekiliş yapın.",
+        )
     attendees, attendaonce_counts = await _get_event_attendaonce_counts(event_id, db)
     selected_winners = _pick_raffle_winners(
         raffle,
