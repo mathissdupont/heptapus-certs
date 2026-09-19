@@ -23,9 +23,9 @@ Re-measure before starting a phase.
 |---|---|
 | Landing bypasses the design system | `_home-client.tsx` (726 lines) uses `slate-*` and `bg-[#fafafa]` instead of `surface-*`/`brand-*` |
 | Landing copy is not in the catalog | Inline `lang === "tr" ? {...} : {...}`, while `src/locales/{tr,en}.ts` holds `home_hero_*`, `feat_*`, `step*` keys describing an **older** landing — catalog and screen have diverged |
-| **`{ tr, en }[lang]` maps — crash on a third language** | 14 files (all admin: `IssueCertificateModal`, `ImportAttendeeModal`, `EventAdminNav`, `CreateEventDrawer`, `CommandPalette`, `AddAttendeeModal`, `admin/venues`, `admin/reservations`, `admin/dashboard`, …). They return `undefined` for any other language. This is why `Lang` is still locked to `"tr" \| "en"` |
-| Binary language checks — third language silently falls to English | 583 occurrences of `lang ===`/`!==` against `tr`/`en`, across 134 files |
-| Binary locale formatting | 43 `lang === "tr" ? "tr-TR" : "en-US"` date/number switches |
+| **`[lang]` lookups — crash on a third language** | 37: 14 inline `{ tr, en }[lang]` maps (all admin: `IssueCertificateModal`, `ImportAttendeeModal`, `EventAdminNav`, `CreateEventDrawer`, `CommandPalette`, `AddAttendeeModal`, `admin/venues`, `admin/reservations`, `admin/dashboard`, …) plus 23 named lookups such as `label[lang]` (13) and `item[lang]` (5). They return `undefined` for any other language. This is why `Lang` is still locked to `"tr" \| "en"` |
+| Binary language checks — third language silently falls to English | 587 `lang`/`locale` comparisons against `tr`/`en` (incl. `.startsWith("tr")`), across 134 files |
+| Binary locale formatting | 55 `? "tr-TR" : "en-US"` switches; 165 hardcoded `"tr-TR"`/`"en-US"` tags in total |
 | Heaviest offenders | `lib/assistant/eventDraft.ts` (48), `admin/events/[id]/settings/page.tsx` (48), `components/Admin/AIAssistant.tsx` (44), `post/[postId]/page.tsx` (25), `admin/superadmin/system-digest/page.tsx` (23) |
 | **Native date/time inputs** | 14 browser-native `date` / `datetime-local` / `time` inputs in 7 files: `admin/events/[id]/cfp` (5), `admin/reservations` (2), `admin/training` (2), `admin/accreditation` (2), `admin/crm` (1), `components/Admin/RetentionPolicyFields` (1), and the attendee-facing `events/[id]/networking` (1). They render in the **browser's** locale rather than the app's language and ignore the theme |
 | **Design-system pickers exist but are thin** | `components/Admin/{DateField,TimeField,DateTimeField}.tsx`, used in only 4 files (`CreateEventDrawer`, event `settings`, `sessions`, `schedule-email`). No keyboard navigation, no ARIA roles, no Escape-to-close or focus return; hardcoded Turkish strings (`Saat`, `Dakika`, `Temizle`, `Tamam`); minutes limited to 00/15/30/45; hardcoded light colors; 32px day cells; `DateTimeField` computes today's date with `toISOString()` (UTC), which yields yesterday between 00:00 and 03:00 in Turkey |
@@ -180,10 +180,13 @@ still returns 401 unauthenticated.
 
 ### Phase 2 — Unlock more than two languages
 
-1. Replace the 14 `{ tr, en }[lang]` maps with catalog keys. Where a full migration is not
-   yet done, the interim guard is `map[lang] ?? map.en` — never a bare index.
-2. Replace the 43 `tr-TR`/`en-US` switches with one helper that derives the BCP-47 tag from
-   the active language; `Intl` already handles all nine.
+1. Replace the 37 `[lang]` lookups (14 inline `{ tr, en }[lang]` maps and 23 named ones
+   such as `label[lang]`) with catalog keys. Where a full migration is not yet done, the
+   interim guard is `value[lang] ?? value.en` — never a bare index. `check:ui` counts bare
+   indexes only, so the guarded form lowers the count.
+2. Replace the 55 `tr-TR`/`en-US` switches, and the other hardcoded tags, with one helper
+   at `src/lib/localeTag.ts` that derives the BCP-47 tag from the active language; `Intl`
+   already handles all nine. (`check:ui` already exempts that path.)
 3. Add a regression test that renders each fixed component with a language other than
    `tr`/`en` and asserts it does not crash.
 
@@ -321,7 +324,7 @@ silently; tests; build.
   half-dark at any point.
 - A new organizer reaches a guided first run that resumes from real server state.
 - `check:ui` passes with every baseline strictly below the Phase 0 values, and zero
-  `{ tr, en }[lang]` maps.
+  bare `[lang]` lookups.
 - `npm test`, `npx tsc --noEmit`, `npm run build`, the backend suite, and the Docker MCP
   smoke all pass.
 
