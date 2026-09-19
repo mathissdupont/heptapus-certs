@@ -96,6 +96,7 @@ __all__ = [
     "BadgeRulesOut",
     "ParticipantBadgeOut",
     "AwardBadgeIn",
+    "CertificateTierCondition",
     "CertificateTierDefinition",
     "CertificateTierRulesIn",
     "CertificateTierRulesOut",
@@ -1000,17 +1001,73 @@ class AwardBadgeIn(BaseModel):
     badge_metadata: Optional[Dict[str, Any]] = Field(default=None)
 
 
+class CertificateTierCondition(BaseModel):
+    """One supported, type-checked certificate tier condition."""
+
+    field: Literal[
+        "sessions_attended",
+        "attendance_rate",
+        "registration_rank",
+        "survey_completed",
+        "email_verified",
+        "can_download_cert",
+        "approval_status",
+        "registration_source",
+    ]
+    operator: Literal["eq", "ne", "gt", "gte", "lt", "lte", "in", "not_in"] = "eq"
+    value: Any
+
+    @model_validator(mode="after")
+    def validate_operator_and_value(self) -> "CertificateTierCondition":
+        numeric_fields = {"sessions_attended", "attendance_rate", "registration_rank"}
+        boolean_fields = {"survey_completed", "email_verified", "can_download_cert"}
+
+        if self.field in numeric_fields:
+            if self.operator in {"in", "not_in"} or isinstance(self.value, bool) or not isinstance(self.value, (int, float)):
+                raise ValueError(f"{self.field} requires a numeric value and comparison operator")
+            if self.field == "attendance_rate" and not 0 <= float(self.value) <= 100:
+                raise ValueError("attendance_rate must be between 0 and 100")
+            if self.field in {"sessions_attended", "registration_rank"} and self.value < 0:
+                raise ValueError(f"{self.field} cannot be negative")
+        elif self.field in boolean_fields:
+            if self.operator not in {"eq", "ne"} or not isinstance(self.value, bool):
+                raise ValueError(f"{self.field} requires a boolean value with eq or ne")
+        else:
+            if self.operator in {"gt", "gte", "lt", "lte"}:
+                raise ValueError(f"{self.field} does not support ordered comparison")
+            if self.operator in {"in", "not_in"}:
+                if not isinstance(self.value, list) or not self.value or not all(isinstance(item, str) for item in self.value):
+                    raise ValueError(f"{self.field} requires a non-empty string list for {self.operator}")
+            elif not isinstance(self.value, str):
+                raise ValueError(f"{self.field} requires a string value")
+        return self
+
+
 class CertificateTierDefinition(BaseModel):
-    """Definition of a certificate tier"""
-    tier_name: str = Field(min_length=1, max_length=100)
+    """Definition of a certificate tier; the first matching definition wins."""
+    tier_name: str = Field(min_length=1, max_length=50)
     template_id: Optional[int] = Field(default=None, gt=0)
-    conditions: List[Dict[str, Any]] = Field(default_factory=list)
-    condition_logic: str = Field(default="AND")  # AND or OR
+    conditions: List[CertificateTierCondition] = Field(default_factory=list)
+    condition_logic: Literal["AND", "OR"] = "AND"
 
 
 class CertificateTierRulesIn(BaseModel):
     """Request to define certificate tier rules for an event"""
     tier_definitions: List[CertificateTierDefinition] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_tier_order(self) -> "CertificateTierRulesIn":
+        names = [definition.tier_name.casefold() for definition in self.tier_definitions]
+        if len(names) != len(set(names)):
+            raise ValueError("tier names must be unique")
+        fallback_indexes = [
+            index for index, definition in enumerate(self.tier_definitions) if not definition.conditions
+        ]
+        if len(fallback_indexes) > 1:
+            raise ValueError("only one fallback tier without conditions is allowed")
+        if fallback_indexes and fallback_indexes[0] != len(self.tier_definitions) - 1:
+            raise ValueError("the fallback tier must be the last tier definition")
+        return self
 
 
 class CertificateTierRulesOut(BaseModel):
@@ -1019,7 +1076,7 @@ class CertificateTierRulesOut(BaseModel):
     id: int
     event_id: int
     tier_definitions: List[Dict[str, Any]]
-    created_at: datetime
+    created_at: Optional[datetime] = None
     updated_at: datetime
 
 

@@ -281,6 +281,7 @@ REGISTRATION_DEVICE_COOKIE = "heptacert_reg_device"
 
 
 from .models import *  # noqa: F401,F403  (modeller models.py'a tasindi)
+from .certificate_tier_rules import select_certificate_tier
 
 
 
@@ -4589,7 +4590,7 @@ async def assign_certificate_tiers(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Assign certificate tiers to all attendees based on the defined rules."""
+    """Assign the first matching configured tier to active, unassigned certificates."""
     # Check authorization
     e_res = await db.execute(select(Event).where(Event.id == event_id))
     event = e_res.scalar_one_or_none()
@@ -4607,6 +4608,10 @@ async def assign_certificate_tiers(
     if not tier_rule:
         raise HTTPException(status_code=404, detail="Bu etkinlik iÃƒÂ§in sertifika seviyesi kurallarÃ„Â± belirlenmemiÃ…Å¸")
 
+    tier_definitions = tier_rule.tier_definitions or []
+    if not isinstance(tier_definitions, list) or not tier_definitions:
+        raise HTTPException(status_code=400, detail="Atama için en az bir sertifika seviyesi gerekli")
+
     # Get all certificates that don't have a tier yet
     certs_res = await db.execute(
         select(Certificate)
@@ -4619,15 +4624,75 @@ async def assign_certificate_tiers(
     )
     certificates = certs_res.scalars().all()
 
+    attendees_res = await db.execute(select(Attendee).where(Attendee.event_id == event_id))
+    attendees = attendees_res.scalars().all()
+    attendees_by_id = {attendee.id: attendee for attendee in attendees}
+
+    attendees_by_name: dict[str, Attendee] = {}
+    duplicate_names: set[str] = set()
+    for attendee in attendees:
+        normalized_name = attendee.name.strip().casefold()
+        if normalized_name in attendees_by_name:
+            duplicate_names.add(normalized_name)
+        else:
+            attendees_by_name[normalized_name] = attendee
+    for duplicate_name in duplicate_names:
+        attendees_by_name.pop(duplicate_name, None)
+
+    total_sessions_res = await db.execute(
+        select(func.count()).select_from(EventSession).where(EventSession.event_id == event_id)
+    )
+    total_sessions = int(total_sessions_res.scalar() or 0)
+
+    attendance_counts: dict[int, int] = {}
+    if attendees:
+        attendance_res = await db.execute(
+            select(AttendaonceRecord.attendee_id, func.count(AttendaonceRecord.id))
+            .join(EventSession, EventSession.id == AttendaonceRecord.session_id)
+            .where(
+                AttendaonceRecord.attendee_id.in_(attendees_by_id),
+                EventSession.event_id == event_id,
+            )
+            .group_by(AttendaonceRecord.attendee_id)
+        )
+        attendance_counts = {attendee_id: int(count) for attendee_id, count in attendance_res.all()}
+
+    registration_ranks = {
+        attendee.id: index
+        for index, attendee in enumerate(
+            sorted(attendees, key=lambda item: (item.registered_at, item.id)), start=1
+        )
+    }
+
     assigned_count = 0
+    unmatched_count = 0
     for cert in certificates:
-        # For simplicity, assign first matching tier
-        # In production, implement complex condition evaluation
-        for tier_def in tier_rule.tier_definitions or []:
-            tier_name = tier_def.get("tier_name", "Unknown")
-            cert.certificate_tier = tier_name
-            assigned_count += 1
-            break
+        attendee = attendees_by_id.get(cert.attendee_id) if cert.attendee_id else None
+        if attendee is None:
+            attendee = attendees_by_name.get(cert.student_name.strip().casefold())
+
+        metrics: dict[str, Any] = {}
+        if attendee is not None:
+            sessions_attended = attendance_counts.get(attendee.id, 0)
+            metrics = {
+                "sessions_attended": sessions_attended,
+                "attendance_rate": (sessions_attended / total_sessions * 100) if total_sessions else 0.0,
+                "registration_rank": registration_ranks[attendee.id],
+                "survey_completed": attendee.survey_completed_at is not None,
+                "email_verified": attendee.email_verified,
+                "can_download_cert": attendee.can_download_cert,
+                "approval_status": attendee.approval_status,
+                "registration_source": attendee.source,
+            }
+
+        tier_definition = select_certificate_tier(tier_definitions, metrics)
+        if tier_definition is None:
+            unmatched_count += 1
+            continue
+
+        cert.certificate_tier = tier_definition["tier_name"]
+        cert.tier_template_id = tier_definition.get("template_id")
+        assigned_count += 1
 
     await db.commit()
 
@@ -4635,6 +4700,8 @@ async def assign_certificate_tiers(
         "status": "success",
         "message": f"{assigned_count} sertifikaya seviye atandÃ„Â±",
         "certificates_assigned": assigned_count,
+        "certificates_unmatched": unmatched_count,
+        "certificates_considered": len(certificates),
     }
 
 

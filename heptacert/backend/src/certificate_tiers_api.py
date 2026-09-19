@@ -35,6 +35,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from .main import (
     AsyncSession,
+    CertificateTemplate,
     CertificateTierRule,
     CertificateTierRulesIn,
     CertificateTierRulesOut,
@@ -65,6 +66,23 @@ async def create_or_update_tier_rules(
     if not await _can_manage_organization_event(db, current_user, event.admin_id):
         raise HTTPException(status_code=403, detail="Yetkisiz eriÅŸim")
 
+    template_ids = {
+        definition.template_id
+        for definition in tier_rules_in.tier_definitions
+        if definition.template_id is not None
+    }
+    if template_ids:
+        template_res = await db.execute(
+            select(CertificateTemplate.id).where(CertificateTemplate.id.in_(template_ids))
+        )
+        found_template_ids = set(template_res.scalars().all())
+        missing_template_ids = sorted(template_ids - found_template_ids)
+        if missing_template_ids:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Geçersiz sertifika şablonu: {missing_template_ids}",
+            )
+
     # Check if rules exist
     ctr_res = await db.execute(
         select(CertificateTierRule).where(CertificateTierRule.event_id == event_id)
@@ -73,13 +91,13 @@ async def create_or_update_tier_rules(
 
     if tier_rule:
         tier_rule.tier_definitions = [t.model_dump() for t in tier_rules_in.tier_definitions]
-        tier_rule.updated_at = datetime.utcnow()
+        tier_rule.updated_at = datetime.now(timezone.utc)
     else:
         tier_rule = CertificateTierRule(
             event_id=event_id,
             tier_definitions=[t.model_dump() for t in tier_rules_in.tier_definitions],
             created_by=current_user.id,
-            updated_at=datetime.utcnow(),
+            updated_at=datetime.now(timezone.utc),
         )
         db.add(tier_rule)
 

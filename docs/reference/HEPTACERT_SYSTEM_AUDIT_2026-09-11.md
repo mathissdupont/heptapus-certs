@@ -14,14 +14,15 @@ test used only the isolated local Docker database and storage.
 The certificate/event core is broad and the automated suite is green, but the
 product is not yet uniformly production-ready. Presentation upload now works
 end to end after two rounds of fixes. The exposed LMS portal and MCP routing
-defects have been remediated on the current branch. The highest remaining risks
-are misleading health reporting and a certificate-tier evaluator that ignores
-its configured conditions. The dependency findings discovered during the audit
-have also been remediated on the current branch.
+defects have been remediated on the current branch. Certificate-tier assignment
+now evaluates validated conditions instead of assigning the first tier to every
+certificate. The highest remaining risk is misleading health reporting. The
+dependency findings discovered during the audit have also been remediated on
+the current branch.
 
 ### Verified working
 
-- Backend: 542 tests passed; syntax and critical flake8 checks passed.
+- Backend: 546 tests passed; syntax and critical flake8 checks passed.
 - Frontend: type check, production build, and 3 Vitest tests passed in the
   presentation-fix work; production `npm audit` currently reports 0 findings.
 - Documentation site: its patched Next.js Docker image built successfully,
@@ -137,13 +138,19 @@ protocol version `2025-06-18` when an Authorization header was supplied.
 Production will continue returning the old 404/405 behavior until the updated
 frontend image or the documented Caddy route is deployed.
 
-#### 4. Certificate tier rules are not evaluated
+#### 4. Certificate tier rules were not evaluated — resolved on current branch
 
-`assign_certificate_tiers` currently loops over configured tier definitions and
-assigns the first tier to every active certificate without a tier. The source
-itself notes that complex condition evaluation is still to be implemented.
-This can silently issue incorrect credential tiers and must not be exposed as a
-finished feature.
+`assign_certificate_tiers` previously assigned the first configured tier to
+every active certificate. It now evaluates ordered AND/OR conditions for
+attendance rate, attended sessions, registration rank, survey completion,
+email verification, certificate eligibility, approval status and registration
+source. The first matching tier wins; one final conditionless tier can be used
+as an explicit fallback. Invalid fields/operators, duplicate names, shadowing
+fallbacks and nonexistent template IDs are rejected when rules are saved.
+Assignments also persist the tier template ID and report unmatched counts.
+Malformed legacy JSON fails closed rather than silently issuing a tier. API and
+pure evaluator regression tests cover Gold/Silver/fallback selection and input
+validation.
 
 ### P1 — high priority
 
@@ -224,7 +231,7 @@ Update docs from the generated OpenAPI schema and add link checking in CI.
 
 #### 12. Test breadth is high, but risk coverage remains shallow
 
-There are 506 explicit test functions and 542 collected cases for roughly 650
+There are 510 explicit test functions and 546 collected cases for roughly 650
 API operations. The last coverage run reported 44.47% total coverage, only just
 above the 40% CI floor. Previously observed low-coverage high-risk modules
 include agenda, meetings, OIDC SSO, analytics, email, CFP, tickets, learning
@@ -276,7 +283,8 @@ navigation entry so the shell is not presented as a complete hub.
 5. **Completed on current branch:** upgrade vulnerable documentation
    dependencies, use lockfile-deterministic Docker installs, and enforce docs
    build/audit checks in CI.
-6. Implement and test actual certificate-tier condition evaluation.
+6. **Completed on current branch:** implement and test actual certificate-tier
+   condition evaluation, template assignment and fail-closed validation.
 7. Replace false-green health reporting with dependency and worker readiness.
 8. Repair user-facing mojibake and add an automated source guard.
 9. Finish making the backend Docker build deterministic and small.
@@ -290,7 +298,7 @@ navigation entry so the shell is not presented as a complete hub.
 
 ## Commands/evidence snapshot
 
-- Backend suite: `python -m pytest tests -q` → 542 passed, 36 warnings.
+- Backend suite: `python -m pytest tests -q` → 546 passed, 36 warnings.
 - Focused presentation suite: 11 passed.
 - Python critical lint: 0 syntax/undefined-name errors.
 - Frontend production dependency audit: 0 vulnerabilities.

@@ -1718,7 +1718,7 @@ class CertificateTierRule(Base):
     __tablename__ = "certificate_tier_rules"
     id:               Mapped[int]      = mapped_column(Integer, primary_key=True, autoincrement=True)
     event_id:         Mapped[int]      = mapped_column(Integer, ForeignKey("events.id", ondelete="CASCADE"), index=True, unique=True)
-    tier_definitions: Mapped[dict]     = mapped_column(JSONB, default=dict)  # Array of tier definitions
+    tier_definitions: Mapped[list]     = mapped_column(JSONB, default=list)
     created_by:       Mapped[int]      = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
     updated_at:       Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
