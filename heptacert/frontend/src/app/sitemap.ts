@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { routing } from "@/i18n/routing";
 
 const apiBase = process.env.NEXT_PUBLIC_API_BASE || "https://heptacert.com/api";
 const BASE_URL =
@@ -21,14 +22,18 @@ async function getMarketplaceEventIds(): Promise<number[]> {
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const marketplaceIds = await getMarketplaceEventIds();
+  const landingLanguages = Object.fromEntries(
+    routing.locales.map((locale) => [locale, `${BASE_URL}/${locale}`]),
+  );
+  const localizedLandingRoutes: MetadataRoute.Sitemap = routing.locales.map((locale) => ({
+    url: `${BASE_URL}/${locale}`,
+    lastModified: new Date(),
+    changeFrequency: "weekly" as const,
+    priority: locale === routing.defaultLocale ? 1 : 0.9,
+    alternates: { languages: { ...landingLanguages, "x-default": `${BASE_URL}/${routing.defaultLocale}` } },
+  }));
 
   const staticRoutes: MetadataRoute.Sitemap = [
-    {
-      url: BASE_URL,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 1,
-    },
     {
       url: `${BASE_URL}/discover`,
       lastModified: new Date(),
@@ -128,5 +133,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticRoutes, ...dynamicRoutes];
+  return [...localizedLandingRoutes, ...staticRoutes, ...dynamicRoutes];
 }

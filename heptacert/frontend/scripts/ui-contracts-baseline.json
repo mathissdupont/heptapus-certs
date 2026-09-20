@@ -1,13 +1,16 @@
 {
   "$comment": "WP32 UI contract ratchet. Counts may only fall. Lower them with `npm run check:ui -- --update-baseline`; never raise them by hand. cleanPaths must have zero matches for every rule.",
   "counts": {
-    "lang-binary-check": 537,
+    "lang-binary-check": 526,
     "lang-indexed-lookup": 0,
     "locale-tag-ternary": 0,
     "locale-tag-literal": 2,
     "native-date-input": 0,
-    "raw-hex-color": 80,
-    "light-only-color": 3488
+    "raw-hex-color": 76,
+    "light-only-color": 3371
   },
-  "cleanPaths": []
+  "cleanPaths": [
+    "src/app/[locale]",
+    "src/components/landing"
+  ]
 }

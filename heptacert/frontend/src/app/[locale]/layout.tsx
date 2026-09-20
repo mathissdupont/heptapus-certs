@@ -3,6 +3,7 @@ import { setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import HtmlLangSetter from "@/components/i18n/HtmlLangSetter";
+import PublicLocaleShell from "@/components/landing/PublicLocaleShell";
 
 // Nested under the root layout (which owns <html>/<body> and the app providers).
 // This layer only establishes the next-intl request locale + client context for
@@ -22,7 +23,7 @@ export default async function LocaleLayout({
   return (
     <NextIntlClientProvider>
       <HtmlLangSetter locale={locale} />
-      {children}
+      <PublicLocaleShell>{children}</PublicLocaleShell>
     </NextIntlClientProvider>
   );
 }

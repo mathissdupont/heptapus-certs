@@ -528,6 +528,7 @@ function AdminMobileNav() {
 
 export function ClientShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const isLocalizedPublic = /^\/(tr|en|de|fr|es|it|pt|nl|ru)(?:\/|$)/.test(pathname || "");
   const isAdmin = pathname?.startsWith("/admin");
   const hideNavbar =
     pathname === "/verify" ||
@@ -535,6 +536,11 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
     pathname?.startsWith("/checkout") ||
     pathname?.startsWith("/attend/") ||
     pathname?.match(/^\/events\/\d+\/register$/) !== null;
+
+  // Locale-prefixed marketing pages own their next-intl shell inside [locale]/layout.
+  // Keeping the legacy custom-i18n navbar outside that provider would render a second,
+  // differently localized navigation bar.
+  if (isLocalizedPublic) return <>{children}</>;
 
   if (isAdmin) {
     return (

@@ -6,6 +6,7 @@ import { ClientShell } from "./_client-shell";
 import { ToastProvider } from "@/components/Toast/ToastProvider";
 import { ThemeInitializer } from "./_theme-initializer";
 import CookieConsent from "@/components/CookieConsent/CookieConsent";
+import { routing } from "@/i18n/routing";
 
 type BrandingMetadata = {
   org_name?: string | null;
@@ -103,13 +104,6 @@ export async function generateMetadata(): Promise<Metadata> {
       "learning management",
       brandName,
     ],
-    alternates: {
-      canonical: "/",
-      languages: {
-        tr: "/",
-        en: "/?lang=en",
-      },
-    },
     robots: {
       index: true,
       follow: true,
@@ -155,6 +149,11 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const branding = await currentBranding();
+  const headerList = await headers();
+  const requestLocale = headerList.get("x-next-intl-locale");
+  const documentLocale = routing.locales.includes(requestLocale as (typeof routing.locales)[number])
+    ? requestLocale!
+    : routing.defaultLocale;
   const brandName = branding?.org_name || "HeptaCert";
   const brandLogo = branding?.brand_logo || null;
   const baseUrl = process.env.NEXT_PUBLIC_FRONTEND_BASE_URL || "https://heptacert.com";
@@ -169,7 +168,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       operatingSystem: "Web, iOS, Android",
       url: baseUrl,
       description: branding?.settings?.public_bio || DEFAULT_TR_DESCRIPTION,
-      inLanguage: ["tr", "en"],
+      inLanguage: [...routing.locales],
       countriesSupported: "TR",
       featureList: [
         "Etkinlik oluşturma ve yönetimi (uçtan uca)",
@@ -220,7 +219,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         "@type": "ContactPoint",
         email: "contact@heptapusgroup.com",
         contactType: "customer support",
-        availableLanguage: ["tr", "en"],
+        availableLanguage: [...routing.locales],
       },
       product: {
         "@type": "SoftwareApplication",
@@ -234,7 +233,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       name: brandName,
       url: baseUrl,
       description: DEFAULT_TR_DESCRIPTION,
-      inLanguage: ["tr", "en"],
+      inLanguage: [...routing.locales],
       potentialAction: {
         "@type": "SearchAction",
         target: { "@type": "EntryPoint", urlTemplate: `${baseUrl}/discover?q={search_term_string}` },
@@ -298,7 +297,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   ];
 
   return (
-    <html lang="tr" className="scroll-smooth" suppressHydrationWarning>
+    <html lang={documentLocale} className="scroll-smooth" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="mobile-web-app-capable" content="yes" />

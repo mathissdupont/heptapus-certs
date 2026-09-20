@@ -25,10 +25,24 @@ describe("frontend method guard", () => {
 
 describe("locale routing", () => {
   it("hands locale-prefixed public paths to next-intl", () => {
-    const response = middleware(new NextRequest("https://heptacert.com/de/i18n-pilot"));
+    const response = middleware(new NextRequest("https://heptacert.com/de"));
 
     expect(response.status).toBe(200);
     expect(response.headers.get("x-middleware-request-x-next-intl-locale")).toBe("de");
+  });
+
+  it("permanently redirects the primary-host root to the default locale", () => {
+    const response = middleware(new NextRequest("https://heptacert.com/"));
+
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe("https://heptacert.com/tr");
+  });
+
+  it("keeps the root page on white-label hosts", () => {
+    const response = middleware(new NextRequest("https://events.example.com/"));
+
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+    expect(response.headers.get("location")).toBeNull();
   });
 
   it("leaves un-prefixed routes to the existing app", () => {

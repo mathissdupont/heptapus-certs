@@ -19,19 +19,19 @@
     translates the keys that phase adds, into every catalog. Optional automation: DeepL
     API Free (`scripts/i18n-translate.mjs` on the branch already routes `:fx` keys to
     `api-free.deepl.com`).
-- **Active phase:** Phase 5 — landing as the first locale-routed page.
-- **Next step** (Phase 5, in order):
-  1. Rebuild the primary-host landing at `app/[locale]/page.tsx` from section components;
-     preserve the white-label organization page at `/` and its live data wiring.
-  2. Reconcile the stale `home_*` / `feat_*` / `step*` catalog copy, translating every new
-     key into all nine catalogs in the same change.
-  3. Add per-locale metadata, canonical/hreflang links and sitemap entries; redirect only
-     the primary-host `/` and keep every transactional route unprefixed.
-  4. Add reduced-motion-safe animation, locale/routing tests, then run the full frontend
-     verification set and Docker smoke.
+- **Active phase:** Phase 6 — first-run organizer onboarding.
+- **Next step** (Phase 6, in order):
+  1. Trace the post-verification/OAuth entry routes and the real organization, event and
+     certificate state already available to the frontend.
+  2. Reconcile the guided first run with `components/Admin/EventSetupChecklist.tsx`: a
+     dedicated resumable/skippable onboarding route first, the checklist thereafter.
+  3. Build organization profile → WP17 event type preset → one next action using the
+     existing APIs, catalog strings, semantic tokens and Phase 4 pickers.
+  4. Add step-gating/resume tests, run a fresh-organizer flow, then complete the frontend
+     and any affected backend verification sets plus Docker smoke.
 - **Translation coverage audit (added at the user's request):** catalog parity alone was
-  hiding the real gap. `npm run i18n:audit` currently reports **537 legacy TR/EN binary
-  branches across 131 files**; those branches send the other seven languages to English.
+  hiding the real gap. `npm run i18n:audit` currently reports **526 legacy TR/EN binary
+  branches across 130 files**; those branches send the other seven languages to English.
   Phase 7/8 must drive that queue to zero and review remaining user-facing literals before
   nine-language coverage can be called complete. The largest starting files are event
   settings (56), `lib/assistant/eventDraft.ts` (48), and `AIAssistant.tsx` (45).
@@ -45,7 +45,7 @@
 | 2 | Unlock more than two languages | ✅ Done | `980ca3a` + "unlock nine-language application selector" |
 | 3 | Semantic token layer + theme restore | ✅ Done | "restore semantic theming behind rollout flag" |
 | 4 | Date & time pickers | ✅ Done | "replace native date/time inputs with localized pickers" |
-| 5 | Landing as the first locale-routed page | ⏳ Not started | — |
+| 5 | Landing as the first locale-routed page | ✅ Done | "rebuild landing for all nine locales" |
 | 6 | First-run onboarding | ⏳ Not started | — |
 | 7 | Surface-by-surface single pass | ⏳ Not started | — |
 | 8 | Widen `Lang` in the authenticated app | 🟡 Type/selector delivered early; catalog migration remains | "unlock nine-language application selector" |
@@ -120,6 +120,35 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-09-20 — Phase 5 done: localized landing, SEO and host-safe routing
+
+- **One real landing in nine languages.** The primary product landing now lives at
+  `app/[locale]/page.tsx`, renders from all nine complete catalogs, and uses a locale-aware
+  public shell and language switcher. The obsolete pilot and the former 728-line binary
+  TR/EN landing were removed; 40 superseded `home_*` / `feat_*` / `step*` keys were
+  deleted and seven new feature/stat keys were translated in every catalog. All nine
+  catalogs now contain **665 keys**.
+- **White-label and live-data contracts preserved.** `/` has a dedicated organization
+  home that keeps `/branding` and `/public/organizations/:id`; the locale landing keeps
+  `/stats`. Registration, pricing and every transactional URL remain unprefixed.
+- **Search and host routing.** Each locale has localized metadata, canonical and all nine
+  `hreflang` alternates plus `x-default`; `<html lang>` follows the request locale and the
+  sitemap advertises each localized landing. Primary-host `/` returns permanent **308**
+  to `/tr`, while a white-label host still serves `/` with **200**.
+- **Theme, motion and guardrails.** The new landing/shell use only semantic color roles,
+  are responsive from 400px, and all Framer Motion effects honor reduced-motion. The
+  locale and landing directories are now zero-tolerance `cleanPaths`. Removing the old
+  landing lowered `lang-binary-check` **537 → 526**, raw hex colors **80 → 76**, and
+  light-only colors **3488 → 3371**.
+- **Tests and verification.** Added all-nine-locale rendering, transactional-link,
+  sitemap alternate and host-routing coverage. `npm run check:ui` ✓ · frontend tests
+  **62/62** · `npx tsc --noEmit` ✓ · `npm audit --omit=dev --audit-level=high`
+  **0 vulnerabilities** · local and Docker production builds ✓. Docker smoke: primary
+  `/` **308 → /tr**, white-label `/` **200**, German HTML lang/canonical + 10 alternates,
+  OAuth discovery **200**, unauthenticated MCP initialize **401**.
+- **Next:** Phase 6 — server-state-derived first-run organizer onboarding. LMS remains
+  archived and untouched.
 
 ### 2026-09-20 — Phase 4 done: one localized date/time picker family
 

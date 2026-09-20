@@ -56,12 +56,18 @@ const LEGACY_TOKEN_ROUTES = [
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isBackendOwnedProxyPath = pathname === "/mcp" || pathname.startsWith("/mcp/");
-  const hostname = (request.headers.get("x-forwarded-host") || request.headers.get("host") || "")
+  const hostname = (request.headers.get("x-forwarded-host") || request.headers.get("host") || request.nextUrl.hostname || "")
     .split(",")[0]
     .split(":")[0]
     .trim()
     .toLowerCase();
   const isWhiteLabelHost = Boolean(hostname && !PRIMARY_APP_HOSTS.has(hostname));
+
+  if (pathname === "/" && !isWhiteLabelHost) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/${routing.defaultLocale}`;
+    return NextResponse.redirect(url, 308);
+  }
 
   if (
     isWhiteLabelHost &&
