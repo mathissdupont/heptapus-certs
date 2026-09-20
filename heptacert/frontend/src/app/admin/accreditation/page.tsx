@@ -14,6 +14,7 @@ import {
   getOrgCpdSummary,
 } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import DateField from "@/components/Admin/DateField";
 
 type Tab = "accreditations" | "cpd";
 
@@ -306,14 +307,8 @@ export default function AccreditationPage() {
                 <input className="input" type="text" value={form.accreditation_number} onChange={(e) => setForm({ ...form, accreditation_number: e.target.value })} placeholder="ORN-2024-001" />
               </label>
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="block">
-                  <span className="label">{copy.labelValidFrom}</span>
-                  <input className="input" type="date" value={form.valid_from} onChange={(e) => setForm({ ...form, valid_from: e.target.value })} />
-                </label>
-                <label className="block">
-                  <span className="label">{copy.labelValidUntil}</span>
-                  <input className="input" type="date" value={form.valid_until} onChange={(e) => setForm({ ...form, valid_until: e.target.value })} />
-                </label>
+                <DateField label={copy.labelValidFrom} value={form.valid_from} max={form.valid_until || undefined} onChange={(valid_from) => setForm({ ...form, valid_from })} />
+                <DateField label={copy.labelValidUntil} value={form.valid_until} min={form.valid_from || undefined} onChange={(valid_until) => setForm({ ...form, valid_until })} />
               </div>
               <label className="block">
                 <span className="label">{copy.labelNotes}</span>

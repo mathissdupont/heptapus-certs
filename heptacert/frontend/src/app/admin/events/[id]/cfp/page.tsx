@@ -4,6 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 import PageHeader from "@/components/Admin/PageHeader";
+import DateField from "@/components/Admin/DateField";
+import DateTimeField from "@/components/Admin/DateTimeField";
+import TimeField from "@/components/Admin/TimeField";
 import { PlanGateCard, isPlanGateError } from "@/lib/useSubscription";
 import { useI18n, useT } from "@/lib/i18n";
 import {
@@ -238,14 +241,8 @@ function CfpSettingsPanel({ eventId, config, onSaved }: { eventId: number; confi
     <div className="card space-y-4 p-5">
       <h2 className="font-semibold text-surface-900">{t("cfp_settings_heading")}</h2>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <label className="block">
-          <span className="mb-1 block text-xs font-medium text-surface-600">{t("cfp_opens_at")}</span>
-          <input type="datetime-local" value={opensAt} onChange={(e) => setOpensAt(e.target.value)} className="input-field" />
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-xs font-medium text-surface-600">{t("cfp_closes_at")}</span>
-          <input type="datetime-local" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} className="input-field" />
-        </label>
+        <DateTimeField label={t("cfp_opens_at")} value={opensAt} onChange={setOpensAt} />
+        <DateTimeField label={t("cfp_closes_at")} value={closesAt} min={opensAt || undefined} onChange={setClosesAt} />
         <label className="block">
           <span className="mb-1 block text-xs font-medium text-surface-600">{t("cfp_max_per_member")}</span>
           <input type="number" min={1} value={maxPer} onChange={(e) => setMaxPer(e.target.value)} className="input-field" />
@@ -479,9 +476,9 @@ function SubmissionCard({
               </label>
               {addToAgenda && (
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <input type="date" value={sDate} onChange={(e) => setSDate(e.target.value)} className="input-field" />
-                  <input type="time" value={sStart} onChange={(e) => setSStart(e.target.value)} className="input-field" />
-                  <input type="time" value={sEnd} onChange={(e) => setSEnd(e.target.value)} className="input-field" />
+                  <DateField label={t("cfp_session_date")} value={sDate} onChange={setSDate} />
+                  <TimeField label={t("cfp_session_start_time")} value={sStart} onChange={setSStart} />
+                  <TimeField label={t("cfp_session_end_time")} value={sEnd} min={sStart || undefined} onChange={setSEnd} />
                   <input type="text" value={sLoc} onChange={(e) => setSLoc(e.target.value)} placeholder="Salon A" className="input-field" />
                 </div>
               )}

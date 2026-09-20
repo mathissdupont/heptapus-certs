@@ -379,6 +379,62 @@
     @apply rounded-lg bg-gradient-to-r from-surface-100 via-surface-50 to-surface-100 bg-[length:200%_100%] animate-shimmer;
   }
 
+  /* Accessible calendar shell (react-day-picker). */
+  .date-picker {
+    --rdp-accent-color: var(--site-brand-color);
+    --rdp-accent-background-color: var(--site-brand-accent);
+    --rdp-day-height: 40px;
+    --rdp-day-width: 40px;
+    --rdp-day_button-height: 40px;
+    --rdp-day_button-width: 40px;
+    --rdp-day_button-border: 1px solid transparent;
+    --rdp-selected-border: 1px solid var(--site-brand-color);
+    --rdp-today-color: rgb(var(--content-primary));
+    color: rgb(var(--content-secondary));
+    margin: 0 auto;
+  }
+  .date-picker .rdp-months,
+  .date-picker .rdp-month,
+  .date-picker .rdp-month_grid { width: 100%; }
+  .date-picker .rdp-month_grid { table-layout: fixed; }
+  .date-picker .rdp-month_caption {
+    align-items: center;
+    color: rgb(var(--content-primary));
+    font-size: 0.875rem;
+    justify-content: center;
+  }
+  .date-picker .rdp-button_previous,
+  .date-picker .rdp-button_next {
+    border: 1px solid rgb(var(--border-subtle));
+    border-radius: 0.5rem;
+    color: rgb(var(--content-muted));
+  }
+  .date-picker .rdp-button_previous:hover,
+  .date-picker .rdp-button_next:hover { background: rgb(var(--bg-sunken)); }
+  .date-picker .rdp-chevron { fill: currentColor; }
+  .date-picker .rdp-weekday {
+    color: rgb(var(--content-faint));
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .date-picker .rdp-day_button {
+    color: rgb(var(--content-secondary-strong));
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .date-picker .rdp-day_button:hover { background: rgb(var(--bg-sunken)); }
+  .date-picker .rdp-selected .rdp-day_button {
+    background: var(--site-brand-color);
+    color: var(--site-brand-contrast);
+  }
+  .date-picker .rdp-today:not(.rdp-selected) .rdp-day_button {
+    border-color: rgb(var(--border-strong));
+    background: rgb(var(--bg-sunken));
+  }
+  .date-picker .rdp-outside .rdp-day_button { color: rgb(var(--content-faint)); }
+  .date-picker .rdp-disabled .rdp-day_button { cursor: not-allowed; opacity: 0.35; }
+
   /* Rich text editor */
   .rich-editor:empty::before {
     content: attr(data-placeholder);

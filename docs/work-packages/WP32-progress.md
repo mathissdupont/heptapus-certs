@@ -19,21 +19,22 @@
     translates the keys that phase adds, into every catalog. Optional automation: DeepL
     API Free (`scripts/i18n-translate.mjs` on the branch already routes `:fx` keys to
     `api-free.deepl.com`).
-- **Active phase:** Phase 4 — accessible, themed, language-aware date/time pickers.
-- **Next step** (Phase 4, in order):
-  1. Add `react-day-picker` v9 and its compatible `date-fns` version through npm; never
-     hand-edit the lockfile. Preserve the existing `DateField`/`TimeField`/
-     `DateTimeField` call-site APIs and native value contracts.
-  2. Make the shared picker shell keyboard/focus complete (Escape restores focus,
-     `aria-expanded`/`aria-haspopup`, 40px mobile targets, popover flipping), localized
-     for all nine languages, and fix `DateTimeField`'s UTC-derived default date.
-  3. Add `min`/`max`, typed time entry and configurable `minuteStep`; then replace all 14
-     remaining native date/time inputs, starting with attendee-facing networking.
-  4. Add keyboard, value round-trip and third-language locale tests; lower
-     `native-date-input` to zero; run `check:ui`, tests, tsc and production build.
-- **Also outstanding:** run the Docker-based MCP smoke (see "How to verify") before the
-  next production deploy — it could not run during Phase 1 because Docker Desktop was
-  stopped.
+- **Active phase:** Phase 5 — landing as the first locale-routed page.
+- **Next step** (Phase 5, in order):
+  1. Rebuild the primary-host landing at `app/[locale]/page.tsx` from section components;
+     preserve the white-label organization page at `/` and its live data wiring.
+  2. Reconcile the stale `home_*` / `feat_*` / `step*` catalog copy, translating every new
+     key into all nine catalogs in the same change.
+  3. Add per-locale metadata, canonical/hreflang links and sitemap entries; redirect only
+     the primary-host `/` and keep every transactional route unprefixed.
+  4. Add reduced-motion-safe animation, locale/routing tests, then run the full frontend
+     verification set and Docker smoke.
+- **Translation coverage audit (added at the user's request):** catalog parity alone was
+  hiding the real gap. `npm run i18n:audit` currently reports **537 legacy TR/EN binary
+  branches across 131 files**; those branches send the other seven languages to English.
+  Phase 7/8 must drive that queue to zero and review remaining user-facing literals before
+  nine-language coverage can be called complete. The largest starting files are event
+  settings (56), `lib/assistant/eventDraft.ts` (48), and `AIAssistant.tsx` (45).
 
 ## Phase status
 
@@ -43,7 +44,7 @@
 | 1 | Revive the multi-language branch | ✅ Done | `df28bad` |
 | 2 | Unlock more than two languages | ✅ Done | `980ca3a` + "unlock nine-language application selector" |
 | 3 | Semantic token layer + theme restore | ✅ Done | "restore semantic theming behind rollout flag" |
-| 4 | Date & time pickers | 🔄 Next | — |
+| 4 | Date & time pickers | ✅ Done | "replace native date/time inputs with localized pickers" |
 | 5 | Landing as the first locale-routed page | ⏳ Not started | — |
 | 6 | First-run onboarding | ⏳ Not started | — |
 | 7 | Surface-by-surface single pass | ⏳ Not started | — |
@@ -119,6 +120,40 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-09-20 — Phase 4 done: one localized date/time picker family
+
+- **Shared picker family.** `DateField` now wraps `react-day-picker` v9 with the locale for
+  each of the nine application languages. `TimeField` supports typed 24-hour and AM/PM
+  entry, locale-sensitive display, a configurable five-minute default step, and valid
+  `min`/`max` ranges. `DateTimeField` preserves the naive local wire format and no longer
+  derives its default date through UTC.
+- **Accessibility and theme.** Both popovers expose dialog relationships and expanded
+  state, associate labels with their triggers, flip above when needed, close on Escape and
+  restore focus. Day/time targets are at least 40px and all picker styling uses semantic
+  theme roles. Calendar arrows/Home/End/PageUp/PageDown/Enter come from DayPicker's WAI-ARIA
+  grid implementation.
+- **Every fixed native field migrated.** Networking (1), CFP (5), reservations (2),
+  training (2), accreditation (2), CRM (1), and `RetentionPolicyFields` (1) now use the
+  shared components. Paired start/end and due/renewal controls enforce their relationships.
+  The `native-date-input` ratchet dropped **14 → 0** and `light-only-color` dropped
+  **3507 → 3488**.
+- **Catalogs and translation inventory.** Sixteen picker/CFP labels were translated in
+  every catalog; all nine now contain **698 keys** with placeholder parity. Removing picker
+  binary fallbacks lowered `lang-binary-check` **541 → 537**. The new `npm run i18n:audit`
+  command records the remaining **537 occurrences in 131 files** as the Phase 7/8 queue;
+  complete catalogs do not by themselves mean every legacy screen is translated.
+- **Tests.** Added value-contract tests for `YYYY-MM-DD`, `HH:mm`, and
+  `YYYY-MM-DDTHH:mm`; a Turkey-midnight regression test for the local date; German month
+  rendering; arrow + Enter selection; typed AM/PM input; and Escape/focus return.
+- **Verification:** `npm run check:ui` ✓ · frontend tests **57/57** ·
+  `npx tsc --noEmit` ✓ · `npm audit --omit=dev --audit-level=high` **0 vulnerabilities** ·
+  local production build ✓ · Docker image build ✓ · compose smoke `/` **200**, OAuth
+  discovery **200**, unauthenticated MCP initialize **401**. The live production endpoint
+  also returns OAuth discovery **200** and MCP **401**, confirming `/mcp` is present; it is
+  a bearer-authenticated protocol endpoint, not a browser page.
+- **Next:** Phase 5 — rebuild the landing as the first locale-routed page. LMS remains
+  archived and untouched.
 
 ### 2026-09-20 — Phase 3 done: semantic theme foundation restored safely
 

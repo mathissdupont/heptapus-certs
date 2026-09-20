@@ -14,6 +14,7 @@ import { CalendarClock, Plus, Trash2, Download, Loader2, Building2, Pencil, X, M
 import { useToast } from "@/hooks/useToast";
 import PageHeader from "@/components/Admin/PageHeader";
 import EmptyState from "@/components/Admin/EmptyState";
+import DateTimeField from "@/components/Admin/DateTimeField";
 import { useI18n } from "@/lib/i18n";
 
 type OrganizationVenue = { id: number; name: string; location: string | null; is_active: boolean };
@@ -304,14 +305,8 @@ export default function AdminReservations() {
               <label className="mb-1.5 block text-sm font-medium text-surface-700">{copy.resTitle}</label>
               <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required minLength={2} maxLength={200} className="input-field" placeholder={copy.titlePh} />
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-surface-700">{copy.start}</label>
-              <input type="datetime-local" value={form.start_at} onChange={(e) => setForm({ ...form, start_at: e.target.value })} required className="input-field" />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-surface-700">{copy.end}</label>
-              <input type="datetime-local" value={form.end_at} onChange={(e) => setForm({ ...form, end_at: e.target.value })} required className="input-field" />
-            </div>
+            <DateTimeField label={copy.start} value={form.start_at} onChange={(start_at) => setForm({ ...form, start_at })} required />
+            <DateTimeField label={copy.end} value={form.end_at} min={form.start_at || undefined} onChange={(end_at) => setForm({ ...form, end_at })} required />
             <div className="sm:col-span-2">
               <label className="mb-1.5 block text-sm font-medium text-surface-700">{copy.description}</label>
               <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} maxLength={2000} rows={2} className="input-field" placeholder={copy.descPh} />

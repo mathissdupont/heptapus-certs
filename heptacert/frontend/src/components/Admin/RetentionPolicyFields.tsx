@@ -2,6 +2,7 @@
 
 import { useT } from "@/lib/i18n";
 import type { RetentionPolicy } from "@/lib/api";
+import DateField from "@/components/Admin/DateField";
 
 const INPUT = "block w-full rounded-lg border border-surface-300 px-3 py-2 text-sm focus:border-surface-500 focus:ring-0";
 const FIELD_LABEL = "text-11 font-bold uppercase tracking-wider text-surface-500";
@@ -61,15 +62,12 @@ export default function RetentionPolicyFields({
               <p className="text-11 text-surface-400">{t("retention_days_hint")}</p>
             </div>
           ) : (
-            <div className="space-y-1.5">
-              <label className={FIELD_LABEL}>{t("retention_fixed_date")}</label>
-              <input
-                type="date"
-                value={policy.fixed_date ?? ""}
-                onChange={(e) => onPatch({ fixed_date: e.target.value || null })}
-                className={`${INPUT} w-52`}
-              />
-            </div>
+            <DateField
+              label={t("retention_fixed_date")}
+              value={policy.fixed_date ?? ""}
+              onChange={(fixed_date) => onPatch({ fixed_date: fixed_date || null })}
+              className="w-52"
+            />
           )}
 
           <div className="space-y-1.5">

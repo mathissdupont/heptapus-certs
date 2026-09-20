@@ -20,6 +20,7 @@ import {
   type MeetingRequest,
 } from "@/lib/api";
 import { ArrowLeft, Loader2, Users, Search, Check, X, Trash2, Send, Handshake } from "lucide-react";
+import DateTimeField from "@/components/Admin/DateTimeField";
 
 export default function NetworkingPage() {
   const params = useParams();
@@ -287,10 +288,7 @@ function RequestModal({ eventId, member, onClose, onSent, onError }: {
       <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <h3 className="mb-3 font-bold text-gray-900">{t("net_request_meeting")} · {member.display_name}</h3>
         <div className="space-y-3">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">{t("net_proposed_time")}</label>
-            <input type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-          </div>
+          <DateTimeField label={t("net_proposed_time")} value={start} onChange={setStart} />
           <div>
             <label className="mb-1 block text-xs font-medium text-gray-600">{t("net_duration")}</label>
             <input type="number" min={5} max={480} value={duration} onChange={(e) => setDuration(parseInt(e.target.value, 10) || 30)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />

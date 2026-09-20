@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
+import "react-day-picker/style.css";
 import "./globals.css";
 import { ClientShell } from "./_client-shell";
 import { ToastProvider } from "@/components/Toast/ToastProvider";

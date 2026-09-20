@@ -45,6 +45,7 @@ import {
   type CrmParticipantListItem,
 } from "@/lib/api";
 import EmailTemplateSelect from "@/components/Admin/EmailTemplateSelect";
+import DateTimeField from "@/components/Admin/DateTimeField";
 import { FeatureGate } from "@/lib/useSubscription";
 import { useI18n } from "@/lib/i18n";
 
@@ -1001,17 +1002,12 @@ export default function AdminCrmPage() {
                       />
                     </label>
                     
-                    <label className="block w-full sm:col-span-2">
-                      <span className="block text-11 font-bold text-surface-500 mb-1">{copy.followUp}</span>
-                      <div className="relative flex items-center">
-                        <input
-                          type="datetime-local"
-                          value={nextFollowUpAt}
-                          onChange={(event) => setNextFollowUpAt(event.target.value)}
-                          className="w-full input cursor-pointer"
-                        />
-                      </div>
-                    </label>
+                    <DateTimeField
+                      label={copy.followUp}
+                      value={nextFollowUpAt}
+                      onChange={setNextFollowUpAt}
+                      className="sm:col-span-2"
+                    />
                     
                     <label className="block w-full sm:col-span-2">
                       <span className="block text-11 font-bold text-surface-500 mb-1">{copy.customFields}</span>

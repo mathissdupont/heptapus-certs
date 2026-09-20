@@ -42,6 +42,7 @@ import {
 } from "@/lib/api";
 import { FeatureGate } from "@/lib/useSubscription";
 import { useI18n } from "@/lib/i18n";
+import DateTimeField from "@/components/Admin/DateTimeField";
 
 const STATUS_OPTIONS = [
   { value: "assigned", label: "Atandı" },
@@ -614,14 +615,8 @@ export default function AdminTrainingPage() {
               </div>
               <input value={form.department} onChange={(event) => setForm({ ...form, department: event.target.value })} list="training-departments" className="input-field" placeholder={copy.department} />
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="block">
-                  <span className="text-xs font-bold text-surface-500">{copy.dueDate}</span>
-                  <input type="datetime-local" value={form.due_at} onChange={(event) => setForm({ ...form, due_at: event.target.value })} className="input-field mt-1" />
-                </label>
-                <label className="block">
-                  <span className="text-xs font-bold text-surface-500">{copy.renewalDate}</span>
-                  <input type="datetime-local" value={form.renewal_due_at} onChange={(event) => setForm({ ...form, renewal_due_at: event.target.value })} className="input-field mt-1" />
-                </label>
+                <DateTimeField label={copy.dueDate} value={form.due_at} onChange={(due_at) => setForm({ ...form, due_at })} />
+                <DateTimeField label={copy.renewalDate} value={form.renewal_due_at} min={form.due_at || undefined} onChange={(renewal_due_at) => setForm({ ...form, renewal_due_at })} />
               </div>
               <label className="block">
                 <span className="text-xs font-bold text-surface-500">{copy.notifyDays}</span>

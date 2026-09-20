@@ -1,61 +1,101 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { CalendarDays, X } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { DayPicker } from "react-day-picker";
+
+import { calendarLocale } from "@/lib/calendarLocale";
 import { useI18n } from "@/lib/i18n";
 import { localeTag } from "@/lib/localeTag";
 
-type DateFieldProps = {
+export type DateFieldProps = {
   value: string;
   onChange: (value: string) => void;
   label?: string;
   placeholder?: string;
   locale?: string;
+  min?: string;
+  max?: string;
+  disabled?: boolean;
+  required?: boolean;
   className?: string;
 };
 
-function parseDate(value: string): Date | null {
+export function parseDateValue(value: string): Date | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return null;
   const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-  return Number.isNaN(date.getTime()) ? null : date;
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getFullYear() !== Number(match[1]) ||
+    date.getMonth() !== Number(match[2]) - 1 ||
+    date.getDate() !== Number(match[3])
+  ) return null;
+  return date;
 }
 
-function toValue(date: Date) {
+export function toDateValue(date: Date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
-function sameDay(a: Date, b: Date | null) {
-  return Boolean(b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate());
-}
-
-export default function DateField({ value, onChange, label, placeholder = "Tarih seçin", locale: localeProp, className = "" }: DateFieldProps) {
-  const { lang } = useI18n();
+export default function DateField({
+  value,
+  onChange,
+  label,
+  placeholder,
+  locale: localeProp,
+  min,
+  max,
+  disabled = false,
+  required = false,
+  className = "",
+}: DateFieldProps) {
+  const { lang, t } = useI18n();
   const locale = localeProp ?? localeTag(lang);
-  const selectedDate = parseDate(value);
+  const selectedDate = parseDateValue(value);
+  const minDate = parseDateValue(min ?? "");
+  const maxDate = parseDateValue(max ?? "");
   const [open, setOpen] = useState(false);
-  const [visibleMonth, setVisibleMonth] = useState(() => selectedDate ?? new Date());
+  const [visibleMonth, setVisibleMonth] = useState(() => selectedDate ?? minDate ?? new Date());
   const [position, setPosition] = useState({ left: 0, top: 0, width: 340 });
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const popupRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const controlId = useId();
+  const dialogId = `${controlId}-calendar`;
 
   useEffect(() => {
     if (selectedDate) setVisibleMonth(selectedDate);
   }, [value]);
 
+  const close = (restoreFocus = false) => {
+    setOpen(false);
+    if (restoreFocus) window.requestAnimationFrame(() => triggerRef.current?.focus());
+  };
+
   useEffect(() => {
+    if (!open) return;
     function onPointerDown(event: MouseEvent) {
       const target = event.target as Node;
       if (wrapperRef.current?.contains(target) || popupRef.current?.contains(target)) return;
-      setOpen(false);
+      close();
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      close(true);
     }
     document.addEventListener("mousedown", onPointerDown);
-    return () => document.removeEventListener("mousedown", onPointerDown);
-  }, []);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -63,161 +103,105 @@ export default function DateField({ value, onChange, label, placeholder = "Tarih
       const rect = wrapperRef.current?.getBoundingClientRect();
       if (!rect) return;
       const desiredWidth = Math.min(340, window.innerWidth - 24);
+      const panelHeight = popupRef.current?.offsetHeight || 430;
+      const fitsBelow = window.innerHeight - rect.bottom >= panelHeight + 12;
       setPosition({
         left: Math.max(12, Math.min(rect.left, window.innerWidth - desiredWidth - 12)),
-        top: Math.min(rect.bottom + 6, window.innerHeight - 390),
+        top: fitsBelow ? rect.bottom + 6 : Math.max(12, rect.top - panelHeight - 6),
         width: desiredWidth,
       });
     }
     updatePosition();
+    const frame = window.requestAnimationFrame(updatePosition);
     window.addEventListener("resize", updatePosition);
     window.addEventListener("scroll", updatePosition, true);
     return () => {
+      window.cancelAnimationFrame(frame);
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", updatePosition, true);
     };
   }, [open]);
 
-  const weeks = useMemo(() => {
-    const first = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
-    const start = new Date(first);
-    const mondayOffset = (first.getDay() + 6) % 7;
-    start.setDate(first.getDate() - mondayOffset);
-    return Array.from({ length: 42 }, (_, index) => {
-      const date = new Date(start);
-      date.setDate(start.getDate() + index);
-      return date;
-    });
-  }, [visibleMonth]);
-
   const formattedValue = selectedDate
     ? selectedDate.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })
     : "";
-  const monthLabel = visibleMonth.toLocaleDateString(locale, { month: "long", year: "numeric" });
-  const weekdayLabels = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(2024, 0, 1 + index);
-    return date.toLocaleDateString(locale, { weekday: "short" });
-  });
-
-  function moveMonth(delta: number) {
-    setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + delta, 1));
-  }
+  const disabledMatchers = [
+    ...(minDate ? [{ before: minDate }] : []),
+    ...(maxDate ? [{ after: maxDate }] : []),
+  ];
+  const todayValue = toDateValue(new Date());
+  const todayDisabled = Boolean((min && todayValue < min) || (max && todayValue > max));
 
   return (
     <div ref={wrapperRef} className={`relative w-full ${className}`}>
-      {label && (
-        <label className="block text-xs font-semibold text-surface-700 tracking-tight mb-1.5">
-          {label}
-        </label>
-      )}
-      
-      {/* Tetikleyici İnput Butonu */}
+      {label && <label htmlFor={controlId} className="mb-1.5 block text-xs font-semibold tracking-tight text-surface-700">{label}</label>}
       <button
+        ref={triggerRef}
+        id={controlId}
         type="button"
+        disabled={disabled}
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        aria-controls={open ? dialogId : undefined}
+        aria-required={required || undefined}
         onClick={() => setOpen((current) => !current)}
-        className={`flex w-full min-h-[42px] items-center justify-between gap-3 rounded-xl border px-3.5 text-xs font-medium transition-all outline-none bg-white text-left ${
-          open 
-            ? "border-gray-900 ring-1 ring-gray-950" 
-            : "border-surface-200 hover:border-gray-300 focus:border-surface-900"
+        className={`flex min-h-[42px] w-full items-center justify-between gap-3 rounded-xl border bg-raised px-3.5 text-left text-xs font-medium outline-none transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
+          open ? "border-surface-900 ring-1 ring-surface-900" : "border-surface-200 hover:border-surface-300 focus:border-surface-900"
         }`}
       >
-        <span className={formattedValue ? "text-surface-900" : "text-surface-400"}>
-          {formattedValue || placeholder}
-        </span>
+        <span className={formattedValue ? "text-surface-900" : "text-surface-400"}>{formattedValue || placeholder || t("date_picker_placeholder")}</span>
         <CalendarDays className="h-4 w-4 shrink-0 text-surface-400" />
       </button>
 
-      {/* Takvim Açılır Penceresi (Portal) */}
       {open && typeof document !== "undefined" && createPortal(
         <div
           ref={popupRef}
+          id={dialogId}
+          role="dialog"
+          aria-label={t("date_picker_dialog_label")}
           style={{ left: position.left, top: position.top, width: position.width }}
-          className="fixed z-[9999] rounded-2xl border border-surface-200/80 bg-white/95 p-4 shadow-[0_20px_50px_rgba(0,0,0,0.06)] backdrop-blur-xl animate-in fade-in zoom-in-98 duration-100"
+          className="fixed z-[9999] rounded-2xl border border-surface-200/80 bg-raised/95 p-3 shadow-modal backdrop-blur-xl"
         >
-          {/* Ay & Yıl Navigasyonu */}
-          <div className="mb-4 flex items-center justify-between gap-2">
-            <button 
-              type="button" 
-              onClick={() => moveMonth(-1)} 
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-surface-100 bg-white text-surface-500 hover:bg-surface-50 hover:text-surface-900 shadow-sm transition-all"
-              aria-label="Previous month"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <p className="text-xs font-bold capitalize text-surface-900 tracking-tight">{monthLabel}</p>
-            <button 
-              type="button" 
-              onClick={() => moveMonth(1)} 
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-surface-100 bg-white text-surface-500 hover:bg-surface-50 hover:text-surface-900 shadow-sm transition-all"
-              aria-label="Next month"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-
-          {/* Gün Başlıkları */}
-          <div className="grid grid-cols-7 gap-1 text-center text-11 font-bold uppercase text-surface-400 tracking-wider">
-            {weekdayLabels.map((weekday) => (
-              <span key={weekday} className="w-full block">{weekday}</span>
-            ))}
-          </div>
-
-          {/* Gün Matrisi */}
-          <div className="mt-2 grid grid-cols-7 gap-1">
-            {weeks.map((date) => {
-              const inMonth = date.getMonth() === visibleMonth.getMonth();
-              const active = sameDay(date, selectedDate);
-              const today = sameDay(date, new Date());
-              return (
-                <button
-                  key={toValue(date)}
-                  type="button"
-                  onClick={() => {
-                    onChange(toValue(date));
-                    setOpen(false);
-                  }}
-                  className={`flex h-8 w-8 mx-auto items-center justify-center rounded-full text-xs font-semibold tracking-tight transition-all ${
-                    active
-                      ? "bg-surface-900 text-white shadow-sm"
-                      : today
-                        ? "bg-surface-100 text-surface-900 ring-1 ring-gray-200/60"
-                        : inMonth
-                          ? "text-surface-800 hover:bg-surface-50 hover:text-surface-900"
-                          : "text-gray-300 hover:bg-surface-50/50"
-                  }`}
-                >
-                  {date.getDate()}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Alt Hızlı Butonlar */}
-          <div className="mt-4 flex items-center justify-between border-t border-surface-100 pt-3">
+          <DayPicker
+            mode="single"
+            className="date-picker"
+            locale={calendarLocale(locale)}
+            lang={lang}
+            selected={selectedDate ?? undefined}
+            month={visibleMonth}
+            onMonthChange={setVisibleMonth}
+            onSelect={(date) => {
+              if (!date) return;
+              onChange(toDateValue(date));
+              close(true);
+            }}
+            disabled={disabledMatchers}
+            startMonth={minDate ?? undefined}
+            endMonth={maxDate ?? undefined}
+            showOutsideDays
+            autoFocus
+            navLayout="around"
+          />
+          <div className="mt-2 flex items-center justify-between border-t border-surface-100 pt-3">
             <button
               type="button"
-              onClick={() => {
-                onChange("");
-                setOpen(false);
-              }}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-surface-400 hover:text-red-500 transition-colors"
+              onClick={() => { onChange(""); close(true); }}
+              className="inline-flex min-h-10 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-surface-500 transition-colors hover:bg-status-danger-bg hover:text-status-danger-content"
             >
               <X className="h-3.5 w-3.5" />
-              {locale.startsWith("tr") ? "Temizle" : "Clear"}
+              {t("picker_clear")}
             </button>
             <button
               type="button"
-              onClick={() => {
-                onChange(toValue(new Date()));
-                setOpen(false);
-              }}
-              className="rounded-xl border border-surface-200 bg-white px-3 py-1.5 text-xs font-semibold text-surface-800 shadow-sm transition hover:bg-surface-50 hover:text-surface-900 active:scale-95"
+              disabled={todayDisabled}
+              onClick={() => { onChange(todayValue); close(true); }}
+              className="min-h-10 rounded-xl border border-surface-200 bg-raised px-3 text-xs font-semibold text-surface-800 shadow-sm transition hover:bg-surface-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {locale.startsWith("tr") ? "Bugün" : "Today"}
+              {t("picker_today")}
             </button>
           </div>
         </div>,
-        document.body
+        document.body,
       )}
     </div>
   );
