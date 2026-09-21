@@ -7,6 +7,7 @@ import type { Lang } from "@/lib/i18n";
 export type OrgLang = Lang;
 
 export type OrgRoleContext = {
+  id?: number;
   owned?: boolean;
   role?: string;
   permissions?: string[];

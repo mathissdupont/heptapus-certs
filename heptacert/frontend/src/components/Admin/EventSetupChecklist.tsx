@@ -1,109 +1,129 @@
 "use client";
 
+import { ArrowRight, CheckCircle2, Circle } from "lucide-react";
 import Link from "next/link";
-import { CheckCircle2, Circle, ArrowRight } from "lucide-react";
-import type { EventOut } from "@/lib/api";
-import type { Lang } from "@/lib/i18n";
 
-type EventSetupChecklistProps = {
-  event: EventOut;
-  overview?: {
-    attendees?: number;
-    sessions?: number;
-    active_certificates?: number;
-  } | null;
-  lang?: Lang;
+import type { EventOut } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
+import type { TranslationKey } from "@/locales/tr";
+
+export type EventSetupOverview = {
+  attendees?: number;
+  sessions?: number;
+  active_certificates?: number;
 };
 
-export default function EventSetupChecklist({ event, overview, lang = "tr" }: EventSetupChecklistProps) {
+export type EventSetupItem = {
+  key: string;
+  label: string;
+  done: boolean;
+  href: string;
+};
+
+type Translate = (key: TranslationKey, vars?: Record<string, string | number>) => string;
+
+export function buildEventSetupItems(
+  event: EventOut,
+  overview: EventSetupOverview | null | undefined,
+  t: Translate,
+): EventSetupItem[] {
   const eventId = event.id;
   const registrationFields = event.config?.registration_fields;
   const hasRegistrationFields = Array.isArray(registrationFields) && registrationFields.length > 0;
-  const hasKvkkText = typeof event.config?.kvkk_consent_text === "string" && event.config.kvkk_consent_text.trim().length > 0;
-  
-  const items = [
+  const consentText = event.config?.kvkk_consent_text;
+  const hasConsentText = typeof consentText === "string" && consentText.trim().length > 0;
+
+  return [
     {
-      label: lang === "tr" ? "Temel bilgileri tamamla" : "Complete basics",
+      key: "basics",
+      label: t("event_setup_basics"),
       done: Boolean(event.name && event.event_date),
       href: `/admin/events/${eventId}/settings`,
     },
     {
-      label: lang === "tr" ? "Kayıt formu ve KVKK metnini kontrol et" : "Review form and privacy notice",
-      done: hasRegistrationFields || hasKvkkText,
+      key: "registration",
+      label: t("event_setup_registration"),
+      done: hasRegistrationFields || hasConsentText,
       href: `/admin/events/${eventId}/settings`,
     },
     {
-      label: lang === "tr" ? "Katılımcı akışını başlat" : "Start attendee flow",
+      key: "attendees",
+      label: t("event_setup_attendees"),
       done: Boolean((overview?.attendees || 0) > 0),
       href: `/admin/events/${eventId}/attendees`,
     },
     {
-      label: lang === "tr" ? "Oturum / check-in planını hazırla" : "Prepare sessions / check-in",
+      key: "sessions",
+      label: t("event_setup_sessions"),
       done: event.checkin_enabled === false || Boolean((overview?.sessions || 0) > 0),
       href: `/admin/events/${eventId}/sessions`,
     },
     {
-      label: lang === "tr" ? "Sertifika tasarımını doğrula" : "Validate certificate design",
+      key: "certificate",
+      label: t("event_setup_certificate"),
       done: event.certificate_enabled === false || Boolean((overview?.active_certificates || 0) > 0),
       href: `/admin/events/${eventId}/editor`,
     },
   ];
-  
+}
+
+export function firstPendingEventSetupItem(items: EventSetupItem[]) {
+  return items.find((item) => !item.done) ?? null;
+}
+
+export default function EventSetupChecklist({
+  event,
+  overview,
+  compact = false,
+}: {
+  event: EventOut;
+  overview?: EventSetupOverview | null;
+  compact?: boolean;
+}) {
+  const { t } = useI18n();
+  const items = buildEventSetupItems(event, overview, t);
   const doneCount = items.filter((item) => item.done).length;
   const progressPercent = Math.round((doneCount / items.length) * 100);
 
   return (
-    <div className="w-full rounded-2xl border border-surface-200/80 bg-white p-5 sm:p-6 shadow-sm antialiased">
-      {/* Üst Başlık Bölümü */}
+    <section className="w-full rounded-2xl border border-outline-subtle bg-raised p-5 shadow-soft sm:p-6" aria-labelledby={`event-setup-${event.id}`}>
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-11 font-bold uppercase tracking-widest text-surface-400">
-            {lang === "tr" ? "Kurulum Kontrolü" : "Setup Checklist"}
-          </p>
-          <h2 className="mt-1 text-base font-semibold tracking-tight text-surface-900">
-            {doneCount}/{items.length} {lang === "tr" ? "Adım Tamamlandı" : "Steps Completed"}
+          <p className="text-11 font-bold uppercase tracking-widest text-content-faint">{t("event_setup_eyebrow")}</p>
+          <h2 id={`event-setup-${event.id}`} className="mt-1 text-base font-semibold tracking-tight text-content-primary">
+            {t("event_setup_progress", { done: doneCount, total: items.length })}
           </h2>
         </div>
-        
-        {/* Apple Tarzı Soft Yüzde Rozeti */}
-        <div className="inline-flex items-center rounded-full bg-surface-50 border border-surface-100 px-2.5 py-0.5 text-11 font-bold text-surface-600 shadow-sm">
-          %{progressPercent}
+        <div className="inline-flex items-center rounded-full border border-outline-subtle bg-sunken px-2.5 py-0.5 text-11 font-bold text-content-muted shadow-soft">
+          {progressPercent}%
         </div>
       </div>
 
-      {/* İlerleme Çubuğu (Progress Bar) - UX Geliştirmesi */}
-      <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-surface-100">
-        <div 
-          className="h-full bg-surface-800 transition-all duration-500 ease-out"
-          style={{ width: `${progressPercent}%` }}
-        />
+      <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-sunken">
+        <div className="h-full bg-accent-strong transition-[width] duration-500 ease-out" style={{ width: `${progressPercent}%` }} />
       </div>
 
-      {/* Liste Alanı - Tek Bir Kart İçinde Bölücülerle Akış */}
-      <div className="mt-5 overflow-hidden rounded-xl border border-surface-100 bg-surface-50/30 divide-y divide-gray-100">
+      <div className={`mt-5 overflow-hidden rounded-xl border border-outline-subtle bg-canvas ${compact ? "divide-y divide-outline-subtle" : "space-y-1 p-1"}`}>
         {items.map((item) => (
           <Link
-            key={item.label}
+            key={item.key}
             href={item.href}
-            className="group flex items-center justify-between gap-3 px-4 py-3.5 bg-white transition-all hover:bg-surface-50/50 active:bg-surface-50"
+            className="group flex min-h-12 items-center justify-between gap-3 bg-raised px-4 py-3 transition-colors hover:bg-sunken"
           >
-            {/* Sol Durum ve Metin */}
             <span className="flex min-w-0 items-center gap-3 text-xs font-medium tracking-tight">
               {item.done ? (
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500 stroke-[2.5]" />
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-status-success-content" aria-hidden="true" />
               ) : (
-                <Circle className="h-4 w-4 shrink-0 text-gray-300 stroke-[2]" />
+                <Circle className="h-4 w-4 shrink-0 text-content-faint" aria-hidden="true" />
               )}
-              <span className={`truncate ${item.done ? "text-surface-400 line-through decoration-gray-200" : "text-surface-700 font-semibold group-hover:text-surface-900"}`}>
+              <span className={item.done ? "truncate text-content-faint line-through" : "truncate font-semibold text-content-secondary group-hover:text-content-primary"}>
                 {item.label}
               </span>
             </span>
-            
-            {/* Sağ Ok İşareti */}
-            <ArrowRight className="h-3.5 w-3.5 shrink-0 text-gray-300 opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-surface-600" />
+            <ArrowRight className="h-3.5 w-3.5 shrink-0 text-content-faint transition-transform group-hover:translate-x-0.5 group-hover:text-content-muted" aria-hidden="true" />
           </Link>
         ))}
       </div>
-    </div>
+    </section>
   );
 }

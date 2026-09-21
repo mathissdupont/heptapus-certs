@@ -2,8 +2,9 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { apiFetch, setToken, clearToken } from "@/lib/api";
+import { apiFetch, setToken, clearToken, setSelectedOrganizationId } from "@/lib/api";
 import { landingPathForContexts, type OrgRoleContext } from "@/lib/orgRoles";
+import { loadOrganizerOnboardingState, postAuthLandingPath } from "@/lib/onboarding";
 import { useI18n } from "@/lib/i18n";
 import { motion } from "framer-motion";
 import { Loader2, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
@@ -49,7 +50,15 @@ function MagicVerifyInner() {
         let landing = "/admin/events";
         try {
           const ctxRes = await apiFetch("/admin/organization/contexts", { method: "GET" });
-          landing = landingPathForContexts(((await ctxRes.json()) as OrgRoleContext[]) || []);
+          const contexts = ((await ctxRes.json()) as OrgRoleContext[]) || [];
+          const soloOwner = contexts.length === 1 && contexts[0]?.owned;
+          if (soloOwner && contexts[0].id) {
+            setSelectedOrganizationId(contexts[0].id);
+            const onboardingState = await loadOrganizerOnboardingState();
+            landing = postAuthLandingPath(contexts, onboardingState);
+          } else {
+            landing = landingPathForContexts(contexts);
+          }
         } catch {
           // bağlam alınamazsa varsayılan
         }

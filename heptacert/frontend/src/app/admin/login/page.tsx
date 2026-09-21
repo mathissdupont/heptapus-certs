@@ -1,8 +1,9 @@
 ﻿"use client";
 
 import { useMemo, useState } from "react";
-import { API_BASE, apiFetch, setToken, clearToken } from "@/lib/api";
+import { API_BASE, apiFetch, setToken, clearToken, setSelectedOrganizationId } from "@/lib/api";
 import { landingPathForContexts, type OrgRoleContext } from "@/lib/orgRoles";
+import { loadOrganizerOnboardingState, postAuthLandingPath } from "@/lib/onboarding";
 import { useI18n } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -169,7 +170,15 @@ export default function AdminLogin() {
     try {
       const ctxRes = await apiFetch("/admin/organization/contexts", { method: "GET" });
       const contexts = (await ctxRes.json()) as OrgRoleContext[];
-      router.push(landingPathForContexts(contexts || []));
+      const normalizedContexts = contexts || [];
+      const soloOwner = normalizedContexts.length === 1 && normalizedContexts[0]?.owned;
+      if (soloOwner && normalizedContexts[0].id) {
+        setSelectedOrganizationId(normalizedContexts[0].id);
+        const onboardingState = await loadOrganizerOnboardingState();
+        router.push(postAuthLandingPath(normalizedContexts, onboardingState));
+      } else {
+        router.push(landingPathForContexts(normalizedContexts));
+      }
     } catch {
       router.push("/admin/events");
     }

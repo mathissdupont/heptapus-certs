@@ -19,19 +19,18 @@
     translates the keys that phase adds, into every catalog. Optional automation: DeepL
     API Free (`scripts/i18n-translate.mjs` on the branch already routes `:fx` keys to
     `api-free.deepl.com`).
-- **Active phase:** Phase 6 — first-run organizer onboarding.
-- **Next step** (Phase 6, in order):
-  1. Trace the post-verification/OAuth entry routes and the real organization, event and
-     certificate state already available to the frontend.
-  2. Reconcile the guided first run with `components/Admin/EventSetupChecklist.tsx`: a
-     dedicated resumable/skippable onboarding route first, the checklist thereafter.
-  3. Build organization profile → WP17 event type preset → one next action using the
-     existing APIs, catalog strings, semantic tokens and Phase 4 pickers.
-  4. Add step-gating/resume tests, run a fresh-organizer flow, then complete the frontend
-     and any affected backend verification sets plus Docker smoke.
+- **Active phase:** Phase 7 — surface-by-surface theme and translation migration.
+- **Next step** (Phase 7, in order):
+  1. Define the non-hook translator contract needed by `lib/assistant/eventDraft.ts` and
+     `lib/assistant/wizard.ts` before migrating either plain module.
+  2. Migrate the first wave in one pass: public shell, auth, then admin shell + dashboard;
+     each touched file leaves catalog-first and semantic-token-only.
+  3. Continue with high-traffic event, attendee/certificate and email surfaces, lowering
+     both UI debt ratchets after each independently verifiable wave.
+  4. Keep transactional routes unprefixed, the theme toggle hidden, and LMS archived.
 - **Translation coverage audit (added at the user's request):** catalog parity alone was
-  hiding the real gap. `npm run i18n:audit` currently reports **526 legacy TR/EN binary
-  branches across 130 files**; those branches send the other seven languages to English.
+  hiding the real gap. `npm run i18n:audit` currently reports **517 legacy TR/EN binary
+  branches across 129 files**; those branches send the other seven languages to English.
   Phase 7/8 must drive that queue to zero and review remaining user-facing literals before
   nine-language coverage can be called complete. The largest starting files are event
   settings (56), `lib/assistant/eventDraft.ts` (48), and `AIAssistant.tsx` (45).
@@ -46,7 +45,7 @@
 | 3 | Semantic token layer + theme restore | ✅ Done | "restore semantic theming behind rollout flag" |
 | 4 | Date & time pickers | ✅ Done | "replace native date/time inputs with localized pickers" |
 | 5 | Landing as the first locale-routed page | ✅ Done | "rebuild landing for all nine locales" |
-| 6 | First-run onboarding | ⏳ Not started | — |
+| 6 | First-run onboarding | ✅ Done | "build server-derived organizer onboarding" |
 | 7 | Surface-by-surface single pass | ⏳ Not started | — |
 | 8 | Widen `Lang` in the authenticated app | 🟡 Type/selector delivered early; catalog migration remains | "unlock nine-language application selector" |
 
@@ -120,6 +119,39 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-09-21 — Phase 6 done: server-derived organizer onboarding
+
+- **One self-healing first run.** `/admin/onboarding` now derives its required profile,
+  event or launch step from organization settings, the organization's event list and
+  first-event health. It is resumable and skippable, and the former layout-level
+  `onboarding_completed` modal/flag no longer controls the UI. The legacy backend endpoint
+  remains available for compatibility but has no role in the new flow.
+- **Profile to first event.** Owners can set organization name, logo and brand color,
+  then create their first event from all nine WP17 event types. Preset flags remain
+  backend-owned through `/admin/event-feature-presets`; the optional date uses the shared
+  Phase 4 picker. Docker testing caught and fixed the backend PATCH contract requiring the
+  event name alongside `event_date`.
+- **Consistent entry and continuation.** Password/2FA login, Google OAuth and magic-link
+  login send only a sole owner with incomplete real state into onboarding; invited staff,
+  multi-context users, explicit deep links and superadmins keep their role-aware routes.
+  The shared `EventSetupChecklist` supplies the single next action on onboarding and the
+  continuing checklist on dashboard/event detail, avoiding duplicate gating logic.
+- **Nine-language and theme contract.** Sixty-two onboarding/checklist keys were translated
+  in every catalog; all nine catalogs now contain **727 keys**. The onboarding route and
+  shared checklist are semantic-token/catalog-first zero-tolerance paths. Removing the old
+  binary modal lowered `lang-binary-check` **526 → 517** and light-only colors
+  **3371 → 3363**; the broader translation queue is now **517 occurrences in 129 files**.
+- **Tests and verification.** Added server-state resume/gating, auth-routing, shared
+  checklist and event-date PATCH regression coverage. `npm run check:ui` ✓ · frontend
+  tests **66/66** · `npx tsc --noEmit` ✓ · local production build ✓ ·
+  `npm audit --omit=dev --audit-level=high` **0 vulnerabilities** · docs links ✓.
+  Fresh Docker organizer smoke covered register → verify → login → empty profile
+  → profile save → workshop preset event → date → launch/resume; all 13 preset
+  flags matched, onboarding/dashboard returned **200**, root **308 → /tr**, German
+  landing and OAuth discovery **200**, unauthenticated MCP initialize **401**.
+- **Next:** Phase 7's first catalog/theme migration wave. LMS remains archived and
+  untouched.
 
 ### 2026-09-20 — Phase 5 done: localized landing, SEO and host-safe routing
 

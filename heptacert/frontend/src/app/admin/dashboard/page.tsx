@@ -24,6 +24,8 @@ import { StatCard } from "@/components/Admin/StatCard";
 import PageHeader from "@/components/Admin/PageHeader";
 import { useI18n } from "@/lib/i18n";
 import { EmptyState as AdminEmptyState } from "@/components/Admin/AdminState";
+import EventSetupChecklist from "@/components/Admin/EventSetupChecklist";
+import { loadOrganizerOnboardingState, type OrganizerOnboardingState } from "@/lib/onboarding";
 
 type EventStat = {
   event_id: number;
@@ -53,6 +55,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [setupState, setSetupState] = useState<OrganizerOnboardingState | null>(null);
   const toast = useToast();
 
   const copy = pickLang({
@@ -130,6 +133,12 @@ export default function DashboardPage() {
       }
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    loadOrganizerOnboardingState({ includeHealth: true })
+      .then(setSetupState)
+      .catch(() => undefined);
   }, []);
 
   // ── Loading ──────────────────────────────────────────────────────────
@@ -214,6 +223,10 @@ export default function DashboardPage() {
           </Link>
         }
       />
+
+      {setupState?.firstEvent && (
+        <EventSetupChecklist event={setupState.firstEvent} overview={setupState.overview} compact />
+      )}
 
       {/* 4 stat cards */}
       <div className="grid grid-cols-2 gap-3.5 xl:grid-cols-4">

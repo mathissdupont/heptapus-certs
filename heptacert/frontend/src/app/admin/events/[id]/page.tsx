@@ -389,7 +389,7 @@ export default function EventIndexPage() {
       {/* 3. ADIM KONTROL LİSTESİ VE YÖNETİM MODÜLLERİ GRIDİ */}
       <section className="grid gap-4 lg:grid-cols-[320px_1fr] items-start">
         {/* Sol Sütun: Kurulum Kontrol Listesi */}
-        <EventSetupChecklist event={event} overview={health?.overview} lang={lang} />
+        <EventSetupChecklist event={event} overview={health?.overview} />
 
         {/* Sağ Sütun: Modül Kısayol Kartları Havuzu */}
         <div className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm flex flex-col">

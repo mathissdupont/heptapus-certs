@@ -3,9 +3,10 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { apiFetch, consumeOAuthBridgeToken, setPublicMemberToken, setToken } from "@/lib/api";
+import { apiFetch, consumeOAuthBridgeToken, setPublicMemberToken, setSelectedOrganizationId, setToken } from "@/lib/api";
 import { landingPathForContexts, type OrgRoleContext } from "@/lib/orgRoles";
 import { useI18n } from "@/lib/i18n";
+import { loadOrganizerOnboardingState, postAuthLandingPath } from "@/lib/onboarding";
 
 function GoogleCallbackContent() {
   const router = useRouter();
@@ -44,7 +45,15 @@ function GoogleCallbackContent() {
           if (next === "/admin/events") {
             try {
               const ctxRes = await apiFetch("/admin/organization/contexts", { method: "GET" });
-              target = landingPathForContexts(((await ctxRes.json()) as OrgRoleContext[]) || []);
+              const contexts = ((await ctxRes.json()) as OrgRoleContext[]) || [];
+              const soloOwner = contexts.length === 1 && contexts[0]?.owned;
+              if (soloOwner && contexts[0].id) {
+                setSelectedOrganizationId(contexts[0].id);
+                const onboardingState = await loadOrganizerOnboardingState();
+                target = postAuthLandingPath(contexts, onboardingState);
+              } else {
+                target = landingPathForContexts(contexts);
+              }
             } catch {
               // bağlam alınamazsa varsayılan
             }
