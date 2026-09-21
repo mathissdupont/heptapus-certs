@@ -36,7 +36,6 @@ function HtmlLangSync() {
 function Navbar() {
   const [open, setOpen] = useState(false);
   const t = useT();
-  const { lang } = useI18n();
 
   const [brandLogo, setBrandLogo] = useState<string | null>(null);
   const [brandColor, setBrandColor] = useState<string | null>(null);
@@ -122,22 +121,14 @@ function Navbar() {
     return !isHeptaCertHost;
   }, [host, isHeptaCertHost, settings]);
 
-  const eventsLabel        = lang === "tr" ? "Etkinlikler"     : "Events";
-  const communitiesLabel   = lang === "tr" ? "Topluluklar"     : "Communities";
-  const discoverLabel      = lang === "tr" ? "Merkez"          : "Hub";
-  const organizationsLabel = lang === "tr" ? "Organizasyonlar" : "Organizations";
-  const myEventsLabel      = lang === "tr" ? "Katıldıklarım"   : "My Events";
-  const profileLabel       = lang === "tr" ? "Profilim"        : "My Profile";
-  const logoutLabel        = lang === "tr" ? "Çıkış Yap"       : "Sign Out";
-
   const links = isWhiteLabel
     ? [{ href: "/verify", label: t("nav_verify") }]
     : [
-        { href: "/events",        label: eventsLabel },
-        { href: "/organizations", label: organizationsLabel },
-        { href: "/discover",      label: discoverLabel },
-        ...(member ? [{ href: "/my-events", label: myEventsLabel }] : []),
-        ...(member ? [{ href: "/profile",   label: profileLabel   }] : []),
+        { href: "/events",        label: t("nav_events") },
+        { href: "/organizations", label: t("nav_organizations") },
+        { href: "/discover",      label: t("nav_discover") },
+        ...(member ? [{ href: "/my-events", label: t("nav_my_events") }] : []),
+        ...(member ? [{ href: "/profile",   label: t("nav_profile") }] : []),
         { href: "/pricing", label: t("nav_pricing") },
         { href: "/verify",  label: t("nav_verify")  },
       ];
@@ -194,7 +185,7 @@ function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-surface-200 bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-50 w-full border-b border-outline-subtle bg-raised/95 backdrop-blur">
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link href="/" className="group flex shrink-0 items-center">
@@ -202,7 +193,7 @@ function Navbar() {
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={brandLogo}
-              alt="brand"
+              alt={orgName || "HeptaCert"}
               className="h-8 w-auto max-w-[160px] object-contain opacity-100 transition-opacity group-hover:opacity-75"
             />
           ) : isWhiteLabel && orgName ? (
@@ -221,12 +212,12 @@ function Navbar() {
         </Link>
 
         {/* Desktop nav links — centered */}
-        <div className="hidden flex-1 items-center justify-center gap-0.5 px-8 lg:flex">
+        <div className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 px-4 xl:flex">
           {links.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              className="rounded-md px-3 py-2 text-sm font-medium text-surface-600 transition-colors hover:text-surface-900"
+              className="whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium text-content-muted transition-colors hover:bg-sunken hover:text-content-primary"
             >
               {l.label}
             </Link>
@@ -234,7 +225,7 @@ function Navbar() {
         </div>
 
         {/* Desktop right actions */}
-        <div className="hidden shrink-0 items-center gap-3 lg:flex">
+        <div className="hidden shrink-0 items-center gap-3 xl:flex">
           <ThemeToggle />
           <LanguageToggle />
           <div className="mx-1 h-5 w-px bg-surface-200" />
@@ -246,7 +237,7 @@ function Navbar() {
                 className="btn-ghost text-sm"
               >
                 <Plus className="h-4 w-4" />
-                {lang === "tr" ? "Gönderi" : "Post"}
+                {t("nav_create_post")}
               </Link>
               <span className="text-sm font-medium text-surface-700 max-w-[140px] truncate">
                 {memberName}
@@ -256,7 +247,7 @@ function Navbar() {
                 onClick={handleLogout}
                 className="btn-ghost text-sm"
               >
-                {logoutLabel}
+                {t("nav_sign_out")}
               </button>
             </>
           ) : (
@@ -276,9 +267,9 @@ function Navbar() {
         {/* Mobile menu toggle */}
         <button
           onClick={() => setOpen(!open)}
-          aria-label={open ? (lang === "tr" ? "Menüyü Kapat" : "Close menu") : (lang === "tr" ? "Menüyü Aç" : "Open menu")}
+          aria-label={open ? t("nav_menu_close") : t("nav_menu_open")}
           aria-expanded={open}
-          className="rounded-lg p-2 text-surface-600 transition-colors hover:bg-surface-100 hover:text-surface-900 lg:hidden"
+          className="rounded-lg p-2 text-content-muted transition-colors hover:bg-sunken hover:text-content-primary xl:hidden"
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
@@ -292,7 +283,7 @@ function Navbar() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.18, ease: "easeOut" }}
-            className="overflow-hidden border-t border-surface-100 bg-white lg:hidden"
+            className="overflow-hidden border-t border-outline-subtle bg-raised xl:hidden"
           >
             {/* Nav links */}
             <div className="space-y-0.5 px-4 py-3">
@@ -320,11 +311,11 @@ function Navbar() {
                   <Link
                     href="/profile"
                     onClick={() => setOpen(false)}
-                    className="block rounded-xl border border-surface-200 bg-white px-4 py-3"
+                    className="block rounded-xl border border-outline-subtle bg-raised px-4 py-3"
                   >
                     <p className="truncate text-sm font-medium text-surface-900">{memberName}</p>
-                    <p className="mt-0.5 text-xs text-surface-400">
-                      {lang === "tr" ? "Profil ayarları" : "Profile settings"}
+                    <p className="mt-0.5 text-xs text-content-faint">
+                      {t("nav_profile_settings")}
                     </p>
                   </Link>
                   <Link
@@ -333,14 +324,14 @@ function Navbar() {
                     className="btn-secondary flex w-full justify-center"
                   >
                     <Plus className="h-4 w-4" />
-                    {lang === "tr" ? "Yeni Gönderi" : "New Post"}
+                    {t("nav_new_post")}
                   </Link>
                   <button
                     type="button"
                     onClick={handleLogout}
                     className="btn-ghost w-full justify-center"
                   >
-                    {logoutLabel}
+                    {t("nav_sign_out")}
                   </button>
                 </div>
               ) : (
@@ -372,6 +363,7 @@ function Navbar() {
 }
 
 function InstallPrompt() {
+  const t = useT();
   const [promptEvent, setPromptEvent] = useState<unknown>(null);
   const [visible, setVisible] = useState(false);
   const [iosInstallHelp, setIosInstallHelp] = useState(false);
@@ -433,45 +425,43 @@ function InstallPrompt() {
   }
 
   return (
-    <div className="fixed inset-x-3 bottom-20 z-[70] rounded-2xl border border-surface-200 bg-white p-4 shadow-float md:bottom-5 md:left-auto md:right-5 md:w-96">
+    <div className="fixed inset-x-3 bottom-20 z-[70] rounded-2xl border border-outline-subtle bg-raised p-4 shadow-float md:bottom-5 md:left-auto md:right-5 md:w-96">
       <div className="flex items-start gap-3">
         <div className="rounded-xl border border-surface-150 bg-surface-50 p-2 text-surface-600">
           <Smartphone className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
-            <p className="text-sm font-semibold text-surface-900">HeptaCert&apos;i ana ekrana ekle</p>
+            <p className="text-sm font-semibold text-content-primary">{t("pwa_install_title")}</p>
             <button
               type="button"
               onClick={dismiss}
-              aria-label="Kapat"
+              aria-label={t("pwa_close")}
               className="btn-ghost -mt-1 p-1"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
           <p className="mt-1 text-xs leading-relaxed text-surface-500">
-            {iosInstallHelp
-              ? "iPhone'da Safari paylaş menüsü üzerinden Ana Ekrana Ekle seçeneğini kullan."
-              : "Check-in ve bilet kontrolünü uygulama gibi aç."}
+            {iosInstallHelp ? t("pwa_ios_hint") : t("pwa_default_hint")}
           </p>
           {iosInstallHelp && (
             <div className="mt-3 rounded-xl border border-surface-150 bg-surface-50 p-3 text-xs text-surface-600">
               <p className="flex items-center gap-2">
                 <Share className="h-4 w-4 text-surface-500" />
-                Safari&apos;de Paylaş&apos;a bas
+                {t("pwa_share_action")}
               </p>
-              <p className="mt-1 pl-6">Sonra Ana Ekrana Ekle seç.</p>
+              <p className="mt-1 pl-6">{t("pwa_add_home_action")}</p>
             </div>
           )}
           <div className="mt-3 flex gap-2">
             {promptEvent !== null && (
               <button type="button" onClick={install} className="btn-primary text-xs">
-                Ekle
+                {t("pwa_install_action")}
               </button>
             )}
             <button type="button" onClick={dismiss} className="btn-secondary text-xs">
-              Sonra
+              {t("pwa_later")}
             </button>
           </div>
         </div>
@@ -481,26 +471,27 @@ function InstallPrompt() {
 }
 
 function AdminMobileNav() {
+  const t = useT();
   const pathname = usePathname() || "";
   const eventMatch = pathname.match(/^\/admin\/events\/(\d+)/);
   const eventId = eventMatch?.[1];
   const items = eventId
     ? [
-        { href: `/admin/events/${eventId}`,              label: "Özet",     icon: Home       },
-        { href: `/admin/events/${eventId}/ops`,           label: "Canlı",    icon: Activity   },
-        { href: `/admin/events/${eventId}/checkin`,       label: "Check-in", icon: QrCode     },
-        { href: `/admin/events/${eventId}/tickets`,       label: "Bilet",    icon: Ticket     },
-        { href: `/admin/events/${eventId}/certificates`,  label: "Sertifika",icon: Shield     },
+        { href: `/admin/events/${eventId}`,              label: t("admin_mobile_summary"),     icon: Home       },
+        { href: `/admin/events/${eventId}/ops`,           label: t("admin_mobile_live"),        icon: Activity   },
+        { href: `/admin/events/${eventId}/checkin`,       label: t("admin_mobile_checkin"),     icon: QrCode     },
+        { href: `/admin/events/${eventId}/tickets`,       label: t("admin_mobile_ticket"),      icon: Ticket     },
+        { href: `/admin/events/${eventId}/certificates`,  label: t("admin_mobile_certificate"), icon: Shield     },
       ]
     : [
-        { href: "/admin/dashboard", label: "Panel",    icon: Home        },
-        { href: "/admin/events",    label: "Etkinlik", icon: CalendarDays},
+        { href: "/admin/dashboard", label: t("admin_mobile_dashboard"), icon: Home        },
+        { href: "/admin/events",    label: t("admin_mobile_event"),     icon: CalendarDays},
       ];
 
   return (
     <nav
-      className="fixed inset-x-3 bottom-3 z-[60] rounded-2xl border border-surface-200 bg-white/95 p-1.5 shadow-float backdrop-blur md:hidden"
-      aria-label="Admin hızlı gezinti"
+      className="fixed inset-x-3 bottom-3 z-[60] rounded-2xl border border-outline-subtle bg-raised/95 p-1.5 shadow-float backdrop-blur md:hidden"
+      aria-label={t("admin_mobile_nav_label")}
     >
       <div className="grid" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
         {items.map((item) => {
@@ -513,7 +504,7 @@ function AdminMobileNav() {
               key={item.href}
               href={item.href}
               className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-11 font-semibold transition-colors ${
-                active ? "bg-surface-900 text-white" : "text-surface-500 hover:bg-surface-100 hover:text-surface-900"
+                active ? "bg-accent-strong text-content-inverted" : "text-content-muted hover:bg-sunken hover:text-content-primary"
               }`}
             >
               <Icon className="h-4 w-4" />

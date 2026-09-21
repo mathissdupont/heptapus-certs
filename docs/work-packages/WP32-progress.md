@@ -21,16 +21,21 @@
     `api-free.deepl.com`).
 - **Active phase:** Phase 7 — surface-by-surface theme and translation migration.
 - **Next step** (Phase 7, in order):
-  1. Define the non-hook translator contract needed by `lib/assistant/eventDraft.ts` and
+  1. Migrate the public content wave in one pass: `/events`, `/organizations` and
+     `/discover` (Hub); each touched file leaves catalog-first and semantic-token-only.
+  2. Migrate and obtain human legal review for the six public legal/contract routes:
+     `/kullanim-kosullari`, `/gizlilik`, `/kvkk`, `/mesafeli-satis`, `/iade` and
+     `/acik-riza`. They currently serve English to the seven non-TR/EN locales and must
+     not be called complete merely because machine-readable catalog parity passes.
+  3. Continue through auth, admin shell + dashboard, then high-traffic event,
+     attendee/certificate and email surfaces, lowering both UI debt ratchets after each
+     independently verifiable wave.
+  4. Define the non-hook translator contract needed by `lib/assistant/eventDraft.ts` and
      `lib/assistant/wizard.ts` before migrating either plain module.
-  2. Migrate the first wave in one pass: public shell, auth, then admin shell + dashboard;
-     each touched file leaves catalog-first and semantic-token-only.
-  3. Continue with high-traffic event, attendee/certificate and email surfaces, lowering
-     both UI debt ratchets after each independently verifiable wave.
-  4. Keep transactional routes unprefixed, the theme toggle hidden, and LMS archived.
+  5. Keep transactional routes unprefixed, the theme toggle hidden, and LMS archived.
 - **Translation coverage audit (added at the user's request):** catalog parity alone was
-  hiding the real gap. `npm run i18n:audit` currently reports **517 legacy TR/EN binary
-  branches across 129 files**; those branches send the other seven languages to English.
+  hiding the real gap. `npm run i18n:audit` currently reports **505 legacy TR/EN binary
+  branches across 128 files**; those branches send the other seven languages to English.
   Phase 7/8 must drive that queue to zero and review remaining user-facing literals before
   nine-language coverage can be called complete. The largest starting files are event
   settings (56), `lib/assistant/eventDraft.ts` (48), and `AIAssistant.tsx` (45).
@@ -46,7 +51,7 @@
 | 4 | Date & time pickers | ✅ Done | "replace native date/time inputs with localized pickers" |
 | 5 | Landing as the first locale-routed page | ✅ Done | "rebuild landing for all nine locales" |
 | 6 | First-run onboarding | ✅ Done | "build server-derived organizer onboarding" |
-| 7 | Surface-by-surface single pass | ⏳ Not started | — |
+| 7 | Surface-by-surface single pass | 🚧 In progress | "localize the public shell in all nine languages" |
 | 8 | Widen `Lang` in the authenticated app | 🟡 Type/selector delivered early; catalog migration remains | "unlock nine-language application selector" |
 
 ## Invariants — do not break
@@ -119,6 +124,31 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-09-21 — Phase 7 wave 1: nine-language public shell
+
+- **The screenshot regression is fixed at its source.** The authenticated/public global
+  shell no longer hardcodes Turkish/English labels for Events, Organizations or Hub.
+  Navigation, member/profile actions, the install prompt and the compact admin navigation
+  now read 27 new keys from all nine catalogs. With German selected, the header renders
+  `Veranstaltungen`, `Organisationen` and `Entdecken` instead of English labels.
+- **Long translations remain reachable.** The full desktop navigation now starts at the
+  `xl` breakpoint, its links do not wrap, and narrower layouts use the mobile menu rather
+  than clipping items such as the German organization label. The shell's remaining five
+  fixed light surfaces were also migrated to semantic theme roles, so
+  `src/app/_client-shell.tsx` is now a zero-tolerance `cleanPath`.
+- **The visible shell is fixed, but public page content is not yet complete.** `/events`
+  and `/organizations` each still have one TR/EN copy branch and `/discover` has seven;
+  these are the next public-content wave. The six legal/contract routes are likewise
+  TR/EN-only and silently fall back to English for seven locales. They are explicitly
+  queued as a separate high-priority translation plus human legal-review wave.
+- **Ratchet and regression evidence.** All nine catalogs now contain **754 keys**.
+  `lang-binary-check` fell **517 → 505** across **129 → 128 files** and
+  `light-only-color` fell **3363 → 3358**. `npm run check:ui` ✓ · `npx tsc --noEmit` ✓ ·
+  focused German shell regression test **1/1** ✓.
+- **Next:** migrate `/events`, `/organizations` and `/discover` completely in one public
+  content wave, then the six legal/contract routes. Transactional URLs remain unprefixed;
+  LMS remains archived and untouched.
 
 ### 2026-09-21 — Phase 6 done: server-derived organizer onboarding
 
