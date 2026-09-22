@@ -14,19 +14,37 @@ Related code: `backend/src/mcp_server.py` (tools, schemas, component wiring),
 `backend/src/mcp_widgets/` (the components), `backend/src/oauth_api.py` and
 `oauth_metadata_api.py` (OAuth + discovery + domain verification).
 
+## Publisher: individual verification
+
+HeptaCert is not yet a registered legal entity, so business verification is not
+available. The decision (2026-09-22) is to publish under **individual
+verification**: the app is still listed as "HeptaCert" (`displayName`), while
+the publisher line carries the person's own name.
+
+`developerName` and `author.name` are therefore set to `Samet Unsal`.
+
 ## Confirm before submitting
 
 These values are taken from what the repository already publishes. A human
 should confirm each one against the account actually submitting, because
 reviewers check that they match the verified publisher identity:
 
+- **`developerName` / `author.name` spelling.** These must match the
+  government ID used for verification, character for character. The value here
+  came from the repository's git config, which may have dropped Turkish
+  diacritics — check whether it should be `Ünsal`.
 - `author.email` — `destek@heptacert.com`, the address on the public developers
   page. Confirm it is monitored for plugin support.
 - `privacyPolicyURL` / `termsOfServiceURL` — the live `/gizlilik` and
-  `/kullanim-kosullari` pages. **These are Turkish-language pages and were
-  written for the web product, not for a ChatGPT plugin.** They have not been
-  reviewed for whether they cover data shared with OpenAI. No legal counsel has
-  approved them for this purpose.
+  `/kullanim-kosullari` pages. Two separate problems:
+  1. **They name no data controller.** Neither page identifies a legal person,
+     trade name, tax number or MERSIS — only the "HeptaCert" brand. Reviewers
+     check that the privacy and terms match the verified publisher, and KVKK
+     expects an identifiable *veri sorumlusu*. Publishing as an individual means
+     these pages have to name that individual.
+  2. **They were written for the web product, not for a ChatGPT plugin,** and
+     have not been reviewed for whether they cover data shared with OpenAI. No
+     legal counsel has approved them for this purpose.
 - `category` — `Productivity` is a guess; pick from the portal's list.
 - `version` — bump on every resubmission.
 - `assets/logo.png` is 738 KB. Check the portal's size and aspect requirements
