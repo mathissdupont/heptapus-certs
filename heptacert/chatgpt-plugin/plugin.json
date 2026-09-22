@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Manage events, attendees, check-ins and verifiable certificates in HeptaCert.",
   "author": {
-    "name": "HeptaCert",
+    "name": "Samet Unsal",
     "email": "destek@heptacert.com",
     "url": "https://heptacert.com"
   },
@@ -17,7 +17,7 @@
         "displayName": "HeptaCert",
         "shortDescription": "Run events and issue verifiable certificates",
         "longDescription": "HeptaCert is an event management and certificate issuance platform. Connect your HeptaCert account to create and update events, manage attendees and sessions, run check-in, queue certificate batches, and verify a certificate from its public code — with attendee lists, certificates and issuance confirmations rendered inline. Every action runs against your own organization's data under the permissions you grant when you connect, and destructive actions ask for confirmation first.",
-        "developerName": "HeptaCert",
+        "developerName": "Samet Unsal",
         "category": "Productivity",
         "capabilities": ["Read", "Write"],
         "websiteURL": "https://heptacert.com",
