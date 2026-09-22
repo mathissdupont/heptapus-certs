@@ -10310,6 +10310,8 @@ async def list_certificates(
     if page < 1 or limit < 1 or limit > 200:
         raise bad_request("Invalid page/limit")
 
+    # Event-team permissions use certificates:write for certificate management;
+    # OAuth/API-key read scopes are checked separately by get_current_user.
     ev = await _get_event_for_admin(event_id, me, db, "certificates:write")
     _ensure_certificate_feature_enabled(ev)
 
@@ -15447,7 +15449,9 @@ class _MCPAuthChallenge:
     async def __call__(self, scope, receive, send):
         if scope["type"] == "http" and scope.get("method", "").upper() != "OPTIONS":
             headers = dict(scope.get("headers") or [])
-            if not headers.get(b"authorization"):
+            auth = headers.get(b"authorization", b"").strip()
+            scheme, _, credential = auth.partition(b" ")
+            if scheme.lower() != b"bearer" or not credential.strip():
                 body = (
                     b'{"error":"unauthorized",'
                     b'"error_description":"Authentication required. '

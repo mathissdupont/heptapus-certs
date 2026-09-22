@@ -163,6 +163,17 @@ def _verify_pkce(challenge: str, method: str, verifier: str) -> bool:
     return computed == challenge
 
 
+def _grant_scopes(requested_scope: str, allowed_scopes: list[str]) -> list[str]:
+    """Never mint an empty OAuth scope claim (REST treats it as unrestricted)."""
+    requested = [s for s in requested_scope.split() if s]
+    if requested and any(s not in allowed_scopes for s in requested):
+        raise HTTPException(status_code=400, detail="invalid_scope")
+    granted = requested if requested else allowed_scopes
+    if not granted:
+        raise HTTPException(status_code=400, detail="invalid_scope")
+    return granted
+
+
 # ── Public: validate client (called by frontend consent page) ─────────────────
 
 class ValidateOut(BaseModel):
@@ -188,17 +199,16 @@ async def validate_oauth_params(
         raise HTTPException(status_code=400, detail="redirect_uri not registered for this client")
 
     allowed   = list(client.allowed_scopes or [])
-    requested = [s for s in scope.split() if s]
     # A client that requests no scope is granted the client's full allowed set —
     # NOT an empty set. An empty scope claim would be read as "full access" by the
     # REST enforcement layer, so tokens must always carry explicit scopes. The
     # consent screen shows exactly this list, keeping approval honest.
-    granted   = [s for s in requested if s in allowed] if requested else allowed
+    granted   = _grant_scopes(scope, allowed)
 
     return ValidateOut(
         client_name=client.name,
         logo_url=client.logo_url,
-        requested_scopes=requested,
+        requested_scopes=[s for s in scope.split() if s],
         granted_scopes=granted,
     )
 
@@ -237,8 +247,7 @@ async def issue_auth_code(
     # allowed set (explicit, never empty). This prevents an empty scope claim from
     # being interpreted as unrestricted "full access" downstream.
     allowed    = list(client.allowed_scopes or [])
-    requested  = [s for s in payload.scope.split() if s]
-    scopes     = [s for s in requested if s in allowed] if requested else allowed
+    scopes     = _grant_scopes(payload.scope, allowed)
 
     raw_code  = secrets.token_urlsafe(32)
     code_record = OAuthCode(
@@ -343,6 +352,8 @@ async def token_endpoint(
         if not user:
             raise HTTPException(status_code=400, detail="User not found")
 
+        if not code_rec.scopes:
+            raise HTTPException(status_code=400, detail="invalid_scope")
         access_token  = _make_access_token(
             user_id=user.id,
             role=user.role.value if hasattr(user.role, "value") else str(user.role),
@@ -403,6 +414,8 @@ async def token_endpoint(
         if not user:
             raise HTTPException(status_code=400, detail="User not found")
 
+        if not rt_rec.scopes:
+            raise HTTPException(status_code=400, detail="invalid_scope")
         access_token = _make_access_token(
             user_id=user.id,
             role=user.role.value if hasattr(user.role, "value") else str(user.role),
@@ -499,6 +512,8 @@ async def register_client(
 
     # ── Scopes: bound to what a token can actually be granted ────────────────────
     requested = [s for s in (payload.scope or "").split() if s]
+    if any(s not in VALID_SCOPES for s in requested):
+        raise HTTPException(status_code=400, detail="invalid_scope")
     allowed = [s for s in requested if s in VALID_SCOPES]
     if not allowed:
         # No (valid) scope requested → allow the full grantable set; the user still

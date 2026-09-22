@@ -584,10 +584,13 @@ def _enforce_api_scope(request: Optional[Request], held_scopes: Optional[List[st
         return
     path = request.url.path
     method = request.method
-    # MCP meta endpoints (identity check + fire-and-forget audit logging) touch no
-    # business resource and must stay reachable by any authenticated credential
-    # regardless of its scope set, so scoped OAuth tokens can still be audited.
-    if path.startswith("/api/admin/mcp/"):
+    # Identity check and fire-and-forget audit logging touch no business resource;
+    # reading historic agent logs does and therefore requires events:read.
+    if path in ("/api/admin/mcp/me", "/api/admin/mcp/agent-log"):
+        return
+    if path == "/api/admin/mcp/agent-logs":
+        if not _scopes_satisfy(held_scopes, "events:read"):
+            raise HTTPException(status_code=403, detail="API key lacks events:read scope")
         return
     required = _required_scope_for_request(method, path)
     if required is not None:
@@ -694,6 +697,8 @@ async def get_current_user(request: Request = None, db: AsyncSession = Depends(g
     # OAuth access tokens carry a space-separated "scope" claim. Enforce it just
     # like API-key scopes (interactive JWT sessions have no scope claim -> full access).
     oauth_scopes = [s for s in (payload.get("scope") or "").split() if s] if oauth_client_id else None
+    if oauth_client_id and not oauth_scopes:
+        raise HTTPException(status_code=401, detail="OAuth token has no granted scopes")
     _enforce_api_scope(request, oauth_scopes)
 
     from .cache import cache, USER_TTL

@@ -12,7 +12,7 @@ analytics — all within proper security boundaries.
 
   streamable-http mode (hosted / multi-user):
     Pass `Authorization: Bearer hc_live_...` in every request.
-    The env var is a fallback; per-request header takes precedence.
+    The env var is only used by stdio; HTTP requires a per-request bearer token.
     Mount the same process for all users — auth is per-request.
 
 ── Scope Enforcement ────────────────────────────────────────────────────────────
@@ -75,11 +75,13 @@ from typing import Any, Optional
 import httpx
 from mcp.server.fastmcp import FastMCP, Context
 from mcp.server.transport_security import TransportSecuritySettings
+from mcp.types import ToolAnnotations
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 
 API_BASE = os.getenv("HEPTACERT_API_BASE", "http://localhost:8000").rstrip("/")
 API_KEY_ENV = os.getenv("HEPTACERT_API_KEY", "")
+_ALLOW_ENV_KEY = False  # enabled only by the direct stdio entry point
 
 mcp = FastMCP(
     "HeptaCert",
@@ -102,7 +104,7 @@ mcp = FastMCP(
         "IMPORTANT RULES:\n"
         "- Always confirm event name and date with the user before creating records.\n"
         "- For destructive actions (delete_event, remove_attendee, revoke_certificate, "
-        "delete_session) call without confirm=True first to preview, then call again with "
+        "delete_session, issue_certificates) call without confirm=True first to preview, then call again with "
         "confirm=True only after explicit user approval.\n"
         "- Use list_events to discover event IDs.\n"
         "- Never invent IDs — always look them up first."
@@ -121,19 +123,16 @@ def _get_api_key(ctx: Optional[Context] = None) -> str:
     if ctx is not None:
         try:
             request = ctx.request_context.request
+        except AttributeError:
+            request = None  # stdio transport has no HTTP request
+        if request is not None:
             auth = request.headers.get("authorization", "")
-            if auth.lower().startswith("bearer "):
-                key = auth.split(" ", 1)[1].strip()
-                # Accept ANY bearer credential: an hc_live_ API key OR an OAuth
-                # access token (JWT) minted via the OAuth flow. Both are forwarded
-                # verbatim to the REST API, which validates the credential and
-                # enforces scopes. This is what lets any OAuth/MCP client connect,
-                # not just holders of a hand-issued API key.
-                if key:
-                    return key
-        except Exception:
-            pass
-    if API_KEY_ENV:
+            scheme, _, key = auth.partition(" ")
+            if scheme.lower() == "bearer" and key.strip():
+                # API keys and OAuth tokens are validated by the REST API.
+                return key.strip()
+            raise PermissionError("HTTP MCP requests require a Bearer credential.")
+    if _ALLOW_ENV_KEY and API_KEY_ENV:
         return API_KEY_ENV
     raise RuntimeError(
         "No API key found. In stdio mode: set HEPTACERT_API_KEY env var. "
@@ -151,37 +150,74 @@ def _headers(api_key: str) -> dict[str, str]:
 
 
 def _fmt(data: object) -> str:
-    return json.dumps(data, ensure_ascii=False, indent=2, default=str)
+    # REST webhook responses include signing secrets. Never surface these (or
+    # other credentials) in model-visible MCP tool results, including nested data.
+    sensitive = {
+        "secret", "client_secret", "clientsecret", "signing_secret", "session_secret",
+        "webhook_secret", "access_token", "refresh_token", "password", "api_key",
+        "apikey", "token", "authorization", "private_key", "set-cookie",
+    }
+
+    def redact(value: object) -> object:
+        if isinstance(value, dict):
+            return {k: "[REDACTED]" if k.lower() in sensitive else redact(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [redact(v) for v in value]
+        return value
+
+    return json.dumps(redact(data), ensure_ascii=False, indent=2, default=str)
 
 
 # ── HTTP helpers ───────────────────────────────────────────────────────────────
 
 
+class MCPAPIError(RuntimeError):
+    """Model-safe REST failure without upstream URLs, bodies, or credentials."""
+
+    def __init__(self, status_code: int):
+        self.status_code = status_code
+        message = {
+            401: "Authentication failed. Reconnect HeptaCert.",
+            403: "Permission denied for this HeptaCert resource.",
+            404: "The requested HeptaCert resource was not found.",
+            409: "The request conflicts with an existing record.",
+            422: "Invalid input. Check required fields and formats.",
+            429: "Rate limit reached. Retry later.",
+        }.get(status_code, "HeptaCert API is temporarily unavailable." if status_code >= 500
+              else "HeptaCert could not complete this request.")
+        super().__init__(message)
+
+
+def _check_response(resp: httpx.Response) -> None:
+    if resp.is_error:
+        raise MCPAPIError(resp.status_code)
+
+
 async def _get(path: str, api_key: str, params: dict | None = None) -> Any:
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.get(f"{API_BASE}{path}", headers=_headers(api_key), params=params or {})
-        resp.raise_for_status()
+        _check_response(resp)
         return resp.json()
 
 
 async def _post(path: str, api_key: str, body: dict) -> Any:
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.post(f"{API_BASE}{path}", headers=_headers(api_key), json=body)
-        resp.raise_for_status()
+        _check_response(resp)
         return resp.json()
 
 
 async def _patch(path: str, api_key: str, body: dict) -> Any:
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.patch(f"{API_BASE}{path}", headers=_headers(api_key), json=body)
-        resp.raise_for_status()
+        _check_response(resp)
         return resp.json()
 
 
 async def _delete(path: str, api_key: str) -> Any:
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.delete(f"{API_BASE}{path}", headers=_headers(api_key))
-        resp.raise_for_status()
+        _check_response(resp)
         return resp.json() if resp.content else {"status": "deleted"}
 
 
@@ -204,11 +240,12 @@ async def _get_scopes(api_key: str) -> list[str]:
     cached = _scope_cache.get(cache_key)
     if cached and (time.time() - cached[0]) < _SCOPE_CACHE_TTL:
         return cached[1]
-    try:
-        data = await _get("/api/admin/mcp/me", api_key)
-        scopes = list(data.get("scopes") or [])
-    except Exception:
-        scopes = []
+    # An unavailable/invalid identity endpoint must not be mistaken for an
+    # unrestricted credential. Only a successful response may mean "unscoped".
+    data = await _get("/api/admin/mcp/me", api_key)
+    if not isinstance(data, dict) or not isinstance(data.get("scopes"), list):
+        raise PermissionError("Credential scope verification failed.")
+    scopes = data["scopes"]
     _scope_cache[cache_key] = (time.time(), scopes)
     return scopes
 
@@ -285,7 +322,7 @@ def _fire_and_forget_log(
 # ── Tools: Events (read) ───────────────────────────────────────────────────────
 
 
-@mcp.tool()
+@mcp.tool(title="List Events", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
 async def list_events(ctx: Context, search: str = "", limit: int = 20) -> str:
     """
     List events in the HeptaCert account.
@@ -323,7 +360,7 @@ async def list_events(ctx: Context, search: str = "", limit: int = 20) -> str:
     return _fmt({"total": len(summary), "events": summary})
 
 
-@mcp.tool()
+@mcp.tool(title="Get Event", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
 async def get_event(ctx: Context, event_id: int) -> str:
     """
     Get full details of a single event.
@@ -340,7 +377,7 @@ async def get_event(ctx: Context, event_id: int) -> str:
     return _fmt(data)
 
 
-@mcp.tool()
+@mcp.tool(title="Get Event Stats", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
 async def get_event_stats(ctx: Context, event_id: int) -> str:
     """
     Get statistics for an event: attendee count, session count, certificates issued,
@@ -358,7 +395,7 @@ async def get_event_stats(ctx: Context, event_id: int) -> str:
 # ── Tools: Events (write) ──────────────────────────────────────────────────────
 
 
-@mcp.tool()
+@mcp.tool(title="Create Event", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True, idempotentHint=False))
 async def create_event(
     ctx: Context,
     name: str,
@@ -386,7 +423,7 @@ async def create_event(
         registration_enabled: Allow public registration. Default: True.
         checkin_enabled: Enable QR check-in. Default: True.
         ticketing_enabled: Enable ticketing/payments. Default: False.
-        visibility: "private" (link-only) or "public" (directory). Default: private.
+        visibility: "private" (not publicly listed) or "public" (directory). Default: private.
 
     Returns the created event object including its numeric `id`.
     """
@@ -422,7 +459,7 @@ async def create_event(
     return _fmt({"status": "created", "event": result})
 
 
-@mcp.tool()
+@mcp.tool(title="Update Event", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True, idempotentHint=False))
 async def update_event(
     ctx: Context,
     event_id: int,
@@ -481,7 +518,7 @@ async def update_event(
     return _fmt({"status": "updated", "event": updated})
 
 
-@mcp.tool()
+@mcp.tool(title="Delete Event", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=False, idempotentHint=False))
 async def delete_event(ctx: Context, event_id: int, confirm: bool = False) -> str:
     """
     Delete an event permanently. This cannot be undone.
@@ -523,7 +560,7 @@ async def delete_event(ctx: Context, event_id: int, confirm: bool = False) -> st
     return _fmt({"status": "deleted", "event_id": event_id, "name": event_name})
 
 
-@mcp.tool()
+@mcp.tool(title="Close Registration", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=False, idempotentHint=False))
 async def close_registration(ctx: Context, event_id: int) -> str:
     """
     Close registrations for an event — no new attendees can register.
@@ -539,7 +576,7 @@ async def close_registration(ctx: Context, event_id: int) -> str:
     return _fmt({"status": "registration_closed", "event": updated})
 
 
-@mcp.tool()
+@mcp.tool(title="Open Registration", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=False, idempotentHint=False))
 async def open_registration(ctx: Context, event_id: int) -> str:
     """
     Reopen registrations for an event.
@@ -558,7 +595,7 @@ async def open_registration(ctx: Context, event_id: int) -> str:
 # ── Tools: Attendees ───────────────────────────────────────────────────────────
 
 
-@mcp.tool()
+@mcp.tool(title="List Attendees", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
 async def list_attendees(
     ctx: Context,
     event_id: int,
@@ -587,7 +624,7 @@ async def list_attendees(
     return _fmt(data)
 
 
-@mcp.tool()
+@mcp.tool(title="Add Attendee", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=False, idempotentHint=False))
 async def add_attendee(
     ctx: Context,
     event_id: int,
@@ -613,12 +650,12 @@ async def add_attendee(
     data = await _post(f"/api/admin/events/{event_id}/attendees", api_key, body)
     attendee_id = data.get("id")
     _fire_and_forget_log(api_key, "add_attendee", event_id=event_id,
-                         payload={"email": email, "name": f"{first_name} {last_name}"},
-                         result_summary=f"Added attendee {email} to event {event_id}")
+                         payload={"attendee_id": attendee_id},
+                         result_summary=f"Added attendee {attendee_id} to event {event_id}")
     return _fmt({"status": "added", "attendee": data})
 
 
-@mcp.tool()
+@mcp.tool(title="Bulk Add Attendees", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=False, idempotentHint=False))
 async def bulk_add_attendees(ctx: Context, event_id: int, attendees: list[dict]) -> str:
     """
     Add multiple attendees to an event. More efficient than calling add_attendee in a loop.
@@ -633,6 +670,8 @@ async def bulk_add_attendees(ctx: Context, event_id: int, attendees: list[dict])
     """
     api_key = _get_api_key(ctx)
     await _require_scope(api_key, "attendees:write")
+    if not attendees or len(attendees) > 100:
+        raise ValueError("Provide between 1 and 100 attendees per request.")
     results: dict = {"added": 0, "skipped": 0, "errors": []}
     for a in attendees:
         try:
@@ -643,18 +682,18 @@ async def bulk_add_attendees(ctx: Context, event_id: int, attendees: list[dict])
             }
             await _post(f"/api/admin/events/{event_id}/attendees", api_key, body)
             results["added"] += 1
-        except httpx.HTTPStatusError as exc:
-            if exc.response.status_code == 409:
+        except MCPAPIError as exc:
+            if exc.status_code == 409:
                 results["skipped"] += 1
             else:
-                results["errors"].append({"email": a.get("email"), "error": exc.response.text})  # type: ignore[union-attr]
+                results["errors"].append({"email": a.get("email"), "status_code": exc.status_code})
     _fire_and_forget_log(api_key, "bulk_add_attendees", event_id=event_id,
                          payload={"count": len(attendees)},
                          result_summary=f"Bulk added: {results['added']} added, {results['skipped']} skipped")
     return _fmt({"status": "imported", "result": results})
 
 
-@mcp.tool()
+@mcp.tool(title="Update Attendee", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=False, idempotentHint=False))
 async def update_attendee(
     ctx: Context,
     event_id: int,
@@ -688,12 +727,12 @@ async def update_attendee(
         return _fmt({"error": "No fields provided — nothing to update."})
     data = await _patch(f"/api/admin/events/{event_id}/attendees/{attendee_id}", api_key, body)
     _fire_and_forget_log(api_key, "update_attendee", event_id=event_id,
-                         payload={"attendee_id": attendee_id, **body},
+                         payload={"attendee_id": attendee_id, "changed_fields": sorted(body)},
                          result_summary=f"Updated attendee {attendee_id}")
     return _fmt({"status": "updated", "attendee": data})
 
 
-@mcp.tool()
+@mcp.tool(title="Remove Attendee", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=False, idempotentHint=False))
 async def remove_attendee(
     ctx: Context,
     event_id: int,
@@ -731,7 +770,7 @@ async def remove_attendee(
 # ── Tools: Sessions ────────────────────────────────────────────────────────────
 
 
-@mcp.tool()
+@mcp.tool(title="List Sessions", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
 async def list_sessions(ctx: Context, event_id: int) -> str:
     """
     List all sessions (agenda items) for an event.
@@ -748,7 +787,7 @@ async def list_sessions(ctx: Context, event_id: int) -> str:
     return _fmt(data)
 
 
-@mcp.tool()
+@mcp.tool(title="Create Session", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=False, idempotentHint=False))
 async def create_session(
     ctx: Context,
     event_id: int,
@@ -798,7 +837,7 @@ async def create_session(
     return _fmt({"status": "created", "session": data})
 
 
-@mcp.tool()
+@mcp.tool(title="Update Session", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=False, idempotentHint=False))
 async def update_session(
     ctx: Context,
     event_id: int,
@@ -838,7 +877,7 @@ async def update_session(
     return _fmt({"status": "updated", "session": data})
 
 
-@mcp.tool()
+@mcp.tool(title="Delete Session", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=False, idempotentHint=False))
 async def delete_session(
     ctx: Context,
     event_id: int,
@@ -876,7 +915,7 @@ async def delete_session(
 # ── Tools: Check-in ────────────────────────────────────────────────────────────
 
 
-@mcp.tool()
+@mcp.tool(title="Checkin Lookup", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
 async def checkin_lookup(ctx: Context, event_id: int, query: str) -> str:
     """
     Look up attendees by name or email for check-in verification.
@@ -894,7 +933,7 @@ async def checkin_lookup(ctx: Context, event_id: int, query: str) -> str:
     return _fmt(data)
 
 
-@mcp.tool()
+@mcp.tool(title="Manual Check-in", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=False, idempotentHint=False))
 async def manual_checkin(
     ctx: Context,
     event_id: int,
@@ -916,12 +955,12 @@ async def manual_checkin(
     body = {"email": attendee_email}
     data = await _post(f"/api/admin/events/{event_id}/sessions/{session_id}/checkin", api_key, body)
     _fire_and_forget_log(api_key, "manual_checkin", event_id=event_id,
-                         payload={"session_id": session_id, "email": attendee_email},
-                         result_summary=f"Checked in {attendee_email} to session {session_id}")
+                         payload={"session_id": session_id},
+                         result_summary=f"Checked in attendee to session {session_id}")
     return _fmt({"status": "checked_in", "result": data})
 
 
-@mcp.tool()
+@mcp.tool(title="Get Attendance Summary", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
 async def get_attendance_summary(ctx: Context, event_id: int) -> str:
     """
     Get attendance (check-in) records and summary for an event.
@@ -940,7 +979,7 @@ async def get_attendance_summary(ctx: Context, event_id: int) -> str:
 # ── Tools: Certificates ────────────────────────────────────────────────────────
 
 
-@mcp.tool()
+@mcp.tool(title="List Certificates", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
 async def list_certificates(
     ctx: Context,
     event_id: int,
@@ -973,38 +1012,46 @@ async def list_certificates(
     return _fmt(data)
 
 
-@mcp.tool()
+@mcp.tool(title="Issue Certificates", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=True, idempotentHint=False))
 async def issue_certificates(
     ctx: Context,
     event_id: int,
     attendee_ids: Optional[list[int]] = None,
+    confirm: bool = False,
 ) -> str:
     """
-    Issue (generate and send) certificates for an event.
+    Queue certificate generation for all eligible attendees of an event.
 
-    If attendee_ids is omitted, issues for all eligible attendees.
-    The event must have certificate_enabled = True.
+    Requires an enabled certificate feature, saved template, paid plan and enough
+    balance. This queues a background job; it does not issue immediately.
 
     Args:
         event_id: Numeric event ID.
-        attendee_ids: Optional list of specific attendee IDs to issue to.
+        attendee_ids: Reserved for compatibility. Selected-ID issuance is not
+            supported by the current backend; omit to target all eligible attendees.
+        confirm: Must be True after explicit user approval. Default: False (preview).
 
-    Returns {issued, skipped, errors}.
+    Returns a preview or the queued job object.
     """
     api_key = _get_api_key(ctx)
     await _require_scope(api_key, "certificates:write")
-    body: dict = {}
     if attendee_ids is not None:
-        body["attendee_ids"] = attendee_ids
-    data = await _post(f"/api/admin/events/{event_id}/certificates", api_key, body)
-    count = data.get("issued", data.get("count", "unknown"))
+        raise ValueError("Selected attendee IDs are not supported for bulk issuance. Omit attendee_ids to queue all eligible attendees.")
+    if not confirm:
+        return _fmt({
+            "status": "preview",
+            "event_id": event_id,
+            "warning": "This will queue certificate generation for all eligible attendees and may spend HeptaCoin balance.",
+            "instruction": "Call again with confirm=True only after explicit user approval.",
+        })
+    data = await _post(f"/api/admin/events/{event_id}/bulk-certify-queue", api_key, {})
     _fire_and_forget_log(api_key, "issue_certificates", event_id=event_id,
-                         payload={"attendee_ids": attendee_ids},
-                         result_summary=f"Issued {count} certificates for event {event_id}")
-    return _fmt(data)
+                         payload={"scope": "all_eligible"},
+                         result_summary=f"Queued certificates for event {event_id}")
+    return _fmt({"status": "queued", "job": data})
 
 
-@mcp.tool()
+@mcp.tool(title="Revoke Certificate", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=False, idempotentHint=False))
 async def revoke_certificate(
     ctx: Context,
     cert_id: int,
@@ -1036,7 +1083,7 @@ async def revoke_certificate(
     return _fmt({"status": "revoked", "certificate": data})
 
 
-@mcp.tool()
+@mcp.tool(title="Get Certificate Tier Summary", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
 async def get_certificate_tier_summary(ctx: Context, event_id: int) -> str:
     """
     Get certificate tier distribution for an event.
@@ -1055,7 +1102,7 @@ async def get_certificate_tier_summary(ctx: Context, event_id: int) -> str:
 # ── Tools: Automation Rules ────────────────────────────────────────────────────
 
 
-@mcp.tool()
+@mcp.tool(title="List Automation Rules", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
 async def list_automation_rules(ctx: Context, event_id: int) -> str:
     """
     List all automation rules for an event.
@@ -1075,7 +1122,7 @@ async def list_automation_rules(ctx: Context, event_id: int) -> str:
     return _fmt(data)
 
 
-@mcp.tool()
+@mcp.tool(title="Create Automation Rule", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True, idempotentHint=False))
 async def create_automation_rule(
     ctx: Context,
     event_id: int,
@@ -1117,7 +1164,7 @@ async def create_automation_rule(
 # ── Tools: Surveys & Analytics ─────────────────────────────────────────────────
 
 
-@mcp.tool()
+@mcp.tool(title="Get Survey Responses", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
 async def get_survey_responses(
     ctx: Context,
     event_id: int,
@@ -1145,7 +1192,7 @@ async def get_survey_responses(
 # ── Tools: Organization ────────────────────────────────────────────────────────
 
 
-@mcp.tool()
+@mcp.tool(title="Get Organization Settings", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
 async def get_organization_settings(ctx: Context) -> str:
     """
     Get the organization's settings and profile.
@@ -1161,7 +1208,7 @@ async def get_organization_settings(ctx: Context) -> str:
     return _fmt(data)
 
 
-@mcp.tool()
+@mcp.tool(title="List Agent Logs", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
 async def list_agent_logs(
     ctx: Context,
     event_id: Optional[int] = None,
@@ -1176,23 +1223,29 @@ async def list_agent_logs(
         tool_name: Filter by tool name (e.g. "create_event"). Optional.
         limit: Max results to return. Default: 20.
 
-    Returns a list of logged agent actions with: tool_name, event_id,
-    api_key_prefix, payload, result_summary, created_at.
+    Returns action IDs, tool names, event IDs and timestamps. Historic payloads
+    may contain attendee PII, so they are intentionally omitted from MCP output.
     """
     api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "events:read")
     params: dict = {"limit": limit}
     if event_id:
         params["event_id"] = event_id
     if tool_name:
         params["tool_name"] = tool_name
     data = await _get("/api/admin/mcp/agent-logs", api_key, params=params)
-    return _fmt(data)
+    if not isinstance(data, list):
+        raise ValueError("Unexpected agent log response.")
+    return _fmt([{
+        "id": row.get("id"), "tool_name": row.get("tool_name"),
+        "event_id": row.get("event_id"), "created_at": row.get("created_at"),
+    } for row in data])
 
 
 # ── Tools: Automation Rules (write) ───────────────────────────────────────────
 
 
-@mcp.tool()
+@mcp.tool(title="Update Automation Rule", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True, idempotentHint=False))
 async def update_automation_rule(
     ctx: Context,
     event_id: int,
@@ -1228,7 +1281,7 @@ async def update_automation_rule(
     return _fmt(data)
 
 
-@mcp.tool()
+@mcp.tool(title="Delete Automation Rule", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=False, idempotentHint=False))
 async def delete_automation_rule(
     ctx: Context,
     event_id: int,
@@ -1266,7 +1319,7 @@ async def delete_automation_rule(
 # ── Tools: Webhooks ────────────────────────────────────────────────────────────
 
 
-@mcp.tool()
+@mcp.tool(title="List Webhooks", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
 async def list_webhooks(ctx: Context) -> str:
     """
     List all webhooks configured for this account.
@@ -1279,7 +1332,7 @@ async def list_webhooks(ctx: Context) -> str:
     return _fmt(data)
 
 
-@mcp.tool()
+@mcp.tool(title="Create Webhook", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True, idempotentHint=False))
 async def create_webhook(
     ctx: Context,
     url: str,
@@ -1309,7 +1362,7 @@ async def create_webhook(
     return _fmt(data)
 
 
-@mcp.tool()
+@mcp.tool(title="Delete Webhook", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=False, idempotentHint=False))
 async def delete_webhook(
     ctx: Context,
     webhook_id: int,
@@ -1347,7 +1400,7 @@ async def delete_webhook(
 # ── Tools: Cross-event & Export ────────────────────────────────────────────────
 
 
-@mcp.tool()
+@mcp.tool(title="Search Attendees Across Events", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
 async def search_attendees_across_events(
     ctx: Context,
     query: str,
@@ -1371,7 +1424,7 @@ async def search_attendees_across_events(
     return _fmt(data)
 
 
-@mcp.tool()
+@mcp.tool(title="Export Event Attendees", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
 async def export_event_attendees(
     ctx: Context,
     event_id: int,
@@ -1383,7 +1436,7 @@ async def export_event_attendees(
 
     Args:
         event_id: The event ID.
-        include_certificates: Include certificate status per attendee. Default: True.
+        include_certificates: Reserved for compatibility; currently has no effect.
 
     Returns a complete list of attendees suitable for reporting or bulk operations.
     """
@@ -1404,7 +1457,7 @@ async def export_event_attendees(
     return _fmt({"event_id": event_id, "total": len(all_attendees), "attendees": all_attendees})
 
 
-@mcp.tool()
+@mcp.tool(title="Get Event Analytics", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
 async def get_event_analytics(ctx: Context, event_id: int) -> str:
     """
     Get detailed analytics for an event: registration trend, check-in timeline,
@@ -1421,7 +1474,7 @@ async def get_event_analytics(ctx: Context, event_id: int) -> str:
     return _fmt(data)
 
 
-@mcp.tool()
+@mcp.tool(title="Get Certificate By Public Id", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
 async def get_certificate_by_public_id(ctx: Context, public_id: str) -> str:
     """
     Look up a certificate by its public verification ID (from the verify URL).
@@ -1465,6 +1518,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     if transport == "stdio":
+        _ALLOW_ENV_KEY = True
         mcp.run(transport="stdio")
     elif transport in ("streamable-http", "http"):
         print(

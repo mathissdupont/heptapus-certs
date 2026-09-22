@@ -159,11 +159,29 @@ class TestMCPChallenge:
         assert r.status_code == 401
         assert "resource_metadata" in r.headers.get("www-authenticate", "").lower()
 
+    @pytest.mark.asyncio
+    async def test_mcp_rejects_non_bearer_header(self):
+        async with _client() as ac:
+            r = await ac.post("/mcp/", headers={"Authorization": "Basic abc"},
+                              json={"jsonrpc": "2.0", "method": "initialize", "id": 1})
+        assert r.status_code == 401
+        assert "resource_metadata" in r.headers.get("www-authenticate", "").lower()
+
 
 # ── 4. DCR + full flow + scope enforcement ──────────────────────────────────────
 
 
 class TestDynamicClientRegistration:
+    @pytest.mark.asyncio
+    async def test_invalid_scope_does_not_expand_to_all_permissions(self):
+        async with _client() as ac:
+            r = await ac.post("/api/oauth/register", json={
+                "redirect_uris": ["https://claude.ai/api/mcp/auth_callback"],
+                "scope": "not-a-real-scope",
+            })
+        assert r.status_code == 400
+        assert r.json()["detail"] == "invalid_scope"
+
     @pytest.mark.asyncio
     async def test_public_client_has_no_secret(self):
         async with _client() as ac:
