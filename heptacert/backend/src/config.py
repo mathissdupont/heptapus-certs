@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     public_base_url: str = Field(default="http://localhost:8000", alias="PUBLIC_BASE_URL")
     frontend_base_url: str = Field(default="http://localhost:3000", alias="FRONTEND_BASE_URL")
     docs_base_url: str = Field(default="https://docs.heptacert.com", alias="DOCS_BASE_URL")
+    # Per-plugin token OpenAI issues in the submission portal to verify domain
+    # ownership. Empty until a submission is in flight; the challenge path 404s
+    # until then. See docs/work-packages/WP37-openai-chatgpt-mcp-audit.md.
+    openai_apps_challenge_token: str = Field(default="", alias="OPENAI_APPS_CHALLENGE_TOKEN")
     cors_origins: str = Field(default="*", alias="CORS_ORIGINS")
     cors_allow_origin_regex: str = Field(default="", alias="CORS_ALLOW_ORIGIN_REGEX")
     clamav_enabled: bool = Field(default=False, alias="CLAMAV_ENABLED")

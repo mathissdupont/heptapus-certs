@@ -138,6 +138,24 @@ class TestDiscoveryMetadata:
         assert d["resource_documentation"] == "https://docs.heptacert.com/integrations/mcp-agent"
         assert isinstance(d["authorization_servers"], list) and d["authorization_servers"]
 
+    @pytest.mark.asyncio
+    async def test_openai_domain_challenge_is_off_until_a_token_is_set(self, monkeypatch):
+        """OpenAI's review fetches exactly one token, as plain text.
+
+        With no token configured the path must stay a 404 rather than advertise
+        an empty challenge that would verify the domain for anyone.
+        """
+        async with _client() as ac:
+            r = await ac.get("/.well-known/openai-apps-challenge")
+        assert r.status_code == 404
+
+        monkeypatch.setattr(settings, "openai_apps_challenge_token", "  tok-abc123  ")
+        async with _client() as ac:
+            r = await ac.get("/.well-known/openai-apps-challenge")
+        assert r.status_code == 200
+        assert r.text == "tok-abc123"
+        assert r.headers["content-type"].startswith("text/plain")
+
 
 # ── 3. MCP 401 challenge ────────────────────────────────────────────────────────
 

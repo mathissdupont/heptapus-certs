@@ -22,6 +22,11 @@ def _http_context(authorization: str):
     ))
 
 
+def _text(result) -> str:
+    """The JSON text block every tool still returns for pre-structured clients."""
+    return result.content[-1].text
+
+
 def test_http_never_uses_server_environment_key(monkeypatch):
     monkeypatch.setattr(mcp_server, "API_KEY_ENV", "server-owner-secret")
     monkeypatch.setattr(mcp_server, "_ALLOW_ENV_KEY", False)
@@ -159,8 +164,11 @@ async def test_agent_logs_omit_historic_pii(monkeypatch):
     monkeypatch.setattr(mcp_server, "_require_scope", allowed)
     monkeypatch.setattr(mcp_server, "_get", logs)
     result = await mcp_server.list_agent_logs(_http_context("Bearer owner-token"))
-    assert "private@example.com" not in result
-    assert json.loads(result)[0]["tool_name"] == "add_attendee"
+    text = _text(result)
+    assert "private@example.com" not in text
+    assert result.structuredContent["logs"][0]["tool_name"] == "add_attendee"
+    # The two halves of every result must carry exactly the same payload.
+    assert json.loads(text) == result.structuredContent
 
 
 @pytest.mark.asyncio
@@ -174,19 +182,145 @@ async def test_certificate_issuance_requires_confirmation(monkeypatch):
         calls.append((path, body))
         return {"id": 12}
 
+    async def health(*args, **kwargs):
+        return {"event_id": 7, "overview": {"attendees": 41}}
+
     monkeypatch.setattr(mcp_server, "_require_scope", allowed)
     monkeypatch.setattr(mcp_server, "_post", posted)
+    monkeypatch.setattr(mcp_server, "_get", health)
     monkeypatch.setattr(mcp_server, "_fire_and_forget_log", lambda *a, **kw: None)
     ctx = _http_context("Bearer owner-token")
     with pytest.raises(ValueError):
         await mcp_server.issue_certificates(ctx, event_id=7, attendee_ids=[9], confirm=True)
-    preview = json.loads(await mcp_server.issue_certificates(ctx, event_id=7))
+    preview = (await mcp_server.issue_certificates(ctx, event_id=7)).structuredContent
     assert preview["status"] == "preview"
+    assert preview["requires_confirm"] is True
+    assert preview["eligible_count"] == 41
     assert calls == []
-    result = json.loads(await mcp_server.issue_certificates(ctx, event_id=7, confirm=True))
+    result = (await mcp_server.issue_certificates(ctx, event_id=7, confirm=True)).structuredContent
     assert result["status"] == "queued"
-    assert result["job"]["id"] == 12
+    assert result["job_id"] == 12
     assert calls == [("/api/admin/events/7/bulk-certify-queue", {})]
+
+
+@pytest.mark.asyncio
+async def test_every_tool_declares_an_output_schema():
+    tools = await mcp_server.mcp.list_tools()
+    missing = [tool.name for tool in tools if not tool.outputSchema]
+    assert missing == []
+    assert all(tool.outputSchema.get("type") == "object" for tool in tools)
+
+
+@pytest.mark.asyncio
+async def test_widget_tools_point_at_a_published_component():
+    tools = {tool.name: tool for tool in await mcp_server.mcp.list_tools()}
+    published = {str(resource.uri) for resource in await mcp_server.mcp.list_resources()}
+    assert published == {mcp_server._widget_uri(name) for name in mcp_server.WIDGETS}
+
+    for name, widget in mcp_server.TOOL_WIDGETS.items():
+        meta = tools[name].model_dump(by_alias=True)["_meta"]
+        uri = mcp_server._widget_uri(widget)
+        assert uri in published
+        # The shared key and the ChatGPT alias must never drift apart.
+        assert meta["ui"]["resourceUri"] == uri
+        assert meta["openai/outputTemplate"] == uri
+        assert len(meta["openai/toolInvocation/invoking"]) <= 64
+        assert len(meta["openai/toolInvocation/invoked"]) <= 64
+
+    for name, tool in tools.items():
+        if name not in mcp_server.TOOL_WIDGETS:
+            assert "openai/outputTemplate" not in (tool.meta or {})
+
+
+@pytest.mark.asyncio
+async def test_widget_components_are_self_contained():
+    for resource in await mcp_server.mcp.list_resources():
+        assert resource.mimeType == mcp_server.WIDGET_MIME
+        meta = resource.meta or {}
+        assert meta["ui"]["domain"] == mcp_server.WIDGET_ORIGIN
+        # Components render server-supplied structuredContent only.
+        assert meta["ui"]["csp"]["connectDomains"] == []
+        html = "".join(c.content for c in await mcp_server.mcp.read_resource(str(resource.uri)))
+        assert 'id="hc-root"' in html and "globalThis.HC" in html
+        for forbidden in ("<script src=", "fetch(", "XMLHttpRequest", "localStorage"):
+            assert forbidden not in html, f"{resource.uri} reaches outside the host bridge"
+
+
+@pytest.mark.asyncio
+async def test_attendee_projection_drops_unrequested_personal_data(monkeypatch):
+    async def allowed(*args, **kwargs):
+        return None
+
+    async def attendees(*args, **kwargs):
+        return {
+            "items": [{
+                "id": 4, "name": "Ada", "email": "ada@example.com", "source": "manual",
+                "registered_at": "2026-09-01T10:00:00Z", "sessions_attended": 2,
+                "has_certificate": True,
+                # Fields the REST layer returns but no tool description promises.
+                "registration_answers": {"National ID": "12345678901"},
+                "public_member_id": 9, "public_member_email": "ada.private@example.com",
+            }],
+            "total": 120, "page": 1, "limit": 50,
+        }
+
+    monkeypatch.setattr(mcp_server, "_require_scope", allowed)
+    monkeypatch.setattr(mcp_server, "_get", attendees)
+    result = await mcp_server.list_attendees(_http_context("Bearer owner-token"), event_id=7)
+    text = _text(result)
+    assert "12345678901" not in text and "ada.private@example.com" not in text
+    assert "public_member_id" not in text
+    row = result.structuredContent["attendees"][0]
+    assert set(row) == set(mcp_server._ATTENDEE_FIELDS)
+    assert row["email"] == "ada@example.com"
+    assert result.structuredContent["has_more"] is True
+
+
+@pytest.mark.asyncio
+async def test_delete_preview_reports_the_real_counts(monkeypatch):
+    """The health payload nests its counts under `overview` with other names.
+
+    Reading them off the top level made every count render as "unknown", which
+    silently stripped a destructive confirmation of the numbers it exists for.
+    """
+    async def allowed(*args, **kwargs):
+        return None
+
+    async def get(path, api_key, params=None):
+        if path.endswith("/health"):
+            return {"overview": {"attendees": 12, "sessions": 3, "certificates": 8}}
+        return {"id": 7, "name": "Demo Day"}
+
+    monkeypatch.setattr(mcp_server, "_require_scope", allowed)
+    monkeypatch.setattr(mcp_server, "_get", get)
+
+    async def must_not_delete(*args, **kwargs):
+        raise AssertionError("preview must not delete")
+
+    monkeypatch.setattr(mcp_server, "_delete", must_not_delete)
+    preview = (await mcp_server.delete_event(_http_context("Bearer owner-token"), event_id=7)).structuredContent
+    assert preview["status"] == "preview"
+    assert preview["will_delete"] == {"attendees": 12, "certificates": 8, "sessions": 3}
+
+
+@pytest.mark.asyncio
+async def test_certificate_projection_links_verification_not_pdf(monkeypatch):
+    async def allowed(*args, **kwargs):
+        return None
+
+    async def certificates(*args, **kwargs):
+        return {"items": [{"id": 5, "public_id": "abc-123", "student_name": "Ada",
+                           "status": "revoked", "issued_at": "2026-09-01T00:00:00Z",
+                           "pdf_url": "https://cdn.example.com/secret.pdf"}],
+                "total": 1, "page": 1, "limit": 20}
+
+    monkeypatch.setattr(mcp_server, "_require_scope", allowed)
+    monkeypatch.setattr(mcp_server, "_get", certificates)
+    result = await mcp_server.list_certificates(_http_context("Bearer owner-token"), event_id=7)
+    cert = result.structuredContent["certificates"][0]
+    assert cert["verify_url"].endswith("/verify/abc-123")
+    assert cert["recipient_name"] == "Ada"
+    assert "pdf_url" not in cert and "secret.pdf" not in _text(result)
 
 
 @pytest.mark.asyncio
