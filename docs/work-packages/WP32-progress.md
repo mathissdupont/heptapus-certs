@@ -21,11 +21,14 @@
     `api-free.deepl.com`).
 - **Active phase:** Phase 7 — surface-by-surface theme and translation migration.
 - **Urgent security interruption (2026-09-22):** The event-ID tenant isolation fix is
-  implemented and locally verified. Keep its deployment ahead of the next translation
-  wave. The production deployment is manual; a git push alone does not close the live
-  exposure.
+  implemented and locally verified. The user will handle its manual production deploy;
+  authenticated foreign-event-ID verification is still pending. A git push alone does
+  not close the live exposure.
 - **Next step** (Phase 7, in order):
-  1. Migrate and obtain human legal review for the six public legal/contract routes:
+  1. Hold legal/contract UI changes until their Turkish source and translations can be
+     reviewed. The user requested unpublished drafts because no legal reviewer is
+     available. Draft the remaining routes under `docs/drafts/legal/` if useful, but
+     do not wire unapproved terms into the app. The six routes are:
      `/kullanim-kosullari`, `/gizlilik`, `/kvkk`, `/mesafeli-satis`, `/iade` and
      `/acik-riza`. They currently serve English to the seven non-TR/EN locales and must
      not be called complete merely because machine-readable catalog parity passes.
@@ -36,8 +39,9 @@
      `lib/assistant/wizard.ts` before migrating either plain module.
   4. Keep transactional routes unprefixed, the theme toggle hidden, and LMS archived.
 - **Translation coverage audit (added at the user's request):** catalog parity alone was
-  hiding the real gap. `npm run i18n:audit` currently reports **505 legacy TR/EN binary
-  branches across 128 files**; those branches send the other seven languages to English.
+  hiding the real gap. The current ratchet records **496 legacy TR/EN binary branches**;
+  those branches send the other seven languages to English. The latest precise per-file
+  inventory should be read from `npm run i18n:audit` before choosing each wave.
   Phase 7/8 must drive that queue to zero and review remaining user-facing literals before
   nine-language coverage can be called complete. The largest starting files are event
   settings (56), `lib/assistant/eventDraft.ts` (48), and `AIAssistant.tsx` (45).
@@ -126,6 +130,49 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-09-22 — held legal draft and read-only IEEE vTools preview
+
+- The product owner confirmed there is no legal reviewer yet and asked for drafts to
+  remain unpublished. Added a held seven-language [`/iade` draft](../drafts/legal/iade-nine-language-draft.md)
+  outside `src/app` and `src/locales`; live legal pages are unchanged. It preserves the
+  current Turkish source while flagging the Turkish/English payment-method mismatch and
+  unverified refund/cancellation terms. The other five legal routes remain undrafted.
+- The [vTools assessment](../reference/IEEE_VTOOLS_INTEGRATION_FEASIBILITY.md) now has a
+  working read-only `python -m src.vtools_events <event-id>` preview. The official public
+  v8 list endpoint returned a published sample event by exact ID; the adapter maps title,
+  local date (IANA time zone), plain-text description, venue, source OU and official URL.
+  It rejects unpublished/cancelled/wrong IDs, never accepts an arbitrary fetch URL, and
+  performs no tenant mapping, attendee import or database write. Focused tests **10/10**
+  and the full backend suite **565/565** passed; one live public-event preview succeeded.
+  No IEEE-owned event was imported. Docs link check passed.
+- The user clarified the desired direction is **HeptaCert → vTools event creation**.
+  The read-only preview does not meet that goal. IEEE's public documentation reviewed
+  here describes event creation via its authenticated UI, not a verified write API.
+  Prepared an [unsent IEEE access request](../reference/IEEE_VTOOLS_WRITE_ACCESS_REQUEST.md)
+  for an authorized officer. Automatic outbound creation remains contingent on IEEE's
+  supported API/permission response; a manual copy-and-link handoff is the safe fallback.
+- **Next:** after the user's production deploy, verify tenant isolation with authorized
+  accounts. For vTools automation, obtain IEEE OU details and an answer to the official
+  write-access request. For legal text, obtain approved source and reviewer before
+  publication. LMS untouched.
+
+### 2026-09-22 — legal translation source audit; publication gate
+
+- The user took ownership of the manual production deploy for the earlier event-ID
+  isolation fix. GitHub CI is green for `54ef645`, but the live `/de/events` route still
+  returned **404** at the time of this check, so the latest frontend was not yet visible.
+  The local Docker context is Docker Desktop, not the production host. No production
+  mutation or authenticated IDOR retest was performed in this step.
+- Audited the six queued legal/contract routes without changing their served text.
+  All six still use a Turkish/English branch and fixed light colors. The
+  [source-review checklist](../reference/LEGAL_TRANSLATION_REVIEW_2026-09-22.md) records
+  the refund/withdrawal, retention, Hetzner DPA/location and cross-language citation
+  claims that need owner/legal validation **before** generating seven more versions.
+  Catalog parity is not legal sign-off. The product owner was asked who can review them.
+- **Next:** wait for the approved source/reviewer, then migrate each legal page in one
+  catalog-and-theme pass and obtain human review. Separately, after the user's deploy,
+  verify a foreign event ID is rejected and an owned event still opens. LMS untouched.
 
 ### 2026-09-22 — Phase 7 public directories + IEEE vTools feasibility
 
