@@ -8657,7 +8657,8 @@ async def mcp_me(
         # OAuth access token: surface the scopes bound at consent time so the MCP
         # server can give a friendly pre-check (the REST layer enforces them too).
         try:
-            payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+            payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"],
+                                 options={"verify_aud": False})
             if payload.get("client_id"):
                 scopes = [s for s in (payload.get("scope") or "").split() if s]
                 key_prefix = (payload.get("client_id") or "")[:12] or None
@@ -15437,8 +15438,8 @@ class _MCPAuthChallenge:
     connects without a token receives `WWW-Authenticate: Bearer
     resource_metadata="…/.well-known/oauth-protected-resource"`, follows it to
     the metadata, and runs the OAuth flow. Requests that already carry an
-    Authorization header pass straight through — the MCP server forwards the
-    token to the REST API, which validates it and enforces scopes. CORS
+    Authorization header is validated on every MCP request before the MCP
+    server runs. CORS
     preflight (OPTIONS) is never challenged so browser-based clients still work.
     """
 
@@ -15446,12 +15447,44 @@ class _MCPAuthChallenge:
         self.app = app
         self._challenge = f'Bearer resource_metadata="{resource_metadata_url}"'
 
+    async def _is_valid_credential(self, credential: bytes) -> bool:
+        try:
+            token = credential.decode("ascii").strip()
+        except UnicodeDecodeError:
+            return False
+        if not token:
+            return False
+        if not token.startswith("hc_live_"):
+            # Custom GPT REST tokens remain valid on REST, but MCP OAuth tokens
+            # must be minted for this resource and re-authorized if audience-less.
+            try:
+                claims = jwt.decode(
+                    token, settings.jwt_secret, algorithms=["HS256"],
+                    audience=f"{settings.public_base_url.rstrip('/')}/mcp",
+                    issuer=settings.public_base_url.rstrip("/"),
+                )
+            except JWTError:
+                return False
+            if not claims.get("client_id") or not claims.get("scope"):
+                return False
+        # Validate active keys, OAuth revocation, account role and expiry on
+        # every MCP HTTP request, including initialize and tools/list.
+        try:
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app), base_url="http://mcp-internal"
+            ) as client:
+                response = await client.get("/api/admin/mcp/me", headers={"Authorization": f"Bearer {token}"})
+            return response.status_code == 200
+        except Exception:
+            logger.exception("MCP credential verification failed")
+            return False
+
     async def __call__(self, scope, receive, send):
         if scope["type"] == "http" and scope.get("method", "").upper() != "OPTIONS":
             headers = dict(scope.get("headers") or [])
             auth = headers.get(b"authorization", b"").strip()
             scheme, _, credential = auth.partition(b" ")
-            if scheme.lower() != b"bearer" or not credential.strip():
+            if scheme.lower() != b"bearer" or not credential.strip() or not await self._is_valid_credential(credential):
                 body = (
                     b'{"error":"unauthorized",'
                     b'"error_description":"Authentication required. '

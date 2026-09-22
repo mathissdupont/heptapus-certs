@@ -18,14 +18,17 @@ import secrets
 from urllib.parse import urlparse, parse_qs
 
 import pytest
+import jwt
 from httpx import AsyncClient, ASGITransport
 
 from src.main import (
     app, SessionLocal, User, Organization, Subscription, Role,
-    create_access_token, hash_password,
+    create_access_token, hash_password, _MCPAuthChallenge,
 )
 from src.services import GRANTABLE_SCOPES, _required_scope_for_request
 from src.mcp_server import mcp
+from src.oauth_api import _mcp_resource
+from src.config import settings
 
 
 @pytest.fixture(autouse=True)
@@ -167,6 +170,16 @@ class TestMCPChallenge:
         assert r.status_code == 401
         assert "resource_metadata" in r.headers.get("www-authenticate", "").lower()
 
+    @pytest.mark.asyncio
+    async def test_mcp_rejects_invalid_and_unbound_bearer_before_initialize(self):
+        _uid, interactive_headers = await _admin("mcp-challenge@test.com", "org_mcp_challenge")
+        for authorization in ("Bearer invalid-jwt", interactive_headers["Authorization"]):
+            async with _client() as ac:
+                r = await ac.post("/mcp/", headers={"Authorization": authorization},
+                                  json={"jsonrpc": "2.0", "method": "initialize", "id": 1})
+            assert r.status_code == 401
+            assert "resource_metadata" in r.headers.get("www-authenticate", "")
+
 
 # ── 4. DCR + full flow + scope enforcement ──────────────────────────────────────
 
@@ -226,6 +239,79 @@ class TestDynamicClientRegistration:
 
 
 class TestEndToEndScopeEnforcement:
+    @pytest.mark.asyncio
+    async def test_mcp_resource_binding_survives_exchange_and_refresh(self):
+        _uid, admin_headers = await _admin("mcp-bound@test.com", "org_mcp_bound")
+        verifier, challenge = _pkce()
+        # Without RFC 9207 authorization response issuer identification,
+        # ChatGPT uses a connection-specific callback URI.
+        redirect_uri = "https://chatgpt.com/connector/oauth/test-callback-id"
+        resource = _mcp_resource()
+
+        async with _client() as ac:
+            reg = await ac.post("/api/oauth/register", json={
+                "redirect_uris": [redirect_uri], "token_endpoint_auth_method": "none",
+                "scope": "events:read",
+            })
+            assert reg.status_code == 201, reg.text
+            client_id = reg.json()["client_id"]
+            validate = await ac.get("/api/oauth/validate", params={
+                "client_id": client_id, "redirect_uri": redirect_uri,
+                "scope": "events:read", "resource": resource,
+            })
+            assert validate.status_code == 200, validate.text
+            wrong_validate = await ac.get("/api/oauth/validate", params={
+                "client_id": client_id, "redirect_uri": redirect_uri,
+                "resource": "https://attacker.example/mcp",
+            })
+            assert wrong_validate.status_code == 400
+
+            authz = await ac.post("/api/oauth/authorize", headers=admin_headers, json={
+                "client_id": client_id, "redirect_uri": redirect_uri,
+                "scope": "events:read", "state": "bound-state", "resource": resource,
+                "code_challenge": challenge, "code_challenge_method": "S256",
+            })
+            assert authz.status_code == 200, authz.text
+            code = parse_qs(urlparse(authz.json()["redirect_url"]).query)["code"][0]
+            exchange = {"grant_type": "authorization_code", "client_id": client_id,
+                        "code": code, "redirect_uri": redirect_uri,
+                        "code_verifier": verifier}
+            missing_resource = await ac.post("/api/oauth/token", data=exchange)
+            assert missing_resource.status_code == 400
+            token = await ac.post("/api/oauth/token", data={**exchange, "resource": resource})
+            assert token.status_code == 200, token.text
+            claims = jwt.decode(token.json()["access_token"], settings.jwt_secret,
+                                algorithms=["HS256"], audience=resource,
+                                issuer=settings.public_base_url.rstrip("/"))
+            assert claims["client_id"] == client_id
+            assert claims["scope"] == "events:read"
+            oauth_headers = {"Authorization": f"Bearer {token.json()['access_token']}"}
+            assert (await ac.get("/api/admin/mcp/me", headers=oauth_headers)).status_code == 200
+            assert (await ac.get("/api/admin/events", headers=oauth_headers)).status_code == 200
+            gate = _MCPAuthChallenge(None, f"{settings.public_base_url}/.well-known/oauth-protected-resource")
+            assert await gate._is_valid_credential(token.json()["access_token"].encode())
+            for forged_claims in ({**claims, "aud": "https://attacker.example/mcp"},
+                                  {**claims, "iss": "https://attacker.example"},
+                                  {key: value for key, value in claims.items() if key != "aud"}):
+                forged = jwt.encode(forged_claims, settings.jwt_secret, algorithm="HS256")
+                assert not await gate._is_valid_credential(forged.encode())
+
+            refresh = {"grant_type": "refresh_token", "client_id": client_id,
+                       "refresh_token": token.json()["refresh_token"]}
+            inherited = await ac.post("/api/oauth/token", data=refresh)
+            assert inherited.status_code == 200, inherited.text
+            jwt.decode(inherited.json()["access_token"], settings.jwt_secret,
+                       algorithms=["HS256"], audience=resource,
+                       issuer=settings.public_base_url.rstrip("/"))
+            assert (await ac.post("/api/oauth/token", data={
+                **refresh, "resource": "https://attacker.example/mcp"
+            })).status_code == 400
+            renewed = await ac.post("/api/oauth/token", data={**refresh, "resource": resource})
+            assert renewed.status_code == 200, renewed.text
+            jwt.decode(renewed.json()["access_token"], settings.jwt_secret,
+                       algorithms=["HS256"], audience=resource,
+                       issuer=settings.public_base_url.rstrip("/"))
+
     @pytest.mark.asyncio
     async def test_scoped_public_client_token_is_enforced(self):
         """DCR -> authorize (PKCE) -> token -> the resulting events:read token can

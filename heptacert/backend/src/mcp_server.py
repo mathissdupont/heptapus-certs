@@ -74,16 +74,72 @@ from typing import Any, Optional
 
 import httpx
 from mcp.server.fastmcp import FastMCP, Context
+from mcp.server.fastmcp.exceptions import ToolError
 from mcp.server.transport_security import TransportSecuritySettings
-from mcp.types import ToolAnnotations
+from mcp.types import CallToolResult, TextContent, ToolAnnotations
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 
 API_BASE = os.getenv("HEPTACERT_API_BASE", "http://localhost:8000").rstrip("/")
 API_KEY_ENV = os.getenv("HEPTACERT_API_KEY", "")
 _ALLOW_ENV_KEY = False  # enabled only by the direct stdio entry point
+PUBLIC_BASE = os.getenv("PUBLIC_BASE_URL", API_BASE).rstrip("/")
 
-mcp = FastMCP(
+# ChatGPT's per-tool OAuth declaration must match the server-side _require_scope
+# precheck. Keep names stable for existing MCP clients and fail tests on drift.
+TOOL_SCOPES: dict[str, str] = {
+    "list_events": "events:read", "get_event": "events:read", "get_event_stats": "events:read",
+    "create_event": "events:write", "update_event": "events:write", "delete_event": "events:write",
+    "close_registration": "events:write", "open_registration": "events:write",
+    "list_attendees": "attendees:read", "add_attendee": "attendees:write",
+    "bulk_add_attendees": "attendees:write", "update_attendee": "attendees:write",
+    "remove_attendee": "attendees:write", "list_sessions": "sessions:read",
+    "create_session": "sessions:write", "update_session": "sessions:write",
+    "delete_session": "sessions:write", "checkin_lookup": "attendees:read",
+    "manual_checkin": "checkin:write", "get_attendance_summary": "attendees:read",
+    "list_certificates": "certificates:read", "issue_certificates": "certificates:write",
+    "revoke_certificate": "certificates:write", "get_certificate_tier_summary": "certificates:read",
+    "list_automation_rules": "automations:read", "create_automation_rule": "automations:write",
+    "get_survey_responses": "events:read", "get_organization_settings": "events:read",
+    "list_agent_logs": "events:read", "update_automation_rule": "automations:write",
+    "delete_automation_rule": "automations:write", "list_webhooks": "events:read",
+    "create_webhook": "events:write", "delete_webhook": "events:write",
+    "search_attendees_across_events": "crm:read", "export_event_attendees": "attendees:read",
+    "get_event_analytics": "analytics:read", "get_certificate_by_public_id": "certificates:read",
+}
+
+
+class HeptaCertMCP(FastMCP):
+    async def list_tools(self):
+        tools = await super().list_tools()
+        for tool in tools:
+            # MCP Python 1.28 permits protocol extension fields on Tool but does
+            # not yet expose securitySchemes in FastMCP's decorator signature.
+            tool.securitySchemes = [{"type": "oauth2", "scopes": [TOOL_SCOPES[tool.name]]}]
+        return tools
+
+    async def call_tool(self, name: str, arguments: dict[str, Any]):
+        try:
+            return await super().call_tool(name, arguments)
+        except ToolError as exc:
+            cause = exc.__cause__
+            if not (isinstance(cause, PermissionError) or
+                    isinstance(cause, MCPAPIError) and cause.status_code in (401, 403)):
+                raise
+            error = "insufficient_scope" if isinstance(cause, PermissionError) or cause.status_code == 403 else "invalid_token"
+            scope = TOOL_SCOPES.get(name, "")
+            challenge = (
+                f'Bearer resource_metadata="{PUBLIC_BASE}/.well-known/oauth-protected-resource", '
+                f'error="{error}", error_description="Reconnect HeptaCert with the required permission", '
+                f'scope="{scope}"'
+            )
+            return CallToolResult(
+                content=[TextContent(type="text", text="HeptaCert authorization is required for this action.")],
+                isError=True,
+                _meta={"mcp/www_authenticate": [challenge]},
+            )
+
+mcp = HeptaCertMCP(
     "HeptaCert",
     # Serve the Streamable HTTP transport at the app root so that mounting this
     # sub-app at "/mcp" in main.py yields the endpoint at exactly "/mcp"

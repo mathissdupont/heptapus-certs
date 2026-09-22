@@ -139,6 +139,7 @@ export default function OAuthConsentClient() {
   const clientId    = params.get("client_id")    ?? "";
   const redirectUri = params.get("redirect_uri") ?? "";
   const scope       = params.get("scope")        ?? "";
+  const resource    = params.get("resource")     ?? "";
   const state       = params.get("state")        ?? "";
   const challenge   = params.get("code_challenge") ?? undefined;
   const method      = params.get("code_challenge_method") ?? undefined;
@@ -158,6 +159,7 @@ export default function OAuthConsentClient() {
 
     const apiBase = getApiBase();
     const qs = new URLSearchParams({ client_id: clientId, redirect_uri: redirectUri, scope });
+    if (resource) qs.set("resource", resource);
 
     fetch(`${apiBase}/oauth/validate?${qs.toString()}`)
       .then((r) => {
@@ -173,7 +175,7 @@ export default function OAuthConsentClient() {
         setError(typeof msg === "string" ? msg : "İstemci doğrulanamadı");
         setPhase("error");
       });
-  }, [clientId, redirectUri, scope]);
+  }, [clientId, redirectUri, scope, resource]);
 
   // ── Step 2a: user logged in → show consent ──────────────────────────────────
   async function handleApprove() {
@@ -191,6 +193,7 @@ export default function OAuthConsentClient() {
           client_id:             clientId,
           redirect_uri:          redirectUri,
           scope:                 client.granted_scopes.join(" "),
+          resource:              resource || null,
           state,
           code_challenge:        challenge ?? null,
           code_challenge_method: method ?? null,

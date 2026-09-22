@@ -661,7 +661,10 @@ async def get_current_user(request: Request = None, db: AsyncSession = Depends(g
 
     # JWT path
     try:
-        payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+        # Audience-bearing MCP OAuth tokens are also forwarded to this REST
+        # layer. Decode first, then validate their exact resource/issuer below.
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"],
+                             options={"verify_aud": False})
         user_id = int(payload.get("sub"))
         role = Role(payload.get("role"))
         # Reject partial tokens (2FA pending)
@@ -672,6 +675,11 @@ async def get_current_user(request: Request = None, db: AsyncSession = Depends(g
 
     # OAuth access token: instantly reject if user disconnected (refresh token revoked)
     oauth_client_id = payload.get("client_id")
+    if payload.get("aud") is not None:
+        expected_resource = f"{settings.public_base_url.rstrip('/')}/mcp"
+        if (not oauth_client_id or payload.get("aud") != expected_resource
+                or payload.get("iss") != settings.public_base_url.rstrip("/")):
+            raise HTTPException(status_code=401, detail="Invalid OAuth token audience or issuer")
     if oauth_client_id:
         from sqlalchemy import text as _sa_text
         # Bound params (not literal `false`/`now()`) so the query is portable

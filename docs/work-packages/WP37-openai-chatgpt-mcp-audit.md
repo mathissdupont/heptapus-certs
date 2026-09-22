@@ -1,6 +1,6 @@
 # WP37 — HeptaCert ChatGPT MCP / Plugin denetimi (2026-09-22)
 
-Durum: kod sertleştirmesi tamamlandı, **OpenAI hesabında bağlantı ve public submission yapılmadı**. Canlı ortamı kullanıcı yayımlıyor. Bu belge hem denetim hem sonraki asistan için devir notudur. OpenAI'nin güncel terimi “Plugin”; MCP-only, UI'sız bir plugin mümkündür. Custom GPT Actions ayrı OpenAPI hattı olarak korunur.
+Durum: OAuth resource binding, audience/issuer doğrulaması, per-tool `securitySchemes` ve `mcp/www_authenticate` kodlandı; **canlı ChatGPT Developer Mode bağlantısı ve public submission yapılmadı**. Canlı ortamı kullanıcı yayımlıyor. Bu belge hem denetim hem sonraki asistan için devir notudur. OpenAI'nin güncel terimi “Plugin”; MCP-only, UI'sız bir plugin mümkündür. Custom GPT Actions ayrı OpenAPI hattı olarak korunur.
 
 ## A. Mevcut mimari
 
@@ -67,8 +67,8 @@ Tüm araçların adı korunmuştur. Aşağıda `E` etkinlik, `A` katılımcı, `
 2. **Kritik (düzeltildi):** OAuth'ta bilinmeyen scope isteği boş grant üretebiliyor; boş scope REST'te sınırsız kabul ediliyordu. DCR'da tümü geçersiz scope isteği tüm grantable scope'lara genişleyebiliyordu.
 3. **Yüksek (düzeltildi):** Webhook REST yanıtındaki `secret` model çıktısına sızıyordu; audit log geçmiş payload'ında PII görülebiliyordu. MCP audit-log endpointi scope muafiyetindeydi.
 4. **Yüksek (düzeltildi):** `issue_certificates` yanlış endpoint/body kullanıyordu; `attendee_ids` backend'de desteklenmiyordu. Sertifika listeleme için API-key/OAuth okuma scope'u ile event-team yönetim izni ayrı katmanlardır.
-5. **Yüksek (açık):** OAuth authorization/token akışında `resource` korunmuyor; access token'da MCP audience/issuer bağı ve `/mcp` girişinde audience doğrulaması yok. OpenAI bu bağı ve request başına token kontrolünü istiyor. Veritabanı migration'ı, consent sayfası ve JWT doğrulayıcılarını birlikte değiştirmeden yapılmamalı.
-6. **Orta (açık):** `/mcp` dış katmanı Bearer başlığının biçimini denetler; token'ın geçerliliği iş aracı REST çağrısında doğrulanır. Bu yüzden geçersiz Bearer ile `initialize/tools/list` metadata'sı görülebilir (hesap verisi değil). Public submission öncesi her MCP isteğinde credential doğrulaması eklenmeli. Python `mcp==1.28.1` Tool modelinde doğrudan per-tool `securitySchemes` alanı da yok; tool-level OAuth bağlantı UI'si için SDK/adapter ve `_meta["mcp/www_authenticate"]` planlanmalı.
+5. **Yüksek (düzeltildi; canlı test bekliyor):** `resource` authorization code ve refresh token üzerinde korunuyor; bağlı JWT'de `aud`/`iss` var. `/mcp` yalnızca doğru audience/issuer taşıyan OAuth JWT'yi veya etkin `hc_live_` API key'i kabul ediyor. Önceki audience'sız Custom GPT REST token'ları REST tarafında çalışmayı sürdürüyor ama MCP'ye alınmıyor. Migration `113_oauth_resource_binding` canlıya kodla birlikte alınmalı.
+6. **Orta (düzeltildi; ChatGPT UI testi bekliyor):** Dış MCP katmanı `initialize/tools/list` dahil her HTTP isteğinde gerçek token/key'i ve kullanıcı durumunu kontrol ediyor. Python `mcp==1.28.1` Tool modelinin izin verdiği extension field ile 38 tool'un `securitySchemes` alanı üretiliyor; 401/403/scope hata sonucuna `_meta["mcp/www_authenticate"]` ekleniyor.
 7. **Orta (açık):** Çıktılar JSON string; `structuredContent`, `outputSchema`, gizli client `_meta` yok. Özellikle liste/sertifika/önizleme araçları için şema sürümlendirmesi ve geriye uyumlu dönüşüm gerekli.
 8. **Orta (açık):** OAuth token'lı yoğun tool çağrıları için anahtar başına rate limit yok; DCR cache kesilirse kayıt limiti fail-open. Bazı imzalarda serbest `list[dict]`, tarih/enum ve pagination sınırları daha sıkı tanımlanabilir. `include_certificates` uyumluluk için duruyor ama uygulanmıyor.
 9. **Orta (açık):** Canlı ChatGPT developer-mode OAuth bağlantısı, `/mcp` production çağrısı ve directory incelemesi bu yerel denetimde yapılmadı; kullanıcı dağıtımı sonrası gerekir.
@@ -84,9 +84,9 @@ Tüm araçların adı korunmuştur. Aşağıda `E` etkinlik, `A` katılımcı, `
 
 ## F. Şimdilik değiştirilmeyenler / gerekçe
 
-- `resource`/audience/issuer OAuth zinciri kapsamlı migration ve login akışı değişikliği ister; bu commit'te sessiz kırılma riski nedeniyle yapılmadı. **Public submission öncesi zorunlu**.
+- Eski audience'sız OAuth token'lar Custom GPT REST hattında geçerli kalır; MCP için yeniden OAuth bağlantısı gerekir. Canlı migration sonrası ChatGPT'de bağlantı testi ve dönen token'ın `aud` doğrulaması yapılmalı.
 - `structuredContent`/`outputSchema` tüm 38 tool için aşamalı sözleşme dönüşümü ister; JSON text mevcut istemciler için korundu.
-- OAuth rate limit, veri export politikasının PII/onay modeli ve per-tool `securitySchemes` SDK yükseltmesi ayrı paketler olmalı.
+- OAuth rate limit ve veri export politikasının PII/onay modeli ayrı paketler olmalı. `securitySchemes` extension alanı SDK sürüm yükseltmesinde yeniden doğrulanmalı.
 - Yeni Apps SDK UI/asset, Codex kişisel plugin iskeleti veya App Directory gönderimi yapılmadı. Bu iş mevcut remote MCP denetimiydi; `plugin-creator` becerisi bu yüzden kullanılmadı.
 
 ## G. ChatGPT UI için sonraki adımlar
@@ -95,8 +95,8 @@ Tüm araçların adı korunmuştur. Aşağıda `E` etkinlik, `A` katılımcı, `
 
 ## H. Public OpenAI Plugin Directory öncesi kontrol listesi
 
-1. OAuth `resource` → code/refresh token → `aud` zinciri, issuer/audience/scope/expiry doğrulaması, eski token geçiş planı ve ChatGPT callback URI allowlist.
-2. MCP `initialize/tools/list` dahil her istekte token doğrulama; per-tool auth declaration/runtime challenge; Python MCP SDK sürümüyle gerçek `tools/list` çıktısı ve ChatGPT linking UI testi.
+1. **Kodlandı:** OAuth `resource` → code/refresh token → `aud` zinciri, issuer/audience/scope/expiry doğrulaması ve eski REST token'ları için uyumluluk. **Canlı kontrol:** ChatGPT'nin kaydettiği callback URI ve yeni token audience'ı.
+2. **Kodlandı:** MCP `initialize/tools/list` dahil her istekte token doğrulama; 38 per-tool auth declaration/runtime challenge. **Canlı kontrol:** ChatGPT'de gerçek `tools/list` çıktısı ve linking UI.
 3. Production HTTPS `/mcp`, discovery metadata ve 401 challenge uçtan uca; 38 tool taraması, yanlış event ID/rol/organizasyon, 401/403/404/429, destructive onay, PII ve webhook sır testi.
 4. Veri kullanımı, gizlilik politikası, saklama/silme, destek bağlantıları, yayıncı doğrulaması; hukuk danışmanı bulunmadığı için sözleşme/KVKK metinleri onaylanmadan hukuki beyan yapılmamalı.
 5. Developer mode'da bağlantı ve gerçek OAuth login testi; kullanıcı onayıyla submission draft ve review. MCP-only plugin mümkündür; dizine ekleme otomatik değildir.
@@ -112,4 +112,12 @@ Resmî kaynaklar: [MCP server](https://developers.openai.com/plugins/build/mcp-s
 - `heptacert/backend/tests/test_mcp_contract.py`: MCP sözleşmesi, auth, redaction ve yüksek etkili işlem regresyonları.
 - Bu belge: araç envanteri, açık kalan submission engelleri ve devir notu.
 
-Doğrulama: Docker `python -m pytest tests -q --disable-warnings` → **578 passed** (yerel test veritabanı). Canlı ortam doğrulaması yapılmadı.
+Doğrulama: Docker `python -m pytest tests -q --disable-warnings` → **582 passed** (yerel test veritabanı); `tests/test_mcp_oauth.py` + `tests/test_mcp_contract.py` → **50 passed**. Frontend `npm run check:ui`, `npx tsc --noEmit` ve `npm test -- --run` → **78 passed**. Canlı ortam / ChatGPT hesabı doğrulaması yapılmadı.
+
+## I. Canlıya alma ve Developer Mode kabul testi
+
+1. Kodla birlikte `113_oauth_resource_binding` migration'ını uygula; backend ve frontend'i aynı sürüme al. Eski Custom GPT Actions REST hattı çalışmaya devam eder, ancak eski audience'sız OAuth token ile MCP'ye girilemez; MCP bağlantısını yenile.
+2. Canlı HTTPS üzerinde `/.well-known/oauth-protected-resource` alanındaki `resource` değerinin tam `https://heptacert.com/mcp` olduğunu, `/.well-known/oauth-authorization-server` issuer/token/authorization URL'lerini ve kimliksiz `POST /mcp` yanıtındaki 401 `WWW-Authenticate` başlığını kontrol et.
+3. ChatGPT Developer Mode'da yeni MCP bağlantısı olarak `https://heptacert.com/mcp` ekle; gerçek HeptaCert hesabıyla OAuth consent'i tamamla. HeptaCert henüz authorization response `iss` ilan etmediğinden ChatGPT'nin gösterdiği bağlantıya özel callback URI beklenir; DCR onu kaydetmelidir. Bağlantı başarısızsa ChatGPT'nin gösterdiği tam hata ile authorization/token isteklerinin HTTP durumlarını kaydet; token/secret paylaşma.
+4. `tools/list` sonucunda 38 tool ve her birinde `securitySchemes` görünmeli. `list_events` gibi okuma ve `create_event` gibi yazma araçlarını yalnızca ayrı bir test organizasyonu üzerinde dene; eksik scope hata sonucunda `_meta["mcp/www_authenticate"]` dönmeli. Yanlış event ID başka organizasyon verisini göstermemeli.
+5. Bu canlı adımlar doğrulanmadan Developer Mode testi veya public submission **tamamlandı** olarak işaretlenmez. `structuredContent`, Apps SDK UI ve public submission bu paketin dışında, sonraki aşamadır.

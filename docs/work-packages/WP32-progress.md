@@ -131,6 +131,15 @@ unauthenticated `/mcp` request → 401.
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
 
+### 2026-09-22 — MCP OAuth resource-binding interruption
+
+- The unprefixed `/oauth/authorize` consent client now carries the incoming OAuth
+  `resource` parameter through server-side validation and approval. No new UI text or
+  locale keys were added; transactional URL routing remains unchanged.
+- This is part of WP37's MCP security completion, not Phase 7 translation progress.
+  Continue Phase 7 at the legal-draft review gate and authenticated surfaces listed
+  above after the MCP integration has been deployed and checked in ChatGPT.
+
 ### 2026-09-22 — general event information export in Reports
 
 - Added a one-off **Event information report** to `/admin/reports`, separate from scheduled reports. It loads only events available to the signed-in organizer, re-reads the selected event through the authorized detail endpoint, previews a plain-text report and supports copy or UTF-8 `.txt` download. The report includes known title, date, type, location, plain-text description and eligible public/registration URLs; it never invents start/end times, host OU or destination-specific category. Private events, disabled/closed registration and mismatched event IDs cannot produce misleading handoff links. Changing organization context clears the previous preview.

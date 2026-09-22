@@ -92,6 +92,7 @@ class OAuthCode(Base):
     user_id:               Mapped[int]           = mapped_column(Integer, nullable=False)
     redirect_uri:          Mapped[str]           = mapped_column(Text, nullable=False)
     scopes:                Mapped[list]          = mapped_column(JSONB, nullable=False, default=list)
+    resource:              Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     code_challenge:        Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     code_challenge_method: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
     expires_at:            Mapped[datetime]      = mapped_column(DateTime(timezone=True), nullable=False)
@@ -110,6 +111,7 @@ class OAuthRefreshToken(Base):
     client_id:  Mapped[str]      = mapped_column(String(64), nullable=False)
     user_id:    Mapped[int]      = mapped_column(Integer, nullable=False)
     scopes:     Mapped[list]     = mapped_column(JSONB, nullable=False, default=list)
+    resource:   Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     revoked:    Mapped[bool]     = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -128,7 +130,18 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _make_access_token(*, user_id: int, role: str, scopes: list[str], client_id: str) -> str:
+def _mcp_resource() -> str:
+    return f"{settings.public_base_url.rstrip('/')}/mcp"
+
+
+def _validate_resource(resource: Optional[str]) -> Optional[str]:
+    if resource is not None and resource != _mcp_resource():
+        raise HTTPException(status_code=400, detail="invalid_target")
+    return resource
+
+
+def _make_access_token(*, user_id: int, role: str, scopes: list[str], client_id: str,
+                       resource: Optional[str] = None) -> str:
     now = _now()
     payload = {
         "sub":       str(user_id),
@@ -138,6 +151,9 @@ def _make_access_token(*, user_id: int, role: str, scopes: list[str], client_id:
         "iat":       int(now.timestamp()),
         "exp":       now + timedelta(minutes=ACCESS_TOKEN_MINUTES),
     }
+    if resource is not None:
+        payload["aud"] = resource
+        payload["iss"] = settings.public_base_url.rstrip("/")
     return pyjwt.encode(payload, settings.jwt_secret, algorithm="HS256")
 
 
@@ -188,6 +204,7 @@ async def validate_oauth_params(
     client_id:    str = Query(...),
     redirect_uri: str = Query(...),
     scope:        str = Query(default=""),
+    resource:     Optional[str] = Query(default=None),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -195,6 +212,7 @@ async def validate_oauth_params(
     Called client-side by the /oauth/authorize Next.js page.
     """
     client = await _load_client(client_id, db)
+    _validate_resource(resource)
     if redirect_uri not in (client.redirect_uris or []):
         raise HTTPException(status_code=400, detail="redirect_uri not registered for this client")
 
@@ -222,6 +240,7 @@ class AuthorizeIn(BaseModel):
     state:                 str = ""
     code_challenge:        Optional[str] = None
     code_challenge_method: Optional[str] = None
+    resource:              Optional[str] = None
 
 
 class AuthorizeOut(BaseModel):
@@ -239,6 +258,7 @@ async def issue_auth_code(
     Caller must be authenticated (Authorization: Bearer <admin_jwt>).
     """
     client = await _load_client(payload.client_id, db)
+    _validate_resource(payload.resource)
 
     if payload.redirect_uri not in (client.redirect_uris or []):
         raise HTTPException(status_code=400, detail="redirect_uri not registered")
@@ -256,6 +276,7 @@ async def issue_auth_code(
         user_id               = me.id,
         redirect_uri          = payload.redirect_uri,
         scopes                = scopes,
+        resource              = payload.resource,
         code_challenge        = payload.code_challenge,
         code_challenge_method = payload.code_challenge_method,
         expires_at            = _now() + timedelta(minutes=AUTH_CODE_MINUTES),
@@ -281,6 +302,7 @@ async def token_endpoint(
     redirect_uri:   Optional[str] = Form(default=None),
     code_verifier:  Optional[str] = Form(default=None),
     refresh_token:  Optional[str] = Form(default=None),
+    resource:       Optional[str] = Form(default=None),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -289,6 +311,7 @@ async def token_endpoint(
     - grant_type=refresh_token      → new access_token
     """
     client = await _load_client(client_id, db)
+    _validate_resource(resource)
 
     # Authenticate the client. Every registered client is confidential (it always
     # has a client_secret_hash), so a presented secret must match (constant-time).
@@ -325,6 +348,8 @@ async def token_endpoint(
 
         if code_rec.redirect_uri != redirect_uri:
             raise HTTPException(status_code=400, detail="redirect_uri does not match")
+        if code_rec.resource != resource:
+            raise HTTPException(status_code=400, detail="invalid_target")
 
         # PKCE verification
         used_pkce = bool(code_rec.code_challenge)
@@ -359,6 +384,7 @@ async def token_endpoint(
             role=user.role.value if hasattr(user.role, "value") else str(user.role),
             scopes=code_rec.scopes,
             client_id=code_rec.client_id,
+            resource=code_rec.resource,
         )
         raw_refresh   = secrets.token_urlsafe(48)
         db.add(OAuthRefreshToken(
@@ -366,6 +392,7 @@ async def token_endpoint(
             client_id  = client_id,
             user_id    = user.id,
             scopes     = code_rec.scopes,
+            resource   = code_rec.resource,
             expires_at = _now() + timedelta(days=REFRESH_TOKEN_DAYS),
             revoked    = False,
         ))
@@ -407,6 +434,10 @@ async def token_endpoint(
             exp = exp.replace(tzinfo=timezone.utc)
         if exp < _now():
             raise HTTPException(status_code=400, detail="Refresh token expired")
+        # A refresh grant inherits the original resource if the client omits
+        # it; a different requested resource must never broaden the token.
+        if resource is not None and rt_rec.resource != resource:
+            raise HTTPException(status_code=400, detail="invalid_target")
 
         user = (await db.execute(
             select(User).where(User.id == rt_rec.user_id)
@@ -421,6 +452,7 @@ async def token_endpoint(
             role=user.role.value if hasattr(user.role, "value") else str(user.role),
             scopes=rt_rec.scopes,
             client_id=rt_rec.client_id,
+            resource=rt_rec.resource,
         )
         return {
             "access_token": access_token,

@@ -1,11 +1,13 @@
 """MCP tool metadata and transport/security regressions."""
 
 import json
+import inspect
 from types import SimpleNamespace
 
 import httpx
 import pytest
 from fastapi import HTTPException
+from mcp.server.fastmcp.exceptions import ToolError
 from starlette.requests import Request
 
 from src import mcp_server
@@ -101,6 +103,37 @@ async def test_tool_annotations_are_truthful():
         assert tools[name].annotations.readOnlyHint is False
     for name in ("create_webhook", "create_automation_rule"):
         assert tools[name].annotations.openWorldHint is True
+
+
+@pytest.mark.asyncio
+async def test_every_tool_declares_the_scope_it_checks():
+    tools = {tool.name: tool for tool in await mcp_server.mcp.list_tools()}
+    assert tools.keys() == mcp_server.TOOL_SCOPES.keys()
+    assert len(tools) == 38
+    for name, tool in tools.items():
+        assert tool.model_dump(by_alias=True)["securitySchemes"] == [
+            {"type": "oauth2", "scopes": [mcp_server.TOOL_SCOPES[name]]}
+        ]
+        implementation = inspect.getsource(getattr(mcp_server, name))
+        assert f'_require_scope(api_key, "{mcp_server.TOOL_SCOPES[name]}")' in implementation
+
+
+@pytest.mark.asyncio
+async def test_scope_failure_returns_mcp_authenticate_metadata(monkeypatch):
+    async def forbidden(*args, **kwargs):
+        try:
+            raise PermissionError("scope denied")
+        except PermissionError as exc:
+            raise ToolError("hidden internals") from exc
+
+    monkeypatch.setattr(mcp_server.mcp._tool_manager, "call_tool", forbidden)
+    result = await mcp_server.mcp.call_tool("create_event", {"name": "Test"})
+    assert result.isError is True
+    assert result.meta["mcp/www_authenticate"]
+    challenge = result.meta["mcp/www_authenticate"][0]
+    assert 'error="insufficient_scope"' in challenge
+    assert 'scope="events:write"' in challenge
+    assert "hidden internals" not in str(result.content)
 
 
 def test_model_visible_results_redact_nested_credentials():
