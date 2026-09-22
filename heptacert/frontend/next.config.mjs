@@ -54,6 +54,12 @@ const nextConfig = {
         source: "/.well-known/openid-configuration",
         destination: `${BACKEND_ORIGIN}/.well-known/openid-configuration`,
       },
+      {
+        // OpenAI plugin review fetches the domain-verification token from the
+        // public origin, which the proxy otherwise routes to the frontend.
+        source: "/.well-known/openai-apps-challenge",
+        destination: `${BACKEND_ORIGIN}/.well-known/openai-apps-challenge`,
+      },
     ];
   },
   async headers() {

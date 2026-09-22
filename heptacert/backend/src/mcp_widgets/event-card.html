@@ -1,0 +1,71 @@
+<div id="hc-root" class="hc-root"></div>
+<script>
+  (function () {
+    "use strict";
+
+    function featureBadges(event) {
+      var flags = [
+        ["Certificates", event.certificate_enabled],
+        ["Registration", event.registration_enabled && !event.registration_closed],
+        ["Check-in", event.checkin_enabled],
+        ["Ticketing", event.ticketing_enabled],
+      ];
+      var wrap = HC.el("div", { class: "hc-actions" }, []);
+      flags.forEach(function (flag) {
+        if (flag[1]) wrap.appendChild(HC.badge(flag[0], "success"));
+      });
+      return wrap.childNodes.length ? wrap : null;
+    }
+
+    HC.mount(function (data) {
+      var event = data.event || data;
+      var stats = data.stats || {};
+      if (!event || (!event.name && !event.id)) {
+        return HC.el("p", { class: "hc-empty", text: "No event details were returned." });
+      }
+
+      var meta = [HC.fmtDate(event.event_date), event.event_location].filter(Boolean).join(" · ");
+      var card = HC.el("div", { class: "hc-card" }, [
+        HC.el("div", { class: "hc-head" }, [
+          HC.el("h2", { class: "hc-title", text: event.name || "Event " + event.id }),
+          event.visibility === "public" ? HC.badge("Public", "success") : HC.badge("Private"),
+        ]),
+        meta ? HC.el("p", { class: "hc-sub", text: meta }) : null,
+      ]);
+
+      var hasStats = ["attendee_count", "session_count", "certificate_count", "checkin_count"].some(
+        function (key) {
+          return stats[key] !== undefined && stats[key] !== null;
+        }
+      );
+      if (hasStats) {
+        card.appendChild(
+          HC.el("div", { class: "hc-facts" }, [
+            HC.fact("Attendees", HC.num(stats.attendee_count)),
+            HC.fact("Sessions", HC.num(stats.session_count)),
+            HC.fact("Certificates", HC.num(stats.certificate_count)),
+            HC.fact("Check-ins", HC.num(stats.checkin_count)),
+          ])
+        );
+      }
+
+      var features = featureBadges(event);
+      if (features) card.appendChild(features);
+
+      if (event.registration_closed) {
+        card.appendChild(
+          HC.el("p", { class: "hc-note", text: "Registration is closed for this event." })
+        );
+      }
+
+      var name = event.name || "event " + event.id;
+      card.appendChild(
+        HC.el("div", { class: "hc-actions" }, [
+          HC.askButton("Attendees", 'List the attendees for "' + name + '".', "primary"),
+          HC.askButton("Attendance", 'Show the attendance summary for "' + name + '".'),
+        ])
+      );
+      return card;
+    });
+  })();
+</script>

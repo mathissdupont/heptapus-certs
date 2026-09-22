@@ -29,7 +29,9 @@
 	# and openid-configuration docs are the OAuth/MCP discovery metadata (RFC 8414 +
 	# RFC 9728) that any AI client fetches to connect. /oauth/authorize is NOT here:
 	# it is the interactive login/consent page and must stay on the frontend.
-	@backend path /api/* /docs* /redoc* /mcp /mcp/* /.well-known/oauth-authorization-server* /.well-known/oauth-protected-resource* /.well-known/openid-configuration
+	# /.well-known/openai-apps-challenge serves the domain-verification token
+	# OpenAI's plugin review fetches; it 404s until a token is configured.
+	@backend path /api/* /docs* /redoc* /mcp /mcp/* /.well-known/oauth-authorization-server* /.well-known/oauth-protected-resource* /.well-known/openid-configuration /.well-known/openai-apps-challenge
 	handle @backend {
 		reverse_proxy heptacert-backend:8000
 	}

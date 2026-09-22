@@ -1,0 +1,72 @@
+<div id="hc-root" class="hc-root"></div>
+<script>
+  (function () {
+    "use strict";
+    var INLINE_ROWS = 8;
+
+    function statusBadge(attendee) {
+      if (attendee.has_certificate) return HC.badge("Certified", "success");
+      if (attendee.checked_in) return HC.badge("Checked in", "success");
+      return HC.badge("Registered");
+    }
+
+    function row(attendee) {
+      var meta = [attendee.email, HC.fmtDate(attendee.registered_at)].filter(Boolean).join(" · ");
+      return HC.el("div", { class: "hc-row" }, [
+        HC.el("div", { class: "hc-row-main" }, [
+          HC.el("div", { class: "hc-row-name", text: attendee.name || "Unnamed attendee" }),
+          HC.el("div", { class: "hc-row-meta", text: meta }),
+        ]),
+        statusBadge(attendee),
+      ]);
+    }
+
+    HC.mount(function (data, ctx) {
+      var attendees = Array.isArray(data.attendees) ? data.attendees : [];
+      var total = typeof data.total === "number" ? data.total : attendees.length;
+      var expanded = ctx.displayMode === "fullscreen" || ctx.widgetState.expanded === true;
+      var shown = expanded ? attendees : attendees.slice(0, INLINE_ROWS);
+
+      var heading = total === 1 ? "1 attendee" : HC.num(total) + " attendees";
+      var card = HC.el("div", { class: "hc-card" }, [
+        HC.el("div", { class: "hc-head" }, [
+          HC.el("h2", { class: "hc-title", text: heading }),
+          data.page && data.limit
+            ? HC.el("p", { class: "hc-sub", text: "Page " + HC.num(data.page) })
+            : null,
+        ]),
+      ]);
+
+      if (!attendees.length) {
+        card.appendChild(HC.el("p", { class: "hc-empty", text: "No attendees match this query." }));
+        return card;
+      }
+
+      shown.forEach(function (attendee) {
+        card.appendChild(row(attendee));
+      });
+
+      var actions = HC.el("div", { class: "hc-actions" }, []);
+      if (!expanded && attendees.length > INLINE_ROWS) {
+        actions.appendChild(
+          HC.el("button", {
+            class: "hc-btn",
+            type: "button",
+            text: "View all " + HC.num(attendees.length),
+            onClick: function () {
+              HC.setState({ expanded: true });
+              HC.requestFullscreen();
+            },
+          })
+        );
+      }
+      if (data.has_more) {
+        actions.appendChild(
+          HC.askButton("Next page", "Show the next page of attendees for event " + data.event_id + ".", "primary")
+        );
+      }
+      if (actions.childNodes.length) card.appendChild(actions);
+      return card;
+    });
+  })();
+</script>

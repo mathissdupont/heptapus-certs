@@ -1,0 +1,66 @@
+<div id="hc-root" class="hc-root"></div>
+<script>
+  (function () {
+    "use strict";
+
+    /* This widget never issues certificates itself. Issuance is a destructive,
+       balance-spending write that stays behind the model's confirm=True flow,
+       so the only action offered here drafts the confirmation prompt for the
+       user to send deliberately. */
+    HC.mount(function (data) {
+      var queued = data.status === "queued";
+      var card = HC.el("div", { class: "hc-card" }, [
+        HC.el("div", { class: "hc-head" }, [
+          HC.el("h2", {
+            class: "hc-title",
+            text: queued ? "Certificate job queued" : "Confirm certificate issuance",
+          }),
+          HC.badge(queued ? "Queued" : "Needs confirmation", queued ? "success" : "warning"),
+        ]),
+      ]);
+
+      var facts = [];
+      if (data.eligible_count !== undefined && data.eligible_count !== null) {
+        facts.push(HC.fact("Eligible attendees", HC.num(data.eligible_count)));
+      }
+      if (data.event_id !== undefined && data.event_id !== null) {
+        facts.push(HC.fact("Event", "#" + data.event_id));
+      }
+      if (queued && data.job_id) facts.push(HC.fact("Job", "#" + data.job_id));
+      if (facts.length) card.appendChild(HC.el("div", { class: "hc-facts" }, facts));
+
+      if (data.warning) {
+        card.appendChild(HC.el("p", { class: "hc-note", text: data.warning }));
+      }
+
+      if (queued) {
+        card.appendChild(
+          HC.el("p", {
+            class: "hc-sub",
+            text: "Generation runs in the background. Certificates appear as each PDF is built.",
+          })
+        );
+        card.appendChild(
+          HC.el("div", { class: "hc-actions" }, [
+            HC.askButton("Check certificates", "List the certificates for event " + data.event_id + "."),
+          ])
+        );
+        return card;
+      }
+
+      card.appendChild(
+        HC.el("div", { class: "hc-actions" }, [
+          HC.askButton(
+            "Yes, issue them",
+            "Yes — issue certificates for all eligible attendees of event " +
+              data.event_id +
+              ". I approve spending the required HeptaCoin balance.",
+            "primary"
+          ),
+          HC.askButton("Not now", "Cancel the certificate issuance for now."),
+        ])
+      );
+      return card;
+    });
+  })();
+</script>

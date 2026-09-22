@@ -1,0 +1,38 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "heptacert",
+  "version": "1.0.0",
+  "description": "Manage events, attendees, check-ins and verifiable certificates in HeptaCert.",
+  "author": {
+    "name": "HeptaCert",
+    "email": "destek@heptacert.com",
+    "url": "https://heptacert.com"
+  },
+  "homepage": "https://heptacert.com",
+  "license": "UNLICENSED",
+  "keywords": ["events", "certificates", "attendance", "check-in", "credentials"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "HeptaCert",
+        "shortDescription": "Run events and issue verifiable certificates",
+        "longDescription": "HeptaCert is an event management and certificate issuance platform. Connect your HeptaCert account to create and update events, manage attendees and sessions, run check-in, queue certificate batches, and verify a certificate from its public code — with attendee lists, certificates and issuance confirmations rendered inline. Every action runs against your own organization's data under the permissions you grant when you connect, and destructive actions ask for confirmation first.",
+        "developerName": "HeptaCert",
+        "category": "Productivity",
+        "capabilities": ["Read", "Write"],
+        "websiteURL": "https://heptacert.com",
+        "privacyPolicyURL": "https://heptacert.com/gizlilik",
+        "termsOfServiceURL": "https://heptacert.com/kullanim-kosullari",
+        "defaultPrompt": [
+          "Show me my upcoming HeptaCert events and how many people have registered.",
+          "List the attendees for my next event and tell me who has not checked in yet.",
+          "Check whether HeptaCert certificate code ABC-123 is still valid.",
+          "Walk me through issuing certificates for everyone eligible at my last workshop."
+        ],
+        "brandColor": "#1F4ED8",
+        "composerIcon": "./assets/logo.png",
+        "logo": "./assets/logo.png"
+      }
+    }
+  }
+}

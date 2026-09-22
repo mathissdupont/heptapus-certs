@@ -29,7 +29,8 @@ request headers, so the documents stay correct behind the proxy.
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import PlainTextResponse
 
 from .config import settings
 from .services import GRANTABLE_SCOPES
@@ -116,3 +117,22 @@ async def oauth_protected_resource_metadata() -> dict:
 @router.get("/.well-known/oauth-protected-resource/mcp")
 async def oauth_protected_resource_metadata_mcp() -> dict:
     return _protected_resource_metadata()
+
+
+# ── OpenAI plugin domain verification ───────────────────────────────────────────
+
+
+@router.get("/.well-known/openai-apps-challenge", response_class=PlainTextResponse)
+async def openai_apps_challenge() -> PlainTextResponse:
+    """Prove to OpenAI's plugin review that we control this domain.
+
+    OpenAI issues one verification token per plugin in the submission portal and
+    fetches it from this path. It must answer with that token alone — not JSON,
+    not a list — so the token is served verbatim as plain text. Until
+    OPENAI_APPS_CHALLENGE_TOKEN is configured the path answers 404, exactly as
+    it did before, rather than advertising an empty challenge.
+    """
+    token = settings.openai_apps_challenge_token.strip()
+    if not token:
+        raise HTTPException(status_code=404, detail="Not found")
+    return PlainTextResponse(token)

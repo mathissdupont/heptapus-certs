@@ -1,0 +1,47 @@
+<div id="hc-root" class="hc-root"></div>
+<script>
+  (function () {
+    "use strict";
+
+    HC.mount(function (data) {
+      var cert = data.certificate || data;
+      if (!cert || (!cert.public_id && !cert.recipient_name)) {
+        return HC.el("p", { class: "hc-empty", text: "No certificate was found for that code." });
+      }
+
+      var valid = cert.status ? cert.status === "active" : cert.valid !== false;
+      var card = HC.el("div", { class: "hc-card" }, [
+        HC.el("div", { class: "hc-head" }, [
+          HC.el("h2", { class: "hc-title", text: cert.recipient_name || "Certificate" }),
+          HC.badge(valid ? "Valid" : cert.status || "Not valid", valid ? "success" : "danger"),
+        ]),
+        cert.event_name ? HC.el("p", { class: "hc-sub", text: cert.event_name }) : null,
+      ]);
+
+      card.appendChild(
+        HC.el("div", { class: "hc-facts" }, [
+          HC.fact("Issued", HC.fmtDate(cert.issued_at) || "—"),
+          HC.fact("Code", cert.public_id || "—"),
+        ])
+      );
+
+      if (!valid) {
+        card.appendChild(
+          HC.el("p", {
+            class: "hc-note",
+            text: "This certificate is no longer valid. Its PDF link is inaccessible.",
+          })
+        );
+      }
+
+      if (cert.verify_url) {
+        card.appendChild(
+          HC.el("div", { class: "hc-actions" }, [
+            HC.externalButton("Open verification page", cert.verify_url, "primary"),
+          ])
+        );
+      }
+      return card;
+    });
+  })();
+</script>
