@@ -1,13 +1,13 @@
 {
   "$comment": "WP32 UI contract ratchet. Counts may only fall. Lower them with `npm run check:ui -- --update-baseline`; never raise them by hand. cleanPaths must have zero matches for every rule.",
   "counts": {
-    "lang-binary-check": 505,
+    "lang-binary-check": 496,
     "lang-indexed-lookup": 0,
     "locale-tag-ternary": 0,
     "locale-tag-literal": 2,
     "native-date-input": 0,
     "raw-hex-color": 76,
-    "light-only-color": 3357
+    "light-only-color": 3348
   },
   "cleanPaths": [
     "src/app/[locale]",
@@ -15,6 +15,7 @@
     "src/app/admin/events/[id]/_event-admin-layout-shell.tsx",
     "src/app/admin/onboarding",
     "src/components/landing",
+    "src/components/public",
     "src/components/Admin/EventSetupChecklist.tsx"
   ]
 }

@@ -36,6 +36,7 @@ function HtmlLangSync() {
 function Navbar() {
   const [open, setOpen] = useState(false);
   const t = useT();
+  const { lang } = useI18n();
 
   const [brandLogo, setBrandLogo] = useState<string | null>(null);
   const [brandColor, setBrandColor] = useState<string | null>(null);
@@ -124,9 +125,9 @@ function Navbar() {
   const links = isWhiteLabel
     ? [{ href: "/verify", label: t("nav_verify") }]
     : [
-        { href: "/events",        label: t("nav_events") },
-        { href: "/organizations", label: t("nav_organizations") },
-        { href: "/discover",      label: t("nav_discover") },
+        { href: `/${lang}/events`,        label: t("nav_events") },
+        { href: `/${lang}/organizations`, label: t("nav_organizations") },
+        { href: `/${lang}/discover`,      label: t("nav_discover") },
         ...(member ? [{ href: "/my-events", label: t("nav_my_events") }] : []),
         ...(member ? [{ href: "/profile",   label: t("nav_profile") }] : []),
         { href: "/pricing", label: t("nav_pricing") },

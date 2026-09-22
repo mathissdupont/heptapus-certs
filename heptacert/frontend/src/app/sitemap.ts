@@ -33,30 +33,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     alternates: { languages: { ...landingLanguages, "x-default": `${BASE_URL}/${routing.defaultLocale}` } },
   }));
 
-  const staticRoutes: MetadataRoute.Sitemap = [
-    {
-      url: `${BASE_URL}/discover`,
+  const localizedDirectoryRoutes: MetadataRoute.Sitemap = ([
+    { path: "events", priority: 0.8 },
+    { path: "organizations", priority: 0.75 },
+    { path: "discover", priority: 0.9 },
+  ] as const).flatMap(({ path, priority }) => {
+    const languages = Object.fromEntries(
+      routing.locales.map((locale) => [locale, `${BASE_URL}/${locale}/${path}`]),
+    );
+    return routing.locales.map((locale) => ({
+      url: `${BASE_URL}/${locale}/${path}`,
       lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 0.9,
-    },
+      changeFrequency: "daily" as const,
+      priority,
+      alternates: { languages: { ...languages, "x-default": `${BASE_URL}/${routing.defaultLocale}/${path}` } },
+    }));
+  });
+
+  const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: `${BASE_URL}/marketplace`,
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 0.9,
-    },
-    {
-      url: `${BASE_URL}/events`,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE_URL}/organizations`,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 0.75,
     },
     {
       url: `${BASE_URL}/developers`,
@@ -133,5 +132,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...localizedLandingRoutes, ...staticRoutes, ...dynamicRoutes];
+  return [...localizedLandingRoutes, ...localizedDirectoryRoutes, ...staticRoutes, ...dynamicRoutes];
 }

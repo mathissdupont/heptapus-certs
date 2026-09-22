@@ -25,18 +25,16 @@
   wave. The production deployment is manual; a git push alone does not close the live
   exposure.
 - **Next step** (Phase 7, in order):
-  1. Migrate the public content wave in one pass: `/events`, `/organizations` and
-     `/discover` (Hub); each touched file leaves catalog-first and semantic-token-only.
-  2. Migrate and obtain human legal review for the six public legal/contract routes:
+  1. Migrate and obtain human legal review for the six public legal/contract routes:
      `/kullanim-kosullari`, `/gizlilik`, `/kvkk`, `/mesafeli-satis`, `/iade` and
      `/acik-riza`. They currently serve English to the seven non-TR/EN locales and must
      not be called complete merely because machine-readable catalog parity passes.
-  3. Continue through auth, admin shell + dashboard, then high-traffic event,
+  2. Continue through auth, admin shell + dashboard, then high-traffic event,
      attendee/certificate and email surfaces, lowering both UI debt ratchets after each
      independently verifiable wave.
-  4. Define the non-hook translator contract needed by `lib/assistant/eventDraft.ts` and
+  3. Define the non-hook translator contract needed by `lib/assistant/eventDraft.ts` and
      `lib/assistant/wizard.ts` before migrating either plain module.
-  5. Keep transactional routes unprefixed, the theme toggle hidden, and LMS archived.
+  4. Keep transactional routes unprefixed, the theme toggle hidden, and LMS archived.
 - **Translation coverage audit (added at the user's request):** catalog parity alone was
   hiding the real gap. `npm run i18n:audit` currently reports **505 legacy TR/EN binary
   branches across 128 files**; those branches send the other seven languages to English.
@@ -55,7 +53,7 @@
 | 4 | Date & time pickers | ✅ Done | "replace native date/time inputs with localized pickers" |
 | 5 | Landing as the first locale-routed page | ✅ Done | "rebuild landing for all nine locales" |
 | 6 | First-run onboarding | ✅ Done | "build server-derived organizer onboarding" |
-| 7 | Surface-by-surface single pass | 🚧 In progress | "localize the public shell in all nine languages" |
+| 7 | Surface-by-surface single pass | 🚧 In progress | "localize the public shell in all nine languages"; public directories wave |
 | 8 | Widen `Lang` in the authenticated app | 🟡 Type/selector delivered early; catalog migration remains | "unlock nine-language application selector" |
 
 ## Invariants — do not break
@@ -128,6 +126,34 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-09-22 — Phase 7 public directories + IEEE vTools feasibility
+
+- `/events`, `/organizations` and `/discover` now live at all nine locale-prefixed URLs,
+  with localized titles/descriptions, canonical + `hreflang` metadata and sitemap entries.
+  Their previous unprefixed list routes return permanent **308** redirects; event detail,
+  registration, member and other transactional URLs stay unprefixed. Both the locale shell
+  and authenticated/public navbar link to the localized directories. The three client
+  surfaces are catalog-first and semantic-token-only, locked as zero-tolerance paths.
+- Added 39 public-directory keys to each catalog (**793 keys** per language); relative
+  time, API error/permission and event-type labels no longer silently choose English for
+  seven locales. `lang-binary-check` fell **505 → 496** and `light-only-color` fell
+  **3357 → 3348**. The larger nine-language backlog is not complete.
+- Verification: `npm run check:ui` ✓, `npx tsc --noEmit` ✓, frontend tests **71/71** ✓,
+  local + Docker production builds ✓. Isolated Docker frontend smoke, without restarting
+  the existing stack: `/de/events`, `/de/organizations`, `/de/discover` **200**;
+  `/events` **308 → /tr/events**; OAuth discovery **200**; unauthenticated `/mcp` **401**.
+  The temporary smoke container was stopped and auto-removed. Docker was available again
+  for this wave, but no production deploy was performed.
+- [IEEE vTools feasibility](../reference/IEEE_VTOOLS_INTEGRATION_FEASIBILITY.md): official
+  public Events API v8 supports reading event metadata and incremental queries. A scoped,
+  one-way vTools → HeptaCert event-import pilot is plausible. Registration/attendance
+  access and write APIs remain unverified and require IEEE authorization and privacy
+  review; no importer or PII sync was implemented. The user was asked which direction to
+  prioritize.
+- **Next:** deploy the earlier tenant-isolation backend/frontend fix to production and
+  verify a foreign event ID with a non-owner account; then migrate the six legal/contract
+  routes with human legal review. LMS remains archived and untouched.
 
 ### 2026-09-22 — urgent event-ID tenant isolation fix
 
