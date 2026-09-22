@@ -1,7 +1,7 @@
 """analytics_api integration testleri (soguk modul -> kapsam artisi).
 
 Event sahibi admin icin 7 analitik GET endpoint'ini gercek veriyle calistirir,
-ayrica 404 (yok) ve 403 (baska org) yollarini dogrular.
+ayrica 404 (yok veya baska org) yollarini dogrular.
 """
 import uuid as _uuid
 
@@ -80,13 +80,13 @@ class TestAnalyticsEndpoints:
         assert resp.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_analytics_403_for_other_admins_event(self):
+    async def test_analytics_404_for_other_admins_event(self):
         a_id, _ha = await _admin("an-iso-a@test.com", "org_an_iso_a")
         _b_id, hb = await _admin("an-iso-b@test.com", "org_an_iso_b")
         eid = await _seed_event(a_id)
         async with _client() as ac:
             resp = await ac.get(f"/api/admin/events/{eid}/analytics", headers=hb)
-        assert resp.status_code == 403
+        assert resp.status_code == 404
 
     @pytest.mark.asyncio
     async def test_analytics_requires_auth(self):

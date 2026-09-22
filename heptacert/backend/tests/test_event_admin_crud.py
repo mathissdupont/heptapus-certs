@@ -30,6 +30,17 @@ async def _admin(email: str, org_public_id: str):
         return admin.id, {"Authorization": f"Bearer {create_access_token(user_id=admin.id, role=Role.admin)}"}
 
 
+async def _superadmin(email: str, org_public_id: str):
+    async with SessionLocal() as db:
+        admin = User(email=email, password_hash=hash_password("AdminPass123!"), role=Role.superadmin)
+        db.add(admin)
+        await db.flush()
+        db.add(Organization(user_id=admin.id, public_id=org_public_id, org_name="Platform", brand_color="#111111", settings={}))
+        await db.commit()
+        await db.refresh(admin)
+        return admin.id, {"Authorization": f"Bearer {create_access_token(user_id=admin.id, role=Role.superadmin)}"}
+
+
 async def _create_event(ac, headers, name="Test Event"):
     resp = await ac.post("/api/admin/events", headers=headers, json={
         "name": name, "template_image_url": "placeholder"})
@@ -108,3 +119,52 @@ class TestEventOrgIsolation:
             # A hala kendi event'ine erisebilir
             still = await ac.get(f"/api/admin/events/{ev['id']}", headers=headers_a)
         assert still.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_superadmin_cannot_tenant_hop_through_admin_event_ids(self):
+        owner_id, owner_headers = await _admin("ev-tenant-owner@test.com", "org_tenant_owner")
+        _platform_id, platform_headers = await _superadmin("ev-platform@test.com", "org_platform")
+        async with SessionLocal() as db:
+            owner_org_id = (await db.execute(select(Organization.id).where(Organization.user_id == owner_id))).scalar_one()
+            owner_subscription = (await db.execute(select(Subscription).where(Subscription.user_id == owner_id))).scalar_one()
+            owner_subscription.plan_id = "enterprise"
+            await db.commit()
+        forged_context_headers = {**platform_headers, "X-Organization-Id": str(owner_org_id)}
+        async with _client() as ac:
+            event = await _create_event(ac, owner_headers, "Tenant Private Event")
+            event_id = event["id"]
+
+            attempts = [
+                await ac.get(f"/api/admin/events/{event_id}", headers=platform_headers),
+                await ac.get(f"/api/admin/events/{event_id}/access", headers=platform_headers),
+                await ac.get(f"/api/admin/events/{event_id}/analytics", headers=platform_headers),
+                await ac.get(f"/api/admin/events/{event_id}/analytics/export.csv", headers=platform_headers),
+                await ac.get(f"/api/admin/events/{event_id}/registration-fields", headers=platform_headers),
+                await ac.get(f"/api/admin/events/{event_id}/quiz", headers=platform_headers),
+                await ac.get(f"/api/admin/presentations/events/{event_id}", headers=platform_headers),
+                await ac.patch(
+                    f"/api/admin/events/{event_id}",
+                    headers=platform_headers,
+                    json={"name": "Compromised"},
+                ),
+                await ac.delete(f"/api/admin/events/{event_id}", headers=platform_headers),
+            ]
+
+            assert all(response.status_code == 404 for response in attempts), [
+                (response.status_code, response.text) for response in attempts
+            ]
+            forged_presentation = await ac.get(
+                f"/api/admin/presentations/events/{event_id}", headers=forged_context_headers
+            )
+            assert forged_presentation.status_code in (403, 404)
+            foreign_org = await ac.get("/api/admin/organization/settings", headers=forged_context_headers)
+            assert foreign_org.status_code == 403
+            owner_view = await ac.get(f"/api/admin/events/{event_id}", headers=owner_headers)
+
+        assert owner_view.status_code == 200
+        assert owner_view.json()["name"] == "Tenant Private Event"
+
+        async with _client() as ac:
+            own_event = await _create_event(ac, platform_headers, "Platform Owned Event")
+            own_view = await ac.get(f"/api/admin/events/{own_event['id']}", headers=platform_headers)
+        assert own_view.status_code == 200

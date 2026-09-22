@@ -20,6 +20,10 @@
     API Free (`scripts/i18n-translate.mjs` on the branch already routes `:fx` keys to
     `api-free.deepl.com`).
 - **Active phase:** Phase 7 — surface-by-surface theme and translation migration.
+- **Urgent security interruption (2026-09-22):** The event-ID tenant isolation fix is
+  implemented and locally verified. Keep its deployment ahead of the next translation
+  wave. The production deployment is manual; a git push alone does not close the live
+  exposure.
 - **Next step** (Phase 7, in order):
   1. Migrate the public content wave in one pass: `/events`, `/organizations` and
      `/discover` (Hub); each touched file leaves catalog-first and semantic-token-only.
@@ -124,6 +128,39 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-09-22 — urgent event-ID tenant isolation fix
+
+- **Cause and scope.** `/admin/events/{id}` initially rendered its navigation before
+  access was checked. At the API layer, several `/api/admin/events/{event_id}` and
+  related analytics/presentation helpers treated `superadmin` as an implicit owner of
+  every tenant's event. A platform account could therefore open another organization's
+  event by changing the numeric ID even though that event was not in its normal list.
+  Ordinary admins already received a denial from the core event helper; the frontend
+  shell still made denied pages appear reachable while redirecting.
+- **Fail-closed ownership.** The shared event helper, event access response, owner-only
+  deletion, badges, analytics/export, registration/ticket extras, quiz, AI anomaly
+  context, presentation event lookup and explicit organization-context lookup no longer
+  grant cross-tenant access solely because the caller is a superadmin. Explicit event
+  ownership or a valid active team/organization membership remains required. Unknown or
+  foreign event IDs return 404 from the shared event path; `/api/superadmin/*` platform
+  functions are not being redefined as tenant-admin event functions.
+- **No pre-authorization UI.** The event-admin layout now renders neither its navigation
+  nor its children until `/access` succeeds. Approval is tied to the event ID and route,
+  so changing `43` to `44` cannot reuse the previous page's allowed state for a frame.
+  Its loading surface is semantic-token-only and added to the zero-tolerance UI paths;
+  `light-only-color` fell **3358 → 3357**.
+- **Regression evidence.** A superadmin's foreign event detail, access, analytics/CSV,
+  registration fields, quiz, presentations, settings PATCH and DELETE are tested as 404;
+  the same account can still read its own event. A frontend test covers denied and
+  mid-navigation states. Full backend suite **555/555**, frontend suite **69/69**,
+  `npx tsc --noEmit`, `npm run check:ui`, the frontend production build and docs link
+  check pass. Docker engine was unavailable locally, so compose smoke could not run;
+  perform it at deploy time.
+- **Next:** deploy both backend and frontend images manually, then retest a foreign event
+  ID with a non-owner account (expect 404 and no event UI) and an owned event (expect
+  normal access). Resume Phase 7 public-content translation afterward. LMS remains
+  archived and untouched.
 
 ### 2026-09-21 — Phase 7 wave 1: nine-language public shell
 

@@ -239,8 +239,8 @@ async def get_organization_for_access(
         selected = await db.get(Organization, organization_id)
         if selected is None:
             raise HTTPException(status_code=404, detail="Organization not found")
-        if selected.user_id == me.id or me.role == Role.superadmin:
-            if me.role != Role.superadmin and required_permission == "organization:team_manage":
+        if selected.user_id == me.id:
+            if required_permission == "organization:team_manage":
                 await ensure_organization_enterprise(db, selected)
             return selected
         if not await organization_owner_has_enterprise_plan(db, selected):

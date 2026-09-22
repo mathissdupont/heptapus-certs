@@ -2,7 +2,7 @@ import csv
 import io
 from typing import Any, List, Tuple
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy import distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,11 +12,9 @@ from .main import (
     Attendee,
     CertStatus,
     Certificate,
-    Event,
     EventSession,
     EventTicket,
     ParticipantBadge,
-    Role,
     User,
     VerificationHit,
     get_current_user,
@@ -28,6 +26,7 @@ from .main import (
     is_raffles_enabled,
     is_ticketing_enabled,
     normalize_event_type,
+    _get_event_for_admin,
 )
 
 router = APIRouter()
@@ -40,13 +39,7 @@ async def get_event_analytics(
     db: AsyncSession = Depends(get_db),
 ):
     """Get aggregated analytics for an event (attendees, certs, sessions)."""
-    e_res = await db.execute(select(Event).where(Event.id == event_id))
-    event = e_res.scalar_one_or_none()
-    if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamad\u0131")
-
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eri\u015fim")
+    event = await _get_event_for_admin(event_id, current_user, db, "analytics:read")
 
     att_res = await db.execute(
         select(func.count(Attendee.id)).where(Attendee.event_id == event_id)
@@ -95,13 +88,7 @@ async def get_engagement_analytics(
     db: AsyncSession = Depends(get_db),
 ):
     """Get engagement analytics for an event (attendance, surveys, badges)."""
-    e_res = await db.execute(select(Event).where(Event.id == event_id))
-    event = e_res.scalar_one_or_none()
-    if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamad\u0131")
-
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eri\u015fim")
+    event = await _get_event_for_admin(event_id, current_user, db, "analytics:read")
 
     att_count_res = await db.execute(
         select(func.count(Attendee.id)).where(Attendee.event_id == event_id)
@@ -220,13 +207,7 @@ async def get_badge_analytics(
     db: AsyncSession = Depends(get_db),
 ):
     """Get badge distribution analytics."""
-    e_res = await db.execute(select(Event).where(Event.id == event_id))
-    event = e_res.scalar_one_or_none()
-    if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamad\u0131")
-
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eri\u015fim")
+    event = await _get_event_for_admin(event_id, current_user, db, "analytics:read")
 
     pb_res = await db.execute(
         select(ParticipantBadge.badge_type, func.count(ParticipantBadge.id))
@@ -268,13 +249,7 @@ async def get_tier_analytics(
     db: AsyncSession = Depends(get_db),
 ):
     """Get certificate tier distribution analytics."""
-    e_res = await db.execute(select(Event).where(Event.id == event_id))
-    event = e_res.scalar_one_or_none()
-    if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamad\u0131")
-
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eri\u015fim")
+    event = await _get_event_for_admin(event_id, current_user, db, "analytics:read")
 
     cert_res = await db.execute(
         select(Certificate.certificate_tier, func.count(Certificate.id))
@@ -333,13 +308,7 @@ async def get_timeline_analytics(
     db: AsyncSession = Depends(get_db),
 ):
     """Get timeline analytics (registrations, completions, downloads over time)."""
-    e_res = await db.execute(select(Event).where(Event.id == event_id))
-    event = e_res.scalar_one_or_none()
-    if not event:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamad\u0131")
-
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Yetkisiz eri\u015fim")
+    event = await _get_event_for_admin(event_id, current_user, db, "analytics:read")
 
     reg_res = await db.execute(
         select(
@@ -424,12 +393,7 @@ async def export_event_analytics_csv(
     db: AsyncSession = Depends(get_db),
 ):
     """Export full attendee analytics as CSV."""
-    e_res = await db.execute(select(Event).where(Event.id == event_id))
-    event = e_res.scalar_one_or_none()
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+    event = await _get_event_for_admin(event_id, current_user, db, "analytics:read")
 
     # Fetch attendees with their cert and attendance info
     atts_res = await db.execute(
@@ -491,12 +455,7 @@ async def export_event_analytics_xlsx(
     from openpyxl.styles import Font, PatternFill
     import io as _io
 
-    e_res = await db.execute(select(Event).where(Event.id == event_id))
-    event = e_res.scalar_one_or_none()
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-    if event.admin_id != current_user.id and current_user.role != Role.superadmin:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+    event = await _get_event_for_admin(event_id, current_user, db, "analytics:read")
 
     atts_res = await db.execute(
         select(Attendee).where(Attendee.event_id == event_id).order_by(Attendee.registered_at.asc())

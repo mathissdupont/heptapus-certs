@@ -28,6 +28,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from .main import (
     Base, CurrentUser, Event, Role,
     get_current_user, get_db, require_role,
+    _get_event_for_admin as _get_scoped_event,
     _get_event_registration_fields,
     _validate_registration_fields_for_write,
 )
@@ -69,12 +70,7 @@ async def get_event_feature_presets(
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 async def _get_event_or_404(event_id: int, me: CurrentUser, db: AsyncSession) -> Event:
-    event = (await db.execute(select(Event).where(Event.id == event_id))).scalar_one_or_none()
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-    if me.role != Role.superadmin and event.admin_id != me.id:
-        raise HTTPException(status_code=403, detail="Access denied")
-    return event
+    return await _get_scoped_event(event_id, me, db, "settings:write")
 
 
 # ── Registration fields ────────────────────────────────────────────────────────

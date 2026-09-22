@@ -25,7 +25,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from .main import (
     Base, CurrentUser, Event, Role,
-    get_current_user, get_db, require_role, send_email_async, settings,
+    _get_event_for_admin, get_current_user, get_db, require_role, send_email_async, settings,
 )
 
 logger = logging.getLogger(__name__)
@@ -206,11 +206,7 @@ async def get_checkin_anomalies(
 ) -> AnomalyOut:
     from sqlalchemy import text as sa_text
 
-    event = (await db.execute(select(Event).where(Event.id == event_id))).scalar_one_or_none()
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-    if me.role != Role.superadmin and event.admin_id != me.id:
-        raise HTTPException(status_code=403, detail="Access denied")
+    event = await _get_event_for_admin(event_id, me, db, "analytics:read")
 
     try:
         total_reg = (await db.execute(

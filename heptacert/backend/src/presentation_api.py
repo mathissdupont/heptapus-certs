@@ -426,7 +426,7 @@ async def _authorized_event_org(db: AsyncSession, me: CurrentUser, event_id: int
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     org = await get_organization_for_access(db, me, permission, organization_id_from_request(request))
-    if getattr(org, "user_id", None) != event.admin_id and me.role != Role.superadmin:
+    if getattr(org, "user_id", None) != event.admin_id:
         raise HTTPException(status_code=404, detail="Event not found")
     return event, org
 

@@ -4107,7 +4107,7 @@ async def _process_bulk_certificate_jobs() -> None:
 # ── Badge Management Endpoints ────────────────────────────────────────────────
 
 async def _can_manage_organization_event(db: AsyncSession, me: CurrentUser, owner_user_id: int) -> bool:
-    if me.role == Role.superadmin or owner_user_id == me.id:
+    if owner_user_id == me.id:
         return True
     from .organization_access_api import user_can_manage_owner_organization
     return await user_can_manage_owner_organization(db, me, owner_user_id, "events:manage")
@@ -8583,7 +8583,7 @@ async def _get_optional_ai_event_context(event_id: Optional[int], me: CurrentUse
     event = res.scalar_one_or_none()
     if not event:
         return None
-    if me.role == Role.superadmin or event.admin_id == me.id:
+    if event.admin_id == me.id:
         return event
     normalized_email = str(me.email).strip().lower()
     member_res = await db.execute(
@@ -9023,7 +9023,7 @@ async def get_event_access(
 ):
     event = await _get_event_for_admin(event_id, me, db, "event:view")
     all_permissions = sorted(EVENT_TEAM_PERMISSION_LABELS.keys())
-    if me.role == Role.superadmin or event.admin_id == me.id:
+    if event.admin_id == me.id:
         return EventAccessOut(
             event_id=event_id,
             is_owner=True,
@@ -9608,14 +9608,7 @@ async def delete_event(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Superadmin can delete any event; admin can only delete their own
-    if me.role == Role.superadmin:
-        res = await db.execute(select(Event).where(Event.id == event_id))
-    else:
-        res = await db.execute(select(Event).where(Event.id == event_id, Event.admin_id == me.id))
-    ev = res.scalar_one_or_none()
-    if not ev:
-        raise HTTPException(status_code=404, detail="Event not found")
+    ev = await _get_event_for_owner(event_id, me, db)
     await db.delete(ev)
     await db.commit()
     return {"ok": True}
@@ -11351,7 +11344,7 @@ async def _get_event_for_admin(
     ev = res.scalar_one_or_none()
     if not ev:
         raise HTTPException(status_code=404, detail="Event not found")
-    if me.role == Role.superadmin or ev.admin_id == me.id:
+    if ev.admin_id == me.id:
         return ev
     if not await _event_owner_has_enterprise_plan(event_id, db):
         raise HTTPException(status_code=404, detail="Event not found")
@@ -11369,8 +11362,8 @@ async def _get_event_for_owner(event_id: int, me: CurrentUser, db: AsyncSession)
     ev = res.scalar_one_or_none()
     if not ev:
         raise HTTPException(status_code=404, detail="Event not found")
-    if me.role != Role.superadmin and ev.admin_id != me.id:
-        raise HTTPException(status_code=403, detail="Only the event owner can manage the team")
+    if ev.admin_id != me.id:
+        raise HTTPException(status_code=404, detail="Event not found")
     return ev
 
 

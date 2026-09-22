@@ -39,6 +39,7 @@ from .main import (
     require_role,
     settings,
     write_audit_log,
+    _get_event_for_admin as _get_scoped_event,
 )
 from .generator import render_certificate_pdf, render_certificate_png_watermarked
 from .quiz_models import Quiz, QuizAnswer, QuizAttempt, QuizChoice, QuizQuestion
@@ -164,13 +165,7 @@ def _attempt_to_dict(attempt: QuizAttempt) -> dict[str, Any]:
 
 
 async def _get_event_for_admin(event_id: int, me: CurrentUser, db: AsyncSession) -> Event:
-    res = await db.execute(select(Event).where(Event.id == event_id))
-    ev = res.scalar_one_or_none()
-    if not ev:
-        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı.")
-    if me.role != Role.superadmin and ev.admin_id != me.id:
-        raise HTTPException(status_code=403, detail="Bu etkinliğe erişim yetkiniz yok.")
-    return ev
+    return await _get_scoped_event(event_id, me, db, "certificates:write")
 
 
 async def _get_quiz_for_event(event_id: int, db: AsyncSession) -> Quiz:
