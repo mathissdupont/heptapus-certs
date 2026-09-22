@@ -11,6 +11,7 @@ import {
   listReportTypes,
 } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import EventSummaryExport from "@/components/Admin/EventSummaryExport";
 
 const FREQUENCIES_TR = [
   { value: "daily", label: "Günlük" },
@@ -219,6 +220,7 @@ export default function ScheduledReportsPage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
+      <EventSummaryExport />
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">{copy.pageTitle}</h1>
         <button

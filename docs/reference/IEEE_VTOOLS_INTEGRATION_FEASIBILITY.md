@@ -4,6 +4,8 @@ Status: read-only pilot preview (2026-09-22). No IEEE credentials, registration 
 
 **Product direction clarified by the user:** create an event in HeptaCert, then create/transfer it into IEEE vTools. The current public API and this preview **do not do that**. IEEE's [official creation guide](https://kb.ieee.org/vtools/blog/kb/creating-an-event/) describes signing in with an IEEE Account, choosing an eligible primary-host OU, completing the form and selecting “Save & Publish.” A supported create/update API, authentication flow and permission model were **not found in the public API documentation**. We must obtain IEEE confirmation before implementing automatic outbound writes or promising they will work. Do not reverse-engineer private endpoints or automate a personal IEEE login.
 
+**Approved fallback without IEEE-specific code:** `/admin/reports` now offers a general Event information report (copy or UTF-8 text download). It presents only known HeptaCert event fields for manual entry into vTools or other platforms and explicitly asks the organizer to verify missing time/host/registration details. It does not create a vTools event, authenticate to IEEE or track a destination event ID.
+
 ## Verified read-only preview
 
 `heptacert/backend/src/vtools_events.py` now provides a deliberately narrow CLI:

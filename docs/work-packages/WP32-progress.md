@@ -131,6 +131,13 @@ unauthenticated `/mcp` request → 401.
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
 
+### 2026-09-22 — general event information export in Reports
+
+- Added a one-off **Event information report** to `/admin/reports`, separate from scheduled reports. It loads only events available to the signed-in organizer, re-reads the selected event through the authorized detail endpoint, previews a plain-text report and supports copy or UTF-8 `.txt` download. The report includes known title, date, type, location, plain-text description and eligible public/registration URLs; it never invents start/end times, host OU or destination-specific category. Private events, disabled/closed registration and mismatched event IDs cannot produce misleading handoff links. Changing organization context clears the previous preview.
+- This is deliberately **platform-neutral**: it can help a user enter event details into IEEE vTools or another service, but it is not vTools SSO, a write integration or an automatic event transfer. The authorized user still reviews and publishes in the destination system. No backend, database, attendee PII or IEEE credentials are involved.
+- All 18 new UI/report labels are present in all nine catalogs (**811 keys per locale**). Focused report/UI tests **7/7**, full frontend tests **78/78**, TypeScript, `check:ui` and local production build passed. The report page's older scheduled-report copy/theme debt remains in the Phase 7 queue; this card itself uses catalog strings and semantic tokens.
+- **Next:** after the user's manual deploy, verify the event-ID isolation fix with owned and foreign accounts. Continue the Phase 7 auth/admin migration; legal drafts remain unpublished and LMS archived.
+
 ### 2026-09-22 — held legal draft and read-only IEEE vTools preview
 
 - The product owner confirmed there is no legal reviewer yet and asked for drafts to
