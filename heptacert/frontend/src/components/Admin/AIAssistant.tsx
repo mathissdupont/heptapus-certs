@@ -23,6 +23,7 @@ import {
   extractFeatureFlags,
 } from "@/lib/assistant/eventDraft";
 import { compactText, fuzzyAny, isAffirmative, isNegative, isSkipValue } from "@/lib/assistant/text";
+import { announceFloatingWidgetOpen, onFloatingWidgetOpen } from "@/lib/floatingWidgets";
 
 interface Message {
   role: "user" | "assistant";
@@ -119,6 +120,10 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
   useEffect(() => {
     scrollToBottom();
   }, [messages, loading, showSupportForm]);
+
+  useEffect(() => onFloatingWidgetOpen((widget) => {
+    if (widget !== "assistant") setIsOpen(false);
+  }), []);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -765,15 +770,18 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
     <>
       {!isOpen && (
         <button
-          onClick={() => setIsOpen(true)}
-          className="fixed bottom-5 right-5 z-40 flex h-13 w-13 items-center justify-center rounded-full bg-surface-900 text-white shadow-md transition-transform duration-200 hover:scale-105 active:scale-95"
+          onClick={() => {
+            announceFloatingWidgetOpen("assistant");
+            setIsOpen(true);
+          }}
+          className="admin-floating-launcher admin-floating-assistant-launcher fixed z-40 flex h-13 w-13 items-center justify-center rounded-full bg-surface-900 text-white shadow-md transition-transform duration-200 hover:scale-105 active:scale-95"
         >
           <MessageCircle className="h-5 w-5" />
         </button>
       )}
 
       {isOpen && (
-        <div className="fixed inset-x-2 bottom-2 z-50 flex h-[calc(100dvh-1.5rem)] max-h-[580px] flex-col overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-xl antialiased sm:inset-x-auto sm:bottom-6 sm:right-6 sm:h-[500px] sm:w-86">
+        <div className="admin-floating-panel fixed inset-x-2 z-50 flex h-[500px] flex-col overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-xl antialiased sm:inset-x-auto sm:right-6 sm:w-86">
           {/* Header */}
           <div className="flex h-13 shrink-0 items-center justify-between border-b border-surface-100 bg-white px-4">
             <div className="flex min-w-0 items-center gap-2">

@@ -131,6 +131,26 @@ unauthenticated `/mcp` request → 401.
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
 
+### 2026-09-23 — admin floating-overlay collision fix
+
+- Fixed the post-login collision between the cookie notice, mobile bottom navigation,
+  AI assistant and in-app tour. The cookie notice now publishes its measured live height
+  as a shared CSS safe-area variable; the navigation, launchers and open panels all move
+  above it and react to resize/content changes.
+- The assistant and tour launchers now have separate horizontal positions. Opening one
+  broadcasts a small client-only event that closes the other, so their panels cannot
+  compete for the same screen area. The tour card is width-safe and height-bounded on
+  narrow viewports.
+- Migrated the cookie notice's existing colors to semantic tokens. No user-facing copy,
+  route or API contract changed. The `light-only-color` ratchet improved **3348 → 3333**;
+  all nine catalogs remain aligned at **811 keys**.
+- Regression coverage verifies the measured cookie offset, offset cleanup after consent,
+  widget-open event lifecycle and the shared CSS/component class contract. Verification:
+  focused tests **3/3**, full frontend tests **89/89**, TypeScript, `check:ui` and local
+  production build (132 static pages) passed.
+- **Next:** continue Phase 7 through the remaining authenticated admin/event surfaces.
+  Legal drafts remain unpublished pending review; LMS remains archived.
+
 ### 2026-09-22 — MCP OAuth resource-binding interruption
 
 - The unprefixed `/oauth/authorize` consent client now carries the incoming OAuth

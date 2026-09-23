@@ -7,6 +7,7 @@ import { HelpCircle, X, ChevronLeft, ChevronRight, CheckCircle2, MousePointerCli
 import { useI18n } from "@/lib/i18n";
 import { getRoleFromToken } from "@/lib/api";
 import { pickLang } from "@/lib/pickLang";
+import { announceFloatingWidgetOpen, onFloatingWidgetOpen } from "@/lib/floatingWidgets";
 
 type TourStep = {
   title: string;
@@ -310,6 +311,13 @@ export default function InAppTourGuide() {
     setRole(getRoleFromToken());
   }, [pathname]);
 
+  useEffect(() => onFloatingWidgetOpen((widget) => {
+    if (widget !== "tour") {
+      setOpen(false);
+      document.querySelectorAll('.hepta-tour-highlight').forEach(el => el.classList.remove('hepta-tour-highlight'));
+    }
+  }), []);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const storedDismissed = window.localStorage.getItem(TOUR_DISMISSED_KEY) === "1";
@@ -401,6 +409,7 @@ export default function InAppTourGuide() {
 
   function restartTour() {
     if (typeof window !== "undefined") window.localStorage.removeItem(TOUR_DISMISSED_KEY);
+    announceFloatingWidgetOpen("tour");
     setDismissed(false);
     setDontShowAgain(false);
     setStepIndex(0);
@@ -412,7 +421,7 @@ export default function InAppTourGuide() {
   // KAPALI DURUM: Sağ Altta Minimalist Yüzen Apple Butonu (Launcher)
   if (dismissed && !open) {
     return (
-      <div className="fixed bottom-5 right-5 z-45 antialiased">
+      <div className="admin-floating-launcher admin-floating-tour-launcher fixed z-45 antialiased">
         <button
           type="button"
           onClick={restartTour}
@@ -441,10 +450,13 @@ export default function InAppTourGuide() {
       `}} />
 
       {/* AKTİF REHBER LAUNCHER BUTONU */}
-      <div className="fixed bottom-5 right-5 z-45 antialiased">
+      <div className="admin-floating-launcher admin-floating-tour-launcher fixed z-45 antialiased">
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            announceFloatingWidgetOpen("tour");
+            setOpen(true);
+          }}
           className="group flex h-11 w-11 items-center justify-center rounded-full border border-surface-200 bg-white shadow-md transition-all duration-300 hover:w-32 hover:px-4 hover:border-gray-300 relative"
         >
           <HelpCircle className="h-5 w-5 text-surface-500 transition-colors group-hover:text-surface-900 stroke-[1.8]" />
@@ -475,7 +487,7 @@ export default function InAppTourGuide() {
           )}
 
           {/* SÜZÜLEN APPLE TUR KARTI (Sağ Alt Köşe Yerleşim) */}
-          <div className="fixed bottom-20 right-5 z-50 w-full max-w-[320px] overflow-hidden rounded-2xl border border-surface-200/80 bg-white/95 shadow-[0_20px_50px_rgba(0,0,0,0.08)] backdrop-blur-xl antialiased animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className="admin-floating-tour-panel fixed inset-x-2 z-50 w-auto max-w-[320px] overflow-y-auto rounded-2xl border border-surface-200/80 bg-white/95 shadow-[0_20px_50px_rgba(0,0,0,0.08)] backdrop-blur-xl antialiased animate-in fade-in slide-in-from-bottom-4 duration-200 sm:left-auto sm:right-5 sm:w-full">
             
             {/* Üst İnce İlerleme Çubuğu */}
             <div className="h-1 w-full bg-surface-100/70">
