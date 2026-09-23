@@ -2,14 +2,23 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { X } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useT } from "@/lib/i18n";
 
 const STORAGE_KEY = "heptacert_cookie_consent";
 const CONSENT_VERSION = "1";
 
 type ConsentState = "accepted" | "declined" | null;
 
-export default function CookieConsent() {
+type CookieNoticeCopy = {
+  aria: string;
+  title: string;
+  description: string;
+  privacyLink: string;
+  dismiss: string;
+};
+
+function CookieConsentNotice({ copy }: { copy: CookieNoticeCopy }) {
   const [state, setState] = useState<ConsentState | "loading">("loading");
   const bannerRef = useRef<HTMLDivElement>(null);
 
@@ -66,48 +75,62 @@ export default function CookieConsent() {
       ref={bannerRef}
       role="dialog"
       aria-live="polite"
-      aria-label="Çerez ve veri kullanım bildirimi"
+      aria-label={copy.aria}
       className="fixed bottom-0 left-0 right-0 z-[80] border-t border-outline-subtle bg-raised/95 px-4 py-4 shadow-float backdrop-blur sm:px-6"
     >
       <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 space-y-1 pr-6">
+        <div className="min-w-0 space-y-1">
           <p className="text-xs font-bold text-content-primary">
-            Çerez ve Veri Bildirimi
+            {copy.title}
           </p>
           <p className="text-11 leading-relaxed text-content-muted">
-            Oturum yönetimi ve tercihlerinizi hatırlamak için tarayıcınızdaki
-            localStorage'ı kullanıyoruz. Analitik veya reklam çerezi kullanmıyoruz.{" "}
-            <Link href="/kvkk" className="font-semibold text-content-secondary underline underline-offset-2 hover:text-content-primary">
-              KVKK Aydınlatma Metni
+            {copy.description}{" "}
+            <Link href="/gizlilik" className="font-semibold text-content-secondary underline underline-offset-2 hover:text-content-primary">
+              {copy.privacyLink}
             </Link>
           </p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={() => save("declined")}
-            className="rounded-lg border border-outline-subtle bg-raised px-3 py-1.5 text-11 font-semibold text-content-secondary transition hover:bg-sunken"
-          >
-            Sadece Zorunlu
-          </button>
+        <div className="flex shrink-0 items-center">
           <button
             type="button"
             onClick={() => save("accepted")}
             className="rounded-lg bg-content-primary px-4 py-1.5 text-11 font-semibold text-content-inverted transition hover:bg-content-primary-soft"
           >
-            Kabul Et
-          </button>
-          <button
-            type="button"
-            onClick={() => save("declined")}
-            aria-label="Kapat"
-            className="ml-1 rounded-lg p-1 text-content-faint transition hover:bg-sunken hover:text-content-secondary"
-          >
-            <X className="h-4 w-4" />
+            {copy.dismiss}
           </button>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CookieConsent() {
+  const t = useT();
+  return (
+    <CookieConsentNotice
+      copy={{
+        aria: t("cookie_notice_aria"),
+        title: t("cookie_notice_title"),
+        description: t("cookie_notice_description"),
+        privacyLink: t("cookie_notice_privacy_link"),
+        dismiss: t("cookie_notice_dismiss"),
+      }}
+    />
+  );
+}
+
+export function LocalizedCookieConsent() {
+  const t = useTranslations();
+  return (
+    <CookieConsentNotice
+      copy={{
+        aria: t("cookie_notice_aria"),
+        title: t("cookie_notice_title"),
+        description: t("cookie_notice_description"),
+        privacyLink: t("cookie_notice_privacy_link"),
+        dismiss: t("cookie_notice_dismiss"),
+      }}
+    />
   );
 }

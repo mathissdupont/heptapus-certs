@@ -5,6 +5,7 @@ import NextLink from "next/link";
 import { useTranslations } from "next-intl";
 
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
+import { LocalizedCookieConsent } from "@/components/CookieConsent/CookieConsent";
 import { Link } from "@/i18n/navigation";
 
 export default function PublicLocaleShell({ children }: { children: React.ReactNode }) {
@@ -52,6 +53,7 @@ export default function PublicLocaleShell({ children }: { children: React.ReactN
           </div>
         </div>
       </footer>
+      <LocalizedCookieConsent />
     </div>
   );
 }

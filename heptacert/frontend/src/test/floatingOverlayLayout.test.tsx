@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import CookieConsent from "@/components/CookieConsent/CookieConsent";
+import { I18nProvider } from "@/lib/i18n";
 import {
   announceFloatingWidgetOpen,
   onFloatingWidgetOpen,
@@ -17,6 +18,7 @@ afterEach(() => {
 
 describe("admin floating overlay layout", () => {
   it("publishes and clears the live cookie-banner height", async () => {
+    localStorage.setItem("heptacert-lang", "tr");
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
       width: 1000,
       height: 132.2,
@@ -29,17 +31,26 @@ describe("admin floating overlay layout", () => {
       toJSON: () => ({}),
     });
 
-    render(<CookieConsent />);
+    render(<I18nProvider><CookieConsent /></I18nProvider>);
     await screen.findByRole("dialog");
     await waitFor(() => {
       expect(document.documentElement.style.getPropertyValue("--heptacert-cookie-consent-height")).toBe("133px");
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Kabul Et" }));
+    expect(screen.getByText(/Reklam veya ziyaretçi takibi yapmıyoruz/)).toBeInTheDocument();
+    expect(screen.queryByText(/localStorage/i)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Tamam" }));
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
       expect(document.documentElement.style.getPropertyValue("--heptacert-cookie-consent-height")).toBe("0px");
     });
+  });
+
+  it("renders the notice in the selected application language", async () => {
+    localStorage.setItem("heptacert-lang", "de");
+    render(<I18nProvider><CookieConsent /></I18nProvider>);
+    expect(await screen.findByRole("dialog", { name: "Hinweis zur erforderlichen Datennutzung" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Verstanden" })).toBeInTheDocument();
   });
 
   it("broadcasts which mutually exclusive floating widget opened", () => {

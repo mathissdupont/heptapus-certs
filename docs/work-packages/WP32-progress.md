@@ -21,9 +21,9 @@
     `api-free.deepl.com`).
 - **Active phase:** Phase 7 — surface-by-surface theme and translation migration.
 - **Urgent security interruption (2026-09-22):** The event-ID tenant isolation fix is
-  implemented and locally verified. The user will handle its manual production deploy;
-  authenticated foreign-event-ID verification is still pending. A git push alone does
-  not close the live exposure.
+  implemented and locally verified. On 2026-09-23 the product owner reported completing
+  the live owned-event and foreign-event security check successfully. This is an owner
+  attestation; no credentials or raw production trace were retained in the repository.
 - **Next step** (Phase 7, in order):
   1. Hold legal/contract UI changes until their Turkish source and translations can be
      reviewed. The user requested unpublished drafts because no legal reviewer is
@@ -130,6 +130,22 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-09-23 — plain-language essential-storage notice
+
+- Replaced the cookie banner's implementation detail (`localStorage`) and misleading
+  accept/decline choice with a plain-language notice: HeptaCert uses only technology
+  needed to secure the session and remember preferences, and does not currently use
+  advertising or visitor tracking. One acknowledgement action now dismisses it.
+- Added five catalog-first strings in all nine languages (**816 keys per locale**). The
+  authenticated/unprefixed shell uses the existing app translator; locale-prefixed
+  public pages use the existing next-intl translator, so the notice follows the selected
+  language in both routing systems. The privacy link remains unprefixed.
+- No third-party analytics was added during the current legal/UI cleanup. A future
+  analytics project should define its measurement need and privacy posture first; it is
+  not implied by this notice.
+- Focused notice/layout tests **4/4**, full frontend tests **90/90**, TypeScript,
+  `check:ui` and the production build (132 static pages) passed.
 
 ### 2026-09-23 — admin floating-overlay collision fix
 

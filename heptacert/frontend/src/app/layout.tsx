@@ -5,7 +5,6 @@ import "./globals.css";
 import { ClientShell } from "./_client-shell";
 import { ToastProvider } from "@/components/Toast/ToastProvider";
 import { ThemeInitializer } from "./_theme-initializer";
-import CookieConsent from "@/components/CookieConsent/CookieConsent";
 import { routing } from "@/i18n/routing";
 
 type BrandingMetadata = {
@@ -326,7 +325,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
         <ClientShell>{children}</ClientShell>
         <ToastProvider />
-        <CookieConsent />
       </body>
     </html>
   );

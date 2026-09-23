@@ -8,6 +8,7 @@ import { Activity, CalendarDays, Home, Menu, QrCode, Share, Shield, Smartphone, 
 import { useState, useEffect, useMemo } from "react";
 import { I18nProvider, LanguageToggle, useT, useI18n } from "@/lib/i18n";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import CookieConsent from "@/components/CookieConsent/CookieConsent";
 import {
   PUBLIC_MEMBER_TOKEN_EVENT,
   clearPublicMemberToken,
@@ -541,6 +542,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
         {children}
         <InstallPrompt />
         <AdminMobileNav />
+        <CookieConsent />
       </I18nProvider>
     );
   }
@@ -557,6 +559,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
         >
           {children}
         </motion.main>
+        <CookieConsent />
       </I18nProvider>
     );
   }
@@ -575,6 +578,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
           {children}
         </motion.main>
         <InstallPrompt />
+        <CookieConsent />
       </div>
     </I18nProvider>
   );
