@@ -1,0 +1,13 @@
+[Unit]
+Description=Back up Mailcow data to the HeptaCert server backup volume
+Requires=docker.service
+After=docker.service
+ConditionPathIsMountPoint=/mnt/HC_Volume_105029103
+
+[Service]
+Type=oneshot
+ExecStart=/srv/heptapus-certs/heptacert/ops/mailcow-backup.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+UMask=0077
