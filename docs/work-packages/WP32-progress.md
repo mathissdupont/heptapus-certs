@@ -131,6 +131,29 @@ unauthenticated `/mcp` request → 401.
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
 
+### 2026-09-24 — mobile landing hierarchy and navigation repair
+
+- Reworked the locale landing's phone layout instead of scaling down the desktop
+  composition. The hero now has compact mobile spacing, full-width primary actions,
+  a three-metric live-operations preview, a horizontal snap carousel for capabilities,
+  denser proof stats and touch-friendly step/CTA cards. A real 390px browser viewport
+  reports `scrollWidth === innerWidth` (390px), so the page has no horizontal overflow.
+- Replaced the public shell's narrow-screen horizontal link strip with an accessible
+  menu button (`aria-expanded` / `aria-controls`) and a two-column menu containing all
+  discovery, pricing and verification destinations plus login and registration actions.
+  The language control collapses to its locale code on phones and keeps the full native
+  language name from the `sm` breakpoint upward.
+- Rebalanced the landing message away from certificates: the hero now positions
+  HeptaCert as an end-to-end event operation covering registration, e-mail, QR check-in,
+  CRM, analytics, reporting and verifiable outputs. Added three product-preview labels
+  to every catalog; all nine catalogs remain aligned at **819 keys**.
+- Verification: `npm run check:ui` ✓ · focused landing tests **3/3** ✓ · TypeScript ✓ ·
+  production build (132 static pages) ✓ · manual 390×844 viewport and open-menu captures
+  reviewed. Transactional links remain unprefixed; no routing, backend or theme-toggle
+  contract changed.
+- **Next:** continue Phase 7 through the authenticated admin/event surfaces. Legal drafts
+  remain unpublished pending review; LMS remains archived.
+
 ### 2026-09-23 — plain-language essential-storage notice
 
 - Replaced the cookie banner's implementation detail (`localStorage`) and misleading
