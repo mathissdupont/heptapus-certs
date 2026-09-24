@@ -293,6 +293,7 @@ services:
   db_backup:
     profiles: ["ops"]
     image: postgres:16-alpine
+    init: true
     depends_on:
       db:
         condition: service_healthy
@@ -308,7 +309,7 @@ services:
       sh -ec "
         apk add --no-cache dcron && \
         echo '0 3 * * * sh /usr/local/bin/heptacert-postgres-backup >> /proc/1/fd/1 2>> /proc/1/fd/2' > /etc/crontabs/root && \
-        sh /usr/local/bin/heptacert-postgres-backup && \
+        (sh /usr/local/bin/heptacert-postgres-backup --check > /dev/null 2>&1 || sh /usr/local/bin/heptacert-postgres-backup) && \
         exec crond -f -l 2
       "
     healthcheck:
