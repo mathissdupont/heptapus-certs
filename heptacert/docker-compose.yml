@@ -305,6 +305,8 @@ services:
     volumes:
       - ${HEPTACERT_BACKUP_DIR:-/mnt/HC_Volume_105029103/heptacert-data/backups}:/backups
       - ./ops/postgres-backup.sh:/usr/local/bin/heptacert-postgres-backup:ro
+    tmpfs:
+      - /var/lib/postgresql/data
     entrypoint: >
       sh -ec "
         apk add --no-cache dcron && \

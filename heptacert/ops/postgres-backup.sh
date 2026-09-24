@@ -31,6 +31,7 @@ if [ "${1:-}" = "--check" ]; then
   fi
 
   pg_restore --list "$latest" >/dev/null
+  echo "Latest PostgreSQL backup is recent and valid: $latest"
   exit 0
 fi
 
