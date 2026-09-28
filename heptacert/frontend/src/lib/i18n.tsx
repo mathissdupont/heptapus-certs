@@ -10,6 +10,7 @@ import { it } from "@/locales/it";
 import { pt } from "@/locales/pt";
 import { nl } from "@/locales/nl";
 import { ru } from "@/locales/ru";
+import LanguageMenu from "@/components/i18n/LanguageMenu";
 import type { AppLocale } from "@/i18n/routing";
 import type { TranslationKey } from "@/locales/tr";
 
@@ -156,28 +157,13 @@ export function LanguageToggle({ className }: { className?: string }) {
   }
 
   return (
-    <label
-      className={
-        className ??
-        "inline-flex items-center gap-2 rounded-lg border border-surface-200 bg-raised px-2 py-1.5 text-xs font-bold text-surface-700 shadow-sm"
-      }
-    >
-      <span className="sr-only">{t("language_switcher_label")}</span>
-      <span className="rounded bg-surface-100 px-1.5 py-0.5 text-11 font-extrabold tracking-[0.18em] text-surface-700">
-        {lang.toUpperCase()}
-      </span>
-      <select
-        value={lang}
-        onChange={(e) => setLang(e.target.value as Lang)}
-        className="bg-transparent pr-1 font-bold text-surface-700 outline-none"
-        aria-label={t("language_switcher_label")}
-      >
-        {supportedLangs.map((l) => (
-          <option key={l} value={l}>
-            {langLabels[l]}
-          </option>
-        ))}
-      </select>
-    </label>
+    <LanguageMenu
+      value={lang}
+      options={supportedLangs}
+      labels={langLabels}
+      label={t("language_switcher_label")}
+      onChange={(next) => setLang(next as Lang)}
+      className={className}
+    />
   );
 }

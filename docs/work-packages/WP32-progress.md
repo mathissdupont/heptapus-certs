@@ -131,6 +131,25 @@ unauthenticated `/mcp` request → 401.
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
 
+### 2026-09-28 — styled language menu replaces native selects
+
+- The public `LanguageSwitcher` and the app/admin `LanguageToggle` both rendered a native
+  `<select>`, whose OS-drawn option list looked dated and ignored the theme tokens. Both
+  now render the shared `components/i18n/LanguageMenu.tsx`: a button + listbox popover
+  (globe, locale code, native name, check on the active language) built only from
+  semantic tokens, so it is dark-theme ready.
+- Accessibility: `aria-haspopup="listbox"`, `aria-expanded`, `aria-activedescendant`;
+  ArrowUp/Down/Home/End, Enter/Space, Escape (focus returns to the trigger), Tab closes,
+  type-ahead on the native name, outside click closes. No new catalog keys — it reuses
+  `language_switcher_label`.
+- The public shell hides the language name below `sm` via the new `compactOnMobile`
+  prop (previously a `[&_select]:hidden` selector hack).
+- Evidence: `npx tsc --noEmit` clean; `npm run check:ui` holds at baseline, catalogs 819
+  keys ×9; `npx vitest run` 18 files / 91 tests pass (`authenticatedLanguages.test.tsx`
+  moved from combobox to button/listbox queries and gained a keyboard test).
+- Not yet eyeballed in a real browser at 390px and desktop — do that on the next visit.
+- Next step: unchanged (Phase 7 list above).
+
 ### 2026-09-24 — mobile landing hierarchy and navigation repair
 
 - Reworked the locale landing's phone layout instead of scaling down the desktop

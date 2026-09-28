@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { I18nProvider, LanguageToggle, useI18n } from "@/lib/i18n";
@@ -28,16 +28,35 @@ describe("authenticated language selection", () => {
     localStorage.setItem("heptacert-lang", "de");
     render(<I18nProvider><LanguageProbe /></I18nProvider>);
 
-    const select = await screen.findByRole("combobox", { name: "Sprache auswählen" });
-    expect(select.querySelectorAll("option")).toHaveLength(9);
+    const trigger = await screen.findByRole("button", { name: "Sprache auswählen: Deutsch" });
+    fireEvent.click(trigger);
+    const listbox = screen.getByRole("listbox", { name: "Sprache auswählen" });
+    expect(within(listbox).getAllByRole("option")).toHaveLength(9);
+    expect(within(listbox).getByRole("option", { selected: true })).toHaveTextContent("Deutsch");
     expect(screen.getByTestId("active-language")).toHaveTextContent("de");
     expect(screen.getByTestId("translated-copy")).toHaveTextContent("Preise");
+  });
+
+  it("supports keyboard selection and closes on Escape", async () => {
+    render(<I18nProvider><LanguageProbe /></I18nProvider>);
+
+    const trigger = screen.getByRole("button", { expanded: false });
+    fireEvent.keyDown(trigger, { key: "ArrowDown" });
+    const listbox = screen.getByRole("listbox");
+    fireEvent.keyDown(listbox, { key: "Escape" });
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+
+    fireEvent.keyDown(trigger, { key: "ArrowDown" });
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "End" });
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "Enter" });
+    await waitFor(() => expect(screen.getByTestId("active-language")).toHaveTextContent("ru"));
   });
 
   it("persists a newly selected language and uses its catalog", async () => {
     render(<I18nProvider><LanguageProbe /></I18nProvider>);
 
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "ru" } });
+    fireEvent.click(screen.getByRole("button", { expanded: false }));
+    fireEvent.click(screen.getByRole("option", { name: /Русский/ }));
 
     await waitFor(() => expect(screen.getByTestId("active-language")).toHaveTextContent("ru"));
     expect(screen.getByTestId("translated-copy")).toHaveTextContent("Цены");
